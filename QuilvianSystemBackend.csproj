@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>c5cea89b-03e0-4326-8dc2-62ee00ae859d</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>.</DockerfileContext>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.36" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.36" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.36">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="6.0.36" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="6.0.36" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.18.1" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="6.0.18" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.29" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Areas\Administrator\Dashboard\" />
+    <Folder Include="Areas\Administrator\DocumentManagement\" />
+    <Folder Include="Areas\Corporate\HumanResource\Employee\" />
+    <Folder Include="Areas\Corporate\HumanResource\MasterData\Models\" />
+    <Folder Include="Areas\Corporate\InventoryManagement\" />
+    <Folder Include="Areas\Corporate\AssetManagement\" />
+    <Folder Include="Areas\Corporate\FinancialManagement\" />
+    <Folder Include="Areas\Corporate\AccountingManagement\" />
+    <Folder Include="Areas\Corporate\PayrollManagement\" />
+    <Folder Include="Areas\Corporate\TaxManagement\" />
+    <Folder Include="Areas\Corporate\ProcurementManagement\" />
+    <Folder Include="Areas\HealthServices\InpatientManagement\" />
+    <Folder Include="Areas\HealthServices\EmergencyInstallationManagement\" />
+    <Folder Include="Areas\HealthServices\MedicalRecordManagement\" />
+    <Folder Include="Areas\HealthServices\LaboratoryManagement\" />
+    <Folder Include="Areas\HealthServices\BillingManagement\" />
+    <Folder Include="Areas\HealthServices\InsuranceManagement\" />
+    <Folder Include="Areas\HealthServices\DoctorAndScheduleManagement\" />
+    <Folder Include="Areas\HealthServices\OperatingRoomManagement\" />
+    <Folder Include="Areas\HealthServices\RadiologyManagement\" />
+    <Folder Include="Areas\HealthServices\PharmacyManagement\" />
+    <Folder Include="Areas\HealthServices\PatientManagement\" />
+    <Folder Include="Areas\HealthServices\RegistrationManagement\" />
+    <Folder Include="Areas\HealthServices\OutpatientManagement\" />
+    <Folder Include="Areas\HealthServices\Views\" />
+    <Folder Include="Logs\" />
+  </ItemGroup>
+
+</Project>

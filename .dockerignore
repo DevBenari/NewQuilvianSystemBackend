@@ -1,0 +1,72 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker files
+.dockerignore
+Dockerfile
+Dockerfile.*
+docker-compose.yml
+docker-compose.*.yml
+
+# Visual Studio / VS Code / IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.rsuser
+*.sln.docstates
+
+# Build output
+bin/
+obj/
+**/bin/
+**/obj/
+
+# ASP.NET / .NET temporary files
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# User secrets / environment files
+.env
+.env.*
+**/.env
+**/.env.*
+secrets.dev.yaml
+**/secrets.dev.yaml
+values.dev.yaml
+**/values.dev.yaml
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# Node / frontend dependencies if any
+node_modules/
+**/node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docs / metadata not needed in Docker build
+README.md
+LICENSE
+
+# Kubernetes / Helm files if not needed inside image
+charts/
+**/charts/
+*.kubeconfig
+
+# Misc
+*.dbmdl
+*.jfm
+*.pdb
