@@ -222,7 +222,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             return Ok(ApiResponse<ResponseDepartmentPagedResult>.Ok(
                 result,
-                "Data department berhasil diambil."
+                "Data department berhasil ditampilkan."
             ));
         }
 
