@@ -27,6 +27,11 @@ namespace QuilvianSystemBackend.Models
         public Guid? DoctorId { get; set; }
 
         public Guid? ExternalUserId { get; set; }
+        public bool IsGeolocationBypassEnabled { get; set; } = false;
+
+        public string? GeolocationBypassReason { get; set; }
+
+        public DateTime? GeolocationBypassUntil { get; set; }
 
         public bool IsActive { get; set; } = true;
 

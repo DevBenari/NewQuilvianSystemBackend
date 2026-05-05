@@ -42,6 +42,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<ExtUserDocument> ExtUserDocuments { get; set; }
 
         public DbSet<EmpAttendance> EmpAttendances { get; set; }
+        public DbSet<MstWorkSchedule> MstWorkSchedules { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -139,6 +140,18 @@ namespace QuilvianSystemBackend.Repositories
                 entity.HasIndex(x => x.ExternalUserId);
 
                 entity.HasIndex(x => x.IsActive);
+
+                entity.Property(x => x.IsGeolocationBypassEnabled)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.GeolocationBypassReason)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.GeolocationBypassUntil)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.HasIndex(x => x.IsGeolocationBypassEnabled);
             });
 
             builder.Entity<ApplicationRole>(entity =>
@@ -1527,6 +1540,21 @@ namespace QuilvianSystemBackend.Repositories
                     .HasColumnType("timestamp with time zone")
                     .IsRequired(false);
 
+                entity.Property(x => x.WorkStartTime)
+                    .HasColumnType("time without time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.WorkEndTime)
+                    .HasColumnType("time without time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.AttendanceStatus)
+                    .HasMaxLength(50)
+                    .HasDefaultValue("Present");
+
+                entity.Property(x => x.GeofenceBypassReason)
+                    .HasMaxLength(250);
+
                 entity.Property(x => x.PersonType)
                     .HasMaxLength(50)
                     .IsRequired();
@@ -1554,6 +1582,16 @@ namespace QuilvianSystemBackend.Repositories
                 entity.Property(x => x.CheckOutUserAgent)
                     .HasMaxLength(500);
 
+                entity.HasOne(x => x.User)
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.WorkSchedule)
+                    .WithMany()
+                    .HasForeignKey(x => x.WorkScheduleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 entity.HasIndex(x => new { x.UserId, x.AttendanceDate })
                     .IsUnique();
 
@@ -1561,9 +1599,82 @@ namespace QuilvianSystemBackend.Repositories
 
                 entity.HasIndex(x => x.DoctorId);
 
+                entity.HasIndex(x => x.WorkScheduleId);
+
                 entity.HasIndex(x => x.AttendanceDate);
 
                 entity.HasIndex(x => x.Status);
+
+                entity.HasIndex(x => x.AttendanceStatus);
+
+                entity.HasIndex(x => x.IsLate);
+
+                entity.HasIndex(x => x.IsGeofenceBypassed);
+            });
+
+            builder.Entity<MstWorkSchedule>(entity =>
+            {
+                entity.ToTable("MstWorkSchedule", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.ScheduleCode)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.ScheduleName)
+                    .HasMaxLength(200)
+                    .IsRequired();
+
+                entity.Property(x => x.WorkStartTime)
+                    .HasColumnType("time without time zone")
+                    .IsRequired();
+
+                entity.Property(x => x.WorkEndTime)
+                    .HasColumnType("time without time zone")
+                    .IsRequired();
+
+                entity.Property(x => x.EffectiveStartDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.EffectiveEndDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDefault)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.HasOne(x => x.User)
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.Department)
+                    .WithMany()
+                    .HasForeignKey(x => x.DepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.Position)
+                    .WithMany()
+                    .HasForeignKey(x => x.PositionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.ScheduleCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.UserId);
+
+                entity.HasIndex(x => x.UserType);
+
+                entity.HasIndex(x => new { x.DepartmentId, x.PositionId });
+
+                entity.HasIndex(x => x.IsDefault);
+
+                entity.HasIndex(x => x.IsActive);
             });
         }
     }

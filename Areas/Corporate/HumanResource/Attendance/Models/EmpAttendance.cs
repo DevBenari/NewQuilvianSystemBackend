@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 using QuilvianSystemBackend.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models
 {
@@ -15,11 +16,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models
 
         public Guid? DoctorId { get; set; }
 
+        public Guid? WorkScheduleId { get; set; }
+
         public DateOnly AttendanceDate { get; set; }
 
         public DateTime CheckInAt { get; set; }
 
         public DateTime? CheckOutAt { get; set; }
+
+        public TimeOnly? WorkStartTime { get; set; }
+
+        public TimeOnly? WorkEndTime { get; set; }
+
+        public int CheckInToleranceMinutes { get; set; } = 0;
+
+        public bool IsLate { get; set; } = false;
+
+        public int LateMinutes { get; set; } = 0;
+
+        [MaxLength(50)]
+        public string AttendanceStatus { get; set; } = "Present";
 
         public double CheckInLatitude { get; set; }
 
@@ -38,6 +54,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models
         public double? CheckOutDistanceMeters { get; set; }
 
         public int? WorkDurationMinutes { get; set; }
+
+        public bool IsGeofenceBypassed { get; set; } = false;
+
+        [MaxLength(250)]
+        public string? GeofenceBypassReason { get; set; }
 
         [MaxLength(50)]
         public string PersonType { get; set; } = string.Empty;
@@ -62,5 +83,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models
 
         [MaxLength(500)]
         public string? CheckOutUserAgent { get; set; }
+
+        public ApplicationUser? User { get; set; }
+
+        public MstWorkSchedule? WorkSchedule { get; set; }
     }
 }

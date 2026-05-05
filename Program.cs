@@ -190,6 +190,7 @@ app.MapHealthChecks("/health");
 await SuperAdminSeeder.SeedAsync(app.Services);
 await AppVersionSeeder.SeedAsync(app.Services);
 await AccessMenuSeeder.SeedAsync(app.Services);
+await DefaultWorkScheduleSeeder.SeedAsync(app.Services);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
