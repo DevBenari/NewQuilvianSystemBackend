@@ -14,7 +14,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
 {
     [ApiController]
     [Route("api/v1/administrator/setting/role-access")]
-    [Tags("Administrator - Setting - Role Access")]
+    [Tags("Administrator / Setting / Role Access")]
     [Authorize(Roles = "SuperAdmin")]
     [AccessController(
     moduleCode: "SETTING",

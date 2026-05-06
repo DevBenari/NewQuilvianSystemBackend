@@ -4,6 +4,9 @@ using QuilvianSystemBackend.Areas.Administrator.UserManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models;
 using QuilvianSystemBackend.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.Employee.Models;
+using System.Reflection.Emit;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 
 namespace QuilvianSystemBackend.Repositories
 {
@@ -21,11 +24,17 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<SysActionAccess> SysActionAccesses { get; set; }
         public DbSet<SysAccessPolicy> SysAccessPolicies { get; set; }
 
+        public DbSet<MstCountry> MstCountries { get; set; }
+        public DbSet<MstProvince> MstProvinces { get; set; }
+        public DbSet<MstCity> MstCities { get; set; }
+        public DbSet<MstDistrict> MstDistricts { get; set; }
+        public DbSet<MstPostalCode> MstPostalCodes { get; set; }
+
         public DbSet<MstDepartment> MstDepartments { get; set; }
         public DbSet<MstPosition> MstPositions { get; set; }
         public DbSet<ApplicationUserOrganization> ApplicationUserOrganizations { get; set; }
 
-        public DbSet<MstEmployee> MstEmployees { get; set; }
+        public DbSet<MstEmployee> MstEmployees { get; set; }        
         public DbSet<MstDoctor> MstDoctors { get; set; }
         public DbSet<MstExternalUser> MstExternalUsers { get; set; }
 
@@ -34,6 +43,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<EmpInsuranceProfile> EmpInsuranceProfiles { get; set; }
         public DbSet<EmpBankAccount> EmpBankAccounts { get; set; }
         public DbSet<EmpDocument> EmpDocuments { get; set; }
+
+        public DbSet<EmpTransportAllowanceProfile> EmpTransportAllowanceProfiles { get; set; }
+        public DbSet<EmpTransportAllowancePolicy> EmpTransportAllowancePolicies { get; set; }
+        public DbSet<EmpTransportAllowanceTransaction> EmpTransportAllowanceTransactions { get; set; }
 
         public DbSet<DctLicense> DctLicenses { get; set; }
         public DbSet<DctPracticeProfile> DctPracticeProfiles { get; set; }
@@ -367,6 +380,333 @@ namespace QuilvianSystemBackend.Repositories
                 });
             });
 
+            builder.Entity<MstCountry>(entity =>
+            {
+                entity.ToTable("MstCountry", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.CountryCode)
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(x => x.CountryName)
+                    .HasMaxLength(150)
+                    .IsRequired();
+
+                entity.Property(x => x.PhoneCode)
+                    .HasMaxLength(10);
+
+                entity.Property(x => x.IsDefault)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasIndex(x => x.CountryCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.CountryName);
+
+                entity.HasIndex(x => new
+                {
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstProvince>(entity =>
+            {
+                entity.ToTable("MstProvince", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.CountryId)
+                    .IsRequired();
+
+                entity.Property(x => x.ProvinceCode)
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(x => x.ProvinceName)
+                    .HasMaxLength(150)
+                    .IsRequired();
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.Country)
+                    .WithMany(x => x.Provinces)
+                    .HasForeignKey(x => x.CountryId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => new
+                {
+                    x.CountryId,
+                    x.ProvinceCode
+                }).IsUnique();
+
+                entity.HasIndex(x => new
+                {
+                    x.CountryId,
+                    x.ProvinceName
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstCity>(entity =>
+            {
+                entity.ToTable("MstCity", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.ProvinceId)
+                    .IsRequired();
+
+                entity.Property(x => x.CityCode)
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(x => x.CityName)
+                    .HasMaxLength(150)
+                    .IsRequired();
+
+                entity.Property(x => x.CityType)
+                    .HasMaxLength(30);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.Province)
+                    .WithMany(x => x.Cities)
+                    .HasForeignKey(x => x.ProvinceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => new
+                {
+                    x.ProvinceId,
+                    x.CityCode
+                }).IsUnique();
+
+                entity.HasIndex(x => new
+                {
+                    x.ProvinceId,
+                    x.CityName
+                });
+
+                entity.HasIndex(x => x.CityType);
+
+                entity.HasIndex(x => new
+                {
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstDistrict>(entity =>
+            {
+                entity.ToTable("MstDistrict", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.CityId)
+                    .IsRequired();
+
+                entity.Property(x => x.DistrictCode)
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(x => x.DistrictName)
+                    .HasMaxLength(150)
+                    .IsRequired();
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.City)
+                    .WithMany(x => x.Districts)
+                    .HasForeignKey(x => x.CityId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => new
+                {
+                    x.CityId,
+                    x.DistrictCode
+                }).IsUnique();
+
+                entity.HasIndex(x => new
+                {
+                    x.CityId,
+                    x.DistrictName
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstPostalCode>(entity =>
+            {
+                entity.ToTable("MstPostalCode", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.DistrictId)
+                    .IsRequired();
+
+                entity.Property(x => x.PostalCode)
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(x => x.VillageName)
+                    .HasMaxLength(150);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.District)
+                    .WithMany(x => x.PostalCodes)
+                    .HasForeignKey(x => x.DistrictId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.PostalCode);
+
+                entity.HasIndex(x => new
+                {
+                    x.DistrictId,
+                    x.PostalCode
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.DistrictId,
+                    x.VillageName
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
             builder.Entity<MstDepartment>(entity =>
             {
                 entity.ToTable("MstDepartment", "public");
@@ -609,6 +949,49 @@ namespace QuilvianSystemBackend.Repositories
                 entity.HasIndex(x => x.Email);
 
                 entity.HasIndex(x => new { x.PrimaryDepartmentId, x.PrimaryPositionId });
+
+                entity.HasIndex(x => x.IsActive);
+
+                entity.HasOne(x => x.PrimaryDepartment)
+                    .WithMany()
+                    .HasForeignKey(x => x.PrimaryDepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.PrimaryPosition)
+                    .WithMany()
+                    .HasForeignKey(x => x.PrimaryPositionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.TransportAllowanceProfile)
+                    .WithOne(x => x.Employee)
+                    .HasForeignKey<EmpTransportAllowanceProfile>(x => x.EmployeeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasMany(x => x.TransportAllowanceTransactions)
+                    .WithOne(x => x.Employee)
+                    .HasForeignKey(x => x.EmployeeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.EmployeeCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.EmployeeNumber);
+
+                entity.HasIndex(x => x.AttendanceNumber);
+
+                entity.HasIndex(x => x.IdentityNumber);
+
+                entity.HasIndex(x => x.Email);
+
+                entity.HasIndex(x => new { x.PrimaryDepartmentId, x.PrimaryPositionId });
+
+                entity.HasIndex(x => new
+                {
+                    x.PrimaryDepartmentId,
+                    x.PrimaryPositionId,
+                    x.IsActive,
+                    x.IsDelete
+                });
 
                 entity.HasIndex(x => x.IsActive);
             });
@@ -932,6 +1315,326 @@ namespace QuilvianSystemBackend.Repositories
                 entity.HasIndex(x => x.EmployeeId);
                 entity.HasIndex(x => x.DocumentType);
                 entity.HasIndex(x => x.DocumentNumber);
+            });
+
+            builder.Entity<EmpTransportAllowanceProfile>(entity =>
+            {
+                entity.ToTable("EmpTransportAllowanceProfile", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.EmployeeId)
+                    .IsRequired();
+
+                entity.Property(x => x.AllowanceMode)
+                    .HasMaxLength(50)
+                    .HasDefaultValue("None")
+                    .IsRequired();
+
+                entity.Property(x => x.MonthlyAmount)
+                    .HasColumnType("numeric(18,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.DailyAmount)
+                    .HasColumnType("numeric(18,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.NightAmount)
+                    .HasColumnType("numeric(18,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.IsEligible)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsNightTransportEligible)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsProrated)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsTaxable)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsPayrollComponent)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.EffectiveStartDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.EffectiveEndDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.Employee)
+                    .WithOne(x => x.TransportAllowanceProfile)
+                    .HasForeignKey<EmpTransportAllowanceProfile>(x => x.EmployeeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.EmployeeId)
+                    .IsUnique()
+                    .HasFilter("\"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.IsEligible,
+                    x.IsNightTransportEligible,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => x.AllowanceMode);
+
+                entity.HasIndex(x => new
+                {
+                    x.EffectiveStartDate,
+                    x.EffectiveEndDate,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<EmpTransportAllowancePolicy>(entity =>
+            {
+                entity.ToTable("EmpTransportAllowancePolicy", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.PolicyCode)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.PolicyName)
+                    .HasMaxLength(150)
+                    .IsRequired();
+
+                entity.Property(x => x.AllowanceMode)
+                    .HasMaxLength(50)
+                    .HasDefaultValue("DailyAttendance")
+                    .IsRequired();
+
+                entity.Property(x => x.DefaultMonthlyAmount)
+                    .HasColumnType("numeric(18,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.DefaultDailyAmount)
+                    .HasColumnType("numeric(18,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.DefaultNightAmount)
+                    .HasColumnType("numeric(18,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.NightStartTime)
+                    .HasColumnType("time without time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.NightEndTime)
+                    .HasColumnType("time without time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RequireAttendance)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.ExcludeIfAbsent)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.ExcludeIfLeave)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.ExcludeIfHoliday)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsTaxable)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasIndex(x => x.PolicyCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.PolicyName);
+
+                entity.HasIndex(x => x.AllowanceMode);
+
+                entity.HasIndex(x => new
+                {
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<EmpTransportAllowanceTransaction>(entity =>
+            {
+                entity.ToTable("EmpTransportAllowanceTransaction", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.EmployeeId)
+                    .IsRequired();
+
+                entity.Property(x => x.TransactionDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.PeriodYearMonth)
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(x => x.AllowanceType)
+                    .HasMaxLength(50)
+                    .HasDefaultValue("Daily")
+                    .IsRequired();
+
+                entity.Property(x => x.Amount)
+                    .HasColumnType("numeric(18,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.IsGeneratedFromAttendance)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsNightShift)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.TransactionStatus)
+                    .HasMaxLength(50)
+                    .HasDefaultValue("Draft")
+                    .IsRequired();
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.Employee)
+                    .WithMany(x => x.TransportAllowanceTransactions)
+                    .HasForeignKey(x => x.EmployeeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.TransportAllowanceProfile)
+                    .WithMany()
+                    .HasForeignKey(x => x.TransportAllowanceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.TransportAllowancePolicy)
+                    .WithMany()
+                    .HasForeignKey(x => x.TransportAllowancePolicyId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => new
+                {
+                    x.PeriodYearMonth,
+                    x.TransactionStatus,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.EmployeeId,
+                    x.PeriodYearMonth,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.TransactionDate,
+                    x.AllowanceType,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.EmployeeId,
+                    x.TransactionDate,
+                    x.AllowanceType,
+                    x.IsNightShift,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => x.TransportAllowanceProfileId);
+
+                entity.HasIndex(x => x.TransportAllowancePolicyId);
+
+                entity.HasIndex(x => x.AttendanceId);
+
+                entity.HasIndex(x => x.ShiftId);
             });
 
             builder.Entity<ApplicationUserOrganization>(entity =>
@@ -1643,7 +2346,7 @@ namespace QuilvianSystemBackend.Repositories
                 entity.HasIndex(x => x.IsDefault);
 
                 entity.HasIndex(x => x.IsActive);
-            });
+            });            
         }
     }
 }

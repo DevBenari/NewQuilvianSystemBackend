@@ -66,6 +66,8 @@ namespace QuilvianSystemBackend.Seeders
                 );
             }
 
+            await NormalizeSystemOnlyVisibilityAsync(dbContext);
+
             await dbContext.SaveChangesAsync();
         }
 
@@ -121,6 +123,12 @@ namespace QuilvianSystemBackend.Seeders
 
             var controllerRoutePath = BuildControllerRoutePath(controllerAction);
 
+            var isSystemOnly = attribute.IsSystemOnly;
+
+            var visibleInRoleAccess =
+                !isSystemOnly &&
+                attribute.VisibleInRoleAccess;
+
             var controller = await dbContext.SysControllerAccesses
                 .FirstOrDefaultAsync(x =>
                     x.ModuleId == moduleId &&
@@ -132,8 +140,8 @@ namespace QuilvianSystemBackend.Seeders
                 controller.RoutePath = controllerRoutePath;
                 controller.Description = attribute.Description;
                 controller.SortOrder = attribute.SortOrder;
-                controller.VisibleInRoleAccess = attribute.VisibleInRoleAccess;
-                controller.IsSystemOnly = attribute.IsSystemOnly;
+                controller.VisibleInRoleAccess = visibleInRoleAccess;
+                controller.IsSystemOnly = isSystemOnly;
                 controller.IsActive = true;
                 controller.IsDelete = false;
 
@@ -149,8 +157,8 @@ namespace QuilvianSystemBackend.Seeders
                 RoutePath = controllerRoutePath,
                 Description = attribute.Description,
                 SortOrder = attribute.SortOrder,
-                VisibleInRoleAccess = attribute.VisibleInRoleAccess,
-                IsSystemOnly = attribute.IsSystemOnly,
+                VisibleInRoleAccess = visibleInRoleAccess,
+                IsSystemOnly = isSystemOnly,
                 IsActive = true,
                 CreateDateTime = DateTime.UtcNow,
                 IsDelete = false,
@@ -174,16 +182,15 @@ namespace QuilvianSystemBackend.Seeders
             var actionRoutePath = BuildActionRoutePath(controllerAction);
             var httpMethod = GetHttpMethod(controllerAction);
 
-            var visibleInRoleAccess =
-                controllerAttribute.VisibleInRoleAccess &&
-                !controllerAttribute.IsSystemOnly &&
-                attribute.VisibleInRoleAccess &&
-                !attribute.IsSystemOnly;
-
             var isSystemOnly =
                 controllerAttribute.IsSystemOnly ||
                 attribute.IsSystemOnly;
-            
+
+            var visibleInRoleAccess =
+                !isSystemOnly &&
+                controllerAttribute.VisibleInRoleAccess &&
+                attribute.VisibleInRoleAccess;
+
             var action = await dbContext.SysActionAccesses
                 .FirstOrDefaultAsync(x =>
                     x.ControllerAccessId == controllerAccessId &&
@@ -229,7 +236,47 @@ namespace QuilvianSystemBackend.Seeders
             await dbContext.SaveChangesAsync();
         }
 
-        private static string BuildControllerRoutePath(ControllerActionDescriptor controllerAction)
+        private static async Task NormalizeSystemOnlyVisibilityAsync(
+            ApplicationDbContext dbContext)
+        {
+            var systemOnlyControllers = await dbContext.SysControllerAccesses
+                .Where(x =>
+                    x.IsSystemOnly &&
+                    x.VisibleInRoleAccess)
+                .ToListAsync();
+
+            foreach (var controller in systemOnlyControllers)
+            {
+                controller.VisibleInRoleAccess = false;
+            }
+
+            var systemOnlyActions = await dbContext.SysActionAccesses
+                .Where(x =>
+                    x.IsSystemOnly &&
+                    x.VisibleInRoleAccess)
+                .ToListAsync();
+
+            foreach (var action in systemOnlyActions)
+            {
+                action.VisibleInRoleAccess = false;
+            }
+
+            var actionsUnderSystemOnlyController = await dbContext.SysActionAccesses
+                .Where(a =>
+                    a.VisibleInRoleAccess &&
+                    a.ControllerAccess != null &&
+                    a.ControllerAccess.IsSystemOnly)
+                .ToListAsync();
+
+            foreach (var action in actionsUnderSystemOnlyController)
+            {
+                action.VisibleInRoleAccess = false;
+                action.IsSystemOnly = true;
+            }
+        }
+
+        private static string BuildControllerRoutePath(
+            ControllerActionDescriptor controllerAction)
         {
             var routeAttribute = controllerAction.ControllerTypeInfo
                 .GetCustomAttribute<RouteAttribute>();
@@ -253,7 +300,8 @@ namespace QuilvianSystemBackend.Seeders
             return template;
         }
 
-        private static string BuildActionRoutePath(ControllerActionDescriptor controllerAction)
+        private static string BuildActionRoutePath(
+            ControllerActionDescriptor controllerAction)
         {
             var template = controllerAction.AttributeRouteInfo?.Template;
 
@@ -274,7 +322,8 @@ namespace QuilvianSystemBackend.Seeders
             return template;
         }
 
-        private static string GetHttpMethod(ControllerActionDescriptor controllerAction)
+        private static string GetHttpMethod(
+            ControllerActionDescriptor controllerAction)
         {
             var httpMethodActionConstraint = controllerAction
                 .ActionConstraints?

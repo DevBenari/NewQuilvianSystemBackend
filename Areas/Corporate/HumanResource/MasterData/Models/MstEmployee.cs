@@ -1,5 +1,6 @@
 ﻿using QuilvianSystemBackend.Areas.Administrator.UserManagement.Enum;
 using QuilvianSystemBackend.Areas.Administrator.UserManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.Employee.Models;
 using QuilvianSystemBackend.Enum;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
@@ -135,5 +136,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public EmpInsuranceProfile? InsuranceProfile { get; set; }
 
         public ICollection<EmpDocument> Documents { get; set; } = new List<EmpDocument>();
+        public EmpTransportAllowanceProfile? TransportAllowanceProfile { get; set; }
+
+        public ICollection<EmpTransportAllowanceTransaction> TransportAllowanceTransactions { get; set; }
+            = new List<EmpTransportAllowanceTransaction>();
     }
 }
