@@ -6,8 +6,6 @@
         Employee = 2,
         PermanentDoctor = 3,
         GuestDoctor = 4,
-        ExternalUser = 5,
-        Patient = 6,
-        Vendor = 7
+        ExternalUser = 5
     }
 }

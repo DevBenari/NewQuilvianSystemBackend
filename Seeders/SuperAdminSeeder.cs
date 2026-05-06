@@ -87,21 +87,22 @@ namespace QuilvianSystemBackend.Seeders
                     NormalizedEmail = email.ToUpperInvariant(),
                     EmailConfirmed = true,
 
-                    FullName = string.IsNullOrWhiteSpace(fullName)
-                        ? "Super Administrator"
-                        : fullName.Trim(),
+                    DisplayName = string.IsNullOrWhiteSpace(fullName)
+                                ? "Super Administrator"
+                                : fullName.Trim(),
 
                     UserType = UserType.SuperAdmin,
 
-                    BirthDate = null,
-                    IdentityNumber = null,
-
                     HospitalId = null,
-                    DepartmentId = null,
-                    PositionId = null,
+                    PrimaryDepartmentId = null,
+                    PrimaryPositionId = null,
                     EmployeeId = null,
                     DoctorId = null,
                     ExternalUserId = null,
+
+                    IsGeolocationBypassEnabled = false,
+                    GeolocationBypassReason = null,
+                    GeolocationBypassUntil = null,
 
                     IsActive = true,
                     MustChangePassword = false,
@@ -142,12 +143,11 @@ namespace QuilvianSystemBackend.Seeders
                 needUpdate = true;
             }
 
-            if (string.IsNullOrWhiteSpace(existingUser.FullName))
-            {
-                existingUser.FullName = string.IsNullOrWhiteSpace(fullName)
-                    ? "Super Administrator"
-                    : fullName.Trim();
+            var configuredDisplayName = string.IsNullOrWhiteSpace(fullName) ? "Super Administrator" : fullName.Trim();
 
+            if (!string.Equals(existingUser.DisplayName, configuredDisplayName, StringComparison.Ordinal))
+            {
+                existingUser.DisplayName = configuredDisplayName;
                 needUpdate = true;
             }
 

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,10 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260506020941_addColumnTable")]
+    partial class addColumnTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2233,7 +2235,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -2255,10 +2259,14 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDefaultValue(true);
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<Guid>("PositionId")
                         .HasColumnType("uuid");
@@ -2273,14 +2281,14 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ActionAccessId");
 
+                    b.HasIndex("ControllerAccessId");
+
+                    b.HasIndex("DepartmentId");
+
                     b.HasIndex("PositionId");
 
                     b.HasIndex("DepartmentId", "PositionId", "ControllerAccessId", "ActionAccessId")
                         .IsUnique();
-
-                    b.HasIndex("ControllerAccessId", "ActionAccessId", "IsAllowed", "IsActive", "IsDelete");
-
-                    b.HasIndex("DepartmentId", "PositionId", "IsAllowed", "IsActive", "IsDelete");
 
                     b.ToTable("SysAccessPolicy", "public");
                 });
@@ -2290,13 +2298,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
-                    b.Property<string>("AccessType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasDefaultValue("Read");
 
                     b.Property<string>("ActionName")
                         .IsRequired()
@@ -2316,7 +2317,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -2343,12 +2346,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDefaultValue(true);
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsSystemOnly")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
@@ -2358,7 +2360,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("character varying(250)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -2366,22 +2370,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("UpdateDateTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("VisibleInRoleAccess")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
                     b.HasKey("Id");
 
-                    b.HasIndex("AccessType");
-
-                    b.HasIndex("ActionName");
-
-                    b.HasIndex("IsActive");
-
-                    b.HasIndex("IsSystemOnly");
-
-                    b.HasIndex("VisibleInRoleAccess");
+                    b.HasIndex("DisplayName");
 
                     b.HasIndex("ControllerAccessId", "ActionName")
                         .IsUnique();
@@ -2409,7 +2400,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -2427,10 +2420,14 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDefaultValue(true);
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("ModuleCode")
                         .IsRequired()
@@ -2443,7 +2440,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("character varying(150)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -2453,10 +2452,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsActive");
-
                     b.HasIndex("ModuleCode")
                         .IsUnique();
+
+                    b.HasIndex("ModuleName");
 
                     b.ToTable("SysApplicationModule", "public");
                 });
@@ -2582,7 +2581,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -2605,12 +2606,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDefaultValue(true);
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsSystemOnly")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
@@ -2623,7 +2623,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("character varying(250)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -2631,20 +2633,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("UpdateDateTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("VisibleInRoleAccess")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
                     b.HasKey("Id");
 
-                    b.HasIndex("ControllerName");
-
-                    b.HasIndex("IsActive");
-
-                    b.HasIndex("IsSystemOnly");
-
-                    b.HasIndex("VisibleInRoleAccess");
+                    b.HasIndex("DisplayName");
 
                     b.HasIndex("ModuleId", "ControllerName")
                         .IsUnique();

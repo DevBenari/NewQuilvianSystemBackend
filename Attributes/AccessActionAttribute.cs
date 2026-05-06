@@ -1,4 +1,6 @@
-﻿namespace QuilvianSystemBackend.Attributes
+﻿using QuilvianSystemBackend.Constants;
+
+namespace QuilvianSystemBackend.Attributes
 {
     [AttributeUsage(AttributeTargets.Method)]
     public class AccessActionAttribute : Attribute
@@ -18,5 +20,10 @@
         public string? Description { get; set; }
 
         public int SortOrder { get; set; } = 0;
+        public string AccessType { get; set; } = AccessTypes.Read;
+
+        public bool VisibleInRoleAccess { get; set; } = true;
+
+        public bool IsSystemOnly { get; set; } = false;
     }
 }

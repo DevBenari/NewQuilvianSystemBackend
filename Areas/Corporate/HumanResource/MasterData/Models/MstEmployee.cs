@@ -78,11 +78,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         [MaxLength(20)]
         public string? PostalCode { get; set; }
 
-        public Guid DepartmentId { get; set; }
+        public Guid PrimaryDepartmentId { get; set; }
 
-        public Guid PositionId { get; set; }
+        public Guid PrimaryPositionId { get; set; }
 
         public EmployeeStatus EmployeeStatus { get; set; } = EmployeeStatus.Contract;
+
+        public EmployeeProfessionType ProfessionType { get; set; } = EmployeeProfessionType.GeneralStaff;
 
         [MaxLength(50)]
         public string? EmploymentType { get; set; }
@@ -120,9 +122,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
 
         public bool IsActive { get; set; } = true;
 
-        public MstDepartment? Department { get; set; }
+        public MstDepartment? PrimaryDepartment { get; set; }
 
-        public MstPosition? Position { get; set; }
+        public MstPosition? PrimaryPosition { get; set; }
 
         public ICollection<EmpBankAccount> BankAccounts { get; set; } = new List<EmpBankAccount>();
 

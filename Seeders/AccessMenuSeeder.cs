@@ -130,6 +130,8 @@ namespace QuilvianSystemBackend.Seeders
                 controller.RoutePath = GetControllerRoute(routePath);
                 controller.Description = attribute.Description;
                 controller.SortOrder = attribute.SortOrder;
+                controller.VisibleInRoleAccess = attribute.VisibleInRoleAccess;
+                controller.IsSystemOnly = attribute.IsSystemOnly;
                 controller.IsActive = true;
                 controller.IsDelete = false;
 
@@ -145,6 +147,8 @@ namespace QuilvianSystemBackend.Seeders
                 RoutePath = GetControllerRoute(routePath),
                 Description = attribute.Description,
                 SortOrder = attribute.SortOrder,
+                VisibleInRoleAccess = attribute.VisibleInRoleAccess,
+                IsSystemOnly = attribute.IsSystemOnly,
                 IsActive = true,
                 CreateDateTime = DateTime.UtcNow,
                 IsDelete = false,
@@ -179,6 +183,9 @@ namespace QuilvianSystemBackend.Seeders
                 action.RoutePath = routePath;
                 action.Description = attribute.Description;
                 action.SortOrder = attribute.SortOrder;
+                action.AccessType = attribute.AccessType;
+                action.VisibleInRoleAccess = attribute.VisibleInRoleAccess;
+                action.IsSystemOnly = attribute.IsSystemOnly;
                 action.IsActive = true;
                 action.IsDelete = false;
 
@@ -195,6 +202,9 @@ namespace QuilvianSystemBackend.Seeders
                 RoutePath = routePath,
                 Description = attribute.Description,
                 SortOrder = attribute.SortOrder,
+                AccessType = attribute.AccessType,
+                VisibleInRoleAccess = attribute.VisibleInRoleAccess,
+                IsSystemOnly = attribute.IsSystemOnly,
                 IsActive = true,
                 CreateDateTime = DateTime.UtcNow,
                 IsDelete = false,

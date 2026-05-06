@@ -7,26 +7,22 @@ namespace QuilvianSystemBackend.Models
     public class ApplicationUser : IdentityUser<Guid>
     {
         public string UserCode { get; set; } = string.Empty;
-
-        public string FullName { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
 
         public UserType UserType { get; set; }
 
-        public DateTime? BirthDate { get; set; }
-
-        public string? IdentityNumber { get; set; }
-
         public Guid? HospitalId { get; set; }
-
-        public Guid? DepartmentId { get; set; }
-
-        public Guid? PositionId { get; set; }
 
         public Guid? EmployeeId { get; set; }
 
         public Guid? DoctorId { get; set; }
 
         public Guid? ExternalUserId { get; set; }
+
+        public Guid? PrimaryDepartmentId { get; set; }
+
+        public Guid? PrimaryPositionId { get; set; }
+
         public bool IsGeolocationBypassEnabled { get; set; } = false;
 
         public string? GeolocationBypassReason { get; set; }
@@ -47,14 +43,16 @@ namespace QuilvianSystemBackend.Models
 
         public string? ProfilePhotoPath { get; set; }
 
-        public MstDepartment? Department { get; set; }
-
-        public MstPosition? Position { get; set; }
-
         public MstEmployee? Employee { get; set; }
 
         public MstDoctor? Doctor { get; set; }
 
         public MstExternalUser? ExternalUser { get; set; }
+
+        public MstDepartment? PrimaryDepartment { get; set; }
+
+        public MstPosition? PrimaryPosition { get; set; }
+
+        public ICollection<ApplicationUserOrganization> DepartmentPositions { get; set; } = new List<ApplicationUserOrganization>();
     }
 }

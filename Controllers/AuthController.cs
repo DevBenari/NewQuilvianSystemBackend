@@ -352,10 +352,10 @@ namespace QuilvianSystemBackend.Controllers
                     user.Id,
                     user.Email,
                     user.UserName,
-                    user.FullName,
+                    user.DisplayName,
                     user.UserType,
-                    user.DepartmentId,
-                    user.PositionId,
+                    user.PrimaryDepartmentId,
+                    user.PrimaryPositionId,
                     Roles = roles
                 }
             );
@@ -1085,8 +1085,8 @@ namespace QuilvianSystemBackend.Controllers
             if (schedule.DepartmentId.HasValue &&
                 schedule.PositionId.HasValue &&
                 schedule.UserType.HasValue &&
-                schedule.DepartmentId.Value == user.DepartmentId &&
-                schedule.PositionId.Value == user.PositionId &&
+                schedule.DepartmentId.Value == user.PrimaryDepartmentId &&
+                schedule.PositionId.Value == user.PrimaryPositionId &&
                 schedule.UserType.Value == user.UserType)
             {
                 return 80;
@@ -1094,8 +1094,8 @@ namespace QuilvianSystemBackend.Controllers
 
             if (schedule.DepartmentId.HasValue &&
                 schedule.PositionId.HasValue &&
-                schedule.DepartmentId.Value == user.DepartmentId &&
-                schedule.PositionId.Value == user.PositionId)
+                schedule.DepartmentId.Value == user.PrimaryDepartmentId &&
+                schedule.PositionId.Value == user.PrimaryPositionId)
             {
                 return 70;
             }
@@ -1194,11 +1194,13 @@ namespace QuilvianSystemBackend.Controllers
                 new Claim("user_id", user.Id.ToString()),
                 new Claim("username", user.UserName ?? string.Empty),
                 new Claim("email", user.Email ?? string.Empty),
-                new Claim("full_name", user.FullName),
+                new Claim("full_name", user.DisplayName ?? string.Empty),
                 new Claim("user_type", user.UserType.ToString()),
                 new Claim("hospital_id", user.HospitalId?.ToString() ?? string.Empty),
-                new Claim("department_id", user.DepartmentId?.ToString() ?? string.Empty),
-                new Claim("position_id", user.PositionId?.ToString() ?? string.Empty),
+                new Claim("department_id", user.PrimaryDepartmentId?.ToString() ?? string.Empty),
+                new Claim("position_id", user.PrimaryPositionId?.ToString() ?? string.Empty),
+                new Claim("primary_department_id", user.PrimaryDepartmentId?.ToString() ?? string.Empty),
+                new Claim("primary_position_id", user.PrimaryPositionId?.ToString() ?? string.Empty),
 
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
@@ -1289,14 +1291,14 @@ namespace QuilvianSystemBackend.Controllers
                 Id = user.Id,
                 Username = user.UserName ?? string.Empty,
                 Email = user.Email ?? string.Empty,
-                FullName = user.FullName,
+                FullName = user.DisplayName,
                 UserType = user.UserType.ToString(),
                 Roles = roles.ToList(),
                 IsActive = user.IsActive,
                 MustChangePassword = user.MustChangePassword,
                 HospitalId = user.HospitalId,
-                DepartmentId = user.DepartmentId,
-                PositionId = user.PositionId
+                DepartmentId = user.PrimaryDepartmentId,
+                PositionId = user.PrimaryPositionId
             };
         }
 

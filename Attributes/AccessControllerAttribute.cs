@@ -26,5 +26,7 @@
         public string? Description { get; set; }
 
         public int SortOrder { get; set; } = 0;
+        public bool VisibleInRoleAccess { get; set; } = true;
+        public bool IsSystemOnly { get; set; } = false;
     }
 }

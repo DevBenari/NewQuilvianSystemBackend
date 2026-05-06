@@ -40,14 +40,11 @@ namespace QuilvianSystemBackend.Services.Security
 
             var user = await _dbContext.Users
                 .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == userId);
+                .FirstOrDefaultAsync(x =>
+                    x.Id == userId &&
+                    x.IsActive);
 
             if (user == null)
-            {
-                return false;
-            }
-
-            if (!user.IsActive)
             {
                 return false;
             }
@@ -59,30 +56,60 @@ namespace QuilvianSystemBackend.Services.Security
                 return true;
             }
 
-            if (user.DepartmentId == null || user.PositionId == null)
-            {
-                return false;
-            }
-
-            var hasPolicy = await _dbContext.SysAccessPolicies
+            var actionAccess = await _dbContext.SysActionAccesses
                 .AsNoTracking()
-                .AnyAsync(x =>
-                    x.DepartmentId == user.DepartmentId.Value &&
-                    x.PositionId == user.PositionId.Value &&
-                    x.IsAllowed &&
+                .Where(x =>
+                    x.ActionName == actionName &&
                     x.IsActive &&
                     !x.IsDelete &&
                     x.ControllerAccess != null &&
                     x.ControllerAccess.ControllerName == controllerName &&
                     x.ControllerAccess.IsActive &&
-                    !x.ControllerAccess.IsDelete &&
-                    x.ActionAccess != null &&
-                    x.ActionAccess.ActionName == actionName &&
-                    x.ActionAccess.IsActive &&
-                    !x.ActionAccess.IsDelete
-                );
+                    !x.ControllerAccess.IsDelete)
+                .Select(x => new
+                {
+                    ActionAccessId = x.Id,
+                    x.ControllerAccessId
+                })
+                .FirstOrDefaultAsync();
 
-            return hasPolicy;
+            if (actionAccess == null)
+            {
+                return false;
+            }
+
+            var now = DateTime.UtcNow;
+
+            var hasAccess = await (
+                from organization in _dbContext.ApplicationUserOrganizations.AsNoTracking()
+                join policy in _dbContext.SysAccessPolicies.AsNoTracking()
+                    on new
+                    {
+                        organization.DepartmentId,
+                        organization.PositionId
+                    }
+                    equals new
+                    {
+                        policy.DepartmentId,
+                        policy.PositionId
+                    }
+                where organization.UserId == user.Id
+                      && organization.IsActive
+                      && !organization.IsDelete
+                      && (!organization.EffectiveStartDate.HasValue ||
+                          organization.EffectiveStartDate.Value <= now)
+                      && (!organization.EffectiveEndDate.HasValue ||
+                          organization.EffectiveEndDate.Value >= now)
+
+                      && policy.ControllerAccessId == actionAccess.ControllerAccessId
+                      && policy.ActionAccessId == actionAccess.ActionAccessId
+                      && policy.IsAllowed
+                      && policy.IsActive
+                      && !policy.IsDelete
+                select policy.Id
+            ).AnyAsync();
+
+            return hasAccess;
         }
     }
 }

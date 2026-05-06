@@ -28,9 +28,16 @@ namespace QuilvianSystemBackend.Models
         [MaxLength(250)]
         public string? Description { get; set; }
 
+        [MaxLength(50)]
+        public string AccessType { get; set; } = "Read";
+
         public int SortOrder { get; set; } = 0;
 
         public bool IsActive { get; set; } = true;
+
+        public bool VisibleInRoleAccess { get; set; } = true;
+
+        public bool IsSystemOnly { get; set; } = false;
 
         public SysControllerAccess? ControllerAccess { get; set; }
     }

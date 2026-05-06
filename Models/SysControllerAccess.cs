@@ -29,6 +29,10 @@ namespace QuilvianSystemBackend.Models
 
         public bool IsActive { get; set; } = true;
 
+        public bool VisibleInRoleAccess { get; set; } = true;
+
+        public bool IsSystemOnly { get; set; } = false;
+
         public SysApplicationModule? Module { get; set; }
 
         public ICollection<SysActionAccess> Actions { get; set; } = new List<SysActionAccess>();

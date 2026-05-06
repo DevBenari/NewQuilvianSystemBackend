@@ -56,9 +56,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         [MaxLength(100)]
         public string? MedicalStaffGroup { get; set; }
 
-        public Guid? DepartmentId { get; set; }
+        public Guid? PrimaryDepartmentId { get; set; }
 
-        public Guid? PositionId { get; set; }
+        public Guid? PrimaryPositionId { get; set; }
 
         public DateTime? JoinDate { get; set; }
 
@@ -70,9 +70,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
 
         public bool IsActive { get; set; } = true;
 
-        public MstDepartment? Department { get; set; }
+        public MstDepartment? PrimaryDepartment { get; set; }
 
-        public MstPosition? Position { get; set; }
+        public MstPosition? PrimaryPosition { get; set; }
 
         public ICollection<DctLicense> Licenses { get; set; } = new List<DctLicense>();
 
