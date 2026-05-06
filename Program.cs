@@ -187,10 +187,10 @@ app.MapHealthChecks("/health");
 // Seeder SuperAdmin
 // Ini TIDAK melakukan migration otomatis.
 // Pastikan dotnet ef database update sudah dijalankan dulu.
-await SuperAdminSeeder.SeedAsync(app.Services);
 await AppVersionSeeder.SeedAsync(app.Services);
-await AccessMenuSeeder.SeedAsync(app.Services);
 await DefaultWorkScheduleSeeder.SeedAsync(app.Services);
+await SuperAdminSeeder.SeedAsync(app.Services);
+await AccessMenuSeeder.SeedAsync(app.Services);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

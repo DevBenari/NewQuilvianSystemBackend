@@ -39,7 +39,9 @@
 
 //        [HttpGet]
 //        [ProducesResponseType(typeof(ApiResponse<PagedResult<PositionResponse>>), StatusCodes.Status200OK)]
-//        [AccessAction(
+//
+//        
+
 //            actionName: "Index",
 //            displayName: "Lihat Data",
 //            Description = "Melihat daftar position",

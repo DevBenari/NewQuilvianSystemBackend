@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc.ActionConstraints;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ActionConstraints;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -60,6 +61,7 @@ namespace QuilvianSystemBackend.Seeders
                     dbContext,
                     controller.Id,
                     controllerAction,
+                    controllerAttribute,
                     actionAttribute
                 );
             }
@@ -117,7 +119,7 @@ namespace QuilvianSystemBackend.Seeders
                 ? controllerAction.ControllerName
                 : attribute.ControllerName;
 
-            var routePath = BuildRoutePath(controllerAction);
+            var controllerRoutePath = BuildControllerRoutePath(controllerAction);
 
             var controller = await dbContext.SysControllerAccesses
                 .FirstOrDefaultAsync(x =>
@@ -127,7 +129,7 @@ namespace QuilvianSystemBackend.Seeders
             if (controller != null)
             {
                 controller.DisplayName = attribute.DisplayName;
-                controller.RoutePath = GetControllerRoute(routePath);
+                controller.RoutePath = controllerRoutePath;
                 controller.Description = attribute.Description;
                 controller.SortOrder = attribute.SortOrder;
                 controller.VisibleInRoleAccess = attribute.VisibleInRoleAccess;
@@ -144,7 +146,7 @@ namespace QuilvianSystemBackend.Seeders
                 ModuleId = moduleId,
                 ControllerName = controllerName,
                 DisplayName = attribute.DisplayName,
-                RoutePath = GetControllerRoute(routePath),
+                RoutePath = controllerRoutePath,
                 Description = attribute.Description,
                 SortOrder = attribute.SortOrder,
                 VisibleInRoleAccess = attribute.VisibleInRoleAccess,
@@ -166,11 +168,22 @@ namespace QuilvianSystemBackend.Seeders
             ApplicationDbContext dbContext,
             Guid controllerAccessId,
             ControllerActionDescriptor controllerAction,
+            AccessControllerAttribute controllerAttribute,
             AccessActionAttribute attribute)
         {
-            var routePath = BuildRoutePath(controllerAction);
+            var actionRoutePath = BuildActionRoutePath(controllerAction);
             var httpMethod = GetHttpMethod(controllerAction);
 
+            var visibleInRoleAccess =
+                controllerAttribute.VisibleInRoleAccess &&
+                !controllerAttribute.IsSystemOnly &&
+                attribute.VisibleInRoleAccess &&
+                !attribute.IsSystemOnly;
+
+            var isSystemOnly =
+                controllerAttribute.IsSystemOnly ||
+                attribute.IsSystemOnly;
+            
             var action = await dbContext.SysActionAccesses
                 .FirstOrDefaultAsync(x =>
                     x.ControllerAccessId == controllerAccessId &&
@@ -180,12 +193,12 @@ namespace QuilvianSystemBackend.Seeders
             {
                 action.DisplayName = attribute.DisplayName;
                 action.HttpMethod = httpMethod;
-                action.RoutePath = routePath;
+                action.RoutePath = actionRoutePath;
                 action.Description = attribute.Description;
                 action.SortOrder = attribute.SortOrder;
                 action.AccessType = attribute.AccessType;
-                action.VisibleInRoleAccess = attribute.VisibleInRoleAccess;
-                action.IsSystemOnly = attribute.IsSystemOnly;
+                action.VisibleInRoleAccess = visibleInRoleAccess;
+                action.IsSystemOnly = isSystemOnly;
                 action.IsActive = true;
                 action.IsDelete = false;
 
@@ -199,12 +212,12 @@ namespace QuilvianSystemBackend.Seeders
                 ActionName = attribute.ActionName,
                 DisplayName = attribute.DisplayName,
                 HttpMethod = httpMethod,
-                RoutePath = routePath,
+                RoutePath = actionRoutePath,
                 Description = attribute.Description,
                 SortOrder = attribute.SortOrder,
                 AccessType = attribute.AccessType,
-                VisibleInRoleAccess = attribute.VisibleInRoleAccess,
-                IsSystemOnly = attribute.IsSystemOnly,
+                VisibleInRoleAccess = visibleInRoleAccess,
+                IsSystemOnly = isSystemOnly,
                 IsActive = true,
                 CreateDateTime = DateTime.UtcNow,
                 IsDelete = false,
@@ -216,7 +229,31 @@ namespace QuilvianSystemBackend.Seeders
             await dbContext.SaveChangesAsync();
         }
 
-        private static string BuildRoutePath(ControllerActionDescriptor controllerAction)
+        private static string BuildControllerRoutePath(ControllerActionDescriptor controllerAction)
+        {
+            var routeAttribute = controllerAction.ControllerTypeInfo
+                .GetCustomAttribute<RouteAttribute>();
+
+            var template = routeAttribute?.Template;
+
+            if (string.IsNullOrWhiteSpace(template))
+            {
+                return $"/api/v1/{controllerAction.ControllerName}";
+            }
+
+            template = template
+                .Replace("[controller]", controllerAction.ControllerName)
+                .Replace("[action]", controllerAction.ActionName);
+
+            if (!template.StartsWith("/"))
+            {
+                template = "/" + template;
+            }
+
+            return template;
+        }
+
+        private static string BuildActionRoutePath(ControllerActionDescriptor controllerAction)
         {
             var template = controllerAction.AttributeRouteInfo?.Template;
 
@@ -235,45 +272,6 @@ namespace QuilvianSystemBackend.Seeders
             }
 
             return template;
-        }
-
-        private static string GetControllerRoute(string actionRoute)
-        {
-            var route = actionRoute;
-
-            var parameterIndex = route.IndexOf("/{", StringComparison.OrdinalIgnoreCase);
-
-            if (parameterIndex >= 0)
-            {
-                route = route[..parameterIndex];
-            }
-
-            var knownActionSegments = new[]
-            {
-                "/index",
-                "/create",
-                "/detail",
-                "/update",
-                "/delete",
-                "/edit",
-                "/view",
-                "/print",
-                "/export",
-                "/import",
-                "/approve",
-                "/cancel"
-            };
-
-            foreach (var segment in knownActionSegments)
-            {
-                if (route.EndsWith(segment, StringComparison.OrdinalIgnoreCase))
-                {
-                    route = route[..^segment.Length];
-                    break;
-                }
-            }
-
-            return route;
         }
 
         private static string GetHttpMethod(ControllerActionDescriptor controllerAction)

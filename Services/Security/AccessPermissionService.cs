@@ -51,7 +51,9 @@ namespace QuilvianSystemBackend.Services.Security
 
             var roles = await _userManager.GetRolesAsync(user);
 
-            if (roles.Any(x => x.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)))
+            var isSuperAdmin = roles.Any(x => x.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase));
+
+            if (isSuperAdmin)
             {
                 return true;
             }
@@ -62,10 +64,12 @@ namespace QuilvianSystemBackend.Services.Security
                     x.ActionName == actionName &&
                     x.IsActive &&
                     !x.IsDelete &&
+                    !x.IsSystemOnly &&
                     x.ControllerAccess != null &&
                     x.ControllerAccess.ControllerName == controllerName &&
                     x.ControllerAccess.IsActive &&
-                    !x.ControllerAccess.IsDelete)
+                    !x.ControllerAccess.IsDelete &&
+                    !x.ControllerAccess.IsSystemOnly)
                 .Select(x => new
                 {
                     ActionAccessId = x.Id,
