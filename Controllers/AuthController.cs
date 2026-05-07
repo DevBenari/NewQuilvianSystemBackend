@@ -1237,9 +1237,7 @@ namespace QuilvianSystemBackend.Controllers
             var cookieName = _configuration["Jwt:CookieName"] ?? "quilvian_access_token";
             var expireMinutes = GetJwtExpireMinutes();
 
-            var cookieOptions = BuildAuthCookieOptions(expireMinutes);
-
-            Response.Cookies.Append(cookieName, token, cookieOptions);
+            Response.Cookies.Append(cookieName, token, BuildAuthCookieOptions(expireMinutes));
         }
 
         private CookieOptions BuildAuthCookieOptions(int expireMinutes)
@@ -1249,16 +1247,10 @@ namespace QuilvianSystemBackend.Controllers
             return new CookieOptions
             {
                 HttpOnly = true,
-
-                // Untuk API server HTTPS yang dipanggil dari frontend beda origin,
-                // wajib Secure=true dan SameSite=None.
-                // Untuk backend local HTTP, Secure=false agar cookie bisa tersimpan.
                 Secure = !isLocalBackend,
-
                 SameSite = isLocalBackend
                     ? SameSiteMode.Lax
                     : SameSiteMode.None,
-
                 Expires = DateTimeOffset.UtcNow.AddMinutes(expireMinutes),
                 MaxAge = TimeSpan.FromMinutes(expireMinutes),
                 Path = "/"
@@ -1276,7 +1268,6 @@ namespace QuilvianSystemBackend.Controllers
         private void ClearAuthCookie()
         {
             var cookieName = _configuration["Jwt:CookieName"] ?? "quilvian_access_token";
-
             var isLocalBackend = IsLocalBackendRequest();
 
             Response.Cookies.Delete(cookieName, new CookieOptions
