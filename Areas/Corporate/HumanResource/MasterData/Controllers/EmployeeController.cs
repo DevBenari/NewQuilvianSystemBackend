@@ -2,7 +2,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.Administrator.UserManagement.Enum;
+using QuilvianSystemBackend.Areas.Administrator.UserManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Employee.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
@@ -89,6 +90,158 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             _userManager = userManager;
         }
 
+        private static List<EmployeeDetailTabMetadataResponse> BuildEmployeeDetailTabs()
+        {
+            return new List<EmployeeDetailTabMetadataResponse>
+    {
+        new()
+        {
+            Key = "organization",
+            Label = "Organization",
+            Icon = "organization",
+            Endpoint = "/api/v1/corporate/human-resource/master-data/employees/{employeeId}/organizations",
+            IsVisibleInDetail = true,
+            IsVisibleInUpdate = true,
+            CanCreate = true,
+            CanUpdate = true,
+            CanDelete = false,
+            SortOrder = 1
+        },
+        new()
+        {
+            Key = "grade",
+            Label = "Grade",
+            Icon = "grade",
+            Endpoint = "/api/v1/corporate/human-resource/master-data/employees/{employeeId}/grades",
+            IsVisibleInDetail = true,
+            IsVisibleInUpdate = true,
+            CanCreate = true,
+            CanUpdate = true,
+            CanDelete = false,
+            SortOrder = 2
+        },
+        new()
+        {
+            Key = "documents",
+            Label = "Documents",
+            Icon = "document",
+            Endpoint = "/api/v1/corporate/human-resource/master-data/employees/{employeeId}/documents",
+            IsVisibleInDetail = true,
+            IsVisibleInUpdate = true,
+            CanCreate = true,
+            CanUpdate = true,
+            CanDelete = true,
+            SortOrder = 3
+        },
+        new()
+        {
+            Key = "emergency",
+            Label = "Emergency",
+            Icon = "phone",
+            Endpoint = "/api/v1/corporate/human-resource/master-data/employees/{employeeId}/emergency-contacts",
+            IsVisibleInDetail = true,
+            IsVisibleInUpdate = true,
+            CanCreate = true,
+            CanUpdate = true,
+            CanDelete = true,
+            SortOrder = 4
+        },
+        new()
+        {
+            Key = "bank",
+            Label = "Bank",
+            Icon = "bank",
+            Endpoint = "/api/v1/corporate/human-resource/master-data/employees/{employeeId}/bank-accounts",
+            IsVisibleInDetail = true,
+            IsVisibleInUpdate = true,
+            CanCreate = true,
+            CanUpdate = true,
+            CanDelete = true,
+            SortOrder = 5
+        },
+        new()
+        {
+            Key = "payroll",
+            Label = "Payroll",
+            Icon = "payroll",
+            Endpoint = "/api/v1/corporate/human-resource/master-data/employees/{employeeId}/payroll-profile",
+            IsVisibleInDetail = true,
+            IsVisibleInUpdate = true,
+            CanCreate = false,
+            CanUpdate = true,
+            CanDelete = false,
+            SortOrder = 6
+        },
+        new()
+        {
+            Key = "salary",
+            Label = "Salary",
+            Icon = "salary",
+            Endpoint = "/api/v1/corporate/human-resource/master-data/employees/{employeeId}/salary",
+            IsVisibleInDetail = true,
+            IsVisibleInUpdate = true,
+            CanCreate = true,
+            CanUpdate = true,
+            CanDelete = false,
+            SortOrder = 7
+        },
+        new()
+        {
+            Key = "leave",
+            Label = "Leave",
+            Icon = "leave",
+            Endpoint = "/api/v1/corporate/human-resource/master-data/employees/{employeeId}/leave",
+            IsVisibleInDetail = true,
+            IsVisibleInUpdate = true,
+            CanCreate = true,
+            CanUpdate = true,
+            CanDelete = false,
+            SortOrder = 8
+        },
+        new()
+        {
+            Key = "shift",
+            Label = "Shift",
+            Icon = "shift",
+            Endpoint = "/api/v1/corporate/human-resource/master-data/employees/{employeeId}/shift-assignments",
+            IsVisibleInDetail = true,
+            IsVisibleInUpdate = true,
+            CanCreate = true,
+            CanUpdate = true,
+            CanDelete = false,
+            SortOrder = 9
+        },
+        new()
+        {
+            Key = "transportAllowance",
+            Label = "Transport",
+            Icon = "transport",
+            Endpoint = "/api/v1/corporate/human-resource/master-data/employees/{employeeId}/transport-allowance",
+            IsVisibleInDetail = true,
+            IsVisibleInUpdate = true,
+            CanCreate = false,
+            CanUpdate = true,
+            CanDelete = false,
+            SortOrder = 10
+        },
+        new()
+        {
+            Key = "attendance",
+            Label = "Attendance",
+            Icon = "attendance",
+            Endpoint = "/api/v1/corporate/human-resource/master-data/employees/{employeeId}/attendance",
+            IsVisibleInDetail = true,
+            IsVisibleInUpdate = false,
+            CanCreate = false,
+            CanUpdate = false,
+            CanDelete = false,
+            SortOrder = 11
+        }
+    }
+            .OrderBy(x => x.SortOrder)
+            .ToList();
+        }
+
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<EmployeeFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
@@ -109,6 +262,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     EndDate = null,
                     CustomPeriod = null,
                     Search = null,
+                    HasUserAccount = null,
                     IsActive = null,
                     DepartmentId = null,
                     PositionId = null,
@@ -153,7 +307,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 TransportAllowanceTypes = TransportAllowanceTypes.ToList(),
                 QueryParameters = BuildQueryParameterInfo(),
                 CreateFields = BuildCreateEmployeeFieldMetadata(),
-                UpdateFields = BuildUpdateEmployeeFieldMetadata()
+                UpdateFields = BuildUpdateEmployeeFieldMetadata(),
+                DetailTabs = BuildEmployeeDetailTabs()
             };
 
             await _loggerService.InfoAsync(
@@ -241,6 +396,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             [FromQuery] MaritalStatus? maritalStatus,
             [FromQuery] BloodType? bloodType,
             [FromQuery] bool? hasTransportAllowanceProfile,
+            [FromQuery] bool? hasUserAccount,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -380,6 +536,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 }
             }
 
+            if (hasUserAccount.HasValue)
+            {
+                if (hasUserAccount.Value)
+                {
+                    query = query.Where(x =>
+                        _dbContext.Users.Any(u =>
+                            u.EmployeeId == x.Id &&
+                            u.UserType == UserType.Employee));
+                }
+                else
+                {
+                    query = query.Where(x =>
+                        !_dbContext.Users.Any(u =>
+                            u.EmployeeId == x.Id &&
+                            u.UserType == UserType.Employee));
+                }
+            }
+
             var totalData = await query.CountAsync();
 
             var items = await ApplyEmployeeSorting(query, sortBy, sortDirection)
@@ -424,6 +598,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     JoinDate = x.JoinDate,
                     ContractEndDate = x.ContractEndDate,
                     ResignDate = x.ResignDate,
+                    HasUserAccount = _dbContext.Users.Any(u =>
+                        u.EmployeeId == x.Id &&
+                        u.UserType == UserType.Employee),
+
                     HasTransportAllowanceProfile = _dbContext.Set<EmpTransportAllowanceProfile>()
                         .Any(t => t.EmployeeId == x.Id && !t.IsDelete),
                     IsActive = x.IsActive,
@@ -465,6 +643,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     religion,
                     maritalStatus,
                     bloodType,
+                    hasUserAccount,
                     hasTransportAllowanceProfile,
                     sortBy,
                     sortDirection,
@@ -618,6 +797,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     EmergencyContactAddress = x.EmergencyContactAddress,
                     HasTransportAllowanceProfile = _dbContext.Set<EmpTransportAllowanceProfile>()
                         .Any(t => t.EmployeeId == x.Id && !t.IsDelete),
+                    HasUserAccount = _dbContext.Users.Any(u =>
+                        u.EmployeeId == x.Id &&
+                        u.UserType == UserType.Employee),
                     IsActive = x.IsActive,
                     CreateDateTime = x.CreateDateTime
                 })
@@ -632,6 +814,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
 
             data.TransportAllowanceProfile = await BuildTransportAllowanceProfileResponseAsync(id);
+            data.UserAccount = await BuildEmployeeUserAccountCompactResponseAsync(id);
+            data.ChildSummary = await BuildEmployeeChildSummaryAsync(id);
 
             return Ok(ApiResponse<EmployeeDetailResponse>.Ok(
                 data,
@@ -768,6 +952,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 _dbContext.Set<MstEmployee>().Add(entity);
                 await _dbContext.SaveChangesAsync();
 
+                var organizationAssignment = new EmpOrganizationAssignment
+                {
+                    Id = Guid.NewGuid(),
+                    EmployeeId = entity.Id,
+                    DepartmentId = entity.PrimaryDepartmentId,
+                    PositionId = entity.PrimaryPositionId,
+                    IsPrimary = true,
+                    IsActive = true,
+                    EffectiveStartDate = entity.JoinDate.Date,
+                    EffectiveEndDate = null,
+                    Description = "Initial primary organization assignment",
+                    CreateDateTime = now,
+                    CreateBy = userId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
+
+                _dbContext.Set<EmpOrganizationAssignment>().Add(organizationAssignment);
+                await _dbContext.SaveChangesAsync();
+
                 EmployeeLoginAccountResponse? loginAccount = null;
 
                 if (request.CreateLoginAccount)
@@ -785,6 +989,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     }
 
                     loginAccount = accountResult.Response;
+
+                    if (loginAccount?.UserId.HasValue == true)
+                    {
+                        await SyncUserPrimaryOrganizationAsync(
+                            userId: loginAccount.UserId.Value,
+                            departmentId: entity.PrimaryDepartmentId,
+                            positionId: entity.PrimaryPositionId,
+                            effectiveStartDate: entity.JoinDate,
+                            actorUserId: userId
+                        );
+
+                        await _dbContext.SaveChangesAsync();
+                    }
                 }
 
                 await transaction.CommitAsync();
@@ -969,6 +1186,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 linkedUser.UpdateDateTime = now;
             }
 
+            await EnsureEmployeePrimaryOrganizationAssignmentAsync(entity, now, userId);
+
+            if (linkedUser != null)
+            {
+                await SyncUserPrimaryOrganizationAsync(
+                    userId: linkedUser.Id,
+                    departmentId: entity.PrimaryDepartmentId,
+                    positionId: entity.PrimaryPositionId,
+                    effectiveStartDate: entity.JoinDate,
+                    actorUserId: userId
+                );
+            }
+
             await _dbContext.SaveChangesAsync();
 
             await _loggerService.InfoAsync(
@@ -1084,6 +1314,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
 
             await _dbContext.SaveChangesAsync();
+
+            var organizationAssignments = await _dbContext.Set<EmpOrganizationAssignment>()
+                .Where(x => x.EmployeeId == id && !x.IsDelete)
+                .ToListAsync();
+
+            foreach (var item in organizationAssignments)
+            {
+                item.IsActive = false;
+                item.IsDelete = true;
+                item.DeleteDateTime = now;
+                item.DeleteBy = userId;
+            }
+
+            if (linkedUser != null)
+            {
+                var userOrganizations = await _dbContext.ApplicationUserOrganizations
+                    .Where(x => x.UserId == linkedUser.Id && !x.IsDelete)
+                    .ToListAsync();
+
+                foreach (var item in userOrganizations)
+                {
+                    item.IsActive = false;
+                    item.IsDelete = true;
+                    item.DeleteDateTime = now;
+                    item.DeleteBy = userId;
+                }
+            }
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -1374,9 +1631,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
         }
 
-        private async Task<string> GenerateEmployeeNumberAsync(DateTime? joinDate)
+        private async Task<string> GenerateEmployeeNumberAsync(DateTime joinDate)
         {
-            var date = (joinDate ?? DateTime.UtcNow).Date;
+            var date = joinDate.Date;
             var dateCode = date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
             var prefix = $"{HospitalCode}-{dateCode}";
 
@@ -1467,6 +1724,90 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 EffectiveStartDate = null,
                 EffectiveEndDate = null,
                 IsActive = false
+            };
+        }
+
+        private async Task<EmployeeUserAccountCompactResponse?> BuildEmployeeUserAccountCompactResponseAsync(
+    Guid employeeId)
+        {
+            var user = await _dbContext.Users
+                .AsNoTracking()
+                .Where(x =>
+                    x.EmployeeId == employeeId &&
+                    x.UserType == UserType.Employee)
+                .Select(x => new EmployeeUserAccountCompactResponse
+                {
+                    IsAvailable = true,
+                    UserId = x.Id,
+                    UserCode = x.UserCode,
+                    UserName = x.UserName,
+                    Email = x.Email,
+                    DisplayName = x.DisplayName,
+                    UserType = x.UserType,
+                    IsActive = x.IsActive,
+                    MustChangePassword = x.MustChangePassword,
+                    ProfilePhotoPath = x.ProfilePhotoPath
+                })
+                .FirstOrDefaultAsync();
+
+            return user ?? new EmployeeUserAccountCompactResponse
+            {
+                IsAvailable = false,
+                IsActive = false,
+                MustChangePassword = false
+            };
+        }
+
+        private async Task<EmployeeChildSummaryResponse> BuildEmployeeChildSummaryAsync(Guid employeeId)
+        {
+            var organizationQuery = _dbContext.Set<EmpOrganizationAssignment>()
+                .AsNoTracking()
+                .Where(x => x.EmployeeId == employeeId && !x.IsDelete);
+
+            return new EmployeeChildSummaryResponse
+            {
+                OrganizationCount = await organizationQuery.CountAsync(),
+                ActiveOrganizationCount = await organizationQuery.CountAsync(x => x.IsActive),
+                PrimaryOrganizationCount = await organizationQuery.CountAsync(x => x.IsPrimary && x.IsActive),
+
+                BankAccountCount = await _dbContext.Set<EmpBankAccount>()
+                    .AsNoTracking()
+                    .CountAsync(x => x.EmployeeId == employeeId && !x.IsDelete),
+
+                DocumentCount = await _dbContext.Set<EmpDocument>()
+                    .AsNoTracking()
+                    .CountAsync(x => x.EmployeeId == employeeId && !x.IsDelete),
+
+                PayrollProfileCount = await _dbContext.Set<EmpPayrollProfile>()
+                    .AsNoTracking()
+                    .CountAsync(x => x.EmployeeId == employeeId && !x.IsDelete),
+
+                TaxProfileCount = await _dbContext.Set<EmpTaxProfile>()
+                    .AsNoTracking()
+                    .CountAsync(x => x.EmployeeId == employeeId && !x.IsDelete),
+
+                InsuranceProfileCount = await _dbContext.Set<EmpInsuranceProfile>()
+                    .AsNoTracking()
+                    .CountAsync(x => x.EmployeeId == employeeId && !x.IsDelete),
+
+                TransportAllowanceProfileCount = await _dbContext.Set<EmpTransportAllowanceProfile>()
+                    .AsNoTracking()
+                    .CountAsync(x => x.EmployeeId == employeeId && !x.IsDelete),
+
+                TransportAllowanceTransactionCount = await _dbContext.Set<EmpTransportAllowanceTransaction>()
+                    .AsNoTracking()
+                    .CountAsync(x => x.EmployeeId == employeeId && !x.IsDelete),
+
+                LeaveCount = 0,
+                ShiftAssignmentCount = 0,
+                AttendanceCount = await _dbContext.Set<EmpAttendance>()
+                    .AsNoTracking()
+                    .CountAsync(x => x.EmployeeId == employeeId),
+
+                SalaryCount = 0,
+                TrainingCount = 0,
+                WarningLetterCount = 0,
+                PerformanceReviewCount = 0
             };
         }
 
@@ -1591,6 +1932,64 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
 
             return (true, null);
+        }
+
+        private async Task EnsureEmployeePrimaryOrganizationAssignmentAsync(
+    MstEmployee employee,
+    DateTime now,
+    Guid actorUserId)
+        {
+            var currentPrimaries = await _dbContext.Set<EmpOrganizationAssignment>()
+                .Where(x =>
+                    x.EmployeeId == employee.Id &&
+                    x.IsPrimary &&
+                    !x.IsDelete)
+                .ToListAsync();
+
+            foreach (var item in currentPrimaries)
+            {
+                item.IsPrimary = false;
+                item.UpdateDateTime = now;
+                item.UpdateBy = actorUserId;
+            }
+
+            var existing = await _dbContext.Set<EmpOrganizationAssignment>()
+                .FirstOrDefaultAsync(x =>
+                    x.EmployeeId == employee.Id &&
+                    x.DepartmentId == employee.PrimaryDepartmentId &&
+                    x.PositionId == employee.PrimaryPositionId &&
+                    !x.IsDelete);
+
+            if (existing == null)
+            {
+                existing = new EmpOrganizationAssignment
+                {
+                    Id = Guid.NewGuid(),
+                    EmployeeId = employee.Id,
+                    DepartmentId = employee.PrimaryDepartmentId,
+                    PositionId = employee.PrimaryPositionId,
+                    IsPrimary = true,
+                    IsActive = employee.IsActive,
+                    EffectiveStartDate = employee.JoinDate.Date,
+                    EffectiveEndDate = null,
+                    Description = "Primary organization assignment synced from employee update",
+                    CreateDateTime = now,
+                    CreateBy = actorUserId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
+
+                _dbContext.Set<EmpOrganizationAssignment>().Add(existing);
+            }
+            else
+            {
+                existing.IsPrimary = true;
+                existing.IsActive = employee.IsActive;
+                existing.EffectiveStartDate = employee.JoinDate.Date;
+                existing.EffectiveEndDate = null;
+                existing.UpdateDateTime = now;
+                existing.UpdateBy = actorUserId;
+            }
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRegionAsync(
@@ -1974,6 +2373,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 new() { Name = "employeeStatus", Type = "enum", Description = "Filter status employee." },
                 new() { Name = "professionType", Type = "enum", Description = "Filter profession type." },
                 new() { Name = "hasTransportAllowanceProfile", Type = "boolean", Description = "Filter employee yang sudah/belum punya profile uang transport.", Example = "true" },
+                new()
+                    {
+                        Name = "hasUserAccount",
+                        Type = "boolean",
+                        Description = "Filter employee yang sudah/belum memiliki akun login.",
+                        Example = "true"
+                    },
                 new() { Name = "sortBy", Type = "string", Description = "Field sorting. Nilai tersedia dari SortOptions.", Example = "fullName" },
                 new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
                 new() { Name = "pageNumber", Type = "integer", Description = "Nomor halaman. Minimal 1.", Example = "1" },
@@ -2731,6 +3137,69 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             return (true, null, response);
         }
 
+        private async Task SyncUserPrimaryOrganizationAsync(
+    Guid userId,
+    Guid departmentId,
+    Guid positionId,
+    DateTime effectiveStartDate,
+    Guid actorUserId)
+        {
+            var now = DateTime.UtcNow;
+            var effectiveStartUtc = DateTime.SpecifyKind(effectiveStartDate.Date, DateTimeKind.Utc);
+
+            var currentPrimaryItems = await _dbContext.ApplicationUserOrganizations
+                .Where(x =>
+                    x.UserId == userId &&
+                    x.IsPrimary &&
+                    !x.IsDelete)
+                .ToListAsync();
+
+            foreach (var item in currentPrimaryItems)
+            {
+                item.IsPrimary = false;
+                item.UpdateDateTime = now;
+                item.UpdateBy = actorUserId;
+            }
+
+            var existing = await _dbContext.ApplicationUserOrganizations
+                .FirstOrDefaultAsync(x =>
+                    x.UserId == userId &&
+                    x.DepartmentId == departmentId &&
+                    x.PositionId == positionId &&
+                    !x.IsDelete);
+
+            if (existing == null)
+            {
+                existing = new ApplicationUserOrganization
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    DepartmentId = departmentId,
+                    PositionId = positionId,
+                    IsPrimary = true,
+                    IsActive = true,
+                    EffectiveStartDate = effectiveStartUtc,
+                    EffectiveEndDate = null,
+                    Description = "Synced from employee primary organization assignment",
+                    CreateDateTime = now,
+                    CreateBy = actorUserId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
+
+                _dbContext.ApplicationUserOrganizations.Add(existing);
+            }
+            else
+            {
+                existing.IsPrimary = true;
+                existing.IsActive = true;
+                existing.EffectiveStartDate = effectiveStartUtc;
+                existing.EffectiveEndDate = null;
+                existing.UpdateDateTime = now;
+                existing.UpdateBy = actorUserId;
+            }
+        }
+
         private async Task<string> GenerateUserCodeAsync()
         {
             const string prefix = $"USR-{HospitalCode}-";
@@ -2765,52 +3234,92 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         private static (bool IsValid, string? ErrorMessage) ValidateRequiredEmployeeRequest(
     CreateEmployeeRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.FullName))
+            return ValidateRequiredEmployeeFields(
+                fullName: request.FullName,
+                birthDate: request.BirthDate,
+                identityType: request.IdentityType,
+                identityNumber: request.IdentityNumber,
+                email: request.Email,
+                primaryDepartmentId: request.PrimaryDepartmentId,
+                primaryPositionId: request.PrimaryPositionId,
+                employmentType: request.EmploymentType,
+                joinDate: request.JoinDate
+            );
+        }
+
+        private static (bool IsValid, string? ErrorMessage) ValidateRequiredEmployeeRequest(
+            UpdateEmployeeRequest request)
+        {
+            return ValidateRequiredEmployeeFields(
+                fullName: request.FullName,
+                birthDate: request.BirthDate,
+                identityType: request.IdentityType,
+                identityNumber: request.IdentityNumber,
+                email: request.Email,
+                primaryDepartmentId: request.PrimaryDepartmentId,
+                primaryPositionId: request.PrimaryPositionId,
+                employmentType: request.EmploymentType,
+                joinDate: request.JoinDate
+            );
+        }
+
+        private static (bool IsValid, string? ErrorMessage) ValidateRequiredEmployeeFields(
+            string? fullName,
+            DateTime birthDate,
+            string? identityType,
+            string? identityNumber,
+            string? email,
+            Guid primaryDepartmentId,
+            Guid primaryPositionId,
+            string? employmentType,
+            DateTime joinDate)
+        {
+            if (string.IsNullOrWhiteSpace(fullName))
             {
                 return (false, "Nama employee wajib diisi.");
             }
 
-            if (request.BirthDate == default)
+            if (birthDate == default)
             {
                 return (false, "Tanggal lahir wajib diisi.");
             }
 
-            if (string.IsNullOrWhiteSpace(request.IdentityType))
+            if (string.IsNullOrWhiteSpace(identityType))
             {
                 return (false, "Tipe identitas wajib diisi.");
             }
 
-            if (string.IsNullOrWhiteSpace(request.IdentityNumber))
+            if (string.IsNullOrWhiteSpace(identityNumber))
             {
                 return (false, "Nomor identitas wajib diisi.");
             }
 
-            if (NormalizeDigitsOnly(request.IdentityNumber)?.Length != 16)
+            if (NormalizeDigitsOnly(identityNumber)?.Length != 16)
             {
                 return (false, "Nomor identitas harus 16 digit.");
             }
 
-            if (string.IsNullOrWhiteSpace(request.Email))
+            if (string.IsNullOrWhiteSpace(email))
             {
                 return (false, "Email wajib diisi.");
             }
 
-            if (request.PrimaryDepartmentId == Guid.Empty)
+            if (primaryDepartmentId == Guid.Empty)
             {
                 return (false, "Primary department wajib dipilih.");
             }
 
-            if (request.PrimaryPositionId == Guid.Empty)
+            if (primaryPositionId == Guid.Empty)
             {
                 return (false, "Primary position wajib dipilih.");
             }
 
-            if (string.IsNullOrWhiteSpace(request.EmploymentType))
+            if (string.IsNullOrWhiteSpace(employmentType))
             {
                 return (false, "Employment type wajib diisi.");
             }
 
-            if (request.JoinDate == default)
+            if (joinDate == default)
             {
                 return (false, "Tanggal bergabung wajib diisi.");
             }

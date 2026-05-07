@@ -1,5 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Administrator.UserManagement.Enum;
-using QuilvianSystemBackend.Enum;
+﻿using QuilvianSystemBackend.Enum;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
@@ -37,7 +36,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public string? WhatsAppNumber { get; set; }
 
-        public string? Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         public Guid? CountryId { get; set; }
 
@@ -77,17 +76,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public EmployeeProfessionType ProfessionType { get; set; }
 
-        public string? EmploymentType { get; set; }
+        public string EmploymentType { get; set; } = string.Empty;
 
         public string? GradeLevel { get; set; }
 
         public string? WorkLocation { get; set; }
 
-        public DateTime? JoinDate { get; set; }
+        public DateTime JoinDate { get; set; }
 
         public DateTime? ContractEndDate { get; set; }
 
         public DateTime? ResignDate { get; set; }
+
+        public bool HasUserAccount { get; set; }
 
         public bool HasTransportAllowanceProfile { get; set; }
 
@@ -100,7 +101,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
     {
         public string? BirthPlace { get; set; }
 
-        public DateTime? BirthDate { get; set; }
+        public DateTime BirthDate { get; set; }
 
         public Religion Religion { get; set; }
 
@@ -108,9 +109,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public BloodType BloodType { get; set; }
 
-        public string? IdentityType { get; set; }
+        public string IdentityType { get; set; } = string.Empty;
 
-        public string? IdentityNumber { get; set; }
+        public string IdentityNumber { get; set; } = string.Empty;
 
         public string? Address { get; set; }
 
@@ -128,7 +129,71 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public string? EmergencyContactAddress { get; set; }
 
+        public EmployeeUserAccountCompactResponse? UserAccount { get; set; }
+
         public EmployeeTransportAllowanceProfileResponse? TransportAllowanceProfile { get; set; }
+
+        public EmployeeChildSummaryResponse ChildSummary { get; set; } = new();
+    }
+
+    public class EmployeeUserAccountCompactResponse
+    {
+        public bool IsAvailable { get; set; }
+
+        public Guid? UserId { get; set; }
+
+        public string? UserCode { get; set; }
+
+        public string? UserName { get; set; }
+
+        public string? Email { get; set; }
+
+        public string? DisplayName { get; set; }
+
+        public UserType? UserType { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public bool MustChangePassword { get; set; }
+
+        public string? ProfilePhotoPath { get; set; }
+    }
+
+    public class EmployeeChildSummaryResponse
+    {
+        public int OrganizationCount { get; set; }
+
+        public int ActiveOrganizationCount { get; set; }
+
+        public int PrimaryOrganizationCount { get; set; }
+
+        public int BankAccountCount { get; set; }
+
+        public int DocumentCount { get; set; }
+
+        public int PayrollProfileCount { get; set; }
+
+        public int TaxProfileCount { get; set; }
+
+        public int InsuranceProfileCount { get; set; }
+
+        public int TransportAllowanceProfileCount { get; set; }
+
+        public int TransportAllowanceTransactionCount { get; set; }
+
+        public int LeaveCount { get; set; }
+
+        public int ShiftAssignmentCount { get; set; }
+
+        public int AttendanceCount { get; set; }
+
+        public int SalaryCount { get; set; }
+
+        public int TrainingCount { get; set; }
+
+        public int WarningLetterCount { get; set; }
+
+        public int PerformanceReviewCount { get; set; }
     }
 
     public class EmployeeOptionResponse
@@ -159,76 +224,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string Label { get; set; } = string.Empty;
     }
 
-    public class EmployeeTransportAllowanceProfileResponse
-    {
-        public bool IsConfigured { get; set; }
-
-        public Guid? Id { get; set; }
-
-        public Guid EmployeeId { get; set; }
-
-        public string EmployeeCode { get; set; } = string.Empty;
-
-        public string EmployeeName { get; set; } = string.Empty;
-
-        public bool IsEligible { get; set; }
-
-        public bool IsNightTransportEligible { get; set; }
-
-        public string AllowanceMode { get; set; } = "None";
-
-        public decimal MonthlyAmount { get; set; }
-
-        public decimal DailyAmount { get; set; }
-
-        public decimal NightAmount { get; set; }
-
-        public bool IsProrated { get; set; }
-
-        public bool IsTaxable { get; set; }
-
-        public bool IsPayrollComponent { get; set; }
-
-        public DateTime? EffectiveStartDate { get; set; }
-
-        public DateTime? EffectiveEndDate { get; set; }
-
-        public string? Description { get; set; }
-
-        public bool IsActive { get; set; }
-    }
-
-    public class EmployeeTransportAllowanceTransactionResponse
-    {
-        public Guid Id { get; set; }
-
-        public Guid EmployeeId { get; set; }
-
-        public string EmployeeCode { get; set; } = string.Empty;
-
-        public string EmployeeName { get; set; } = string.Empty;
-
-        public DateTime TransactionDate { get; set; }
-
-        public string PeriodYearMonth { get; set; } = string.Empty;
-
-        public string AllowanceType { get; set; } = string.Empty;
-
-        public decimal Amount { get; set; }
-
-        public bool IsGeneratedFromAttendance { get; set; }
-
-        public bool IsNightShift { get; set; }
-
-        public string TransactionStatus { get; set; } = string.Empty;
-
-        public string? Notes { get; set; }
-
-        public bool IsActive { get; set; }
-
-        public DateTime CreateDateTime { get; set; }
-    }
-
     public class EmployeeFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
@@ -237,7 +232,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
             "EmployeeNumber dibuat otomatis oleh backend saat create employee.";
 
         public string InitialPasswordFormatInfo { get; set; } =
-            "Jika nanti akun user dibuat dari employee, password awal dapat digenerate dari BirthDate dengan format ddMMMyyyy, contoh 01Jan2025.";
+            "Jika akun user dibuat dari employee, password awal digenerate dari BirthDate dengan format ddMMMyyyy, contoh 01Jan2025.";
 
         public string CustomPeriodPriorityInfo { get; set; } =
             "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan. Jika customPeriod kosong atau custom, frontend boleh mengirim startDate dan endDate.";
@@ -275,6 +270,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public List<EmployeeFormFieldMetadataResponse> CreateFields { get; set; } = new();
 
         public List<EmployeeFormFieldMetadataResponse> UpdateFields { get; set; } = new();
+
+        public List<EmployeeDetailTabMetadataResponse> DetailTabs { get; set; } = new();
     }
 
     public class EmployeeDefaultFilterResponse
@@ -312,6 +309,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public MaritalStatus? MaritalStatus { get; set; }
 
         public BloodType? BloodType { get; set; }
+
+        public bool? HasUserAccount { get; set; }
 
         public bool? HasTransportAllowanceProfile { get; set; }
 
@@ -355,6 +354,60 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string Description { get; set; } = string.Empty;
 
         public string? Example { get; set; }
+    }
+
+    public class EmployeeFormFieldMetadataResponse
+    {
+        public string Name { get; set; } = string.Empty;
+
+        public string Label { get; set; } = string.Empty;
+
+        public string Section { get; set; } = string.Empty;
+
+        public string InputType { get; set; } = string.Empty;
+
+        public bool IsRequiredOnCreate { get; set; }
+
+        public bool IsRequiredOnUpdate { get; set; }
+
+        public string RequiredType { get; set; } = "Optional";
+
+        public int? MaxLength { get; set; }
+
+        public string? DependsOn { get; set; }
+
+        public string? OptionsSource { get; set; }
+
+        public string? ValidationRule { get; set; }
+
+        public string? Description { get; set; }
+
+        public string? Example { get; set; }
+
+        public int SortOrder { get; set; }
+    }
+
+    public class EmployeeDetailTabMetadataResponse
+    {
+        public string Key { get; set; } = string.Empty;
+
+        public string Label { get; set; } = string.Empty;
+
+        public string Icon { get; set; } = string.Empty;
+
+        public string Endpoint { get; set; } = string.Empty;
+
+        public bool IsVisibleInDetail { get; set; } = true;
+
+        public bool IsVisibleInUpdate { get; set; } = true;
+
+        public bool CanCreate { get; set; }
+
+        public bool CanUpdate { get; set; }
+
+        public bool CanDelete { get; set; }
+
+        public int SortOrder { get; set; }
     }
 
     public class CreateEmployeeRequest
@@ -460,12 +513,110 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? EmergencyContactAddress { get; set; }
     }
 
-    public class UpdateEmployeeRequest : CreateEmployeeRequest
+    public class UpdateEmployeeRequest
     {
+        [Required]
+        [MaxLength(200)]
+        public string FullName { get; set; } = string.Empty;
+
+        [MaxLength(100)]
+        public string? NickName { get; set; }
+
+        public Gender? Gender { get; set; }
+
+        [MaxLength(100)]
+        public string? BirthPlace { get; set; }
+
+        [Required]
+        public DateTime BirthDate { get; set; }
+
+        public Religion Religion { get; set; } = Religion.Unknown;
+
+        public MaritalStatus MaritalStatus { get; set; } = MaritalStatus.Unknown;
+
+        public BloodType BloodType { get; set; } = BloodType.Unknown;
+
+        [Required]
+        [MaxLength(50)]
+        public string IdentityType { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(16)]
+        [RegularExpression(@"^\d{16}$", ErrorMessage = "Nomor identitas harus 16 digit.")]
+        public string IdentityNumber { get; set; } = string.Empty;
+
+        [MaxLength(13)]
+        [RegularExpression(@"^\d{13}$", ErrorMessage = "Nomor telepon harus 13 digit.")]
+        public string? PhoneNumber { get; set; }
+
+        [MaxLength(13)]
+        [RegularExpression(@"^\d{13}$", ErrorMessage = "Nomor WhatsApp harus 13 digit.")]
+        public string? WhatsAppNumber { get; set; }
+
+        [Required]
+        [MaxLength(200)]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? Address { get; set; }
+
+        public Guid? CountryId { get; set; }
+
+        public Guid? ProvinceId { get; set; }
+
+        public Guid? CityId { get; set; }
+
+        public Guid? DistrictId { get; set; }
+
+        public Guid? PostalCodeId { get; set; }
+
+        [Required]
+        public Guid PrimaryDepartmentId { get; set; }
+
+        [Required]
+        public Guid PrimaryPositionId { get; set; }
+
+        public EmployeeStatus EmployeeStatus { get; set; } = EmployeeStatus.Contract;
+
+        public EmployeeProfessionType ProfessionType { get; set; } = EmployeeProfessionType.GeneralStaff;
+
+        [Required]
+        [MaxLength(50)]
+        public string EmploymentType { get; set; } = string.Empty;
+
+        [MaxLength(50)]
+        public string? GradeLevel { get; set; }
+
+        [MaxLength(50)]
+        public string? WorkLocation { get; set; }
+
+        [Required]
+        public DateTime JoinDate { get; set; }
+
+        public DateTime? ProbationEndDate { get; set; }
+
+        public DateTime? ContractStartDate { get; set; }
+
+        public DateTime? ContractEndDate { get; set; }
+
         public DateTime? ResignDate { get; set; }
 
         [MaxLength(250)]
         public string? ResignReason { get; set; }
+
+        [MaxLength(200)]
+        public string? EmergencyContactName { get; set; }
+
+        [MaxLength(50)]
+        public string? EmergencyContactRelation { get; set; }
+
+        [MaxLength(13)]
+        [RegularExpression(@"^\d{13}$", ErrorMessage = "Nomor telepon kontak darurat harus 13 digit.")]
+        public string? EmergencyContactPhone { get; set; }
+
+        [MaxLength(500)]
+        public string? EmergencyContactAddress { get; set; }
 
         public bool IsActive { get; set; } = true;
     }
@@ -478,38 +629,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         [MaxLength(250)]
         public string? ResignReason { get; set; }
-    }
-
-    public class UpsertEmployeeTransportAllowanceProfileRequest
-    {
-        public bool IsEligible { get; set; }
-
-        public bool IsNightTransportEligible { get; set; }
-
-        [Required]
-        [MaxLength(50)]
-        public string AllowanceMode { get; set; } = "None";
-
-        public decimal MonthlyAmount { get; set; }
-
-        public decimal DailyAmount { get; set; }
-
-        public decimal NightAmount { get; set; }
-
-        public bool IsProrated { get; set; } = true;
-
-        public bool IsTaxable { get; set; } = true;
-
-        public bool IsPayrollComponent { get; set; } = true;
-
-        public DateTime? EffectiveStartDate { get; set; }
-
-        public DateTime? EffectiveEndDate { get; set; }
-
-        [MaxLength(250)]
-        public string? Description { get; set; }
-
-        public bool IsActive { get; set; } = true;
     }
 
     public class EmployeeCreateResponse
@@ -552,34 +671,210 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string Message { get; set; } = string.Empty;
     }
 
-    public class EmployeeFormFieldMetadataResponse
+    public class EmployeeOrganizationAssignmentResponse
     {
-        public string Name { get; set; } = string.Empty;
+        public Guid Id { get; set; }
 
-        public string Label { get; set; } = string.Empty;
+        public Guid EmployeeId { get; set; }
 
-        public string Section { get; set; } = string.Empty;
+        public Guid DepartmentId { get; set; }
 
-        public string InputType { get; set; } = string.Empty;
+        public string DepartmentCode { get; set; } = string.Empty;
 
-        public bool IsRequiredOnCreate { get; set; }
+        public string DepartmentName { get; set; } = string.Empty;
 
-        public bool IsRequiredOnUpdate { get; set; }
+        public Guid PositionId { get; set; }
 
-        public string RequiredType { get; set; } = "Optional";
+        public string PositionCode { get; set; } = string.Empty;
 
-        public int? MaxLength { get; set; }
+        public string PositionName { get; set; } = string.Empty;
 
-        public string? DependsOn { get; set; }
+        public bool IsPrimary { get; set; }
 
-        public string? OptionsSource { get; set; }
+        public bool IsActive { get; set; }
 
-        public string? ValidationRule { get; set; }
+        public DateTime EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
 
         public string? Description { get; set; }
 
-        public string? Example { get; set; }
+        public DateTime CreateDateTime { get; set; }
+    }
 
-        public int SortOrder { get; set; }
+    public class EmployeeOrganizationAssignmentListResponse
+    {
+        public Guid EmployeeId { get; set; }
+
+        public string EmployeeCode { get; set; } = string.Empty;
+
+        public string EmployeeName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int PrimaryData { get; set; }
+
+        public List<EmployeeOrganizationAssignmentResponse> Items { get; set; } = new();
+    }
+
+    public class CreateEmployeeOrganizationAssignmentRequest
+    {
+        [Required]
+        public Guid DepartmentId { get; set; }
+
+        [Required]
+        public Guid PositionId { get; set; }
+
+        public bool IsPrimary { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+
+        [Required]
+        public DateTime EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+    }
+
+    public class UpdateEmployeeOrganizationAssignmentRequest
+    {
+        [Required]
+        public Guid DepartmentId { get; set; }
+
+        [Required]
+        public Guid PositionId { get; set; }
+
+        public bool IsPrimary { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+
+        [Required]
+        public DateTime EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+    }
+
+    public class UpdateEmployeeOrganizationAssignmentStatusRequest
+    {
+        public bool IsActive { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+    }
+
+    public class SetEmployeeOrganizationAssignmentPrimaryRequest
+    {
+        public bool IsPrimary { get; set; } = true;
+    }
+
+    public class EmployeeTransportAllowanceProfileResponse
+    {
+        public bool IsConfigured { get; set; }
+
+        public Guid? Id { get; set; }
+
+        public Guid EmployeeId { get; set; }
+
+        public string EmployeeCode { get; set; } = string.Empty;
+
+        public string EmployeeName { get; set; } = string.Empty;
+
+        public bool IsEligible { get; set; }
+
+        public bool IsNightTransportEligible { get; set; }
+
+        public string AllowanceMode { get; set; } = "None";
+
+        public decimal MonthlyAmount { get; set; }
+
+        public decimal DailyAmount { get; set; }
+
+        public decimal NightAmount { get; set; }
+
+        public bool IsProrated { get; set; }
+
+        public bool IsTaxable { get; set; }
+
+        public bool IsPayrollComponent { get; set; }
+
+        public DateTime? EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        public string? Description { get; set; }
+
+        public bool IsActive { get; set; }
+    }
+
+    public class UpsertEmployeeTransportAllowanceProfileRequest
+    {
+        public bool IsEligible { get; set; }
+
+        public bool IsNightTransportEligible { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string AllowanceMode { get; set; } = "None";
+
+        public decimal MonthlyAmount { get; set; }
+
+        public decimal DailyAmount { get; set; }
+
+        public decimal NightAmount { get; set; }
+
+        public bool IsProrated { get; set; } = true;
+
+        public bool IsTaxable { get; set; } = true;
+
+        public bool IsPayrollComponent { get; set; } = true;
+
+        public DateTime? EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class EmployeeTransportAllowanceTransactionResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid EmployeeId { get; set; }
+
+        public string EmployeeCode { get; set; } = string.Empty;
+
+        public string EmployeeName { get; set; } = string.Empty;
+
+        public DateTime TransactionDate { get; set; }
+
+        public string PeriodYearMonth { get; set; } = string.Empty;
+
+        public string AllowanceType { get; set; } = string.Empty;
+
+        public decimal Amount { get; set; }
+
+        public bool IsGeneratedFromAttendance { get; set; }
+
+        public bool IsNightShift { get; set; }
+
+        public string TransactionStatus { get; set; } = string.Empty;
+
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
     }
 }

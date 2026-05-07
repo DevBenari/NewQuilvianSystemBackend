@@ -48,6 +48,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<EmpTransportAllowanceProfile> EmpTransportAllowanceProfiles { get; set; }
         public DbSet<EmpTransportAllowancePolicy> EmpTransportAllowancePolicies { get; set; }
         public DbSet<EmpTransportAllowanceTransaction> EmpTransportAllowanceTransactions { get; set; }
+        public DbSet<EmpOrganizationAssignment> EmpOrganizationAssignments { get; set; }
 
         public DbSet<DctLicense> DctLicenses { get; set; }
         public DbSet<DctPracticeProfile> DctPracticeProfiles { get; set; }
@@ -1708,6 +1709,79 @@ namespace QuilvianSystemBackend.Repositories
                 entity.HasIndex(x => x.AttendanceId);
 
                 entity.HasIndex(x => x.ShiftId);
+            });
+
+            builder.Entity<EmpOrganizationAssignment>(entity =>
+            {
+                entity.ToTable("EmpOrganizationAssignment", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.EffectiveStartDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.EffectiveEndDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsPrimary)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.Employee)
+                    .WithMany(x => x.OrganizationAssignments)
+                    .HasForeignKey(x => x.EmployeeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.Department)
+                    .WithMany()
+                    .HasForeignKey(x => x.DepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.Position)
+                    .WithMany()
+                    .HasForeignKey(x => x.PositionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.EmployeeId);
+
+                entity.HasIndex(x => new
+                {
+                    x.EmployeeId,
+                    x.DepartmentId,
+                    x.PositionId,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.EmployeeId,
+                    x.IsPrimary
+                })
+                .HasFilter("\"IsPrimary\" = true AND \"IsActive\" = true AND \"IsDelete\" = false")
+                .IsUnique();
             });
 
             builder.Entity<ApplicationUserOrganization>(entity =>

@@ -135,6 +135,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
 
         public MstPostalCode? PostalCode { get; set; }
 
+        public ICollection<EmpOrganizationAssignment> OrganizationAssignments { get; set; } = new List<EmpOrganizationAssignment>();
+
         public ICollection<EmpBankAccount> BankAccounts { get; set; } = new List<EmpBankAccount>();
 
         public EmpPayrollProfile? PayrollProfile { get; set; }
