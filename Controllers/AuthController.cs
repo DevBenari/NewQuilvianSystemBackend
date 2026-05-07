@@ -1237,28 +1237,53 @@ namespace QuilvianSystemBackend.Controllers
             var cookieName = _configuration["Jwt:CookieName"] ?? "quilvian_access_token";
             var expireMinutes = GetJwtExpireMinutes();
 
-            Response.Cookies.Append(cookieName, token, new CookieOptions
+            var cookieOptions = BuildAuthCookieOptions(expireMinutes);
+
+            Response.Cookies.Append(cookieName, token, cookieOptions);
+        }
+
+        private CookieOptions BuildAuthCookieOptions(int expireMinutes)
+        {
+            var isLocalBackend = IsLocalBackendRequest();
+
+            return new CookieOptions
             {
                 HttpOnly = true,
-                Secure = !_environment.IsDevelopment(),
-                SameSite = _environment.IsDevelopment()
+
+                // Untuk API server HTTPS yang dipanggil dari frontend beda origin,
+                // wajib Secure=true dan SameSite=None.
+                // Untuk backend local HTTP, Secure=false agar cookie bisa tersimpan.
+                Secure = !isLocalBackend,
+
+                SameSite = isLocalBackend
                     ? SameSiteMode.Lax
                     : SameSiteMode.None,
+
                 Expires = DateTimeOffset.UtcNow.AddMinutes(expireMinutes),
                 MaxAge = TimeSpan.FromMinutes(expireMinutes),
                 Path = "/"
-            });
+            };
+        }
+
+        private bool IsLocalBackendRequest()
+        {
+            var host = Request.Host.Host;
+
+            return host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+                || host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase);
         }
 
         private void ClearAuthCookie()
         {
             var cookieName = _configuration["Jwt:CookieName"] ?? "quilvian_access_token";
 
+            var isLocalBackend = IsLocalBackendRequest();
+
             Response.Cookies.Delete(cookieName, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = !_environment.IsDevelopment(),
-                SameSite = _environment.IsDevelopment()
+                Secure = !isLocalBackend,
+                SameSite = isLocalBackend
                     ? SameSiteMode.Lax
                     : SameSiteMode.None,
                 Path = "/"
@@ -1269,18 +1294,18 @@ namespace QuilvianSystemBackend.Controllers
         {
             var cookieName = _configuration["Jwt:CookieName"] ?? "quilvian_access_token";
             var expireMinutes = GetJwtExpireMinutes();
-            var isDevelopment = _environment.IsDevelopment();
+            var isLocalBackend = IsLocalBackendRequest();
 
             return new AuthInfoResponse
             {
                 Scheme = "Cookie",
                 CookieName = cookieName,
                 IsHttpOnly = true,
-                SameSite = isDevelopment ? "Lax" : "None",
-                Secure = !isDevelopment,
+                SameSite = isLocalBackend ? "Lax" : "None",
+                Secure = !isLocalBackend,
                 ExpiresInMinutes = expireMinutes,
                 ExpiresAtUtc = DateTime.UtcNow.AddMinutes(expireMinutes),
-                FrontendInstruction = "Gunakan credentials: 'include' pada setiap request ke backend. Access token tidak dikirim di response body karena disimpan di HttpOnly cookie."
+                FrontendInstruction = "Gunakan credentials: 'include' atau withCredentials: true pada setiap request ke backend. Access token disimpan di HttpOnly cookie."
             };
         }
 
