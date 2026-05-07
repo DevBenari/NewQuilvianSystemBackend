@@ -16,7 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Paksa session/JWT/cookie expire 10 menit.
 // Nilai ini akan dibaca oleh AuthController lewat IConfiguration.
-const int AuthExpireMinutes = 10;
+const int AuthExpireMinutes = 5;
 builder.Configuration["Jwt:ExpireMinutes"] = AuthExpireMinutes.ToString();
 
 // Add services to the container.
