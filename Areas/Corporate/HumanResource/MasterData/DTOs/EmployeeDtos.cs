@@ -1,5 +1,5 @@
-﻿using global::QuilvianSystemBackend.Areas.Administrator.UserManagement.Enum;
-using global::QuilvianSystemBackend.Enum;
+﻿using QuilvianSystemBackend.Areas.Administrator.UserManagement.Enum;
+using QuilvianSystemBackend.Enum;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
@@ -25,9 +25,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public string EmployeeCode { get; set; } = string.Empty;
 
-        public string? EmployeeNumber { get; set; }
-
-        public string? AttendanceNumber { get; set; }
+        public string EmployeeNumber { get; set; } = string.Empty;
 
         public string FullName { get; set; } = string.Empty;
 
@@ -40,6 +38,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? WhatsAppNumber { get; set; }
 
         public string? Email { get; set; }
+
+        public Guid? CountryId { get; set; }
+
+        public string? CountryName { get; set; }
+
+        public Guid? ProvinceId { get; set; }
+
+        public string? ProvinceName { get; set; }
+
+        public Guid? CityId { get; set; }
+
+        public string? CityName { get; set; }
+
+        public Guid? DistrictId { get; set; }
+
+        public string? DistrictName { get; set; }
+
+        public Guid? PostalCodeId { get; set; }
+
+        public string? PostalCode { get; set; }
+
+        public string? VillageName { get; set; }
 
         public Guid PrimaryDepartmentId { get; set; }
 
@@ -82,27 +102,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public DateTime? BirthDate { get; set; }
 
-        public string? Religion { get; set; }
+        public Religion Religion { get; set; }
 
-        public string? MaritalStatus { get; set; }
+        public MaritalStatus MaritalStatus { get; set; }
 
-        public string? BloodType { get; set; }
+        public BloodType BloodType { get; set; }
 
         public string? IdentityType { get; set; }
 
         public string? IdentityNumber { get; set; }
 
         public string? Address { get; set; }
-
-        public string? Province { get; set; }
-
-        public string? City { get; set; }
-
-        public string? District { get; set; }
-
-        public string? Village { get; set; }
-
-        public string? PostalCode { get; set; }
 
         public DateTime? ProbationEndDate { get; set; }
 
@@ -127,6 +137,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public string EmployeeCode { get; set; } = string.Empty;
 
+        public string EmployeeNumber { get; set; } = string.Empty;
+
         public string FullName { get; set; } = string.Empty;
 
         public Guid PrimaryDepartmentId { get; set; }
@@ -136,6 +148,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public Guid PrimaryPositionId { get; set; }
 
         public string PrimaryPositionName { get; set; } = string.Empty;
+    }
+
+    public class EmployeeEnumOptionResponse
+    {
+        public int Value { get; set; }
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Label { get; set; } = string.Empty;
     }
 
     public class EmployeeTransportAllowanceProfileResponse
@@ -212,6 +233,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
 
+        public string EmployeeNumberInfo { get; set; } =
+            "EmployeeNumber dibuat otomatis oleh backend saat create employee.";
+
+        public string InitialPasswordFormatInfo { get; set; } =
+            "Jika nanti akun user dibuat dari employee, password awal dapat digenerate dari BirthDate dengan format ddMMMyyyy, contoh 01Jan2025.";
+
         public string CustomPeriodPriorityInfo { get; set; } =
             "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan. Jika customPeriod kosong atau custom, frontend boleh mengirim startDate dan endDate.";
 
@@ -224,6 +251,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public List<string> SortDirections { get; set; } = new();
 
         public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<EmployeeEnumOptionResponse> GenderOptions { get; set; } = new();
+
+        public List<EmployeeEnumOptionResponse> ReligionOptions { get; set; } = new();
+
+        public List<EmployeeEnumOptionResponse> MaritalStatusOptions { get; set; } = new();
+
+        public List<EmployeeEnumOptionResponse> BloodTypeOptions { get; set; } = new();
+
+        public List<EmployeeEnumOptionResponse> EmployeeStatusOptions { get; set; } = new();
+
+        public List<EmployeeEnumOptionResponse> ProfessionTypeOptions { get; set; } = new();
 
         public List<string> TransportAllowanceModes { get; set; } = new();
 
@@ -250,9 +289,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public Guid? PositionId { get; set; }
 
+        public Guid? CountryId { get; set; }
+
+        public Guid? ProvinceId { get; set; }
+
+        public Guid? CityId { get; set; }
+
+        public Guid? DistrictId { get; set; }
+
+        public Guid? PostalCodeId { get; set; }
+
         public EmployeeStatus? EmployeeStatus { get; set; }
 
         public EmployeeProfessionType? ProfessionType { get; set; }
+
+        public Religion? Religion { get; set; }
+
+        public MaritalStatus? MaritalStatus { get; set; }
+
+        public BloodType? BloodType { get; set; }
 
         public bool? HasTransportAllowanceProfile { get; set; }
 
@@ -300,11 +355,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
     public class CreateEmployeeRequest
     {
-        [MaxLength(50)]
-        public string? EmployeeNumber { get; set; }
-
-        [MaxLength(50)]
-        public string? AttendanceNumber { get; set; }
+        public bool CreateLoginAccount { get; set; } = true;
 
         [Required]
         [MaxLength(200)]
@@ -320,25 +371,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public DateTime? BirthDate { get; set; }
 
-        [MaxLength(50)]
-        public string? Religion { get; set; }
+        public Religion Religion { get; set; } = Religion.Unknown;
 
-        [MaxLength(50)]
-        public string? MaritalStatus { get; set; }
+        public MaritalStatus MaritalStatus { get; set; } = MaritalStatus.Unknown;
 
-        [MaxLength(50)]
-        public string? BloodType { get; set; }
+        public BloodType BloodType { get; set; } = BloodType.Unknown;
 
         [MaxLength(50)]
         public string? IdentityType { get; set; }
 
-        [MaxLength(50)]
+        [MaxLength(16)]
         public string? IdentityNumber { get; set; }
 
-        [MaxLength(30)]
+        [MaxLength(13)]
         public string? PhoneNumber { get; set; }
 
-        [MaxLength(30)]
+        [MaxLength(13)]
         public string? WhatsAppNumber { get; set; }
 
         [MaxLength(200)]
@@ -347,20 +395,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         [MaxLength(500)]
         public string? Address { get; set; }
 
-        [MaxLength(100)]
-        public string? Province { get; set; }
+        public Guid? CountryId { get; set; }
 
-        [MaxLength(100)]
-        public string? City { get; set; }
+        public Guid? ProvinceId { get; set; }
 
-        [MaxLength(100)]
-        public string? District { get; set; }
+        public Guid? CityId { get; set; }
 
-        [MaxLength(100)]
-        public string? Village { get; set; }
+        public Guid? DistrictId { get; set; }
 
-        [MaxLength(20)]
-        public string? PostalCode { get; set; }
+        public Guid? PostalCodeId { get; set; }
 
         [Required]
         public Guid PrimaryDepartmentId { get; set; }
@@ -395,7 +438,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         [MaxLength(50)]
         public string? EmergencyContactRelation { get; set; }
 
-        [MaxLength(30)]
+        [MaxLength(13)]
         public string? EmergencyContactPhone { get; set; }
 
         [MaxLength(500)]
@@ -452,5 +495,45 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? Description { get; set; }
 
         public bool IsActive { get; set; } = true;
+    }
+
+    public class EmployeeCreateResponse
+    {
+        public Guid Id { get; set; }
+
+        public string EmployeeCode { get; set; } = string.Empty;
+
+        public string EmployeeNumber { get; set; } = string.Empty;
+
+        public string FullName { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; }
+
+        public EmployeeLoginAccountResponse? LoginAccount { get; set; }
+    }
+
+    public class EmployeeLoginAccountResponse
+    {
+        public bool IsCreated { get; set; }
+
+        public Guid? UserId { get; set; }
+
+        public string? UserCode { get; set; }
+
+        public string? UserName { get; set; }
+
+        public string? Email { get; set; }
+
+        public string? DisplayName { get; set; }
+
+        public UserType? UserType { get; set; }
+
+        public string? InitialPassword { get; set; }
+
+        public bool MustChangePassword { get; set; }
+
+        public string? ProfilePhotoPath { get; set; }
+
+        public string Message { get; set; } = string.Empty;
     }
 }

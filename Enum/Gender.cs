@@ -1,4 +1,4 @@
-﻿namespace QuilvianSystemBackend.Areas.Administrator.UserManagement.Enum
+﻿namespace QuilvianSystemBackend.Enum
 {
     public enum Gender
     {

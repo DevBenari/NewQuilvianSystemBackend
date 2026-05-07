@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.UserManagement.Enum;
@@ -8,9 +9,11 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Enum;
+using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.Globalization;
 using System.Security.Claims;
 
 using ResponseEmployeePagedResult =
@@ -38,7 +41,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
     [Tags("Corporate / Human Resource / Master Data / Employee")]
     public class EmployeeController : ControllerBase
     {
+        private const string DefaultProfilePhotoPath = "http://103.153.60.136:5050/uploads/default-photo/user.jpeg";
+
+        private readonly UserManager<ApplicationUser> _userManager;
+
         private const string LogCategory = "Corporate.HumanResource.MasterData";
+        private const string HospitalCode = "RSMMC";
 
         private static readonly string[] AllowanceModes =
         {
@@ -73,15 +81,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         public EmployeeController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            UserManager<ApplicationUser> userManager)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _userManager = userManager;
         }
-
-        // =========================================================
-        // FILTER METADATA
-        // =========================================================
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<EmployeeFilterMetadataResponse>), StatusCodes.Status200OK)]
@@ -106,8 +112,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsActive = null,
                     DepartmentId = null,
                     PositionId = null,
+                    CountryId = null,
+                    ProvinceId = null,
+                    CityId = null,
+                    DistrictId = null,
+                    PostalCodeId = null,
                     EmployeeStatus = null,
                     ProfessionType = null,
+                    Religion = null,
+                    MaritalStatus = null,
+                    BloodType = null,
                     HasTransportAllowanceProfile = null,
                     SortBy = "createDateTime",
                     SortDirection = "desc",
@@ -120,7 +134,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
                     new() { Value = "employeeCode", Label = "Kode employee" },
                     new() { Value = "employeeNumber", Label = "Nomor employee" },
-                    new() { Value = "attendanceNumber", Label = "Nomor absensi" },
                     new() { Value = "fullName", Label = "Nama employee" },
                     new() { Value = "departmentName", Label = "Nama department" },
                     new() { Value = "positionName", Label = "Nama position" },
@@ -129,116 +142,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                GenderOptions = BuildEnumOptions<Gender>(),
+                ReligionOptions = BuildEnumOptions<Religion>(),
+                MaritalStatusOptions = BuildEnumOptions<MaritalStatus>(),
+                BloodTypeOptions = BuildEnumOptions<BloodType>(),
+                EmployeeStatusOptions = BuildEnumOptions<EmployeeStatus>(),
+                ProfessionTypeOptions = BuildEnumOptions<EmployeeProfessionType>(),
                 TransportAllowanceModes = AllowanceModes.ToList(),
                 TransportTransactionStatuses = TransportTransactionStatuses.ToList(),
                 TransportAllowanceTypes = TransportAllowanceTypes.ToList(),
-                QueryParameters = new List<EmployeeQueryParameterInfoResponse>
-                {
-                    new()
-                    {
-                        Name = "startDate",
-                        Type = "date",
-                        Required = "No",
-                        Description = "Tanggal mulai filter berdasarkan CreateDateTime. Dipakai jika customPeriod kosong atau custom.",
-                        Example = "2026-01-01"
-                    },
-                    new()
-                    {
-                        Name = "endDate",
-                        Type = "date",
-                        Required = "No",
-                        Description = "Tanggal akhir filter berdasarkan CreateDateTime. Sistem membaca sampai akhir hari endDate.",
-                        Example = "2026-01-31"
-                    },
-                    new()
-                    {
-                        Name = "customPeriod",
-                        Type = "string",
-                        Required = "No",
-                        Description = "Pilihan periode cepat.",
-                        Example = "last30days"
-                    },
-                    new()
-                    {
-                        Name = "search",
-                        Type = "string",
-                        Required = "No",
-                        Description = "Pencarian employee code, employee number, attendance number, nama, email, phone, department, position.",
-                        Example = "budi"
-                    },
-                    new()
-                    {
-                        Name = "departmentId",
-                        Type = "guid",
-                        Required = "No",
-                        Description = "Filter berdasarkan primary department.",
-                        Example = "00000000-0000-0000-0000-000000000000"
-                    },
-                    new()
-                    {
-                        Name = "positionId",
-                        Type = "guid",
-                        Required = "No",
-                        Description = "Filter berdasarkan primary position.",
-                        Example = "00000000-0000-0000-0000-000000000000"
-                    },
-                    new()
-                    {
-                        Name = "employeeStatus",
-                        Type = "enum",
-                        Required = "No",
-                        Description = "Filter status employee sesuai enum EmployeeStatus.",
-                        Example = "Contract"
-                    },
-                    new()
-                    {
-                        Name = "professionType",
-                        Type = "enum",
-                        Required = "No",
-                        Description = "Filter profession type sesuai enum EmployeeProfessionType.",
-                        Example = "GeneralStaff"
-                    },
-                    new()
-                    {
-                        Name = "hasTransportAllowanceProfile",
-                        Type = "boolean",
-                        Required = "No",
-                        Description = "Filter employee yang sudah/belum punya profile uang transport.",
-                        Example = "true"
-                    },
-                    new()
-                    {
-                        Name = "sortBy",
-                        Type = "string",
-                        Required = "No",
-                        Description = "Field sorting. Nilai tersedia dari SortOptions.",
-                        Example = "fullName"
-                    },
-                    new()
-                    {
-                        Name = "sortDirection",
-                        Type = "string",
-                        Required = "No",
-                        Description = "Arah sorting. Nilai: asc atau desc.",
-                        Example = "asc"
-                    },
-                    new()
-                    {
-                        Name = "pageNumber",
-                        Type = "integer",
-                        Required = "No",
-                        Description = "Nomor halaman. Minimal 1.",
-                        Example = "1"
-                    },
-                    new()
-                    {
-                        Name = "pageSize",
-                        Type = "integer",
-                        Required = "No",
-                        Description = "Jumlah data per halaman. Maksimal 100.",
-                        Example = "25"
-                    }
-                }
+                QueryParameters = BuildQueryParameterInfo()
             };
 
             await _loggerService.InfoAsync(
@@ -253,10 +166,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 "Metadata filter employee berhasil diambil."
             ));
         }
-
-        // =========================================================
-        // SUMMARY
-        // =========================================================
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<EmployeeSummaryResponse>), StatusCodes.Status200OK)]
@@ -301,10 +210,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             ));
         }
 
-        // =========================================================
-        // EMPLOYEE
-        // =========================================================
-
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponseEmployeePagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
@@ -323,8 +228,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             [FromQuery] bool? isActive,
             [FromQuery] Guid? departmentId,
             [FromQuery] Guid? positionId,
+            [FromQuery] Guid? countryId,
+            [FromQuery] Guid? provinceId,
+            [FromQuery] Guid? cityId,
+            [FromQuery] Guid? districtId,
+            [FromQuery] Guid? postalCodeId,
             [FromQuery] EmployeeStatus? employeeStatus,
             [FromQuery] EmployeeProfessionType? professionType,
+            [FromQuery] Religion? religion,
+            [FromQuery] MaritalStatus? maritalStatus,
+            [FromQuery] BloodType? bloodType,
             [FromQuery] bool? hasTransportAllowanceProfile,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
@@ -365,17 +278,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
                 query = query.Where(x =>
                     x.EmployeeCode.ToLower().Contains(keyword) ||
-                    (x.EmployeeNumber != null && x.EmployeeNumber.ToLower().Contains(keyword)) ||
-                    (x.AttendanceNumber != null && x.AttendanceNumber.ToLower().Contains(keyword)) ||
+                    x.EmployeeNumber.ToLower().Contains(keyword) ||
                     x.FullName.ToLower().Contains(keyword) ||
                     (x.NickName != null && x.NickName.ToLower().Contains(keyword)) ||
                     (x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(keyword)) ||
                     (x.WhatsAppNumber != null && x.WhatsAppNumber.ToLower().Contains(keyword)) ||
                     (x.Email != null && x.Email.ToLower().Contains(keyword)) ||
+                    (x.IdentityNumber != null && x.IdentityNumber.ToLower().Contains(keyword)) ||
                     (x.PrimaryDepartment != null && x.PrimaryDepartment.DepartmentCode.ToLower().Contains(keyword)) ||
                     (x.PrimaryDepartment != null && x.PrimaryDepartment.DepartmentName.ToLower().Contains(keyword)) ||
                     (x.PrimaryPosition != null && x.PrimaryPosition.PositionCode.ToLower().Contains(keyword)) ||
-                    (x.PrimaryPosition != null && x.PrimaryPosition.PositionName.ToLower().Contains(keyword)));
+                    (x.PrimaryPosition != null && x.PrimaryPosition.PositionName.ToLower().Contains(keyword)) ||
+                    (x.Country != null && x.Country.CountryName.ToLower().Contains(keyword)) ||
+                    (x.Province != null && x.Province.ProvinceName.ToLower().Contains(keyword)) ||
+                    (x.City != null && x.City.CityName.ToLower().Contains(keyword)) ||
+                    (x.District != null && x.District.DistrictName.ToLower().Contains(keyword)) ||
+                    (x.PostalCode != null && x.PostalCode.PostalCode.ToLower().Contains(keyword)) ||
+                    (x.PostalCode != null && x.PostalCode.VillageName != null && x.PostalCode.VillageName.ToLower().Contains(keyword)));
             }
 
             if (isActive.HasValue)
@@ -393,6 +312,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 query = query.Where(x => x.PrimaryPositionId == positionId.Value);
             }
 
+            if (countryId.HasValue && countryId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.CountryId == countryId.Value);
+            }
+
+            if (provinceId.HasValue && provinceId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.ProvinceId == provinceId.Value);
+            }
+
+            if (cityId.HasValue && cityId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.CityId == cityId.Value);
+            }
+
+            if (districtId.HasValue && districtId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.DistrictId == districtId.Value);
+            }
+
+            if (postalCodeId.HasValue && postalCodeId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.PostalCodeId == postalCodeId.Value);
+            }
+
             if (employeeStatus.HasValue)
             {
                 query = query.Where(x => x.EmployeeStatus == employeeStatus.Value);
@@ -403,31 +347,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 query = query.Where(x => x.ProfessionType == professionType.Value);
             }
 
+            if (religion.HasValue)
+            {
+                query = query.Where(x => x.Religion == religion.Value);
+            }
+
+            if (maritalStatus.HasValue)
+            {
+                query = query.Where(x => x.MaritalStatus == maritalStatus.Value);
+            }
+
+            if (bloodType.HasValue)
+            {
+                query = query.Where(x => x.BloodType == bloodType.Value);
+            }
+
             if (hasTransportAllowanceProfile.HasValue)
             {
                 if (hasTransportAllowanceProfile.Value)
                 {
                     query = query.Where(x =>
                         _dbContext.Set<EmpTransportAllowanceProfile>()
-                            .Any(t =>
-                                t.EmployeeId == x.Id &&
-                                !t.IsDelete));
+                            .Any(t => t.EmployeeId == x.Id && !t.IsDelete));
                 }
                 else
                 {
                     query = query.Where(x =>
                         !_dbContext.Set<EmpTransportAllowanceProfile>()
-                            .Any(t =>
-                                t.EmployeeId == x.Id &&
-                                !t.IsDelete));
+                            .Any(t => t.EmployeeId == x.Id && !t.IsDelete));
                 }
             }
 
             var totalData = await query.CountAsync();
 
-            var sortedQuery = ApplyEmployeeSorting(query, sortBy, sortDirection);
-
-            var items = await sortedQuery
+            var items = await ApplyEmployeeSorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(x => new EmployeeResponse
@@ -435,19 +388,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Id = x.Id,
                     EmployeeCode = x.EmployeeCode,
                     EmployeeNumber = x.EmployeeNumber,
-                    AttendanceNumber = x.AttendanceNumber,
                     FullName = x.FullName,
                     NickName = x.NickName,
                     Gender = x.Gender,
                     PhoneNumber = x.PhoneNumber,
                     WhatsAppNumber = x.WhatsAppNumber,
                     Email = x.Email,
+
+                    CountryId = x.CountryId,
+                    CountryName = x.Country != null ? x.Country.CountryName : null,
+                    ProvinceId = x.ProvinceId,
+                    ProvinceName = x.Province != null ? x.Province.ProvinceName : null,
+                    CityId = x.CityId,
+                    CityName = x.City != null ? x.City.CityName : null,
+                    DistrictId = x.DistrictId,
+                    DistrictName = x.District != null ? x.District.DistrictName : null,
+                    PostalCodeId = x.PostalCodeId,
+                    PostalCode = x.PostalCode != null ? x.PostalCode.PostalCode : null,
+                    VillageName = x.PostalCode != null ? x.PostalCode.VillageName : null,
+
                     PrimaryDepartmentId = x.PrimaryDepartmentId,
                     PrimaryDepartmentCode = x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentCode : string.Empty,
                     PrimaryDepartmentName = x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentName : string.Empty,
                     PrimaryPositionId = x.PrimaryPositionId,
                     PrimaryPositionCode = x.PrimaryPosition != null ? x.PrimaryPosition.PositionCode : string.Empty,
                     PrimaryPositionName = x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty,
+
                     EmployeeStatus = x.EmployeeStatus,
                     ProfessionType = x.ProfessionType,
                     EmploymentType = x.EmploymentType,
@@ -487,8 +453,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     isActive,
                     departmentId,
                     positionId,
+                    countryId,
+                    provinceId,
+                    cityId,
+                    districtId,
+                    postalCodeId,
                     employeeStatus,
                     professionType,
+                    religion,
+                    maritalStatus,
+                    bloodType,
                     hasTransportAllowanceProfile,
                     sortBy,
                     sortDirection,
@@ -545,8 +519,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
                 query = query.Where(x =>
                     x.EmployeeCode.ToLower().Contains(keyword) ||
-                    x.FullName.ToLower().Contains(keyword) ||
-                    (x.EmployeeNumber != null && x.EmployeeNumber.ToLower().Contains(keyword)));
+                    x.EmployeeNumber.ToLower().Contains(keyword) ||
+                    x.FullName.ToLower().Contains(keyword));
             }
 
             var data = await query
@@ -555,6 +529,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     Id = x.Id,
                     EmployeeCode = x.EmployeeCode,
+                    EmployeeNumber = x.EmployeeNumber,
                     FullName = x.FullName,
                     PrimaryDepartmentId = x.PrimaryDepartmentId,
                     PrimaryDepartmentName = x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentName : string.Empty,
@@ -590,7 +565,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Id = x.Id,
                     EmployeeCode = x.EmployeeCode,
                     EmployeeNumber = x.EmployeeNumber,
-                    AttendanceNumber = x.AttendanceNumber,
                     FullName = x.FullName,
                     NickName = x.NickName,
                     Gender = x.Gender,
@@ -605,17 +579,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     WhatsAppNumber = x.WhatsAppNumber,
                     Email = x.Email,
                     Address = x.Address,
-                    Province = x.Province,
-                    City = x.City,
-                    District = x.District,
-                    Village = x.Village,
-                    PostalCode = x.PostalCode,
+
+                    CountryId = x.CountryId,
+                    CountryName = x.Country != null ? x.Country.CountryName : null,
+                    ProvinceId = x.ProvinceId,
+                    ProvinceName = x.Province != null ? x.Province.ProvinceName : null,
+                    CityId = x.CityId,
+                    CityName = x.City != null ? x.City.CityName : null,
+                    DistrictId = x.DistrictId,
+                    DistrictName = x.District != null ? x.District.DistrictName : null,
+                    PostalCodeId = x.PostalCodeId,
+                    PostalCode = x.PostalCode != null ? x.PostalCode.PostalCode : null,
+                    VillageName = x.PostalCode != null ? x.PostalCode.VillageName : null,
+
                     PrimaryDepartmentId = x.PrimaryDepartmentId,
                     PrimaryDepartmentCode = x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentCode : string.Empty,
                     PrimaryDepartmentName = x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentName : string.Empty,
                     PrimaryPositionId = x.PrimaryPositionId,
                     PrimaryPositionCode = x.PrimaryPosition != null ? x.PrimaryPosition.PositionCode : string.Empty,
                     PrimaryPositionName = x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty,
+
                     EmployeeStatus = x.EmployeeStatus,
                     ProfessionType = x.ProfessionType,
                     EmploymentType = x.EmploymentType,
@@ -655,14 +638,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<EmployeeCreateResponse>), StatusCodes.Status200OK)]
         [AccessAction(
-            "Create",
-            "Create Employee",
-            Description = "Membuat data employee",
-            AccessType = AccessTypes.Create,
-            SortOrder = 2
-        )]
+    "Create",
+    "Create Employee",
+    Description = "Membuat data employee",
+    AccessType = AccessTypes.Create,
+    SortOrder = 2
+)]
         [AccessPermission("Employee", "Create")]
         public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeRequest request)
         {
@@ -674,13 +657,38 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
+            if (request.CreateLoginAccount)
+            {
+                if (string.IsNullOrWhiteSpace(request.Email))
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Email wajib diisi jika ingin membuat akun login."
+                    ));
+                }
+
+                if (!request.BirthDate.HasValue)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "BirthDate wajib diisi untuk generate password awal akun login."
+                    ));
+                }
+            }
+
             var validation = await ValidateEmployeeRequestAsync(
                 excludeEmployeeId: null,
                 primaryDepartmentId: request.PrimaryDepartmentId,
                 primaryPositionId: request.PrimaryPositionId,
-                employeeNumber: request.EmployeeNumber,
-                attendanceNumber: request.AttendanceNumber,
+                countryId: request.CountryId,
+                provinceId: request.ProvinceId,
+                cityId: request.CityId,
+                districtId: request.DistrictId,
+                postalCodeId: request.PostalCodeId,
                 identityNumber: request.IdentityNumber,
+                phoneNumber: request.PhoneNumber,
+                whatsAppNumber: request.WhatsAppNumber,
+                emergencyContactPhone: request.EmergencyContactPhone,
                 email: request.Email
             );
 
@@ -695,80 +703,134 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             var now = DateTime.UtcNow;
             var userId = GetCurrentUserId();
 
-            var entity = new MstEmployee
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+            try
             {
-                Id = Guid.NewGuid(),
-                EmployeeCode = await GenerateEmployeeCodeAsync(),
-                EmployeeNumber = NormalizeNullableText(request.EmployeeNumber),
-                AttendanceNumber = NormalizeNullableText(request.AttendanceNumber),
-                FullName = request.FullName.Trim(),
-                NickName = NormalizeNullableText(request.NickName),
-                Gender = request.Gender,
-                BirthPlace = NormalizeNullableText(request.BirthPlace),
-                BirthDate = request.BirthDate,
-                Religion = NormalizeNullableText(request.Religion),
-                MaritalStatus = NormalizeNullableText(request.MaritalStatus),
-                BloodType = NormalizeNullableText(request.BloodType),
-                IdentityType = NormalizeNullableText(request.IdentityType),
-                IdentityNumber = NormalizeNullableText(request.IdentityNumber),
-                PhoneNumber = NormalizeNullableText(request.PhoneNumber),
-                WhatsAppNumber = NormalizeNullableText(request.WhatsAppNumber),
-                Email = NormalizeNullableText(request.Email),
-                Address = NormalizeNullableText(request.Address),
-                Province = NormalizeNullableText(request.Province),
-                City = NormalizeNullableText(request.City),
-                District = NormalizeNullableText(request.District),
-                Village = NormalizeNullableText(request.Village),
-                PostalCode = NormalizeNullableText(request.PostalCode),
-                PrimaryDepartmentId = request.PrimaryDepartmentId,
-                PrimaryPositionId = request.PrimaryPositionId,
-                EmployeeStatus = request.EmployeeStatus,
-                ProfessionType = request.ProfessionType,
-                EmploymentType = NormalizeNullableText(request.EmploymentType),
-                GradeLevel = NormalizeNullableText(request.GradeLevel),
-                WorkLocation = NormalizeNullableText(request.WorkLocation),
-                JoinDate = request.JoinDate,
-                ProbationEndDate = request.ProbationEndDate,
-                ContractStartDate = request.ContractStartDate,
-                ContractEndDate = request.ContractEndDate,
-                EmergencyContactName = NormalizeNullableText(request.EmergencyContactName),
-                EmergencyContactRelation = NormalizeNullableText(request.EmergencyContactRelation),
-                EmergencyContactPhone = NormalizeNullableText(request.EmergencyContactPhone),
-                EmergencyContactAddress = NormalizeNullableText(request.EmergencyContactAddress),
-                IsActive = true,
-                CreateDateTime = now,
-                CreateBy = userId,
-                IsDelete = false,
-                IsCancel = false
-            };
-
-            _dbContext.Set<MstEmployee>().Add(entity);
-            await _dbContext.SaveChangesAsync();
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Employee.CreateEmployee",
-                "Employee berhasil dibuat.",
-                new
+                var entity = new MstEmployee
                 {
-                    entity.Id,
-                    entity.EmployeeCode,
-                    entity.FullName,
-                    entity.PrimaryDepartmentId,
-                    entity.PrimaryPositionId
+                    Id = Guid.NewGuid(),
+                    EmployeeCode = await GenerateEmployeeCodeAsync(),
+                    EmployeeNumber = await GenerateEmployeeNumberAsync(request.JoinDate),
+                    FullName = request.FullName.Trim(),
+                    NickName = NormalizeNullableText(request.NickName),
+                    Gender = request.Gender,
+                    BirthPlace = NormalizeNullableText(request.BirthPlace),
+                    BirthDate = request.BirthDate,
+                    Religion = request.Religion,
+                    MaritalStatus = request.MaritalStatus,
+                    BloodType = request.BloodType,
+                    IdentityType = NormalizeNullableText(request.IdentityType),
+                    IdentityNumber = NormalizeDigitsOnly(request.IdentityNumber),
+                    PhoneNumber = NormalizeDigitsOnly(request.PhoneNumber),
+                    WhatsAppNumber = NormalizeDigitsOnly(request.WhatsAppNumber),
+                    Email = NormalizeNullableText(request.Email),
+                    Address = NormalizeNullableText(request.Address),
+                    CountryId = NormalizeNullableGuid(request.CountryId),
+                    ProvinceId = NormalizeNullableGuid(request.ProvinceId),
+                    CityId = NormalizeNullableGuid(request.CityId),
+                    DistrictId = NormalizeNullableGuid(request.DistrictId),
+                    PostalCodeId = NormalizeNullableGuid(request.PostalCodeId),
+                    PrimaryDepartmentId = request.PrimaryDepartmentId,
+                    PrimaryPositionId = request.PrimaryPositionId,
+                    EmployeeStatus = request.EmployeeStatus,
+                    ProfessionType = request.ProfessionType,
+                    EmploymentType = NormalizeNullableText(request.EmploymentType),
+                    GradeLevel = NormalizeNullableText(request.GradeLevel),
+                    WorkLocation = NormalizeNullableText(request.WorkLocation),
+                    JoinDate = request.JoinDate,
+                    ProbationEndDate = request.ProbationEndDate,
+                    ContractStartDate = request.ContractStartDate,
+                    ContractEndDate = request.ContractEndDate,
+                    EmergencyContactName = NormalizeNullableText(request.EmergencyContactName),
+                    EmergencyContactRelation = NormalizeNullableText(request.EmergencyContactRelation),
+                    EmergencyContactPhone = NormalizeDigitsOnly(request.EmergencyContactPhone),
+                    EmergencyContactAddress = NormalizeNullableText(request.EmergencyContactAddress),
+                    IsActive = true,
+                    CreateDateTime = now,
+                    CreateBy = userId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
+
+                _dbContext.Set<MstEmployee>().Add(entity);
+                await _dbContext.SaveChangesAsync();
+
+                EmployeeLoginAccountResponse? loginAccount = null;
+
+                if (request.CreateLoginAccount)
+                {
+                    var accountResult = await CreateLoginAccountForEmployeeAsync(entity);
+
+                    if (!accountResult.IsSuccess)
+                    {
+                        await transaction.RollbackAsync();
+
+                        return BadRequest(ApiResponse<object>.Fail(
+                            StatusCodes.Status400BadRequest,
+                            accountResult.ErrorMessage ?? "Akun login employee gagal dibuat."
+                        ));
+                    }
+
+                    loginAccount = accountResult.Response;
                 }
-            );
 
-            return Ok(ApiResponse<object>.Ok(
-                new
+                await transaction.CommitAsync();
+
+                var response = new EmployeeCreateResponse
                 {
-                    entity.Id,
-                    entity.EmployeeCode,
-                    entity.FullName,
-                    entity.IsActive
-                },
-                "Employee berhasil dibuat."
-            ));
+                    Id = entity.Id,
+                    EmployeeCode = entity.EmployeeCode,
+                    EmployeeNumber = entity.EmployeeNumber,
+                    FullName = entity.FullName,
+                    IsActive = entity.IsActive,
+                    LoginAccount = loginAccount
+                };
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "Employee.CreateEmployee",
+                    "Employee berhasil dibuat.",
+                    new
+                    {
+                        entity.Id,
+                        entity.EmployeeCode,
+                        entity.EmployeeNumber,
+                        entity.FullName,
+                        entity.PrimaryDepartmentId,
+                        entity.PrimaryPositionId,
+                        LoginAccountCreated = loginAccount?.IsCreated ?? false,
+                        loginAccount?.UserId,
+                        loginAccount?.UserCode
+                    }
+                );
+
+                return Ok(ApiResponse<EmployeeCreateResponse>.Ok(
+                    response,
+                    request.CreateLoginAccount
+                        ? "Employee dan akun login berhasil dibuat."
+                        : "Employee berhasil dibuat."
+                ));
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "Employee.CreateEmployee",
+                    "Gagal membuat employee.",
+                    ex
+                );
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat membuat employee."
+                    )
+                );
+            }
         }
 
         [HttpPut("{id:guid}")]
@@ -809,9 +871,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 excludeEmployeeId: id,
                 primaryDepartmentId: request.PrimaryDepartmentId,
                 primaryPositionId: request.PrimaryPositionId,
-                employeeNumber: request.EmployeeNumber,
-                attendanceNumber: request.AttendanceNumber,
+                countryId: request.CountryId,
+                provinceId: request.ProvinceId,
+                cityId: request.CityId,
+                districtId: request.DistrictId,
+                postalCodeId: request.PostalCodeId,
                 identityNumber: request.IdentityNumber,
+                phoneNumber: request.PhoneNumber,
+                whatsAppNumber: request.WhatsAppNumber,
+                emergencyContactPhone: request.EmergencyContactPhone,
                 email: request.Email
             );
 
@@ -826,27 +894,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             var now = DateTime.UtcNow;
             var userId = GetCurrentUserId();
 
-            entity.EmployeeNumber = NormalizeNullableText(request.EmployeeNumber);
-            entity.AttendanceNumber = NormalizeNullableText(request.AttendanceNumber);
             entity.FullName = request.FullName.Trim();
             entity.NickName = NormalizeNullableText(request.NickName);
             entity.Gender = request.Gender;
             entity.BirthPlace = NormalizeNullableText(request.BirthPlace);
             entity.BirthDate = request.BirthDate;
-            entity.Religion = NormalizeNullableText(request.Religion);
-            entity.MaritalStatus = NormalizeNullableText(request.MaritalStatus);
-            entity.BloodType = NormalizeNullableText(request.BloodType);
+            entity.Religion = request.Religion;
+            entity.MaritalStatus = request.MaritalStatus;
+            entity.BloodType = request.BloodType;
             entity.IdentityType = NormalizeNullableText(request.IdentityType);
-            entity.IdentityNumber = NormalizeNullableText(request.IdentityNumber);
-            entity.PhoneNumber = NormalizeNullableText(request.PhoneNumber);
-            entity.WhatsAppNumber = NormalizeNullableText(request.WhatsAppNumber);
+            entity.IdentityNumber = NormalizeDigitsOnly(request.IdentityNumber);
+            entity.PhoneNumber = NormalizeDigitsOnly(request.PhoneNumber);
+            entity.WhatsAppNumber = NormalizeDigitsOnly(request.WhatsAppNumber);
             entity.Email = NormalizeNullableText(request.Email);
             entity.Address = NormalizeNullableText(request.Address);
-            entity.Province = NormalizeNullableText(request.Province);
-            entity.City = NormalizeNullableText(request.City);
-            entity.District = NormalizeNullableText(request.District);
-            entity.Village = NormalizeNullableText(request.Village);
-            entity.PostalCode = NormalizeNullableText(request.PostalCode);
+            entity.CountryId = NormalizeNullableGuid(request.CountryId);
+            entity.ProvinceId = NormalizeNullableGuid(request.ProvinceId);
+            entity.CityId = NormalizeNullableGuid(request.CityId);
+            entity.DistrictId = NormalizeNullableGuid(request.DistrictId);
+            entity.PostalCodeId = NormalizeNullableGuid(request.PostalCodeId);
             entity.PrimaryDepartmentId = request.PrimaryDepartmentId;
             entity.PrimaryPositionId = request.PrimaryPositionId;
             entity.EmployeeStatus = request.EmployeeStatus;
@@ -862,11 +928,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             entity.ResignReason = NormalizeNullableText(request.ResignReason);
             entity.EmergencyContactName = NormalizeNullableText(request.EmergencyContactName);
             entity.EmergencyContactRelation = NormalizeNullableText(request.EmergencyContactRelation);
-            entity.EmergencyContactPhone = NormalizeNullableText(request.EmergencyContactPhone);
+            entity.EmergencyContactPhone = NormalizeDigitsOnly(request.EmergencyContactPhone);
             entity.EmergencyContactAddress = NormalizeNullableText(request.EmergencyContactAddress);
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
             entity.UpdateBy = userId;
+
+            var linkedUser = await _dbContext.Users.FirstOrDefaultAsync(x =>
+        x.EmployeeId == entity.Id &&
+        x.UserType == UserType.Employee);
+
+            if (linkedUser != null)
+            {
+                linkedUser.DisplayName = entity.FullName;
+                linkedUser.PrimaryDepartmentId = entity.PrimaryDepartmentId;
+                linkedUser.PrimaryPositionId = entity.PrimaryPositionId;
+                linkedUser.IsActive = entity.IsActive;
+                linkedUser.UpdateDateTime = now;
+            }
 
             await _dbContext.SaveChangesAsync();
 
@@ -878,6 +957,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     entity.Id,
                     entity.EmployeeCode,
+                    entity.EmployeeNumber,
                     entity.FullName,
                     entity.IsActive
                 }
@@ -961,6 +1041,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             entity.DeleteDateTime = now;
             entity.DeleteBy = userId;
 
+            var linkedUser = await _dbContext.Users.FirstOrDefaultAsync(x => x.EmployeeId == id && x.UserType == UserType.Employee);
+
+            if (linkedUser != null)
+            {
+                linkedUser.IsActive = false;
+                linkedUser.UpdateDateTime = now;
+            }
+
             var profile = await _dbContext.Set<EmpTransportAllowanceProfile>()
                 .FirstOrDefaultAsync(x =>
                     x.EmployeeId == id &&
@@ -981,10 +1069,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             ));
         }
 
-        // =========================================================
-        // EMPLOYEE TRANSPORT ALLOWANCE
-        // =========================================================
-
         [HttpGet("{employeeId:guid}/transport-allowance")]
         [ProducesResponseType(typeof(ApiResponse<EmployeeTransportAllowanceProfileResponse>), StatusCodes.Status200OK)]
         [AccessAction(
@@ -999,9 +1083,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         {
             var exists = await _dbContext.Set<MstEmployee>()
                 .AsNoTracking()
-                .AnyAsync(x =>
-                    x.Id == employeeId &&
-                    !x.IsDelete);
+                .AnyAsync(x => x.Id == employeeId && !x.IsDelete);
 
             if (!exists)
             {
@@ -1037,9 +1119,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         {
             var employee = await _dbContext.Set<MstEmployee>()
                 .AsNoTracking()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == employeeId &&
-                    !x.IsDelete);
+                .FirstOrDefaultAsync(x => x.Id == employeeId && !x.IsDelete);
 
             if (employee == null)
             {
@@ -1084,9 +1164,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             var userId = GetCurrentUserId();
 
             var profile = await _dbContext.Set<EmpTransportAllowanceProfile>()
-                .FirstOrDefaultAsync(x =>
-                    x.EmployeeId == employeeId &&
-                    !x.IsDelete);
+                .FirstOrDefaultAsync(x => x.EmployeeId == employeeId && !x.IsDelete);
 
             if (profile == null)
             {
@@ -1164,9 +1242,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         {
             var exists = await _dbContext.Set<MstEmployee>()
                 .AsNoTracking()
-                .AnyAsync(x =>
-                    x.Id == employeeId &&
-                    !x.IsDelete);
+                .AnyAsync(x => x.Id == employeeId && !x.IsDelete);
 
             if (!exists)
             {
@@ -1182,26 +1258,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             var query = _dbContext.Set<EmpTransportAllowanceTransaction>()
                 .AsNoTracking()
-                .Where(x =>
-                    x.EmployeeId == employeeId &&
-                    !x.IsDelete);
+                .Where(x => x.EmployeeId == employeeId && !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(periodYearMonth))
             {
-                var period = periodYearMonth.Trim();
-                query = query.Where(x => x.PeriodYearMonth == period);
+                query = query.Where(x => x.PeriodYearMonth == periodYearMonth.Trim());
             }
 
             if (!string.IsNullOrWhiteSpace(allowanceType))
             {
-                var type = allowanceType.Trim();
-                query = query.Where(x => x.AllowanceType == type);
+                query = query.Where(x => x.AllowanceType == allowanceType.Trim());
             }
 
             if (!string.IsNullOrWhiteSpace(transactionStatus))
             {
-                var status = transactionStatus.Trim();
-                query = query.Where(x => x.TransactionStatus == status);
+                query = query.Where(x => x.TransactionStatus == transactionStatus.Trim());
             }
 
             if (startDate.HasValue)
@@ -1255,13 +1326,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             ));
         }
 
-        // =========================================================
-        // PRIVATE HELPERS
-        // =========================================================
-
         private async Task<string> GenerateEmployeeCodeAsync()
         {
-            const string prefix = "EMP";
+            const string prefix = $"EMP-{HospitalCode}-";
 
             var totalData = await _dbContext.Set<MstEmployee>()
                 .IgnoreQueryFilters()
@@ -1271,7 +1338,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             while (true)
             {
-                var code = $"{prefix}{nextNumber.ToString("D6")}";
+                var code = $"{prefix}{nextNumber.ToString("D5")}";
 
                 var exists = await _dbContext.Set<MstEmployee>()
                     .AnyAsync(x => x.EmployeeCode == code);
@@ -1279,6 +1346,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 if (!exists)
                 {
                     return code;
+                }
+
+                nextNumber++;
+            }
+        }
+
+        private async Task<string> GenerateEmployeeNumberAsync(DateTime? joinDate)
+        {
+            var date = (joinDate ?? DateTime.UtcNow).Date;
+            var dateCode = date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+            var prefix = $"{HospitalCode}-{dateCode}";
+
+            var existingCount = await _dbContext.Set<MstEmployee>()
+                .IgnoreQueryFilters()
+                .CountAsync(x =>
+                    x.EmployeeNumber.StartsWith(prefix));
+
+            var nextNumber = existingCount + 1;
+
+            while (true)
+            {
+                var employeeNumber = $"{prefix}{nextNumber.ToString("D3")}";
+
+                var exists = await _dbContext.Set<MstEmployee>()
+                    .AnyAsync(x => x.EmployeeNumber == employeeNumber);
+
+                if (!exists)
+                {
+                    return employeeNumber;
                 }
 
                 nextNumber++;
@@ -1301,9 +1397,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             var profile = await _dbContext.Set<EmpTransportAllowanceProfile>()
                 .AsNoTracking()
-                .Where(x =>
-                    x.EmployeeId == employeeId &&
-                    !x.IsDelete)
+                .Where(x => x.EmployeeId == employeeId && !x.IsDelete)
                 .Select(x => new EmployeeTransportAllowanceProfileResponse
                 {
                     IsConfigured = true,
@@ -1358,9 +1452,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             Guid? excludeEmployeeId,
             Guid primaryDepartmentId,
             Guid primaryPositionId,
-            string? employeeNumber,
-            string? attendanceNumber,
+            Guid? countryId,
+            Guid? provinceId,
+            Guid? cityId,
+            Guid? districtId,
+            Guid? postalCodeId,
             string? identityNumber,
+            string? phoneNumber,
+            string? whatsAppNumber,
+            string? emergencyContactPhone,
             string? email)
         {
             if (primaryDepartmentId == Guid.Empty)
@@ -1375,10 +1475,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             var departmentExists = await _dbContext.MstDepartments
                 .AsNoTracking()
-                .AnyAsync(x =>
-                    x.Id == primaryDepartmentId &&
-                    x.IsActive &&
-                    !x.IsDelete);
+                .AnyAsync(x => x.Id == primaryDepartmentId && x.IsActive && !x.IsDelete);
 
             if (!departmentExists)
             {
@@ -1398,37 +1495,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 return (false, "Primary position tidak valid, tidak aktif, atau tidak sesuai department.");
             }
 
-            var normalizedEmployeeNumber = NormalizeNullableText(employeeNumber);
-            var normalizedAttendanceNumber = NormalizeNullableText(attendanceNumber);
-            var normalizedIdentityNumber = NormalizeNullableText(identityNumber);
-            var normalizedEmail = NormalizeNullableText(email);
+            var regionValidation = await ValidateRegionAsync(
+                countryId,
+                provinceId,
+                cityId,
+                districtId,
+                postalCodeId);
 
-            if (!string.IsNullOrWhiteSpace(normalizedEmployeeNumber))
+            if (!regionValidation.IsValid)
             {
-                var exists = await _dbContext.Set<MstEmployee>()
-                    .AnyAsync(x =>
-                        x.Id != excludeEmployeeId &&
-                        x.EmployeeNumber == normalizedEmployeeNumber &&
-                        !x.IsDelete);
-
-                if (exists)
-                {
-                    return (false, "Employee number sudah digunakan.");
-                }
+                return regionValidation;
             }
 
-            if (!string.IsNullOrWhiteSpace(normalizedAttendanceNumber))
-            {
-                var exists = await _dbContext.Set<MstEmployee>()
-                    .AnyAsync(x =>
-                        x.Id != excludeEmployeeId &&
-                        x.AttendanceNumber == normalizedAttendanceNumber &&
-                        !x.IsDelete);
+            var normalizedIdentityNumber = NormalizeDigitsOnly(identityNumber);
+            var normalizedPhoneNumber = NormalizeDigitsOnly(phoneNumber);
+            var normalizedWhatsAppNumber = NormalizeDigitsOnly(whatsAppNumber);
+            var normalizedEmergencyContactPhone = NormalizeDigitsOnly(emergencyContactPhone);
+            var normalizedEmail = NormalizeNullableText(email);
 
-                if (exists)
-                {
-                    return (false, "Attendance number sudah digunakan.");
-                }
+            if (!string.IsNullOrWhiteSpace(normalizedIdentityNumber) &&
+                normalizedIdentityNumber.Length != 16)
+            {
+                return (false, "Nomor identitas harus 16 digit.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedPhoneNumber) &&
+                normalizedPhoneNumber.Length != 13)
+            {
+                return (false, "Nomor telepon harus 13 digit.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedWhatsAppNumber) &&
+                normalizedWhatsAppNumber.Length != 13)
+            {
+                return (false, "Nomor WhatsApp harus 13 digit.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedEmergencyContactPhone) &&
+                normalizedEmergencyContactPhone.Length != 13)
+            {
+                return (false, "Nomor telepon kontak darurat harus 13 digit.");
             }
 
             if (!string.IsNullOrWhiteSpace(normalizedIdentityNumber))
@@ -1459,6 +1565,118 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 if (exists)
                 {
                     return (false, "Email sudah digunakan.");
+                }
+            }
+
+            return (true, null);
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRegionAsync(
+            Guid? countryId,
+            Guid? provinceId,
+            Guid? cityId,
+            Guid? districtId,
+            Guid? postalCodeId)
+        {
+            countryId = NormalizeNullableGuid(countryId);
+            provinceId = NormalizeNullableGuid(provinceId);
+            cityId = NormalizeNullableGuid(cityId);
+            districtId = NormalizeNullableGuid(districtId);
+            postalCodeId = NormalizeNullableGuid(postalCodeId);
+
+            if (provinceId.HasValue && !countryId.HasValue)
+            {
+                return (false, "Country wajib dipilih jika province diisi.");
+            }
+
+            if (cityId.HasValue && !provinceId.HasValue)
+            {
+                return (false, "Province wajib dipilih jika city diisi.");
+            }
+
+            if (districtId.HasValue && !cityId.HasValue)
+            {
+                return (false, "City wajib dipilih jika district diisi.");
+            }
+
+            if (postalCodeId.HasValue && !districtId.HasValue)
+            {
+                return (false, "District wajib dipilih jika postal code diisi.");
+            }
+
+            if (countryId.HasValue)
+            {
+                var exists = await _dbContext.MstCountries
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == countryId.Value && x.IsActive && !x.IsDelete);
+
+                if (!exists)
+                {
+                    return (false, "Country tidak valid atau tidak aktif.");
+                }
+            }
+
+            if (provinceId.HasValue)
+            {
+                var exists = await _dbContext.MstProvinces
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == provinceId.Value &&
+                        x.CountryId == countryId!.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
+
+                if (!exists)
+                {
+                    return (false, "Province tidak valid, tidak aktif, atau tidak sesuai country.");
+                }
+            }
+
+            if (cityId.HasValue)
+            {
+                var exists = await _dbContext.MstCities
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == cityId.Value &&
+                        x.ProvinceId == provinceId!.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
+
+                if (!exists)
+                {
+                    return (false, "City tidak valid, tidak aktif, atau tidak sesuai province.");
+                }
+            }
+
+            if (districtId.HasValue)
+            {
+                var exists = await _dbContext.MstDistricts
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == districtId.Value &&
+                        x.CityId == cityId!.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
+
+                if (!exists)
+                {
+                    return (false, "District tidak valid, tidak aktif, atau tidak sesuai city.");
+                }
+            }
+
+            if (postalCodeId.HasValue)
+            {
+                var exists = await _dbContext.MstPostalCodes
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == postalCodeId.Value &&
+                        x.DistrictId == districtId!.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
+
+                if (!exists)
+                {
+                    return (false, "Postal code tidak valid, tidak aktif, atau tidak sesuai district.");
                 }
             }
 
@@ -1578,10 +1796,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 "employeenumber" => desc
                     ? query.OrderByDescending(x => x.EmployeeNumber).ThenBy(x => x.FullName)
                     : query.OrderBy(x => x.EmployeeNumber).ThenBy(x => x.FullName),
-
-                "attendancenumber" => desc
-                    ? query.OrderByDescending(x => x.AttendanceNumber).ThenBy(x => x.FullName)
-                    : query.OrderBy(x => x.AttendanceNumber).ThenBy(x => x.FullName),
 
                 "fullname" => desc
                     ? query.OrderByDescending(x => x.FullName).ThenBy(x => x.EmployeeCode)
@@ -1717,6 +1931,82 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             };
         }
 
+        private static List<EmployeeQueryParameterInfoResponse> BuildQueryParameterInfo()
+        {
+            return new List<EmployeeQueryParameterInfoResponse>
+            {
+                new() { Name = "startDate", Type = "date", Description = "Tanggal mulai filter berdasarkan CreateDateTime.", Example = "2026-01-01" },
+                new() { Name = "endDate", Type = "date", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-01-31" },
+                new() { Name = "customPeriod", Type = "string", Description = "Pilihan periode cepat.", Example = "last30days" },
+                new() { Name = "search", Type = "string", Description = "Pencarian employee code, employee number, nama, email, phone, department, position, dan region.", Example = "budi" },
+                new() { Name = "departmentId", Type = "guid", Description = "Filter berdasarkan primary department." },
+                new() { Name = "positionId", Type = "guid", Description = "Filter berdasarkan primary position." },
+                new() { Name = "countryId", Type = "guid", Description = "Filter berdasarkan country." },
+                new() { Name = "provinceId", Type = "guid", Description = "Filter berdasarkan province." },
+                new() { Name = "cityId", Type = "guid", Description = "Filter berdasarkan city." },
+                new() { Name = "districtId", Type = "guid", Description = "Filter berdasarkan district." },
+                new() { Name = "postalCodeId", Type = "guid", Description = "Filter berdasarkan postal code/village." },
+                new() { Name = "religion", Type = "enum", Description = "Filter berdasarkan enum Religion." },
+                new() { Name = "maritalStatus", Type = "enum", Description = "Filter berdasarkan enum MaritalStatus." },
+                new() { Name = "bloodType", Type = "enum", Description = "Filter berdasarkan enum BloodType." },
+                new() { Name = "employeeStatus", Type = "enum", Description = "Filter status employee." },
+                new() { Name = "professionType", Type = "enum", Description = "Filter profession type." },
+                new() { Name = "hasTransportAllowanceProfile", Type = "boolean", Description = "Filter employee yang sudah/belum punya profile uang transport.", Example = "true" },
+                new() { Name = "sortBy", Type = "string", Description = "Field sorting. Nilai tersedia dari SortOptions.", Example = "fullName" },
+                new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
+                new() { Name = "pageNumber", Type = "integer", Description = "Nomor halaman. Minimal 1.", Example = "1" },
+                new() { Name = "pageSize", Type = "integer", Description = "Jumlah data per halaman. Maksimal 100.", Example = "25" }
+            };
+        }
+
+        private static List<EmployeeEnumOptionResponse> BuildEnumOptions<TEnum>() where TEnum : struct, System.Enum
+        {
+            return System.Enum.GetValues<TEnum>()
+                .Select(x => new EmployeeEnumOptionResponse
+                {
+                    Value = Convert.ToInt32(x),
+                    Name = x.ToString(),
+                    Label = BuildEnumLabel(x.ToString())
+                })
+                .ToList();
+        }
+
+        private static string BuildEnumLabel(string value)
+        {
+            return value switch
+            {
+                "Unknown" => "Tidak Diketahui",
+                "Male" => "Laki-laki",
+                "Female" => "Perempuan",
+
+                "Islam" => "Islam",
+                "ProtestantChristian" => "Kristen Protestan",
+                "CatholicChristian" => "Kristen Katolik",
+                "Hindu" => "Hindu",
+                "Buddhist" => "Buddha",
+                "Confucian" => "Konghucu",
+                "Other" => "Lainnya",
+
+                "Single" => "Belum Menikah",
+                "Married" => "Menikah",
+                "Divorced" => "Cerai Hidup",
+                "Widowed" => "Cerai Mati",
+                "Separated" => "Pisah",
+
+                "APositive" => "A+",
+                "ANegative" => "A-",
+                "BPositive" => "B+",
+                "BNegative" => "B-",
+                "ABPositive" => "AB+",
+                "ABNegative" => "AB-",
+                "OPositive" => "O+",
+                "ONegative" => "O-",
+                "NotDisclosed" => "Tidak Diinformasikan",
+
+                _ => value
+            };
+        }
+
         private Guid GetCurrentUserId()
         {
             var userIdText =
@@ -1736,6 +2026,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private static Guid? NormalizeNullableGuid(Guid? value)
+        {
+            if (!value.HasValue || value.Value == Guid.Empty)
+            {
+                return null;
+            }
+
+            return value.Value;
+        }
+
+        private static string? NormalizeDigitsOnly(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var digits = new string(value.Where(char.IsDigit).ToArray());
+
+            return string.IsNullOrWhiteSpace(digits)
+                ? null
+                : digits;
         }
 
         private sealed class DateRangeResolveResult
@@ -1768,6 +2082,145 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     ErrorMessage = errorMessage
                 };
             }
+        }
+
+        private async Task<(bool IsSuccess, string? ErrorMessage, EmployeeLoginAccountResponse? Response)>
+    CreateLoginAccountForEmployeeAsync(MstEmployee employee)
+        {
+            if (employee.Id == Guid.Empty)
+            {
+                return (false, "EmployeeId tidak valid.", null);
+            }
+
+            if (string.IsNullOrWhiteSpace(employee.Email))
+            {
+                return (false, "Email employee wajib diisi untuk membuat akun login.", null);
+            }
+
+            if (!employee.BirthDate.HasValue)
+            {
+                return (false, "BirthDate employee wajib diisi untuk generate password awal.", null);
+            }
+
+            var email = employee.Email.Trim().ToLower();
+
+            var existingByEmail = await _userManager.FindByEmailAsync(email);
+
+            if (existingByEmail != null)
+            {
+                return (false, "Email sudah digunakan oleh akun login lain.", null);
+            }
+
+            var existingByUserName = await _userManager.FindByNameAsync(email);
+
+            if (existingByUserName != null)
+            {
+                return (false, "Username sudah digunakan oleh akun login lain.", null);
+            }
+
+            var existingEmployeeAccount = await _dbContext.Users
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.EmployeeId == employee.Id &&
+                    x.UserType == UserType.Employee);
+
+            if (existingEmployeeAccount)
+            {
+                return (false, "Employee ini sudah memiliki akun login.", null);
+            }
+
+            var initialPassword = GenerateInitialPasswordFromBirthDate(employee.BirthDate);
+
+            if (string.IsNullOrWhiteSpace(initialPassword))
+            {
+                return (false, "Password awal gagal dibuat dari BirthDate.", null);
+            }
+
+            var user = new ApplicationUser
+            {
+                Id = Guid.NewGuid(),
+                UserCode = await GenerateUserCodeAsync(),
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                DisplayName = employee.FullName,
+                UserType = UserType.Employee,
+                EmployeeId = employee.Id,
+                DoctorId = null,
+                ExternalUserId = null,
+                PrimaryDepartmentId = employee.PrimaryDepartmentId,
+                PrimaryPositionId = employee.PrimaryPositionId,
+                IsGeolocationBypassEnabled = false,
+                GeolocationBypassReason = null,
+                GeolocationBypassUntil = null,
+                IsActive = employee.IsActive,
+                MustChangePassword = true,
+                AccessValidUntil = null,
+                CreateDateTime = DateTime.UtcNow,
+                ProfilePhotoPath = DefaultProfilePhotoPath
+            };
+
+            var createResult = await _userManager.CreateAsync(user, initialPassword);
+
+            if (!createResult.Succeeded)
+            {
+                var errors = string.Join("; ", createResult.Errors.Select(x => x.Description));
+
+                return (false, $"Akun login gagal dibuat: {errors}", null);
+            }
+
+            var response = new EmployeeLoginAccountResponse
+            {
+                IsCreated = true,
+                UserId = user.Id,
+                UserCode = user.UserCode,
+                UserName = user.UserName,
+                Email = user.Email,
+                DisplayName = user.DisplayName,
+                UserType = user.UserType,
+                InitialPassword = initialPassword,
+                MustChangePassword = user.MustChangePassword,
+                ProfilePhotoPath = user.ProfilePhotoPath,
+                Message = "Akun login employee berhasil dibuat. Password awal wajib diganti saat login pertama."
+            };
+
+            return (true, null, response);
+        }
+
+        private async Task<string> GenerateUserCodeAsync()
+        {
+            const string prefix = $"USR-{HospitalCode}-";
+
+            var totalData = await _dbContext.Users
+                .IgnoreQueryFilters()
+                .CountAsync();
+
+            var nextNumber = totalData + 1;
+
+            while (true)
+            {
+                var userCode = $"{prefix}{nextNumber.ToString("D5")}";
+
+                var exists = await _dbContext.Users
+                    .AnyAsync(x => x.UserCode == userCode);
+
+                if (!exists)
+                {
+                    return userCode;
+                }
+
+                nextNumber++;
+            }
+        }
+
+        private static string? GenerateInitialPasswordFromBirthDate(DateTime? birthDate)
+        {
+            if (!birthDate.HasValue)
+            {
+                return null;
+            }
+
+            return birthDate.Value.ToString("ddMMMyyyy", CultureInfo.InvariantCulture);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Administrator.UserManagement.Enum;
+﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Administrator.UserManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Employee.Models;
 using QuilvianSystemBackend.Enum;
@@ -17,11 +17,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         [MaxLength(50)]
         public string EmployeeCode { get; set; } = string.Empty;
 
+        [Required]
         [MaxLength(50)]
-        public string? EmployeeNumber { get; set; }
-
-        [MaxLength(50)]
-        public string? AttendanceNumber { get; set; }
+        public string EmployeeNumber { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(200)]
@@ -37,25 +35,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
 
         public DateTime? BirthDate { get; set; }
 
-        [MaxLength(50)]
-        public string? Religion { get; set; }
+        public Religion Religion { get; set; } = Religion.Unknown;
 
-        [MaxLength(50)]
-        public string? MaritalStatus { get; set; }
+        public MaritalStatus MaritalStatus { get; set; } = MaritalStatus.Unknown;
 
-        [MaxLength(50)]
-        public string? BloodType { get; set; }
+        public BloodType BloodType { get; set; } = BloodType.Unknown;
 
         [MaxLength(50)]
         public string? IdentityType { get; set; }
 
-        [MaxLength(50)]
+        [MaxLength(16)]
         public string? IdentityNumber { get; set; }
 
-        [MaxLength(30)]
+        [MaxLength(13)]
         public string? PhoneNumber { get; set; }
 
-        [MaxLength(30)]
+        [MaxLength(13)]
         public string? WhatsAppNumber { get; set; }
 
         [MaxLength(200)]
@@ -64,20 +59,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         [MaxLength(500)]
         public string? Address { get; set; }
 
-        [MaxLength(100)]
-        public string? Province { get; set; }
+        public Guid? CountryId { get; set; }
 
-        [MaxLength(100)]
-        public string? City { get; set; }
+        public Guid? ProvinceId { get; set; }
 
-        [MaxLength(100)]
-        public string? District { get; set; }
+        public Guid? CityId { get; set; }
 
-        [MaxLength(100)]
-        public string? Village { get; set; }
+        public Guid? DistrictId { get; set; }
 
-        [MaxLength(20)]
-        public string? PostalCode { get; set; }
+        public Guid? PostalCodeId { get; set; }
 
         public Guid PrimaryDepartmentId { get; set; }
 
@@ -115,7 +105,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         [MaxLength(50)]
         public string? EmergencyContactRelation { get; set; }
 
-        [MaxLength(30)]
+        [MaxLength(13)]
         public string? EmergencyContactPhone { get; set; }
 
         [MaxLength(500)]
@@ -127,6 +117,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
 
         public MstPosition? PrimaryPosition { get; set; }
 
+        public MstCountry? Country { get; set; }
+
+        public MstProvince? Province { get; set; }
+
+        public MstCity? City { get; set; }
+
+        public MstDistrict? District { get; set; }
+
+        public MstPostalCode? PostalCode { get; set; }
+
         public ICollection<EmpBankAccount> BankAccounts { get; set; } = new List<EmpBankAccount>();
 
         public EmpPayrollProfile? PayrollProfile { get; set; }
@@ -136,6 +136,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public EmpInsuranceProfile? InsuranceProfile { get; set; }
 
         public ICollection<EmpDocument> Documents { get; set; } = new List<EmpDocument>();
+
         public EmpTransportAllowanceProfile? TransportAllowanceProfile { get; set; }
 
         public ICollection<EmpTransportAllowanceTransaction> TransportAllowanceTransactions { get; set; }

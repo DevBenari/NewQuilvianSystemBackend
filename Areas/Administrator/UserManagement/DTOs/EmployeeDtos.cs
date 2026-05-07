@@ -1,5 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Administrator.UserManagement.Enum;
-using QuilvianSystemBackend.Enum;
+﻿using QuilvianSystemBackend.Enum;
 
 namespace QuilvianSystemBackend.Areas.Administrator.UserManagement.DTOs
 {
