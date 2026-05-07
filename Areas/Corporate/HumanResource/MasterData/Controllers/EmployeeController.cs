@@ -151,7 +151,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 TransportAllowanceModes = AllowanceModes.ToList(),
                 TransportTransactionStatuses = TransportTransactionStatuses.ToList(),
                 TransportAllowanceTypes = TransportAllowanceTypes.ToList(),
-                QueryParameters = BuildQueryParameterInfo()
+                QueryParameters = BuildQueryParameterInfo(),
+                CreateFields = BuildCreateEmployeeFieldMetadata(),
+                UpdateFields = BuildUpdateEmployeeFieldMetadata()
             };
 
             await _loggerService.InfoAsync(
@@ -649,6 +651,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [AccessPermission("Employee", "Create")]
         public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeRequest request)
         {
+            var requiredValidation = ValidateRequiredEmployeeRequest(request);
+
+            if (!requiredValidation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    requiredValidation.ErrorMessage ?? "Data wajib employee belum lengkap."
+                ));
+            }
+
             if (string.IsNullOrWhiteSpace(request.FullName))
             {
                 return BadRequest(ApiResponse<object>.Fail(
@@ -667,7 +679,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     ));
                 }
 
-                if (!request.BirthDate.HasValue)
+                if (request.BirthDate == default)
                 {
                     return BadRequest(ApiResponse<object>.Fail(
                         StatusCodes.Status400BadRequest,
@@ -720,11 +732,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Religion = request.Religion,
                     MaritalStatus = request.MaritalStatus,
                     BloodType = request.BloodType,
-                    IdentityType = NormalizeNullableText(request.IdentityType),
-                    IdentityNumber = NormalizeDigitsOnly(request.IdentityNumber),
+                    IdentityType = request.IdentityType.Trim(),
+                    IdentityNumber = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty,
                     PhoneNumber = NormalizeDigitsOnly(request.PhoneNumber),
                     WhatsAppNumber = NormalizeDigitsOnly(request.WhatsAppNumber),
-                    Email = NormalizeNullableText(request.Email),
+                    Email = request.Email.Trim().ToLowerInvariant(),
                     Address = NormalizeNullableText(request.Address),
                     CountryId = NormalizeNullableGuid(request.CountryId),
                     ProvinceId = NormalizeNullableGuid(request.ProvinceId),
@@ -735,7 +747,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     PrimaryPositionId = request.PrimaryPositionId,
                     EmployeeStatus = request.EmployeeStatus,
                     ProfessionType = request.ProfessionType,
-                    EmploymentType = NormalizeNullableText(request.EmploymentType),
+                    EmploymentType = request.EmploymentType.Trim(),
                     GradeLevel = NormalizeNullableText(request.GradeLevel),
                     WorkLocation = NormalizeNullableText(request.WorkLocation),
                     JoinDate = request.JoinDate,
@@ -867,6 +879,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
+            var requiredValidation = ValidateRequiredEmployeeRequest(request);
+
+            if (!requiredValidation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    requiredValidation.ErrorMessage ?? "Data wajib employee belum lengkap."
+                ));
+            }
+
             var validation = await ValidateEmployeeRequestAsync(
                 excludeEmployeeId: id,
                 primaryDepartmentId: request.PrimaryDepartmentId,
@@ -902,11 +924,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             entity.Religion = request.Religion;
             entity.MaritalStatus = request.MaritalStatus;
             entity.BloodType = request.BloodType;
-            entity.IdentityType = NormalizeNullableText(request.IdentityType);
-            entity.IdentityNumber = NormalizeDigitsOnly(request.IdentityNumber);
+            entity.IdentityType = request.IdentityType.Trim();
+            entity.IdentityNumber = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty;
             entity.PhoneNumber = NormalizeDigitsOnly(request.PhoneNumber);
             entity.WhatsAppNumber = NormalizeDigitsOnly(request.WhatsAppNumber);
-            entity.Email = NormalizeNullableText(request.Email);
+            entity.Email = request.Email.Trim().ToLowerInvariant();
             entity.Address = NormalizeNullableText(request.Address);
             entity.CountryId = NormalizeNullableGuid(request.CountryId);
             entity.ProvinceId = NormalizeNullableGuid(request.ProvinceId);
@@ -917,7 +939,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             entity.PrimaryPositionId = request.PrimaryPositionId;
             entity.EmployeeStatus = request.EmployeeStatus;
             entity.ProfessionType = request.ProfessionType;
-            entity.EmploymentType = NormalizeNullableText(request.EmploymentType);
+            entity.EmploymentType = request.EmploymentType.Trim();
             entity.GradeLevel = NormalizeNullableText(request.GradeLevel);
             entity.WorkLocation = NormalizeNullableText(request.WorkLocation);
             entity.JoinDate = request.JoinDate;
@@ -1959,6 +1981,528 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             };
         }
 
+        private static List<EmployeeFormFieldMetadataResponse> BuildCreateEmployeeFieldMetadata()
+        {
+            return BuildEmployeeFieldMetadata(isUpdate: false);
+        }
+
+        private static List<EmployeeFormFieldMetadataResponse> BuildUpdateEmployeeFieldMetadata()
+        {
+            var fields = BuildEmployeeFieldMetadata(isUpdate: true);
+
+            fields.Add(new EmployeeFormFieldMetadataResponse
+            {
+                Name = "isActive",
+                Label = "Status Aktif",
+                Section = "Status",
+                InputType = "boolean",
+                IsRequiredOnCreate = false,
+                IsRequiredOnUpdate = true,
+                RequiredType = "Required",
+                Description = "Status aktif employee.",
+                Example = "true",
+                SortOrder = 900
+            });
+
+            fields.Add(new EmployeeFormFieldMetadataResponse
+            {
+                Name = "resignDate",
+                Label = "Tanggal Resign",
+                Section = "Status",
+                InputType = "date",
+                IsRequiredOnCreate = false,
+                IsRequiredOnUpdate = false,
+                RequiredType = "Optional",
+                Description = "Diisi jika employee resign atau dinonaktifkan.",
+                Example = "2026-05-07",
+                SortOrder = 901
+            });
+
+            fields.Add(new EmployeeFormFieldMetadataResponse
+            {
+                Name = "resignReason",
+                Label = "Alasan Resign",
+                Section = "Status",
+                InputType = "textarea",
+                IsRequiredOnCreate = false,
+                IsRequiredOnUpdate = false,
+                RequiredType = "Optional",
+                MaxLength = 250,
+                DependsOn = "resignDate",
+                Description = "Alasan resign atau nonaktif.",
+                Example = "Mengundurkan diri.",
+                SortOrder = 902
+            });
+
+            return fields.OrderBy(x => x.SortOrder).ToList();
+        }
+
+        private static List<EmployeeFormFieldMetadataResponse> BuildEmployeeFieldMetadata(bool isUpdate)
+        {
+            return new List<EmployeeFormFieldMetadataResponse>
+            {
+                new()
+                {
+                    Name = "fullName",
+                    Label = "Nama Lengkap",
+                    Section = "Identitas Utama",
+                    InputType = "text",
+                    IsRequiredOnCreate = true,
+                    IsRequiredOnUpdate = true,
+                    RequiredType = "Required",
+                    MaxLength = 200,
+                    Description = "Nama lengkap employee.",
+                    Example = "Maya Lestari",
+                    SortOrder = 1
+                },
+                new()
+                {
+                    Name = "nickName",
+                    Label = "Nama Panggilan",
+                    Section = "Identitas Utama",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 100,
+                    Example = "Maya",
+                    SortOrder = 2
+                },
+                new()
+                {
+                    Name = "gender",
+                    Label = "Jenis Kelamin",
+                    Section = "Identitas Utama",
+                    InputType = "select",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    OptionsSource = "genderOptions",
+                    Example = "2",
+                    SortOrder = 3
+                },
+                new()
+                {
+                    Name = "birthPlace",
+                    Label = "Tempat Lahir",
+                    Section = "Identitas Utama",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 100,
+                    Example = "Bandung",
+                    SortOrder = 4
+                },
+                new()
+                {
+                    Name = "birthDate",
+                    Label = "Tanggal Lahir",
+                    Section = "Identitas Utama",
+                    InputType = "date",
+                    IsRequiredOnCreate = true,
+                    IsRequiredOnUpdate = true,
+                    RequiredType = "Required",
+                    Description = "Tanggal lahir wajib diisi. Digunakan juga untuk password awal akun login dengan format ddMMMyyyy.",
+                    Example = "2025-01-01",
+                    SortOrder = 5
+                },
+                new()
+                {
+                    Name = "religion",
+                    Label = "Agama",
+                    Section = "Identitas Utama",
+                    InputType = "select",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    OptionsSource = "religionOptions",
+                    Example = "1",
+                    SortOrder = 6
+                },
+                new()
+                {
+                    Name = "maritalStatus",
+                    Label = "Status Pernikahan",
+                    Section = "Identitas Utama",
+                    InputType = "select",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    OptionsSource = "maritalStatusOptions",
+                    Example = "1",
+                    SortOrder = 7
+                },
+                new()
+                {
+                    Name = "bloodType",
+                    Label = "Golongan Darah",
+                    Section = "Identitas Utama",
+                    InputType = "select",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    OptionsSource = "bloodTypeOptions",
+                    Example = "1",
+                    SortOrder = 8
+                },
+
+                new()
+                {
+                    Name = "identityType",
+                    Label = "Tipe Identitas",
+                    Section = "Identitas Legal & Kontak",
+                    InputType = "text",
+                    IsRequiredOnCreate = true,
+                    IsRequiredOnUpdate = true,
+                    RequiredType = "Required",
+                    MaxLength = 50,
+                    Example = "KTP",
+                    SortOrder = 101
+                },
+                new()
+                {
+                    Name = "identityNumber",
+                    Label = "Nomor Identitas",
+                    Section = "Identitas Legal & Kontak",
+                    InputType = "text",
+                    IsRequiredOnCreate = true,
+                    IsRequiredOnUpdate = true,
+                    RequiredType = "Required",
+                    MaxLength = 16,
+                    ValidationRule = "digits:16;unique",
+                    Description = "Nomor identitas wajib 16 digit dan harus unik.",
+                    Example = "3273010101250005",
+                    SortOrder = 102
+                },
+                new()
+                {
+                    Name = "phoneNumber",
+                    Label = "Nomor Telepon",
+                    Section = "Identitas Legal & Kontak",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 13,
+                    ValidationRule = "digits:13",
+                    Example = "0812345678902",
+                    SortOrder = 103
+                },
+                new()
+                {
+                    Name = "whatsAppNumber",
+                    Label = "Nomor WhatsApp",
+                    Section = "Identitas Legal & Kontak",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 13,
+                    ValidationRule = "digits:13",
+                    Example = "0812345678902",
+                    SortOrder = 104
+                },
+                new()
+                {
+                    Name = "email",
+                    Label = "Email",
+                    Section = "Identitas Legal & Kontak",
+                    InputType = "email",
+                    IsRequiredOnCreate = true,
+                    IsRequiredOnUpdate = true,
+                    RequiredType = "Required",
+                    MaxLength = 200,
+                    ValidationRule = "email;unique",
+                    Description = "Email wajib diisi dan harus unik. Digunakan juga sebagai username login.",
+                    Example = "maya@admin.com",
+                    SortOrder = 105
+                },
+                new()
+                {
+                    Name = "address",
+                    Label = "Alamat",
+                    Section = "Identitas Legal & Kontak",
+                    InputType = "textarea",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 500,
+                    Example = "Jl. Kenanga No. 8",
+                    SortOrder = 106
+                },
+
+                new()
+                {
+                    Name = "countryId",
+                    Label = "Negara",
+                    Section = "Region",
+                    InputType = "select",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    OptionsSource = "region.countries.options",
+                    SortOrder = 201
+                },
+                new()
+                {
+                    Name = "provinceId",
+                    Label = "Provinsi",
+                    Section = "Region",
+                    InputType = "select",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Conditional",
+                    DependsOn = "countryId",
+                    OptionsSource = "region.provinces.options",
+                    Description = "Wajib jika cityId diisi. Harus sesuai countryId.",
+                    SortOrder = 202
+                },
+                new()
+                {
+                    Name = "cityId",
+                    Label = "Kota/Kabupaten",
+                    Section = "Region",
+                    InputType = "select",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Conditional",
+                    DependsOn = "provinceId",
+                    OptionsSource = "region.cities.options",
+                    Description = "Wajib jika districtId diisi. Harus sesuai provinceId.",
+                    SortOrder = 203
+                },
+                new()
+                {
+                    Name = "districtId",
+                    Label = "Kecamatan",
+                    Section = "Region",
+                    InputType = "select",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Conditional",
+                    DependsOn = "cityId",
+                    OptionsSource = "region.districts.options",
+                    Description = "Wajib jika postalCodeId diisi. Harus sesuai cityId.",
+                    SortOrder = 204
+                },
+                new()
+                {
+                    Name = "postalCodeId",
+                    Label = "Kode Pos / Kelurahan",
+                    Section = "Region",
+                    InputType = "select",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    DependsOn = "districtId",
+                    OptionsSource = "region.postal-codes.options",
+                    Description = "Jika diisi harus sesuai districtId.",
+                    SortOrder = 205
+                },
+
+                new()
+                {
+                    Name = "primaryDepartmentId",
+                    Label = "Department Utama",
+                    Section = "Organisasi",
+                    InputType = "select",
+                    IsRequiredOnCreate = true,
+                    IsRequiredOnUpdate = true,
+                    RequiredType = "Required",
+                    OptionsSource = "organization.departments.options",
+                    Description = "Department utama wajib dipilih.",
+                    SortOrder = 301
+                },
+                new()
+                {
+                    Name = "primaryPositionId",
+                    Label = "Position Utama",
+                    Section = "Organisasi",
+                    InputType = "select",
+                    IsRequiredOnCreate = true,
+                    IsRequiredOnUpdate = true,
+                    RequiredType = "Required",
+                    DependsOn = "primaryDepartmentId",
+                    OptionsSource = "organization.positions.options",
+                    Description = "Position utama wajib dipilih dan harus sesuai department.",
+                    SortOrder = 302
+                },
+
+                new()
+                {
+                    Name = "employeeStatus",
+                    Label = "Status Employee",
+                    Section = "Employment",
+                    InputType = "select",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    OptionsSource = "employeeStatusOptions",
+                    Description = "Default backend adalah Contract.",
+                    Example = "1",
+                    SortOrder = 401
+                },
+                new()
+                {
+                    Name = "professionType",
+                    Label = "Tipe Profesi",
+                    Section = "Employment",
+                    InputType = "select",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    OptionsSource = "professionTypeOptions",
+                    Description = "Default backend adalah GeneralStaff.",
+                    Example = "1",
+                    SortOrder = 402
+                },
+                new()
+                {
+                    Name = "employmentType",
+                    Label = "Tipe Pekerjaan",
+                    Section = "Employment",
+                    InputType = "text",
+                    IsRequiredOnCreate = true,
+                    IsRequiredOnUpdate = true,
+                    RequiredType = "Required",
+                    MaxLength = 50,
+                    Example = "Contract",
+                    SortOrder = 403
+                },
+                new()
+                {
+                    Name = "gradeLevel",
+                    Label = "Grade Level",
+                    Section = "Employment",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 50,
+                    Example = "Staff",
+                    SortOrder = 404
+                },
+                new()
+                {
+                    Name = "workLocation",
+                    Label = "Lokasi Kerja",
+                    Section = "Employment",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 50,
+                    Example = "RSMMC",
+                    SortOrder = 405
+                },
+                new()
+                {
+                    Name = "joinDate",
+                    Label = "Tanggal Bergabung",
+                    Section = "Employment",
+                    InputType = "date",
+                    IsRequiredOnCreate = true,
+                    IsRequiredOnUpdate = true,
+                    RequiredType = "Required",
+                    Example = "2026-05-07",
+                    SortOrder = 406
+                },
+                new()
+                {
+                    Name = "probationEndDate",
+                    Label = "Tanggal Selesai Probation",
+                    Section = "Employment",
+                    InputType = "date",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    Example = "2026-08-07",
+                    SortOrder = 407
+                },
+                new()
+                {
+                    Name = "contractStartDate",
+                    Label = "Tanggal Mulai Kontrak",
+                    Section = "Employment",
+                    InputType = "date",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    Example = "2026-05-07",
+                    SortOrder = 408
+                },
+                new()
+                {
+                    Name = "contractEndDate",
+                    Label = "Tanggal Akhir Kontrak",
+                    Section = "Employment",
+                    InputType = "date",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    Example = "2027-05-06",
+                    SortOrder = 409
+                },
+
+                new()
+                {
+                    Name = "emergencyContactName",
+                    Label = "Nama Kontak Darurat",
+                    Section = "Emergency Contact",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 200,
+                    Example = "Hendra Lestari",
+                    SortOrder = 501
+                },
+                new()
+                {
+                    Name = "emergencyContactRelation",
+                    Label = "Hubungan Kontak Darurat",
+                    Section = "Emergency Contact",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 50,
+                    Example = "Ayah",
+                    SortOrder = 502
+                },
+                new()
+                {
+                    Name = "emergencyContactPhone",
+                    Label = "Telepon Kontak Darurat",
+                    Section = "Emergency Contact",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 13,
+                    ValidationRule = "digits:13",
+                    Example = "0812345678912",
+                    SortOrder = 503
+                },
+                new()
+                {
+                    Name = "emergencyContactAddress",
+                    Label = "Alamat Kontak Darurat",
+                    Section = "Emergency Contact",
+                    InputType = "textarea",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 500,
+                    Example = "Jl. Kenanga No. 8",
+                    SortOrder = 504
+                }
+            }
+            .OrderBy(x => x.SortOrder)
+            .ToList();
+        }
+
         private static List<EmployeeEnumOptionResponse> BuildEnumOptions<TEnum>() where TEnum : struct, System.Enum
         {
             return System.Enum.GetValues<TEnum>()
@@ -2097,7 +2641,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 return (false, "Email employee wajib diisi untuk membuat akun login.", null);
             }
 
-            if (!employee.BirthDate.HasValue)
+            if (employee.BirthDate == default)
             {
                 return (false, "BirthDate employee wajib diisi untuk generate password awal.", null);
             }
@@ -2213,14 +2757,65 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
         }
 
-        private static string? GenerateInitialPasswordFromBirthDate(DateTime? birthDate)
+        private static string GenerateInitialPasswordFromBirthDate(DateTime birthDate)
         {
-            if (!birthDate.HasValue)
+            return birthDate.ToString("ddMMMyyyy", CultureInfo.InvariantCulture);
+        }
+
+        private static (bool IsValid, string? ErrorMessage) ValidateRequiredEmployeeRequest(
+    CreateEmployeeRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.FullName))
             {
-                return null;
+                return (false, "Nama employee wajib diisi.");
             }
 
-            return birthDate.Value.ToString("ddMMMyyyy", CultureInfo.InvariantCulture);
+            if (request.BirthDate == default)
+            {
+                return (false, "Tanggal lahir wajib diisi.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.IdentityType))
+            {
+                return (false, "Tipe identitas wajib diisi.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.IdentityNumber))
+            {
+                return (false, "Nomor identitas wajib diisi.");
+            }
+
+            if (NormalizeDigitsOnly(request.IdentityNumber)?.Length != 16)
+            {
+                return (false, "Nomor identitas harus 16 digit.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Email))
+            {
+                return (false, "Email wajib diisi.");
+            }
+
+            if (request.PrimaryDepartmentId == Guid.Empty)
+            {
+                return (false, "Primary department wajib dipilih.");
+            }
+
+            if (request.PrimaryPositionId == Guid.Empty)
+            {
+                return (false, "Primary position wajib dipilih.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.EmploymentType))
+            {
+                return (false, "Employment type wajib diisi.");
+            }
+
+            if (request.JoinDate == default)
+            {
+                return (false, "Tanggal bergabung wajib diisi.");
+            }
+
+            return (true, null);
         }
-    }
+    }    
 }

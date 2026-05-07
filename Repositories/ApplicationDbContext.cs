@@ -842,7 +842,7 @@ namespace QuilvianSystemBackend.Repositories
 
                 entity.Property(x => x.BirthDate)
                     .HasColumnType("date")
-                    .IsRequired(false);
+                    .IsRequired();
 
                 entity.Property(x => x.Religion)
                     .HasConversion<string>()
@@ -863,10 +863,12 @@ namespace QuilvianSystemBackend.Repositories
                     .IsRequired();
 
                 entity.Property(x => x.IdentityType)
-                    .HasMaxLength(50);
+                    .HasMaxLength(50)
+                    .IsRequired();
 
                 entity.Property(x => x.IdentityNumber)
-                    .HasMaxLength(16);
+                    .HasMaxLength(16)
+                    .IsRequired();
 
                 entity.Property(x => x.PhoneNumber)
                     .HasMaxLength(13);
@@ -875,7 +877,8 @@ namespace QuilvianSystemBackend.Repositories
                     .HasMaxLength(13);
 
                 entity.Property(x => x.Email)
-                    .HasMaxLength(200);
+                    .HasMaxLength(200)
+                    .IsRequired();
 
                 entity.Property(x => x.Address)
                     .HasMaxLength(500);
@@ -887,7 +890,8 @@ namespace QuilvianSystemBackend.Repositories
                     .HasConversion<int>();
 
                 entity.Property(x => x.EmploymentType)
-                    .HasMaxLength(50);
+                    .HasMaxLength(50)
+                    .IsRequired();
 
                 entity.Property(x => x.GradeLevel)
                     .HasMaxLength(50);
@@ -897,7 +901,7 @@ namespace QuilvianSystemBackend.Repositories
 
                 entity.Property(x => x.JoinDate)
                     .HasColumnType("date")
-                    .IsRequired(false);
+                    .IsRequired();
 
                 entity.Property(x => x.ProbationEndDate)
                     .HasColumnType("date")

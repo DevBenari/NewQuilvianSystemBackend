@@ -271,6 +271,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public List<string> TransportAllowanceTypes { get; set; } = new();
 
         public List<EmployeeQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public List<EmployeeFormFieldMetadataResponse> CreateFields { get; set; } = new();
+
+        public List<EmployeeFormFieldMetadataResponse> UpdateFields { get; set; } = new();
     }
 
     public class EmployeeDefaultFilterResponse
@@ -369,7 +373,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         [MaxLength(100)]
         public string? BirthPlace { get; set; }
 
-        public DateTime? BirthDate { get; set; }
+        [Required]
+        public DateTime BirthDate { get; set; }
 
         public Religion Religion { get; set; } = Religion.Unknown;
 
@@ -377,20 +382,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public BloodType BloodType { get; set; } = BloodType.Unknown;
 
+        [Required]
         [MaxLength(50)]
-        public string? IdentityType { get; set; }
+        public string IdentityType { get; set; } = string.Empty;
 
+        [Required]
         [MaxLength(16)]
-        public string? IdentityNumber { get; set; }
+        [RegularExpression(@"^\d{16}$", ErrorMessage = "Nomor identitas harus 16 digit.")]
+        public string IdentityNumber { get; set; } = string.Empty;
 
         [MaxLength(13)]
+        [RegularExpression(@"^\d{13}$", ErrorMessage = "Nomor telepon harus 13 digit.")]
         public string? PhoneNumber { get; set; }
 
         [MaxLength(13)]
+        [RegularExpression(@"^\d{13}$", ErrorMessage = "Nomor WhatsApp harus 13 digit.")]
         public string? WhatsAppNumber { get; set; }
 
+        [Required]
         [MaxLength(200)]
-        public string? Email { get; set; }
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
 
         [MaxLength(500)]
         public string? Address { get; set; }
@@ -415,8 +427,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public EmployeeProfessionType ProfessionType { get; set; } = EmployeeProfessionType.GeneralStaff;
 
+        [Required]
         [MaxLength(50)]
-        public string? EmploymentType { get; set; }
+        public string EmploymentType { get; set; } = string.Empty;
 
         [MaxLength(50)]
         public string? GradeLevel { get; set; }
@@ -424,7 +437,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         [MaxLength(50)]
         public string? WorkLocation { get; set; }
 
-        public DateTime? JoinDate { get; set; }
+        [Required]
+        public DateTime JoinDate { get; set; }
 
         public DateTime? ProbationEndDate { get; set; }
 
@@ -439,6 +453,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? EmergencyContactRelation { get; set; }
 
         [MaxLength(13)]
+        [RegularExpression(@"^\d{13}$", ErrorMessage = "Nomor telepon kontak darurat harus 13 digit.")]
         public string? EmergencyContactPhone { get; set; }
 
         [MaxLength(500)]
@@ -535,5 +550,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? ProfilePhotoPath { get; set; }
 
         public string Message { get; set; } = string.Empty;
+    }
+
+    public class EmployeeFormFieldMetadataResponse
+    {
+        public string Name { get; set; } = string.Empty;
+
+        public string Label { get; set; } = string.Empty;
+
+        public string Section { get; set; } = string.Empty;
+
+        public string InputType { get; set; } = string.Empty;
+
+        public bool IsRequiredOnCreate { get; set; }
+
+        public bool IsRequiredOnUpdate { get; set; }
+
+        public string RequiredType { get; set; } = "Optional";
+
+        public int? MaxLength { get; set; }
+
+        public string? DependsOn { get; set; }
+
+        public string? OptionsSource { get; set; }
+
+        public string? ValidationRule { get; set; }
+
+        public string? Description { get; set; }
+
+        public string? Example { get; set; }
+
+        public int SortOrder { get; set; }
     }
 }

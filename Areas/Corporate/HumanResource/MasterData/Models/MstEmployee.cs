@@ -33,7 +33,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         [MaxLength(100)]
         public string? BirthPlace { get; set; }
 
-        public DateTime? BirthDate { get; set; }
+        [Required]
+        public DateTime BirthDate { get; set; }
 
         public Religion Religion { get; set; } = Religion.Unknown;
 
@@ -41,11 +42,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
 
         public BloodType BloodType { get; set; } = BloodType.Unknown;
 
+        [Required]
         [MaxLength(50)]
-        public string? IdentityType { get; set; }
+        public string IdentityType { get; set; } = string.Empty;
 
+        [Required]
         [MaxLength(16)]
-        public string? IdentityNumber { get; set; }
+        public string IdentityNumber { get; set; } = string.Empty;
 
         [MaxLength(13)]
         public string? PhoneNumber { get; set; }
@@ -53,8 +56,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         [MaxLength(13)]
         public string? WhatsAppNumber { get; set; }
 
+        [Required]
         [MaxLength(200)]
-        public string? Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         [MaxLength(500)]
         public string? Address { get; set; }
@@ -69,16 +73,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
 
         public Guid? PostalCodeId { get; set; }
 
+        [Required]
         public Guid PrimaryDepartmentId { get; set; }
 
+        [Required]
         public Guid PrimaryPositionId { get; set; }
 
         public EmployeeStatus EmployeeStatus { get; set; } = EmployeeStatus.Contract;
 
         public EmployeeProfessionType ProfessionType { get; set; } = EmployeeProfessionType.GeneralStaff;
 
+        [Required]
         [MaxLength(50)]
-        public string? EmploymentType { get; set; }
+        public string EmploymentType { get; set; } = string.Empty;
 
         [MaxLength(50)]
         public string? GradeLevel { get; set; }
@@ -86,7 +93,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         [MaxLength(50)]
         public string? WorkLocation { get; set; }
 
-        public DateTime? JoinDate { get; set; }
+        [Required]
+        public DateTime JoinDate { get; set; }
 
         public DateTime? ProbationEndDate { get; set; }
 
