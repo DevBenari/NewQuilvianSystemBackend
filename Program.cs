@@ -59,17 +59,66 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
 });
 
-// CORS untuk Next.js
-var allowedOrigins = builder.Configuration
-    .GetSection("Cors:AllowedOrigins")
-    .Get<string[]>() ?? Array.Empty<string>();
+// CORS untuk frontend.
+// Disimpan di Program.cs agar ikut ter-deploy bersama source code.
+// Catatan:
+// - AllowCredentials() wajib karena auth memakai HttpOnly cookie.
+// - Jangan pakai AllowAnyOrigin() jika memakai AllowCredentials().
+var allowedCorsOrigins = new[]
+{
+    // Local development - Next.js / Vite / React
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:5173",
+    "http://localhost:5174",
+
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+
+    // Server / staging / production frontend
+    "http://103.153.60.136:3000",
+    "https://103.153.60.136",
+    "https://dev.quilvian-mmchospital.com",
+    "https://sta.quilvian-mmchospital.com",
+    "https://quilvian-mmchospital.com"
+};
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendCorsPolicy", policy =>
     {
         policy
-            .WithOrigins(allowedOrigins)
+            .SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrWhiteSpace(origin))
+                {
+                    return false;
+                }
+
+                if (allowedCorsOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                {
+                    return false;
+                }
+
+                var isLocalHost =
+                    uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                    uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase);
+
+                var isHttpOrHttps =
+                    uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
+                    uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
+
+                // Ini membuat developer local tetap bisa pakai port lain
+                // tanpa perlu ubah Program.cs lagi.
+                return isLocalHost && isHttpOrHttps;
+            })
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
