@@ -7,11 +7,12 @@ namespace QuilvianSystemBackend.Models
     public class ApplicationUser : IdentityUser<Guid>
     {
         public string UserCode { get; set; } = string.Empty;
+
         public string DisplayName { get; set; } = string.Empty;
 
         public UserType UserType { get; set; }
 
-        public Guid? HospitalId { get; set; }
+        public Guid? WorkforceProfileId { get; set; }
 
         public Guid? EmployeeId { get; set; }
 
@@ -42,6 +43,8 @@ namespace QuilvianSystemBackend.Models
         public DateTime? UpdateDateTime { get; set; }
 
         public string? ProfilePhotoPath { get; set; }
+
+        public MstWorkforceProfile? WorkforceProfile { get; set; }
 
         public MstEmployee? Employee { get; set; }
 

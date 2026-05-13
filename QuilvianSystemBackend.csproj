@@ -27,6 +27,7 @@
   <ItemGroup>
     <Folder Include="Areas\Administrator\Dashboard\" />
     <Folder Include="Areas\Administrator\DocumentManagement\" />
+    <Folder Include="Areas\Corporate\HumanResource\Employee\Controllers\" />
     <Folder Include="Areas\Corporate\InventoryManagement\" />
     <Folder Include="Areas\Corporate\AssetManagement\" />
     <Folder Include="Areas\Corporate\FinancialManagement\" />

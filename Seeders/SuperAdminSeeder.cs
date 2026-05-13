@@ -93,7 +93,6 @@ namespace QuilvianSystemBackend.Seeders
 
                     UserType = UserType.SuperAdmin,
 
-                    HospitalId = null,
                     PrimaryDepartmentId = null,
                     PrimaryPositionId = null,
                     EmployeeId = null,

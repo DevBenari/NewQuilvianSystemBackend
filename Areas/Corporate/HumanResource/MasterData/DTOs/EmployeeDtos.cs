@@ -776,6 +776,202 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public bool IsPrimary { get; set; } = true;
     }
 
+    public class EmployeeBankAccountResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid EmployeeId { get; set; }
+
+        public string EmployeeCode { get; set; } = string.Empty;
+
+        public string EmployeeName { get; set; } = string.Empty;
+
+        public string BankName { get; set; } = string.Empty;
+
+        public string AccountNumber { get; set; } = string.Empty;
+
+        public string AccountHolderName { get; set; } = string.Empty;
+
+        public string? BankBranch { get; set; }
+
+        public bool IsPrimary { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class EmployeeBankAccountListResponse
+    {
+        public Guid EmployeeId { get; set; }
+
+        public string EmployeeCode { get; set; } = string.Empty;
+
+        public string EmployeeName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int PrimaryData { get; set; }
+
+        public List<EmployeeBankAccountResponse> Items { get; set; } = new();
+    }
+
+    public class CreateEmployeeBankAccountRequest
+    {
+        [Required]
+        [MaxLength(100)]
+        public string BankName { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(100)]
+        public string AccountNumber { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(200)]
+        public string AccountHolderName { get; set; } = string.Empty;
+
+        [MaxLength(100)]
+        public string? BankBranch { get; set; }
+
+        public bool IsPrimary { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateEmployeeBankAccountRequest
+    {
+        [Required]
+        [MaxLength(100)]
+        public string BankName { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(100)]
+        public string AccountNumber { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(200)]
+        public string AccountHolderName { get; set; } = string.Empty;
+
+        [MaxLength(100)]
+        public string? BankBranch { get; set; }
+
+        public bool IsPrimary { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateEmployeeBankAccountStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class SetEmployeeBankAccountPrimaryRequest
+    {
+        public bool IsPrimary { get; set; } = true;
+    }
+
+    public class EmployeeDocumentResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid EmployeeId { get; set; }
+
+        public string EmployeeCode { get; set; } = string.Empty;
+
+        public string EmployeeName { get; set; } = string.Empty;
+
+        public string DocumentType { get; set; } = string.Empty;
+
+        public string DocumentName { get; set; } = string.Empty;
+
+        public string? DocumentNumber { get; set; }
+
+        public string? FilePath { get; set; }
+
+        public string? FileContentType { get; set; }
+
+        public bool HasFile { get; set; }
+
+        public bool IsVerified { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class EmployeeDocumentListResponse
+    {
+        public Guid EmployeeId { get; set; }
+
+        public string EmployeeCode { get; set; } = string.Empty;
+
+        public string EmployeeName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int VerifiedData { get; set; }
+
+        public int DocumentWithFileData { get; set; }
+
+        public List<EmployeeDocumentResponse> Items { get; set; } = new();
+    }
+
+    public class CreateEmployeeDocumentRequest
+    {
+        [Required]
+        [MaxLength(100)]
+        public string DocumentType { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(200)]
+        public string DocumentName { get; set; } = string.Empty;
+
+        [MaxLength(100)]
+        public string? DocumentNumber { get; set; }
+
+        public IFormFile? File { get; set; }
+
+        public bool IsVerified { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateEmployeeDocumentRequest
+    {
+        [Required]
+        [MaxLength(100)]
+        public string DocumentType { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(200)]
+        public string DocumentName { get; set; } = string.Empty;
+
+        [MaxLength(100)]
+        public string? DocumentNumber { get; set; }
+
+        public IFormFile? File { get; set; }
+
+        public bool ReplaceExistingFile { get; set; } = false;
+
+        public bool IsVerified { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateEmployeeDocumentStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class VerifyEmployeeDocumentRequest
+    {
+        public bool IsVerified { get; set; } = true;
+    }
+
     public class EmployeeTransportAllowanceProfileResponse
     {
         public bool IsConfigured { get; set; }

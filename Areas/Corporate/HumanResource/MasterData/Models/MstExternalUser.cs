@@ -13,6 +13,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
+        public Guid? WorkforceProfileId { get; set; }
+
+        [Required]
         [MaxLength(50)]
         public string ExternalCode { get; set; } = string.Empty;
 
@@ -59,6 +62,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public string? ExternalStatus { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        public MstWorkforceProfile? WorkforceProfile { get; set; }
 
         public ICollection<ExtUserContract> Contracts { get; set; } = new List<ExtUserContract>();
 

@@ -829,7 +829,7 @@ namespace QuilvianSystemBackend.Controllers
                 IsGeofenceBypassed = geofenceValidation.IsBypassed,
                 GeofenceBypassReason = geofenceValidation.BypassReason,
 
-                PersonType = user.UserType.ToString(),
+                UserType = user.UserType,
                 CheckInSource = "Login",
                 Status = "CheckedIn",
 
@@ -1196,7 +1196,6 @@ namespace QuilvianSystemBackend.Controllers
                 new Claim("email", user.Email ?? string.Empty),
                 new Claim("full_name", user.DisplayName ?? string.Empty),
                 new Claim("user_type", user.UserType.ToString()),
-                new Claim("hospital_id", user.HospitalId?.ToString() ?? string.Empty),
                 new Claim("department_id", user.PrimaryDepartmentId?.ToString() ?? string.Empty),
                 new Claim("position_id", user.PrimaryPositionId?.ToString() ?? string.Empty),
                 new Claim("primary_department_id", user.PrimaryDepartmentId?.ToString() ?? string.Empty),
@@ -1312,7 +1311,6 @@ namespace QuilvianSystemBackend.Controllers
                 Roles = roles.ToList(),
                 IsActive = user.IsActive,
                 MustChangePassword = user.MustChangePassword,
-                HospitalId = user.HospitalId,
                 DepartmentId = user.PrimaryDepartmentId,
                 PositionId = user.PrimaryPositionId
             };

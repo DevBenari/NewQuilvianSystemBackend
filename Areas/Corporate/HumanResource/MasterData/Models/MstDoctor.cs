@@ -13,6 +13,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
+        public Guid? WorkforceProfileId { get; set; }
+
+        [Required]
         [MaxLength(50)]
         public string DoctorCode { get; set; } = string.Empty;
 
@@ -69,6 +72,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public bool IsAvailableForAppointment { get; set; } = true;
 
         public bool IsActive { get; set; } = true;
+
+        public MstWorkforceProfile? WorkforceProfile { get; set; }
 
         public MstDepartment? PrimaryDepartment { get; set; }
 

@@ -18,8 +18,6 @@
 
         public bool MustChangePassword { get; set; }
 
-        public Guid? HospitalId { get; set; }
-
         public Guid? DepartmentId { get; set; }
 
         public Guid? PositionId { get; set; }

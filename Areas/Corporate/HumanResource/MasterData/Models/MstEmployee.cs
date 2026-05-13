@@ -14,6 +14,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
+        public Guid? WorkforceProfileId { get; set; }
+
+        [Required]
         [MaxLength(50)]
         public string EmployeeCode { get; set; } = string.Empty;
 
@@ -120,6 +123,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public string? EmergencyContactAddress { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        //Navigation
+        public MstWorkforceProfile? WorkforceProfile { get; set; }
 
         public MstDepartment? PrimaryDepartment { get; set; }
 

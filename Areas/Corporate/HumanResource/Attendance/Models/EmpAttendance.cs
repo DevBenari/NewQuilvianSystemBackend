@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
+using QuilvianSystemBackend.Enum;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models
 {
@@ -15,6 +16,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models
         public Guid? EmployeeId { get; set; }
 
         public Guid? DoctorId { get; set; }
+        public Guid? WorkforceProfileId { get; set; }
 
         public Guid? WorkScheduleId { get; set; }
 
@@ -61,7 +63,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models
         public string? GeofenceBypassReason { get; set; }
 
         [MaxLength(50)]
-        public string PersonType { get; set; } = string.Empty;
+        public UserType UserType { get; set; }
 
         [MaxLength(50)]
         public string CheckInSource { get; set; } = "Login";
@@ -84,8 +86,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models
         [MaxLength(500)]
         public string? CheckOutUserAgent { get; set; }
 
+        //Navigation
+        public MstWorkforceProfile? WorkforceProfile { get; set; }
         public ApplicationUser? User { get; set; }
-
         public MstWorkSchedule? WorkSchedule { get; set; }
     }
 }
