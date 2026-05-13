@@ -79,6 +79,87 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         {
             var result = new RegionFilterMetadataResponse
             {
+                CountryDefaultFilter = new RegionDefaultFilterResponse
+                {
+                    StartDate = null,
+                    EndDate = null,
+                    CustomPeriod = null,
+                    Search = null,
+                    IsActive = null,
+                    CountryId = null,
+                    ProvinceId = null,
+                    CityId = null,
+                    DistrictId = null,
+                    SortBy = "createDateTime",
+                    SortDirection = "desc",
+                    PageNumber = 1,
+                    PageSize = 25
+                },
+                ProvinceDefaultFilter = new RegionDefaultFilterResponse
+                {
+                    StartDate = null,
+                    EndDate = null,
+                    CustomPeriod = null,
+                    Search = null,
+                    IsActive = null,
+                    CountryId = null,
+                    ProvinceId = null,
+                    CityId = null,
+                    DistrictId = null,
+                    SortBy = "createDateTime",
+                    SortDirection = "desc",
+                    PageNumber = 1,
+                    PageSize = 25
+                },
+                CityDefaultFilter = new RegionDefaultFilterResponse
+                {
+                    StartDate = null,
+                    EndDate = null,
+                    CustomPeriod = null,
+                    Search = null,
+                    IsActive = null,
+                    CountryId = null,
+                    ProvinceId = null,
+                    CityId = null,
+                    DistrictId = null,
+                    SortBy = "createDateTime",
+                    SortDirection = "desc",
+                    PageNumber = 1,
+                    PageSize = 25
+                },
+                DistrictDefaultFilter = new RegionDefaultFilterResponse
+                {
+                    StartDate = null,
+                    EndDate = null,
+                    CustomPeriod = null,
+                    Search = null,
+                    IsActive = null,
+                    CountryId = null,
+                    ProvinceId = null,
+                    CityId = null,
+                    DistrictId = null,
+                    SortBy = "createDateTime",
+                    SortDirection = "desc",
+                    PageNumber = 1,
+                    PageSize = 25
+                },
+                PostalCodeDefaultFilter = new RegionDefaultFilterResponse
+                {
+                    StartDate = null,
+                    EndDate = null,
+                    CustomPeriod = null,
+                    Search = null,
+                    IsActive = null,
+                    CountryId = null,
+                    ProvinceId = null,
+                    CityId = null,
+                    DistrictId = null,
+                    SortBy = "createDateTime",
+                    SortDirection = "desc",
+                    PageNumber = 1,
+                    PageSize = 25
+                },
+                CustomPeriods = BuildCustomPeriodOptions(),
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
                 CountrySortOptions = BuildCommonSortOptions("countryCode", "countryName"),
@@ -91,6 +172,113 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     new() { Value = "postalCode", Label = "Kode pos" },
                     new() { Value = "villageName", Label = "Kelurahan/Desa" },
                     new() { Value = "isActive", Label = "Status aktif" }
+                },
+                QueryParameters = new List<RegionQueryParameterInfoResponse>
+                {
+                    new()
+                    {
+                        Name = "startDate",
+                        Type = "date",
+                        Required = "No",
+                        Description = "Tanggal mulai filter berdasarkan CreateDateTime. Dipakai jika customPeriod kosong atau custom.",
+                        Example = "2026-01-01"
+                    },
+                    new()
+                    {
+                        Name = "endDate",
+                        Type = "date",
+                        Required = "No",
+                        Description = "Tanggal akhir filter berdasarkan CreateDateTime. Sistem akan membaca sampai akhir hari endDate.",
+                        Example = "2026-01-31"
+                    },
+                    new()
+                    {
+                        Name = "customPeriod",
+                        Type = "string",
+                        Required = "No",
+                        Description = "Pilihan periode cepat. Nilai tersedia dari response CustomPeriods.",
+                        Example = "last7days"
+                    },
+                    new()
+                    {
+                        Name = "search",
+                        Type = "string",
+                        Required = "No",
+                        Description = "Pencarian teks untuk kode, nama, dan info tambahan yang relevan di tiap level region.",
+                        Example = "jakarta"
+                    },
+                    new()
+                    {
+                        Name = "isActive",
+                        Type = "boolean",
+                        Required = "No",
+                        Description = "Filter status aktif. Kosongkan untuk semua status.",
+                        Example = "true"
+                    },
+                    new()
+                    {
+                        Name = "countryId",
+                        Type = "guid",
+                        Required = "No",
+                        Description = "Khusus endpoint provinces. Filter province berdasarkan country.",
+                        Example = "00000000-0000-0000-0000-000000000000"
+                    },
+                    new()
+                    {
+                        Name = "provinceId",
+                        Type = "guid",
+                        Required = "No",
+                        Description = "Khusus endpoint cities. Filter city berdasarkan province.",
+                        Example = "00000000-0000-0000-0000-000000000000"
+                    },
+                    new()
+                    {
+                        Name = "cityId",
+                        Type = "guid",
+                        Required = "No",
+                        Description = "Khusus endpoint districts. Filter district berdasarkan city.",
+                        Example = "00000000-0000-0000-0000-000000000000"
+                    },
+                    new()
+                    {
+                        Name = "districtId",
+                        Type = "guid",
+                        Required = "No",
+                        Description = "Khusus endpoint postal-codes. Filter postal code berdasarkan district.",
+                        Example = "00000000-0000-0000-0000-000000000000"
+                    },
+                    new()
+                    {
+                        Name = "sortBy",
+                        Type = "string",
+                        Required = "No",
+                        Description = "Field sorting. Nilai tersedia dari sort options sesuai endpoint.",
+                        Example = "createDateTime"
+                    },
+                    new()
+                    {
+                        Name = "sortDirection",
+                        Type = "string",
+                        Required = "No",
+                        Description = "Arah sorting. Nilai: asc atau desc.",
+                        Example = "desc"
+                    },
+                    new()
+                    {
+                        Name = "pageNumber",
+                        Type = "integer",
+                        Required = "No",
+                        Description = "Nomor halaman. Minimal 1.",
+                        Example = "1"
+                    },
+                    new()
+                    {
+                        Name = "pageSize",
+                        Type = "integer",
+                        Required = "No",
+                        Description = "Jumlah data per halaman. Maksimal 100.",
+                        Example = "25"
+                    }
                 }
             };
 
@@ -164,10 +352,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         )]
         [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetCountries(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] string? search,
             [FromQuery] bool? isActive,
-            [FromQuery] string? sortBy = "countryName",
-            [FromQuery] string? sortDirection = "asc",
+            [FromQuery] string? sortBy = "createDateTime",
+            [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
         {
@@ -175,9 +366,29 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
             var query = _dbContext.MstCountries
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
+
+            if (dateRange.Start.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
+            }
+
+            if (dateRange.EndExclusive.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -219,6 +430,27 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
                 Items = items
             };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.GetCountries",
+                "Mengambil data country.",
+                new
+                {
+                    startDate,
+                    endDate,
+                    customPeriod,
+                    AppliedStartDate = dateRange.Start,
+                    AppliedEndExclusive = dateRange.EndExclusive,
+                    search,
+                    isActive,
+                    sortBy,
+                    sortDirection,
+                    pageNumber,
+                    pageSize,
+                    totalData
+                }
+            );
 
             return Ok(ApiResponse<ResponseCountryPagedResult>.Ok(
                 result,
@@ -549,16 +781,29 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetProvinces(
             [FromQuery] Guid? countryId,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] string? search,
             [FromQuery] bool? isActive,
-            [FromQuery] string? sortBy = "provinceName",
-            [FromQuery] string? sortDirection = "asc",
+            [FromQuery] string? sortBy = "createDateTime",
+            [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
         {
             var paging = NormalizePaging(pageNumber, pageSize);
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
+
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
 
             var query = _dbContext.MstProvinces
                 .AsNoTracking()
@@ -567,6 +812,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             if (countryId.HasValue && countryId.Value != Guid.Empty)
             {
                 query = query.Where(x => x.CountryId == countryId.Value);
+            }
+
+            if (dateRange.Start.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
+            }
+
+            if (dateRange.EndExclusive.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -610,6 +865,28 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
                 Items = items
             };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.GetProvinces",
+                "Mengambil data province.",
+                new
+                {
+                    countryId,
+                    startDate,
+                    endDate,
+                    customPeriod,
+                    AppliedStartDate = dateRange.Start,
+                    AppliedEndExclusive = dateRange.EndExclusive,
+                    search,
+                    isActive,
+                    sortBy,
+                    sortDirection,
+                    pageNumber,
+                    pageSize,
+                    totalData
+                }
+            );
 
             return Ok(ApiResponse<ResponseProvincePagedResult>.Ok(
                 result,
@@ -1773,6 +2050,170 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return (pageNumber, pageSize);
         }
 
+        private static DateRangeResolveResult ResolveDateRange(
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            var period = customPeriod?.Trim().ToLower();
+            var today = DateTime.UtcNow.Date;
+
+            DateTime? start = null;
+            DateTime? endExclusive = null;
+
+            switch (period)
+            {
+                case null:
+                case "":
+                case "custom":
+                    if (startDate.HasValue)
+                    {
+                        start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                    }
+
+                    if (endDate.HasValue)
+                    {
+                        endExclusive = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                    }
+
+                    break;
+
+                case "today":
+                    start = today;
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "yesterday":
+                    start = today.AddDays(-1);
+                    endExclusive = today;
+                    break;
+
+                case "last7days":
+                    start = today.AddDays(-6);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "last30days":
+                    start = today.AddDays(-29);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "last90days":
+                    start = today.AddDays(-89);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "thismonth":
+                    start = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    endExclusive = start.Value.AddMonths(1);
+                    break;
+
+                case "lastmonth":
+                    var thisMonth = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    start = thisMonth.AddMonths(-1);
+                    endExclusive = thisMonth;
+                    break;
+
+                case "thisyear":
+                    start = new DateTime(today.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                    endExclusive = start.Value.AddYears(1);
+                    break;
+
+                default:
+                    return DateRangeResolveResult.Invalid(
+                        $"customPeriod '{customPeriod}' tidak valid. Gunakan endpoint filters/metadata untuk melihat daftar customPeriod yang tersedia."
+                    );
+            }
+
+            if (start.HasValue && endExclusive.HasValue && start.Value >= endExclusive.Value)
+            {
+                return DateRangeResolveResult.Invalid(
+                    "startDate tidak boleh lebih besar atau sama dengan endDate."
+                );
+            }
+
+            return DateRangeResolveResult.Valid(start, endExclusive);
+        }
+
+        private static List<RegionCustomPeriodOptionResponse> BuildCustomPeriodOptions()
+        {
+            return new List<RegionCustomPeriodOptionResponse>
+            {
+                new()
+                {
+                    Value = "custom",
+                    Label = "Custom Date Range",
+                    Description = "Frontend mengirim startDate dan/atau endDate manual. Format tanggal: yyyy-MM-dd.",
+                    UsesStartDate = true,
+                    UsesEndDate = true
+                },
+                new()
+                {
+                    Value = "today",
+                    Label = "Hari Ini",
+                    Description = "Filter data yang dibuat hari ini berdasarkan waktu UTC.",
+                    UsesStartDate = false,
+                    UsesEndDate = false
+                },
+                new()
+                {
+                    Value = "yesterday",
+                    Label = "Kemarin",
+                    Description = "Filter data yang dibuat kemarin berdasarkan waktu UTC.",
+                    UsesStartDate = false,
+                    UsesEndDate = false
+                },
+                new()
+                {
+                    Value = "last7days",
+                    Label = "7 Hari Terakhir",
+                    Description = "Filter data dari 7 hari terakhir termasuk hari ini.",
+                    UsesStartDate = false,
+                    UsesEndDate = false
+                },
+                new()
+                {
+                    Value = "last30days",
+                    Label = "30 Hari Terakhir",
+                    Description = "Filter data dari 30 hari terakhir termasuk hari ini.",
+                    UsesStartDate = false,
+                    UsesEndDate = false
+                },
+                new()
+                {
+                    Value = "last90days",
+                    Label = "90 Hari Terakhir",
+                    Description = "Filter data dari 90 hari terakhir termasuk hari ini.",
+                    UsesStartDate = false,
+                    UsesEndDate = false
+                },
+                new()
+                {
+                    Value = "thismonth",
+                    Label = "Bulan Ini",
+                    Description = "Filter data dari tanggal 1 bulan berjalan sampai akhir bulan berjalan.",
+                    UsesStartDate = false,
+                    UsesEndDate = false
+                },
+                new()
+                {
+                    Value = "lastmonth",
+                    Label = "Bulan Lalu",
+                    Description = "Filter data dari tanggal 1 bulan lalu sampai akhir bulan lalu.",
+                    UsesStartDate = false,
+                    UsesEndDate = false
+                },
+                new()
+                {
+                    Value = "thisyear",
+                    Label = "Tahun Ini",
+                    Description = "Filter data dari tanggal 1 Januari tahun berjalan sampai akhir tahun berjalan.",
+                    UsesStartDate = false,
+                    UsesEndDate = false
+                }
+            };
+        }
+
         private static string NormalizeSortBy(string? sortBy)
         {
             return string.IsNullOrWhiteSpace(sortBy)
@@ -1846,5 +2287,38 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             entity.DeleteDateTime = DateTime.UtcNow;
             entity.DeleteBy = GetCurrentUserId();
         }
+
+        private sealed class DateRangeResolveResult
+        {
+            public bool IsValid { get; private set; }
+
+            public string? ErrorMessage { get; private set; }
+
+            public DateTime? Start { get; private set; }
+
+            public DateTime? EndExclusive { get; private set; }
+
+            public static DateRangeResolveResult Valid(
+                DateTime? start,
+                DateTime? endExclusive)
+            {
+                return new DateRangeResolveResult
+                {
+                    IsValid = true,
+                    Start = start,
+                    EndExclusive = endExclusive
+                };
+            }
+
+            public static DateRangeResolveResult Invalid(string errorMessage)
+            {
+                return new DateRangeResolveResult
+                {
+                    IsValid = false,
+                    ErrorMessage = errorMessage
+                };
+            }
+        }
+
     }
 }

@@ -91,19 +91,100 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
 
     public class RegionFilterMetadataResponse
     {
-        public List<string> SortDirections { get; set; } = new();
-        public List<int> PageSizeOptions { get; set; } = new();
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public string CustomPeriodPriorityInfo { get; set; } =
+            "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan. Jika customPeriod kosong atau custom, frontend boleh mengirim startDate dan endDate.";
+
+        public RegionDefaultFilterResponse CountryDefaultFilter { get; set; } = new();
+
+        public RegionDefaultFilterResponse ProvinceDefaultFilter { get; set; } = new();
+
+        public RegionDefaultFilterResponse CityDefaultFilter { get; set; } = new();
+
+        public RegionDefaultFilterResponse DistrictDefaultFilter { get; set; } = new();
+
+        public RegionDefaultFilterResponse PostalCodeDefaultFilter { get; set; } = new();
+
+        public List<RegionCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
+
         public List<RegionSortOptionResponse> CountrySortOptions { get; set; } = new();
+
         public List<RegionSortOptionResponse> ProvinceSortOptions { get; set; } = new();
+
         public List<RegionSortOptionResponse> CitySortOptions { get; set; } = new();
+
         public List<RegionSortOptionResponse> DistrictSortOptions { get; set; } = new();
+
         public List<RegionSortOptionResponse> PostalCodeSortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<RegionQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+    }
+
+    public class RegionDefaultFilterResponse
+    {
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public string? CustomPeriod { get; set; }
+
+        public string? Search { get; set; }
+
+        public bool? IsActive { get; set; }
+
+        public Guid? CountryId { get; set; }
+
+        public Guid? ProvinceId { get; set; }
+
+        public Guid? CityId { get; set; }
+
+        public Guid? DistrictId { get; set; }
+
+        public string SortBy { get; set; } = "createDateTime";
+
+        public string SortDirection { get; set; } = "desc";
+
+        public int PageNumber { get; set; } = 1;
+
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class RegionCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+
+        public string Label { get; set; } = string.Empty;
+
+        public string Description { get; set; } = string.Empty;
+
+        public bool UsesStartDate { get; set; }
+
+        public bool UsesEndDate { get; set; }
     }
 
     public class RegionSortOptionResponse
     {
         public string Value { get; set; } = string.Empty;
+
         public string Label { get; set; } = string.Empty;
+    }
+
+    public class RegionQueryParameterInfoResponse
+    {
+        public string Name { get; set; } = string.Empty;
+
+        public string Type { get; set; } = string.Empty;
+
+        public string Required { get; set; } = "No";
+
+        public string Description { get; set; } = string.Empty;
+
+        public string? Example { get; set; }
     }
 
     public class CreateCountryRequest
