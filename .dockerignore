@@ -1,5 +1,8 @@
 # Git
 .git
+.git/
+.github
+.github/
 .gitignore
 .gitattributes
 
@@ -18,18 +21,27 @@ docker-compose.*.yml
 *.suo
 *.rsuser
 *.sln.docstates
+*.csproj.user
 
 # Build output
 bin/
 obj/
 **/bin/
 **/obj/
+out/
+publish/
+artifacts/
+**/out/
+**/publish/
+**/artifacts/
 
 # ASP.NET / .NET temporary files
 TestResults/
 *.trx
 *.coverage
 *.coveragexml
+coverage/
+**/coverage/
 
 # User secrets / environment files
 .env
@@ -40,6 +52,9 @@ secrets.dev.yaml
 **/secrets.dev.yaml
 values.dev.yaml
 **/values.dev.yaml
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Local.json
 
 # Logs
 *.log
@@ -60,13 +75,33 @@ Thumbs.db
 # Docs / metadata not needed in Docker build
 README.md
 LICENSE
+*.md
 
 # Kubernetes / Helm files if not needed inside image
 charts/
 **/charts/
 *.kubeconfig
 
-# Misc
+# Archives / backups
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+*.bak
+*.backup
+
+# Database / generated files
 *.dbmdl
 *.jfm
 *.pdb
+*.mdb
+*.sqlite
+*.sqlite3
+
+# Optional: aktifkan kalau folder ini hanya untuk upload runtime, bukan asset aplikasi
+# uploads/
+# Uploads/
+# wwwroot/uploads/
+# wwwroot/Uploads/
+# BackupDataBase/
