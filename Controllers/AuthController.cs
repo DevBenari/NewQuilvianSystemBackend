@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ using QuilvianSystemBackend.Enum;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Fingerprint;
 using QuilvianSystemBackend.Services.Language;
 using QuilvianSystemBackend.Services.Logging;
 using System.IdentityModel.Tokens.Jwt;
@@ -31,6 +33,8 @@ namespace QuilvianSystemBackend.Controllers
         private readonly IWebHostEnvironment _environment;
         private readonly LanguageService _languageService;
         private readonly LoggerService _loggerService;
+        private readonly IDataProtector _fingerprintProtector;
+        private readonly IFingerprintIdentificationService _fingerprintIdentificationService;
 
         public AuthController(
             UserManager<ApplicationUser> userManager,
@@ -39,7 +43,9 @@ namespace QuilvianSystemBackend.Controllers
             IConfiguration configuration,
             IWebHostEnvironment environment,
             LanguageService languageService,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            IDataProtectionProvider dataProtectionProvider,
+            IFingerprintIdentificationService fingerprintIdentificationService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -48,6 +54,8 @@ namespace QuilvianSystemBackend.Controllers
             _environment = environment;
             _languageService = languageService;
             _loggerService = loggerService;
+            _fingerprintProtector = dataProtectionProvider.CreateProtector("Quilvian.Fingerprint.Template.v1");
+            _fingerprintIdentificationService = fingerprintIdentificationService;
         }
 
         [HttpPost("login")]
@@ -271,6 +279,180 @@ namespace QuilvianSystemBackend.Controllers
                     User = BuildUserResponse(user, roles)
                 },
                 _languageService.GetMessage(MessageKeys.AuthLoginSuccess)
+            ));
+        }
+
+        [HttpPost("fingerprint-login")]
+        [AllowAnonymous]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(ApiResponse<LoginDataResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> FingerprintLogin([FromBody] FingerprintLoginRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.FingerprintSampleBase64))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Fingerprint wajib diisi."
+                ));
+            }
+
+            byte[] capturedSample;
+
+            try
+            {
+                capturedSample = Convert.FromBase64String(
+                    CleanBase64(request.FingerprintSampleBase64)
+                );
+            }
+            catch
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Format fingerprint tidak valid."
+                ));
+            }
+
+            var identifyResult = await _fingerprintIdentificationService.IdentifyAsync(
+                capturedSample,
+                request.SampleFormat,
+                request.DeviceId,
+                HttpContext.RequestAborted
+            );
+
+            if (!identifyResult.IsMatched || !identifyResult.UserId.HasValue)
+            {
+                await _loggerService.WarningAsync(
+                    "Auth",
+                    "FingerprintLogin",
+                    "Login fingerprint gagal. Fingerprint tidak dikenali.",
+                    new
+                    {
+                        request.DeviceId,
+                        request.SampleFormat,
+                        identifyResult.Message
+                    }
+                );
+
+                return Unauthorized(ApiResponse<object>.Fail(
+                    StatusCodes.Status401Unauthorized,
+                    identifyResult.Message
+                ));
+            }
+
+            var user = await _userManager.FindByIdAsync(
+                identifyResult.UserId.Value.ToString()
+            );
+
+            if (user == null)
+            {
+                return Unauthorized(ApiResponse<object>.Fail(
+                    StatusCodes.Status401Unauthorized,
+                    "User fingerprint tidak ditemukan."
+                ));
+            }
+
+            if (!user.IsActive)
+            {
+                return Unauthorized(ApiResponse<object>.Fail(
+                    StatusCodes.Status401Unauthorized,
+                    "Akun tidak aktif."
+                ));
+            }
+
+            if (user.AccessValidUntil.HasValue &&
+                user.AccessValidUntil.Value < DateTime.UtcNow)
+            {
+                return Unauthorized(ApiResponse<object>.Fail(
+                    StatusCodes.Status401Unauthorized,
+                    "Masa akses akun sudah berakhir."
+                ));
+            }
+
+            var loginRequest = new LoginRequest
+            {
+                Email = user.Email ?? string.Empty,
+                Password = string.Empty,
+                Latitude = request.Latitude,
+                Longitude = request.Longitude,
+                AccuracyMeters = request.AccuracyMeters
+            };
+
+            var geofenceValidation = ValidateLoginGeofence(user, loginRequest);
+
+            if (!geofenceValidation.IsValid)
+            {
+                await _loggerService.WarningAsync(
+                    "Auth",
+                    "FingerprintLogin",
+                    "Login fingerprint gagal. Lokasi di luar area yang diizinkan.",
+                    new
+                    {
+                        user.Id,
+                        user.UserCode,
+                        user.Email,
+                        request.DeviceId,
+                        request.Latitude,
+                        request.Longitude,
+                        request.AccuracyMeters,
+                        geofenceValidation.DistanceMeters,
+                        geofenceValidation.Message
+                    }
+                );
+
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status403Forbidden,
+                        geofenceValidation.Message
+                    )
+                );
+            }
+
+            var attendanceResult = await RecordAttendanceOnLoginAsync(
+                user,
+                loginRequest,
+                geofenceValidation
+            );
+
+            user.LastLoginAt = DateTime.UtcNow;
+            await _userManager.UpdateAsync(user);
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var token = GenerateJwtToken(user, roles);
+
+            SetAuthCookie(token);
+
+            await _loggerService.InfoAsync(
+                "Auth",
+                "FingerprintLogin",
+                "Login fingerprint berhasil.",
+                new
+                {
+                    UserId = user.Id,
+                    user.UserCode,
+                    user.Email,
+                    user.UserType,
+                    request.DeviceId,
+                    request.SampleFormat,
+                    FingerprintCredentialId = identifyResult.FingerprintCredentialId,
+                    FingerprintScore = identifyResult.Score,
+                    AttendanceRecorded = attendanceResult.IsRecorded,
+                    AttendanceAlreadyExists = attendanceResult.IsAlreadyExists,
+                    AttendanceMessage = attendanceResult.Message
+                }
+            );
+
+            return Ok(ApiResponse<LoginDataResponse>.Ok(
+                new LoginDataResponse
+                {
+                    Auth = BuildAuthInfoResponse(),
+                    Endpoints = new AuthEndpointResponse(),
+                    User = BuildUserResponse(user, roles)
+                },
+                "Login fingerprint berhasil."
             ));
         }
 
@@ -1357,6 +1539,63 @@ namespace QuilvianSystemBackend.Controllers
                     DistanceMeters = distanceMeters
                 };
             }
+        }
+
+        private static string CleanBase64(string value)
+        {
+            var trimmed = value.Trim();
+
+            var commaIndex = trimmed.IndexOf(',');
+
+            if (commaIndex >= 0)
+            {
+                return trimmed[(commaIndex + 1)..];
+            }
+
+            return trimmed;
+        }
+
+        private async Task<ApplicationUser?> FindUserByFingerprintAsync(
+            byte[] capturedSample,
+            int? sampleFormat,
+            string? deviceId)
+        {
+            var credentials = await _dbContext.ApplicationUserFingerprintCredentials
+                .AsNoTracking()
+                .Where(x =>
+                    x.IsActive &&
+                    !x.IsDelete)
+                .OrderByDescending(x => x.IsPrimary)
+                .ToListAsync();
+
+            foreach (var credential in credentials)
+            {
+                byte[] storedTemplate;
+
+                try
+                {
+                    storedTemplate = _fingerprintProtector.Unprotect(
+                        credential.TemplateDataEncrypted
+                    );
+                }
+                catch
+                {
+                    continue;
+                }
+
+                var user = await _userManager.FindByIdAsync(
+                    credential.UserId.ToString()
+                );
+
+                if (user == null)
+                {
+                    continue;
+                }
+
+                return user;
+            }
+
+            return null;
         }
     }
 }

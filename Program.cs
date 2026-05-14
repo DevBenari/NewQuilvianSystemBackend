@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Middlewares;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Seeders;
+using QuilvianSystemBackend.Services.Fingerprint;
 using QuilvianSystemBackend.Services.Language;
 using QuilvianSystemBackend.Services.Logging;
 using QuilvianSystemBackend.Services.Security;
@@ -171,6 +172,9 @@ builder.Services
     });
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddDataProtection();
+
+builder.Services.AddScoped<IFingerprintIdentificationService, DigitalPersonaFingerprintIdentificationService>();
 
 builder.Services.AddScoped<LanguageService>();
 builder.Services.AddScoped<LoggerService>();

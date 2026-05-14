@@ -57,5 +57,6 @@ namespace QuilvianSystemBackend.Models
         public MstPosition? PrimaryPosition { get; set; }
 
         public ICollection<ApplicationUserOrganization> DepartmentPositions { get; set; } = new List<ApplicationUserOrganization>();
+        public ICollection<ApplicationUserFingerprintCredential> FingerprintCredentials { get; set; } = new List<ApplicationUserFingerprintCredential>();
     }
 }
