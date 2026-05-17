@@ -152,7 +152,6 @@ namespace QuilvianSystemBackend.Areas.SelfServices.Controllers
                     TemplateVersion = x.TemplateVersion,
                     DeviceId = x.DeviceId,
                     DeviceModel = x.DeviceModel,
-                    SampleFormat = x.SampleFormat,
                     QualityScore = x.QualityScore,
                     EnrollmentSampleCount = x.EnrollmentSampleCount,
                     IsPrimary = x.IsPrimary,
@@ -243,9 +242,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.Controllers
                 ));
             }
 
-            var templateBase64 = !string.IsNullOrWhiteSpace(request.FingerprintTemplateBase64)
-                ? request.FingerprintTemplateBase64
-                : request.FingerprintSample;
+            var templateBase64 = request.FingerprintTemplateBase64;
 
             if (string.IsNullOrWhiteSpace(templateBase64))
             {
@@ -285,8 +282,8 @@ namespace QuilvianSystemBackend.Areas.SelfServices.Controllers
                 ));
             }
 
-            var fingerPosition = NormalizeText(request.FingerPosition, "RightThumb");
-            var templateFormat = NormalizeText(request.TemplateFormat, "DigitalPersona.SampleFormat5");
+            var fingerPosition = NormalizeText(request.FingerPosition, "RIGHT_THUMB");
+            var templateFormat = NormalizeText(request.TemplateFormat, "ANSI_FMD");
             var templateHash = Convert.ToHexString(SHA256.HashData(templateBytes));
 
             var duplicateOtherUser = await _dbContext.ApplicationUserFingerprintCredentials
@@ -418,7 +415,6 @@ namespace QuilvianSystemBackend.Areas.SelfServices.Controllers
                     TemplateVersion = credential.TemplateVersion,
                     DeviceId = credential.DeviceId,
                     DeviceModel = credential.DeviceModel,
-                    SampleFormat = credential.SampleFormat,
                     QualityScore = credential.QualityScore,
                     EnrollmentSampleCount = credential.EnrollmentSampleCount,
                     IsPrimary = credential.IsPrimary,
@@ -617,6 +613,11 @@ namespace QuilvianSystemBackend.Areas.SelfServices.Controllers
             if (!user.IsActive)
             {
                 return (false, "Akun tidak aktif.");
+            }
+
+            if (!user.IsFingerprintRegistrationEnabled)
+            {
+                return (false, "Akun ini belum diberikan akses daftar fingerprint oleh HRD.");
             }
 
             if (user.UserType == UserType.Employee)

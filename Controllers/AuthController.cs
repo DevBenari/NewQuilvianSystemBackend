@@ -12,7 +12,6 @@ using QuilvianSystemBackend.Enum;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
-using QuilvianSystemBackend.Services.Fingerprint;
 using QuilvianSystemBackend.Services.Language;
 using QuilvianSystemBackend.Services.Logging;
 using System.IdentityModel.Tokens.Jwt;
@@ -34,7 +33,6 @@ namespace QuilvianSystemBackend.Controllers
         private readonly LanguageService _languageService;
         private readonly LoggerService _loggerService;
         private readonly IDataProtector _fingerprintProtector;
-        private readonly IFingerprintIdentificationService _fingerprintIdentificationService;
 
         public AuthController(
             UserManager<ApplicationUser> userManager,
@@ -44,8 +42,7 @@ namespace QuilvianSystemBackend.Controllers
             IWebHostEnvironment environment,
             LanguageService languageService,
             LoggerService loggerService,
-            IDataProtectionProvider dataProtectionProvider,
-            IFingerprintIdentificationService fingerprintIdentificationService)
+            IDataProtectionProvider dataProtectionProvider)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -55,7 +52,6 @@ namespace QuilvianSystemBackend.Controllers
             _languageService = languageService;
             _loggerService = loggerService;
             _fingerprintProtector = dataProtectionProvider.CreateProtector("Quilvian.Fingerprint.Template.v1");
-            _fingerprintIdentificationService = fingerprintIdentificationService;
         }
 
         [HttpPost("login")]
@@ -238,119 +234,196 @@ namespace QuilvianSystemBackend.Controllers
                 );
             }
 
-            var attendanceResult = await RecordAttendanceOnLoginAsync(
-                user,
-                request,
-                geofenceValidation
-            );
+            try
+            {
+                var attendanceResult = await RecordAttendanceOnLoginAsync(
+                    user,
+                    request,
+                    geofenceValidation
+                );
 
-            user.LastLoginAt = DateTime.UtcNow;
-            await _userManager.UpdateAsync(user);
+                user.LastLoginAt = DateTime.UtcNow;
 
-            var roles = await _userManager.GetRolesAsync(user);
-            var token = GenerateJwtToken(user, roles);
+                var updateResult = await _userManager.UpdateAsync(user);
 
-            SetAuthCookie(token);
+                if (!updateResult.Succeeded)
+                {
+                    var identityErrors = string.Join(
+                        " | ",
+                        updateResult.Errors.Select(x => $"{x.Code}: {x.Description}")
+                    );
+
+                    await _loggerService.ErrorAsync(
+                        "Auth",
+                        "Login",
+                        $"Gagal update LastLoginAt user. Detail: {identityErrors}",
+                        new Exception(identityErrors),
+                        new
+                        {
+                            user.Id,
+                            user.Email,
+                            user.UserName
+                        }
+                    );
+
+                    return StatusCode(
+                        StatusCodes.Status500InternalServerError,
+                        ApiResponse<object>.Fail(
+                            StatusCodes.Status500InternalServerError,
+                            $"Gagal update data login user: {identityErrors}"
+                        )
+                    );
+                }
+
+                var roles = await _userManager.GetRolesAsync(user);
+                var token = GenerateJwtToken(user, roles);
+
+                SetAuthCookie(token);
+
+                await _loggerService.InfoAsync(
+                    "Auth",
+                    "Login",
+                    "Login berhasil.",
+                    new
+                    {
+                        UserId = user.Id,
+                        Username = user.UserName,
+                        Email = user.Email,
+                        request.Latitude,
+                        request.Longitude,
+                        request.AccuracyMeters,
+                        geofenceValidation.DistanceMeters,
+                        AttendanceRecorded = attendanceResult.IsRecorded,
+                        AttendanceAlreadyExists = attendanceResult.IsAlreadyExists,
+                        AttendanceMessage = attendanceResult.Message
+                    }
+                );
+
+                return Ok(ApiResponse<LoginDataResponse>.Ok(
+                    new LoginDataResponse
+                    {
+                        Auth = BuildAuthInfoResponse(),
+                        Endpoints = new AuthEndpointResponse(),
+                        User = BuildUserResponse(user, roles)
+                    },
+                    _languageService.GetMessage(MessageKeys.AuthLoginSuccess)
+                ));
+            }
+            catch (Exception ex)
+            {
+                var detailError = GetFullExceptionMessage(ex);
+
+                await _loggerService.ErrorAsync(
+                    "Auth",
+                    "Login",
+                    $"Terjadi error saat login. Detail: {detailError}",
+                    ex,
+                    new
+                    {
+                        Email = email,
+                        request.Latitude,
+                        request.Longitude,
+                        request.AccuracyMeters
+                    }
+                );
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        $"Terjadi error saat login: {detailError}"
+                    )
+                );
+            }
+        }
+
+        [HttpGet("fingerprint/candidates")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(ApiResponse<List<FingerprintCandidateResponse>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetFingerprintCandidates()
+        {
+            var credentials = await _dbContext.ApplicationUserFingerprintCredentials
+                .AsNoTracking()
+                .Include(x => x.User)
+                .Where(x =>
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    x.User != null &&
+                    x.User.IsActive)
+                .OrderByDescending(x => x.IsPrimary)
+                .ThenByDescending(x => x.RegisteredAt)
+                .ToListAsync();
+
+            var result = new List<FingerprintCandidateResponse>();
+
+            foreach (var credential in credentials)
+            {
+                try
+                {
+                    var templateBytes = _fingerprintProtector.Unprotect(
+                        credential.TemplateDataEncrypted
+                    );
+
+                    result.Add(new FingerprintCandidateResponse
+                    {
+                        CredentialId = credential.Id,
+                        UserId = credential.UserId,
+                        DisplayName = credential.User?.DisplayName ?? string.Empty,
+                        FingerPosition = credential.FingerPosition,
+                        TemplateFormat = credential.TemplateFormat,
+                        TemplateVersion = credential.TemplateVersion,
+                        FingerprintTemplateBase64 = Convert.ToBase64String(templateBytes)
+                    });
+                }
+                catch
+                {
+                    continue;
+                }
+            }
 
             await _loggerService.InfoAsync(
                 "Auth",
-                "Login",
-                "Login berhasil.",
-                new
-                {
-                    UserId = user.Id,
-                    Username = user.UserName,
-                    Email = user.Email,
-                    request.Latitude,
-                    request.Longitude,
-                    request.AccuracyMeters,
-                    geofenceValidation.DistanceMeters,
-                    AttendanceRecorded = attendanceResult.IsRecorded,
-                    AttendanceAlreadyExists = attendanceResult.IsAlreadyExists,
-                    AttendanceMessage = attendanceResult.Message
-                }
+                "Fingerprint.Candidates",
+                "Mengambil kandidat fingerprint aktif.",
+                new { Count = result.Count }
             );
 
-            return Ok(ApiResponse<LoginDataResponse>.Ok(
-                new LoginDataResponse
-                {
-                    Auth = BuildAuthInfoResponse(),
-                    Endpoints = new AuthEndpointResponse(),
-                    User = BuildUserResponse(user, roles)
-                },
-                _languageService.GetMessage(MessageKeys.AuthLoginSuccess)
+            return Ok(ApiResponse<List<FingerprintCandidateResponse>>.Ok(
+                result,
+                "Kandidat fingerprint berhasil diambil."
             ));
         }
 
         [HttpPost("fingerprint-login")]
         [AllowAnonymous]
-        [Produces("application/json")]
         [ProducesResponseType(typeof(ApiResponse<LoginDataResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> FingerprintLogin([FromBody] FingerprintLoginRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.FingerprintSampleBase64))
+            var credential = await _dbContext.ApplicationUserFingerprintCredentials
+                .FirstOrDefaultAsync(x =>
+                    x.Id == request.CredentialId &&
+                    x.UserId == request.UserId &&
+                    x.IsActive &&
+                    !x.IsDelete);
+
+            if (credential == null)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Fingerprint wajib diisi."
-                ));
-            }
-
-            byte[] capturedSample;
-
-            try
-            {
-                capturedSample = Convert.FromBase64String(
-                    CleanBase64(request.FingerprintSampleBase64)
-                );
-            }
-            catch
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Format fingerprint tidak valid."
-                ));
-            }
-
-            var identifyResult = await _fingerprintIdentificationService.IdentifyAsync(
-                capturedSample,
-                request.SampleFormat,
-                request.DeviceId,
-                HttpContext.RequestAborted
-            );
-
-            if (!identifyResult.IsMatched || !identifyResult.UserId.HasValue)
-            {
-                await _loggerService.WarningAsync(
-                    "Auth",
-                    "FingerprintLogin",
-                    "Login fingerprint gagal. Fingerprint tidak dikenali.",
-                    new
-                    {
-                        request.DeviceId,
-                        request.SampleFormat,
-                        identifyResult.Message
-                    }
-                );
-
                 return Unauthorized(ApiResponse<object>.Fail(
                     StatusCodes.Status401Unauthorized,
-                    identifyResult.Message
+                    "Fingerprint tidak valid."
                 ));
             }
 
-            var user = await _userManager.FindByIdAsync(
-                identifyResult.UserId.Value.ToString()
-            );
+            var user = await _userManager.FindByIdAsync(request.UserId.ToString());
 
             if (user == null)
             {
                 return Unauthorized(ApiResponse<object>.Fail(
                     StatusCodes.Status401Unauthorized,
-                    "User fingerprint tidak ditemukan."
+                    "User tidak ditemukan."
                 ));
             }
 
@@ -362,8 +435,7 @@ namespace QuilvianSystemBackend.Controllers
                 ));
             }
 
-            if (user.AccessValidUntil.HasValue &&
-                user.AccessValidUntil.Value < DateTime.UtcNow)
+            if (user.AccessValidUntil.HasValue && user.AccessValidUntil.Value < DateTime.UtcNow)
             {
                 return Unauthorized(ApiResponse<object>.Fail(
                     StatusCodes.Status401Unauthorized,
@@ -371,37 +443,15 @@ namespace QuilvianSystemBackend.Controllers
                 ));
             }
 
-            var loginRequest = new LoginRequest
-            {
-                Email = user.Email ?? string.Empty,
-                Password = string.Empty,
-                Latitude = request.Latitude,
-                Longitude = request.Longitude,
-                AccuracyMeters = request.AccuracyMeters
-            };
-
-            var geofenceValidation = ValidateLoginGeofence(user, loginRequest);
+            var geofenceValidation = ValidateGeofence(
+                user,
+                request.Latitude,
+                request.Longitude,
+                request.AccuracyMeters
+            );
 
             if (!geofenceValidation.IsValid)
             {
-                await _loggerService.WarningAsync(
-                    "Auth",
-                    "FingerprintLogin",
-                    "Login fingerprint gagal. Lokasi di luar area yang diizinkan.",
-                    new
-                    {
-                        user.Id,
-                        user.UserCode,
-                        user.Email,
-                        request.DeviceId,
-                        request.Latitude,
-                        request.Longitude,
-                        request.AccuracyMeters,
-                        geofenceValidation.DistanceMeters,
-                        geofenceValidation.Message
-                    }
-                );
-
                 return StatusCode(
                     StatusCodes.Status403Forbidden,
                     ApiResponse<object>.Fail(
@@ -411,9 +461,18 @@ namespace QuilvianSystemBackend.Controllers
                 );
             }
 
+            var loginLikeRequest = new LoginRequest
+            {
+                Email = user.Email ?? string.Empty,
+                Password = string.Empty,
+                Latitude = request.Latitude,
+                Longitude = request.Longitude,
+                AccuracyMeters = request.AccuracyMeters
+            };
+
             var attendanceResult = await RecordAttendanceOnLoginAsync(
                 user,
-                loginRequest,
+                loginLikeRequest,
                 geofenceValidation
             );
 
@@ -427,21 +486,19 @@ namespace QuilvianSystemBackend.Controllers
 
             await _loggerService.InfoAsync(
                 "Auth",
-                "FingerprintLogin",
+                "Fingerprint.Login",
                 "Login fingerprint berhasil.",
                 new
                 {
-                    UserId = user.Id,
-                    user.UserCode,
+                    user.Id,
                     user.Email,
-                    user.UserType,
+                    CredentialId = credential.Id,
+                    credential.FingerPosition,
+                    request.Score,
                     request.DeviceId,
-                    request.SampleFormat,
-                    FingerprintCredentialId = identifyResult.FingerprintCredentialId,
-                    FingerprintScore = identifyResult.Score,
+                    request.DeviceModel,
                     AttendanceRecorded = attendanceResult.IsRecorded,
-                    AttendanceAlreadyExists = attendanceResult.IsAlreadyExists,
-                    AttendanceMessage = attendanceResult.Message
+                    AttendanceAlreadyExists = attendanceResult.IsAlreadyExists
                 }
             );
 
@@ -1418,63 +1475,105 @@ namespace QuilvianSystemBackend.Controllers
             var cookieName = _configuration["Jwt:CookieName"] ?? "quilvian_access_token";
             var expireMinutes = GetJwtExpireMinutes();
 
-            Response.Cookies.Append(cookieName, token, BuildAuthCookieOptions(expireMinutes));
+            Response.Cookies.Append(
+                cookieName,
+                token,
+                BuildAuthCookieOptions(expireMinutes)
+            );
         }
 
         private CookieOptions BuildAuthCookieOptions(int expireMinutes)
         {
-            var isLocalBackend = IsLocalBackendRequest();
+            var sameSite = GetConfiguredSameSiteMode();
 
-            return new CookieOptions
+            var secure = _configuration.GetValue<bool?>("AuthCookie:Secure") ?? true;
+
+            var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = !isLocalBackend,
-                SameSite = isLocalBackend
-                    ? SameSiteMode.Lax
-                    : SameSiteMode.None,
+                Secure = secure,
+                SameSite = sameSite,
                 Expires = DateTimeOffset.UtcNow.AddMinutes(expireMinutes),
                 MaxAge = TimeSpan.FromMinutes(expireMinutes),
                 Path = "/"
             };
+
+            var domain = _configuration["AuthCookie:Domain"];
+
+            if (!string.IsNullOrWhiteSpace(domain))
+            {
+                cookieOptions.Domain = domain;
+            }
+
+            return cookieOptions;
         }
 
-        private bool IsLocalBackendRequest()
+        private CookieOptions BuildDeleteCookieOptions()
         {
-            var host = Request.Host.Host;
+            var sameSite = GetConfiguredSameSiteMode();
 
-            return host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
-                || host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase);
+            var secure = _configuration.GetValue<bool?>("AuthCookie:Secure") ?? true;
+
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = secure,
+                SameSite = sameSite,
+                Path = "/"
+            };
+
+            var domain = _configuration["AuthCookie:Domain"];
+
+            if (!string.IsNullOrWhiteSpace(domain))
+            {
+                cookieOptions.Domain = domain;
+            }
+
+            return cookieOptions;
+        }
+
+        private SameSiteMode GetConfiguredSameSiteMode()
+        {
+            var value = _configuration["AuthCookie:SameSite"];
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return SameSiteMode.None;
+            }
+
+            return value.Trim().ToLowerInvariant() switch
+            {
+                "strict" => SameSiteMode.Strict,
+                "lax" => SameSiteMode.Lax,
+                "none" => SameSiteMode.None,
+                _ => SameSiteMode.None
+            };
         }
 
         private void ClearAuthCookie()
         {
             var cookieName = _configuration["Jwt:CookieName"] ?? "quilvian_access_token";
-            var isLocalBackend = IsLocalBackendRequest();
 
-            Response.Cookies.Delete(cookieName, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = !isLocalBackend,
-                SameSite = isLocalBackend
-                    ? SameSiteMode.Lax
-                    : SameSiteMode.None,
-                Path = "/"
-            });
+            Response.Cookies.Delete(
+                cookieName,
+                BuildDeleteCookieOptions()
+            );
         }
 
         private AuthInfoResponse BuildAuthInfoResponse()
         {
             var cookieName = _configuration["Jwt:CookieName"] ?? "quilvian_access_token";
             var expireMinutes = GetJwtExpireMinutes();
-            var isLocalBackend = IsLocalBackendRequest();
+            var sameSite = GetConfiguredSameSiteMode();
+            var secure = _configuration.GetValue<bool?>("AuthCookie:Secure") ?? true;
 
             return new AuthInfoResponse
             {
                 Scheme = "Cookie",
                 CookieName = cookieName,
                 IsHttpOnly = true,
-                SameSite = isLocalBackend ? "Lax" : "None",
-                Secure = !isLocalBackend,
+                SameSite = sameSite.ToString(),
+                Secure = secure,
                 ExpiresInMinutes = expireMinutes,
                 ExpiresAtUtc = DateTime.UtcNow.AddMinutes(expireMinutes),
                 FrontendInstruction = "Gunakan credentials: 'include' atau withCredentials: true pada setiap request ke backend. Access token disimpan di HttpOnly cookie."
@@ -1539,63 +1638,6 @@ namespace QuilvianSystemBackend.Controllers
                     DistanceMeters = distanceMeters
                 };
             }
-        }
-
-        private static string CleanBase64(string value)
-        {
-            var trimmed = value.Trim();
-
-            var commaIndex = trimmed.IndexOf(',');
-
-            if (commaIndex >= 0)
-            {
-                return trimmed[(commaIndex + 1)..];
-            }
-
-            return trimmed;
-        }
-
-        private async Task<ApplicationUser?> FindUserByFingerprintAsync(
-            byte[] capturedSample,
-            int? sampleFormat,
-            string? deviceId)
-        {
-            var credentials = await _dbContext.ApplicationUserFingerprintCredentials
-                .AsNoTracking()
-                .Where(x =>
-                    x.IsActive &&
-                    !x.IsDelete)
-                .OrderByDescending(x => x.IsPrimary)
-                .ToListAsync();
-
-            foreach (var credential in credentials)
-            {
-                byte[] storedTemplate;
-
-                try
-                {
-                    storedTemplate = _fingerprintProtector.Unprotect(
-                        credential.TemplateDataEncrypted
-                    );
-                }
-                catch
-                {
-                    continue;
-                }
-
-                var user = await _userManager.FindByIdAsync(
-                    credential.UserId.ToString()
-                );
-
-                if (user == null)
-                {
-                    continue;
-                }
-
-                return user;
-            }
-
-            return null;
-        }
+        }        
     }
 }

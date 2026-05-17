@@ -49,6 +49,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public Guid ProvinceId { get; set; }
         public string ProvinceCode { get; set; } = string.Empty;
         public string ProvinceName { get; set; } = string.Empty;
+        public Guid CountryId { get; set; }
+        public string CountryCode { get; set; } = string.Empty;
+        public string CountryName { get; set; } = string.Empty;
         public string CityCode { get; set; } = string.Empty;
         public string CityName { get; set; } = string.Empty;
         public string? CityType { get; set; }
@@ -62,6 +65,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public Guid CityId { get; set; }
         public string CityCode { get; set; } = string.Empty;
         public string CityName { get; set; } = string.Empty;
+        public Guid ProvinceId { get; set; }
+        public string ProvinceCode { get; set; } = string.Empty;
+        public string ProvinceName { get; set; } = string.Empty;
         public string DistrictCode { get; set; } = string.Empty;
         public string DistrictName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
@@ -74,6 +80,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public Guid DistrictId { get; set; }
         public string DistrictCode { get; set; } = string.Empty;
         public string DistrictName { get; set; } = string.Empty;
+        public Guid CityId { get; set; }
+        public string CityCode { get; set; } = string.Empty;
+        public string CityName { get; set; } = string.Empty;
         public string PostalCode { get; set; } = string.Empty;
         public string? VillageName { get; set; }
         public bool IsActive { get; set; }

@@ -3836,6 +3836,16 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("ExternalUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("FingerprintRegistrationEnabledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FingerprintRegistrationEnabledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FingerprintRegistrationReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
                     b.Property<string>("GeolocationBypassReason")
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
@@ -3845,6 +3855,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsFingerprintRegistrationEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsGeolocationBypassEnabled")
                         .HasColumnType("boolean");
@@ -3921,6 +3936,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("ExternalUserId");
 
                     b.HasIndex("IsActive");
+
+                    b.HasIndex("IsFingerprintRegistrationEnabled");
 
                     b.HasIndex("IsGeolocationBypassEnabled");
 
@@ -4036,8 +4053,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
 
-                    b.Property<int?>("SampleFormat")
-                        .HasColumnType("integer");
+                    b.Property<string>("SampleFormat")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<byte[]>("TemplateDataEncrypted")
                         .IsRequired()
@@ -4090,7 +4108,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("UserId", "IsActive", "IsDelete");
 
-                    b.ToTable("ApplicationUserFingerprintCredential", "public");
+                    b.ToTable("AspNetUserFingerprint", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Models.ApplicationUserOrganization", b =>

@@ -56,6 +56,14 @@ namespace QuilvianSystemBackend.Models
 
         public MstPosition? PrimaryPosition { get; set; }
 
+        public bool IsFingerprintRegistrationEnabled { get; set; } = false;
+
+        public string? FingerprintRegistrationReason { get; set; }
+
+        public DateTime? FingerprintRegistrationEnabledAt { get; set; }
+
+        public Guid? FingerprintRegistrationEnabledByUserId { get; set; }
+
         public ICollection<ApplicationUserOrganization> DepartmentPositions { get; set; } = new List<ApplicationUserOrganization>();
         public ICollection<ApplicationUserFingerprintCredential> FingerprintCredentials { get; set; } = new List<ApplicationUserFingerprintCredential>();
     }

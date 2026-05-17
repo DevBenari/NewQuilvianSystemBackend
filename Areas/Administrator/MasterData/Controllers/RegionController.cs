@@ -952,6 +952,49 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpGet("provinces/{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<ProvinceResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Read",
+            "Read Region",
+            Description = "Melihat data region",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetProvinceById(Guid id)
+        {
+            var data = await _dbContext.MstProvinces
+                .AsNoTracking()
+                .Where(x => x.Id == id && !x.IsDelete)
+                .Select(x => new ProvinceResponse
+                {
+                    Id = x.Id,
+                    CountryId = x.CountryId,
+                    CountryCode = x.Country != null ? x.Country.CountryCode : string.Empty,
+                    CountryName = x.Country != null ? x.Country.CountryName : string.Empty,
+                    ProvinceCode = x.ProvinceCode,
+                    ProvinceName = x.ProvinceName,
+                    IsActive = x.IsActive,
+                    CreateDateTime = x.CreateDateTime
+                })
+                .FirstOrDefaultAsync();
+
+            if (data == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Province tidak ditemukan."
+                ));
+            }
+
+            return Ok(ApiResponse<ProvinceResponse>.Ok(
+                data,
+                "Detail province berhasil diambil."
+            ));
+        }
+
         [HttpPost("provinces")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [AccessAction(
@@ -1149,6 +1192,162 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         // =========================================================
         // CITY
         // =========================================================
+
+        [HttpGet("cities")]
+        [ProducesResponseType(typeof(ApiResponse<ResponseCityPagedResult>), StatusCodes.Status200OK)]
+        [AccessAction(
+    "Read",
+    "Read Region",
+    Description = "Melihat data region",
+    AccessType = AccessTypes.Read,
+    SortOrder = 1
+)]
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetCities(
+    [FromQuery] Guid? provinceId,
+    [FromQuery] DateTime? startDate,
+    [FromQuery] DateTime? endDate,
+    [FromQuery] string? customPeriod,
+    [FromQuery] string? search,
+    [FromQuery] bool? isActive,
+    [FromQuery] string? sortBy = "createDateTime",
+    [FromQuery] string? sortDirection = "desc",
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
+            var query = _dbContext.MstCities
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (provinceId.HasValue && provinceId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.ProvinceId == provinceId.Value);
+            }
+
+            if (dateRange.Start.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
+            }
+
+            if (dateRange.EndExclusive.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.CityCode.ToLower().Contains(keyword) ||
+                    x.CityName.ToLower().Contains(keyword) ||
+                    (x.CityType != null && x.CityType.ToLower().Contains(keyword)) ||
+                    (x.Province != null && x.Province.ProvinceName.ToLower().Contains(keyword)) ||
+                    (x.Province != null && x.Province.Country != null && x.Province.Country.CountryName.ToLower().Contains(keyword)));
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
+            var totalData = await query.CountAsync();
+
+            var items = await ApplyCitySorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new CityResponse
+                {
+                    Id = x.Id,
+                    ProvinceId = x.ProvinceId,
+                    ProvinceCode = x.Province != null ? x.Province.ProvinceCode : string.Empty,
+                    ProvinceName = x.Province != null ? x.Province.ProvinceName : string.Empty,
+                    CountryId = x.Province != null ? x.Province.CountryId : Guid.Empty,
+                    CountryCode = x.Province != null && x.Province.Country != null ? x.Province.Country.CountryCode : string.Empty,
+                    CountryName = x.Province != null && x.Province.Country != null ? x.Province.Country.CountryName : string.Empty,
+                    CityCode = x.CityCode,
+                    CityName = x.CityName,
+                    CityType = x.CityType,
+                    IsActive = x.IsActive,
+                    CreateDateTime = x.CreateDateTime
+                })
+                .ToListAsync();
+
+            var result = new ResponseCityPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<ResponseCityPagedResult>.Ok(
+                result,
+                "Data city berhasil diambil."
+            ));
+        }
+
+        [HttpGet("cities/{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<CityResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Read",
+            "Read Region",
+            Description = "Melihat data region",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetCityById(Guid id)
+        {
+            var data = await _dbContext.MstCities
+                .AsNoTracking()
+                .Where(x => x.Id == id && !x.IsDelete)
+                .Select(x => new CityResponse
+                {
+                    Id = x.Id,
+                    ProvinceId = x.ProvinceId,
+                    ProvinceCode = x.Province != null ? x.Province.ProvinceCode : string.Empty,
+                    ProvinceName = x.Province != null ? x.Province.ProvinceName : string.Empty,
+                    CountryId = x.Province != null ? x.Province.CountryId : Guid.Empty,
+                    CountryCode = x.Province != null && x.Province.Country != null ? x.Province.Country.CountryCode : string.Empty,
+                    CountryName = x.Province != null && x.Province.Country != null ? x.Province.Country.CountryName : string.Empty,
+                    CityCode = x.CityCode,
+                    CityName = x.CityName,
+                    CityType = x.CityType,
+                    IsActive = x.IsActive,
+                    CreateDateTime = x.CreateDateTime
+                })
+                .FirstOrDefaultAsync();
+
+            if (data == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "City tidak ditemukan."
+                ));
+            }
+
+            return Ok(ApiResponse<CityResponse>.Ok(
+                data,
+                "Detail city berhasil diambil."
+            ));
+        }
 
         [HttpGet("cities/options")]
         [ProducesResponseType(typeof(ApiResponse<List<RegionOptionResponse>>), StatusCodes.Status200OK)]
@@ -1409,6 +1608,159 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         // DISTRICT
         // =========================================================
 
+        [HttpGet("districts")]
+        [ProducesResponseType(typeof(ApiResponse<ResponseDistrictPagedResult>), StatusCodes.Status200OK)]
+        [AccessAction(
+    "Read",
+    "Read Region",
+    Description = "Melihat data region",
+    AccessType = AccessTypes.Read,
+    SortOrder = 1
+)]
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetDistricts(
+    [FromQuery] Guid? cityId,
+    [FromQuery] DateTime? startDate,
+    [FromQuery] DateTime? endDate,
+    [FromQuery] string? customPeriod,
+    [FromQuery] string? search,
+    [FromQuery] bool? isActive,
+    [FromQuery] string? sortBy = "createDateTime",
+    [FromQuery] string? sortDirection = "desc",
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
+            var query = _dbContext.MstDistricts
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (cityId.HasValue && cityId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.CityId == cityId.Value);
+            }
+
+            if (dateRange.Start.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
+            }
+
+            if (dateRange.EndExclusive.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.DistrictCode.ToLower().Contains(keyword) ||
+                    x.DistrictName.ToLower().Contains(keyword) ||
+                    (x.City != null && x.City.CityName.ToLower().Contains(keyword)) ||
+                    (x.City != null && x.City.Province != null && x.City.Province.ProvinceName.ToLower().Contains(keyword)));
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
+            var totalData = await query.CountAsync();
+
+            var items = await ApplyDistrictSorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new DistrictResponse
+                {
+                    Id = x.Id,
+                    CityId = x.CityId,
+                    CityCode = x.City != null ? x.City.CityCode : string.Empty,
+                    CityName = x.City != null ? x.City.CityName : string.Empty,
+                    ProvinceId = x.City != null ? x.City.ProvinceId : Guid.Empty,
+                    ProvinceCode = x.City != null && x.City.Province != null ? x.City.Province.ProvinceCode : string.Empty,
+                    ProvinceName = x.City != null && x.City.Province != null ? x.City.Province.ProvinceName : string.Empty,
+                    DistrictCode = x.DistrictCode,
+                    DistrictName = x.DistrictName,
+                    IsActive = x.IsActive,
+                    CreateDateTime = x.CreateDateTime
+                })
+                .ToListAsync();
+
+            var result = new ResponseDistrictPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<ResponseDistrictPagedResult>.Ok(
+                result,
+                "Data district berhasil diambil."
+            ));
+        }
+
+        [HttpGet("districts/{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<DistrictResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Read",
+            "Read Region",
+            Description = "Melihat data region",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetDistrictById(Guid id)
+        {
+            var data = await _dbContext.MstDistricts
+                .AsNoTracking()
+                .Where(x => x.Id == id && !x.IsDelete)
+                .Select(x => new DistrictResponse
+                {
+                    Id = x.Id,
+                    CityId = x.CityId,
+                    CityCode = x.City != null ? x.City.CityCode : string.Empty,
+                    CityName = x.City != null ? x.City.CityName : string.Empty,
+                    ProvinceId = x.City != null ? x.City.ProvinceId : Guid.Empty,
+                    ProvinceCode = x.City != null && x.City.Province != null ? x.City.Province.ProvinceCode : string.Empty,
+                    ProvinceName = x.City != null && x.City.Province != null ? x.City.Province.ProvinceName : string.Empty,
+                    DistrictCode = x.DistrictCode,
+                    DistrictName = x.DistrictName,
+                    IsActive = x.IsActive,
+                    CreateDateTime = x.CreateDateTime
+                })
+                .FirstOrDefaultAsync();
+
+            if (data == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "District tidak ditemukan."
+                ));
+            }
+
+            return Ok(ApiResponse<DistrictResponse>.Ok(
+                data,
+                "Detail district berhasil diambil."
+            ));
+        }
+
         [HttpGet("districts/options")]
         [ProducesResponseType(typeof(ApiResponse<List<RegionOptionResponse>>), StatusCodes.Status200OK)]
         [AccessAction(
@@ -1663,6 +2015,159 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         // =========================================================
         // POSTAL CODE
         // =========================================================
+
+        [HttpGet("postal-codes")]
+        [ProducesResponseType(typeof(ApiResponse<ResponsePostalCodePagedResult>), StatusCodes.Status200OK)]
+        [AccessAction(
+    "Read",
+    "Read Region",
+    Description = "Melihat data region",
+    AccessType = AccessTypes.Read,
+    SortOrder = 1
+)]
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetPostalCodes(
+    [FromQuery] Guid? districtId,
+    [FromQuery] DateTime? startDate,
+    [FromQuery] DateTime? endDate,
+    [FromQuery] string? customPeriod,
+    [FromQuery] string? search,
+    [FromQuery] bool? isActive,
+    [FromQuery] string? sortBy = "createDateTime",
+    [FromQuery] string? sortDirection = "desc",
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
+            var query = _dbContext.MstPostalCodes
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (districtId.HasValue && districtId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.DistrictId == districtId.Value);
+            }
+
+            if (dateRange.Start.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
+            }
+
+            if (dateRange.EndExclusive.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.PostalCode.ToLower().Contains(keyword) ||
+                    (x.VillageName != null && x.VillageName.ToLower().Contains(keyword)) ||
+                    (x.District != null && x.District.DistrictName.ToLower().Contains(keyword)) ||
+                    (x.District != null && x.District.City != null && x.District.City.CityName.ToLower().Contains(keyword)));
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
+            var totalData = await query.CountAsync();
+
+            var items = await ApplyPostalCodeSorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new PostalCodeResponse
+                {
+                    Id = x.Id,
+                    DistrictId = x.DistrictId,
+                    DistrictCode = x.District != null ? x.District.DistrictCode : string.Empty,
+                    DistrictName = x.District != null ? x.District.DistrictName : string.Empty,
+                    CityId = x.District != null ? x.District.CityId : Guid.Empty,
+                    CityCode = x.District != null && x.District.City != null ? x.District.City.CityCode : string.Empty,
+                    CityName = x.District != null && x.District.City != null ? x.District.City.CityName : string.Empty,
+                    PostalCode = x.PostalCode,
+                    VillageName = x.VillageName,
+                    IsActive = x.IsActive,
+                    CreateDateTime = x.CreateDateTime
+                })
+                .ToListAsync();
+
+            var result = new ResponsePostalCodePagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<ResponsePostalCodePagedResult>.Ok(
+                result,
+                "Data postal code berhasil diambil."
+            ));
+        }
+
+        [HttpGet("postal-codes/{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<PostalCodeResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Read",
+            "Read Region",
+            Description = "Melihat data region",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetPostalCodeById(Guid id)
+        {
+            var data = await _dbContext.MstPostalCodes
+                .AsNoTracking()
+                .Where(x => x.Id == id && !x.IsDelete)
+                .Select(x => new PostalCodeResponse
+                {
+                    Id = x.Id,
+                    DistrictId = x.DistrictId,
+                    DistrictCode = x.District != null ? x.District.DistrictCode : string.Empty,
+                    DistrictName = x.District != null ? x.District.DistrictName : string.Empty,
+                    CityId = x.District != null ? x.District.CityId : Guid.Empty,
+                    CityCode = x.District != null && x.District.City != null ? x.District.City.CityCode : string.Empty,
+                    CityName = x.District != null && x.District.City != null ? x.District.City.CityName : string.Empty,
+                    PostalCode = x.PostalCode,
+                    VillageName = x.VillageName,
+                    IsActive = x.IsActive,
+                    CreateDateTime = x.CreateDateTime
+                })
+                .FirstOrDefaultAsync();
+
+            if (data == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Postal code tidak ditemukan."
+                ));
+            }
+
+            return Ok(ApiResponse<PostalCodeResponse>.Ok(
+                data,
+                "Detail postal code berhasil diambil."
+            ));
+        }
 
         [HttpGet("postal-codes/options")]
         [ProducesResponseType(typeof(ApiResponse<List<RegionOptionResponse>>), StatusCodes.Status200OK)]
@@ -2032,6 +2537,90 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 "isactive" => desc
                     ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.ProvinceName)
                     : query.OrderBy(x => x.IsActive).ThenBy(x => x.ProvinceName),
+
+                _ => desc
+                    ? query.OrderByDescending(x => x.CreateDateTime)
+                    : query.OrderBy(x => x.CreateDateTime)
+            };
+        }
+
+        private static IOrderedQueryable<MstCity> ApplyCitySorting(
+    IQueryable<MstCity> query,
+    string? sortBy,
+    string? sortDirection)
+        {
+            var field = NormalizeSortBy(sortBy);
+            var desc = IsDescending(sortDirection);
+
+            return field switch
+            {
+                "citycode" => desc
+                    ? query.OrderByDescending(x => x.CityCode)
+                    : query.OrderBy(x => x.CityCode),
+
+                "cityname" => desc
+                    ? query.OrderByDescending(x => x.CityName)
+                    : query.OrderBy(x => x.CityName),
+
+                "isactive" => desc
+                    ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.CityName)
+                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.CityName),
+
+                _ => desc
+                    ? query.OrderByDescending(x => x.CreateDateTime)
+                    : query.OrderBy(x => x.CreateDateTime)
+            };
+        }
+
+        private static IOrderedQueryable<MstDistrict> ApplyDistrictSorting(
+            IQueryable<MstDistrict> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var field = NormalizeSortBy(sortBy);
+            var desc = IsDescending(sortDirection);
+
+            return field switch
+            {
+                "districtcode" => desc
+                    ? query.OrderByDescending(x => x.DistrictCode)
+                    : query.OrderBy(x => x.DistrictCode),
+
+                "districtname" => desc
+                    ? query.OrderByDescending(x => x.DistrictName)
+                    : query.OrderBy(x => x.DistrictName),
+
+                "isactive" => desc
+                    ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.DistrictName)
+                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.DistrictName),
+
+                _ => desc
+                    ? query.OrderByDescending(x => x.CreateDateTime)
+                    : query.OrderBy(x => x.CreateDateTime)
+            };
+        }
+
+        private static IOrderedQueryable<MstPostalCode> ApplyPostalCodeSorting(
+            IQueryable<MstPostalCode> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var field = NormalizeSortBy(sortBy);
+            var desc = IsDescending(sortDirection);
+
+            return field switch
+            {
+                "postalcode" => desc
+                    ? query.OrderByDescending(x => x.PostalCode)
+                    : query.OrderBy(x => x.PostalCode),
+
+                "villagename" => desc
+                    ? query.OrderByDescending(x => x.VillageName)
+                    : query.OrderBy(x => x.VillageName),
+
+                "isactive" => desc
+                    ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.PostalCode)
+                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.PostalCode),
 
                 _ => desc
                     ? query.OrderByDescending(x => x.CreateDateTime)

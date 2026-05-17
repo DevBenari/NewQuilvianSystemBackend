@@ -444,13 +444,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         [RegularExpression(@"^\d{16}$", ErrorMessage = "Nomor identitas harus 16 digit.")]
         public string IdentityNumber { get; set; } = string.Empty;
 
-        [MaxLength(13)]
-        [RegularExpression(@"^\d{13}$", ErrorMessage = "Nomor telepon harus 13 digit.")]
+        [MaxLength(13, ErrorMessage = "Nomor telepon maksimal 13 digit.")]
+        [RegularExpression(@"^\d{1,13}$", ErrorMessage = "Nomor telepon maksimal 13 digit dan hanya boleh angka.")]
         public string? PhoneNumber { get; set; }
 
-        [MaxLength(13)]
-        [RegularExpression(@"^\d{13}$", ErrorMessage = "Nomor WhatsApp harus 13 digit.")]
+        [MaxLength(13, ErrorMessage = "Nomor WhatsApp maksimal 13 digit.")]
+        [RegularExpression(@"^\d{1,13}$", ErrorMessage = "Nomor WhatsApp maksimal 13 digit dan hanya boleh angka.")]
         public string? WhatsAppNumber { get; set; }
+
+        [MaxLength(13, ErrorMessage = "Nomor telepon kontak darurat maksimal 13 digit.")]
+        [RegularExpression(@"^\d{1,13}$", ErrorMessage = "Nomor telepon kontak darurat maksimal 13 digit dan hanya boleh angka.")]
+        public string? EmergencyContactPhone { get; set; }
 
         [Required]
         [MaxLength(200)]
@@ -505,10 +509,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         [MaxLength(50)]
         public string? EmergencyContactRelation { get; set; }
 
-        [MaxLength(13)]
-        [RegularExpression(@"^\d{13}$", ErrorMessage = "Nomor telepon kontak darurat harus 13 digit.")]
-        public string? EmergencyContactPhone { get; set; }
-
         [MaxLength(500)]
         public string? EmergencyContactAddress { get; set; }
     }
@@ -546,7 +546,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string IdentityNumber { get; set; } = string.Empty;
 
         [MaxLength(13)]
-        [RegularExpression(@"^\d{13}$", ErrorMessage = "Nomor telepon harus 13 digit.")]
+        [RegularExpression(@"^\d{1,13}$", ErrorMessage = "Nomor telepon maksimal 13 digit dan hanya boleh angka.")]
         public string? PhoneNumber { get; set; }
 
         [MaxLength(13)]

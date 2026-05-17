@@ -1883,21 +1883,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
 
             if (!string.IsNullOrWhiteSpace(normalizedPhoneNumber) &&
-                normalizedPhoneNumber.Length != 13)
+                normalizedPhoneNumber.Length > 13)
             {
-                return (false, "Nomor telepon harus 13 digit.");
+                return (false, "Nomor telepon maksimal 13 digit.");
             }
 
             if (!string.IsNullOrWhiteSpace(normalizedWhatsAppNumber) &&
-                normalizedWhatsAppNumber.Length != 13)
+                normalizedWhatsAppNumber.Length > 13)
             {
-                return (false, "Nomor WhatsApp harus 13 digit.");
+                return (false, "Nomor WhatsApp maksimal 13 digit.");
             }
 
             if (!string.IsNullOrWhiteSpace(normalizedEmergencyContactPhone) &&
-                normalizedEmergencyContactPhone.Length != 13)
+                normalizedEmergencyContactPhone.Length > 13)
             {
-                return (false, "Nomor telepon kontak darurat harus 13 digit.");
+                return (false, "Nomor telepon kontak darurat maksimal 13 digit.");
             }
 
             if (!string.IsNullOrWhiteSpace(normalizedIdentityNumber))
@@ -2591,8 +2591,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
                     MaxLength = 13,
-                    ValidationRule = "digits:13",
-                    Example = "0812345678902",
+                    ValidationRule = "digits;max:13",
+                    Description = "Nomor maksimal 13 digit.",
                     SortOrder = 103
                 },
                 new()
@@ -2605,7 +2605,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
                     MaxLength = 13,
-                    ValidationRule = "digits:13",
+                    ValidationRule = "digits;max:13",
+                    Description = "Nomor maksimal 13 digit.",
                     Example = "0812345678902",
                     SortOrder = 104
                 },

@@ -27,14 +27,17 @@ namespace QuilvianSystemBackend.Filters
 
         public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
-            var isAuthenticated = context.HttpContext.User.Identity?.IsAuthenticated == true;
+            var isAuthenticated =
+                context.HttpContext.User.Identity?.IsAuthenticated == true;
 
             if (!isAuthenticated)
             {
-                context.Result = new UnauthorizedObjectResult(ApiResponse<object>.Fail(
-                    StatusCodes.Status401Unauthorized,
-                    "Anda belum login atau session sudah berakhir."
-                ));
+                context.Result = new UnauthorizedObjectResult(
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status401Unauthorized,
+                        "Anda belum login atau session sudah berakhir."
+                    )
+                );
 
                 return;
             }
@@ -53,18 +56,21 @@ namespace QuilvianSystemBackend.Filters
             await _loggerService.WarningAsync(
                 "Security",
                 "AccessDenied",
-                "Akses ditolak.",
+                "Akses ditolak karena user tidak memiliki role access.",
                 new
                 {
                     ControllerName = _controllerName,
-                    ActionName = _actionName
+                    ActionName = _actionName,
+                    User = context.HttpContext.User.Identity?.Name
                 }
             );
 
-            context.Result = new ObjectResult(ApiResponse<object>.Fail(
-                StatusCodes.Status403Forbidden,
-                "Anda tidak memiliki akses ke fitur ini."
-            ))
+            context.Result = new ObjectResult(
+                ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Anda tidak memiliki akses ke menu atau fitur ini."
+                )
+            )
             {
                 StatusCode = StatusCodes.Status403Forbidden
             };

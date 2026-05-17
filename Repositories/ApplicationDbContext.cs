@@ -158,7 +158,19 @@ namespace QuilvianSystemBackend.Repositories
 
                 entity.HasIndex(x => x.IsActive);
 
-                entity.HasIndex(x => x.IsGeolocationBypassEnabled);                
+                entity.HasIndex(x => x.IsGeolocationBypassEnabled);
+
+                entity.Property(x => x.IsFingerprintRegistrationEnabled)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.FingerprintRegistrationReason)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.FingerprintRegistrationEnabledAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.HasIndex(x => x.IsFingerprintRegistrationEnabled);
             });
 
             builder.Entity<ApplicationRole>(entity =>
@@ -408,7 +420,7 @@ namespace QuilvianSystemBackend.Repositories
 
             builder.Entity<ApplicationUserFingerprintCredential>(entity =>
             {
-                entity.ToTable("ApplicationUserFingerprintCredential", "public");
+                entity.ToTable("AspNetUserFingerprint", "public");
 
                 entity.HasKey(x => x.Id);
 
@@ -435,6 +447,9 @@ namespace QuilvianSystemBackend.Repositories
 
                 entity.Property(x => x.DeviceModel)
                     .HasMaxLength(100);
+
+                entity.Property(x => x.SampleFormat)
+                    .HasMaxLength(50);
 
                 entity.Property(x => x.IsPrimary)
                     .HasDefaultValue(true);

@@ -63,8 +63,4 @@
     </Reference>
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="ExternalLibraries\DigitalPersona\DPUruNet.XML" />
-  </ItemGroup>
-
 </Project>

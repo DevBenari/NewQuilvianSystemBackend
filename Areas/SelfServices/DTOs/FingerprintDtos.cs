@@ -2,26 +2,23 @@
 {
     public class FingerprintRegisterRequest
     {
-        public string FingerPosition { get; set; } = "RightThumb";
+        public string FingerPosition { get; set; } = string.Empty;
 
-        public string TemplateFormat { get; set; } = "DigitalPersona.SampleFormat5";
+        public string TemplateFormat { get; set; } = "ANSI_FMD";
 
         public string? TemplateVersion { get; set; }
 
         public string FingerprintTemplateBase64 { get; set; } = string.Empty;
 
-        // Optional alias kalau frontend masih kirim field fingerprintSample
-        public string? FingerprintSample { get; set; }
-
         public string? DeviceId { get; set; }
 
         public string? DeviceModel { get; set; }
 
-        public int? SampleFormat { get; set; }
+        public string? SampleFormat { get; set; }
 
         public int? QualityScore { get; set; }
 
-        public int EnrollmentSampleCount { get; set; } = 1;
+        public int EnrollmentSampleCount { get; set; } = 4;
     }
 
     public class FingerprintCredentialResponse

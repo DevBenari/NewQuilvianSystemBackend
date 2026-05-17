@@ -43,7 +43,8 @@ namespace QuilvianSystemBackend.Models
         [MaxLength(100)]
         public string? DeviceModel { get; set; }
 
-        public int? SampleFormat { get; set; }
+        [MaxLength(50)]
+        public string? SampleFormat { get; set; }
 
         public int? QualityScore { get; set; }
 

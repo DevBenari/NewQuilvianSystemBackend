@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -8,7 +9,6 @@ using QuilvianSystemBackend.Middlewares;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Seeders;
-using QuilvianSystemBackend.Services.Fingerprint;
 using QuilvianSystemBackend.Services.Language;
 using QuilvianSystemBackend.Services.Logging;
 using QuilvianSystemBackend.Services.Security;
@@ -47,7 +47,7 @@ builder.Services
 
         options.SignIn.RequireConfirmedEmail = false;
 
-        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
         options.Lockout.MaxFailedAccessAttempts = 5;
         options.Lockout.AllowedForNewUsers = true;
     })
@@ -60,55 +60,16 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
 });
 
+var allowedCorsOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendCorsPolicy", policy =>
     {
         policy
-            .SetIsOriginAllowed(origin =>
-            {
-                if (string.IsNullOrWhiteSpace(origin))
-                {
-                    return false;
-                }
-
-                var allowedCorsOrigins = new[]
-                {
-                    "http://localhost:3000",
-                    "http://localhost:3001",
-                    "http://localhost:5173",
-                    "http://localhost:5174",
-                    "http://127.0.0.1:3000",
-                    "http://127.0.0.1:3001",
-                    "http://127.0.0.1:5173",
-                    "http://127.0.0.1:5174",
-                    "http://103.153.60.136:3000",
-                    "https://103.153.60.136",
-                    "https://dev.quilvian-mmchospital.com",
-                    "https://sta.quilvian-mmchospital.com",
-                    "https://quilvian-mmchospital.com"
-                };
-
-                if (allowedCorsOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-
-                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
-                {
-                    return false;
-                }
-
-                var isLocalhost =
-                    uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
-                    uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase);
-
-                var isHttpOrHttps =
-                    uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
-                    uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
-
-                return isLocalhost && isHttpOrHttps;
-            })
+            .WithOrigins(allowedCorsOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -174,13 +135,13 @@ builder.Services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddDataProtection();
 
-builder.Services.AddScoped<IFingerprintIdentificationService, DigitalPersonaFingerprintIdentificationService>();
-
 builder.Services.AddScoped<LanguageService>();
 builder.Services.AddScoped<LoggerService>();
 builder.Services.AddScoped<AccessPermissionService>();
 
 builder.Services.AddAuthorization();
+
+builder.Services.AddDistributedMemoryCache();
 
 // Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -226,20 +187,30 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddHealthChecks();
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto |
+        ForwardedHeaders.XForwardedHost;
+
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+
 app.UseMiddleware<GlobalExceptionMiddleware>();
+
 app.MapHealthChecks("/health");
 
-// Seeder SuperAdmin
-// Ini TIDAK melakukan migration otomatis.
-// Pastikan dotnet ef database update sudah dijalankan dulu.
 await AppVersionSeeder.SeedAsync(app.Services);
 await DefaultWorkScheduleSeeder.SeedAsync(app.Services);
 await SuperAdminSeeder.SeedAsync(app.Services);
 await AccessMenuSeeder.SeedAsync(app.Services);
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -250,8 +221,6 @@ app.UseHttpsRedirection();
 
 app.UseCors("FrontendCorsPolicy");
 
-// Urutan ini penting:
-// UseAuthentication() harus sebelum UseAuthorization()
 app.UseAuthentication();
 app.UseAuthorization();
 
