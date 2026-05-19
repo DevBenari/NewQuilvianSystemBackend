@@ -47,7 +47,7 @@ builder.Services
 
         options.SignIn.RequireConfirmedEmail = false;
 
-        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(60);
         options.Lockout.MaxFailedAccessAttempts = 5;
         options.Lockout.AllowedForNewUsers = true;
     })

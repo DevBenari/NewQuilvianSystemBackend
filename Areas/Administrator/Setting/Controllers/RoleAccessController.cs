@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Areas.Administrator.Setting.DTOs;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -15,19 +14,22 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
     [ApiController]
     [Route("api/v1/administrator/setting/role-access")]
     [Tags("Administrator / Setting / Role Access")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize]
     [AccessController(
-    moduleCode: "SETTING",
-    moduleName: "Setting",
-    displayName: "Setting / Role Access",
-    AreaName = "Administrator",
-    Description = "Manajemen role akses berdasarkan department dan position",
-    SortOrder = 990,
-    VisibleInRoleAccess = false,
-    IsSystemOnly = true
-)]
+        moduleCode: "SETTING",
+        moduleName: "Setting",
+        displayName: "Setting / Role Access",
+        AreaName = "Administrator",
+        ControllerName = RoleAccessControllerName,
+        Description = "Manajemen role akses berdasarkan department dan position",
+        SortOrder = 990,
+        VisibleInRoleAccess = true,
+        IsSystemOnly = false
+    )]
     public class RoleAccessController : ControllerBase
     {
+        private const string RoleAccessControllerName = "RoleAccess";
+
         private readonly ApplicationDbContext _dbContext;
 
         public RoleAccessController(ApplicationDbContext dbContext)
@@ -36,18 +38,21 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
         }
 
         [HttpGet("resources")]
+        [AccessPermission(RoleAccessControllerName, "Read")]
         [AccessAction(
             "Read",
             "Read Role Access",
             Description = "Melihat resource role access",
             AccessType = AccessTypes.Read,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true,
+            VisibleInRoleAccess = true,
+            IsSystemOnly = false,
             SortOrder = 1
         )]
         [ProducesResponseType(typeof(ApiResponse<RoleAccessResourceResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetResources()
         {
+            var isSuperAdmin = User.IsInRole("SuperAdmin");
+
             var departments = await _dbContext.MstDepartments
                 .AsNoTracking()
                 .Where(x => x.IsActive && !x.IsDelete)
@@ -88,7 +93,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
                             c.IsActive &&
                             !c.IsDelete &&
                             c.VisibleInRoleAccess &&
-                            !c.IsSystemOnly)
+                            !c.IsSystemOnly &&
+                            (
+                                isSuperAdmin ||
+                                c.ControllerName != RoleAccessControllerName
+                            ))
                         .OrderBy(c => c.SortOrder)
                         .ThenBy(c => c.DisplayName)
                         .Select(c => new RoleAccessControllerResponse
@@ -98,6 +107,14 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
                             DisplayName = c.DisplayName,
                             RoutePath = c.RoutePath,
                             SortOrder = c.SortOrder,
+
+                            // true kalau controller ini khusus sistem/delegasi terbatas
+                            IsSystemOnly = c.IsSystemOnly,
+
+                            // RoleAccess boleh di-assign hanya jika muncul ke user tersebut.
+                            // Karena RoleAccess hanya muncul untuk SuperAdmin, maka non-SuperAdmin tidak bisa assign.
+                            CanAssign = true,
+
                             Actions = c.Actions
                                 .Where(a =>
                                     a.IsActive &&
@@ -115,7 +132,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
                                     DisplayName = a.DisplayName,
                                     AccessType = a.AccessType,
                                     Description = a.Description,
-                                    SortOrder = a.SortOrder
+                                    SortOrder = a.SortOrder,
+
+                                    IsSystemOnly = a.IsSystemOnly,
+                                    CanAssign = true
                                 })
                                 .ToList()
                         })
@@ -138,13 +158,14 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
         }
 
         [HttpGet("policies")]
+        [AccessPermission(RoleAccessControllerName, "Read")]
         [AccessAction(
             "Read",
             "Read Role Access Policy",
             Description = "Melihat policy role access berdasarkan department dan position",
             AccessType = AccessTypes.Read,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true,
+            VisibleInRoleAccess = true,
+            IsSystemOnly = false,
             SortOrder = 2
         )]
         [ProducesResponseType(typeof(ApiResponse<RoleAccessPolicyResponse>), StatusCodes.Status200OK)]
@@ -160,6 +181,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
                     "Department dan position wajib diisi."
                 ));
             }
+
+            var isSuperAdmin = User.IsInRole("SuperAdmin");
 
             var permissions = await _dbContext.SysAccessPolicies
                 .AsNoTracking()
@@ -179,7 +202,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
                     !x.ActionAccess.IsDelete &&
                     x.ActionAccess.VisibleInRoleAccess &&
                     !x.ActionAccess.IsSystemOnly &&
-                    AccessTypes.AllowedForRoleAccess.Contains(x.ActionAccess.AccessType))
+                    AccessTypes.AllowedForRoleAccess.Contains(x.ActionAccess.AccessType) &&
+                    (
+                        isSuperAdmin ||
+                        x.ControllerAccess.ControllerName != RoleAccessControllerName
+                    ))
                 .Select(x => new RoleAccessPolicyItemResponse
                 {
                     ControllerAccessId = x.ControllerAccessId,
@@ -202,13 +229,14 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
         }
 
         [HttpPost("policies")]
+        [AccessPermission(RoleAccessControllerName, "Update")]
         [AccessAction(
             "Update",
             "Update Role Access",
             Description = "Menyimpan policy role access berdasarkan department dan position",
             AccessType = AccessTypes.Update,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = true,
+            VisibleInRoleAccess = true,
+            IsSystemOnly = false,
             SortOrder = 3
         )]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
@@ -222,6 +250,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
                     "Department dan position wajib diisi."
                 ));
             }
+
+            var isSuperAdmin = User.IsInRole("SuperAdmin");
+            var currentUserId = GetCurrentUserId();
 
             var departmentExists = await _dbContext.MstDepartments
                 .AsNoTracking()
@@ -285,19 +316,28 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
                     a.ControllerAccess.IsActive &&
                     !a.ControllerAccess.IsDelete &&
                     a.ControllerAccess.VisibleInRoleAccess &&
-                    !a.ControllerAccess.IsSystemOnly)
+                    !a.ControllerAccess.IsSystemOnly &&
+                    (
+                        isSuperAdmin ||
+                        a.ControllerAccess.ControllerName != RoleAccessControllerName
+                    ))
                 .Select(a => new
                 {
                     ActionAccessId = a.Id,
-                    a.ControllerAccessId
+                    a.ControllerAccessId,
+                    ControllerName = a.ControllerAccess!.ControllerName
                 })
                 .ToListAsync();
 
             if (validActions.Count != requestedActionIds.Count)
             {
+                var message = isSuperAdmin
+                    ? "Terdapat akses yang tidak valid, bukan CRUD, hidden, atau system-only."
+                    : "Terdapat akses yang tidak valid. User non-SuperAdmin tidak boleh memberikan akses Role Access.";
+
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    "Terdapat akses yang tidak valid, bukan CRUD, hidden, atau system-only."
+                    message
                 ));
             }
 
@@ -316,12 +356,17 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
                 }
             }
 
-            var currentUserId = GetCurrentUserId();
-
             var existingPolicies = await _dbContext.SysAccessPolicies
                 .Where(x =>
                     x.DepartmentId == request.DepartmentId &&
-                    x.PositionId == request.PositionId)
+                    x.PositionId == request.PositionId &&
+                    (
+                        isSuperAdmin ||
+                        (
+                            x.ControllerAccess != null &&
+                            x.ControllerAccess.ControllerName != RoleAccessControllerName
+                        )
+                    ))
                 .ToListAsync();
 
             foreach (var policy in existingPolicies)
