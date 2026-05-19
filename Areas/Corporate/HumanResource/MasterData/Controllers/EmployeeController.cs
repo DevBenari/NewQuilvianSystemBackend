@@ -872,6 +872,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 }
             }
 
+            if (!request.CreateLoginAccount && request.IsFingerprintRegistrationEnabled)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Fingerprint registration hanya bisa diaktifkan jika akun login dibuat."
+                ));
+            }
+
+            if (request.IsFingerprintRegistrationEnabled &&
+                string.IsNullOrWhiteSpace(request.FingerprintRegistrationReason))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan aktivasi fingerprint wajib diisi."
+                ));
+            }
+
             var validation = await ValidateEmployeeRequestAsync(
                 excludeEmployeeId: null,
                 primaryDepartmentId: request.PrimaryDepartmentId,
@@ -976,7 +993,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
                 if (request.CreateLoginAccount)
                 {
-                    var accountResult = await CreateLoginAccountForEmployeeAsync(entity);
+                    var accountResult = await CreateLoginAccountForEmployeeAsync(
+                        employee: entity,
+                        isFingerprintRegistrationEnabled: request.IsFingerprintRegistrationEnabled,
+                        fingerprintRegistrationReason: request.FingerprintRegistrationReason,
+                        actorUserId: userId
+                    );
 
                     if (!accountResult.IsSuccess)
                     {
@@ -1746,7 +1768,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     UserType = x.UserType,
                     IsActive = x.IsActive,
                     MustChangePassword = x.MustChangePassword,
-                    ProfilePhotoPath = x.ProfilePhotoPath
+                    ProfilePhotoPath = x.ProfilePhotoPath,
+                    IsFingerprintRegistrationEnabled = x.IsFingerprintRegistrationEnabled,
+                    FingerprintRegistrationReason = x.FingerprintRegistrationReason,
+                    FingerprintRegistrationEnabledAt = x.FingerprintRegistrationEnabledAt,
                 })
                 .FirstOrDefaultAsync();
 
@@ -3036,7 +3061,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         private async Task<(bool IsSuccess, string? ErrorMessage, EmployeeLoginAccountResponse? Response)>
-    CreateLoginAccountForEmployeeAsync(MstEmployee employee)
+            CreateLoginAccountForEmployeeAsync(
+                MstEmployee employee,
+                bool isFingerprintRegistrationEnabled,
+                string? fingerprintRegistrationReason,
+                Guid actorUserId)
         {
             if (employee.Id == Guid.Empty)
             {
@@ -3087,6 +3116,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 return (false, "Password awal gagal dibuat dari BirthDate.", null);
             }
 
+            var now = DateTime.UtcNow;
+
             var user = new ApplicationUser
             {
                 Id = Guid.NewGuid(),
@@ -3101,14 +3132,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ExternalUserId = null,
                 PrimaryDepartmentId = employee.PrimaryDepartmentId,
                 PrimaryPositionId = employee.PrimaryPositionId,
+
                 IsGeolocationBypassEnabled = false,
                 GeolocationBypassReason = null,
                 GeolocationBypassUntil = null,
+
                 IsActive = employee.IsActive,
                 MustChangePassword = true,
                 AccessValidUntil = null,
-                CreateDateTime = DateTime.UtcNow,
-                ProfilePhotoPath = DefaultProfilePhotoPath
+                CreateDateTime = now,
+                ProfilePhotoPath = DefaultProfilePhotoPath,
+
+                IsFingerprintRegistrationEnabled = isFingerprintRegistrationEnabled,
+                FingerprintRegistrationReason = isFingerprintRegistrationEnabled
+                    ? NormalizeNullableText(fingerprintRegistrationReason)
+                    : null,
+                            FingerprintRegistrationEnabledAt = isFingerprintRegistrationEnabled
+                    ? now
+                    : null,
+                            FingerprintRegistrationEnabledByUserId = isFingerprintRegistrationEnabled
+                    ? actorUserId
+                    : null
             };
 
             var createResult = await _userManager.CreateAsync(user, initialPassword);
@@ -3132,6 +3176,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 InitialPassword = initialPassword,
                 MustChangePassword = user.MustChangePassword,
                 ProfilePhotoPath = user.ProfilePhotoPath,
+
+                IsFingerprintRegistrationEnabled = user.IsFingerprintRegistrationEnabled,
+                FingerprintRegistrationReason = user.FingerprintRegistrationReason,
+                FingerprintRegistrationEnabledAt = user.FingerprintRegistrationEnabledAt,
+
                 Message = "Akun login employee berhasil dibuat. Password awal wajib diganti saat login pertama."
             };
 

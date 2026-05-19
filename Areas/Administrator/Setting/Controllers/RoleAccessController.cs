@@ -51,7 +51,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
         [ProducesResponseType(typeof(ApiResponse<RoleAccessResourceResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetResources()
         {
-            var isSuperAdmin = User.IsInRole("SuperAdmin");
+            var isSuperAdmin = IsCurrentUserSuperAdmin();
 
             var departments = await _dbContext.MstDepartments
                 .AsNoTracking()
@@ -121,7 +121,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
                                     !a.IsDelete &&
                                     a.VisibleInRoleAccess &&
                                     !a.IsSystemOnly &&
-                                    AccessTypes.AllowedForRoleAccess.Contains(a.AccessType))
+                                    AccessTypes.AllowedForRoleAccess.Contains(a.AccessType) &&
+                                    (
+                                        isSuperAdmin ||
+                                        c.ControllerName != RoleAccessControllerName))
                                 .OrderBy(a => a.SortOrder)
                                 .ThenBy(a => a.DisplayName)
                                 .Select(a => new RoleAccessActionResponse
@@ -182,7 +185,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
                 ));
             }
 
-            var isSuperAdmin = User.IsInRole("SuperAdmin");
+            var isSuperAdmin = IsCurrentUserSuperAdmin();
 
             var permissions = await _dbContext.SysAccessPolicies
                 .AsNoTracking()
@@ -251,7 +254,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
                 ));
             }
 
-            var isSuperAdmin = User.IsInRole("SuperAdmin");
+            var isSuperAdmin = IsCurrentUserSuperAdmin();
             var currentUserId = GetCurrentUserId();
 
             var departmentExists = await _dbContext.MstDepartments
@@ -442,6 +445,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
             return Guid.TryParse(userIdText, out var userId)
                 ? userId
                 : Guid.Empty;
+        }
+
+        private bool IsCurrentUserSuperAdmin()
+        {
+            return User.IsInRole("SuperAdmin") ||
+                   string.Equals(
+                       User.FindFirstValue("user_type"),
+                       "SuperAdmin",
+                       StringComparison.OrdinalIgnoreCase
+                   );
         }
     }
 }

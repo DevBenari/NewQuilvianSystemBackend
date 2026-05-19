@@ -157,6 +157,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public bool MustChangePassword { get; set; }
 
         public string? ProfilePhotoPath { get; set; }
+
+        public bool IsFingerprintRegistrationEnabled { get; set; }
+
+        public string? FingerprintRegistrationReason { get; set; }
+
+        public DateTime? FingerprintRegistrationEnabledAt { get; set; }
     }
 
     public class EmployeeChildSummaryResponse
@@ -414,6 +420,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
     {
         public bool CreateLoginAccount { get; set; } = true;
 
+        public bool IsFingerprintRegistrationEnabled { get; set; } = false;
+
+        [MaxLength(250)]
+        public string? FingerprintRegistrationReason { get; set; }
+
         [Required]
         [MaxLength(200)]
         public string FullName { get; set; } = string.Empty;
@@ -669,6 +680,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? ProfilePhotoPath { get; set; }
 
         public string Message { get; set; } = string.Empty;
+
+        public bool IsFingerprintRegistrationEnabled { get; set; }
+
+        public string? FingerprintRegistrationReason { get; set; }
+
+        public DateTime? FingerprintRegistrationEnabledAt { get; set; }
     }
 
     public class EmployeeOrganizationAssignmentResponse
