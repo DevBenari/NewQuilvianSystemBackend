@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.DTOs.Auth;
 using QuilvianSystemBackend.Enum;
@@ -842,13 +843,11 @@ namespace QuilvianSystemBackend.Controllers
                 }
 
                 var nowJakarta = GetSystemNow();
-                var attendanceDate = DateOnly.FromDateTime(nowJakarta);
 
-                var attendance = await _dbContext.EmpAttendances
-                    .FirstOrDefaultAsync(x =>
-                        x.UserId == user.Id &&
-                        x.AttendanceDate == attendanceDate &&
-                        !x.IsDelete);
+                var attendance = await ResolveOpenAttendanceForCheckOutAsync(
+                    user.Id,
+                    nowJakarta
+                );
 
                 if (attendance == null)
                 {
@@ -970,6 +969,19 @@ namespace QuilvianSystemBackend.Controllers
             return string.Join(" | ", messages);
         }
 
+        private class ResolvedWorkScheduleResult
+        {
+            public WfpWorkScheduleAssignment? Assignment { get; set; }
+
+            public MstWorkSchedule? WorkSchedule { get; set; }
+
+            public DateOnly AttendanceDate { get; set; }
+
+            public DateTime? ScheduledCheckInAtUtc { get; set; }
+
+            public DateTime? ScheduledCheckOutAtUtc { get; set; }
+        }
+
         private async Task<LoginAttendanceResult> RecordAttendanceOnLoginAsync(
     ApplicationUser user,
     LoginRequest request,
@@ -1019,6 +1031,7 @@ namespace QuilvianSystemBackend.Controllers
                 return LoginAttendanceResult.Skipped("Profile employee/doctor belum terhubung.");
             }
 
+            var nowUtc = DateTime.UtcNow;
             var nowJakarta = GetSystemNow();
             var attendanceDate = DateOnly.FromDateTime(nowJakarta);
 
@@ -1033,28 +1046,39 @@ namespace QuilvianSystemBackend.Controllers
                 return LoginAttendanceResult.AlreadyExists("Absensi masuk hari ini sudah tercatat.");
             }
 
-            var schedule = await ResolveWorkScheduleAsync(user, attendanceDate);
+            var scheduleResult = await ResolveWorkScheduleAsync(user, attendanceDate);
+            var schedule = scheduleResult.WorkSchedule;
+            var assignment = scheduleResult.Assignment;
 
             var lateResult = CalculateLateStatus(
-                attendanceDate,
-                nowJakarta,
+                nowUtc,
+                scheduleResult.ScheduledCheckInAtUtc,
                 schedule
             );
 
             var attendance = new EmpAttendance
             {
                 Id = Guid.NewGuid(),
+
                 UserId = user.Id,
                 EmployeeId = employeeId,
                 DoctorId = doctorId,
-                WorkScheduleId = schedule?.Id,
+                WorkforceProfileId = user.WorkforceProfileId,
 
-                AttendanceDate = attendanceDate,
-                CheckInAt = DateTime.UtcNow,
+                WorkScheduleId = schedule?.Id,
+                WorkScheduleAssignmentId = assignment?.Id,
+
+                AttendanceDate = scheduleResult.AttendanceDate,
+                CheckInAt = nowUtc,
 
                 WorkStartTime = schedule?.WorkStartTime,
                 WorkEndTime = schedule?.WorkEndTime,
+                IsOvernightSchedule = schedule?.IsOvernight ?? false,
+                ScheduledCheckInAt = scheduleResult.ScheduledCheckInAtUtc,
+                ScheduledCheckOutAt = scheduleResult.ScheduledCheckOutAtUtc,
+
                 CheckInToleranceMinutes = schedule?.CheckInToleranceMinutes ?? 0,
+                CheckOutToleranceMinutes = schedule?.CheckOutToleranceMinutes ?? 0,
 
                 IsLate = lateResult.IsLate,
                 LateMinutes = lateResult.LateMinutes,
@@ -1075,7 +1099,7 @@ namespace QuilvianSystemBackend.Controllers
                 CheckInIpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
                 CheckInUserAgent = Request.Headers.UserAgent.ToString(),
 
-                CreateDateTime = DateTime.UtcNow,
+                CreateDateTime = nowUtc,
                 CreateBy = user.Id,
                 IsDelete = false,
                 IsCancel = false
@@ -1095,12 +1119,18 @@ namespace QuilvianSystemBackend.Controllers
                     attendance.UserId,
                     attendance.EmployeeId,
                     attendance.DoctorId,
+                    attendance.WorkforceProfileId,
                     attendance.WorkScheduleId,
+                    attendance.WorkScheduleAssignmentId,
                     attendance.AttendanceDate,
                     attendance.CheckInAt,
                     attendance.WorkStartTime,
                     attendance.WorkEndTime,
+                    attendance.IsOvernightSchedule,
+                    attendance.ScheduledCheckInAt,
+                    attendance.ScheduledCheckOutAt,
                     attendance.CheckInToleranceMinutes,
+                    attendance.CheckOutToleranceMinutes,
                     attendance.IsLate,
                     attendance.LateMinutes,
                     attendance.AttendanceStatus,
@@ -1295,81 +1325,202 @@ namespace QuilvianSystemBackend.Controllers
             return (true, reason);
         }
 
-        private async Task<MstWorkSchedule?> ResolveWorkScheduleAsync(
+        private async Task<ResolvedWorkScheduleResult> ResolveWorkScheduleAsync(
     ApplicationUser user,
     DateOnly attendanceDate)
         {
-            var schedules = await _dbContext.MstWorkSchedules
+            WfpWorkScheduleAssignment? assignment = null;
+
+            if (user.WorkforceProfileId.HasValue)
+            {
+                assignment = await _dbContext.Set<WfpWorkScheduleAssignment>()
+                    .AsNoTracking()
+                    .Include(x => x.WorkSchedule)
+                    .FirstOrDefaultAsync(x =>
+                        x.WorkforceProfileId == user.WorkforceProfileId.Value &&
+                        x.ScheduleDate == attendanceDate &&
+                        x.IsActive &&
+                        !x.IsDelete);
+            }
+
+            if (assignment != null)
+            {
+                if (assignment.IsOffDay)
+                {
+                    return new ResolvedWorkScheduleResult
+                    {
+                        Assignment = assignment,
+                        WorkSchedule = null,
+                        AttendanceDate = attendanceDate,
+                        ScheduledCheckInAtUtc = null,
+                        ScheduledCheckOutAtUtc = null
+                    };
+                }
+
+                if (assignment.WorkSchedule != null &&
+                    assignment.WorkSchedule.IsActive &&
+                    !assignment.WorkSchedule.IsDelete)
+                {
+                    var scheduled = BuildScheduledDateTimeUtc(
+                        attendanceDate,
+                        assignment.WorkSchedule
+                    );
+
+                    return new ResolvedWorkScheduleResult
+                    {
+                        Assignment = assignment,
+                        WorkSchedule = assignment.WorkSchedule,
+                        AttendanceDate = attendanceDate,
+                        ScheduledCheckInAtUtc = scheduled.ScheduledCheckInAtUtc,
+                        ScheduledCheckOutAtUtc = scheduled.ScheduledCheckOutAtUtc
+                    };
+                }
+            }
+
+            var defaultSchedule = await _dbContext.MstWorkSchedules
                 .AsNoTracking()
                 .Where(x =>
+                    x.IsDefault &&
                     x.IsActive &&
+                    !x.IsDelete)
+                .OrderByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
+                .FirstOrDefaultAsync();
+
+            if (defaultSchedule == null)
+            {
+                return new ResolvedWorkScheduleResult
+                {
+                    Assignment = null,
+                    WorkSchedule = null,
+                    AttendanceDate = attendanceDate,
+                    ScheduledCheckInAtUtc = null,
+                    ScheduledCheckOutAtUtc = null
+                };
+            }
+
+            var defaultScheduled = BuildScheduledDateTimeUtc(
+                attendanceDate,
+                defaultSchedule
+            );
+
+            return new ResolvedWorkScheduleResult
+            {
+                Assignment = null,
+                WorkSchedule = defaultSchedule,
+                AttendanceDate = attendanceDate,
+                ScheduledCheckInAtUtc = defaultScheduled.ScheduledCheckInAtUtc,
+                ScheduledCheckOutAtUtc = defaultScheduled.ScheduledCheckOutAtUtc
+            };
+        }
+
+        private async Task<EmpAttendance?> ResolveOpenAttendanceForCheckOutAsync(
+            Guid userId,
+            DateTime nowJakarta)
+        {
+            var today = DateOnly.FromDateTime(nowJakarta);
+            var yesterday = today.AddDays(-1);
+
+            var todayAttendance = await _dbContext.EmpAttendances
+                .FirstOrDefaultAsync(x =>
+                    x.UserId == userId &&
+                    x.AttendanceDate == today &&
                     !x.IsDelete &&
-                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value <= attendanceDate) &&
-                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= attendanceDate))
-                .ToListAsync();
+                    !x.CheckOutAt.HasValue);
 
-            return schedules
-                .OrderByDescending(x => GetSchedulePriority(x, user))
-                .ThenByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
-                .FirstOrDefault(x => GetSchedulePriority(x, user) > 0);
+            if (todayAttendance != null)
+            {
+                return todayAttendance;
+            }
+
+            var overnightAttendance = await _dbContext.EmpAttendances
+                .FirstOrDefaultAsync(x =>
+                    x.UserId == userId &&
+                    x.AttendanceDate == yesterday &&
+                    x.IsOvernightSchedule &&
+                    !x.IsDelete &&
+                    !x.CheckOutAt.HasValue);
+
+            return overnightAttendance;
         }
 
-        private static int GetSchedulePriority(MstWorkSchedule schedule, ApplicationUser user)
+        private static (DateTime ScheduledCheckInAtUtc, DateTime ScheduledCheckOutAtUtc)
+            BuildScheduledDateTimeUtc(DateOnly scheduleDate, MstWorkSchedule schedule)
         {
-            if (schedule.UserId.HasValue && schedule.UserId.Value == user.Id)
-            {
-                return 100;
-            }
+            var jakartaTimeZone = GetJakartaTimeZone();
 
-            if (schedule.DepartmentId.HasValue &&
-                schedule.PositionId.HasValue &&
-                schedule.UserType.HasValue &&
-                schedule.DepartmentId.Value == user.PrimaryDepartmentId &&
-                schedule.PositionId.Value == user.PrimaryPositionId &&
-                schedule.UserType.Value == user.UserType)
-            {
-                return 80;
-            }
+            var scheduledCheckInLocal = scheduleDate.ToDateTime(schedule.WorkStartTime);
 
-            if (schedule.DepartmentId.HasValue &&
-                schedule.PositionId.HasValue &&
-                schedule.DepartmentId.Value == user.PrimaryDepartmentId &&
-                schedule.PositionId.Value == user.PrimaryPositionId)
-            {
-                return 70;
-            }
+            var checkOutDate = schedule.IsOvernight
+                ? scheduleDate.AddDays(1)
+                : scheduleDate;
 
-            if (schedule.UserType.HasValue &&
-                schedule.UserType.Value == user.UserType)
-            {
-                return 60;
-            }
+            var scheduledCheckOutLocal = checkOutDate.ToDateTime(schedule.WorkEndTime);
 
-            if (schedule.IsDefault)
-            {
-                return 10;
-            }
+            scheduledCheckInLocal = DateTime.SpecifyKind(
+                scheduledCheckInLocal,
+                DateTimeKind.Unspecified
+            );
 
-            return 0;
+            scheduledCheckOutLocal = DateTime.SpecifyKind(
+                scheduledCheckOutLocal,
+                DateTimeKind.Unspecified
+            );
+
+            var scheduledCheckInUtc = TimeZoneInfo.ConvertTimeToUtc(
+                scheduledCheckInLocal,
+                jakartaTimeZone
+            );
+
+            var scheduledCheckOutUtc = TimeZoneInfo.ConvertTimeToUtc(
+                scheduledCheckOutLocal,
+                jakartaTimeZone
+            );
+
+            return (scheduledCheckInUtc, scheduledCheckOutUtc);
         }
 
-        private static (bool IsLate, int LateMinutes, string AttendanceStatus) CalculateLateStatus(DateOnly attendanceDate, DateTime checkInJakarta, MstWorkSchedule? schedule)
+        private static TimeZoneInfo GetJakartaTimeZone()
         {
-            if (schedule == null)
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Jakarta");
+            }
+            catch
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            }
+        }
+
+        private static (bool IsLate, int LateMinutes, string AttendanceStatus) CalculateLateStatus(
+     DateTime checkInAtUtc,
+     DateTime? scheduledCheckInAtUtc,
+     MstWorkSchedule? schedule)
+        {
+            if (schedule == null || !scheduledCheckInAtUtc.HasValue)
             {
                 return (false, 0, "PresentNoSchedule");
             }
 
-            var scheduledStart = attendanceDate.ToDateTime(schedule.WorkStartTime);
-            var allowedCheckInTime = scheduledStart.AddMinutes(schedule.CheckInToleranceMinutes);
+            if (schedule.ScheduleType.Equals("Off", StringComparison.OrdinalIgnoreCase))
+            {
+                return (false, 0, "OffDayAttendance");
+            }
 
-            if (checkInJakarta <= allowedCheckInTime)
+            if (schedule.ScheduleType.Equals("OnCall", StringComparison.OrdinalIgnoreCase))
+            {
+                return (false, 0, "OnCall");
+            }
+
+            var allowedCheckInTimeUtc = scheduledCheckInAtUtc.Value
+                .AddMinutes(schedule.CheckInToleranceMinutes);
+
+            if (checkInAtUtc <= allowedCheckInTimeUtc)
             {
                 return (false, 0, "Present");
             }
 
             var lateMinutes = (int)Math.Ceiling(
-                (checkInJakarta - allowedCheckInTime).TotalMinutes
+                (checkInAtUtc - allowedCheckInTimeUtc).TotalMinutes
             );
 
             return (true, lateMinutes, "Late");

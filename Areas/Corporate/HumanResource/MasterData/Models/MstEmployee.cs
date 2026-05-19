@@ -1,6 +1,4 @@
 ﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
-using QuilvianSystemBackend.Areas.Administrator.UserManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.Employee.Models;
 using QuilvianSystemBackend.Enum;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
@@ -14,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
-        public Guid? WorkforceProfileId { get; set; }
+        public Guid WorkforceProfileId { get; set; }
 
         [Required]
         [MaxLength(50)]
@@ -124,7 +122,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
 
         public bool IsActive { get; set; } = true;
 
-        //Navigation
         public MstWorkforceProfile? WorkforceProfile { get; set; }
 
         public MstDepartment? PrimaryDepartment { get; set; }
@@ -140,22 +137,5 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public MstDistrict? District { get; set; }
 
         public MstPostalCode? PostalCode { get; set; }
-
-        public ICollection<EmpOrganizationAssignment> OrganizationAssignments { get; set; } = new List<EmpOrganizationAssignment>();
-
-        public ICollection<EmpBankAccount> BankAccounts { get; set; } = new List<EmpBankAccount>();
-
-        public EmpPayrollProfile? PayrollProfile { get; set; }
-
-        public EmpTaxProfile? TaxProfile { get; set; }
-
-        public EmpInsuranceProfile? InsuranceProfile { get; set; }
-
-        public ICollection<EmpDocument> Documents { get; set; } = new List<EmpDocument>();
-
-        public EmpTransportAllowanceProfile? TransportAllowanceProfile { get; set; }
-
-        public ICollection<EmpTransportAllowanceTransaction> TransportAllowanceTransactions { get; set; }
-            = new List<EmpTransportAllowanceTransaction>();
     }
 }

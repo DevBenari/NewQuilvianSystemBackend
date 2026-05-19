@@ -152,13 +152,70 @@ var apiVersion = builder.Configuration["AppInfo:ApiVersion"] ?? "v1";
 
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc(apiVersion, new OpenApiInfo
+    options.SwaggerDoc("auth", new OpenApiInfo
     {
-        Title = appName,
+        Title = $"{appName} - Authentication",
         Version = apiVersion,
         Description = $"Application Version {appVersion}"
     });
 
+    options.SwaggerDoc("administrator", new OpenApiInfo
+    {
+        Title = $"{appName} - Administrator",
+        Version = apiVersion,
+        Description = $"Application Version {appVersion}"
+    });
+
+    options.SwaggerDoc("corporate", new OpenApiInfo
+    {
+        Title = $"{appName} - Corporate",
+        Version = apiVersion,
+        Description = $"Application Version {appVersion}"
+    });
+
+    options.SwaggerDoc("health-services", new OpenApiInfo
+    {
+        Title = $"{appName} - Health Services",
+        Version = apiVersion,
+        Description = $"Application Version {appVersion}"
+    });
+
+    options.SwaggerDoc("self-services", new OpenApiInfo
+    {
+        Title = $"{appName} - Self Services",
+        Version = apiVersion,
+        Description = $"Application Version {appVersion}"
+    });
+
+    options.DocInclusionPredicate((docName, apiDesc) =>
+    {
+        var path = apiDesc.RelativePath?.ToLowerInvariant() ?? string.Empty;
+
+        return docName switch
+        {
+            "auth" =>
+                path.StartsWith("api/v1/auth") ||
+                path.StartsWith("api/v1/version"),
+
+            "administrator" =>
+                path.StartsWith("api/v1/administrator"),
+
+            "corporate" =>
+                path.StartsWith("api/v1/corporate"),
+
+            "health-services" =>
+                path.StartsWith("api/v1/health-services") ||
+                path.StartsWith("api/v1/healthservices") ||
+                path.StartsWith("api/v1/health-service"),
+
+            "self-services" =>
+                path.StartsWith("api/v1/self-services") ||
+                path.StartsWith("api/v1/selfservices"),
+
+            _ => false
+        };
+    });
+    
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -214,7 +271,19 @@ await AccessMenuSeeder.SeedAsync(app.Services);
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/auth/swagger.json", "01 - Authentication");
+        options.SwaggerEndpoint("/swagger/administrator/swagger.json", "02 - Administrator");
+        options.SwaggerEndpoint("/swagger/corporate/swagger.json", "03 - Corporate");
+        options.SwaggerEndpoint("/swagger/health-services/swagger.json", "04 - Health Services");
+        options.SwaggerEndpoint("/swagger/self-services/swagger.json", "05 - Self Services");
+
+        options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
+        options.DefaultModelsExpandDepth(-1);
+        options.DisplayRequestDuration();
+    });
 }
 
 app.UseHttpsRedirection();

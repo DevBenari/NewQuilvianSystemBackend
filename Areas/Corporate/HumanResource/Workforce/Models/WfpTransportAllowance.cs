@@ -1,25 +1,30 @@
 ﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Models;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Employee.Models
+namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models
 {
-    [Table("EmpTransportAllowanceProfile", Schema = "public")]
-    public class EmpTransportAllowanceProfile : IdentityModel
+    [Table("WfpTransportAllowance", Schema = "public")]
+    public class WfpTransportAllowance : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
-        public Guid EmployeeId { get; set; }
+        public Guid WorkforceProfileId { get; set; }
+
+        public Guid? TransportAllowancePolicyId { get; set; }
 
         public bool IsEligible { get; set; } = false;
+
+        public bool IsRegularTransportEligible { get; set; } = false;
 
         public bool IsNightTransportEligible { get; set; } = false;
 
         [Required]
         [MaxLength(50)]
         public string AllowanceMode { get; set; } = "None";
+        // None, FixedMonthly, DailyAttendance, NightShift, MonthlyAndNightShift, Manual
 
         public decimal MonthlyAmount { get; set; } = 0;
 
@@ -42,6 +47,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Employee.Models
 
         public bool IsActive { get; set; } = true;
 
-        public MstEmployee? Employee { get; set; }
+        public MstWorkforceProfile? WorkforceProfile { get; set; }
+
+        public WfpTransportAllowancePolicy? TransportAllowancePolicy { get; set; }
     }
 }

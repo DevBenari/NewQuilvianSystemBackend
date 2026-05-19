@@ -18,34 +18,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         [MaxLength(200)]
         public string ScheduleName { get; set; } = string.Empty;
 
-        public Guid? UserId { get; set; }
-
-        public UserType? UserType { get; set; }
-
-        public Guid? DepartmentId { get; set; }
-
-        public Guid? PositionId { get; set; }
+        [Required]
+        [MaxLength(50)]
+        public string ScheduleType { get; set; } = "Shift";
+        // Shift, NonShift, OnCall, Off
 
         public TimeOnly WorkStartTime { get; set; }
 
         public TimeOnly WorkEndTime { get; set; }
 
+        public bool IsOvernight { get; set; } = false;
+
         public int CheckInToleranceMinutes { get; set; } = 0;
 
         public int CheckOutToleranceMinutes { get; set; } = 0;
 
-        public DateOnly? EffectiveStartDate { get; set; }
-
-        public DateOnly? EffectiveEndDate { get; set; }
-
         public bool IsDefault { get; set; } = false;
 
         public bool IsActive { get; set; } = true;
-
-        public ApplicationUser? User { get; set; }
-
-        public MstDepartment? Department { get; set; }
-
-        public MstPosition? Position { get; set; }
     }
 }

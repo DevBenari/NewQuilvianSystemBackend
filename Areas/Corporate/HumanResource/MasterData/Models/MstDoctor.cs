@@ -1,6 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Administrator.UserManagement.Enum;
-using QuilvianSystemBackend.Areas.Administrator.UserManagement.Models;
-using QuilvianSystemBackend.Enum;
+﻿using QuilvianSystemBackend.Enum;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -22,8 +20,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         [Required]
         [MaxLength(200)]
         public string FullName { get; set; } = string.Empty;
-
-        public DoctorType DoctorType { get; set; } = DoctorType.PermanentDoctor;
 
         public Gender? Gender { get; set; }
 
@@ -78,11 +74,5 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public MstDepartment? PrimaryDepartment { get; set; }
 
         public MstPosition? PrimaryPosition { get; set; }
-
-        public ICollection<DctLicense> Licenses { get; set; } = new List<DctLicense>();
-
-        public DctPracticeProfile? PracticeProfile { get; set; }
-
-        public DctFeeProfile? FeeProfile { get; set; }
     }
 }

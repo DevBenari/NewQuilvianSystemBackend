@@ -1,7 +1,7 @@
 ﻿using QuilvianSystemBackend.Enum;
 using QuilvianSystemBackend.Models;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
 {
@@ -16,12 +16,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         [Required]
         [MaxLength(50)]
         public string RequirementCategory { get; set; } = string.Empty;
-        // Document, Education, Training, Certification, License
+        // Document, Education, Training, Certification, License,
+        // BankAccount, TransportAllowance, Payroll, Tax, Insurance
 
         [Required]
         [MaxLength(100)]
         public string RequirementCode { get; set; } = string.Empty;
-        // KTP, NPWP, IJAZAH_TERAKHIR, STR, SIP, BLS
+        // KTP, NPWP, IJAZAH_TERAKHIR, STR, SIP, BLS,
+        // BANK_PRIMARY, PAYROLL_PROFILE, TAX_PROFILE, BPJS_KESEHATAN
 
         [Required]
         [MaxLength(150)]
@@ -40,6 +42,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public bool IsExpiredDateRequired { get; set; } = false;
 
         public bool IsVerificationRequired { get; set; } = true;
+
+        public bool IsProfileRequired { get; set; } = false;
+
+        [MaxLength(100)]
+        public string? TargetEntityName { get; set; }
+        // WfpDocument, WfpEducation, WfpCertification, WfpCredentialLicense,
+        // WfpBankAccount, WfpTransportAllowanceProfile,
+        // WfpPayrollProfile, WfpTaxProfile, WfpInsuranceProfile
 
         public int SortOrder { get; set; } = 0;
 

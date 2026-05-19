@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Enum;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models
 {
@@ -20,6 +21,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models
 
         public Guid? WorkScheduleId { get; set; }
 
+        public Guid? WorkScheduleAssignmentId { get; set; }
+
         public DateOnly AttendanceDate { get; set; }
 
         public DateTime CheckInAt { get; set; }
@@ -30,7 +33,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models
 
         public TimeOnly? WorkEndTime { get; set; }
 
+        public bool IsOvernightSchedule { get; set; } = false;
+
+        public DateTime? ScheduledCheckInAt { get; set; }
+
+        public DateTime? ScheduledCheckOutAt { get; set; }
+
         public int CheckInToleranceMinutes { get; set; } = 0;
+
+        public int CheckOutToleranceMinutes { get; set; } = 0;
 
         public bool IsLate { get; set; } = false;
 
@@ -90,5 +101,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public ApplicationUser? User { get; set; }
         public MstWorkSchedule? WorkSchedule { get; set; }
+        public WfpWorkScheduleAssignment? WorkScheduleAssignment { get; set; }
     }
 }

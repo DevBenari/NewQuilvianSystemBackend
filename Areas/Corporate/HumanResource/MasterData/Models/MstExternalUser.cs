@@ -1,6 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Administrator.UserManagement.Enum;
-using QuilvianSystemBackend.Areas.Administrator.UserManagement.Models;
-using QuilvianSystemBackend.Enum;
+﻿using QuilvianSystemBackend.Enum;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -18,8 +16,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         [Required]
         [MaxLength(50)]
         public string ExternalCode { get; set; } = string.Empty;
-
-        public ExternalUserType ExternalUserType { get; set; } = ExternalUserType.Other;
 
         [Required]
         [MaxLength(200)]
@@ -64,9 +60,5 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public bool IsActive { get; set; } = true;
 
         public MstWorkforceProfile? WorkforceProfile { get; set; }
-
-        public ICollection<ExtUserContract> Contracts { get; set; } = new List<ExtUserContract>();
-
-        public ICollection<ExtUserDocument> Documents { get; set; } = new List<ExtUserDocument>();
     }
 }

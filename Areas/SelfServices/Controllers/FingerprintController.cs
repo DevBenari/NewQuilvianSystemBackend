@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.Administrator.UserManagement.Enum;
 using QuilvianSystemBackend.Areas.SelfServices.DTOs;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -650,8 +649,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.Controllers
                 var doctorExists = await _dbContext.MstDoctors.AnyAsync(x =>
                     x.Id == user.DoctorId.Value &&
                     x.IsActive &&
-                    !x.IsDelete &&
-                    x.DoctorType == DoctorType.PermanentDoctor);
+                    !x.IsDelete);
 
                 if (!doctorExists)
                 {

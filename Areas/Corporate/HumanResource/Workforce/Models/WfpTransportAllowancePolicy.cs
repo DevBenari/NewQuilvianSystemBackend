@@ -1,11 +1,11 @@
 ﻿using QuilvianSystemBackend.Models;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Employee.Models
+namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models
 {
-    [Table("EmpTransportAllowancePolicy", Schema = "public")]
-    public class EmpTransportAllowancePolicy : IdentityModel
+    [Table("WfpTransportAllowancePolicy", Schema = "public")]
+    public class WfpTransportAllowancePolicy : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -20,6 +20,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Employee.Models
         [Required]
         [MaxLength(50)]
         public string AllowanceMode { get; set; } = "DailyAttendance";
+        // None, FixedMonthly, DailyAttendance, NightShift, MonthlyAndNightShift, Manual
 
         public decimal DefaultMonthlyAmount { get; set; } = 0;
 
@@ -27,9 +28,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Employee.Models
 
         public decimal DefaultNightAmount { get; set; } = 0;
 
-        public TimeSpan? NightStartTime { get; set; }
+        public TimeOnly? NightStartTime { get; set; }
 
-        public TimeSpan? NightEndTime { get; set; }
+        public TimeOnly? NightEndTime { get; set; }
 
         public bool RequireAttendance { get; set; } = true;
 
@@ -40,6 +41,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Employee.Models
         public bool ExcludeIfHoliday { get; set; } = false;
 
         public bool IsTaxable { get; set; } = true;
+
+        public bool IsPayrollComponent { get; set; } = true;
 
         public bool IsActive { get; set; } = true;
 

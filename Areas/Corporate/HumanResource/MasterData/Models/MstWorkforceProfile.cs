@@ -49,21 +49,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
 
         public ApplicationUser? UserAccount { get; set; }
 
-        //Navigation
-
         public ICollection<WfpOrganizationAssignment> OrganizationAssignments { get; set; }
             = new List<WfpOrganizationAssignment>();
+
         public ICollection<WfpBankAccount> BankAccounts { get; set; }
             = new List<WfpBankAccount>();
+
         public ICollection<WfpDocument> Documents { get; set; }
             = new List<WfpDocument>();
+
         public ICollection<WfpEducation> Educations { get; set; }
             = new List<WfpEducation>();
+
         public ICollection<WfpTrainingRecord> TrainingRecords { get; set; }
             = new List<WfpTrainingRecord>();
+
         public ICollection<WfpCertification> Certifications { get; set; }
             = new List<WfpCertification>();
+
         public ICollection<WfpCredentialLicense> CredentialLicenses { get; set; }
             = new List<WfpCredentialLicense>();
+
+        public WfpTransportAllowance? TransportAllowance { get; set; }
+
+        public ICollection<WfpTransportAllowanceTransaction> TransportAllowanceTransactions { get; set; } = new List<WfpTransportAllowanceTransaction>();
+
+        public WfpPayroll? Payroll { get; set; }
+
+        public WfpTax? Tax { get; set; }
+
+        public WfpInsurance? Insurance { get; set; }
+
+        public ICollection<WfpWorkScheduleAssignment> WorkScheduleAssignments { get; set; } = new List<WfpWorkScheduleAssignment>();
     }
 }

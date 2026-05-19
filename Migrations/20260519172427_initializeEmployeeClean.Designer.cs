@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,10 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260519172427_initializeEmployeeClean")]
+    partial class initializeEmployeeClean
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -546,9 +548,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDefaultValue("Login");
 
                     b.Property<int>("CheckInToleranceMinutes")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
+                        .HasColumnType("integer");
 
                     b.Property<string>("CheckInUserAgent")
                         .HasMaxLength(500)
@@ -577,11 +577,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<int>("CheckOutToleranceMinutes")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
                     b.Property<string>("CheckOutUserAgent")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -590,9 +585,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -611,38 +604,19 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("character varying(250)");
 
                     b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsGeofenceBypassed")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsLate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsOvernightSchedule")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
+                        .HasColumnType("boolean");
 
                     b.Property<int>("LateMinutes")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<DateTime?>("ScheduledCheckInAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ScheduledCheckOutAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -670,9 +644,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<TimeOnly?>("WorkEndTime")
                         .HasColumnType("time without time zone");
 
-                    b.Property<Guid?>("WorkScheduleAssignmentId")
-                        .HasColumnType("uuid");
-
                     b.Property<Guid?>("WorkScheduleId")
                         .HasColumnType("uuid");
 
@@ -696,25 +667,14 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("IsLate");
 
-                    b.HasIndex("IsOvernightSchedule");
-
                     b.HasIndex("Status");
-
-                    b.HasIndex("WorkScheduleAssignmentId");
 
                     b.HasIndex("WorkScheduleId");
 
                     b.HasIndex("WorkforceProfileId");
 
                     b.HasIndex("UserId", "AttendanceDate")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("WorkScheduleAssignmentId", "AttendanceDate", "IsDelete");
-
-                    b.HasIndex("WorkScheduleId", "AttendanceDate", "IsDelete");
-
-                    b.HasIndex("WorkforceProfileId", "AttendanceDate", "IsDelete");
+                        .IsUnique();
 
                     b.ToTable("EmpAttendance", "public");
                 });
@@ -1632,22 +1592,16 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("CheckInToleranceMinutes")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
+                        .HasColumnType("integer");
 
                     b.Property<int>("CheckOutToleranceMinutes")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("CreateBy")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -1655,15 +1609,22 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("EffectiveEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("EffectiveStartDate")
+                        .HasColumnType("date");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
                     b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDefault")
                         .ValueGeneratedOnAdd()
@@ -1671,14 +1632,10 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
+                        .HasColumnType("boolean");
 
-                    b.Property<bool>("IsOvernight")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
+                    b.Property<Guid?>("PositionId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ScheduleCode")
                         .IsRequired()
@@ -1690,18 +1647,17 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<string>("ScheduleType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasDefaultValue("Shift");
-
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdateDateTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("UserType")
+                        .HasColumnType("integer");
 
                     b.Property<TimeOnly>("WorkEndTime")
                         .HasColumnType("time without time zone");
@@ -1711,16 +1667,20 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("IsDefault");
+
+                    b.HasIndex("PositionId");
+
                     b.HasIndex("ScheduleCode")
                         .IsUnique();
 
-                    b.HasIndex("ScheduleName");
+                    b.HasIndex("UserId");
 
-                    b.HasIndex("ScheduleType");
+                    b.HasIndex("UserType");
 
-                    b.HasIndex("IsDefault", "IsActive", "IsDelete");
-
-                    b.HasIndex("ScheduleType", "IsActive", "IsDelete");
+                    b.HasIndex("DepartmentId", "PositionId");
 
                     b.ToTable("MstWorkSchedule", "public");
                 });
@@ -3099,100 +3059,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("WfpTransportAllowanceTransaction", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models.WfpWorkScheduleAssignment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsOffDay")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsOnCall")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsOvertimePlanned")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateOnly>("ScheduleDate")
-                        .HasColumnType("date");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("WorkScheduleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ScheduleDate");
-
-                    b.HasIndex("WorkScheduleId");
-
-                    b.HasIndex("WorkforceProfileId");
-
-                    b.HasIndex("WorkforceProfileId", "ScheduleDate")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("WorkScheduleId", "ScheduleDate", "IsActive", "IsDelete");
-
-                    b.HasIndex("WorkforceProfileId", "ScheduleDate", "IsActive", "IsDelete");
-
-                    b.ToTable("WfpWorkScheduleAssignment", "public");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Models.ApplicationRole", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4178,11 +4044,6 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models.WfpWorkScheduleAssignment", "WorkScheduleAssignment")
-                        .WithMany()
-                        .HasForeignKey("WorkScheduleAssignmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstWorkSchedule", "WorkSchedule")
                         .WithMany()
                         .HasForeignKey("WorkScheduleId")
@@ -4196,8 +4057,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("User");
 
                     b.Navigation("WorkSchedule");
-
-                    b.Navigation("WorkScheduleAssignment");
 
                     b.Navigation("WorkforceProfile");
                 });
@@ -4324,6 +4183,30 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PrimaryDepartment");
 
                     b.Navigation("PrimaryPosition");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstWorkSchedule", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstDepartment", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstPosition", "Position")
+                        .WithMany()
+                        .HasForeignKey("PositionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Department");
+
+                    b.Navigation("Position");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models.WfpBankAccount", b =>
@@ -4505,25 +4388,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("TransportAllowance");
 
                     b.Navigation("TransportAllowancePolicy");
-
-                    b.Navigation("WorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models.WfpWorkScheduleAssignment", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstWorkSchedule", "WorkSchedule")
-                        .WithMany()
-                        .HasForeignKey("WorkScheduleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany("WorkScheduleAssignments")
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("WorkSchedule");
 
                     b.Navigation("WorkforceProfile");
                 });
@@ -4747,8 +4611,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("TransportAllowanceTransactions");
 
                     b.Navigation("UserAccount");
-
-                    b.Navigation("WorkScheduleAssignments");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Models.ApplicationUser", b =>

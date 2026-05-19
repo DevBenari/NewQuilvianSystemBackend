@@ -22,6 +22,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
     {
         public Guid Id { get; set; }
 
+        public Guid WorkforceProfileId { get; set; }
+
         public string EmployeeCode { get; set; } = string.Empty;
 
         public string EmployeeNumber { get; set; } = string.Empty;
@@ -130,8 +132,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? EmergencyContactAddress { get; set; }
 
         public EmployeeUserAccountCompactResponse? UserAccount { get; set; }
-
-        public EmployeeTransportAllowanceProfileResponse? TransportAllowanceProfile { get; set; }
 
         public EmployeeChildSummaryResponse ChildSummary { get; set; } = new();
     }
@@ -645,6 +645,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
     public class EmployeeCreateResponse
     {
         public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
 
         public string EmployeeCode { get; set; } = string.Empty;
 

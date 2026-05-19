@@ -1129,4 +1129,800 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
     {
         public bool IsVerified { get; set; } = true;
     }
+
+    public class WorkforceTransportAllowanceResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public Guid? TransportAllowancePolicyId { get; set; }
+
+        public string? PolicyCode { get; set; }
+
+        public string? PolicyName { get; set; }
+
+        public bool IsEligible { get; set; }
+
+        public bool IsRegularTransportEligible { get; set; }
+
+        public bool IsNightTransportEligible { get; set; }
+
+        public string AllowanceMode { get; set; } = string.Empty;
+
+        public decimal MonthlyAmount { get; set; }
+
+        public decimal DailyAmount { get; set; }
+
+        public decimal NightAmount { get; set; }
+
+        public bool IsProrated { get; set; }
+
+        public bool IsTaxable { get; set; }
+
+        public bool IsPayrollComponent { get; set; }
+
+        public DateTime EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        public string? Description { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceTransportAllowanceListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int EligibleData { get; set; }
+
+        public int RegularEligibleData { get; set; }
+
+        public int NightEligibleData { get; set; }
+
+        public List<WorkforceTransportAllowanceResponse> Items { get; set; } = new();
+    }
+
+    public class CreateWorkforceTransportAllowanceRequest
+    {
+        public Guid? TransportAllowancePolicyId { get; set; }
+
+        public bool IsEligible { get; set; } = false;
+
+        public bool IsRegularTransportEligible { get; set; } = false;
+
+        public bool IsNightTransportEligible { get; set; } = false;
+
+        [Required]
+        [MaxLength(50)]
+        public string AllowanceMode { get; set; } = "None";
+
+        public decimal MonthlyAmount { get; set; } = 0;
+
+        public decimal DailyAmount { get; set; } = 0;
+
+        public decimal NightAmount { get; set; } = 0;
+
+        public bool IsProrated { get; set; } = true;
+
+        public bool IsTaxable { get; set; } = true;
+
+        public bool IsPayrollComponent { get; set; } = true;
+
+        [Required]
+        public DateTime EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceTransportAllowanceRequest
+    {
+        public Guid? TransportAllowancePolicyId { get; set; }
+
+        public bool IsEligible { get; set; } = false;
+
+        public bool IsRegularTransportEligible { get; set; } = false;
+
+        public bool IsNightTransportEligible { get; set; } = false;
+
+        [Required]
+        [MaxLength(50)]
+        public string AllowanceMode { get; set; } = "None";
+
+        public decimal MonthlyAmount { get; set; } = 0;
+
+        public decimal DailyAmount { get; set; } = 0;
+
+        public decimal NightAmount { get; set; } = 0;
+
+        public bool IsProrated { get; set; } = true;
+
+        public bool IsTaxable { get; set; } = true;
+
+        public bool IsPayrollComponent { get; set; } = true;
+
+        [Required]
+        public DateTime EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceTransportAllowanceStatusRequest
+    {
+        public bool IsActive { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+    }
+
+    public class WorkforceTransportAllowanceTransactionResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public Guid? TransportAllowanceId { get; set; }
+
+        public Guid? TransportAllowancePolicyId { get; set; }
+
+        public Guid? AttendanceId { get; set; }
+
+        public DateTime TransactionDate { get; set; }
+
+        public string PeriodYearMonth { get; set; } = string.Empty;
+
+        public string AllowanceType { get; set; } = string.Empty;
+
+        public decimal Amount { get; set; }
+
+        public bool IsGeneratedFromAttendance { get; set; }
+
+        public bool IsNightShift { get; set; }
+
+        public string TransactionStatus { get; set; } = string.Empty;
+
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceTransportAllowanceTransactionListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int DraftData { get; set; }
+
+        public int CalculatedData { get; set; }
+
+        public int ApprovedData { get; set; }
+
+        public int PostedToPayrollData { get; set; }
+
+        public int CancelledData { get; set; }
+
+        public decimal TotalAmount { get; set; }
+
+        public List<WorkforceTransportAllowanceTransactionResponse> Items { get; set; } = new();
+    }
+
+    public class CreateWorkforceTransportAllowanceTransactionRequest
+    {
+        public Guid? TransportAllowanceId { get; set; }
+
+        public Guid? TransportAllowancePolicyId { get; set; }
+
+        public Guid? AttendanceId { get; set; }
+
+        [Required]
+        public DateTime TransactionDate { get; set; }
+
+        [MaxLength(20)]
+        public string? PeriodYearMonth { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string AllowanceType { get; set; } = "Regular";
+
+        public decimal Amount { get; set; } = 0;
+
+        public bool IsGeneratedFromAttendance { get; set; } = false;
+
+        public bool IsNightShift { get; set; } = false;
+
+        [MaxLength(50)]
+        public string TransactionStatus { get; set; } = "Draft";
+
+        [MaxLength(250)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceTransportAllowanceTransactionStatusRequest
+    {
+        [Required]
+        [MaxLength(50)]
+        public string TransactionStatus { get; set; } = "Draft";
+
+        [MaxLength(250)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class WorkforcePayrollResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public string PayrollGroup { get; set; } = string.Empty;
+
+        public string PaymentMethod { get; set; } = string.Empty;
+
+        public Guid? PrimaryBankAccountId { get; set; }
+
+        public string? PrimaryBankName { get; set; }
+
+        public string? PrimaryBankAccountNumber { get; set; }
+
+        public string? PrimaryBankAccountHolderName { get; set; }
+
+        public decimal BasicSalary { get; set; }
+
+        public decimal FixedAllowance { get; set; }
+
+        public decimal FixedDeduction { get; set; }
+
+        public decimal NetFixedAmount { get; set; }
+
+        public bool IsOvertimeEligible { get; set; }
+
+        public bool IsPayrollActive { get; set; }
+
+        public DateTime EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        public string? Description { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforcePayrollListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int PayrollActiveData { get; set; }
+
+        public decimal TotalBasicSalary { get; set; }
+
+        public decimal TotalFixedAllowance { get; set; }
+
+        public decimal TotalFixedDeduction { get; set; }
+
+        public List<WorkforcePayrollResponse> Items { get; set; } = new();
+    }
+
+    public class CreateWorkforcePayrollRequest
+    {
+        [MaxLength(50)]
+        public string PayrollGroup { get; set; } = "Default";
+
+        [MaxLength(50)]
+        public string PaymentMethod { get; set; } = "BankTransfer";
+
+        public Guid? PrimaryBankAccountId { get; set; }
+
+        public decimal BasicSalary { get; set; } = 0;
+
+        public decimal FixedAllowance { get; set; } = 0;
+
+        public decimal FixedDeduction { get; set; } = 0;
+
+        public bool IsOvertimeEligible { get; set; } = false;
+
+        public bool IsPayrollActive { get; set; } = true;
+
+        [Required]
+        public DateTime EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforcePayrollRequest
+    {
+        [MaxLength(50)]
+        public string PayrollGroup { get; set; } = "Default";
+
+        [MaxLength(50)]
+        public string PaymentMethod { get; set; } = "BankTransfer";
+
+        public Guid? PrimaryBankAccountId { get; set; }
+
+        public decimal BasicSalary { get; set; } = 0;
+
+        public decimal FixedAllowance { get; set; } = 0;
+
+        public decimal FixedDeduction { get; set; } = 0;
+
+        public bool IsOvertimeEligible { get; set; } = false;
+
+        public bool IsPayrollActive { get; set; } = true;
+
+        [Required]
+        public DateTime EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforcePayrollStatusRequest
+    {
+        public bool IsActive { get; set; }
+
+        public bool IsPayrollActive { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+    }
+
+    public class WorkforceTaxResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public string? NpwpNumber { get; set; }
+
+        public string TaxStatus { get; set; } = string.Empty;
+
+        public bool IsTaxed { get; set; }
+
+        public string TaxCalculationMethod { get; set; } = string.Empty;
+
+        public DateTime EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        public string? Description { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceTaxListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int TaxedData { get; set; }
+
+        public List<WorkforceTaxResponse> Items { get; set; } = new();
+    }
+
+    public class CreateWorkforceTaxRequest
+    {
+        [MaxLength(30)]
+        public string? NpwpNumber { get; set; }
+
+        [MaxLength(50)]
+        public string TaxStatus { get; set; } = "TK0";
+
+        public bool IsTaxed { get; set; } = true;
+
+        [MaxLength(50)]
+        public string TaxCalculationMethod { get; set; } = "Gross";
+
+        [Required]
+        public DateTime EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceTaxRequest
+    {
+        [MaxLength(30)]
+        public string? NpwpNumber { get; set; }
+
+        [MaxLength(50)]
+        public string TaxStatus { get; set; } = "TK0";
+
+        public bool IsTaxed { get; set; } = true;
+
+        [MaxLength(50)]
+        public string TaxCalculationMethod { get; set; } = "Gross";
+
+        [Required]
+        public DateTime EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceTaxStatusRequest
+    {
+        public bool IsActive { get; set; }
+
+        public bool IsTaxed { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+    }
+
+    public class WorkforceInsuranceResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public bool IsBpjsKesehatanEnabled { get; set; }
+
+        public string? BpjsKesehatanNumber { get; set; }
+
+        public bool IsBpjsKetenagakerjaanEnabled { get; set; }
+
+        public string? BpjsKetenagakerjaanNumber { get; set; }
+
+        public bool IsPrivateInsuranceEnabled { get; set; }
+
+        public string? PrivateInsuranceProvider { get; set; }
+
+        public string? PrivateInsuranceNumber { get; set; }
+
+        public DateTime? EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        public string? Description { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceInsuranceListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int BpjsKesehatanData { get; set; }
+
+        public int BpjsKetenagakerjaanData { get; set; }
+
+        public int PrivateInsuranceData { get; set; }
+
+        public List<WorkforceInsuranceResponse> Items { get; set; } = new();
+    }
+
+    public class CreateWorkforceInsuranceRequest
+    {
+        public bool IsBpjsKesehatanEnabled { get; set; } = false;
+
+        [MaxLength(50)]
+        public string? BpjsKesehatanNumber { get; set; }
+
+        public bool IsBpjsKetenagakerjaanEnabled { get; set; } = false;
+
+        [MaxLength(50)]
+        public string? BpjsKetenagakerjaanNumber { get; set; }
+
+        public bool IsPrivateInsuranceEnabled { get; set; } = false;
+
+        [MaxLength(100)]
+        public string? PrivateInsuranceProvider { get; set; }
+
+        [MaxLength(100)]
+        public string? PrivateInsuranceNumber { get; set; }
+
+        public DateTime? EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceInsuranceRequest
+    {
+        public bool IsBpjsKesehatanEnabled { get; set; } = false;
+
+        [MaxLength(50)]
+        public string? BpjsKesehatanNumber { get; set; }
+
+        public bool IsBpjsKetenagakerjaanEnabled { get; set; } = false;
+
+        [MaxLength(50)]
+        public string? BpjsKetenagakerjaanNumber { get; set; }
+
+        public bool IsPrivateInsuranceEnabled { get; set; } = false;
+
+        [MaxLength(100)]
+        public string? PrivateInsuranceProvider { get; set; }
+
+        [MaxLength(100)]
+        public string? PrivateInsuranceNumber { get; set; }
+
+        public DateTime? EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceInsuranceStatusRequest
+    {
+        public bool IsActive { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+    }
+
+    public class WorkforceTransportAllowancePolicyResponse
+    {
+        public Guid Id { get; set; }
+
+        public string PolicyCode { get; set; } = string.Empty;
+
+        public string PolicyName { get; set; } = string.Empty;
+
+        public string AllowanceMode { get; set; } = string.Empty;
+
+        public decimal DefaultMonthlyAmount { get; set; }
+
+        public decimal DefaultDailyAmount { get; set; }
+
+        public decimal DefaultNightAmount { get; set; }
+
+        public TimeOnly? NightStartTime { get; set; }
+
+        public TimeOnly? NightEndTime { get; set; }
+
+        public bool RequireAttendance { get; set; }
+
+        public bool ExcludeIfAbsent { get; set; }
+
+        public bool ExcludeIfLeave { get; set; }
+
+        public bool ExcludeIfHoliday { get; set; }
+
+        public bool IsTaxable { get; set; }
+
+        public bool IsPayrollComponent { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public string? Description { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceTransportAllowancePolicyListResponse
+    {
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int PayrollComponentData { get; set; }
+
+        public int TaxableData { get; set; }
+
+        public List<WorkforceTransportAllowancePolicyResponse> Items { get; set; } = new();
+    }
+
+    public class WorkforceTransportAllowancePolicyOptionResponse
+    {
+        public Guid Id { get; set; }
+
+        public string PolicyCode { get; set; } = string.Empty;
+
+        public string PolicyName { get; set; } = string.Empty;
+
+        public string AllowanceMode { get; set; } = string.Empty;
+
+        public decimal DefaultMonthlyAmount { get; set; }
+
+        public decimal DefaultDailyAmount { get; set; }
+
+        public decimal DefaultNightAmount { get; set; }
+    }
+
+    public class CreateWorkforceTransportAllowancePolicyRequest
+    {
+        [Required]
+        [MaxLength(50)]
+        public string PolicyCode { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(150)]
+        public string PolicyName { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(50)]
+        public string AllowanceMode { get; set; } = "DailyAttendance";
+
+        public decimal DefaultMonthlyAmount { get; set; } = 0;
+
+        public decimal DefaultDailyAmount { get; set; } = 0;
+
+        public decimal DefaultNightAmount { get; set; } = 0;
+
+        public TimeOnly? NightStartTime { get; set; }
+
+        public TimeOnly? NightEndTime { get; set; }
+
+        public bool RequireAttendance { get; set; } = true;
+
+        public bool ExcludeIfAbsent { get; set; } = true;
+
+        public bool ExcludeIfLeave { get; set; } = true;
+
+        public bool ExcludeIfHoliday { get; set; } = false;
+
+        public bool IsTaxable { get; set; } = true;
+
+        public bool IsPayrollComponent { get; set; } = true;
+
+        public bool IsActive { get; set; } = true;
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+    }
+
+    public class UpdateWorkforceTransportAllowancePolicyRequest
+    {
+        [Required]
+        [MaxLength(50)]
+        public string PolicyCode { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(150)]
+        public string PolicyName { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(50)]
+        public string AllowanceMode { get; set; } = "DailyAttendance";
+
+        public decimal DefaultMonthlyAmount { get; set; } = 0;
+
+        public decimal DefaultDailyAmount { get; set; } = 0;
+
+        public decimal DefaultNightAmount { get; set; } = 0;
+
+        public TimeOnly? NightStartTime { get; set; }
+
+        public TimeOnly? NightEndTime { get; set; }
+
+        public bool RequireAttendance { get; set; } = true;
+
+        public bool ExcludeIfAbsent { get; set; } = true;
+
+        public bool ExcludeIfLeave { get; set; } = true;
+
+        public bool ExcludeIfHoliday { get; set; } = false;
+
+        public bool IsTaxable { get; set; } = true;
+
+        public bool IsPayrollComponent { get; set; } = true;
+
+        public bool IsActive { get; set; } = true;
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+    }
+
+    public class UpdateWorkforceTransportAllowancePolicyStatusRequest
+    {
+        public bool IsActive { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+    }
 }

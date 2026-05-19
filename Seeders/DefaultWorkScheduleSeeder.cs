@@ -40,20 +40,14 @@ namespace QuilvianSystemBackend.Seeders
 
                     ScheduleCode = DefaultScheduleCode,
                     ScheduleName = "Jadwal Default RSMMC",
-
-                    UserId = null,
-                    UserType = null,
-                    DepartmentId = null,
-                    PositionId = null,
+                    ScheduleType = "NonShift",
 
                     WorkStartTime = new TimeOnly(8, 0, 0),
                     WorkEndTime = new TimeOnly(17, 0, 0),
+                    IsOvernight = false,
 
                     CheckInToleranceMinutes = 15,
                     CheckOutToleranceMinutes = 0,
-
-                    EffectiveStartDate = null,
-                    EffectiveEndDate = null,
 
                     IsDefault = true,
                     IsActive = true,
@@ -112,6 +106,12 @@ namespace QuilvianSystemBackend.Seeders
                 needUpdate = true;
             }
 
+            if (string.IsNullOrWhiteSpace(existingSchedule.ScheduleType))
+            {
+                existingSchedule.ScheduleType = "NonShift";
+                needUpdate = true;
+            }
+
             if (existingSchedule.WorkStartTime == default)
             {
                 existingSchedule.WorkStartTime = new TimeOnly(8, 0, 0);
@@ -121,6 +121,14 @@ namespace QuilvianSystemBackend.Seeders
             if (existingSchedule.WorkEndTime == default)
             {
                 existingSchedule.WorkEndTime = new TimeOnly(17, 0, 0);
+                needUpdate = true;
+            }
+
+            var shouldBeOvernight = existingSchedule.WorkEndTime <= existingSchedule.WorkStartTime;
+
+            if (existingSchedule.IsOvernight != shouldBeOvernight)
+            {
+                existingSchedule.IsOvernight = shouldBeOvernight;
                 needUpdate = true;
             }
 
