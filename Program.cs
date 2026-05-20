@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -133,7 +134,6 @@ builder.Services
     });
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddDataProtection();
 
 builder.Services.AddScoped<LanguageService>();
 builder.Services.AddScoped<LoggerService>();
@@ -254,6 +254,21 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
 });
+
+var dataProtectionKeysPath =
+    builder.Configuration["DataProtection:KeysPath"] ??
+    "/app/dataprotection-keys";
+
+var dataProtectionApplicationName =
+    builder.Configuration["DataProtection:ApplicationName"] ??
+    "QuilvianSystemBackend";
+
+Directory.CreateDirectory(dataProtectionKeysPath);
+
+builder.Services
+    .AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
+    .SetApplicationName(dataProtectionApplicationName);
 
 var app = builder.Build();
 
