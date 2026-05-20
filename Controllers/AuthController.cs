@@ -340,7 +340,7 @@ namespace QuilvianSystemBackend.Controllers
 
         [HttpGet("fingerprint/candidates")]
         [AllowAnonymous]
-        [ProducesResponseType(typeof(ApiResponse<List<FingerprintCandidateResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetFingerprintCandidates()
         {
             var credentials = await _dbContext.ApplicationUserFingerprintCredentials
@@ -357,10 +357,48 @@ namespace QuilvianSystemBackend.Controllers
 
             var result = new List<FingerprintCandidateResponse>();
 
+            var debugItems = new List<object>();
+            var decryptErrors = new List<object>();
+
             foreach (var credential in credentials)
             {
+                var templateLength = credential.TemplateDataEncrypted == null
+                    ? 0
+                    : credential.TemplateDataEncrypted.Length;
+
+                debugItems.Add(new
+                {
+                    credential.Id,
+                    credential.UserId,
+                    UserEmail = credential.User?.Email,
+                    UserIsActive = credential.User?.IsActive,
+                    credential.FingerPosition,
+                    credential.TemplateFormat,
+                    credential.TemplateVersion,
+                    credential.SampleFormat,
+                    credential.IsPrimary,
+                    credential.IsActive,
+                    credential.IsDelete,
+                    credential.RegisteredAt,
+                    HasTemplate = templateLength > 0,
+                    TemplateLength = templateLength
+                });
+
                 try
                 {
+                    if (credential.TemplateDataEncrypted == null ||
+                        credential.TemplateDataEncrypted.Length == 0)
+                    {
+                        decryptErrors.Add(new
+                        {
+                            credential.Id,
+                            credential.UserId,
+                            Error = "TemplateDataEncrypted kosong."
+                        });
+
+                        continue;
+                    }
+
                     var templateBytes = _fingerprintProtector.Unprotect(
                         credential.TemplateDataEncrypted
                     );
@@ -376,22 +414,33 @@ namespace QuilvianSystemBackend.Controllers
                         FingerprintTemplateBase64 = Convert.ToBase64String(templateBytes)
                     });
                 }
-                catch
+                catch (Exception ex)
                 {
+                    decryptErrors.Add(new
+                    {
+                        credential.Id,
+                        credential.UserId,
+                        credential.TemplateFormat,
+                        credential.SampleFormat,
+                        TemplateLength = templateLength,
+                        ErrorType = ex.GetType().Name,
+                        ErrorMessage = GetFullExceptionMessage(ex)
+                    });
+
                     continue;
                 }
             }
 
-            await _loggerService.InfoAsync(
-                "Auth",
-                "Fingerprint.Candidates",
-                "Mengambil kandidat fingerprint aktif.",
-                new { Count = result.Count }
-            );
-
-            return Ok(ApiResponse<List<FingerprintCandidateResponse>>.Ok(
-                result,
-                "Kandidat fingerprint berhasil diambil."
+            return Ok(ApiResponse<object>.Ok(
+                new
+                {
+                    RawCount = credentials.Count,
+                    ResultCount = result.Count,
+                    RawItems = debugItems,
+                    DecryptErrors = decryptErrors,
+                    Candidates = result
+                },
+                "Debug kandidat fingerprint berhasil diambil."
             ));
         }
 
