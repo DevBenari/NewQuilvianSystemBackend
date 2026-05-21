@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,10 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260521090146_initializeOvertimeReq")]
+    partial class initializeOvertimeReq
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2174,11 +2176,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
-                    b.Property<bool>("IsPrimary")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
                     b.Property<bool>("IsVerified")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -2205,29 +2202,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<DateTime?>("RejectedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("RejectedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("RejectedReason")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
                     b.Property<string>("RequirementCode")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("RevokedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("RevokedReason")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -2235,49 +2212,16 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("UpdateDateTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("VerificationNote")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<int>("VerificationStatus")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<DateTime?>("VerifiedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("VerifiedByUserId")
-                        .HasColumnType("uuid");
-
                     b.Property<Guid>("WorkforceProfileId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RejectedByUserId");
-
-                    b.HasIndex("RevokedByUserId");
-
-                    b.HasIndex("VerifiedByUserId");
-
                     b.HasIndex("WorkforceProfileId");
 
-                    b.HasIndex("ExpiredDate", "IsActive", "IsDelete");
+                    b.HasIndex("WorkforceProfileId", "LicenseType", "LicenseNumber", "IsDelete");
 
-                    b.HasIndex("LicenseType", "ExpiredDate", "VerificationStatus");
-
-                    b.HasIndex("WorkforceProfileId", "LicenseType", "IsPrimary")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false AND \"IsPrimary\" = true");
-
-                    b.HasIndex("WorkforceProfileId", "LicenseType", "LicenseNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("WorkforceProfileId", "IsVerified", "IsActive", "IsDelete");
-
-                    b.HasIndex("WorkforceProfileId", "VerificationStatus", "IsActive", "IsDelete");
+                    b.HasIndex("WorkforceProfileId", "RequirementCode", "IsActive", "IsDelete");
 
                     b.ToTable("WfpCredentialLicense", "public");
                 });
@@ -5150,32 +5094,11 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models.WfpCredentialLicense", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "RejectedByUser")
-                        .WithMany()
-                        .HasForeignKey("RejectedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "RevokedByUser")
-                        .WithMany()
-                        .HasForeignKey("RevokedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "VerifiedByUser")
-                        .WithMany()
-                        .HasForeignKey("VerifiedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstWorkforceProfile", "WorkforceProfile")
                         .WithMany("CredentialLicenses")
                         .HasForeignKey("WorkforceProfileId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("RejectedByUser");
-
-                    b.Navigation("RevokedByUser");
-
-                    b.Navigation("VerifiedByUser");
 
                     b.Navigation("WorkforceProfile");
                 });

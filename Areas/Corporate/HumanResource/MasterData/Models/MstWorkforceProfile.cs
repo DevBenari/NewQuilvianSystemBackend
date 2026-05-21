@@ -81,5 +81,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public WfpInsurance? Insurance { get; set; }
 
         public ICollection<WfpWorkScheduleAssignment> WorkScheduleAssignments { get; set; } = new List<WfpWorkScheduleAssignment>();
+
+        public ICollection<WfpLeaveBalance> LeaveBalances { get; set; } = new List<WfpLeaveBalance>();
+
+        public ICollection<WfpLeaveRequest> LeaveRequests { get; set; } = new List<WfpLeaveRequest>();
+
+        public ICollection<WfpOvertimeRequest> OvertimeRequests { get; set; } = new List<WfpOvertimeRequest>();
     }
 }

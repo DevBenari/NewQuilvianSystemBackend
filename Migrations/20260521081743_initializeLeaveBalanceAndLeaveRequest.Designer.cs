@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,10 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260521081743_initializeLeaveBalanceAndLeaveRequest")]
+    partial class initializeLeaveBalanceAndLeaveRequest
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2174,11 +2176,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
-                    b.Property<bool>("IsPrimary")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
                     b.Property<bool>("IsVerified")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -2205,29 +2202,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<DateTime?>("RejectedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("RejectedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("RejectedReason")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
                     b.Property<string>("RequirementCode")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("RevokedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("RevokedReason")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -2235,49 +2212,16 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("UpdateDateTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("VerificationNote")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<int>("VerificationStatus")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<DateTime?>("VerifiedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("VerifiedByUserId")
-                        .HasColumnType("uuid");
-
                     b.Property<Guid>("WorkforceProfileId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RejectedByUserId");
-
-                    b.HasIndex("RevokedByUserId");
-
-                    b.HasIndex("VerifiedByUserId");
-
                     b.HasIndex("WorkforceProfileId");
 
-                    b.HasIndex("ExpiredDate", "IsActive", "IsDelete");
+                    b.HasIndex("WorkforceProfileId", "LicenseType", "LicenseNumber", "IsDelete");
 
-                    b.HasIndex("LicenseType", "ExpiredDate", "VerificationStatus");
-
-                    b.HasIndex("WorkforceProfileId", "LicenseType", "IsPrimary")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false AND \"IsPrimary\" = true");
-
-                    b.HasIndex("WorkforceProfileId", "LicenseType", "LicenseNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("WorkforceProfileId", "IsVerified", "IsActive", "IsDelete");
-
-                    b.HasIndex("WorkforceProfileId", "VerificationStatus", "IsActive", "IsDelete");
+                    b.HasIndex("WorkforceProfileId", "RequirementCode", "IsActive", "IsDelete");
 
                     b.ToTable("WfpCredentialLicense", "public");
                 });
@@ -2942,198 +2886,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("WorkforceProfileId", "DepartmentId", "PositionId", "IsActive", "IsDelete");
 
                     b.ToTable("WfpOrganizationAssignment", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models.WfpOvertimeRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("ActualCheckInAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ActualCheckOutAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ApprovalNote")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<int>("ApprovalStatus")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1);
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ApprovedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AttachmentContentType")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("AttachmentPath")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid?>("AttendanceId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CancelReason")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<DateTime?>("CancelledAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CancelledByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<TimeOnly>("EndTime")
-                        .HasColumnType("time without time zone");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsOvernight")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsPayrollProcessed")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime>("OvertimeDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("PayrollPeriodCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("PayrollProcessedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("PayrollProcessedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("RejectedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("RejectedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("RejectedReason")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<DateTime>("RequestedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<TimeOnly?>("ScheduledEndTime")
-                        .HasColumnType("time without time zone");
-
-                    b.Property<TimeOnly?>("ScheduledStartTime")
-                        .HasColumnType("time without time zone");
-
-                    b.Property<TimeOnly>("StartTime")
-                        .HasColumnType("time without time zone");
-
-                    b.Property<int>("TotalMinutes")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("WorkScheduleAssignmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("WorkScheduleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApprovedByUserId");
-
-                    b.HasIndex("AttendanceId");
-
-                    b.HasIndex("CancelledByUserId");
-
-                    b.HasIndex("PayrollProcessedByUserId");
-
-                    b.HasIndex("RejectedByUserId");
-
-                    b.HasIndex("WorkScheduleAssignmentId");
-
-                    b.HasIndex("WorkScheduleId");
-
-                    b.HasIndex("WorkforceProfileId");
-
-                    b.HasIndex("AttendanceId", "IsDelete");
-
-                    b.HasIndex("PayrollPeriodCode", "IsPayrollProcessed", "IsDelete");
-
-                    b.HasIndex("WorkScheduleId", "OvertimeDate", "IsDelete");
-
-                    b.HasIndex("ApprovalStatus", "IsPayrollProcessed", "IsActive", "IsDelete");
-
-                    b.HasIndex("WorkforceProfileId", "OvertimeDate", "ApprovalStatus", "IsDelete");
-
-                    b.HasIndex("WorkforceProfileId", "OvertimeDate", "StartTime", "EndTime")
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.ToTable("WfpOvertimeRequest", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models.WfpPayroll", b =>
@@ -5150,32 +4902,11 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models.WfpCredentialLicense", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "RejectedByUser")
-                        .WithMany()
-                        .HasForeignKey("RejectedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "RevokedByUser")
-                        .WithMany()
-                        .HasForeignKey("RevokedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "VerifiedByUser")
-                        .WithMany()
-                        .HasForeignKey("VerifiedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstWorkforceProfile", "WorkforceProfile")
                         .WithMany("CredentialLicenses")
                         .HasForeignKey("WorkforceProfileId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("RejectedByUser");
-
-                    b.Navigation("RevokedByUser");
-
-                    b.Navigation("VerifiedByUser");
 
                     b.Navigation("WorkforceProfile");
                 });
@@ -5265,66 +4996,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Department");
 
                     b.Navigation("Position");
-
-                    b.Navigation("WorkforceProfile");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models.WfpOvertimeRequest", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
-                        .WithMany()
-                        .HasForeignKey("ApprovedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models.EmpAttendance", "Attendance")
-                        .WithMany()
-                        .HasForeignKey("AttendanceId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CancelledByUser")
-                        .WithMany()
-                        .HasForeignKey("CancelledByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PayrollProcessedByUser")
-                        .WithMany()
-                        .HasForeignKey("PayrollProcessedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "RejectedByUser")
-                        .WithMany()
-                        .HasForeignKey("RejectedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models.WfpWorkScheduleAssignment", "WorkScheduleAssignment")
-                        .WithMany()
-                        .HasForeignKey("WorkScheduleAssignmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstWorkSchedule", "WorkSchedule")
-                        .WithMany()
-                        .HasForeignKey("WorkScheduleId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany("OvertimeRequests")
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ApprovedByUser");
-
-                    b.Navigation("Attendance");
-
-                    b.Navigation("CancelledByUser");
-
-                    b.Navigation("PayrollProcessedByUser");
-
-                    b.Navigation("RejectedByUser");
-
-                    b.Navigation("WorkSchedule");
-
-                    b.Navigation("WorkScheduleAssignment");
 
                     b.Navigation("WorkforceProfile");
                 });
@@ -5649,8 +5320,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("LeaveRequests");
 
                     b.Navigation("OrganizationAssignments");
-
-                    b.Navigation("OvertimeRequests");
 
                     b.Navigation("Payroll");
 

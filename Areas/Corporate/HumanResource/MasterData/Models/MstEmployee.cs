@@ -27,15 +27,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public string FullName { get; set; } = string.Empty;
 
         [MaxLength(100)]
-        public string? NickName { get; set; }
-
-        public Gender? Gender { get; set; }
+        public string? NickName { get; set; }        
 
         [MaxLength(100)]
         public string? BirthPlace { get; set; }
 
         [Required]
         public DateTime BirthDate { get; set; }
+
+        public Gender? Gender { get; set; }
 
         public Religion Religion { get; set; } = Religion.Unknown;
 
@@ -80,13 +80,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         [Required]
         public Guid PrimaryPositionId { get; set; }
 
-        public EmployeeStatus EmployeeStatus { get; set; } = EmployeeStatus.Contract;
+        public EmployeeStatus EmployeeStatus { get; set; } = EmployeeStatus.Active;
 
         public EmployeeProfessionType ProfessionType { get; set; } = EmployeeProfessionType.GeneralStaff;
 
-        [Required]
-        [MaxLength(50)]
-        public string EmploymentType { get; set; } = string.Empty;
+        public EmploymentType EmploymentType { get; set; } = EmploymentType.Contract;
 
         [MaxLength(50)]
         public string? GradeLevel { get; set; }

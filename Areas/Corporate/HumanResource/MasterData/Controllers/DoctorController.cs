@@ -16,26 +16,26 @@ using QuilvianSystemBackend.Services.Logging;
 using System.Globalization;
 using System.Security.Claims;
 
-using ResponseEmployeePagedResult =
+using ResponseDoctorPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs.EmployeeResponse>;
+        QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs.DoctorResponse>;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/corporate/human-resource/master-data/employees")]
+    [Route("api/v1/corporate/human-resource/master-data/doctors")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_MASTER_DATA",
         moduleName: "Human Resource Master Data",
-        displayName: "Employee",
+        displayName: "Doctor",
         AreaName = "Corporate",
-        ControllerName = "Employee",
-        Description = "Corporate human resource master data employee",
-        SortOrder = 4
+        ControllerName = "Doctor",
+        Description = "Corporate human resource master data doctor",
+        SortOrder = 5
     )]
-    [Tags("Corporate / Human Resource / Master Data / Employee")]
-    public class EmployeeController : ControllerBase
+    [Tags("Corporate / Human Resource / Master Data / Doctor")]
+    public class DoctorController : ControllerBase
     {
         private const string DefaultProfilePhotoPath = "http://103.153.60.136:5050/uploads/default-photo/user.jpeg";
         private const string LogCategory = "Corporate.HumanResource.MasterData";
@@ -45,7 +45,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         private readonly LoggerService _loggerService;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public EmployeeController(
+        public DoctorController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             UserManager<ApplicationUser> userManager)
@@ -55,9 +55,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             _userManager = userManager;
         }
 
-        private static List<EmployeeDetailTabMetadataResponse> BuildEmployeeDetailTabs()
+        private static List<DoctorDetailTabMetadataResponse> BuildDoctorDetailTabs()
         {
-            return new List<EmployeeDetailTabMetadataResponse>
+            return new List<DoctorDetailTabMetadataResponse>
             {
                 new()
                 {
@@ -74,10 +74,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 },
                 new()
                 {
-                    Key = "documents",
-                    Label = "Documents",
-                    Icon = "document",
-                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/documents",
+                    Key = "credentialLicense",
+                    Label = "Credential License",
+                    Icon = "license",
+                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/credential-licenses",
                     IsVisibleInDetail = true,
                     IsVisibleInUpdate = true,
                     CanCreate = true,
@@ -87,29 +87,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 },
                 new()
                 {
-                    Key = "education",
-                    Label = "Education",
-                    Icon = "education",
-                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/educations",
+                    Key = "clinicalPrivilege",
+                    Label = "Clinical Privilege",
+                    Icon = "privilege",
+                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/clinical-privileges",
                     IsVisibleInDetail = true,
                     IsVisibleInUpdate = true,
                     CanCreate = true,
                     CanUpdate = true,
                     CanDelete = true,
                     SortOrder = 3
-                },
-                new()
-                {
-                    Key = "training",
-                    Label = "Training",
-                    Icon = "training",
-                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/training-records",
-                    IsVisibleInDetail = true,
-                    IsVisibleInUpdate = true,
-                    CanCreate = true,
-                    CanUpdate = true,
-                    CanDelete = true,
-                    SortOrder = 4
                 },
                 new()
                 {
@@ -122,20 +109,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     CanCreate = true,
                     CanUpdate = true,
                     CanDelete = true,
+                    SortOrder = 4
+                },
+                new()
+                {
+                    Key = "documents",
+                    Label = "Documents",
+                    Icon = "document",
+                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/documents",
+                    IsVisibleInDetail = true,
+                    IsVisibleInUpdate = true,
+                    CanCreate = true,
+                    CanUpdate = true,
+                    CanDelete = true,
                     SortOrder = 5
                 },
                 new()
                 {
-                    Key = "credentialLicense",
-                    Label = "Credential License",
-                    Icon = "license",
-                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/credential-licenses",
+                    Key = "education",
+                    Label = "Education",
+                    Icon = "education",
+                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/educations",
                     IsVisibleInDetail = true,
                     IsVisibleInUpdate = true,
                     CanCreate = true,
                     CanUpdate = true,
                     CanDelete = true,
                     SortOrder = 6
+                },
+                new()
+                {
+                    Key = "training",
+                    Label = "Training",
+                    Icon = "training",
+                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/training-records",
+                    IsVisibleInDetail = true,
+                    IsVisibleInUpdate = true,
+                    CanCreate = true,
+                    CanUpdate = true,
+                    CanDelete = true,
+                    SortOrder = 7
                 },
                 new()
                 {
@@ -148,72 +161,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     CanCreate = true,
                     CanUpdate = true,
                     CanDelete = true,
-                    SortOrder = 7
-                },
-                new()
-                {
-                    Key = "transportAllowance",
-                    Label = "Transport",
-                    Icon = "transport",
-                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/transport-allowance",
-                    IsVisibleInDetail = true,
-                    IsVisibleInUpdate = true,
-                    CanCreate = false,
-                    CanUpdate = true,
-                    CanDelete = false,
                     SortOrder = 8
                 },
                 new()
                 {
-                    Key = "payroll",
-                    Label = "Payroll",
-                    Icon = "payroll",
-                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/payroll-profile",
+                    Key = "schedule",
+                    Label = "Schedule",
+                    Icon = "schedule",
+                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/work-schedules",
                     IsVisibleInDetail = true,
                     IsVisibleInUpdate = true,
-                    CanCreate = false,
+                    CanCreate = true,
                     CanUpdate = true,
-                    CanDelete = false,
+                    CanDelete = true,
                     SortOrder = 9
-                },
-                new()
-                {
-                    Key = "tax",
-                    Label = "Tax",
-                    Icon = "tax",
-                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/tax-profile",
-                    IsVisibleInDetail = true,
-                    IsVisibleInUpdate = true,
-                    CanCreate = false,
-                    CanUpdate = true,
-                    CanDelete = false,
-                    SortOrder = 10
-                },
-                new()
-                {
-                    Key = "insurance",
-                    Label = "Insurance",
-                    Icon = "insurance",
-                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/insurance-profile",
-                    IsVisibleInDetail = true,
-                    IsVisibleInUpdate = true,
-                    CanCreate = false,
-                    CanUpdate = true,
-                    CanDelete = false,
-                    SortOrder = 11
                 },
                 new()
                 {
                     Key = "attendance",
                     Label = "Attendance",
                     Icon = "attendance",
-                    Endpoint = "/api/v1/corporate/human-resource/master-data/employees/{employeeId}/attendance",
+                    Endpoint = "/api/v1/corporate/human-resource/master-data/doctors/{doctorId}/attendance",
                     IsVisibleInDetail = true,
                     IsVisibleInUpdate = false,
                     CanCreate = false,
                     CanUpdate = false,
                     CanDelete = false,
-                    SortOrder = 12
+                    SortOrder = 10
                 }
             }
             .OrderBy(x => x.SortOrder)
@@ -221,27 +195,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet("filters/metadata")]
-        [ProducesResponseType(typeof(ApiResponse<EmployeeFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DoctorFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
-            "Read Employee",
-            Description = "Melihat data employee",
+            "Read Doctor",
+            Description = "Melihat data doctor",
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Employee", "Read")]
+        [AccessPermission("Doctor", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
-            var result = new EmployeeFilterMetadataResponse
+            var result = new DoctorFilterMetadataResponse
             {
-                DefaultFilter = new EmployeeDefaultFilterResponse
+                DefaultFilter = new DoctorDefaultFilterResponse
                 {
                     StartDate = null,
                     EndDate = null,
                     CustomPeriod = null,
                     Search = null,
-                    HasUserAccount = null,
                     IsActive = null,
+                    IsAvailableForAppointment = null,
                     DepartmentId = null,
                     PositionId = null,
                     CountryId = null,
@@ -249,132 +223,125 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     CityId = null,
                     DistrictId = null,
                     PostalCodeId = null,
-                    EmployeeStatus = null,
-                    ProfessionType = null,
+                    WorkforceUserType = null,
+                    DoctorStatus = null,
+                    DoctorType = null,
+                    PracticeType = null,
                     EmploymentType = null,
                     Religion = null,
                     MaritalStatus = null,
                     BloodType = null,
-                    HasTransportAllowanceProfile = null,
+                    HasUserAccount = null,
                     SortBy = "createDateTime",
                     SortDirection = "desc",
                     PageNumber = 1,
                     PageSize = 25
                 },
                 CustomPeriods = BuildCustomPeriodOptions(),
-                SortOptions = new List<EmployeeSortOptionResponse>
+                SortOptions = new List<DoctorSortOptionResponse>
                 {
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
-                    new() { Value = "employeeCode", Label = "Kode employee" },
-                    new() { Value = "employeeNumber", Label = "Nomor employee" },
-                    new() { Value = "fullName", Label = "Nama employee" },
+                    new() { Value = "doctorCode", Label = "Kode doctor" },
+                    new() { Value = "doctorNumber", Label = "Nomor doctor" },
+                    new() { Value = "fullName", Label = "Nama doctor" },
                     new() { Value = "departmentName", Label = "Nama department" },
                     new() { Value = "positionName", Label = "Nama position" },
+                    new() { Value = "specialistName", Label = "Spesialis" },
                     new() { Value = "joinDate", Label = "Tanggal bergabung" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                WorkforceUserTypeOptions = BuildDoctorUserTypeOptions(),
                 GenderOptions = BuildEnumOptions<Gender>(),
                 ReligionOptions = BuildEnumOptions<Religion>(),
                 MaritalStatusOptions = BuildEnumOptions<MaritalStatus>(),
                 BloodTypeOptions = BuildEnumOptions<BloodType>(),
-                EmployeeStatusOptions = BuildEnumOptions<EmployeeStatus>(),
-                ProfessionTypeOptions = BuildEnumOptions<EmployeeProfessionType>(),
+                DoctorStatusOptions = BuildEnumOptions<DoctorStatus>(),
+                DoctorTypeOptions = BuildEnumOptions<DoctorType>(),
+                PracticeTypeOptions = BuildEnumOptions<DoctorPracticeType>(),
                 EmploymentTypeOptions = BuildEnumOptions<EmploymentType>(),
-                TransportAllowanceModes = new List<string> { "None", "FixedMonthly", "DailyAttendance", "NightShift", "MonthlyAndNightShift", "Manual" },
-                TransportTransactionStatuses = new List<string> { "Draft", "Calculated", "Approved", "PostedToPayroll", "Cancelled" },
-                TransportAllowanceTypes = new List<string> { "Regular", "Monthly", "Night", "Adjustment", "Manual" },
                 QueryParameters = BuildQueryParameterInfo(),
-                CreateFields = BuildCreateEmployeeFieldMetadata(),
-                UpdateFields = BuildUpdateEmployeeFieldMetadata(),
-                DetailTabs = BuildEmployeeDetailTabs()
+                CreateFields = BuildCreateDoctorFieldMetadata(),
+                UpdateFields = BuildUpdateDoctorFieldMetadata(),
+                DetailTabs = BuildDoctorDetailTabs()
             };
 
             await _loggerService.InfoAsync(
                 LogCategory,
-                "Employee.GetFilterMetadata",
-                "Mengambil metadata filter employee.",
+                "Doctor.GetFilterMetadata",
+                "Mengambil metadata filter doctor.",
                 result
             );
 
-            return Ok(ApiResponse<EmployeeFilterMetadataResponse>.Ok(
+            return Ok(ApiResponse<DoctorFilterMetadataResponse>.Ok(
                 result,
-                "Metadata filter employee berhasil diambil."
+                "Metadata filter doctor berhasil diambil."
             ));
         }
 
         [HttpGet("summary")]
-        [ProducesResponseType(typeof(ApiResponse<EmployeeSummaryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DoctorSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
-            "Read Employee",
-            Description = "Melihat data employee",
+            "Read Doctor",
+            Description = "Melihat data doctor",
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Employee", "Read")]
+        [AccessPermission("Doctor", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var employeeQuery = _dbContext.Set<MstEmployee>()
+            var doctorQuery = _dbContext.Set<MstDoctor>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
-            var transportProfileQuery = _dbContext.Set<WfpTransportAllowance>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
-
-            var result = new EmployeeSummaryResponse
+            var result = new DoctorSummaryResponse
             {
-                TotalEmployee = await employeeQuery.CountAsync(),
-                ActiveEmployee = await employeeQuery.CountAsync(x => x.IsActive),
-                InactiveEmployee = await employeeQuery.CountAsync(x => !x.IsActive),
-                EmployeeWithTransportAllowanceProfile = await employeeQuery.CountAsync(x =>
-                    x.WorkforceProfileId != Guid.Empty &&
-                    transportProfileQuery.Any(t => t.WorkforceProfileId == x.WorkforceProfileId)),
-                TransportEligibleEmployee = await employeeQuery.CountAsync(x =>
-                    x.WorkforceProfileId != Guid.Empty &&
-                    transportProfileQuery.Any(t =>
-                        t.WorkforceProfileId == x.WorkforceProfileId &&
-                        t.IsEligible &&
-                        t.IsActive)),
-                NightTransportEligibleEmployee = await employeeQuery.CountAsync(x =>
-                    x.WorkforceProfileId != Guid.Empty &&
-                    transportProfileQuery.Any(t =>
-                        t.WorkforceProfileId == x.WorkforceProfileId &&
-                        t.IsNightTransportEligible &&
-                        t.IsActive))
+                TotalDoctor = await doctorQuery.CountAsync(),
+                ActiveDoctor = await doctorQuery.CountAsync(x => x.IsActive),
+                InactiveDoctor = await doctorQuery.CountAsync(x => !x.IsActive),
+                AvailableForAppointmentDoctor = await doctorQuery.CountAsync(x => x.IsAvailableForAppointment && x.IsActive),
+                PermanentDoctor = await doctorQuery.CountAsync(x => x.WorkforceProfile != null && x.WorkforceProfile.UserType == UserType.PermanentDoctor),
+                GuestDoctor = await doctorQuery.CountAsync(x => x.WorkforceProfile != null && x.WorkforceProfile.UserType == UserType.GuestDoctor),
+                DoctorWithUserAccount = await doctorQuery.CountAsync(x =>
+                    _dbContext.Users.Any(u =>
+                        u.DoctorId == x.Id &&
+                        (u.UserType == UserType.PermanentDoctor || u.UserType == UserType.GuestDoctor))),
+                CredentialingPendingDoctor = await doctorQuery.CountAsync(x => x.DoctorStatus == DoctorStatus.CredentialingPending),
+                PrivilegeSuspendedDoctor = await doctorQuery.CountAsync(x => x.DoctorStatus == DoctorStatus.PrivilegeSuspended)
             };
 
             await _loggerService.InfoAsync(
                 LogCategory,
-                "Employee.GetSummary",
-                "Mengambil ringkasan data employee.",
+                "Doctor.GetSummary",
+                "Mengambil ringkasan data doctor.",
                 result
             );
 
-            return Ok(ApiResponse<EmployeeSummaryResponse>.Ok(
+            return Ok(ApiResponse<DoctorSummaryResponse>.Ok(
                 result,
-                "Ringkasan employee berhasil diambil."
+                "Ringkasan doctor berhasil diambil."
             ));
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse<ResponseEmployeePagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ResponseDoctorPagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
-            "Read Employee",
-            Description = "Melihat data employee",
+            "Read Doctor",
+            Description = "Melihat data doctor",
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Employee", "Read")]
-        public async Task<IActionResult> GetEmployees(
+        [AccessPermission("Doctor", "Read")]
+        public async Task<IActionResult> GetDoctors(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
             [FromQuery] string? search,
             [FromQuery] bool? isActive,
+            [FromQuery] bool? isAvailableForAppointment,
             [FromQuery] Guid? departmentId,
             [FromQuery] Guid? positionId,
             [FromQuery] Guid? countryId,
@@ -382,13 +349,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             [FromQuery] Guid? cityId,
             [FromQuery] Guid? districtId,
             [FromQuery] Guid? postalCodeId,
-            [FromQuery] EmployeeStatus? employeeStatus,
-            [FromQuery] EmployeeProfessionType? professionType,
+            [FromQuery] UserType? workforceUserType,
+            [FromQuery] DoctorStatus? doctorStatus,
+            [FromQuery] DoctorType? doctorType,
+            [FromQuery] DoctorPracticeType? practiceType,
             [FromQuery] EmploymentType? employmentType,
             [FromQuery] Religion? religion,
             [FromQuery] MaritalStatus? maritalStatus,
             [FromQuery] BloodType? bloodType,
-            [FromQuery] bool? hasTransportAllowanceProfile,
             [FromQuery] bool? hasUserAccount,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
@@ -409,7 +377,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
-            var query = _dbContext.Set<MstEmployee>()
+            if (workforceUserType.HasValue && !IsDoctorUserType(workforceUserType.Value))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "workforceUserType doctor hanya boleh PermanentDoctor atau GuestDoctor."
+                ));
+            }
+
+            var query = _dbContext.Set<MstDoctor>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
@@ -428,14 +404,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 var keyword = search.Trim().ToLower();
 
                 query = query.Where(x =>
-                    x.EmployeeCode.ToLower().Contains(keyword) ||
-                    x.EmployeeNumber.ToLower().Contains(keyword) ||
+                    x.DoctorCode.ToLower().Contains(keyword) ||
+                    x.DoctorNumber.ToLower().Contains(keyword) ||
                     x.FullName.ToLower().Contains(keyword) ||
                     (x.NickName != null && x.NickName.ToLower().Contains(keyword)) ||
                     (x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(keyword)) ||
                     (x.WhatsAppNumber != null && x.WhatsAppNumber.ToLower().Contains(keyword)) ||
                     (x.Email != null && x.Email.ToLower().Contains(keyword)) ||
                     (x.IdentityNumber != null && x.IdentityNumber.ToLower().Contains(keyword)) ||
+                    (x.SpecialistName != null && x.SpecialistName.ToLower().Contains(keyword)) ||
+                    (x.SubSpecialistName != null && x.SubSpecialistName.ToLower().Contains(keyword)) ||
+                    (x.MedicalStaffGroup != null && x.MedicalStaffGroup.ToLower().Contains(keyword)) ||
                     (x.PrimaryDepartment != null && x.PrimaryDepartment.DepartmentCode.ToLower().Contains(keyword)) ||
                     (x.PrimaryDepartment != null && x.PrimaryDepartment.DepartmentName.ToLower().Contains(keyword)) ||
                     (x.PrimaryPosition != null && x.PrimaryPosition.PositionCode.ToLower().Contains(keyword)) ||
@@ -451,6 +430,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             if (isActive.HasValue)
             {
                 query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
+            if (isAvailableForAppointment.HasValue)
+            {
+                query = query.Where(x => x.IsAvailableForAppointment == isAvailableForAppointment.Value);
             }
 
             if (departmentId.HasValue && departmentId.Value != Guid.Empty)
@@ -488,14 +472,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 query = query.Where(x => x.PostalCodeId == postalCodeId.Value);
             }
 
-            if (employeeStatus.HasValue)
+            if (workforceUserType.HasValue)
             {
-                query = query.Where(x => x.EmployeeStatus == employeeStatus.Value);
+                query = query.Where(x =>
+                    x.WorkforceProfile != null &&
+                    x.WorkforceProfile.UserType == workforceUserType.Value);
             }
 
-            if (professionType.HasValue)
+            if (doctorStatus.HasValue)
             {
-                query = query.Where(x => x.ProfessionType == professionType.Value);
+                query = query.Where(x => x.DoctorStatus == doctorStatus.Value);
+            }
+
+            if (doctorType.HasValue)
+            {
+                query = query.Where(x => x.DoctorType == doctorType.Value);
+            }
+
+            if (practiceType.HasValue)
+            {
+                query = query.Where(x => x.PracticeType == practiceType.Value);
             }
 
             if (employmentType.HasValue)
@@ -518,57 +514,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 query = query.Where(x => x.BloodType == bloodType.Value);
             }
 
-            if (hasTransportAllowanceProfile.HasValue)
-            {
-                if (hasTransportAllowanceProfile.Value)
-                {
-                    query = query.Where(x =>
-                        x.WorkforceProfileId != Guid.Empty &&
-                        _dbContext.Set<WfpTransportAllowance>()
-                            .Any(t =>
-                                t.WorkforceProfileId == x.WorkforceProfileId &&
-                                !t.IsDelete));
-                }
-                else
-                {
-                    query = query.Where(x =>
-                        x.WorkforceProfileId == Guid.Empty ||
-                        !_dbContext.Set<WfpTransportAllowance>()
-                            .Any(t =>
-                                t.WorkforceProfileId == x.WorkforceProfileId &&
-                                !t.IsDelete));
-                }
-            }
-
             if (hasUserAccount.HasValue)
             {
                 if (hasUserAccount.Value)
                 {
                     query = query.Where(x =>
                         _dbContext.Users.Any(u =>
-                            u.EmployeeId == x.Id &&
-                            u.UserType == UserType.Employee));
+                            u.DoctorId == x.Id &&
+                            (u.UserType == UserType.PermanentDoctor || u.UserType == UserType.GuestDoctor)));
                 }
                 else
                 {
                     query = query.Where(x =>
                         !_dbContext.Users.Any(u =>
-                            u.EmployeeId == x.Id &&
-                            u.UserType == UserType.Employee));
+                            u.DoctorId == x.Id &&
+                            (u.UserType == UserType.PermanentDoctor || u.UserType == UserType.GuestDoctor)));
                 }
             }
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplyEmployeeSorting(query, sortBy, sortDirection)
+            var items = await ApplyDoctorSorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new EmployeeResponse
+                .Select(x => new DoctorResponse
                 {
                     Id = x.Id,
                     WorkforceProfileId = x.WorkforceProfileId,
-                    EmployeeCode = x.EmployeeCode,
-                    EmployeeNumber = x.EmployeeNumber,
+                    WorkforceUserType = x.WorkforceProfile != null ? x.WorkforceProfile.UserType : UserType.GuestDoctor,
+                    DoctorCode = x.DoctorCode,
+                    DoctorNumber = x.DoctorNumber,
                     FullName = x.FullName,
                     NickName = x.NickName,
                     Gender = x.Gender,
@@ -595,28 +570,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     PrimaryPositionCode = x.PrimaryPosition != null ? x.PrimaryPosition.PositionCode : string.Empty,
                     PrimaryPositionName = x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty,
 
-                    EmployeeStatus = x.EmployeeStatus,
-                    ProfessionType = x.ProfessionType,
+                    DoctorStatus = x.DoctorStatus,
+                    DoctorType = x.DoctorType,
+                    PracticeType = x.PracticeType,
                     EmploymentType = x.EmploymentType,
+                    SpecialistName = x.SpecialistName,
+                    SubSpecialistName = x.SubSpecialistName,
+                    MedicalStaffGroup = x.MedicalStaffGroup,
                     GradeLevel = x.GradeLevel,
                     WorkLocation = x.WorkLocation,
                     JoinDate = x.JoinDate,
                     ContractEndDate = x.ContractEndDate,
                     ResignDate = x.ResignDate,
+                    CredentialingDate = x.CredentialingDate,
+                    IsAvailableForAppointment = x.IsAvailableForAppointment,
                     HasUserAccount = _dbContext.Users.Any(u =>
-                        u.EmployeeId == x.Id &&
-                        u.UserType == UserType.Employee),
-                    HasTransportAllowanceProfile = x.WorkforceProfileId != Guid.Empty &&
-                        _dbContext.Set<WfpTransportAllowance>()
-                            .Any(t =>
-                                t.WorkforceProfileId == x.WorkforceProfileId &&
-                                !t.IsDelete),
+                        u.DoctorId == x.Id &&
+                        (u.UserType == UserType.PermanentDoctor || u.UserType == UserType.GuestDoctor)),
                     IsActive = x.IsActive,
                     CreateDateTime = x.CreateDateTime
                 })
                 .ToListAsync();
 
-            var result = new ResponseEmployeePagedResult
+            var result = new ResponseDoctorPagedResult
             {
                 PageNumber = pageNumber,
                 PageSize = pageSize,
@@ -627,8 +603,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             await _loggerService.InfoAsync(
                 LogCategory,
-                "Employee.GetEmployees",
-                "Mengambil data employee.",
+                "Doctor.GetDoctors",
+                "Mengambil data doctor.",
                 new
                 {
                     startDate,
@@ -638,6 +614,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     AppliedEndExclusive = dateRange.EndExclusive,
                     search,
                     isActive,
+                    isAvailableForAppointment,
                     departmentId,
                     positionId,
                     countryId,
@@ -645,13 +622,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     cityId,
                     districtId,
                     postalCodeId,
-                    employeeStatus,
-                    professionType,
+                    workforceUserType,
+                    doctorStatus,
+                    doctorType,
+                    practiceType,
+                    employmentType,
                     religion,
                     maritalStatus,
                     bloodType,
                     hasUserAccount,
-                    hasTransportAllowanceProfile,
                     sortBy,
                     sortDirection,
                     pageNumber,
@@ -660,35 +639,50 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 }
             );
 
-            return Ok(ApiResponse<ResponseEmployeePagedResult>.Ok(
+            return Ok(ApiResponse<ResponseDoctorPagedResult>.Ok(
                 result,
-                "Data employee berhasil diambil."
+                "Data doctor berhasil diambil."
             ));
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<EmployeeOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<List<DoctorOptionResponse>>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
-            "Read Employee",
-            Description = "Melihat data employee",
+            "Read Doctor",
+            Description = "Melihat data doctor",
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Employee", "Read")]
-        public async Task<IActionResult> GetEmployeeOptions(
+        [AccessPermission("Doctor", "Read")]
+        public async Task<IActionResult> GetDoctorOptions(
             [FromQuery] Guid? departmentId,
             [FromQuery] Guid? positionId,
+            [FromQuery] UserType? workforceUserType,
             [FromQuery] bool onlyActive = true,
+            [FromQuery] bool onlyAvailableForAppointment = false,
             [FromQuery] string? search = null)
         {
-            var query = _dbContext.Set<MstEmployee>()
+            if (workforceUserType.HasValue && !IsDoctorUserType(workforceUserType.Value))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "workforceUserType doctor hanya boleh PermanentDoctor atau GuestDoctor."
+                ));
+            }
+
+            var query = _dbContext.Set<MstDoctor>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
             if (onlyActive)
             {
                 query = query.Where(x => x.IsActive);
+            }
+
+            if (onlyAvailableForAppointment)
+            {
+                query = query.Where(x => x.IsAvailableForAppointment);
             }
 
             if (departmentId.HasValue && departmentId.Value != Guid.Empty)
@@ -701,59 +695,74 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 query = query.Where(x => x.PrimaryPositionId == positionId.Value);
             }
 
+            if (workforceUserType.HasValue)
+            {
+                query = query.Where(x =>
+                    x.WorkforceProfile != null &&
+                    x.WorkforceProfile.UserType == workforceUserType.Value);
+            }
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
 
                 query = query.Where(x =>
-                    x.EmployeeCode.ToLower().Contains(keyword) ||
-                    x.EmployeeNumber.ToLower().Contains(keyword) ||
-                    x.FullName.ToLower().Contains(keyword));
+                    x.DoctorCode.ToLower().Contains(keyword) ||
+                    x.DoctorNumber.ToLower().Contains(keyword) ||
+                    x.FullName.ToLower().Contains(keyword) ||
+                    (x.SpecialistName != null && x.SpecialistName.ToLower().Contains(keyword)) ||
+                    (x.SubSpecialistName != null && x.SubSpecialistName.ToLower().Contains(keyword)));
             }
 
             var data = await query
                 .OrderBy(x => x.FullName)
-                .Select(x => new EmployeeOptionResponse
+                .Select(x => new DoctorOptionResponse
                 {
                     Id = x.Id,
-                    EmployeeCode = x.EmployeeCode,
-                    EmployeeNumber = x.EmployeeNumber,
+                    WorkforceProfileId = x.WorkforceProfileId,
+                    WorkforceUserType = x.WorkforceProfile != null ? x.WorkforceProfile.UserType : UserType.GuestDoctor,
+                    DoctorCode = x.DoctorCode,
+                    DoctorNumber = x.DoctorNumber,
                     FullName = x.FullName,
+                    SpecialistName = x.SpecialistName,
+                    SubSpecialistName = x.SubSpecialistName,
                     PrimaryDepartmentId = x.PrimaryDepartmentId,
                     PrimaryDepartmentName = x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentName : string.Empty,
                     PrimaryPositionId = x.PrimaryPositionId,
-                    PrimaryPositionName = x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty
+                    PrimaryPositionName = x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty,
+                    IsAvailableForAppointment = x.IsAvailableForAppointment
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<EmployeeOptionResponse>>.Ok(
+            return Ok(ApiResponse<List<DoctorOptionResponse>>.Ok(
                 data,
-                "Data pilihan employee berhasil diambil."
+                "Data pilihan doctor berhasil diambil."
             ));
         }
 
         [HttpGet("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<EmployeeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DoctorDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
             "Read",
-            "Read Employee",
-            Description = "Melihat data employee",
+            "Read Doctor",
+            Description = "Melihat data doctor",
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Employee", "Read")]
-        public async Task<IActionResult> GetEmployeeById(Guid id)
+        [AccessPermission("Doctor", "Read")]
+        public async Task<IActionResult> GetDoctorById(Guid id)
         {
-            var data = await _dbContext.Set<MstEmployee>()
+            var data = await _dbContext.Set<MstDoctor>()
                 .AsNoTracking()
                 .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new EmployeeDetailResponse
+                .Select(x => new DoctorDetailResponse
                 {
                     Id = x.Id,
                     WorkforceProfileId = x.WorkforceProfileId,
-                    EmployeeCode = x.EmployeeCode,
-                    EmployeeNumber = x.EmployeeNumber,
+                    WorkforceUserType = x.WorkforceProfile != null ? x.WorkforceProfile.UserType : UserType.GuestDoctor,
+                    DoctorCode = x.DoctorCode,
+                    DoctorNumber = x.DoctorNumber,
                     FullName = x.FullName,
                     NickName = x.NickName,
                     Gender = x.Gender,
@@ -788,9 +797,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     PrimaryPositionCode = x.PrimaryPosition != null ? x.PrimaryPosition.PositionCode : string.Empty,
                     PrimaryPositionName = x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty,
 
-                    EmployeeStatus = x.EmployeeStatus,
-                    ProfessionType = x.ProfessionType,
+                    DoctorStatus = x.DoctorStatus,
+                    DoctorType = x.DoctorType,
+                    PracticeType = x.PracticeType,
                     EmploymentType = x.EmploymentType,
+                    SpecialistName = x.SpecialistName,
+                    SubSpecialistName = x.SubSpecialistName,
+                    MedicalStaffGroup = x.MedicalStaffGroup,
                     GradeLevel = x.GradeLevel,
                     WorkLocation = x.WorkLocation,
                     JoinDate = x.JoinDate,
@@ -799,18 +812,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     ContractEndDate = x.ContractEndDate,
                     ResignDate = x.ResignDate,
                     ResignReason = x.ResignReason,
-                    EmergencyContactName = x.EmergencyContactName,
-                    EmergencyContactRelation = x.EmergencyContactRelation,
-                    EmergencyContactPhone = x.EmergencyContactPhone,
-                    EmergencyContactAddress = x.EmergencyContactAddress,
-                    HasTransportAllowanceProfile = x.WorkforceProfileId != Guid.Empty &&
-                        _dbContext.Set<WfpTransportAllowance>()
-                            .Any(t =>
-                                t.WorkforceProfileId == x.WorkforceProfileId &&
-                                !t.IsDelete),
+                    CredentialingDate = x.CredentialingDate,
+                    IsAvailableForAppointment = x.IsAvailableForAppointment,
                     HasUserAccount = _dbContext.Users.Any(u =>
-                        u.EmployeeId == x.Id &&
-                        u.UserType == UserType.Employee),
+                        u.DoctorId == x.Id &&
+                        (u.UserType == UserType.PermanentDoctor || u.UserType == UserType.GuestDoctor)),
                     IsActive = x.IsActive,
                     CreateDateTime = x.CreateDateTime
                 })
@@ -820,38 +826,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
-                    "Employee tidak ditemukan."
+                    "Doctor tidak ditemukan."
                 ));
             }
 
-            data.UserAccount = await BuildEmployeeUserAccountCompactResponseAsync(id);
-            data.ChildSummary = await BuildEmployeeChildSummaryAsync(id);
+            data.UserAccount = await BuildDoctorUserAccountCompactResponseAsync(id);
+            data.ChildSummary = await BuildDoctorChildSummaryAsync(id);
 
-            return Ok(ApiResponse<EmployeeDetailResponse>.Ok(
+            return Ok(ApiResponse<DoctorDetailResponse>.Ok(
                 data,
-                "Detail employee berhasil diambil."
+                "Detail doctor berhasil diambil."
             ));
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse<EmployeeCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DoctorCreateResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Create",
-            "Create Employee",
-            Description = "Membuat data employee",
+            "Create Doctor",
+            Description = "Membuat data doctor",
             AccessType = AccessTypes.Create,
             SortOrder = 2
         )]
-        [AccessPermission("Employee", "Create")]
-        public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeRequest request)
+        [AccessPermission("Doctor", "Create")]
+        public async Task<IActionResult> CreateDoctor([FromBody] CreateDoctorRequest request)
         {
-            var requiredValidation = ValidateRequiredEmployeeRequest(request);
+            var requiredValidation = ValidateRequiredDoctorRequest(request);
 
             if (!requiredValidation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    requiredValidation.ErrorMessage ?? "Data wajib employee belum lengkap."
+                    requiredValidation.ErrorMessage ?? "Data wajib doctor belum lengkap."
+                ));
+            }
+
+            if (!IsDoctorUserType(request.DoctorUserType))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "DoctorUserType hanya boleh PermanentDoctor atau GuestDoctor."
                 ));
             }
 
@@ -861,15 +875,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     return BadRequest(ApiResponse<object>.Fail(
                         StatusCodes.Status400BadRequest,
-                        "Email wajib diisi jika ingin membuat akun login."
+                        "Email wajib diisi jika ingin membuat akun login doctor."
                     ));
                 }
 
-                if (request.BirthDate == default)
+                if (!request.BirthDate.HasValue || request.BirthDate.Value == default)
                 {
                     return BadRequest(ApiResponse<object>.Fail(
                         StatusCodes.Status400BadRequest,
-                        "BirthDate wajib diisi untuk generate password awal akun login."
+                        "BirthDate wajib diisi untuk generate password awal akun login doctor."
                     ));
                 }
             }
@@ -891,8 +905,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
-            var validation = await ValidateEmployeeRequestAsync(
-                excludeEmployeeId: null,
+            var validation = await ValidateDoctorRequestAsync(
+                excludeDoctorId: null,
                 primaryDepartmentId: request.PrimaryDepartmentId,
                 primaryPositionId: request.PrimaryPositionId,
                 countryId: request.CountryId,
@@ -903,7 +917,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 identityNumber: request.IdentityNumber,
                 phoneNumber: request.PhoneNumber,
                 whatsAppNumber: request.WhatsAppNumber,
-                emergencyContactPhone: request.EmergencyContactPhone,
                 email: request.Email
             );
 
@@ -911,31 +924,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data employee tidak valid."
+                    validation.ErrorMessage ?? "Data doctor tidak valid."
                 ));
             }
 
             var now = DateTime.UtcNow;
-            var userId = GetCurrentUserId();
+            var actorUserId = GetCurrentUserId();
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             try
             {
+                var normalizedEmail = NormalizeNullableText(request.Email)?.ToLowerInvariant();
+                var normalizedPhone = NormalizeDigitsOnly(request.PhoneNumber);
+                var normalizedWhatsApp = NormalizeDigitsOnly(request.WhatsAppNumber);
+                var primaryDepartmentId = NormalizeNullableGuid(request.PrimaryDepartmentId);
+                var primaryPositionId = NormalizeNullableGuid(request.PrimaryPositionId);
+
                 var workforceProfile = new MstWorkforceProfile
                 {
                     Id = Guid.NewGuid(),
                     ProfileCode = await GenerateWorkforceProfileCodeAsync(),
-                    UserType = UserType.Employee,
+                    UserType = request.DoctorUserType,
                     DisplayName = request.FullName.Trim(),
-                    Email = request.Email.Trim().ToLowerInvariant(),
-                    PhoneNumber = NormalizeDigitsOnly(request.PhoneNumber),
-                    WhatsAppNumber = NormalizeDigitsOnly(request.WhatsAppNumber),
-                    PrimaryDepartmentId = request.PrimaryDepartmentId,
-                    PrimaryPositionId = request.PrimaryPositionId,
+                    Email = normalizedEmail,
+                    PhoneNumber = normalizedPhone,
+                    WhatsAppNumber = normalizedWhatsApp,
+                    PrimaryDepartmentId = primaryDepartmentId,
+                    PrimaryPositionId = primaryPositionId,
                     IsActive = true,
                     CreateDateTime = now,
-                    CreateBy = userId,
+                    CreateBy = actorUserId,
                     IsDelete = false,
                     IsCancel = false
                 };
@@ -943,85 +962,91 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 _dbContext.Set<MstWorkforceProfile>().Add(workforceProfile);
                 await _dbContext.SaveChangesAsync();
 
-                var entity = new MstEmployee
+                var entity = new MstDoctor
                 {
                     Id = Guid.NewGuid(),
                     WorkforceProfileId = workforceProfile.Id,
-                    EmployeeCode = await GenerateEmployeeCodeAsync(),
-                    EmployeeNumber = await GenerateEmployeeNumberAsync(request.JoinDate),
+                    DoctorCode = await GenerateDoctorCodeAsync(),
+                    DoctorNumber = await GenerateDoctorNumberAsync(request.JoinDate),
                     FullName = request.FullName.Trim(),
                     NickName = NormalizeNullableText(request.NickName),
-                    Gender = request.Gender,
                     BirthPlace = NormalizeNullableText(request.BirthPlace),
                     BirthDate = request.BirthDate,
+                    Gender = request.Gender,
                     Religion = request.Religion,
                     MaritalStatus = request.MaritalStatus,
                     BloodType = request.BloodType,
-                    IdentityType = request.IdentityType.Trim(),
-                    IdentityNumber = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty,
-                    PhoneNumber = NormalizeDigitsOnly(request.PhoneNumber),
-                    WhatsAppNumber = NormalizeDigitsOnly(request.WhatsAppNumber),
-                    Email = request.Email.Trim().ToLowerInvariant(),
+                    IdentityType = NormalizeNullableText(request.IdentityType),
+                    IdentityNumber = NormalizeNullableText(request.IdentityNumber),
+                    PhoneNumber = normalizedPhone,
+                    WhatsAppNumber = normalizedWhatsApp,
+                    Email = normalizedEmail,
                     Address = NormalizeNullableText(request.Address),
                     CountryId = NormalizeNullableGuid(request.CountryId),
                     ProvinceId = NormalizeNullableGuid(request.ProvinceId),
                     CityId = NormalizeNullableGuid(request.CityId),
                     DistrictId = NormalizeNullableGuid(request.DistrictId),
                     PostalCodeId = NormalizeNullableGuid(request.PostalCodeId),
-                    PrimaryDepartmentId = request.PrimaryDepartmentId,
-                    PrimaryPositionId = request.PrimaryPositionId,
-                    EmployeeStatus = request.EmployeeStatus,
-                    ProfessionType = request.ProfessionType,
+                    PrimaryDepartmentId = primaryDepartmentId,
+                    PrimaryPositionId = primaryPositionId,
+                    DoctorStatus = request.DoctorStatus,
+                    DoctorType = request.DoctorType,
+                    PracticeType = request.PracticeType,
                     EmploymentType = request.EmploymentType,
+                    SpecialistName = NormalizeNullableText(request.SpecialistName),
+                    SubSpecialistName = NormalizeNullableText(request.SubSpecialistName),
+                    MedicalStaffGroup = NormalizeNullableText(request.MedicalStaffGroup),
                     GradeLevel = NormalizeNullableText(request.GradeLevel),
                     WorkLocation = NormalizeNullableText(request.WorkLocation),
                     JoinDate = request.JoinDate,
                     ProbationEndDate = request.ProbationEndDate,
                     ContractStartDate = request.ContractStartDate,
                     ContractEndDate = request.ContractEndDate,
-                    EmergencyContactName = NormalizeNullableText(request.EmergencyContactName),
-                    EmergencyContactRelation = NormalizeNullableText(request.EmergencyContactRelation),
-                    EmergencyContactPhone = NormalizeDigitsOnly(request.EmergencyContactPhone),
-                    EmergencyContactAddress = NormalizeNullableText(request.EmergencyContactAddress),
+                    CredentialingDate = request.CredentialingDate,
+                    IsAvailableForAppointment = request.IsAvailableForAppointment,
                     IsActive = true,
                     CreateDateTime = now,
-                    CreateBy = userId,
+                    CreateBy = actorUserId,
                     IsDelete = false,
                     IsCancel = false
                 };
 
-                _dbContext.Set<MstEmployee>().Add(entity);
+                _dbContext.Set<MstDoctor>().Add(entity);
                 await _dbContext.SaveChangesAsync();
 
-                var organizationAssignment = new WfpOrganizationAssignment
+                if (primaryDepartmentId.HasValue && primaryPositionId.HasValue)
                 {
-                    Id = Guid.NewGuid(),
-                    WorkforceProfileId = workforceProfile.Id,
-                    DepartmentId = entity.PrimaryDepartmentId,
-                    PositionId = entity.PrimaryPositionId,
-                    IsPrimary = true,
-                    IsActive = true,
-                    EffectiveStartDate = entity.JoinDate.Date,
-                    EffectiveEndDate = null,
-                    Description = "Initial primary organization assignment",
-                    CreateDateTime = now,
-                    CreateBy = userId,
-                    IsDelete = false,
-                    IsCancel = false
-                };
+                    var organizationAssignment = new WfpOrganizationAssignment
+                    {
+                        Id = Guid.NewGuid(),
+                        WorkforceProfileId = workforceProfile.Id,
+                        DepartmentId = primaryDepartmentId.Value,
+                        PositionId = primaryPositionId.Value,
+                        IsPrimary = true,
+                        IsActive = true,
+                        EffectiveStartDate = (entity.JoinDate ?? now.Date).Date,
+                        EffectiveEndDate = null,
+                        Description = "Initial primary organization assignment",
+                        CreateDateTime = now,
+                        CreateBy = actorUserId,
+                        IsDelete = false,
+                        IsCancel = false
+                    };
 
-                _dbContext.Set<WfpOrganizationAssignment>().Add(organizationAssignment);
-                await _dbContext.SaveChangesAsync();
+                    _dbContext.Set<WfpOrganizationAssignment>().Add(organizationAssignment);
+                    await _dbContext.SaveChangesAsync();
+                }
 
-                EmployeeLoginAccountResponse? loginAccount = null;
+                DoctorLoginAccountResponse? loginAccount = null;
 
                 if (request.CreateLoginAccount)
                 {
-                    var accountResult = await CreateLoginAccountForEmployeeAsync(
-                        employee: entity,
+                    var accountResult = await CreateLoginAccountForDoctorAsync(
+                        doctor: entity,
+                        userType: request.DoctorUserType,
                         isFingerprintRegistrationEnabled: request.IsFingerprintRegistrationEnabled,
                         fingerprintRegistrationReason: request.FingerprintRegistrationReason,
-                        actorUserId: userId
+                        actorUserId: actorUserId
                     );
 
                     if (!accountResult.IsSuccess)
@@ -1030,20 +1055,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
                         return BadRequest(ApiResponse<object>.Fail(
                             StatusCodes.Status400BadRequest,
-                            accountResult.ErrorMessage ?? "Akun login employee gagal dibuat."
+                            accountResult.ErrorMessage ?? "Akun login doctor gagal dibuat."
                         ));
                     }
 
                     loginAccount = accountResult.Response;
 
-                    if (loginAccount?.UserId.HasValue == true)
+                    if (loginAccount?.UserId.HasValue == true &&
+                        primaryDepartmentId.HasValue &&
+                        primaryPositionId.HasValue)
                     {
                         await SyncUserPrimaryOrganizationAsync(
                             userId: loginAccount.UserId.Value,
-                            departmentId: entity.PrimaryDepartmentId,
-                            positionId: entity.PrimaryPositionId,
-                            effectiveStartDate: entity.JoinDate,
-                            actorUserId: userId
+                            departmentId: primaryDepartmentId.Value,
+                            positionId: primaryPositionId.Value,
+                            effectiveStartDate: entity.JoinDate ?? now.Date,
+                            actorUserId: actorUserId
                         );
 
                         await _dbContext.SaveChangesAsync();
@@ -1052,27 +1079,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
                 await transaction.CommitAsync();
 
-                var response = new EmployeeCreateResponse
+                var response = new DoctorCreateResponse
                 {
                     Id = entity.Id,
                     WorkforceProfileId = entity.WorkforceProfileId,
-                    EmployeeCode = entity.EmployeeCode,
-                    EmployeeNumber = entity.EmployeeNumber,
+                    WorkforceUserType = workforceProfile.UserType,
+                    DoctorCode = entity.DoctorCode,
+                    DoctorNumber = entity.DoctorNumber,
                     FullName = entity.FullName,
+                    IsAvailableForAppointment = entity.IsAvailableForAppointment,
                     IsActive = entity.IsActive,
                     LoginAccount = loginAccount
                 };
 
                 await _loggerService.InfoAsync(
                     LogCategory,
-                    "Employee.CreateEmployee",
-                    "Employee berhasil dibuat.",
+                    "Doctor.CreateDoctor",
+                    "Doctor berhasil dibuat.",
                     new
                     {
                         entity.Id,
                         entity.WorkforceProfileId,
-                        entity.EmployeeCode,
-                        entity.EmployeeNumber,
+                        workforceProfile.UserType,
+                        entity.DoctorCode,
+                        entity.DoctorNumber,
                         entity.FullName,
                         entity.PrimaryDepartmentId,
                         entity.PrimaryPositionId,
@@ -1082,11 +1112,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     }
                 );
 
-                return Ok(ApiResponse<EmployeeCreateResponse>.Ok(
+                return Ok(ApiResponse<DoctorCreateResponse>.Ok(
                     response,
                     request.CreateLoginAccount
-                        ? "Employee dan akun login berhasil dibuat."
-                        : "Employee berhasil dibuat."
+                        ? "Doctor dan akun login berhasil dibuat."
+                        : "Doctor berhasil dibuat."
                 ));
             }
             catch (Exception ex)
@@ -1095,8 +1125,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
                 await _loggerService.ErrorAsync(
                     LogCategory,
-                    "Employee.CreateEmployee",
-                    "Gagal membuat employee.",
+                    "Doctor.CreateDoctor",
+                    "Gagal membuat doctor.",
                     ex
                 );
 
@@ -1104,7 +1134,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     StatusCodes.Status500InternalServerError,
                     ApiResponse<object>.Fail(
                         StatusCodes.Status500InternalServerError,
-                        "Terjadi kesalahan saat membuat employee."
+                        "Terjadi kesalahan saat membuat doctor."
                     )
                 );
             }
@@ -1115,39 +1145,39 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
             "Update",
-            "Update Employee",
-            Description = "Mengubah data employee",
+            "Update Doctor",
+            Description = "Mengubah data doctor",
             AccessType = AccessTypes.Update,
             SortOrder = 3
         )]
-        [AccessPermission("Employee", "Update")]
-        public async Task<IActionResult> UpdateEmployee(
+        [AccessPermission("Doctor", "Update")]
+        public async Task<IActionResult> UpdateDoctor(
             Guid id,
-            [FromBody] UpdateEmployeeRequest request)
+            [FromBody] UpdateDoctorRequest request)
         {
-            var entity = await _dbContext.Set<MstEmployee>()
+            var entity = await _dbContext.Set<MstDoctor>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
-                    "Employee tidak ditemukan."
+                    "Doctor tidak ditemukan."
                 ));
             }
 
-            var requiredValidation = ValidateRequiredEmployeeRequest(request);
+            var requiredValidation = ValidateRequiredDoctorRequest(request);
 
             if (!requiredValidation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    requiredValidation.ErrorMessage ?? "Data wajib employee belum lengkap."
+                    requiredValidation.ErrorMessage ?? "Data wajib doctor belum lengkap."
                 ));
             }
 
-            var validation = await ValidateEmployeeRequestAsync(
-                excludeEmployeeId: id,
+            var validation = await ValidateDoctorRequestAsync(
+                excludeDoctorId: id,
                 primaryDepartmentId: request.PrimaryDepartmentId,
                 primaryPositionId: request.PrimaryPositionId,
                 countryId: request.CountryId,
@@ -1158,7 +1188,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 identityNumber: request.IdentityNumber,
                 phoneNumber: request.PhoneNumber,
                 whatsAppNumber: request.WhatsAppNumber,
-                emergencyContactPhone: request.EmergencyContactPhone,
                 email: request.Email
             );
 
@@ -1166,37 +1195,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data employee tidak valid."
+                    validation.ErrorMessage ?? "Data doctor tidak valid."
                 ));
             }
 
             var now = DateTime.UtcNow;
-            var userId = GetCurrentUserId();
+            var actorUserId = GetCurrentUserId();
+            var normalizedEmail = NormalizeNullableText(request.Email)?.ToLowerInvariant();
+            var normalizedPhone = NormalizeDigitsOnly(request.PhoneNumber);
+            var normalizedWhatsApp = NormalizeDigitsOnly(request.WhatsAppNumber);
+            var primaryDepartmentId = NormalizeNullableGuid(request.PrimaryDepartmentId);
+            var primaryPositionId = NormalizeNullableGuid(request.PrimaryPositionId);
 
             entity.FullName = request.FullName.Trim();
             entity.NickName = NormalizeNullableText(request.NickName);
-            entity.Gender = request.Gender;
             entity.BirthPlace = NormalizeNullableText(request.BirthPlace);
             entity.BirthDate = request.BirthDate;
+            entity.Gender = request.Gender;
             entity.Religion = request.Religion;
             entity.MaritalStatus = request.MaritalStatus;
             entity.BloodType = request.BloodType;
-            entity.IdentityType = request.IdentityType.Trim();
-            entity.IdentityNumber = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty;
-            entity.PhoneNumber = NormalizeDigitsOnly(request.PhoneNumber);
-            entity.WhatsAppNumber = NormalizeDigitsOnly(request.WhatsAppNumber);
-            entity.Email = request.Email.Trim().ToLowerInvariant();
+            entity.IdentityType = NormalizeNullableText(request.IdentityType);
+            entity.IdentityNumber = NormalizeNullableText(request.IdentityNumber);
+            entity.PhoneNumber = normalizedPhone;
+            entity.WhatsAppNumber = normalizedWhatsApp;
+            entity.Email = normalizedEmail;
             entity.Address = NormalizeNullableText(request.Address);
             entity.CountryId = NormalizeNullableGuid(request.CountryId);
             entity.ProvinceId = NormalizeNullableGuid(request.ProvinceId);
             entity.CityId = NormalizeNullableGuid(request.CityId);
             entity.DistrictId = NormalizeNullableGuid(request.DistrictId);
             entity.PostalCodeId = NormalizeNullableGuid(request.PostalCodeId);
-            entity.PrimaryDepartmentId = request.PrimaryDepartmentId;
-            entity.PrimaryPositionId = request.PrimaryPositionId;
-            entity.EmployeeStatus = request.EmployeeStatus;
-            entity.ProfessionType = request.ProfessionType;
+            entity.PrimaryDepartmentId = primaryDepartmentId;
+            entity.PrimaryPositionId = primaryPositionId;
+            entity.DoctorStatus = request.DoctorStatus;
+            entity.DoctorType = request.DoctorType;
+            entity.PracticeType = request.PracticeType;
             entity.EmploymentType = request.EmploymentType;
+            entity.SpecialistName = NormalizeNullableText(request.SpecialistName);
+            entity.SubSpecialistName = NormalizeNullableText(request.SubSpecialistName);
+            entity.MedicalStaffGroup = NormalizeNullableText(request.MedicalStaffGroup);
             entity.GradeLevel = NormalizeNullableText(request.GradeLevel);
             entity.WorkLocation = NormalizeNullableText(request.WorkLocation);
             entity.JoinDate = request.JoinDate;
@@ -1205,13 +1243,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             entity.ContractEndDate = request.ContractEndDate;
             entity.ResignDate = request.ResignDate;
             entity.ResignReason = NormalizeNullableText(request.ResignReason);
-            entity.EmergencyContactName = NormalizeNullableText(request.EmergencyContactName);
-            entity.EmergencyContactRelation = NormalizeNullableText(request.EmergencyContactRelation);
-            entity.EmergencyContactPhone = NormalizeDigitsOnly(request.EmergencyContactPhone);
-            entity.EmergencyContactAddress = NormalizeNullableText(request.EmergencyContactAddress);
+            entity.CredentialingDate = request.CredentialingDate;
+            entity.IsAvailableForAppointment = request.IsAvailableForAppointment;
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
-            entity.UpdateBy = userId;
+            entity.UpdateBy = actorUserId;
 
             if (entity.WorkforceProfileId != Guid.Empty)
             {
@@ -1228,19 +1264,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     workforceProfile.PrimaryPositionId = entity.PrimaryPositionId;
                     workforceProfile.IsActive = entity.IsActive;
                     workforceProfile.UpdateDateTime = now;
-                    workforceProfile.UpdateBy = userId;
+                    workforceProfile.UpdateBy = actorUserId;
                 }
             }
 
             var linkedUser = await _dbContext.Users.FirstOrDefaultAsync(x =>
-                x.EmployeeId == entity.Id &&
-                x.UserType == UserType.Employee);
+                x.DoctorId == entity.Id &&
+                (x.UserType == UserType.PermanentDoctor || x.UserType == UserType.GuestDoctor));
 
             if (linkedUser != null)
             {
                 linkedUser.DisplayName = entity.FullName;
                 linkedUser.Email = entity.Email;
-                linkedUser.UserName = entity.Email;
+
+                if (!string.IsNullOrWhiteSpace(entity.Email))
+                {
+                    linkedUser.UserName = entity.Email;
+                    linkedUser.NormalizedUserName = _userManager.NormalizeName(entity.Email);
+                    linkedUser.NormalizedEmail = _userManager.NormalizeEmail(entity.Email);
+                }
+
                 linkedUser.PrimaryDepartmentId = entity.PrimaryDepartmentId;
                 linkedUser.PrimaryPositionId = entity.PrimaryPositionId;
                 linkedUser.WorkforceProfileId = entity.WorkforceProfileId;
@@ -1248,16 +1291,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 linkedUser.UpdateDateTime = now;
             }
 
-            await EnsureWorkforcePrimaryOrganizationAssignmentAsync(entity, now, userId);
+            await EnsureWorkforcePrimaryOrganizationAssignmentAsync(entity, now, actorUserId);
 
-            if (linkedUser != null)
+            if (linkedUser != null &&
+                entity.PrimaryDepartmentId.HasValue &&
+                entity.PrimaryPositionId.HasValue)
             {
                 await SyncUserPrimaryOrganizationAsync(
                     userId: linkedUser.Id,
-                    departmentId: entity.PrimaryDepartmentId,
-                    positionId: entity.PrimaryPositionId,
-                    effectiveStartDate: entity.JoinDate,
-                    actorUserId: userId
+                    departmentId: entity.PrimaryDepartmentId.Value,
+                    positionId: entity.PrimaryPositionId.Value,
+                    effectiveStartDate: entity.JoinDate ?? now.Date,
+                    actorUserId: actorUserId
                 );
             }
 
@@ -1265,22 +1310,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             await _loggerService.InfoAsync(
                 LogCategory,
-                "Employee.UpdateEmployee",
-                "Employee berhasil diperbarui.",
+                "Doctor.UpdateDoctor",
+                "Doctor berhasil diperbarui.",
                 new
                 {
                     entity.Id,
                     entity.WorkforceProfileId,
-                    entity.EmployeeCode,
-                    entity.EmployeeNumber,
+                    entity.DoctorCode,
+                    entity.DoctorNumber,
                     entity.FullName,
-                    entity.IsActive
+                    entity.IsActive,
+                    entity.IsAvailableForAppointment
                 }
             );
 
             return Ok(ApiResponse<object>.Ok(
                 null,
-                "Employee berhasil diperbarui."
+                "Doctor berhasil diperbarui."
             ));
         }
 
@@ -1289,35 +1335,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
             "Update",
-            "Update Employee",
-            Description = "Mengubah data employee",
+            "Update Doctor",
+            Description = "Mengubah status doctor",
             AccessType = AccessTypes.Update,
             SortOrder = 3
         )]
-        [AccessPermission("Employee", "Update")]
-        public async Task<IActionResult> UpdateEmployeeStatus(
+        [AccessPermission("Doctor", "Update")]
+        public async Task<IActionResult> UpdateDoctorStatus(
             Guid id,
-            [FromBody] UpdateEmployeeStatusRequest request)
+            [FromBody] UpdateDoctorStatusRequest request)
         {
-            var entity = await _dbContext.Set<MstEmployee>()
+            var entity = await _dbContext.Set<MstDoctor>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
-                    "Employee tidak ditemukan."
+                    "Doctor tidak ditemukan."
                 ));
             }
 
             var now = DateTime.UtcNow;
-            var userId = GetCurrentUserId();
+            var actorUserId = GetCurrentUserId();
 
             entity.IsActive = request.IsActive;
+            entity.DoctorStatus = request.DoctorStatus;
+            entity.IsAvailableForAppointment = request.IsActive && request.IsAvailableForAppointment;
             entity.ResignDate = request.ResignDate;
             entity.ResignReason = NormalizeNullableText(request.ResignReason);
             entity.UpdateDateTime = now;
-            entity.UpdateBy = userId;
+            entity.UpdateBy = actorUserId;
 
             if (entity.WorkforceProfileId != Guid.Empty)
             {
@@ -1328,13 +1376,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     workforceProfile.IsActive = request.IsActive;
                     workforceProfile.UpdateDateTime = now;
-                    workforceProfile.UpdateBy = userId;
+                    workforceProfile.UpdateBy = actorUserId;
                 }
             }
 
             var linkedUser = await _dbContext.Users.FirstOrDefaultAsync(x =>
-                x.EmployeeId == id &&
-                x.UserType == UserType.Employee);
+                x.DoctorId == id &&
+                (x.UserType == UserType.PermanentDoctor || x.UserType == UserType.GuestDoctor));
 
             if (linkedUser != null)
             {
@@ -1346,7 +1394,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             return Ok(ApiResponse<object>.Ok(
                 null,
-                "Status employee berhasil diperbarui."
+                "Status doctor berhasil diperbarui."
             ));
         }
 
@@ -1355,32 +1403,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
             "Delete",
-            "Delete Employee",
-            Description = "Menghapus data employee",
+            "Delete Doctor",
+            Description = "Menghapus data doctor",
             AccessType = AccessTypes.Delete,
             SortOrder = 4
         )]
-        [AccessPermission("Employee", "Delete")]
-        public async Task<IActionResult> DeleteEmployee(Guid id)
+        [AccessPermission("Doctor", "Delete")]
+        public async Task<IActionResult> DeleteDoctor(Guid id)
         {
-            var entity = await _dbContext.Set<MstEmployee>()
+            var entity = await _dbContext.Set<MstDoctor>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
-                    "Employee tidak ditemukan."
+                    "Doctor tidak ditemukan."
                 ));
             }
 
             var now = DateTime.UtcNow;
-            var userId = GetCurrentUserId();
+            var actorUserId = GetCurrentUserId();
 
             entity.IsDelete = true;
             entity.IsActive = false;
+            entity.IsAvailableForAppointment = false;
             entity.DeleteDateTime = now;
-            entity.DeleteBy = userId;
+            entity.DeleteBy = actorUserId;
 
             if (entity.WorkforceProfileId != Guid.Empty)
             {
@@ -1391,7 +1440,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     workforceProfile.IsActive = false;
                     workforceProfile.UpdateDateTime = now;
-                    workforceProfile.UpdateBy = userId;
+                    workforceProfile.UpdateBy = actorUserId;
                 }
 
                 var organizationAssignments = await _dbContext.Set<WfpOrganizationAssignment>()
@@ -1405,13 +1454,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     item.IsActive = false;
                     item.IsDelete = true;
                     item.DeleteDateTime = now;
-                    item.DeleteBy = userId;
+                    item.DeleteBy = actorUserId;
                 }
             }
 
             var linkedUser = await _dbContext.Users.FirstOrDefaultAsync(x =>
-                x.EmployeeId == id &&
-                x.UserType == UserType.Employee);
+                x.DoctorId == id &&
+                (x.UserType == UserType.PermanentDoctor || x.UserType == UserType.GuestDoctor));
 
             if (linkedUser != null)
             {
@@ -1427,7 +1476,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     item.IsActive = false;
                     item.IsDelete = true;
                     item.DeleteDateTime = now;
-                    item.DeleteBy = userId;
+                    item.DeleteBy = actorUserId;
                 }
             }
 
@@ -1435,15 +1484,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             return Ok(ApiResponse<object>.Ok(
                 null,
-                "Employee berhasil dihapus."
+                "Doctor berhasil dihapus."
             ));
         }
 
-        private async Task<string> GenerateEmployeeCodeAsync()
+        private async Task<string> GenerateDoctorCodeAsync()
         {
-            const string prefix = $"EMP-{HospitalCode}-";
+            const string prefix = $"DOC-{HospitalCode}-";
 
-            var totalData = await _dbContext.Set<MstEmployee>()
+            var totalData = await _dbContext.Set<MstDoctor>()
                 .IgnoreQueryFilters()
                 .CountAsync();
 
@@ -1453,8 +1502,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             {
                 var code = $"{prefix}{nextNumber.ToString("D5")}";
 
-                var exists = await _dbContext.Set<MstEmployee>()
-                    .AnyAsync(x => x.EmployeeCode == code);
+                var exists = await _dbContext.Set<MstDoctor>()
+                    .AnyAsync(x => x.DoctorCode == code);
 
                 if (!exists)
                 {
@@ -1465,28 +1514,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
         }
 
-        private async Task<string> GenerateEmployeeNumberAsync(DateTime joinDate)
+        private async Task<string> GenerateDoctorNumberAsync(DateTime? joinDate)
         {
-            var date = joinDate.Date;
+            var date = (joinDate ?? DateTime.UtcNow).Date;
             var dateCode = date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
-            var prefix = $"{HospitalCode}-{dateCode}";
+            var prefix = $"{HospitalCode}-DOC-{dateCode}";
 
-            var existingCount = await _dbContext.Set<MstEmployee>()
+            var existingCount = await _dbContext.Set<MstDoctor>()
                 .IgnoreQueryFilters()
-                .CountAsync(x => x.EmployeeNumber.StartsWith(prefix));
+                .CountAsync(x => x.DoctorNumber.StartsWith(prefix));
 
             var nextNumber = existingCount + 1;
 
             while (true)
             {
-                var employeeNumber = $"{prefix}{nextNumber.ToString("D3")}";
+                var doctorNumber = $"{prefix}{nextNumber.ToString("D3")}";
 
-                var exists = await _dbContext.Set<MstEmployee>()
-                    .AnyAsync(x => x.EmployeeNumber == employeeNumber);
+                var exists = await _dbContext.Set<MstDoctor>()
+                    .AnyAsync(x => x.DoctorNumber == doctorNumber);
 
                 if (!exists)
                 {
-                    return employeeNumber;
+                    return doctorNumber;
                 }
 
                 nextNumber++;
@@ -1519,14 +1568,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
         }
 
-        private async Task<EmployeeUserAccountCompactResponse?> BuildEmployeeUserAccountCompactResponseAsync(Guid employeeId)
+        private async Task<DoctorUserAccountCompactResponse?> BuildDoctorUserAccountCompactResponseAsync(Guid doctorId)
         {
             var user = await _dbContext.Users
                 .AsNoTracking()
                 .Where(x =>
-                    x.EmployeeId == employeeId &&
-                    x.UserType == UserType.Employee)
-                .Select(x => new EmployeeUserAccountCompactResponse
+                    x.DoctorId == doctorId &&
+                    (x.UserType == UserType.PermanentDoctor || x.UserType == UserType.GuestDoctor))
+                .Select(x => new DoctorUserAccountCompactResponse
                 {
                     IsAvailable = true,
                     UserId = x.Id,
@@ -1544,7 +1593,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 })
                 .FirstOrDefaultAsync();
 
-            return user ?? new EmployeeUserAccountCompactResponse
+            return user ?? new DoctorUserAccountCompactResponse
             {
                 IsAvailable = false,
                 IsActive = false,
@@ -1552,11 +1601,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             };
         }
 
-        private async Task<EmployeeChildSummaryResponse> BuildEmployeeChildSummaryAsync(Guid employeeId)
+        private async Task<DoctorChildSummaryResponse> BuildDoctorChildSummaryAsync(Guid doctorId)
         {
-            var employee = await _dbContext.Set<MstEmployee>()
+            var doctor = await _dbContext.Set<MstDoctor>()
                 .AsNoTracking()
-                .Where(x => x.Id == employeeId && !x.IsDelete)
+                .Where(x => x.Id == doctorId && !x.IsDelete)
                 .Select(x => new
                 {
                     x.Id,
@@ -1564,12 +1613,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 })
                 .FirstOrDefaultAsync();
 
-            if (employee == null || employee.WorkforceProfileId == Guid.Empty)
+            if (doctor == null || doctor.WorkforceProfileId == Guid.Empty)
             {
-                return new EmployeeChildSummaryResponse();
+                return new DoctorChildSummaryResponse();
             }
 
-            var workforceProfileId = employee.WorkforceProfileId;
+            var workforceProfileId = doctor.WorkforceProfileId;
 
             var organizationQuery = _dbContext.Set<WfpOrganizationAssignment>()
                 .AsNoTracking()
@@ -1577,7 +1626,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     x.WorkforceProfileId == workforceProfileId &&
                     !x.IsDelete);
 
-            return new EmployeeChildSummaryResponse
+            return new DoctorChildSummaryResponse
             {
                 OrganizationCount = await organizationQuery.CountAsync(),
                 ActiveOrganizationCount = await organizationQuery.CountAsync(x => x.IsActive),
@@ -1591,51 +1640,39 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
 
-                PayrollProfileCount = await _dbContext.Set<WfpPayroll>()
+                EducationCount = await _dbContext.Set<WfpEducation>()
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
-
-                TaxProfileCount = await _dbContext.Set<WfpTax>()
-                    .AsNoTracking()
-                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
-
-                InsuranceProfileCount = await _dbContext.Set<WfpInsurance>()
-                    .AsNoTracking()
-                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
-
-                TransportAllowanceProfileCount = await _dbContext.Set<WfpTransportAllowance>()
-                    .AsNoTracking()
-                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
-
-                TransportAllowanceTransactionCount = await _dbContext.Set<WfpTransportAllowanceTransaction>()
-                    .AsNoTracking()
-                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
-
-                LeaveCount = 0,
-
-                ShiftAssignmentCount = await _dbContext.Set<WfpWorkScheduleAssignment>()
-                    .AsNoTracking()
-                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
-
-                AttendanceCount = await _dbContext.Set<EmpAttendance>()
-                    .AsNoTracking()
-                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
-
-                SalaryCount = 0,
 
                 TrainingCount = await _dbContext.Set<WfpTrainingRecord>()
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
 
-                WarningLetterCount = 0,
-                PerformanceReviewCount = 0
+                CertificationCount = await _dbContext.Set<WfpCertification>()
+                    .AsNoTracking()
+                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
+
+                CredentialLicenseCount = await _dbContext.Set<WfpCredentialLicense>()
+                    .AsNoTracking()
+                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
+
+                ClinicalPrivilegeCount = 0,
+                HealthRecordCount = 0,
+
+                ScheduleAssignmentCount = await _dbContext.Set<WfpWorkScheduleAssignment>()
+                    .AsNoTracking()
+                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
+
+                AttendanceCount = await _dbContext.Set<EmpAttendance>()
+                    .AsNoTracking()
+                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete)
             };
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateEmployeeRequestAsync(
-            Guid? excludeEmployeeId,
-            Guid primaryDepartmentId,
-            Guid primaryPositionId,
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateDoctorRequestAsync(
+            Guid? excludeDoctorId,
+            Guid? primaryDepartmentId,
+            Guid? primaryPositionId,
             Guid? countryId,
             Guid? provinceId,
             Guid? cityId,
@@ -1644,39 +1681,42 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             string? identityNumber,
             string? phoneNumber,
             string? whatsAppNumber,
-            string? emergencyContactPhone,
             string? email)
         {
-            if (primaryDepartmentId == Guid.Empty)
+            primaryDepartmentId = NormalizeNullableGuid(primaryDepartmentId);
+            primaryPositionId = NormalizeNullableGuid(primaryPositionId);
+
+            if (primaryPositionId.HasValue && !primaryDepartmentId.HasValue)
             {
-                return (false, "Primary department wajib dipilih.");
+                return (false, "Primary department wajib dipilih jika primary position diisi.");
             }
 
-            if (primaryPositionId == Guid.Empty)
+            if (primaryDepartmentId.HasValue)
             {
-                return (false, "Primary position wajib dipilih.");
+                var departmentExists = await _dbContext.MstDepartments
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == primaryDepartmentId.Value && x.IsActive && !x.IsDelete);
+
+                if (!departmentExists)
+                {
+                    return (false, "Primary department tidak valid atau tidak aktif.");
+                }
             }
 
-            var departmentExists = await _dbContext.MstDepartments
-                .AsNoTracking()
-                .AnyAsync(x => x.Id == primaryDepartmentId && x.IsActive && !x.IsDelete);
-
-            if (!departmentExists)
+            if (primaryPositionId.HasValue)
             {
-                return (false, "Primary department tidak valid atau tidak aktif.");
-            }
+                var positionExists = await _dbContext.MstPositions
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == primaryPositionId.Value &&
+                        x.DepartmentId == primaryDepartmentId!.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
 
-            var positionExists = await _dbContext.MstPositions
-                .AsNoTracking()
-                .AnyAsync(x =>
-                    x.Id == primaryPositionId &&
-                    x.DepartmentId == primaryDepartmentId &&
-                    x.IsActive &&
-                    !x.IsDelete);
-
-            if (!positionExists)
-            {
-                return (false, "Primary position tidak valid, tidak aktif, atau tidak sesuai department.");
+                if (!positionExists)
+                {
+                    return (false, "Primary position tidak valid, tidak aktif, atau tidak sesuai department.");
+                }
             }
 
             var regionValidation = await ValidateRegionAsync(
@@ -1691,47 +1731,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 return regionValidation;
             }
 
-            var normalizedIdentityNumber = NormalizeDigitsOnly(identityNumber);
+            var normalizedIdentityNumber = NormalizeNullableText(identityNumber);
             var normalizedPhoneNumber = NormalizeDigitsOnly(phoneNumber);
             var normalizedWhatsAppNumber = NormalizeDigitsOnly(whatsAppNumber);
-            var normalizedEmergencyContactPhone = NormalizeDigitsOnly(emergencyContactPhone);
             var normalizedEmail = NormalizeNullableText(email);
 
-            if (!string.IsNullOrWhiteSpace(normalizedIdentityNumber) &&
-                normalizedIdentityNumber.Length != 16)
+            if (!string.IsNullOrWhiteSpace(normalizedPhoneNumber) && normalizedPhoneNumber.Length > 30)
             {
-                return (false, "Nomor identitas harus 16 digit.");
+                return (false, "Nomor telepon maksimal 30 digit.");
             }
 
-            if (!string.IsNullOrWhiteSpace(normalizedPhoneNumber) &&
-                normalizedPhoneNumber.Length > 13)
+            if (!string.IsNullOrWhiteSpace(normalizedWhatsAppNumber) && normalizedWhatsAppNumber.Length > 30)
             {
-                return (false, "Nomor telepon maksimal 13 digit.");
-            }
-
-            if (!string.IsNullOrWhiteSpace(normalizedWhatsAppNumber) &&
-                normalizedWhatsAppNumber.Length > 13)
-            {
-                return (false, "Nomor WhatsApp maksimal 13 digit.");
-            }
-
-            if (!string.IsNullOrWhiteSpace(normalizedEmergencyContactPhone) &&
-                normalizedEmergencyContactPhone.Length > 13)
-            {
-                return (false, "Nomor telepon kontak darurat maksimal 13 digit.");
+                return (false, "Nomor WhatsApp maksimal 30 digit.");
             }
 
             if (!string.IsNullOrWhiteSpace(normalizedIdentityNumber))
             {
-                var exists = await _dbContext.Set<MstEmployee>()
+                var exists = await _dbContext.Set<MstDoctor>()
                     .AnyAsync(x =>
-                        x.Id != excludeEmployeeId &&
+                        x.Id != excludeDoctorId &&
                         x.IdentityNumber == normalizedIdentityNumber &&
                         !x.IsDelete);
 
                 if (exists)
                 {
-                    return (false, "Nomor identitas sudah digunakan.");
+                    return (false, "Nomor identitas doctor sudah digunakan.");
                 }
             }
 
@@ -1739,16 +1764,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             {
                 var emailLower = normalizedEmail.ToLower();
 
-                var exists = await _dbContext.Set<MstEmployee>()
+                var exists = await _dbContext.Set<MstDoctor>()
                     .AnyAsync(x =>
-                        x.Id != excludeEmployeeId &&
+                        x.Id != excludeDoctorId &&
                         x.Email != null &&
                         x.Email.ToLower() == emailLower &&
                         !x.IsDelete);
 
                 if (exists)
                 {
-                    return (false, "Email sudah digunakan.");
+                    return (false, "Email doctor sudah digunakan.");
                 }
             }
 
@@ -1756,16 +1781,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         private async Task EnsureWorkforcePrimaryOrganizationAssignmentAsync(
-    MstEmployee employee,
-    DateTime now,
-    Guid actorUserId)
+            MstDoctor doctor,
+            DateTime now,
+            Guid actorUserId)
         {
-            if (employee.WorkforceProfileId == Guid.Empty)
+            if (doctor.WorkforceProfileId == Guid.Empty ||
+                !doctor.PrimaryDepartmentId.HasValue ||
+                !doctor.PrimaryPositionId.HasValue)
             {
                 return;
             }
 
-            var workforceProfileId = employee.WorkforceProfileId;
+            var workforceProfileId = doctor.WorkforceProfileId;
+            var departmentId = doctor.PrimaryDepartmentId.Value;
+            var positionId = doctor.PrimaryPositionId.Value;
 
             var currentPrimaries = await _dbContext.Set<WfpOrganizationAssignment>()
                 .Where(x =>
@@ -1784,8 +1813,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             var existing = await _dbContext.Set<WfpOrganizationAssignment>()
                 .FirstOrDefaultAsync(x =>
                     x.WorkforceProfileId == workforceProfileId &&
-                    x.DepartmentId == employee.PrimaryDepartmentId &&
-                    x.PositionId == employee.PrimaryPositionId);
+                    x.DepartmentId == departmentId &&
+                    x.PositionId == positionId);
 
             if (existing == null)
             {
@@ -1793,13 +1822,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     Id = Guid.NewGuid(),
                     WorkforceProfileId = workforceProfileId,
-                    DepartmentId = employee.PrimaryDepartmentId,
-                    PositionId = employee.PrimaryPositionId,
+                    DepartmentId = departmentId,
+                    PositionId = positionId,
                     IsPrimary = true,
-                    IsActive = employee.IsActive,
-                    EffectiveStartDate = employee.JoinDate.Date,
+                    IsActive = doctor.IsActive,
+                    EffectiveStartDate = (doctor.JoinDate ?? now.Date).Date,
                     EffectiveEndDate = null,
-                    Description = "Primary organization assignment synced from employee update",
+                    Description = "Primary organization assignment synced from doctor update",
                     CreateDateTime = now,
                     CreateBy = actorUserId,
                     IsDelete = false,
@@ -1811,10 +1840,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             else
             {
                 existing.IsPrimary = true;
-                existing.IsActive = employee.IsActive;
-                existing.EffectiveStartDate = employee.JoinDate.Date;
+                existing.IsActive = doctor.IsActive;
+                existing.EffectiveStartDate = (doctor.JoinDate ?? now.Date).Date;
                 existing.EffectiveEndDate = null;
-                existing.Description = "Primary organization assignment synced from employee update";
+                existing.Description = "Primary organization assignment synced from doctor update";
                 existing.IsDelete = false;
                 existing.DeleteDateTime = null;
                 existing.DeleteBy = Guid.Empty;
@@ -2032,8 +2061,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             return DateRangeResolveResult.Valid(start, endExclusive);
         }
 
-        private static IOrderedQueryable<MstEmployee> ApplyEmployeeSorting(
-            IQueryable<MstEmployee> query,
+        private static IOrderedQueryable<MstDoctor> ApplyDoctorSorting(
+            IQueryable<MstDoctor> query,
             string? sortBy,
             string? sortDirection)
         {
@@ -2042,17 +2071,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             return field switch
             {
-                "employeecode" => desc
-                    ? query.OrderByDescending(x => x.EmployeeCode).ThenBy(x => x.FullName)
-                    : query.OrderBy(x => x.EmployeeCode).ThenBy(x => x.FullName),
+                "doctorcode" => desc
+                    ? query.OrderByDescending(x => x.DoctorCode).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.DoctorCode).ThenBy(x => x.FullName),
 
-                "employeenumber" => desc
-                    ? query.OrderByDescending(x => x.EmployeeNumber).ThenBy(x => x.FullName)
-                    : query.OrderBy(x => x.EmployeeNumber).ThenBy(x => x.FullName),
+                "doctornumber" => desc
+                    ? query.OrderByDescending(x => x.DoctorNumber).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.DoctorNumber).ThenBy(x => x.FullName),
 
                 "fullname" => desc
-                    ? query.OrderByDescending(x => x.FullName).ThenBy(x => x.EmployeeCode)
-                    : query.OrderBy(x => x.FullName).ThenBy(x => x.EmployeeCode),
+                    ? query.OrderByDescending(x => x.FullName).ThenBy(x => x.DoctorCode)
+                    : query.OrderBy(x => x.FullName).ThenBy(x => x.DoctorCode),
 
                 "departmentname" => desc
                     ? query.OrderByDescending(x => x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentName : string.Empty).ThenBy(x => x.FullName)
@@ -2061,6 +2090,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 "positionname" => desc
                     ? query.OrderByDescending(x => x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty).ThenBy(x => x.FullName)
                     : query.OrderBy(x => x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty).ThenBy(x => x.FullName),
+
+                "specialistname" => desc
+                    ? query.OrderByDescending(x => x.SpecialistName ?? string.Empty).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.SpecialistName ?? string.Empty).ThenBy(x => x.FullName),
 
                 "joindate" => desc
                     ? query.OrderByDescending(x => x.JoinDate).ThenBy(x => x.FullName)
@@ -2092,9 +2125,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             );
         }
 
-        private static List<EmployeeCustomPeriodOptionResponse> BuildCustomPeriodOptions()
+        private static List<DoctorCustomPeriodOptionResponse> BuildCustomPeriodOptions()
         {
-            return new List<EmployeeCustomPeriodOptionResponse>
+            return new List<DoctorCustomPeriodOptionResponse>
             {
                 new()
                 {
@@ -2171,14 +2204,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             };
         }
 
-        private static List<EmployeeQueryParameterInfoResponse> BuildQueryParameterInfo()
+        private static List<DoctorQueryParameterInfoResponse> BuildQueryParameterInfo()
         {
-            return new List<EmployeeQueryParameterInfoResponse>
+            return new List<DoctorQueryParameterInfoResponse>
             {
                 new() { Name = "startDate", Type = "date", Description = "Tanggal mulai filter berdasarkan CreateDateTime.", Example = "2026-01-01" },
                 new() { Name = "endDate", Type = "date", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-01-31" },
                 new() { Name = "customPeriod", Type = "string", Description = "Pilihan periode cepat.", Example = "last30days" },
-                new() { Name = "search", Type = "string", Description = "Pencarian employee code, employee number, nama, email, phone, department, position, dan region.", Example = "budi" },
+                new() { Name = "search", Type = "string", Description = "Pencarian doctor code, doctor number, nama, email, phone, spesialis, department, position, dan region.", Example = "andi" },
                 new() { Name = "departmentId", Type = "guid", Description = "Filter berdasarkan primary department." },
                 new() { Name = "positionId", Type = "guid", Description = "Filter berdasarkan primary position." },
                 new() { Name = "countryId", Type = "guid", Description = "Filter berdasarkan country." },
@@ -2186,20 +2219,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 new() { Name = "cityId", Type = "guid", Description = "Filter berdasarkan city." },
                 new() { Name = "districtId", Type = "guid", Description = "Filter berdasarkan district." },
                 new() { Name = "postalCodeId", Type = "guid", Description = "Filter berdasarkan postal code/village." },
+                new() { Name = "workforceUserType", Type = "enum", Description = "Filter UserType doctor. Hanya PermanentDoctor atau GuestDoctor.", Example = "PermanentDoctor" },
+                new() { Name = "doctorStatus", Type = "enum", Description = "Filter status doctor." },
+                new() { Name = "doctorType", Type = "enum", Description = "Filter tipe doctor." },
+                new() { Name = "practiceType", Type = "enum", Description = "Filter tipe praktik doctor." },
+                new() { Name = "employmentType", Type = "enum", Description = "Filter tipe employment.", Example = "2" },
                 new() { Name = "religion", Type = "enum", Description = "Filter berdasarkan enum Religion." },
                 new() { Name = "maritalStatus", Type = "enum", Description = "Filter berdasarkan enum MaritalStatus." },
                 new() { Name = "bloodType", Type = "enum", Description = "Filter berdasarkan enum BloodType." },
-                new() { Name = "employeeStatus", Type = "enum", Description = "Filter status employee." },
-                new() { Name = "professionType", Type = "enum", Description = "Filter profession type." },
-                new()
-                {
-                    Name = "employmentType",
-                    Type = "enum",
-                    Description = "Filter tipe employment. Contoh: Permanent, Contract, Probation, Internship.",
-                    Example = "2"
-                },
-                new() { Name = "hasTransportAllowanceProfile", Type = "boolean", Description = "Filter employee yang sudah/belum punya profile uang transport workforce.", Example = "true" },
-                new() { Name = "hasUserAccount", Type = "boolean", Description = "Filter employee yang sudah/belum memiliki akun login.", Example = "true" },
+                new() { Name = "isAvailableForAppointment", Type = "boolean", Description = "Filter doctor yang tersedia untuk appointment.", Example = "true" },
+                new() { Name = "hasUserAccount", Type = "boolean", Description = "Filter doctor yang sudah/belum memiliki akun login.", Example = "true" },
                 new() { Name = "sortBy", Type = "string", Description = "Field sorting. Nilai tersedia dari SortOptions.", Example = "fullName" },
                 new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
                 new() { Name = "pageNumber", Type = "integer", Description = "Nomor halaman. Minimal 1.", Example = "1" },
@@ -2207,16 +2236,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             };
         }
 
-        private static List<EmployeeFormFieldMetadataResponse> BuildCreateEmployeeFieldMetadata()
+        private static List<DoctorFormFieldMetadataResponse> BuildCreateDoctorFieldMetadata()
         {
-            return BuildEmployeeFieldMetadata(isUpdate: false);
+            return BuildDoctorFieldMetadata(isUpdate: false);
         }
 
-        private static List<EmployeeFormFieldMetadataResponse> BuildUpdateEmployeeFieldMetadata()
+        private static List<DoctorFormFieldMetadataResponse> BuildUpdateDoctorFieldMetadata()
         {
-            var fields = BuildEmployeeFieldMetadata(isUpdate: true);
+            var fields = BuildDoctorFieldMetadata(isUpdate: true);
 
-            fields.Add(new EmployeeFormFieldMetadataResponse
+            fields.Add(new DoctorFormFieldMetadataResponse
             {
                 Name = "isActive",
                 Label = "Status Aktif",
@@ -2225,12 +2254,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 IsRequiredOnCreate = false,
                 IsRequiredOnUpdate = true,
                 RequiredType = "Required",
-                Description = "Status aktif employee.",
+                Description = "Status aktif doctor.",
                 Example = "true",
                 SortOrder = 900
             });
 
-            fields.Add(new EmployeeFormFieldMetadataResponse
+            fields.Add(new DoctorFormFieldMetadataResponse
             {
                 Name = "resignDate",
                 Label = "Tanggal Resign",
@@ -2239,12 +2268,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 IsRequiredOnCreate = false,
                 IsRequiredOnUpdate = false,
                 RequiredType = "Optional",
-                Description = "Diisi jika employee resign atau dinonaktifkan.",
+                Description = "Diisi jika doctor resign atau dinonaktifkan.",
                 Example = "2026-05-07",
                 SortOrder = 901
             });
 
-            fields.Add(new EmployeeFormFieldMetadataResponse
+            fields.Add(new DoctorFormFieldMetadataResponse
             {
                 Name = "resignReason",
                 Label = "Alasan Resign",
@@ -2263,10 +2292,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             return fields.OrderBy(x => x.SortOrder).ToList();
         }
 
-        private static List<EmployeeFormFieldMetadataResponse> BuildEmployeeFieldMetadata(bool isUpdate)
+        private static List<DoctorFormFieldMetadataResponse> BuildDoctorFieldMetadata(bool isUpdate)
         {
-            return new List<EmployeeFormFieldMetadataResponse>
+            return new List<DoctorFormFieldMetadataResponse>
             {
+                new()
+                {
+                    Name = "doctorUserType",
+                    Label = "Jenis User Doctor",
+                    Section = "Identitas Utama",
+                    InputType = "select",
+                    IsRequiredOnCreate = true,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = isUpdate ? "Readonly" : "Required",
+                    OptionsSource = "workforceUserTypeOptions",
+                    Description = "Hanya PermanentDoctor atau GuestDoctor.",
+                    Example = "PermanentDoctor",
+                    SortOrder = 1
+                },
                 new()
                 {
                     Name = "fullName",
@@ -2277,9 +2320,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnUpdate = true,
                     RequiredType = "Required",
                     MaxLength = 200,
-                    Description = "Nama lengkap employee.",
-                    Example = "Maya Lestari",
-                    SortOrder = 1
+                    Description = "Nama lengkap doctor.",
+                    Example = "dr. Andi Wijaya, Sp.PD",
+                    SortOrder = 2
                 },
                 new()
                 {
@@ -2291,8 +2334,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
                     MaxLength = 100,
-                    Example = "Maya",
-                    SortOrder = 2
+                    Example = "dr. Andi",
+                    SortOrder = 3
                 },
                 new()
                 {
@@ -2304,8 +2347,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
                     OptionsSource = "genderOptions",
-                    Example = "2",
-                    SortOrder = 3
+                    Example = "1",
+                    SortOrder = 4
                 },
                 new()
                 {
@@ -2318,7 +2361,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     RequiredType = "Optional",
                     MaxLength = 100,
                     Example = "Bandung",
-                    SortOrder = 4
+                    SortOrder = 5
                 },
                 new()
                 {
@@ -2326,12 +2369,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Label = "Tanggal Lahir",
                     Section = "Identitas Utama",
                     InputType = "date",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
-                    Description = "Tanggal lahir wajib diisi. Digunakan juga untuk password awal akun login dengan format ddMMMyyyy.",
-                    Example = "2025-01-01",
-                    SortOrder = 5
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Conditional",
+                    Description = "Wajib jika CreateLoginAccount = true karena dipakai untuk password awal.",
+                    Example = "1988-01-01",
+                    SortOrder = 6
                 },
                 new()
                 {
@@ -2344,7 +2387,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     RequiredType = "Optional",
                     OptionsSource = "religionOptions",
                     Example = "1",
-                    SortOrder = 6
+                    SortOrder = 7
                 },
                 new()
                 {
@@ -2357,7 +2400,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     RequiredType = "Optional",
                     OptionsSource = "maritalStatusOptions",
                     Example = "1",
-                    SortOrder = 7
+                    SortOrder = 8
                 },
                 new()
                 {
@@ -2370,7 +2413,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     RequiredType = "Optional",
                     OptionsSource = "bloodTypeOptions",
                     Example = "1",
-                    SortOrder = 8
+                    SortOrder = 9
                 },
                 new()
                 {
@@ -2378,9 +2421,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Label = "Tipe Identitas",
                     Section = "Identitas Legal & Kontak",
                     InputType = "text",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
                     MaxLength = 50,
                     Example = "KTP",
                     SortOrder = 101
@@ -2391,13 +2434,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Label = "Nomor Identitas",
                     Section = "Identitas Legal & Kontak",
                     InputType = "text",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
-                    MaxLength = 16,
-                    ValidationRule = "digits:16;unique",
-                    Description = "Nomor identitas wajib 16 digit dan harus unik.",
-                    Example = "3273010101250005",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 50,
+                    ValidationRule = "unique",
+                    Example = "3273010101880001",
                     SortOrder = 102
                 },
                 new()
@@ -2409,9 +2451,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    MaxLength = 13,
-                    ValidationRule = "digits;max:13",
-                    Description = "Nomor maksimal 13 digit.",
+                    MaxLength = 30,
+                    ValidationRule = "digits;max:30",
                     SortOrder = 103
                 },
                 new()
@@ -2423,10 +2464,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    MaxLength = 13,
-                    ValidationRule = "digits;max:13",
-                    Description = "Nomor maksimal 13 digit.",
-                    Example = "0812345678902",
+                    MaxLength = 30,
+                    ValidationRule = "digits;max:30",
                     SortOrder = 104
                 },
                 new()
@@ -2435,13 +2474,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Label = "Email",
                     Section = "Identitas Legal & Kontak",
                     InputType = "email",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Conditional",
                     MaxLength = 200,
                     ValidationRule = "email;unique",
-                    Description = "Email wajib diisi dan harus unik. Digunakan juga sebagai username login.",
-                    Example = "maya@admin.com",
+                    Description = "Wajib jika CreateLoginAccount = true.",
+                    Example = "doctor@admin.com",
                     SortOrder = 105
                 },
                 new()
@@ -2454,7 +2493,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
                     MaxLength = 500,
-                    Example = "Jl. Kenanga No. 8",
                     SortOrder = 106
                 },
                 new()
@@ -2480,7 +2518,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     RequiredType = "Conditional",
                     DependsOn = "countryId",
                     OptionsSource = "region.provinces.options",
-                    Description = "Wajib jika cityId diisi. Harus sesuai countryId.",
                     SortOrder = 202
                 },
                 new()
@@ -2494,7 +2531,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     RequiredType = "Conditional",
                     DependsOn = "provinceId",
                     OptionsSource = "region.cities.options",
-                    Description = "Wajib jika districtId diisi. Harus sesuai provinceId.",
                     SortOrder = 203
                 },
                 new()
@@ -2508,7 +2544,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     RequiredType = "Conditional",
                     DependsOn = "cityId",
                     OptionsSource = "region.districts.options",
-                    Description = "Wajib jika postalCodeId diisi. Harus sesuai cityId.",
                     SortOrder = 204
                 },
                 new()
@@ -2522,7 +2557,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     RequiredType = "Optional",
                     DependsOn = "districtId",
                     OptionsSource = "region.postal-codes.options",
-                    Description = "Jika diisi harus sesuai districtId.",
                     SortOrder = 205
                 },
                 new()
@@ -2531,11 +2565,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Label = "Department Utama",
                     Section = "Organisasi",
                     InputType = "select",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
                     OptionsSource = "organization.departments.options",
-                    Description = "Department utama wajib dipilih.",
                     SortOrder = 301
                 },
                 new()
@@ -2544,55 +2577,104 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Label = "Position Utama",
                     Section = "Organisasi",
                     InputType = "select",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Conditional",
                     DependsOn = "primaryDepartmentId",
                     OptionsSource = "organization.positions.options",
-                    Description = "Position utama wajib dipilih dan harus sesuai department.",
+                    Description = "Wajib jika primaryDepartmentId diisi.",
                     SortOrder = 302
                 },
                 new()
                 {
-                    Name = "employeeStatus",
-                    Label = "Status Employee",
-                    Section = "Employment",
+                    Name = "doctorStatus",
+                    Label = "Status Doctor",
+                    Section = "Doctor Profile",
                     InputType = "select",
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    OptionsSource = "employeeStatusOptions",
-                    Description = "Default backend adalah Contract.",
+                    OptionsSource = "doctorStatusOptions",
                     Example = "1",
                     SortOrder = 401
                 },
                 new()
                 {
-                    Name = "professionType",
-                    Label = "Tipe Profesi",
-                    Section = "Employment",
+                    Name = "doctorType",
+                    Label = "Tipe Doctor",
+                    Section = "Doctor Profile",
                     InputType = "select",
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    OptionsSource = "professionTypeOptions",
-                    Description = "Default backend adalah GeneralStaff.",
+                    OptionsSource = "doctorTypeOptions",
                     Example = "1",
                     SortOrder = 402
                 },
                 new()
                 {
-                    Name = "employmentType",
-                    Label = "Tipe Pekerjaan",
-                    Section = "Employment",
+                    Name = "practiceType",
+                    Label = "Tipe Praktik",
+                    Section = "Doctor Profile",
                     InputType = "select",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
-                    OptionsSource = "employmentTypeOptions",
-                    Description = "Default backend adalah Contract.",
-                    Example = "2",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    OptionsSource = "practiceTypeOptions",
+                    Example = "1",
                     SortOrder = 403
+                },
+                new()
+                {
+                    Name = "employmentType",
+                    Label = "Tipe Employment",
+                    Section = "Doctor Profile",
+                    InputType = "select",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    OptionsSource = "employmentTypeOptions",
+                    Example = "2",
+                    SortOrder = 404
+                },
+                new()
+                {
+                    Name = "specialistName",
+                    Label = "Spesialis",
+                    Section = "Doctor Profile",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 100,
+                    Example = "Penyakit Dalam",
+                    SortOrder = 405
+                },
+                new()
+                {
+                    Name = "subSpecialistName",
+                    Label = "Sub Spesialis",
+                    Section = "Doctor Profile",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 100,
+                    Example = "Konsultan Ginjal Hipertensi",
+                    SortOrder = 406
+                },
+                new()
+                {
+                    Name = "medicalStaffGroup",
+                    Label = "Medical Staff Group",
+                    Section = "Doctor Profile",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 100,
+                    Example = "SMF Penyakit Dalam",
+                    SortOrder = 407
                 },
                 new()
                 {
@@ -2604,8 +2686,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
                     MaxLength = 50,
-                    Example = "Staff",
-                    SortOrder = 404
+                    SortOrder = 501
                 },
                 new()
                 {
@@ -2618,7 +2699,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     RequiredType = "Optional",
                     MaxLength = 50,
                     Example = "RSMMC",
-                    SortOrder = 405
+                    SortOrder = 502
                 },
                 new()
                 {
@@ -2626,11 +2707,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Label = "Tanggal Bergabung",
                     Section = "Employment",
                     InputType = "date",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
                     Example = "2026-05-07",
-                    SortOrder = 406
+                    SortOrder = 503
                 },
                 new()
                 {
@@ -2641,8 +2722,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    Example = "2026-08-07",
-                    SortOrder = 407
+                    SortOrder = 504
                 },
                 new()
                 {
@@ -2653,8 +2733,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    Example = "2026-05-07",
-                    SortOrder = 408
+                    SortOrder = 505
                 },
                 new()
                 {
@@ -2665,71 +2744,56 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    Example = "2027-05-06",
-                    SortOrder = 409
+                    SortOrder = 506
                 },
                 new()
                 {
-                    Name = "emergencyContactName",
-                    Label = "Nama Kontak Darurat",
-                    Section = "Emergency Contact",
-                    InputType = "text",
+                    Name = "credentialingDate",
+                    Label = "Tanggal Credentialing",
+                    Section = "Credentialing",
+                    InputType = "date",
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    MaxLength = 200,
-                    Example = "Hendra Lestari",
-                    SortOrder = 501
+                    SortOrder = 601
                 },
                 new()
                 {
-                    Name = "emergencyContactRelation",
-                    Label = "Hubungan Kontak Darurat",
-                    Section = "Emergency Contact",
-                    InputType = "text",
+                    Name = "isAvailableForAppointment",
+                    Label = "Tersedia untuk Appointment",
+                    Section = "Appointment",
+                    InputType = "boolean",
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    MaxLength = 50,
-                    Example = "Ayah",
-                    SortOrder = 502
-                },
-                new()
-                {
-                    Name = "emergencyContactPhone",
-                    Label = "Telepon Kontak Darurat",
-                    Section = "Emergency Contact",
-                    InputType = "text",
-                    IsRequiredOnCreate = false,
-                    IsRequiredOnUpdate = false,
-                    RequiredType = "Optional",
-                    MaxLength = 13,
-                    ValidationRule = "digits:13",
-                    Example = "0812345678912",
-                    SortOrder = 503
-                },
-                new()
-                {
-                    Name = "emergencyContactAddress",
-                    Label = "Alamat Kontak Darurat",
-                    Section = "Emergency Contact",
-                    InputType = "textarea",
-                    IsRequiredOnCreate = false,
-                    IsRequiredOnUpdate = false,
-                    RequiredType = "Optional",
-                    MaxLength = 500,
-                    Example = "Jl. Kenanga No. 8",
-                    SortOrder = 504
+                    Example = "true",
+                    SortOrder = 701
                 }
             }
             .OrderBy(x => x.SortOrder)
             .ToList();
         }
 
-        private static List<EmployeeEnumOptionResponse> BuildEnumOptions<TEnum>() where TEnum : struct, System.Enum
+        private static List<DoctorEnumOptionResponse> BuildDoctorUserTypeOptions()
+        {
+            return new List<UserType>
+                {
+                    UserType.PermanentDoctor,
+                    UserType.GuestDoctor
+                }
+                .Select(x => new DoctorEnumOptionResponse
+                {
+                    Value = Convert.ToInt32(x),
+                    Name = x.ToString(),
+                    Label = BuildEnumLabel(x.ToString())
+                })
+                .ToList();
+        }
+
+        private static List<DoctorEnumOptionResponse> BuildEnumOptions<TEnum>() where TEnum : struct, System.Enum
         {
             return System.Enum.GetValues<TEnum>()
-                .Select(x => new EmployeeEnumOptionResponse
+                .Select(x => new DoctorEnumOptionResponse
                 {
                     Value = Convert.ToInt32(x),
                     Name = x.ToString(),
@@ -2742,14 +2806,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         {
             return value switch
             {
+                "PermanentDoctor" => "Dokter Tetap",
+                "GuestDoctor" => "Dokter Tamu",
+
                 "Active" => "Aktif",
                 "Inactive" => "Tidak Aktif",
+                "OnLeave" => "Cuti",
                 "Probation" => "Probation",
                 "Suspended" => "Suspended",
                 "Resigned" => "Resign",
                 "Terminated" => "Diberhentikan",
                 "Retired" => "Pensiun",
                 "ContractEnded" => "Kontrak Berakhir",
+                "CredentialingPending" => "Credentialing Pending",
+                "PrivilegeSuspended" => "Privilege Suspended",
 
                 "Permanent" => "Permanent",
                 "Contract" => "Kontrak",
@@ -2760,26 +2830,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 "Consultant" => "Konsultan",
                 "Volunteer" => "Relawan",
 
-                "GeneralStaff" => "Staff Umum",
-                "Nurse" => "Perawat",
-                "Midwife" => "Bidan",
-                "Pharmacist" => "Apoteker",
-                "PharmacyTechnician" => "Tenaga Teknis Kefarmasian",
-                "LaboratoryAnalyst" => "Analis Laboratorium",
-                "Radiographer" => "Radiografer",
-                "Physiotherapist" => "Fisioterapis",
-                "Nutritionist" => "Ahli Gizi",
-                "MedicalRecordStaff" => "Rekam Medis",
-                "BillingStaff" => "Billing",
-                "Cashier" => "Kasir",
-                "Administrator" => "Administrator",
-                "ITStaff" => "IT Staff",
-                "FinanceStaff" => "Finance Staff",
-                "HRStaff" => "HR Staff",
-                "Security" => "Security",
-                "CleaningService" => "Cleaning Service",
-                "Driver" => "Driver",
-                "Maintenance" => "Maintenance",
+                "GeneralPractitioner" => "Dokter Umum",
+                "Specialist" => "Spesialis",
+                "SubSpecialist" => "Sub Spesialis",
+                "Dentist" => "Dokter Gigi",
+                "SpecialistDentist" => "Dokter Gigi Spesialis",
+                "Resident" => "Residen",
+                "Fellow" => "Fellow",
+                "VisitingDoctor" => "Visiting Doctor",
+
+                "FullTime" => "Full Time",
+                "Visiting" => "Visiting",
+                "OnCall" => "On Call",
+                "Telemedicine" => "Telemedicine",
+                "Guest" => "Guest",
 
                 "Unknown" => "Tidak Diketahui",
                 "Male" => "Laki-laki",
@@ -2824,6 +2888,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
 
             return Guid.Empty;
+        }
+
+        private static bool IsDoctorUserType(UserType userType)
+        {
+            return userType == UserType.PermanentDoctor ||
+                   userType == UserType.GuestDoctor;
         }
 
         private static string? NormalizeNullableText(string? value)
@@ -2884,29 +2954,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
         }
 
-        private async Task<(bool IsSuccess, string? ErrorMessage, EmployeeLoginAccountResponse? Response)>
-            CreateLoginAccountForEmployeeAsync(
-                MstEmployee employee,
+        private async Task<(bool IsSuccess, string? ErrorMessage, DoctorLoginAccountResponse? Response)>
+            CreateLoginAccountForDoctorAsync(
+                MstDoctor doctor,
+                UserType userType,
                 bool isFingerprintRegistrationEnabled,
                 string? fingerprintRegistrationReason,
                 Guid actorUserId)
         {
-            if (employee.Id == Guid.Empty)
+            if (doctor.Id == Guid.Empty)
             {
-                return (false, "EmployeeId tidak valid.", null);
+                return (false, "DoctorId tidak valid.", null);
             }
 
-            if (string.IsNullOrWhiteSpace(employee.Email))
+            if (!IsDoctorUserType(userType))
             {
-                return (false, "Email employee wajib diisi untuk membuat akun login.", null);
+                return (false, "UserType doctor hanya boleh PermanentDoctor atau GuestDoctor.", null);
             }
 
-            if (employee.BirthDate == default)
+            if (string.IsNullOrWhiteSpace(doctor.Email))
             {
-                return (false, "BirthDate employee wajib diisi untuk generate password awal.", null);
+                return (false, "Email doctor wajib diisi untuk membuat akun login.", null);
             }
 
-            var email = employee.Email.Trim().ToLower();
+            if (!doctor.BirthDate.HasValue || doctor.BirthDate.Value == default)
+            {
+                return (false, "BirthDate doctor wajib diisi untuk generate password awal.", null);
+            }
+
+            var email = doctor.Email.Trim().ToLowerInvariant();
 
             var existingByEmail = await _userManager.FindByEmailAsync(email);
 
@@ -2922,18 +2998,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 return (false, "Username sudah digunakan oleh akun login lain.", null);
             }
 
-            var existingEmployeeAccount = await _dbContext.Users
+            var existingDoctorAccount = await _dbContext.Users
                 .AsNoTracking()
                 .AnyAsync(x =>
-                    x.EmployeeId == employee.Id &&
-                    x.UserType == UserType.Employee);
+                    x.DoctorId == doctor.Id &&
+                    (x.UserType == UserType.PermanentDoctor || x.UserType == UserType.GuestDoctor));
 
-            if (existingEmployeeAccount)
+            if (existingDoctorAccount)
             {
-                return (false, "Employee ini sudah memiliki akun login.", null);
+                return (false, "Doctor ini sudah memiliki akun login.", null);
             }
 
-            var initialPassword = GenerateInitialPasswordFromBirthDate(employee.BirthDate);
+            var initialPassword = GenerateInitialPasswordFromBirthDate(doctor.BirthDate.Value);
 
             if (string.IsNullOrWhiteSpace(initialPassword))
             {
@@ -2949,18 +3025,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 UserName = email,
                 Email = email,
                 EmailConfirmed = true,
-                DisplayName = employee.FullName,
-                UserType = UserType.Employee,
-                WorkforceProfileId = employee.WorkforceProfileId,
-                EmployeeId = employee.Id,
-                DoctorId = null,
+                DisplayName = doctor.FullName,
+                UserType = userType,
+                WorkforceProfileId = doctor.WorkforceProfileId,
+                EmployeeId = null,
+                DoctorId = doctor.Id,
                 ExternalUserId = null,
-                PrimaryDepartmentId = employee.PrimaryDepartmentId,
-                PrimaryPositionId = employee.PrimaryPositionId,
+                PrimaryDepartmentId = doctor.PrimaryDepartmentId,
+                PrimaryPositionId = doctor.PrimaryPositionId,
                 IsGeolocationBypassEnabled = false,
                 GeolocationBypassReason = null,
                 GeolocationBypassUntil = null,
-                IsActive = employee.IsActive,
+                IsActive = doctor.IsActive,
                 MustChangePassword = true,
                 AccessValidUntil = null,
                 CreateDateTime = now,
@@ -2986,7 +3062,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 return (false, $"Akun login gagal dibuat: {errors}", null);
             }
 
-            var response = new EmployeeLoginAccountResponse
+            var response = new DoctorLoginAccountResponse
             {
                 IsCreated = true,
                 UserId = user.Id,
@@ -3001,7 +3077,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 IsFingerprintRegistrationEnabled = user.IsFingerprintRegistrationEnabled,
                 FingerprintRegistrationReason = user.FingerprintRegistrationReason,
                 FingerprintRegistrationEnabledAt = user.FingerprintRegistrationEnabledAt,
-                Message = "Akun login employee berhasil dibuat. Password awal wajib diganti saat login pertama."
+                Message = "Akun login doctor berhasil dibuat. Password awal wajib diganti saat login pertama."
             };
 
             return (true, null, response);
@@ -3049,7 +3125,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsActive = true,
                     EffectiveStartDate = effectiveStartUtc,
                     EffectiveEndDate = null,
-                    Description = "Synced from employee primary organization assignment",
+                    Description = "Synced from doctor primary organization assignment",
                     CreateDateTime = now,
                     CreateBy = actorUserId,
                     IsDelete = false,
@@ -3064,7 +3140,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 existing.IsActive = true;
                 existing.EffectiveStartDate = effectiveStartUtc;
                 existing.EffectiveEndDate = null;
-                existing.Description = "Synced from employee primary organization assignment";
+                existing.Description = "Synced from doctor primary organization assignment";
                 existing.IsDelete = false;
                 existing.DeleteDateTime = null;
                 existing.DeleteBy = Guid.Empty;
@@ -3107,95 +3183,73 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             return birthDate.ToString("ddMMMyyyy", CultureInfo.InvariantCulture);
         }
 
-        private static (bool IsValid, string? ErrorMessage) ValidateRequiredEmployeeRequest(CreateEmployeeRequest request)
+        private static (bool IsValid, string? ErrorMessage) ValidateRequiredDoctorRequest(CreateDoctorRequest request)
         {
-            return ValidateRequiredEmployeeFields(
+            return ValidateRequiredDoctorFields(
                 fullName: request.FullName,
+                doctorUserType: request.DoctorUserType,
+                createLoginAccount: request.CreateLoginAccount,
                 birthDate: request.BirthDate,
-                identityType: request.IdentityType,
-                identityNumber: request.IdentityNumber,
                 email: request.Email,
                 primaryDepartmentId: request.PrimaryDepartmentId,
                 primaryPositionId: request.PrimaryPositionId,
-                employmentType: request.EmploymentType,
-                joinDate: request.JoinDate
+                employmentType: request.EmploymentType
             );
         }
 
-        private static (bool IsValid, string? ErrorMessage) ValidateRequiredEmployeeRequest(UpdateEmployeeRequest request)
+        private static (bool IsValid, string? ErrorMessage) ValidateRequiredDoctorRequest(UpdateDoctorRequest request)
         {
-            return ValidateRequiredEmployeeFields(
+            return ValidateRequiredDoctorFields(
                 fullName: request.FullName,
+                doctorUserType: UserType.PermanentDoctor,
+                createLoginAccount: false,
                 birthDate: request.BirthDate,
-                identityType: request.IdentityType,
-                identityNumber: request.IdentityNumber,
                 email: request.Email,
                 primaryDepartmentId: request.PrimaryDepartmentId,
                 primaryPositionId: request.PrimaryPositionId,
-                employmentType: request.EmploymentType,
-                joinDate: request.JoinDate
+                employmentType: request.EmploymentType
             );
         }
 
-        private static (bool IsValid, string? ErrorMessage) ValidateRequiredEmployeeFields(
-    string? fullName,
-    DateTime birthDate,
-    string? identityType,
-    string? identityNumber,
-    string? email,
-    Guid primaryDepartmentId,
-    Guid primaryPositionId,
-    EmploymentType employmentType,
-    DateTime joinDate)
+        private static (bool IsValid, string? ErrorMessage) ValidateRequiredDoctorFields(
+            string? fullName,
+            UserType doctorUserType,
+            bool createLoginAccount,
+            DateTime? birthDate,
+            string? email,
+            Guid? primaryDepartmentId,
+            Guid? primaryPositionId,
+            EmploymentType employmentType)
         {
             if (string.IsNullOrWhiteSpace(fullName))
             {
-                return (false, "Nama employee wajib diisi.");
+                return (false, "Nama doctor wajib diisi.");
             }
 
-            if (birthDate == default)
+            if (!IsDoctorUserType(doctorUserType))
             {
-                return (false, "Tanggal lahir wajib diisi.");
+                return (false, "DoctorUserType hanya boleh PermanentDoctor atau GuestDoctor.");
             }
 
-            if (string.IsNullOrWhiteSpace(identityType))
+            if (createLoginAccount && string.IsNullOrWhiteSpace(email))
             {
-                return (false, "Tipe identitas wajib diisi.");
+                return (false, "Email wajib diisi jika ingin membuat akun login doctor.");
             }
 
-            if (string.IsNullOrWhiteSpace(identityNumber))
+            if (createLoginAccount && (!birthDate.HasValue || birthDate.Value == default))
             {
-                return (false, "Nomor identitas wajib diisi.");
+                return (false, "BirthDate wajib diisi jika ingin membuat akun login doctor.");
             }
 
-            if (NormalizeDigitsOnly(identityNumber)?.Length != 16)
+            if (primaryPositionId.HasValue && primaryPositionId.Value != Guid.Empty &&
+                (!primaryDepartmentId.HasValue || primaryDepartmentId.Value == Guid.Empty))
             {
-                return (false, "Nomor identitas harus 16 digit.");
-            }
-
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                return (false, "Email wajib diisi.");
-            }
-
-            if (primaryDepartmentId == Guid.Empty)
-            {
-                return (false, "Primary department wajib dipilih.");
-            }
-
-            if (primaryPositionId == Guid.Empty)
-            {
-                return (false, "Primary position wajib dipilih.");
+                return (false, "Primary department wajib dipilih jika primary position diisi.");
             }
 
             if (employmentType == EmploymentType.Unknown)
             {
                 return (false, "Employment type wajib dipilih.");
-            }
-
-            if (joinDate == default)
-            {
-                return (false, "Tanggal bergabung wajib diisi.");
             }
 
             return (true, null);

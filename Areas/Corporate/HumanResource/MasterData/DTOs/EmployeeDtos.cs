@@ -78,7 +78,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public EmployeeProfessionType ProfessionType { get; set; }
 
-        public string EmploymentType { get; set; } = string.Empty;
+        public EmploymentType EmploymentType { get; set; }
 
         public string? GradeLevel { get; set; }
 
@@ -265,6 +265,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public List<EmployeeEnumOptionResponse> ProfessionTypeOptions { get; set; } = new();
 
+        public List<EmployeeEnumOptionResponse> EmploymentTypeOptions { get; set; } = new();
+
         public List<string> TransportAllowanceModes { get; set; } = new();
 
         public List<string> TransportTransactionStatuses { get; set; } = new();
@@ -309,6 +311,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public EmployeeStatus? EmployeeStatus { get; set; }
 
         public EmployeeProfessionType? ProfessionType { get; set; }
+
+        public EmploymentType? EmploymentType { get; set; }
 
         public Religion? Religion { get; set; }
 
@@ -491,13 +495,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         [Required]
         public Guid PrimaryPositionId { get; set; }
 
-        public EmployeeStatus EmployeeStatus { get; set; } = EmployeeStatus.Contract;
+        public EmployeeStatus EmployeeStatus { get; set; } = EmployeeStatus.Active;
 
         public EmployeeProfessionType ProfessionType { get; set; } = EmployeeProfessionType.GeneralStaff;
 
-        [Required]
-        [MaxLength(50)]
-        public string EmploymentType { get; set; } = string.Empty;
+        public EmploymentType EmploymentType { get; set; } = EmploymentType.Contract;
 
         [MaxLength(50)]
         public string? GradeLevel { get; set; }
@@ -561,7 +563,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? PhoneNumber { get; set; }
 
         [MaxLength(13)]
-        [RegularExpression(@"^\d{13}$", ErrorMessage = "Nomor WhatsApp harus 13 digit.")]
+        [RegularExpression(@"^\d{1,13}$", ErrorMessage = "Nomor WhatsApp maksimal 13 digit dan hanya boleh angka.")]
         public string? WhatsAppNumber { get; set; }
 
         [Required]
@@ -588,13 +590,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         [Required]
         public Guid PrimaryPositionId { get; set; }
 
-        public EmployeeStatus EmployeeStatus { get; set; } = EmployeeStatus.Contract;
+        public EmployeeStatus EmployeeStatus { get; set; } = EmployeeStatus.Active;
 
         public EmployeeProfessionType ProfessionType { get; set; } = EmployeeProfessionType.GeneralStaff;
 
-        [Required]
-        [MaxLength(50)]
-        public string EmploymentType { get; set; } = string.Empty;
+        public EmploymentType EmploymentType { get; set; } = EmploymentType.Contract;
 
         [MaxLength(50)]
         public string? GradeLevel { get; set; }
@@ -623,7 +623,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? EmergencyContactRelation { get; set; }
 
         [MaxLength(13)]
-        [RegularExpression(@"^\d{13}$", ErrorMessage = "Nomor telepon kontak darurat harus 13 digit.")]
+        [RegularExpression(@"^\d{1,13}$", ErrorMessage = "Nomor telepon kontak darurat maksimal 13 digit dan hanya boleh angka.")]
         public string? EmergencyContactPhone { get; set; }
 
         [MaxLength(500)]

@@ -59,6 +59,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<WfpTax> WfpTaxes { get; set; }
         public DbSet<WfpInsurance> WfpInsurances { get; set; }       
         public DbSet<WfpWorkScheduleAssignment> WfpWorkScheduleAssignments { get; set; }
+        public DbSet<WfpLeaveBalance> WfpLeaveBalances { get; set; }
+        public DbSet<WfpLeaveRequest> WfpLeaveRequests { get; set; }
+        public DbSet<WfpOvertimeRequest> WfpOvertimeRequests { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -71,8 +74,8 @@ namespace QuilvianSystemBackend.Repositories
                     .IsRequired();
 
                 entity.Property(x => x.DisplayName)
-                   .HasMaxLength(200)
-                   .IsRequired(false);
+                    .HasMaxLength(200)
+                    .IsRequired(false);
 
                 entity.Property(x => x.UserType)
                     .HasConversion<int>();
@@ -94,19 +97,36 @@ namespace QuilvianSystemBackend.Repositories
                     .HasColumnType("timestamp with time zone")
                     .IsRequired(false);
 
+                entity.Property(x => x.EmployeeId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.DoctorId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.ExternalUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired(false);
+
                 entity.HasOne(x => x.Employee)
-                    .WithMany()
-                    .HasForeignKey(x => x.EmployeeId)
+                    .WithOne()
+                    .HasForeignKey<ApplicationUser>(x => x.EmployeeId)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(x => x.Doctor)
-                    .WithMany()
-                    .HasForeignKey(x => x.DoctorId)
+                    .WithOne()
+                    .HasForeignKey<ApplicationUser>(x => x.DoctorId)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(x => x.ExternalUser)
-                    .WithMany()
-                    .HasForeignKey(x => x.ExternalUserId)
+                    .WithOne()
+                    .HasForeignKey<ApplicationUser>(x => x.ExternalUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithOne(x => x.UserAccount)
+                    .HasForeignKey<ApplicationUser>(x => x.WorkforceProfileId)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(x => x.PrimaryDepartment)
@@ -124,19 +144,17 @@ namespace QuilvianSystemBackend.Repositories
 
                 entity.HasIndex(x => x.UserType);
 
-                entity.HasIndex(x => x.EmployeeId);
+                entity.HasIndex(x => x.EmployeeId)
+                    .IsUnique()
+                    .HasFilter("\"EmployeeId\" IS NOT NULL");
 
-                entity.HasIndex(x => x.DoctorId);
+                entity.HasIndex(x => x.DoctorId)
+                    .IsUnique()
+                    .HasFilter("\"DoctorId\" IS NOT NULL");
 
-                entity.HasIndex(x => x.ExternalUserId);
-
-                entity.Property(x => x.WorkforceProfileId)
-                    .IsRequired(false);
-
-                entity.HasOne(x => x.WorkforceProfile)
-                    .WithOne(x => x.UserAccount)
-                    .HasForeignKey<ApplicationUser>(x => x.WorkforceProfileId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(x => x.ExternalUserId)
+                    .IsUnique()
+                    .HasFilter("\"ExternalUserId\" IS NOT NULL");
 
                 entity.HasIndex(x => x.WorkforceProfileId)
                     .IsUnique()
@@ -1705,6 +1723,9 @@ namespace QuilvianSystemBackend.Repositories
 
                 entity.HasKey(x => x.Id);
 
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
                 entity.Property(x => x.RequirementCode)
                     .HasMaxLength(100);
 
@@ -1736,7 +1757,45 @@ namespace QuilvianSystemBackend.Repositories
                 entity.Property(x => x.FileContentType)
                     .HasMaxLength(100);
 
+                entity.Property(x => x.VerificationStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(CredentialVerificationStatus.Unverified)
+                    .IsRequired();
+
                 entity.Property(x => x.IsVerified)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.VerifiedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.VerifiedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.VerificationNote)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.RejectedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.RejectedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RejectedReason)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.RevokedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.RevokedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RevokedReason)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsPrimary)
                     .HasDefaultValue(false);
 
                 entity.Property(x => x.IsActive)
@@ -1772,12 +1831,51 @@ namespace QuilvianSystemBackend.Repositories
                     .HasForeignKey(x => x.WorkforceProfileId)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                entity.HasOne(x => x.VerifiedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.VerifiedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.RejectedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.RejectedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.RevokedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.RevokedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 entity.HasIndex(x => x.WorkforceProfileId);
+
+                entity.HasIndex(x => x.VerifiedByUserId);
+
+                entity.HasIndex(x => x.RejectedByUserId);
+
+                entity.HasIndex(x => x.RevokedByUserId);
 
                 entity.HasIndex(x => new
                 {
                     x.WorkforceProfileId,
-                    x.RequirementCode,
+                    x.LicenseType,
+                    x.LicenseNumber
+                })
+                .IsUnique()
+                .HasFilter("\"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.LicenseType,
+                    x.IsPrimary
+                })
+                .IsUnique()
+                .HasFilter("\"IsDelete\" = false AND \"IsPrimary\" = true");
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.VerificationStatus,
                     x.IsActive,
                     x.IsDelete
                 });
@@ -1785,8 +1883,22 @@ namespace QuilvianSystemBackend.Repositories
                 entity.HasIndex(x => new
                 {
                     x.WorkforceProfileId,
+                    x.IsVerified,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
                     x.LicenseType,
-                    x.LicenseNumber,
+                    x.ExpiredDate,
+                    x.VerificationStatus
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.ExpiredDate,
+                    x.IsActive,
                     x.IsDelete
                 });
             });
@@ -2280,6 +2392,9 @@ namespace QuilvianSystemBackend.Repositories
 
                 entity.HasKey(x => x.Id);
 
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
                 entity.Property(x => x.EmployeeCode)
                     .HasMaxLength(50)
                     .IsRequired();
@@ -2295,10 +2410,6 @@ namespace QuilvianSystemBackend.Repositories
                 entity.Property(x => x.NickName)
                     .HasMaxLength(100);
 
-                entity.Property(x => x.Gender)
-                    .HasConversion<int>()
-                    .IsRequired(false);
-
                 entity.Property(x => x.BirthPlace)
                     .HasMaxLength(100);
 
@@ -2306,21 +2417,22 @@ namespace QuilvianSystemBackend.Repositories
                     .HasColumnType("date")
                     .IsRequired();
 
+                entity.Property(x => x.Gender)
+                    .HasConversion<int>()
+                    .IsRequired(false);
+
                 entity.Property(x => x.Religion)
-                    .HasConversion<string>()
-                    .HasMaxLength(50)
+                    .HasConversion<int>()
                     .HasDefaultValue(Religion.Unknown)
                     .IsRequired();
 
                 entity.Property(x => x.MaritalStatus)
-                    .HasConversion<string>()
-                    .HasMaxLength(50)
+                    .HasConversion<int>()
                     .HasDefaultValue(MaritalStatus.Unknown)
                     .IsRequired();
 
                 entity.Property(x => x.BloodType)
-                    .HasConversion<string>()
-                    .HasMaxLength(50)
+                    .HasConversion<int>()
                     .HasDefaultValue(BloodType.Unknown)
                     .IsRequired();
 
@@ -2345,14 +2457,25 @@ namespace QuilvianSystemBackend.Repositories
                 entity.Property(x => x.Address)
                     .HasMaxLength(500);
 
+                entity.Property(x => x.PrimaryDepartmentId)
+                    .IsRequired();
+
+                entity.Property(x => x.PrimaryPositionId)
+                    .IsRequired();
+
                 entity.Property(x => x.EmployeeStatus)
-                    .HasConversion<int>();
+                    .HasConversion<int>()
+                    .HasDefaultValue(EmployeeStatus.Active)
+                    .IsRequired();
 
                 entity.Property(x => x.ProfessionType)
-                    .HasConversion<int>();
+                    .HasConversion<int>()
+                    .HasDefaultValue(EmployeeProfessionType.GeneralStaff)
+                    .IsRequired();
 
                 entity.Property(x => x.EmploymentType)
-                    .HasMaxLength(50)
+                    .HasConversion<int>()
+                    .HasDefaultValue(EmploymentType.Contract)
                     .IsRequired();
 
                 entity.Property(x => x.GradeLevel)
@@ -2421,7 +2544,11 @@ namespace QuilvianSystemBackend.Repositories
                 entity.Property(x => x.IsCancel)
                     .HasDefaultValue(false);
 
-                // Department / Position
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithOne(x => x.Employee)
+                    .HasForeignKey<MstEmployee>(x => x.WorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 entity.HasOne(x => x.PrimaryDepartment)
                     .WithMany()
                     .HasForeignKey(x => x.PrimaryDepartmentId)
@@ -2432,7 +2559,6 @@ namespace QuilvianSystemBackend.Repositories
                     .HasForeignKey(x => x.PrimaryPositionId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Region
                 entity.HasOne(x => x.Country)
                     .WithMany()
                     .HasForeignKey(x => x.CountryId)
@@ -2456,9 +2582,11 @@ namespace QuilvianSystemBackend.Repositories
                 entity.HasOne(x => x.PostalCode)
                     .WithMany()
                     .HasForeignKey(x => x.PostalCodeId)
-                    .OnDelete(DeleteBehavior.Restrict);            
+                    .OnDelete(DeleteBehavior.Restrict);
 
-                // Indexes
+                entity.HasIndex(x => x.WorkforceProfileId)
+                    .IsUnique();
+
                 entity.HasIndex(x => x.EmployeeCode)
                     .IsUnique();
 
@@ -2507,6 +2635,7 @@ namespace QuilvianSystemBackend.Repositories
                 {
                     x.EmployeeStatus,
                     x.ProfessionType,
+                    x.EmploymentType,
                     x.IsActive,
                     x.IsDelete
                 });
@@ -2518,18 +2647,7 @@ namespace QuilvianSystemBackend.Repositories
                 entity.HasIndex(x => x.BloodType);
 
                 entity.HasIndex(x => x.IsActive);
-
-                entity.Property(x => x.WorkforceProfileId)
-                    .IsRequired();
-
-                entity.HasOne(x => x.WorkforceProfile)
-                    .WithOne(x => x.Employee)
-                    .HasForeignKey<MstEmployee>(x => x.WorkforceProfileId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasIndex(x => x.WorkforceProfileId)
-                    .IsUnique();
-            });                      
+            });
 
             builder.Entity<MstDoctor>(entity =>
             {
@@ -2537,7 +2655,14 @@ namespace QuilvianSystemBackend.Repositories
 
                 entity.HasKey(x => x.Id);
 
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
                 entity.Property(x => x.DoctorCode)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.DoctorNumber)
                     .HasMaxLength(50)
                     .IsRequired();
 
@@ -2545,12 +2670,34 @@ namespace QuilvianSystemBackend.Repositories
                     .HasMaxLength(200)
                     .IsRequired();
 
+                entity.Property(x => x.NickName)
+                    .HasMaxLength(100);
+
                 entity.Property(x => x.BirthPlace)
                     .HasMaxLength(100);
 
                 entity.Property(x => x.BirthDate)
                     .HasColumnType("date")
                     .IsRequired(false);
+
+                entity.Property(x => x.Gender)
+                    .HasConversion<int>()
+                    .IsRequired(false);
+
+                entity.Property(x => x.Religion)
+                    .HasConversion<int>()
+                    .HasDefaultValue(Religion.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.MaritalStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(MaritalStatus.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.BloodType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(BloodType.Unknown)
+                    .IsRequired();
 
                 entity.Property(x => x.IdentityType)
                     .HasMaxLength(50);
@@ -2570,6 +2717,26 @@ namespace QuilvianSystemBackend.Repositories
                 entity.Property(x => x.Address)
                     .HasMaxLength(500);
 
+                entity.Property(x => x.DoctorStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(DoctorStatus.Active)
+                    .IsRequired();
+
+                entity.Property(x => x.DoctorType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(DoctorType.GeneralPractitioner)
+                    .IsRequired();
+
+                entity.Property(x => x.PracticeType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(DoctorPracticeType.FullTime)
+                    .IsRequired();
+
+                entity.Property(x => x.EmploymentType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(EmploymentType.Contract)
+                    .IsRequired();
+
                 entity.Property(x => x.SpecialistName)
                     .HasMaxLength(100);
 
@@ -2579,7 +2746,17 @@ namespace QuilvianSystemBackend.Repositories
                 entity.Property(x => x.MedicalStaffGroup)
                     .HasMaxLength(100);
 
+                entity.Property(x => x.GradeLevel)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.WorkLocation)
+                    .HasMaxLength(50);
+
                 entity.Property(x => x.JoinDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ProbationEndDate)
                     .HasColumnType("date")
                     .IsRequired(false);
 
@@ -2591,11 +2768,49 @@ namespace QuilvianSystemBackend.Repositories
                     .HasColumnType("date")
                     .IsRequired(false);
 
+                entity.Property(x => x.ResignDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ResignReason)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.CredentialingDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
                 entity.Property(x => x.IsAvailableForAppointment)
                     .HasDefaultValue(true);
 
                 entity.Property(x => x.IsActive)
                     .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithOne(x => x.Doctor)
+                    .HasForeignKey<MstDoctor>(x => x.WorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(x => x.PrimaryDepartment)
                     .WithMany()
@@ -2607,41 +2822,125 @@ namespace QuilvianSystemBackend.Repositories
                     .HasForeignKey(x => x.PrimaryPositionId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasIndex(x => x.DoctorCode)
-                    .IsUnique();
+                entity.HasOne(x => x.Country)
+                    .WithMany()
+                    .HasForeignKey(x => x.CountryId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasIndex(x => x.IdentityNumber);
+                entity.HasOne(x => x.Province)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProvinceId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasIndex(x => x.Email);
+                entity.HasOne(x => x.City)
+                    .WithMany()
+                    .HasForeignKey(x => x.CityId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasIndex(x => new { x.PrimaryDepartmentId, x.PrimaryPositionId });
+                entity.HasOne(x => x.District)
+                    .WithMany()
+                    .HasForeignKey(x => x.DistrictId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasIndex(x => x.IsActive);
-
-                entity.Property(x => x.WorkforceProfileId)
-                    .IsRequired(false);
-
-                entity.Property(x => x.WorkforceProfileId)
-                    .IsRequired(false);
-
-                entity.HasOne(x => x.WorkforceProfile)
-                    .WithOne(x => x.Doctor)
-                    .HasForeignKey<MstDoctor>(x => x.WorkforceProfileId)
+                entity.HasOne(x => x.PostalCode)
+                    .WithMany()
+                    .HasForeignKey(x => x.PostalCodeId)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(x => x.WorkforceProfileId)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.DoctorCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.DoctorNumber)
                     .IsUnique()
-                    .HasFilter("\"WorkforceProfileId\" IS NOT NULL");
+                    .HasFilter("\"IsDelete\" = false");
+
+                entity.HasIndex(x => x.IdentityNumber)
+                    .IsUnique()
+                    .HasFilter("\"IdentityNumber\" IS NOT NULL AND \"IsDelete\" = false");
+
+                entity.HasIndex(x => x.Email)
+                    .HasFilter("\"Email\" IS NOT NULL");
+
+                entity.HasIndex(x => x.PhoneNumber);
+
+                entity.HasIndex(x => x.WhatsAppNumber);
+
+                entity.HasIndex(x => x.FullName);
+
+                entity.HasIndex(x => new
+                {
+                    x.PrimaryDepartmentId,
+                    x.PrimaryPositionId
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.PrimaryDepartmentId,
+                    x.PrimaryPositionId,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.CountryId,
+                    x.ProvinceId,
+                    x.CityId,
+                    x.DistrictId,
+                    x.PostalCodeId
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.DoctorStatus,
+                    x.DoctorType,
+                    x.PracticeType,
+                    x.EmploymentType,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.SpecialistName,
+                    x.SubSpecialistName,
+                    x.MedicalStaffGroup
+                });
+
+                entity.HasIndex(x => x.IsAvailableForAppointment);
+
+                entity.HasIndex(x => x.IsActive);
             });
-          
+
             builder.Entity<MstExternalUser>(entity =>
             {
                 entity.ToTable("MstExternalUser", "public");
 
                 entity.HasKey(x => x.Id);
 
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
                 entity.Property(x => x.ExternalCode)
                     .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.ExternalUserType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(ExternalUserType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.ExternalUserStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(ExternalUserStatus.Active)
+                    .IsRequired();
+
+                entity.Property(x => x.EngagementType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(ExternalEngagementType.ContractBased)
                     .IsRequired();
 
                 entity.Property(x => x.FullName)
@@ -2672,6 +2971,9 @@ namespace QuilvianSystemBackend.Repositories
                 entity.Property(x => x.Address)
                     .HasMaxLength(500);
 
+                entity.Property(x => x.IdentityType)
+                    .HasMaxLength(50);
+
                 entity.Property(x => x.IdentityNumber)
                     .HasMaxLength(100);
 
@@ -2681,8 +2983,30 @@ namespace QuilvianSystemBackend.Repositories
                 entity.Property(x => x.BusinessLicenseNumber)
                     .HasMaxLength(100);
 
-                entity.Property(x => x.ExternalStatus)
-                    .HasMaxLength(100);
+                entity.Property(x => x.WorkLocation)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.ContractStartDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ContractEndDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.AccessStartDate)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.AccessEndDate)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.AccessPurpose)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(250);
 
                 entity.Property(x => x.IsActive)
                     .HasDefaultValue(true);
@@ -2709,29 +3033,97 @@ namespace QuilvianSystemBackend.Repositories
                 entity.Property(x => x.IsCancel)
                     .HasDefaultValue(false);
 
-                entity.HasIndex(x => x.ExternalCode)
-                    .IsUnique();
-
-                entity.HasIndex(x => x.FullName);
-                entity.HasIndex(x => x.CompanyName);
-                entity.HasIndex(x => x.CompanyCode);
-                entity.HasIndex(x => x.Email);
-                entity.HasIndex(x => x.IsActive);
-
-                entity.Property(x => x.WorkforceProfileId)
-                    .IsRequired(false);
-
-                entity.Property(x => x.WorkforceProfileId)
-                    .IsRequired(false);
-
                 entity.HasOne(x => x.WorkforceProfile)
                     .WithOne(x => x.ExternalUser)
                     .HasForeignKey<MstExternalUser>(x => x.WorkforceProfileId)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                entity.HasOne(x => x.PrimaryDepartment)
+                    .WithMany()
+                    .HasForeignKey(x => x.PrimaryDepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.PrimaryPosition)
+                    .WithMany()
+                    .HasForeignKey(x => x.PrimaryPositionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.Country)
+                    .WithMany()
+                    .HasForeignKey(x => x.CountryId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.Province)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProvinceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.City)
+                    .WithMany()
+                    .HasForeignKey(x => x.CityId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.District)
+                    .WithMany()
+                    .HasForeignKey(x => x.DistrictId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.PostalCode)
+                    .WithMany()
+                    .HasForeignKey(x => x.PostalCodeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 entity.HasIndex(x => x.WorkforceProfileId)
-                    .IsUnique()
-                    .HasFilter("\"WorkforceProfileId\" IS NOT NULL");
+                    .IsUnique();
+
+                entity.HasIndex(x => x.ExternalCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.FullName);
+
+                entity.HasIndex(x => x.CompanyName);
+
+                entity.HasIndex(x => x.CompanyCode);
+
+                entity.HasIndex(x => x.Email);
+
+                entity.HasIndex(x => x.PhoneNumber);
+
+                entity.HasIndex(x => x.WhatsAppNumber);
+
+                entity.HasIndex(x => new
+                {
+                    x.ExternalUserType,
+                    x.ExternalUserStatus,
+                    x.EngagementType,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.PrimaryDepartmentId,
+                    x.PrimaryPositionId
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.CountryId,
+                    x.ProvinceId,
+                    x.CityId,
+                    x.DistrictId,
+                    x.PostalCodeId
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.ContractStartDate,
+                    x.ContractEndDate,
+                    x.AccessStartDate,
+                    x.AccessEndDate
+                });
+
+                entity.HasIndex(x => x.IsActive);
             });
 
             builder.Entity<EmpAttendance>(entity =>
@@ -3104,6 +3496,516 @@ namespace QuilvianSystemBackend.Repositories
                 })
                 .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
+            });
+
+            builder.Entity<WfpLeaveBalance>(entity =>
+            {
+                entity.ToTable("WfpLeaveBalance", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
+                entity.Property(x => x.LeaveYear)
+                    .IsRequired();
+
+                entity.Property(x => x.LeaveType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(LeaveType.AnnualLeave)
+                    .IsRequired();
+
+                entity.Property(x => x.OpeningBalance)
+                    .HasColumnType("numeric(6,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.EntitledDays)
+                    .HasColumnType("numeric(6,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.UsedDays)
+                    .HasColumnType("numeric(6,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.PendingDays)
+                    .HasColumnType("numeric(6,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.RemainingDays)
+                    .HasColumnType("numeric(6,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.EffectiveStartDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.EffectiveEndDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithMany(x => x.LeaveBalances)
+                    .HasForeignKey(x => x.WorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.WorkforceProfileId);
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.LeaveYear,
+                    x.LeaveType
+                })
+                .IsUnique()
+                .HasFilter("\"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.LeaveYear,
+                    x.LeaveType,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.LeaveYear,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<WfpLeaveRequest>(entity =>
+            {
+                entity.ToTable("WfpLeaveRequest", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
+                entity.Property(x => x.LeaveBalanceId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.LeaveType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(LeaveType.AnnualLeave)
+                    .IsRequired();
+
+                entity.Property(x => x.StartDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.EndDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.TotalDays)
+                    .HasColumnType("numeric(6,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.IsHalfDay)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsDeductBalance)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.Reason)
+                    .HasMaxLength(500)
+                    .IsRequired();
+
+                entity.Property(x => x.ApprovalStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(LeaveApprovalStatus.PendingApproval)
+                    .IsRequired();
+
+                entity.Property(x => x.RequestedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.ApprovedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.ApprovedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ApprovalNote)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.RejectedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.RejectedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RejectedReason)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.CancelledByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelledAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelReason)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.AttachmentPath)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.AttachmentContentType)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithMany(x => x.LeaveRequests)
+                    .HasForeignKey(x => x.WorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.LeaveBalance)
+                    .WithMany(x => x.LeaveRequests)
+                    .HasForeignKey(x => x.LeaveBalanceId)
+                    .OnDelete(DeleteBehavior.Restrict);                
+
+                entity.HasIndex(x => x.WorkforceProfileId);
+
+                entity.HasIndex(x => x.LeaveBalanceId);
+
+                entity.HasIndex(x => x.ApprovedByUserId);
+
+                entity.HasIndex(x => x.RejectedByUserId);
+
+                entity.HasIndex(x => x.CancelledByUserId);
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.LeaveType,
+                    x.ApprovalStatus,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.StartDate,
+                    x.EndDate,
+                    x.ApprovalStatus,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.LeaveType,
+                    x.ApprovalStatus,
+                    x.StartDate,
+                    x.EndDate
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.RequestedAt,
+                    x.ApprovalStatus,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<WfpOvertimeRequest>(entity =>
+            {
+                entity.ToTable("WfpOvertimeRequest", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
+                entity.Property(x => x.AttendanceId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.WorkScheduleAssignmentId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.WorkScheduleId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.OvertimeDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.ScheduledStartTime)
+                    .HasColumnType("time without time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ScheduledEndTime)
+                    .HasColumnType("time without time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ActualCheckInAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ActualCheckOutAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.StartTime)
+                    .HasColumnType("time without time zone")
+                    .IsRequired();
+
+                entity.Property(x => x.EndTime)
+                    .HasColumnType("time without time zone")
+                    .IsRequired();
+
+                entity.Property(x => x.IsOvernight)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.TotalMinutes)
+                    .HasDefaultValue(0)
+                    .IsRequired();
+
+                entity.Property(x => x.Reason)
+                    .HasMaxLength(500)
+                    .IsRequired();
+
+                entity.Property(x => x.ApprovalStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(OvertimeApprovalStatus.PendingApproval)
+                    .IsRequired();
+
+                entity.Property(x => x.RequestedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.ApprovedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.ApprovedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ApprovalNote)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.RejectedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.RejectedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RejectedReason)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.CancelledByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelledAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelReason)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsPayrollProcessed)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.PayrollProcessedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.PayrollProcessedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.PayrollPeriodCode)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.AttachmentPath)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.AttachmentContentType)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithMany(x => x.OvertimeRequests)
+                    .HasForeignKey(x => x.WorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.Attendance)
+                    .WithMany()
+                    .HasForeignKey(x => x.AttendanceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.WorkScheduleAssignment)
+                    .WithMany()
+                    .HasForeignKey(x => x.WorkScheduleAssignmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.WorkSchedule)
+                    .WithMany()
+                    .HasForeignKey(x => x.WorkScheduleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.ApprovedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.ApprovedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.RejectedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.RejectedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.CancelledByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.CancelledByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.PayrollProcessedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.PayrollProcessedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.WorkforceProfileId);
+
+                entity.HasIndex(x => x.AttendanceId);
+
+                entity.HasIndex(x => x.WorkScheduleAssignmentId);
+
+                entity.HasIndex(x => x.WorkScheduleId);
+
+                entity.HasIndex(x => x.ApprovedByUserId);
+
+                entity.HasIndex(x => x.RejectedByUserId);
+
+                entity.HasIndex(x => x.CancelledByUserId);
+
+                entity.HasIndex(x => x.PayrollProcessedByUserId);
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.OvertimeDate,
+                    x.ApprovalStatus,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.OvertimeDate,
+                    x.StartTime,
+                    x.EndTime
+                })
+                .HasFilter("\"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.ApprovalStatus,
+                    x.IsPayrollProcessed,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.PayrollPeriodCode,
+                    x.IsPayrollProcessed,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkScheduleId,
+                    x.OvertimeDate,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.AttendanceId,
+                    x.IsDelete
+                });
             });
         }
     }

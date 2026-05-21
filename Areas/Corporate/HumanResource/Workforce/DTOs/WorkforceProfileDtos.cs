@@ -1016,9 +1016,39 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
 
         public bool HasFile { get; set; }
 
+        public CredentialVerificationStatus VerificationStatus { get; set; }
+
         public bool IsVerified { get; set; }
 
+        public Guid? VerifiedByUserId { get; set; }
+
+        public string? VerifiedByUserName { get; set; }
+
+        public DateTime? VerifiedAt { get; set; }
+
+        public string? VerificationNote { get; set; }
+
+        public Guid? RejectedByUserId { get; set; }
+
+        public string? RejectedByUserName { get; set; }
+
+        public DateTime? RejectedAt { get; set; }
+
+        public string? RejectedReason { get; set; }
+
+        public Guid? RevokedByUserId { get; set; }
+
+        public string? RevokedByUserName { get; set; }
+
+        public DateTime? RevokedAt { get; set; }
+
+        public string? RevokedReason { get; set; }
+
+        public bool IsPrimary { get; set; }
+
         public bool IsExpired { get; set; }
+
+        public bool IsCurrentlyValid { get; set; }
 
         public bool IsActive { get; set; }
 
@@ -1041,7 +1071,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
 
         public int VerifiedData { get; set; }
 
+        public int PendingVerificationData { get; set; }
+
+        public int RejectedData { get; set; }
+
+        public int RevokedData { get; set; }
+
         public int ExpiredData { get; set; }
+
+        public int CurrentlyValidData { get; set; }
 
         public int CredentialLicenseWithFileData { get; set; }
 
@@ -1075,7 +1113,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
 
         public IFormFile? File { get; set; }
 
-        public bool IsVerified { get; set; } = false;
+        public bool IsPrimary { get; set; } = false;
 
         public bool IsActive { get; set; } = true;
 
@@ -1112,7 +1150,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
 
         public bool ReplaceExistingFile { get; set; } = false;
 
-        public bool IsVerified { get; set; } = false;
+        public bool IsPrimary { get; set; } = false;
 
         public bool IsActive { get; set; } = true;
 
@@ -1123,11 +1161,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
     public class UpdateWorkforceCredentialLicenseStatusRequest
     {
         public bool IsActive { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
     }
 
     public class VerifyWorkforceCredentialLicenseRequest
     {
-        public bool IsVerified { get; set; } = true;
+        [MaxLength(250)]
+        public string? VerificationNote { get; set; }
+    }
+
+    public class RejectWorkforceCredentialLicenseRequest
+    {
+        [Required]
+        [MaxLength(250)]
+        public string RejectedReason { get; set; } = string.Empty;
+    }
+
+    public class RevokeWorkforceCredentialLicenseRequest
+    {
+        [Required]
+        [MaxLength(250)]
+        public string RevokedReason { get; set; } = string.Empty;
     }
 
     public class WorkforceTransportAllowanceResponse
@@ -1924,5 +1980,495 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
 
         [MaxLength(250)]
         public string? Description { get; set; }
+    }
+
+    public class WorkforceLeaveBalanceResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int LeaveYear { get; set; }
+
+        public LeaveType LeaveType { get; set; }
+
+        public decimal OpeningBalance { get; set; }
+
+        public decimal EntitledDays { get; set; }
+
+        public decimal UsedDays { get; set; }
+
+        public decimal PendingDays { get; set; }
+
+        public decimal RemainingDays { get; set; }
+
+        public DateTime? EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public string? Description { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceLeaveBalanceListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public decimal TotalEntitledDays { get; set; }
+
+        public decimal TotalUsedDays { get; set; }
+
+        public decimal TotalPendingDays { get; set; }
+
+        public decimal TotalRemainingDays { get; set; }
+
+        public List<WorkforceLeaveBalanceResponse> Items { get; set; } = new();
+    }
+
+    public class CreateWorkforceLeaveBalanceRequest
+    {
+        [Required]
+        public int LeaveYear { get; set; }
+
+        [Required]
+        public LeaveType LeaveType { get; set; } = LeaveType.AnnualLeave;
+
+        public decimal OpeningBalance { get; set; } = 0;
+
+        public decimal EntitledDays { get; set; } = 0;
+
+        public decimal UsedDays { get; set; } = 0;
+
+        public decimal PendingDays { get; set; } = 0;
+
+        public DateTime? EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+    }
+
+    public class UpdateWorkforceLeaveBalanceRequest
+    {
+        [Required]
+        public int LeaveYear { get; set; }
+
+        [Required]
+        public LeaveType LeaveType { get; set; } = LeaveType.AnnualLeave;
+
+        public decimal OpeningBalance { get; set; } = 0;
+
+        public decimal EntitledDays { get; set; } = 0;
+
+        public decimal UsedDays { get; set; } = 0;
+
+        public decimal PendingDays { get; set; } = 0;
+
+        public DateTime? EffectiveStartDate { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+    }
+
+    public class UpdateWorkforceLeaveBalanceStatusRequest
+    {
+        public bool IsActive { get; set; }
+
+        public DateTime? EffectiveEndDate { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+    }
+
+    public class WorkforceLeaveRequestResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public Guid? LeaveBalanceId { get; set; }
+
+        public LeaveType LeaveType { get; set; }
+
+        public DateTime StartDate { get; set; }
+
+        public DateTime EndDate { get; set; }
+
+        public decimal TotalDays { get; set; }
+
+        public bool IsHalfDay { get; set; }
+
+        public bool IsDeductBalance { get; set; }
+
+        public string Reason { get; set; } = string.Empty;
+
+        public LeaveApprovalStatus ApprovalStatus { get; set; }
+
+        public DateTime RequestedAt { get; set; }
+
+        public Guid? ApprovedByUserId { get; set; }
+
+        public string? ApprovedByUserName { get; set; }
+
+        public DateTime? ApprovedAt { get; set; }
+
+        public string? ApprovalNote { get; set; }
+
+        public Guid? RejectedByUserId { get; set; }
+
+        public string? RejectedByUserName { get; set; }
+
+        public DateTime? RejectedAt { get; set; }
+
+        public string? RejectedReason { get; set; }
+
+        public Guid? CancelledByUserId { get; set; }
+
+        public string? CancelledByUserName { get; set; }
+
+        public DateTime? CancelledAt { get; set; }
+
+        public string? CancelReason { get; set; }
+
+        public string? AttachmentPath { get; set; }
+
+        public string? AttachmentContentType { get; set; }
+
+        public bool HasAttachment { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceLeaveRequestListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int PendingData { get; set; }
+
+        public int ApprovedData { get; set; }
+
+        public int RejectedData { get; set; }
+
+        public int CancelledData { get; set; }
+
+        public decimal TotalRequestedDays { get; set; }
+
+        public decimal ApprovedDays { get; set; }
+
+        public decimal PendingDays { get; set; }
+
+        public List<WorkforceLeaveRequestResponse> Items { get; set; } = new();
+    }
+
+    public class CreateWorkforceLeaveRequestRequest
+    {
+        [Required]
+        public LeaveType LeaveType { get; set; } = LeaveType.AnnualLeave;
+
+        [Required]
+        public DateTime StartDate { get; set; }
+
+        [Required]
+        public DateTime EndDate { get; set; }
+
+        public decimal? TotalDays { get; set; }
+
+        public bool IsHalfDay { get; set; } = false;
+
+        public bool IsDeductBalance { get; set; } = true;
+
+        [Required]
+        [MaxLength(500)]
+        public string Reason { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? AttachmentPath { get; set; }
+
+        [MaxLength(100)]
+        public string? AttachmentContentType { get; set; }
+    }
+
+    public class ApproveWorkforceLeaveRequestRequest
+    {
+        [MaxLength(250)]
+        public string? ApprovalNote { get; set; }
+    }
+
+    public class RejectWorkforceLeaveRequestRequest
+    {
+        [Required]
+        [MaxLength(250)]
+        public string RejectedReason { get; set; } = string.Empty;
+    }
+
+    public class CancelWorkforceLeaveRequestRequest
+    {
+        [Required]
+        [MaxLength(250)]
+        public string CancelReason { get; set; } = string.Empty;
+    }
+
+    public class WorkforceOvertimeRequestResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public Guid? AttendanceId { get; set; }
+
+        public Guid? WorkScheduleAssignmentId { get; set; }
+
+        public Guid? WorkScheduleId { get; set; }
+
+        public string? WorkScheduleCode { get; set; }
+
+        public string? WorkScheduleName { get; set; }
+
+        public DateTime OvertimeDate { get; set; }
+
+        public TimeOnly? ScheduledStartTime { get; set; }
+
+        public TimeOnly? ScheduledEndTime { get; set; }
+
+        public DateTime? ActualCheckInAt { get; set; }
+
+        public DateTime? ActualCheckOutAt { get; set; }
+
+        public TimeOnly StartTime { get; set; }
+
+        public TimeOnly EndTime { get; set; }
+
+        public bool IsOvernight { get; set; }
+
+        public int TotalMinutes { get; set; }
+
+        public decimal TotalHours { get; set; }
+
+        public string Reason { get; set; } = string.Empty;
+
+        public OvertimeApprovalStatus ApprovalStatus { get; set; }
+
+        public DateTime RequestedAt { get; set; }
+
+        public Guid? ApprovedByUserId { get; set; }
+
+        public string? ApprovedByUserName { get; set; }
+
+        public DateTime? ApprovedAt { get; set; }
+
+        public string? ApprovalNote { get; set; }
+
+        public Guid? RejectedByUserId { get; set; }
+
+        public string? RejectedByUserName { get; set; }
+
+        public DateTime? RejectedAt { get; set; }
+
+        public string? RejectedReason { get; set; }
+
+        public Guid? CancelledByUserId { get; set; }
+
+        public string? CancelledByUserName { get; set; }
+
+        public DateTime? CancelledAt { get; set; }
+
+        public string? CancelReason { get; set; }
+
+        public bool IsPayrollProcessed { get; set; }
+
+        public DateTime? PayrollProcessedAt { get; set; }
+
+        public Guid? PayrollProcessedByUserId { get; set; }
+
+        public string? PayrollProcessedByUserName { get; set; }
+
+        public string? PayrollPeriodCode { get; set; }
+
+        public string? AttachmentPath { get; set; }
+
+        public string? AttachmentContentType { get; set; }
+
+        public bool HasAttachment { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceOvertimeRequestListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int PendingData { get; set; }
+
+        public int ApprovedData { get; set; }
+
+        public int RejectedData { get; set; }
+
+        public int CancelledData { get; set; }
+
+        public int PayrollProcessedData { get; set; }
+
+        public int TotalMinutes { get; set; }
+
+        public int ApprovedMinutes { get; set; }
+
+        public int PendingMinutes { get; set; }
+
+        public List<WorkforceOvertimeRequestResponse> Items { get; set; } = new();
+    }
+
+    public class CreateWorkforceOvertimeRequestRequest
+    {
+        public Guid? AttendanceId { get; set; }
+
+        public Guid? WorkScheduleAssignmentId { get; set; }
+
+        public Guid? WorkScheduleId { get; set; }
+
+        [Required]
+        public DateTime OvertimeDate { get; set; }
+
+        public TimeOnly? ScheduledStartTime { get; set; }
+
+        public TimeOnly? ScheduledEndTime { get; set; }
+
+        public DateTime? ActualCheckInAt { get; set; }
+
+        public DateTime? ActualCheckOutAt { get; set; }
+
+        [Required]
+        public TimeOnly StartTime { get; set; }
+
+        [Required]
+        public TimeOnly EndTime { get; set; }
+
+        public bool IsOvernight { get; set; } = false;
+
+        public int? TotalMinutes { get; set; }
+
+        [Required]
+        [MaxLength(500)]
+        public string Reason { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? AttachmentPath { get; set; }
+
+        [MaxLength(100)]
+        public string? AttachmentContentType { get; set; }
+    }
+
+    public class UpdateWorkforceOvertimeRequestRequest
+    {
+        public Guid? AttendanceId { get; set; }
+
+        public Guid? WorkScheduleAssignmentId { get; set; }
+
+        public Guid? WorkScheduleId { get; set; }
+
+        [Required]
+        public DateTime OvertimeDate { get; set; }
+
+        public TimeOnly? ScheduledStartTime { get; set; }
+
+        public TimeOnly? ScheduledEndTime { get; set; }
+
+        public DateTime? ActualCheckInAt { get; set; }
+
+        public DateTime? ActualCheckOutAt { get; set; }
+
+        [Required]
+        public TimeOnly StartTime { get; set; }
+
+        [Required]
+        public TimeOnly EndTime { get; set; }
+
+        public bool IsOvernight { get; set; } = false;
+
+        public int? TotalMinutes { get; set; }
+
+        [Required]
+        [MaxLength(500)]
+        public string Reason { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? AttachmentPath { get; set; }
+
+        [MaxLength(100)]
+        public string? AttachmentContentType { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class ApproveWorkforceOvertimeRequestRequest
+    {
+        [MaxLength(250)]
+        public string? ApprovalNote { get; set; }
+    }
+
+    public class RejectWorkforceOvertimeRequestRequest
+    {
+        [Required]
+        [MaxLength(250)]
+        public string RejectedReason { get; set; } = string.Empty;
+    }
+
+    public class CancelWorkforceOvertimeRequestRequest
+    {
+        [Required]
+        [MaxLength(250)]
+        public string CancelReason { get; set; } = string.Empty;
+    }
+
+    public class UpdateWorkforceOvertimePayrollStatusRequest
+    {
+        public bool IsPayrollProcessed { get; set; }
+
+        [MaxLength(50)]
+        public string? PayrollPeriodCode { get; set; }
     }
 }

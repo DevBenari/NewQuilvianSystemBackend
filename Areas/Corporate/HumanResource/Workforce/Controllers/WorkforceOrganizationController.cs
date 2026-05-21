@@ -366,17 +366,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         [HttpPatch("{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [AccessAction(
-            "Update",
-            "Update Workforce Organization",
-            Description = "Mengubah status organization assignment workforce",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+    "Update",
+    "Update Workforce Organization",
+    Description = "Mengubah status organization assignment workforce",
+    AccessType = AccessTypes.Update,
+    SortOrder = 3
+)]
         [AccessPermission("WorkforceOrganization", "Update")]
         public async Task<IActionResult> UpdateOrganizationStatus(
-            Guid workforceProfileId,
-            Guid id,
-            [FromBody] UpdateWorkforceOrganizationAssignmentStatusRequest request)
+    Guid workforceProfileId,
+    Guid id,
+    [FromBody] UpdateWorkforceOrganizationAssignmentStatusRequest request)
         {
             var assignment = await _dbContext.Set<WfpOrganizationAssignment>()
                 .FirstOrDefaultAsync(x =>
@@ -396,7 +396,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    "Primary assignment tidak boleh dinonaktifkan."
+                    "Primary assignment tidak boleh dinonaktifkan. Jadikan assignment lain sebagai primary terlebih dahulu."
+                ));
+            }
+
+            if (assignment.IsPrimary && request.EffectiveEndDate.HasValue)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Primary assignment tidak boleh diberi EffectiveEndDate. Jadikan assignment lain sebagai primary terlebih dahulu."
                 ));
             }
 
@@ -409,10 +417,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
+            var now = DateTime.UtcNow;
+
             assignment.IsActive = request.IsActive;
-            assignment.EffectiveEndDate = request.EffectiveEndDate?.Date;
+            assignment.EffectiveEndDate = request.IsActive
+                ? request.EffectiveEndDate?.Date
+                : request.EffectiveEndDate?.Date ?? now.Date;
+
             assignment.Description = NormalizeNullableText(request.Description) ?? assignment.Description;
-            assignment.UpdateDateTime = DateTime.UtcNow;
+            assignment.UpdateDateTime = now;
             assignment.UpdateBy = GetCurrentUserId();
 
             await _dbContext.SaveChangesAsync();
@@ -567,10 +580,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         }
 
         private async Task ApplyPrimaryOrganizationAsync(
-            MstWorkforceProfile profile,
-            WfpOrganizationAssignment assignment,
-            DateTime now,
-            Guid actorUserId)
+    MstWorkforceProfile profile,
+    WfpOrganizationAssignment assignment,
+    DateTime now,
+    Guid actorUserId)
         {
             var currentPrimaries = await _dbContext.Set<WfpOrganizationAssignment>()
                 .Where(x =>
@@ -601,7 +614,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             if (profile.UserType == UserType.Employee)
             {
                 var employee = await _dbContext.Set<MstEmployee>()
-                    .FirstOrDefaultAsync(x => x.WorkforceProfileId == profile.Id && !x.IsDelete);
+                    .FirstOrDefaultAsync(x =>
+                        x.WorkforceProfileId == profile.Id &&
+                        !x.IsDelete);
 
                 if (employee != null)
                 {
@@ -612,10 +627,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 }
             }
 
-            if (profile.UserType == UserType.PermanentDoctor)
+            if (profile.UserType == UserType.PermanentDoctor ||
+                profile.UserType == UserType.GuestDoctor)
             {
                 var doctor = await _dbContext.Set<MstDoctor>()
-                    .FirstOrDefaultAsync(x => x.WorkforceProfileId == profile.Id && !x.IsDelete);
+                    .FirstOrDefaultAsync(x =>
+                        x.WorkforceProfileId == profile.Id &&
+                        !x.IsDelete);
 
                 if (doctor != null)
                 {
@@ -645,17 +663,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         }
 
         private async Task SyncUserPrimaryOrganizationAsync(
-            Guid userId,
-            Guid departmentId,
-            Guid positionId,
-            DateTime effectiveStartDate,
-            Guid actorUserId)
+    Guid userId,
+    Guid departmentId,
+    Guid positionId,
+    DateTime effectiveStartDate,
+    Guid actorUserId)
         {
             var now = DateTime.UtcNow;
-            var effectiveStartUtc = DateTime.SpecifyKind(effectiveStartDate.Date, DateTimeKind.Utc);
+            var effectiveStartUtc = DateTime.SpecifyKind(
+                effectiveStartDate.Date,
+                DateTimeKind.Utc
+            );
 
             var currentPrimaries = await _dbContext.Set<ApplicationUserOrganization>()
-                .Where(x => x.UserId == userId && x.IsPrimary && !x.IsDelete)
+                .Where(x =>
+                    x.UserId == userId &&
+                    x.IsPrimary &&
+                    !x.IsDelete)
                 .ToListAsync();
 
             foreach (var item in currentPrimaries)
@@ -669,8 +693,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 .FirstOrDefaultAsync(x =>
                     x.UserId == userId &&
                     x.DepartmentId == departmentId &&
-                    x.PositionId == positionId &&
-                    !x.IsDelete);
+                    x.PositionId == positionId);
 
             if (existing == null)
             {
@@ -699,6 +722,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 existing.IsActive = true;
                 existing.EffectiveStartDate = effectiveStartUtc;
                 existing.EffectiveEndDate = null;
+                existing.Description = "Synced from workforce primary organization";
+                existing.IsDelete = false;
+                existing.DeleteDateTime = null;
+                existing.DeleteBy = Guid.Empty;
+                existing.IsCancel = false;
+                existing.CancelDateTime = null;
+                existing.CancelBy = Guid.Empty;
                 existing.UpdateDateTime = now;
                 existing.UpdateBy = actorUserId;
             }

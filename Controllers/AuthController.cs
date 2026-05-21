@@ -1606,10 +1606,16 @@ namespace QuilvianSystemBackend.Controllers
                 new Claim("email", user.Email ?? string.Empty),
                 new Claim("full_name", user.DisplayName ?? string.Empty),
                 new Claim("user_type", user.UserType.ToString()),
+
                 new Claim("department_id", user.PrimaryDepartmentId?.ToString() ?? string.Empty),
                 new Claim("position_id", user.PrimaryPositionId?.ToString() ?? string.Empty),
                 new Claim("primary_department_id", user.PrimaryDepartmentId?.ToString() ?? string.Empty),
                 new Claim("primary_position_id", user.PrimaryPositionId?.ToString() ?? string.Empty),
+
+                new Claim("workforce_profile_id", user.WorkforceProfileId?.ToString() ?? string.Empty),
+                new Claim("employee_id", user.EmployeeId?.ToString() ?? string.Empty),
+                new Claim("doctor_id", user.DoctorId?.ToString() ?? string.Empty),
+                new Claim("external_user_id", user.ExternalUserId?.ToString() ?? string.Empty),
 
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
@@ -1753,6 +1759,18 @@ namespace QuilvianSystemBackend.Controllers
 
         private static UserLoginResponse BuildUserResponse(ApplicationUser user, IList<string> roles)
         {
+            var hasWorkforceProfile = user.WorkforceProfileId.HasValue;
+
+            var profileType =
+                user.EmployeeId.HasValue ? "Employee" :
+                user.DoctorId.HasValue ? "Doctor" :
+                user.ExternalUserId.HasValue ? "ExternalUser" :
+                "AccountOnly";
+
+            var workforceProfileBaseEndpoint = hasWorkforceProfile
+                ? $"/api/v1/corporate/human-resource/workforce-profiles/{user.WorkforceProfileId}"
+                : null;
+
             return new UserLoginResponse
             {
                 Id = user.Id,
@@ -1763,8 +1781,31 @@ namespace QuilvianSystemBackend.Controllers
                 Roles = roles.ToList(),
                 IsActive = user.IsActive,
                 MustChangePassword = user.MustChangePassword,
+
                 DepartmentId = user.PrimaryDepartmentId,
-                PositionId = user.PrimaryPositionId
+                PositionId = user.PrimaryPositionId,
+
+                PrimaryDepartmentId = user.PrimaryDepartmentId,
+                PrimaryPositionId = user.PrimaryPositionId,
+
+                WorkforceProfileId = user.WorkforceProfileId,
+                EmployeeId = user.EmployeeId,
+                DoctorId = user.DoctorId,
+                ExternalUserId = user.ExternalUserId,
+
+                HasWorkforceProfile = hasWorkforceProfile,
+                ProfileType = profileType,
+
+                WorkforceContext = new UserWorkforceContextResponse
+                {
+                    UserId = user.Id,
+                    WorkforceProfileId = user.WorkforceProfileId,
+                    EmployeeId = user.EmployeeId,
+                    DoctorId = user.DoctorId,
+                    ExternalUserId = user.ExternalUserId,
+                    CanAccessWorkforceModules = hasWorkforceProfile,
+                    WorkforceProfileBaseEndpoint = workforceProfileBaseEndpoint
+                }
             };
         }
 

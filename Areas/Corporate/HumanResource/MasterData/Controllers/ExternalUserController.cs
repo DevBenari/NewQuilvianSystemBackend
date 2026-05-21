@@ -16,26 +16,26 @@ using QuilvianSystemBackend.Services.Logging;
 using System.Globalization;
 using System.Security.Claims;
 
-using ResponseEmployeePagedResult =
+using ResponseExternalUserPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs.EmployeeResponse>;
+        QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs.ExternalUserResponse>;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/corporate/human-resource/master-data/employees")]
+    [Route("api/v1/corporate/human-resource/master-data/external-users")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_MASTER_DATA",
         moduleName: "Human Resource Master Data",
-        displayName: "Employee",
+        displayName: "External User",
         AreaName = "Corporate",
-        ControllerName = "Employee",
-        Description = "Corporate human resource master data employee",
-        SortOrder = 4
+        ControllerName = "ExternalUser",
+        Description = "Corporate human resource master data external user",
+        SortOrder = 6
     )]
-    [Tags("Corporate / Human Resource / Master Data / Employee")]
-    public class EmployeeController : ControllerBase
+    [Tags("Corporate / Human Resource / Master Data / External User")]
+    public class ExternalUserController : ControllerBase
     {
         private const string DefaultProfilePhotoPath = "http://103.153.60.136:5050/uploads/default-photo/user.jpeg";
         private const string LogCategory = "Corporate.HumanResource.MasterData";
@@ -45,7 +45,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         private readonly LoggerService _loggerService;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public EmployeeController(
+        public ExternalUserController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             UserManager<ApplicationUser> userManager)
@@ -55,9 +55,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             _userManager = userManager;
         }
 
-        private static List<EmployeeDetailTabMetadataResponse> BuildEmployeeDetailTabs()
+        private static List<ExternalUserDetailTabMetadataResponse> BuildExternalUserDetailTabs()
         {
-            return new List<EmployeeDetailTabMetadataResponse>
+            return new List<ExternalUserDetailTabMetadataResponse>
             {
                 new()
                 {
@@ -87,32 +87,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 },
                 new()
                 {
-                    Key = "education",
-                    Label = "Education",
-                    Icon = "education",
-                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/educations",
-                    IsVisibleInDetail = true,
-                    IsVisibleInUpdate = true,
-                    CanCreate = true,
-                    CanUpdate = true,
-                    CanDelete = true,
-                    SortOrder = 3
-                },
-                new()
-                {
-                    Key = "training",
-                    Label = "Training",
-                    Icon = "training",
-                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/training-records",
-                    IsVisibleInDetail = true,
-                    IsVisibleInUpdate = true,
-                    CanCreate = true,
-                    CanUpdate = true,
-                    CanDelete = true,
-                    SortOrder = 4
-                },
-                new()
-                {
                     Key = "certification",
                     Label = "Certification",
                     Icon = "certification",
@@ -122,7 +96,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     CanCreate = true,
                     CanUpdate = true,
                     CanDelete = true,
-                    SortOrder = 5
+                    SortOrder = 3
                 },
                 new()
                 {
@@ -135,7 +109,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     CanCreate = true,
                     CanUpdate = true,
                     CanDelete = true,
-                    SortOrder = 6
+                    SortOrder = 4
                 },
                 new()
                 {
@@ -148,72 +122,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     CanCreate = true,
                     CanUpdate = true,
                     CanDelete = true,
-                    SortOrder = 7
+                    SortOrder = 5
                 },
                 new()
                 {
-                    Key = "transportAllowance",
-                    Label = "Transport",
-                    Icon = "transport",
-                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/transport-allowance",
+                    Key = "schedule",
+                    Label = "Schedule",
+                    Icon = "schedule",
+                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/work-schedules",
                     IsVisibleInDetail = true,
                     IsVisibleInUpdate = true,
-                    CanCreate = false,
+                    CanCreate = true,
                     CanUpdate = true,
-                    CanDelete = false,
-                    SortOrder = 8
-                },
-                new()
-                {
-                    Key = "payroll",
-                    Label = "Payroll",
-                    Icon = "payroll",
-                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/payroll-profile",
-                    IsVisibleInDetail = true,
-                    IsVisibleInUpdate = true,
-                    CanCreate = false,
-                    CanUpdate = true,
-                    CanDelete = false,
-                    SortOrder = 9
-                },
-                new()
-                {
-                    Key = "tax",
-                    Label = "Tax",
-                    Icon = "tax",
-                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/tax-profile",
-                    IsVisibleInDetail = true,
-                    IsVisibleInUpdate = true,
-                    CanCreate = false,
-                    CanUpdate = true,
-                    CanDelete = false,
-                    SortOrder = 10
-                },
-                new()
-                {
-                    Key = "insurance",
-                    Label = "Insurance",
-                    Icon = "insurance",
-                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/insurance-profile",
-                    IsVisibleInDetail = true,
-                    IsVisibleInUpdate = true,
-                    CanCreate = false,
-                    CanUpdate = true,
-                    CanDelete = false,
-                    SortOrder = 11
+                    CanDelete = true,
+                    SortOrder = 6
                 },
                 new()
                 {
                     Key = "attendance",
                     Label = "Attendance",
                     Icon = "attendance",
-                    Endpoint = "/api/v1/corporate/human-resource/master-data/employees/{employeeId}/attendance",
+                    Endpoint = "/api/v1/corporate/human-resource/master-data/external-users/{externalUserId}/attendance",
                     IsVisibleInDetail = true,
                     IsVisibleInUpdate = false,
                     CanCreate = false,
                     CanUpdate = false,
                     CanDelete = false,
-                    SortOrder = 12
+                    SortOrder = 7
                 }
             }
             .OrderBy(x => x.SortOrder)
@@ -221,26 +156,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet("filters/metadata")]
-        [ProducesResponseType(typeof(ApiResponse<EmployeeFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ExternalUserFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
-            "Read Employee",
-            Description = "Melihat data employee",
+            "Read External User",
+            Description = "Melihat data external user",
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Employee", "Read")]
+        [AccessPermission("ExternalUser", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
-            var result = new EmployeeFilterMetadataResponse
+            var result = new ExternalUserFilterMetadataResponse
             {
-                DefaultFilter = new EmployeeDefaultFilterResponse
+                DefaultFilter = new ExternalUserDefaultFilterResponse
                 {
                     StartDate = null,
                     EndDate = null,
                     CustomPeriod = null,
                     Search = null,
-                    HasUserAccount = null,
                     IsActive = null,
                     DepartmentId = null,
                     PositionId = null,
@@ -249,127 +183,113 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     CityId = null,
                     DistrictId = null,
                     PostalCodeId = null,
-                    EmployeeStatus = null,
-                    ProfessionType = null,
-                    EmploymentType = null,
-                    Religion = null,
-                    MaritalStatus = null,
-                    BloodType = null,
-                    HasTransportAllowanceProfile = null,
+                    ExternalUserType = null,
+                    ExternalUserStatus = null,
+                    EngagementType = null,
+                    HasUserAccount = null,
+                    HasActiveAccess = null,
+                    IsAccessExpired = null,
                     SortBy = "createDateTime",
                     SortDirection = "desc",
                     PageNumber = 1,
                     PageSize = 25
                 },
                 CustomPeriods = BuildCustomPeriodOptions(),
-                SortOptions = new List<EmployeeSortOptionResponse>
+                SortOptions = new List<ExternalUserSortOptionResponse>
                 {
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
-                    new() { Value = "employeeCode", Label = "Kode employee" },
-                    new() { Value = "employeeNumber", Label = "Nomor employee" },
-                    new() { Value = "fullName", Label = "Nama employee" },
+                    new() { Value = "externalCode", Label = "Kode external user" },
+                    new() { Value = "fullName", Label = "Nama external user" },
+                    new() { Value = "companyName", Label = "Nama company" },
+                    new() { Value = "jobTitle", Label = "Job title" },
                     new() { Value = "departmentName", Label = "Nama department" },
                     new() { Value = "positionName", Label = "Nama position" },
-                    new() { Value = "joinDate", Label = "Tanggal bergabung" },
+                    new() { Value = "contractEndDate", Label = "Tanggal akhir kontrak" },
+                    new() { Value = "accessEndDate", Label = "Tanggal akhir akses" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                GenderOptions = BuildEnumOptions<Gender>(),
-                ReligionOptions = BuildEnumOptions<Religion>(),
-                MaritalStatusOptions = BuildEnumOptions<MaritalStatus>(),
-                BloodTypeOptions = BuildEnumOptions<BloodType>(),
-                EmployeeStatusOptions = BuildEnumOptions<EmployeeStatus>(),
-                ProfessionTypeOptions = BuildEnumOptions<EmployeeProfessionType>(),
-                EmploymentTypeOptions = BuildEnumOptions<EmploymentType>(),
-                TransportAllowanceModes = new List<string> { "None", "FixedMonthly", "DailyAttendance", "NightShift", "MonthlyAndNightShift", "Manual" },
-                TransportTransactionStatuses = new List<string> { "Draft", "Calculated", "Approved", "PostedToPayroll", "Cancelled" },
-                TransportAllowanceTypes = new List<string> { "Regular", "Monthly", "Night", "Adjustment", "Manual" },
+                ExternalUserTypeOptions = BuildEnumOptions<ExternalUserType>(),
+                ExternalUserStatusOptions = BuildEnumOptions<ExternalUserStatus>(),
+                EngagementTypeOptions = BuildEnumOptions<ExternalEngagementType>(),
                 QueryParameters = BuildQueryParameterInfo(),
-                CreateFields = BuildCreateEmployeeFieldMetadata(),
-                UpdateFields = BuildUpdateEmployeeFieldMetadata(),
-                DetailTabs = BuildEmployeeDetailTabs()
+                CreateFields = BuildCreateExternalUserFieldMetadata(),
+                UpdateFields = BuildUpdateExternalUserFieldMetadata(),
+                DetailTabs = BuildExternalUserDetailTabs()
             };
 
             await _loggerService.InfoAsync(
                 LogCategory,
-                "Employee.GetFilterMetadata",
-                "Mengambil metadata filter employee.",
+                "ExternalUser.GetFilterMetadata",
+                "Mengambil metadata filter external user.",
                 result
             );
 
-            return Ok(ApiResponse<EmployeeFilterMetadataResponse>.Ok(
+            return Ok(ApiResponse<ExternalUserFilterMetadataResponse>.Ok(
                 result,
-                "Metadata filter employee berhasil diambil."
+                "Metadata filter external user berhasil diambil."
             ));
         }
 
         [HttpGet("summary")]
-        [ProducesResponseType(typeof(ApiResponse<EmployeeSummaryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ExternalUserSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
-            "Read Employee",
-            Description = "Melihat data employee",
+            "Read External User",
+            Description = "Melihat data external user",
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Employee", "Read")]
+        [AccessPermission("ExternalUser", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var employeeQuery = _dbContext.Set<MstEmployee>()
+            var now = DateTime.UtcNow;
+
+            var externalUserQuery = _dbContext.Set<MstExternalUser>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
-            var transportProfileQuery = _dbContext.Set<WfpTransportAllowance>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
-
-            var result = new EmployeeSummaryResponse
+            var result = new ExternalUserSummaryResponse
             {
-                TotalEmployee = await employeeQuery.CountAsync(),
-                ActiveEmployee = await employeeQuery.CountAsync(x => x.IsActive),
-                InactiveEmployee = await employeeQuery.CountAsync(x => !x.IsActive),
-                EmployeeWithTransportAllowanceProfile = await employeeQuery.CountAsync(x =>
-                    x.WorkforceProfileId != Guid.Empty &&
-                    transportProfileQuery.Any(t => t.WorkforceProfileId == x.WorkforceProfileId)),
-                TransportEligibleEmployee = await employeeQuery.CountAsync(x =>
-                    x.WorkforceProfileId != Guid.Empty &&
-                    transportProfileQuery.Any(t =>
-                        t.WorkforceProfileId == x.WorkforceProfileId &&
-                        t.IsEligible &&
-                        t.IsActive)),
-                NightTransportEligibleEmployee = await employeeQuery.CountAsync(x =>
-                    x.WorkforceProfileId != Guid.Empty &&
-                    transportProfileQuery.Any(t =>
-                        t.WorkforceProfileId == x.WorkforceProfileId &&
-                        t.IsNightTransportEligible &&
-                        t.IsActive))
+                TotalExternalUser = await externalUserQuery.CountAsync(),
+                ActiveExternalUser = await externalUserQuery.CountAsync(x => x.IsActive),
+                InactiveExternalUser = await externalUserQuery.CountAsync(x => !x.IsActive),
+                PendingApprovalExternalUser = await externalUserQuery.CountAsync(x => x.ExternalUserStatus == ExternalUserStatus.PendingApproval),
+                SuspendedExternalUser = await externalUserQuery.CountAsync(x => x.ExternalUserStatus == ExternalUserStatus.Suspended),
+                AccessExpiredExternalUser = await externalUserQuery.CountAsync(x =>
+                    x.ExternalUserStatus == ExternalUserStatus.AccessExpired ||
+                    (x.AccessEndDate.HasValue && x.AccessEndDate.Value < now)),
+                ExternalUserWithLoginAccount = await externalUserQuery.CountAsync(x =>
+                    _dbContext.Users.Any(u =>
+                        u.ExternalUserId == x.Id &&
+                        u.UserType == UserType.ExternalUser))
             };
 
             await _loggerService.InfoAsync(
                 LogCategory,
-                "Employee.GetSummary",
-                "Mengambil ringkasan data employee.",
+                "ExternalUser.GetSummary",
+                "Mengambil ringkasan data external user.",
                 result
             );
 
-            return Ok(ApiResponse<EmployeeSummaryResponse>.Ok(
+            return Ok(ApiResponse<ExternalUserSummaryResponse>.Ok(
                 result,
-                "Ringkasan employee berhasil diambil."
+                "Ringkasan external user berhasil diambil."
             ));
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse<ResponseEmployeePagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ResponseExternalUserPagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
-            "Read Employee",
-            Description = "Melihat data employee",
+            "Read External User",
+            Description = "Melihat data external user",
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Employee", "Read")]
-        public async Task<IActionResult> GetEmployees(
+        [AccessPermission("ExternalUser", "Read")]
+        public async Task<IActionResult> GetExternalUsers(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
@@ -382,14 +302,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             [FromQuery] Guid? cityId,
             [FromQuery] Guid? districtId,
             [FromQuery] Guid? postalCodeId,
-            [FromQuery] EmployeeStatus? employeeStatus,
-            [FromQuery] EmployeeProfessionType? professionType,
-            [FromQuery] EmploymentType? employmentType,
-            [FromQuery] Religion? religion,
-            [FromQuery] MaritalStatus? maritalStatus,
-            [FromQuery] BloodType? bloodType,
-            [FromQuery] bool? hasTransportAllowanceProfile,
+            [FromQuery] ExternalUserType? externalUserType,
+            [FromQuery] ExternalUserStatus? externalUserStatus,
+            [FromQuery] ExternalEngagementType? engagementType,
             [FromQuery] bool? hasUserAccount,
+            [FromQuery] bool? hasActiveAccess,
+            [FromQuery] bool? isAccessExpired,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -409,7 +327,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
-            var query = _dbContext.Set<MstEmployee>()
+            var now = DateTime.UtcNow;
+
+            var query = _dbContext.Set<MstExternalUser>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
@@ -428,14 +348,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 var keyword = search.Trim().ToLower();
 
                 query = query.Where(x =>
-                    x.EmployeeCode.ToLower().Contains(keyword) ||
-                    x.EmployeeNumber.ToLower().Contains(keyword) ||
+                    x.ExternalCode.ToLower().Contains(keyword) ||
                     x.FullName.ToLower().Contains(keyword) ||
-                    (x.NickName != null && x.NickName.ToLower().Contains(keyword)) ||
+                    (x.CompanyName != null && x.CompanyName.ToLower().Contains(keyword)) ||
+                    (x.CompanyCode != null && x.CompanyCode.ToLower().Contains(keyword)) ||
+                    (x.JobTitle != null && x.JobTitle.ToLower().Contains(keyword)) ||
+                    (x.ContactPersonName != null && x.ContactPersonName.ToLower().Contains(keyword)) ||
                     (x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(keyword)) ||
                     (x.WhatsAppNumber != null && x.WhatsAppNumber.ToLower().Contains(keyword)) ||
                     (x.Email != null && x.Email.ToLower().Contains(keyword)) ||
                     (x.IdentityNumber != null && x.IdentityNumber.ToLower().Contains(keyword)) ||
+                    (x.TaxNumber != null && x.TaxNumber.ToLower().Contains(keyword)) ||
+                    (x.BusinessLicenseNumber != null && x.BusinessLicenseNumber.ToLower().Contains(keyword)) ||
                     (x.PrimaryDepartment != null && x.PrimaryDepartment.DepartmentCode.ToLower().Contains(keyword)) ||
                     (x.PrimaryDepartment != null && x.PrimaryDepartment.DepartmentName.ToLower().Contains(keyword)) ||
                     (x.PrimaryPosition != null && x.PrimaryPosition.PositionCode.ToLower().Contains(keyword)) ||
@@ -488,56 +412,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 query = query.Where(x => x.PostalCodeId == postalCodeId.Value);
             }
 
-            if (employeeStatus.HasValue)
+            if (externalUserType.HasValue)
             {
-                query = query.Where(x => x.EmployeeStatus == employeeStatus.Value);
+                query = query.Where(x => x.ExternalUserType == externalUserType.Value);
             }
 
-            if (professionType.HasValue)
+            if (externalUserStatus.HasValue)
             {
-                query = query.Where(x => x.ProfessionType == professionType.Value);
+                query = query.Where(x => x.ExternalUserStatus == externalUserStatus.Value);
             }
 
-            if (employmentType.HasValue)
+            if (engagementType.HasValue)
             {
-                query = query.Where(x => x.EmploymentType == employmentType.Value);
-            }
-
-            if (religion.HasValue)
-            {
-                query = query.Where(x => x.Religion == religion.Value);
-            }
-
-            if (maritalStatus.HasValue)
-            {
-                query = query.Where(x => x.MaritalStatus == maritalStatus.Value);
-            }
-
-            if (bloodType.HasValue)
-            {
-                query = query.Where(x => x.BloodType == bloodType.Value);
-            }
-
-            if (hasTransportAllowanceProfile.HasValue)
-            {
-                if (hasTransportAllowanceProfile.Value)
-                {
-                    query = query.Where(x =>
-                        x.WorkforceProfileId != Guid.Empty &&
-                        _dbContext.Set<WfpTransportAllowance>()
-                            .Any(t =>
-                                t.WorkforceProfileId == x.WorkforceProfileId &&
-                                !t.IsDelete));
-                }
-                else
-                {
-                    query = query.Where(x =>
-                        x.WorkforceProfileId == Guid.Empty ||
-                        !_dbContext.Set<WfpTransportAllowance>()
-                            .Any(t =>
-                                t.WorkforceProfileId == x.WorkforceProfileId &&
-                                !t.IsDelete));
-                }
+                query = query.Where(x => x.EngagementType == engagementType.Value);
             }
 
             if (hasUserAccount.HasValue)
@@ -546,32 +433,70 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     query = query.Where(x =>
                         _dbContext.Users.Any(u =>
-                            u.EmployeeId == x.Id &&
-                            u.UserType == UserType.Employee));
+                            u.ExternalUserId == x.Id &&
+                            u.UserType == UserType.ExternalUser));
                 }
                 else
                 {
                     query = query.Where(x =>
                         !_dbContext.Users.Any(u =>
-                            u.EmployeeId == x.Id &&
-                            u.UserType == UserType.Employee));
+                            u.ExternalUserId == x.Id &&
+                            u.UserType == UserType.ExternalUser));
+                }
+            }
+
+            if (hasActiveAccess.HasValue)
+            {
+                if (hasActiveAccess.Value)
+                {
+                    query = query.Where(x =>
+                        x.IsActive &&
+                        (!x.AccessStartDate.HasValue || x.AccessStartDate.Value <= now) &&
+                        (!x.AccessEndDate.HasValue || x.AccessEndDate.Value >= now));
+                }
+                else
+                {
+                    query = query.Where(x =>
+                        !x.IsActive ||
+                        (x.AccessStartDate.HasValue && x.AccessStartDate.Value > now) ||
+                        (x.AccessEndDate.HasValue && x.AccessEndDate.Value < now));
+                }
+            }
+
+            if (isAccessExpired.HasValue)
+            {
+                if (isAccessExpired.Value)
+                {
+                    query = query.Where(x =>
+                        x.ExternalUserStatus == ExternalUserStatus.AccessExpired ||
+                        (x.AccessEndDate.HasValue && x.AccessEndDate.Value < now));
+                }
+                else
+                {
+                    query = query.Where(x =>
+                        x.ExternalUserStatus != ExternalUserStatus.AccessExpired &&
+                        (!x.AccessEndDate.HasValue || x.AccessEndDate.Value >= now));
                 }
             }
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplyEmployeeSorting(query, sortBy, sortDirection)
+            var items = await ApplyExternalUserSorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new EmployeeResponse
+                .Select(x => new ExternalUserResponse
                 {
                     Id = x.Id,
                     WorkforceProfileId = x.WorkforceProfileId,
-                    EmployeeCode = x.EmployeeCode,
-                    EmployeeNumber = x.EmployeeNumber,
+                    ExternalCode = x.ExternalCode,
+                    ExternalUserType = x.ExternalUserType,
+                    ExternalUserStatus = x.ExternalUserStatus,
+                    EngagementType = x.EngagementType,
                     FullName = x.FullName,
-                    NickName = x.NickName,
-                    Gender = x.Gender,
+                    CompanyName = x.CompanyName,
+                    CompanyCode = x.CompanyCode,
+                    JobTitle = x.JobTitle,
+                    ContactPersonName = x.ContactPersonName,
                     PhoneNumber = x.PhoneNumber,
                     WhatsAppNumber = x.WhatsAppNumber,
                     Email = x.Email,
@@ -595,28 +520,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     PrimaryPositionCode = x.PrimaryPosition != null ? x.PrimaryPosition.PositionCode : string.Empty,
                     PrimaryPositionName = x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty,
 
-                    EmployeeStatus = x.EmployeeStatus,
-                    ProfessionType = x.ProfessionType,
-                    EmploymentType = x.EmploymentType,
-                    GradeLevel = x.GradeLevel,
                     WorkLocation = x.WorkLocation,
-                    JoinDate = x.JoinDate,
+                    ContractStartDate = x.ContractStartDate,
                     ContractEndDate = x.ContractEndDate,
-                    ResignDate = x.ResignDate,
+                    AccessStartDate = x.AccessStartDate,
+                    AccessEndDate = x.AccessEndDate,
+                    AccessPurpose = x.AccessPurpose,
                     HasUserAccount = _dbContext.Users.Any(u =>
-                        u.EmployeeId == x.Id &&
-                        u.UserType == UserType.Employee),
-                    HasTransportAllowanceProfile = x.WorkforceProfileId != Guid.Empty &&
-                        _dbContext.Set<WfpTransportAllowance>()
-                            .Any(t =>
-                                t.WorkforceProfileId == x.WorkforceProfileId &&
-                                !t.IsDelete),
+                        u.ExternalUserId == x.Id &&
+                        u.UserType == UserType.ExternalUser),
                     IsActive = x.IsActive,
                     CreateDateTime = x.CreateDateTime
                 })
                 .ToListAsync();
 
-            var result = new ResponseEmployeePagedResult
+            var result = new ResponseExternalUserPagedResult
             {
                 PageNumber = pageNumber,
                 PageSize = pageSize,
@@ -627,8 +545,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             await _loggerService.InfoAsync(
                 LogCategory,
-                "Employee.GetEmployees",
-                "Mengambil data employee.",
+                "ExternalUser.GetExternalUsers",
+                "Mengambil data external user.",
                 new
                 {
                     startDate,
@@ -645,13 +563,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     cityId,
                     districtId,
                     postalCodeId,
-                    employeeStatus,
-                    professionType,
-                    religion,
-                    maritalStatus,
-                    bloodType,
+                    externalUserType,
+                    externalUserStatus,
+                    engagementType,
                     hasUserAccount,
-                    hasTransportAllowanceProfile,
+                    hasActiveAccess,
+                    isAccessExpired,
                     sortBy,
                     sortDirection,
                     pageNumber,
@@ -660,29 +577,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 }
             );
 
-            return Ok(ApiResponse<ResponseEmployeePagedResult>.Ok(
+            return Ok(ApiResponse<ResponseExternalUserPagedResult>.Ok(
                 result,
-                "Data employee berhasil diambil."
+                "Data external user berhasil diambil."
             ));
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<EmployeeOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<List<ExternalUserOptionResponse>>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
-            "Read Employee",
-            Description = "Melihat data employee",
+            "Read External User",
+            Description = "Melihat data external user",
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Employee", "Read")]
-        public async Task<IActionResult> GetEmployeeOptions(
+        [AccessPermission("ExternalUser", "Read")]
+        public async Task<IActionResult> GetExternalUserOptions(
             [FromQuery] Guid? departmentId,
             [FromQuery] Guid? positionId,
+            [FromQuery] ExternalUserType? externalUserType,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null)
         {
-            var query = _dbContext.Set<MstEmployee>()
+            var query = _dbContext.Set<MstExternalUser>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
@@ -701,24 +619,34 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 query = query.Where(x => x.PrimaryPositionId == positionId.Value);
             }
 
+            if (externalUserType.HasValue)
+            {
+                query = query.Where(x => x.ExternalUserType == externalUserType.Value);
+            }
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
 
                 query = query.Where(x =>
-                    x.EmployeeCode.ToLower().Contains(keyword) ||
-                    x.EmployeeNumber.ToLower().Contains(keyword) ||
-                    x.FullName.ToLower().Contains(keyword));
+                    x.ExternalCode.ToLower().Contains(keyword) ||
+                    x.FullName.ToLower().Contains(keyword) ||
+                    (x.CompanyName != null && x.CompanyName.ToLower().Contains(keyword)) ||
+                    (x.JobTitle != null && x.JobTitle.ToLower().Contains(keyword)));
             }
 
             var data = await query
                 .OrderBy(x => x.FullName)
-                .Select(x => new EmployeeOptionResponse
+                .Select(x => new ExternalUserOptionResponse
                 {
                     Id = x.Id,
-                    EmployeeCode = x.EmployeeCode,
-                    EmployeeNumber = x.EmployeeNumber,
+                    WorkforceProfileId = x.WorkforceProfileId,
+                    ExternalCode = x.ExternalCode,
+                    ExternalUserType = x.ExternalUserType,
+                    ExternalUserStatus = x.ExternalUserStatus,
                     FullName = x.FullName,
+                    CompanyName = x.CompanyName,
+                    JobTitle = x.JobTitle,
                     PrimaryDepartmentId = x.PrimaryDepartmentId,
                     PrimaryDepartmentName = x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentName : string.Empty,
                     PrimaryPositionId = x.PrimaryPositionId,
@@ -726,48 +654,49 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<EmployeeOptionResponse>>.Ok(
+            return Ok(ApiResponse<List<ExternalUserOptionResponse>>.Ok(
                 data,
-                "Data pilihan employee berhasil diambil."
+                "Data pilihan external user berhasil diambil."
             ));
         }
 
         [HttpGet("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<EmployeeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ExternalUserDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
             "Read",
-            "Read Employee",
-            Description = "Melihat data employee",
+            "Read External User",
+            Description = "Melihat data external user",
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Employee", "Read")]
-        public async Task<IActionResult> GetEmployeeById(Guid id)
+        [AccessPermission("ExternalUser", "Read")]
+        public async Task<IActionResult> GetExternalUserById(Guid id)
         {
-            var data = await _dbContext.Set<MstEmployee>()
+            var data = await _dbContext.Set<MstExternalUser>()
                 .AsNoTracking()
                 .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new EmployeeDetailResponse
+                .Select(x => new ExternalUserDetailResponse
                 {
                     Id = x.Id,
                     WorkforceProfileId = x.WorkforceProfileId,
-                    EmployeeCode = x.EmployeeCode,
-                    EmployeeNumber = x.EmployeeNumber,
+                    ExternalCode = x.ExternalCode,
+                    ExternalUserType = x.ExternalUserType,
+                    ExternalUserStatus = x.ExternalUserStatus,
+                    EngagementType = x.EngagementType,
                     FullName = x.FullName,
-                    NickName = x.NickName,
-                    Gender = x.Gender,
-                    BirthPlace = x.BirthPlace,
-                    BirthDate = x.BirthDate,
-                    Religion = x.Religion,
-                    MaritalStatus = x.MaritalStatus,
-                    BloodType = x.BloodType,
-                    IdentityType = x.IdentityType,
-                    IdentityNumber = x.IdentityNumber,
+                    CompanyName = x.CompanyName,
+                    CompanyCode = x.CompanyCode,
+                    JobTitle = x.JobTitle,
+                    ContactPersonName = x.ContactPersonName,
                     PhoneNumber = x.PhoneNumber,
                     WhatsAppNumber = x.WhatsAppNumber,
                     Email = x.Email,
                     Address = x.Address,
+                    IdentityType = x.IdentityType,
+                    IdentityNumber = x.IdentityNumber,
+                    TaxNumber = x.TaxNumber,
+                    BusinessLicenseNumber = x.BusinessLicenseNumber,
 
                     CountryId = x.CountryId,
                     CountryName = x.Country != null ? x.Country.CountryName : null,
@@ -788,29 +717,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     PrimaryPositionCode = x.PrimaryPosition != null ? x.PrimaryPosition.PositionCode : string.Empty,
                     PrimaryPositionName = x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty,
 
-                    EmployeeStatus = x.EmployeeStatus,
-                    ProfessionType = x.ProfessionType,
-                    EmploymentType = x.EmploymentType,
-                    GradeLevel = x.GradeLevel,
                     WorkLocation = x.WorkLocation,
-                    JoinDate = x.JoinDate,
-                    ProbationEndDate = x.ProbationEndDate,
                     ContractStartDate = x.ContractStartDate,
                     ContractEndDate = x.ContractEndDate,
-                    ResignDate = x.ResignDate,
-                    ResignReason = x.ResignReason,
-                    EmergencyContactName = x.EmergencyContactName,
-                    EmergencyContactRelation = x.EmergencyContactRelation,
-                    EmergencyContactPhone = x.EmergencyContactPhone,
-                    EmergencyContactAddress = x.EmergencyContactAddress,
-                    HasTransportAllowanceProfile = x.WorkforceProfileId != Guid.Empty &&
-                        _dbContext.Set<WfpTransportAllowance>()
-                            .Any(t =>
-                                t.WorkforceProfileId == x.WorkforceProfileId &&
-                                !t.IsDelete),
+                    AccessStartDate = x.AccessStartDate,
+                    AccessEndDate = x.AccessEndDate,
+                    AccessPurpose = x.AccessPurpose,
+                    Description = x.Description,
                     HasUserAccount = _dbContext.Users.Any(u =>
-                        u.EmployeeId == x.Id &&
-                        u.UserType == UserType.Employee),
+                        u.ExternalUserId == x.Id &&
+                        u.UserType == UserType.ExternalUser),
                     IsActive = x.IsActive,
                     CreateDateTime = x.CreateDateTime
                 })
@@ -820,58 +736,47 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
-                    "Employee tidak ditemukan."
+                    "External user tidak ditemukan."
                 ));
             }
 
-            data.UserAccount = await BuildEmployeeUserAccountCompactResponseAsync(id);
-            data.ChildSummary = await BuildEmployeeChildSummaryAsync(id);
+            data.UserAccount = await BuildExternalUserAccountCompactResponseAsync(id);
+            data.ChildSummary = await BuildExternalUserChildSummaryAsync(id);
 
-            return Ok(ApiResponse<EmployeeDetailResponse>.Ok(
+            return Ok(ApiResponse<ExternalUserDetailResponse>.Ok(
                 data,
-                "Detail employee berhasil diambil."
+                "Detail external user berhasil diambil."
             ));
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse<EmployeeCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ExternalUserCreateResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Create",
-            "Create Employee",
-            Description = "Membuat data employee",
+            "Create External User",
+            Description = "Membuat data external user",
             AccessType = AccessTypes.Create,
             SortOrder = 2
         )]
-        [AccessPermission("Employee", "Create")]
-        public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeRequest request)
+        [AccessPermission("ExternalUser", "Create")]
+        public async Task<IActionResult> CreateExternalUser([FromBody] CreateExternalUserRequest request)
         {
-            var requiredValidation = ValidateRequiredEmployeeRequest(request);
+            var requiredValidation = ValidateRequiredExternalUserRequest(request);
 
             if (!requiredValidation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    requiredValidation.ErrorMessage ?? "Data wajib employee belum lengkap."
+                    requiredValidation.ErrorMessage ?? "Data wajib external user belum lengkap."
                 ));
             }
 
-            if (request.CreateLoginAccount)
+            if (request.CreateLoginAccount && string.IsNullOrWhiteSpace(request.Email))
             {
-                if (string.IsNullOrWhiteSpace(request.Email))
-                {
-                    return BadRequest(ApiResponse<object>.Fail(
-                        StatusCodes.Status400BadRequest,
-                        "Email wajib diisi jika ingin membuat akun login."
-                    ));
-                }
-
-                if (request.BirthDate == default)
-                {
-                    return BadRequest(ApiResponse<object>.Fail(
-                        StatusCodes.Status400BadRequest,
-                        "BirthDate wajib diisi untuk generate password awal akun login."
-                    ));
-                }
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Email wajib diisi jika ingin membuat akun login external user."
+                ));
             }
 
             if (!request.CreateLoginAccount && request.IsFingerprintRegistrationEnabled)
@@ -891,8 +796,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
-            var validation = await ValidateEmployeeRequestAsync(
-                excludeEmployeeId: null,
+            var validation = await ValidateExternalUserRequestAsync(
+                excludeExternalUserId: null,
                 primaryDepartmentId: request.PrimaryDepartmentId,
                 primaryPositionId: request.PrimaryPositionId,
                 countryId: request.CountryId,
@@ -903,39 +808,49 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 identityNumber: request.IdentityNumber,
                 phoneNumber: request.PhoneNumber,
                 whatsAppNumber: request.WhatsAppNumber,
-                emergencyContactPhone: request.EmergencyContactPhone,
-                email: request.Email
+                email: request.Email,
+                taxNumber: request.TaxNumber,
+                businessLicenseNumber: request.BusinessLicenseNumber
             );
 
             if (!validation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data employee tidak valid."
+                    validation.ErrorMessage ?? "Data external user tidak valid."
                 ));
             }
 
             var now = DateTime.UtcNow;
-            var userId = GetCurrentUserId();
+            var actorUserId = GetCurrentUserId();
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             try
             {
+                var normalizedEmail = NormalizeNullableText(request.Email)?.ToLowerInvariant();
+                var normalizedPhone = NormalizeDigitsOnly(request.PhoneNumber);
+                var normalizedWhatsApp = NormalizeDigitsOnly(request.WhatsAppNumber);
+                var primaryDepartmentId = NormalizeNullableGuid(request.PrimaryDepartmentId);
+                var primaryPositionId = NormalizeNullableGuid(request.PrimaryPositionId);
+
+                var accessStartDate = NormalizeNullableDateTimeUtc(request.AccessStartDate);
+                var accessEndDate = NormalizeNullableDateTimeUtc(request.AccessEndDate);
+
                 var workforceProfile = new MstWorkforceProfile
                 {
                     Id = Guid.NewGuid(),
                     ProfileCode = await GenerateWorkforceProfileCodeAsync(),
-                    UserType = UserType.Employee,
+                    UserType = UserType.ExternalUser,
                     DisplayName = request.FullName.Trim(),
-                    Email = request.Email.Trim().ToLowerInvariant(),
-                    PhoneNumber = NormalizeDigitsOnly(request.PhoneNumber),
-                    WhatsAppNumber = NormalizeDigitsOnly(request.WhatsAppNumber),
-                    PrimaryDepartmentId = request.PrimaryDepartmentId,
-                    PrimaryPositionId = request.PrimaryPositionId,
+                    Email = normalizedEmail,
+                    PhoneNumber = normalizedPhone,
+                    WhatsAppNumber = normalizedWhatsApp,
+                    PrimaryDepartmentId = primaryDepartmentId,
+                    PrimaryPositionId = primaryPositionId,
                     IsActive = true,
                     CreateDateTime = now,
-                    CreateBy = userId,
+                    CreateBy = actorUserId,
                     IsDelete = false,
                     IsCancel = false
                 };
@@ -943,85 +858,85 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 _dbContext.Set<MstWorkforceProfile>().Add(workforceProfile);
                 await _dbContext.SaveChangesAsync();
 
-                var entity = new MstEmployee
+                var entity = new MstExternalUser
                 {
                     Id = Guid.NewGuid(),
                     WorkforceProfileId = workforceProfile.Id,
-                    EmployeeCode = await GenerateEmployeeCodeAsync(),
-                    EmployeeNumber = await GenerateEmployeeNumberAsync(request.JoinDate),
+                    ExternalCode = await GenerateExternalCodeAsync(),
+                    ExternalUserType = request.ExternalUserType,
+                    ExternalUserStatus = request.ExternalUserStatus,
+                    EngagementType = request.EngagementType,
                     FullName = request.FullName.Trim(),
-                    NickName = NormalizeNullableText(request.NickName),
-                    Gender = request.Gender,
-                    BirthPlace = NormalizeNullableText(request.BirthPlace),
-                    BirthDate = request.BirthDate,
-                    Religion = request.Religion,
-                    MaritalStatus = request.MaritalStatus,
-                    BloodType = request.BloodType,
-                    IdentityType = request.IdentityType.Trim(),
-                    IdentityNumber = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty,
-                    PhoneNumber = NormalizeDigitsOnly(request.PhoneNumber),
-                    WhatsAppNumber = NormalizeDigitsOnly(request.WhatsAppNumber),
-                    Email = request.Email.Trim().ToLowerInvariant(),
+                    CompanyName = NormalizeNullableText(request.CompanyName),
+                    CompanyCode = NormalizeNullableText(request.CompanyCode),
+                    JobTitle = NormalizeNullableText(request.JobTitle),
+                    ContactPersonName = NormalizeNullableText(request.ContactPersonName),
+                    PhoneNumber = normalizedPhone,
+                    WhatsAppNumber = normalizedWhatsApp,
+                    Email = normalizedEmail,
                     Address = NormalizeNullableText(request.Address),
                     CountryId = NormalizeNullableGuid(request.CountryId),
                     ProvinceId = NormalizeNullableGuid(request.ProvinceId),
                     CityId = NormalizeNullableGuid(request.CityId),
                     DistrictId = NormalizeNullableGuid(request.DistrictId),
                     PostalCodeId = NormalizeNullableGuid(request.PostalCodeId),
-                    PrimaryDepartmentId = request.PrimaryDepartmentId,
-                    PrimaryPositionId = request.PrimaryPositionId,
-                    EmployeeStatus = request.EmployeeStatus,
-                    ProfessionType = request.ProfessionType,
-                    EmploymentType = request.EmploymentType,
-                    GradeLevel = NormalizeNullableText(request.GradeLevel),
+                    IdentityType = NormalizeNullableText(request.IdentityType),
+                    IdentityNumber = NormalizeNullableText(request.IdentityNumber),
+                    TaxNumber = NormalizeNullableText(request.TaxNumber),
+                    BusinessLicenseNumber = NormalizeNullableText(request.BusinessLicenseNumber),
+                    PrimaryDepartmentId = primaryDepartmentId,
+                    PrimaryPositionId = primaryPositionId,
                     WorkLocation = NormalizeNullableText(request.WorkLocation),
-                    JoinDate = request.JoinDate,
-                    ProbationEndDate = request.ProbationEndDate,
-                    ContractStartDate = request.ContractStartDate,
-                    ContractEndDate = request.ContractEndDate,
-                    EmergencyContactName = NormalizeNullableText(request.EmergencyContactName),
-                    EmergencyContactRelation = NormalizeNullableText(request.EmergencyContactRelation),
-                    EmergencyContactPhone = NormalizeDigitsOnly(request.EmergencyContactPhone),
-                    EmergencyContactAddress = NormalizeNullableText(request.EmergencyContactAddress),
+                    ContractStartDate = request.ContractStartDate?.Date,
+                    ContractEndDate = request.ContractEndDate?.Date,
+                    AccessStartDate = accessStartDate,
+                    AccessEndDate = accessEndDate,
+                    AccessPurpose = NormalizeNullableText(request.AccessPurpose),
+                    Description = NormalizeNullableText(request.Description),
                     IsActive = true,
                     CreateDateTime = now,
-                    CreateBy = userId,
+                    CreateBy = actorUserId,
                     IsDelete = false,
                     IsCancel = false
                 };
 
-                _dbContext.Set<MstEmployee>().Add(entity);
+                _dbContext.Set<MstExternalUser>().Add(entity);
                 await _dbContext.SaveChangesAsync();
 
-                var organizationAssignment = new WfpOrganizationAssignment
+                if (primaryDepartmentId.HasValue && primaryPositionId.HasValue)
                 {
-                    Id = Guid.NewGuid(),
-                    WorkforceProfileId = workforceProfile.Id,
-                    DepartmentId = entity.PrimaryDepartmentId,
-                    PositionId = entity.PrimaryPositionId,
-                    IsPrimary = true,
-                    IsActive = true,
-                    EffectiveStartDate = entity.JoinDate.Date,
-                    EffectiveEndDate = null,
-                    Description = "Initial primary organization assignment",
-                    CreateDateTime = now,
-                    CreateBy = userId,
-                    IsDelete = false,
-                    IsCancel = false
-                };
+                    var effectiveStartDate = entity.ContractStartDate ?? now.Date;
 
-                _dbContext.Set<WfpOrganizationAssignment>().Add(organizationAssignment);
-                await _dbContext.SaveChangesAsync();
+                    var organizationAssignment = new WfpOrganizationAssignment
+                    {
+                        Id = Guid.NewGuid(),
+                        WorkforceProfileId = workforceProfile.Id,
+                        DepartmentId = primaryDepartmentId.Value,
+                        PositionId = primaryPositionId.Value,
+                        IsPrimary = true,
+                        IsActive = true,
+                        EffectiveStartDate = effectiveStartDate.Date,
+                        EffectiveEndDate = entity.ContractEndDate?.Date,
+                        Description = "Initial primary organization assignment",
+                        CreateDateTime = now,
+                        CreateBy = actorUserId,
+                        IsDelete = false,
+                        IsCancel = false
+                    };
 
-                EmployeeLoginAccountResponse? loginAccount = null;
+                    _dbContext.Set<WfpOrganizationAssignment>().Add(organizationAssignment);
+                    await _dbContext.SaveChangesAsync();
+                }
+
+                ExternalUserLoginAccountResponse? loginAccount = null;
 
                 if (request.CreateLoginAccount)
                 {
-                    var accountResult = await CreateLoginAccountForEmployeeAsync(
-                        employee: entity,
+                    var accountResult = await CreateLoginAccountForExternalUserAsync(
+                        externalUser: entity,
                         isFingerprintRegistrationEnabled: request.IsFingerprintRegistrationEnabled,
                         fingerprintRegistrationReason: request.FingerprintRegistrationReason,
-                        actorUserId: userId
+                        actorUserId: actorUserId
                     );
 
                     if (!accountResult.IsSuccess)
@@ -1030,20 +945,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
                         return BadRequest(ApiResponse<object>.Fail(
                             StatusCodes.Status400BadRequest,
-                            accountResult.ErrorMessage ?? "Akun login employee gagal dibuat."
+                            accountResult.ErrorMessage ?? "Akun login external user gagal dibuat."
                         ));
                     }
 
                     loginAccount = accountResult.Response;
 
-                    if (loginAccount?.UserId.HasValue == true)
+                    if (loginAccount?.UserId.HasValue == true &&
+                        primaryDepartmentId.HasValue &&
+                        primaryPositionId.HasValue)
                     {
                         await SyncUserPrimaryOrganizationAsync(
                             userId: loginAccount.UserId.Value,
-                            departmentId: entity.PrimaryDepartmentId,
-                            positionId: entity.PrimaryPositionId,
-                            effectiveStartDate: entity.JoinDate,
-                            actorUserId: userId
+                            departmentId: primaryDepartmentId.Value,
+                            positionId: primaryPositionId.Value,
+                            effectiveStartDate: entity.ContractStartDate ?? now.Date,
+                            actorUserId: actorUserId
                         );
 
                         await _dbContext.SaveChangesAsync();
@@ -1052,28 +969,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
                 await transaction.CommitAsync();
 
-                var response = new EmployeeCreateResponse
+                var response = new ExternalUserCreateResponse
                 {
                     Id = entity.Id,
                     WorkforceProfileId = entity.WorkforceProfileId,
-                    EmployeeCode = entity.EmployeeCode,
-                    EmployeeNumber = entity.EmployeeNumber,
+                    ExternalCode = entity.ExternalCode,
+                    ExternalUserType = entity.ExternalUserType,
+                    ExternalUserStatus = entity.ExternalUserStatus,
                     FullName = entity.FullName,
+                    CompanyName = entity.CompanyName,
                     IsActive = entity.IsActive,
                     LoginAccount = loginAccount
                 };
 
                 await _loggerService.InfoAsync(
                     LogCategory,
-                    "Employee.CreateEmployee",
-                    "Employee berhasil dibuat.",
+                    "ExternalUser.CreateExternalUser",
+                    "External user berhasil dibuat.",
                     new
                     {
                         entity.Id,
                         entity.WorkforceProfileId,
-                        entity.EmployeeCode,
-                        entity.EmployeeNumber,
+                        entity.ExternalCode,
+                        entity.ExternalUserType,
+                        entity.ExternalUserStatus,
                         entity.FullName,
+                        entity.CompanyName,
                         entity.PrimaryDepartmentId,
                         entity.PrimaryPositionId,
                         LoginAccountCreated = loginAccount?.IsCreated ?? false,
@@ -1082,11 +1003,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     }
                 );
 
-                return Ok(ApiResponse<EmployeeCreateResponse>.Ok(
+                return Ok(ApiResponse<ExternalUserCreateResponse>.Ok(
                     response,
                     request.CreateLoginAccount
-                        ? "Employee dan akun login berhasil dibuat."
-                        : "Employee berhasil dibuat."
+                        ? "External user dan akun login berhasil dibuat."
+                        : "External user berhasil dibuat."
                 ));
             }
             catch (Exception ex)
@@ -1095,8 +1016,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
                 await _loggerService.ErrorAsync(
                     LogCategory,
-                    "Employee.CreateEmployee",
-                    "Gagal membuat employee.",
+                    "ExternalUser.CreateExternalUser",
+                    "Gagal membuat external user.",
                     ex
                 );
 
@@ -1104,7 +1025,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     StatusCodes.Status500InternalServerError,
                     ApiResponse<object>.Fail(
                         StatusCodes.Status500InternalServerError,
-                        "Terjadi kesalahan saat membuat employee."
+                        "Terjadi kesalahan saat membuat external user."
                     )
                 );
             }
@@ -1115,39 +1036,39 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
             "Update",
-            "Update Employee",
-            Description = "Mengubah data employee",
+            "Update External User",
+            Description = "Mengubah data external user",
             AccessType = AccessTypes.Update,
             SortOrder = 3
         )]
-        [AccessPermission("Employee", "Update")]
-        public async Task<IActionResult> UpdateEmployee(
+        [AccessPermission("ExternalUser", "Update")]
+        public async Task<IActionResult> UpdateExternalUser(
             Guid id,
-            [FromBody] UpdateEmployeeRequest request)
+            [FromBody] UpdateExternalUserRequest request)
         {
-            var entity = await _dbContext.Set<MstEmployee>()
+            var entity = await _dbContext.Set<MstExternalUser>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
-                    "Employee tidak ditemukan."
+                    "External user tidak ditemukan."
                 ));
             }
 
-            var requiredValidation = ValidateRequiredEmployeeRequest(request);
+            var requiredValidation = ValidateRequiredExternalUserRequest(request);
 
             if (!requiredValidation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    requiredValidation.ErrorMessage ?? "Data wajib employee belum lengkap."
+                    requiredValidation.ErrorMessage ?? "Data wajib external user belum lengkap."
                 ));
             }
 
-            var validation = await ValidateEmployeeRequestAsync(
-                excludeEmployeeId: id,
+            var validation = await ValidateExternalUserRequestAsync(
+                excludeExternalUserId: id,
                 primaryDepartmentId: request.PrimaryDepartmentId,
                 primaryPositionId: request.PrimaryPositionId,
                 countryId: request.CountryId,
@@ -1158,60 +1079,60 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 identityNumber: request.IdentityNumber,
                 phoneNumber: request.PhoneNumber,
                 whatsAppNumber: request.WhatsAppNumber,
-                emergencyContactPhone: request.EmergencyContactPhone,
-                email: request.Email
+                email: request.Email,
+                taxNumber: request.TaxNumber,
+                businessLicenseNumber: request.BusinessLicenseNumber
             );
 
             if (!validation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data employee tidak valid."
+                    validation.ErrorMessage ?? "Data external user tidak valid."
                 ));
             }
 
             var now = DateTime.UtcNow;
-            var userId = GetCurrentUserId();
+            var actorUserId = GetCurrentUserId();
+            var normalizedEmail = NormalizeNullableText(request.Email)?.ToLowerInvariant();
+            var normalizedPhone = NormalizeDigitsOnly(request.PhoneNumber);
+            var normalizedWhatsApp = NormalizeDigitsOnly(request.WhatsAppNumber);
+            var primaryDepartmentId = NormalizeNullableGuid(request.PrimaryDepartmentId);
+            var primaryPositionId = NormalizeNullableGuid(request.PrimaryPositionId);
 
+            entity.ExternalUserType = request.ExternalUserType;
+            entity.ExternalUserStatus = request.ExternalUserStatus;
+            entity.EngagementType = request.EngagementType;
             entity.FullName = request.FullName.Trim();
-            entity.NickName = NormalizeNullableText(request.NickName);
-            entity.Gender = request.Gender;
-            entity.BirthPlace = NormalizeNullableText(request.BirthPlace);
-            entity.BirthDate = request.BirthDate;
-            entity.Religion = request.Religion;
-            entity.MaritalStatus = request.MaritalStatus;
-            entity.BloodType = request.BloodType;
-            entity.IdentityType = request.IdentityType.Trim();
-            entity.IdentityNumber = NormalizeDigitsOnly(request.IdentityNumber) ?? string.Empty;
-            entity.PhoneNumber = NormalizeDigitsOnly(request.PhoneNumber);
-            entity.WhatsAppNumber = NormalizeDigitsOnly(request.WhatsAppNumber);
-            entity.Email = request.Email.Trim().ToLowerInvariant();
+            entity.CompanyName = NormalizeNullableText(request.CompanyName);
+            entity.CompanyCode = NormalizeNullableText(request.CompanyCode);
+            entity.JobTitle = NormalizeNullableText(request.JobTitle);
+            entity.ContactPersonName = NormalizeNullableText(request.ContactPersonName);
+            entity.PhoneNumber = normalizedPhone;
+            entity.WhatsAppNumber = normalizedWhatsApp;
+            entity.Email = normalizedEmail;
             entity.Address = NormalizeNullableText(request.Address);
             entity.CountryId = NormalizeNullableGuid(request.CountryId);
             entity.ProvinceId = NormalizeNullableGuid(request.ProvinceId);
             entity.CityId = NormalizeNullableGuid(request.CityId);
             entity.DistrictId = NormalizeNullableGuid(request.DistrictId);
             entity.PostalCodeId = NormalizeNullableGuid(request.PostalCodeId);
-            entity.PrimaryDepartmentId = request.PrimaryDepartmentId;
-            entity.PrimaryPositionId = request.PrimaryPositionId;
-            entity.EmployeeStatus = request.EmployeeStatus;
-            entity.ProfessionType = request.ProfessionType;
-            entity.EmploymentType = request.EmploymentType;
-            entity.GradeLevel = NormalizeNullableText(request.GradeLevel);
+            entity.IdentityType = NormalizeNullableText(request.IdentityType);
+            entity.IdentityNumber = NormalizeNullableText(request.IdentityNumber);
+            entity.TaxNumber = NormalizeNullableText(request.TaxNumber);
+            entity.BusinessLicenseNumber = NormalizeNullableText(request.BusinessLicenseNumber);
+            entity.PrimaryDepartmentId = primaryDepartmentId;
+            entity.PrimaryPositionId = primaryPositionId;
             entity.WorkLocation = NormalizeNullableText(request.WorkLocation);
-            entity.JoinDate = request.JoinDate;
-            entity.ProbationEndDate = request.ProbationEndDate;
-            entity.ContractStartDate = request.ContractStartDate;
-            entity.ContractEndDate = request.ContractEndDate;
-            entity.ResignDate = request.ResignDate;
-            entity.ResignReason = NormalizeNullableText(request.ResignReason);
-            entity.EmergencyContactName = NormalizeNullableText(request.EmergencyContactName);
-            entity.EmergencyContactRelation = NormalizeNullableText(request.EmergencyContactRelation);
-            entity.EmergencyContactPhone = NormalizeDigitsOnly(request.EmergencyContactPhone);
-            entity.EmergencyContactAddress = NormalizeNullableText(request.EmergencyContactAddress);
+            entity.ContractStartDate = request.ContractStartDate?.Date;
+            entity.ContractEndDate = request.ContractEndDate?.Date;
+            entity.AccessStartDate = NormalizeNullableDateTimeUtc(request.AccessStartDate);
+            entity.AccessEndDate = NormalizeNullableDateTimeUtc(request.AccessEndDate);
+            entity.AccessPurpose = NormalizeNullableText(request.AccessPurpose);
+            entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
-            entity.UpdateBy = userId;
+            entity.UpdateBy = actorUserId;
 
             if (entity.WorkforceProfileId != Guid.Empty)
             {
@@ -1228,36 +1149,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     workforceProfile.PrimaryPositionId = entity.PrimaryPositionId;
                     workforceProfile.IsActive = entity.IsActive;
                     workforceProfile.UpdateDateTime = now;
-                    workforceProfile.UpdateBy = userId;
+                    workforceProfile.UpdateBy = actorUserId;
                 }
             }
 
             var linkedUser = await _dbContext.Users.FirstOrDefaultAsync(x =>
-                x.EmployeeId == entity.Id &&
-                x.UserType == UserType.Employee);
+                x.ExternalUserId == entity.Id &&
+                x.UserType == UserType.ExternalUser);
 
             if (linkedUser != null)
             {
                 linkedUser.DisplayName = entity.FullName;
                 linkedUser.Email = entity.Email;
-                linkedUser.UserName = entity.Email;
+
+                if (!string.IsNullOrWhiteSpace(entity.Email))
+                {
+                    linkedUser.UserName = entity.Email;
+                    linkedUser.NormalizedUserName = _userManager.NormalizeName(entity.Email);
+                    linkedUser.NormalizedEmail = _userManager.NormalizeEmail(entity.Email);
+                }
+
                 linkedUser.PrimaryDepartmentId = entity.PrimaryDepartmentId;
                 linkedUser.PrimaryPositionId = entity.PrimaryPositionId;
                 linkedUser.WorkforceProfileId = entity.WorkforceProfileId;
+                linkedUser.AccessValidUntil = entity.AccessEndDate;
                 linkedUser.IsActive = entity.IsActive;
                 linkedUser.UpdateDateTime = now;
             }
 
-            await EnsureWorkforcePrimaryOrganizationAssignmentAsync(entity, now, userId);
+            await EnsureWorkforcePrimaryOrganizationAssignmentAsync(entity, now, actorUserId);
 
-            if (linkedUser != null)
+            if (linkedUser != null &&
+                entity.PrimaryDepartmentId.HasValue &&
+                entity.PrimaryPositionId.HasValue)
             {
                 await SyncUserPrimaryOrganizationAsync(
                     userId: linkedUser.Id,
-                    departmentId: entity.PrimaryDepartmentId,
-                    positionId: entity.PrimaryPositionId,
-                    effectiveStartDate: entity.JoinDate,
-                    actorUserId: userId
+                    departmentId: entity.PrimaryDepartmentId.Value,
+                    positionId: entity.PrimaryPositionId.Value,
+                    effectiveStartDate: entity.ContractStartDate ?? now.Date,
+                    actorUserId: actorUserId
                 );
             }
 
@@ -1265,22 +1196,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             await _loggerService.InfoAsync(
                 LogCategory,
-                "Employee.UpdateEmployee",
-                "Employee berhasil diperbarui.",
+                "ExternalUser.UpdateExternalUser",
+                "External user berhasil diperbarui.",
                 new
                 {
                     entity.Id,
                     entity.WorkforceProfileId,
-                    entity.EmployeeCode,
-                    entity.EmployeeNumber,
+                    entity.ExternalCode,
+                    entity.ExternalUserType,
+                    entity.ExternalUserStatus,
                     entity.FullName,
+                    entity.CompanyName,
                     entity.IsActive
                 }
             );
 
             return Ok(ApiResponse<object>.Ok(
                 null,
-                "Employee berhasil diperbarui."
+                "External user berhasil diperbarui."
             ));
         }
 
@@ -1289,35 +1222,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
             "Update",
-            "Update Employee",
-            Description = "Mengubah data employee",
+            "Update External User",
+            Description = "Mengubah status external user",
             AccessType = AccessTypes.Update,
             SortOrder = 3
         )]
-        [AccessPermission("Employee", "Update")]
-        public async Task<IActionResult> UpdateEmployeeStatus(
+        [AccessPermission("ExternalUser", "Update")]
+        public async Task<IActionResult> UpdateExternalUserStatus(
             Guid id,
-            [FromBody] UpdateEmployeeStatusRequest request)
+            [FromBody] UpdateExternalUserStatusRequest request)
         {
-            var entity = await _dbContext.Set<MstEmployee>()
+            var entity = await _dbContext.Set<MstExternalUser>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
-                    "Employee tidak ditemukan."
+                    "External user tidak ditemukan."
                 ));
             }
 
             var now = DateTime.UtcNow;
-            var userId = GetCurrentUserId();
+            var actorUserId = GetCurrentUserId();
 
             entity.IsActive = request.IsActive;
-            entity.ResignDate = request.ResignDate;
-            entity.ResignReason = NormalizeNullableText(request.ResignReason);
+            entity.ExternalUserStatus = request.ExternalUserStatus;
+            entity.AccessEndDate = NormalizeNullableDateTimeUtc(request.AccessEndDate);
+            entity.Description = NormalizeNullableText(request.Description) ?? entity.Description;
             entity.UpdateDateTime = now;
-            entity.UpdateBy = userId;
+            entity.UpdateBy = actorUserId;
 
             if (entity.WorkforceProfileId != Guid.Empty)
             {
@@ -1328,17 +1262,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     workforceProfile.IsActive = request.IsActive;
                     workforceProfile.UpdateDateTime = now;
-                    workforceProfile.UpdateBy = userId;
+                    workforceProfile.UpdateBy = actorUserId;
                 }
             }
 
             var linkedUser = await _dbContext.Users.FirstOrDefaultAsync(x =>
-                x.EmployeeId == id &&
-                x.UserType == UserType.Employee);
+                x.ExternalUserId == id &&
+                x.UserType == UserType.ExternalUser);
 
             if (linkedUser != null)
             {
                 linkedUser.IsActive = request.IsActive;
+                linkedUser.AccessValidUntil = entity.AccessEndDate;
                 linkedUser.UpdateDateTime = now;
             }
 
@@ -1346,7 +1281,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             return Ok(ApiResponse<object>.Ok(
                 null,
-                "Status employee berhasil diperbarui."
+                "Status external user berhasil diperbarui."
             ));
         }
 
@@ -1355,32 +1290,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
             "Delete",
-            "Delete Employee",
-            Description = "Menghapus data employee",
+            "Delete External User",
+            Description = "Menghapus data external user",
             AccessType = AccessTypes.Delete,
             SortOrder = 4
         )]
-        [AccessPermission("Employee", "Delete")]
-        public async Task<IActionResult> DeleteEmployee(Guid id)
+        [AccessPermission("ExternalUser", "Delete")]
+        public async Task<IActionResult> DeleteExternalUser(Guid id)
         {
-            var entity = await _dbContext.Set<MstEmployee>()
+            var entity = await _dbContext.Set<MstExternalUser>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
-                    "Employee tidak ditemukan."
+                    "External user tidak ditemukan."
                 ));
             }
 
             var now = DateTime.UtcNow;
-            var userId = GetCurrentUserId();
+            var actorUserId = GetCurrentUserId();
 
             entity.IsDelete = true;
             entity.IsActive = false;
+            entity.ExternalUserStatus = ExternalUserStatus.Inactive;
             entity.DeleteDateTime = now;
-            entity.DeleteBy = userId;
+            entity.DeleteBy = actorUserId;
 
             if (entity.WorkforceProfileId != Guid.Empty)
             {
@@ -1391,7 +1327,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     workforceProfile.IsActive = false;
                     workforceProfile.UpdateDateTime = now;
-                    workforceProfile.UpdateBy = userId;
+                    workforceProfile.UpdateBy = actorUserId;
                 }
 
                 var organizationAssignments = await _dbContext.Set<WfpOrganizationAssignment>()
@@ -1405,13 +1341,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     item.IsActive = false;
                     item.IsDelete = true;
                     item.DeleteDateTime = now;
-                    item.DeleteBy = userId;
+                    item.DeleteBy = actorUserId;
                 }
             }
 
             var linkedUser = await _dbContext.Users.FirstOrDefaultAsync(x =>
-                x.EmployeeId == id &&
-                x.UserType == UserType.Employee);
+                x.ExternalUserId == id &&
+                x.UserType == UserType.ExternalUser);
 
             if (linkedUser != null)
             {
@@ -1427,7 +1363,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     item.IsActive = false;
                     item.IsDelete = true;
                     item.DeleteDateTime = now;
-                    item.DeleteBy = userId;
+                    item.DeleteBy = actorUserId;
                 }
             }
 
@@ -1435,15 +1371,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             return Ok(ApiResponse<object>.Ok(
                 null,
-                "Employee berhasil dihapus."
+                "External user berhasil dihapus."
             ));
         }
 
-        private async Task<string> GenerateEmployeeCodeAsync()
+        private async Task<string> GenerateExternalCodeAsync()
         {
-            const string prefix = $"EMP-{HospitalCode}-";
+            const string prefix = $"EXT-{HospitalCode}-";
 
-            var totalData = await _dbContext.Set<MstEmployee>()
+            var totalData = await _dbContext.Set<MstExternalUser>()
                 .IgnoreQueryFilters()
                 .CountAsync();
 
@@ -1453,40 +1389,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             {
                 var code = $"{prefix}{nextNumber.ToString("D5")}";
 
-                var exists = await _dbContext.Set<MstEmployee>()
-                    .AnyAsync(x => x.EmployeeCode == code);
+                var exists = await _dbContext.Set<MstExternalUser>()
+                    .AnyAsync(x => x.ExternalCode == code);
 
                 if (!exists)
                 {
                     return code;
-                }
-
-                nextNumber++;
-            }
-        }
-
-        private async Task<string> GenerateEmployeeNumberAsync(DateTime joinDate)
-        {
-            var date = joinDate.Date;
-            var dateCode = date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
-            var prefix = $"{HospitalCode}-{dateCode}";
-
-            var existingCount = await _dbContext.Set<MstEmployee>()
-                .IgnoreQueryFilters()
-                .CountAsync(x => x.EmployeeNumber.StartsWith(prefix));
-
-            var nextNumber = existingCount + 1;
-
-            while (true)
-            {
-                var employeeNumber = $"{prefix}{nextNumber.ToString("D3")}";
-
-                var exists = await _dbContext.Set<MstEmployee>()
-                    .AnyAsync(x => x.EmployeeNumber == employeeNumber);
-
-                if (!exists)
-                {
-                    return employeeNumber;
                 }
 
                 nextNumber++;
@@ -1519,14 +1427,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
         }
 
-        private async Task<EmployeeUserAccountCompactResponse?> BuildEmployeeUserAccountCompactResponseAsync(Guid employeeId)
+        private async Task<ExternalUserAccountCompactResponse?> BuildExternalUserAccountCompactResponseAsync(Guid externalUserId)
         {
             var user = await _dbContext.Users
                 .AsNoTracking()
                 .Where(x =>
-                    x.EmployeeId == employeeId &&
-                    x.UserType == UserType.Employee)
-                .Select(x => new EmployeeUserAccountCompactResponse
+                    x.ExternalUserId == externalUserId &&
+                    x.UserType == UserType.ExternalUser)
+                .Select(x => new ExternalUserAccountCompactResponse
                 {
                     IsAvailable = true,
                     UserId = x.Id,
@@ -1544,7 +1452,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 })
                 .FirstOrDefaultAsync();
 
-            return user ?? new EmployeeUserAccountCompactResponse
+            return user ?? new ExternalUserAccountCompactResponse
             {
                 IsAvailable = false,
                 IsActive = false,
@@ -1552,11 +1460,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             };
         }
 
-        private async Task<EmployeeChildSummaryResponse> BuildEmployeeChildSummaryAsync(Guid employeeId)
+        private async Task<ExternalUserChildSummaryResponse> BuildExternalUserChildSummaryAsync(Guid externalUserId)
         {
-            var employee = await _dbContext.Set<MstEmployee>()
+            var externalUser = await _dbContext.Set<MstExternalUser>()
                 .AsNoTracking()
-                .Where(x => x.Id == employeeId && !x.IsDelete)
+                .Where(x => x.Id == externalUserId && !x.IsDelete)
                 .Select(x => new
                 {
                     x.Id,
@@ -1564,12 +1472,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 })
                 .FirstOrDefaultAsync();
 
-            if (employee == null || employee.WorkforceProfileId == Guid.Empty)
+            if (externalUser == null || externalUser.WorkforceProfileId == Guid.Empty)
             {
-                return new EmployeeChildSummaryResponse();
+                return new ExternalUserChildSummaryResponse();
             }
 
-            var workforceProfileId = employee.WorkforceProfileId;
+            var workforceProfileId = externalUser.WorkforceProfileId;
 
             var organizationQuery = _dbContext.Set<WfpOrganizationAssignment>()
                 .AsNoTracking()
@@ -1577,7 +1485,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     x.WorkforceProfileId == workforceProfileId &&
                     !x.IsDelete);
 
-            return new EmployeeChildSummaryResponse
+            return new ExternalUserChildSummaryResponse
             {
                 OrganizationCount = await organizationQuery.CountAsync(),
                 ActiveOrganizationCount = await organizationQuery.CountAsync(x => x.IsActive),
@@ -1591,51 +1499,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
 
-                PayrollProfileCount = await _dbContext.Set<WfpPayroll>()
+                CertificationCount = await _dbContext.Set<WfpCertification>()
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
 
-                TaxProfileCount = await _dbContext.Set<WfpTax>()
+                CredentialLicenseCount = await _dbContext.Set<WfpCredentialLicense>()
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
 
-                InsuranceProfileCount = await _dbContext.Set<WfpInsurance>()
-                    .AsNoTracking()
-                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
-
-                TransportAllowanceProfileCount = await _dbContext.Set<WfpTransportAllowance>()
-                    .AsNoTracking()
-                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
-
-                TransportAllowanceTransactionCount = await _dbContext.Set<WfpTransportAllowanceTransaction>()
-                    .AsNoTracking()
-                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
-
-                LeaveCount = 0,
-
-                ShiftAssignmentCount = await _dbContext.Set<WfpWorkScheduleAssignment>()
+                ScheduleAssignmentCount = await _dbContext.Set<WfpWorkScheduleAssignment>()
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
 
                 AttendanceCount = await _dbContext.Set<EmpAttendance>()
                     .AsNoTracking()
-                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
-
-                SalaryCount = 0,
-
-                TrainingCount = await _dbContext.Set<WfpTrainingRecord>()
-                    .AsNoTracking()
-                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
-
-                WarningLetterCount = 0,
-                PerformanceReviewCount = 0
+                    .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete)
             };
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateEmployeeRequestAsync(
-            Guid? excludeEmployeeId,
-            Guid primaryDepartmentId,
-            Guid primaryPositionId,
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateExternalUserRequestAsync(
+            Guid? excludeExternalUserId,
+            Guid? primaryDepartmentId,
+            Guid? primaryPositionId,
             Guid? countryId,
             Guid? provinceId,
             Guid? cityId,
@@ -1644,39 +1529,44 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             string? identityNumber,
             string? phoneNumber,
             string? whatsAppNumber,
-            string? emergencyContactPhone,
-            string? email)
+            string? email,
+            string? taxNumber,
+            string? businessLicenseNumber)
         {
-            if (primaryDepartmentId == Guid.Empty)
+            primaryDepartmentId = NormalizeNullableGuid(primaryDepartmentId);
+            primaryPositionId = NormalizeNullableGuid(primaryPositionId);
+
+            if (primaryPositionId.HasValue && !primaryDepartmentId.HasValue)
             {
-                return (false, "Primary department wajib dipilih.");
+                return (false, "Primary department wajib dipilih jika primary position diisi.");
             }
 
-            if (primaryPositionId == Guid.Empty)
+            if (primaryDepartmentId.HasValue)
             {
-                return (false, "Primary position wajib dipilih.");
+                var departmentExists = await _dbContext.MstDepartments
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == primaryDepartmentId.Value && x.IsActive && !x.IsDelete);
+
+                if (!departmentExists)
+                {
+                    return (false, "Primary department tidak valid atau tidak aktif.");
+                }
             }
 
-            var departmentExists = await _dbContext.MstDepartments
-                .AsNoTracking()
-                .AnyAsync(x => x.Id == primaryDepartmentId && x.IsActive && !x.IsDelete);
-
-            if (!departmentExists)
+            if (primaryPositionId.HasValue)
             {
-                return (false, "Primary department tidak valid atau tidak aktif.");
-            }
+                var positionExists = await _dbContext.MstPositions
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == primaryPositionId.Value &&
+                        x.DepartmentId == primaryDepartmentId!.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
 
-            var positionExists = await _dbContext.MstPositions
-                .AsNoTracking()
-                .AnyAsync(x =>
-                    x.Id == primaryPositionId &&
-                    x.DepartmentId == primaryDepartmentId &&
-                    x.IsActive &&
-                    !x.IsDelete);
-
-            if (!positionExists)
-            {
-                return (false, "Primary position tidak valid, tidak aktif, atau tidak sesuai department.");
+                if (!positionExists)
+                {
+                    return (false, "Primary position tidak valid, tidak aktif, atau tidak sesuai department.");
+                }
             }
 
             var regionValidation = await ValidateRegionAsync(
@@ -1691,47 +1581,62 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 return regionValidation;
             }
 
-            var normalizedIdentityNumber = NormalizeDigitsOnly(identityNumber);
+            var normalizedIdentityNumber = NormalizeNullableText(identityNumber);
             var normalizedPhoneNumber = NormalizeDigitsOnly(phoneNumber);
             var normalizedWhatsAppNumber = NormalizeDigitsOnly(whatsAppNumber);
-            var normalizedEmergencyContactPhone = NormalizeDigitsOnly(emergencyContactPhone);
             var normalizedEmail = NormalizeNullableText(email);
+            var normalizedTaxNumber = NormalizeNullableText(taxNumber);
+            var normalizedBusinessLicenseNumber = NormalizeNullableText(businessLicenseNumber);
 
-            if (!string.IsNullOrWhiteSpace(normalizedIdentityNumber) &&
-                normalizedIdentityNumber.Length != 16)
+            if (!string.IsNullOrWhiteSpace(normalizedPhoneNumber) && normalizedPhoneNumber.Length > 30)
             {
-                return (false, "Nomor identitas harus 16 digit.");
+                return (false, "Nomor telepon maksimal 30 digit.");
             }
 
-            if (!string.IsNullOrWhiteSpace(normalizedPhoneNumber) &&
-                normalizedPhoneNumber.Length > 13)
+            if (!string.IsNullOrWhiteSpace(normalizedWhatsAppNumber) && normalizedWhatsAppNumber.Length > 30)
             {
-                return (false, "Nomor telepon maksimal 13 digit.");
-            }
-
-            if (!string.IsNullOrWhiteSpace(normalizedWhatsAppNumber) &&
-                normalizedWhatsAppNumber.Length > 13)
-            {
-                return (false, "Nomor WhatsApp maksimal 13 digit.");
-            }
-
-            if (!string.IsNullOrWhiteSpace(normalizedEmergencyContactPhone) &&
-                normalizedEmergencyContactPhone.Length > 13)
-            {
-                return (false, "Nomor telepon kontak darurat maksimal 13 digit.");
+                return (false, "Nomor WhatsApp maksimal 30 digit.");
             }
 
             if (!string.IsNullOrWhiteSpace(normalizedIdentityNumber))
             {
-                var exists = await _dbContext.Set<MstEmployee>()
+                var exists = await _dbContext.Set<MstExternalUser>()
                     .AnyAsync(x =>
-                        x.Id != excludeEmployeeId &&
+                        x.Id != excludeExternalUserId &&
                         x.IdentityNumber == normalizedIdentityNumber &&
                         !x.IsDelete);
 
                 if (exists)
                 {
-                    return (false, "Nomor identitas sudah digunakan.");
+                    return (false, "Nomor identitas external user sudah digunakan.");
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedTaxNumber))
+            {
+                var exists = await _dbContext.Set<MstExternalUser>()
+                    .AnyAsync(x =>
+                        x.Id != excludeExternalUserId &&
+                        x.TaxNumber == normalizedTaxNumber &&
+                        !x.IsDelete);
+
+                if (exists)
+                {
+                    return (false, "Tax number external user sudah digunakan.");
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedBusinessLicenseNumber))
+            {
+                var exists = await _dbContext.Set<MstExternalUser>()
+                    .AnyAsync(x =>
+                        x.Id != excludeExternalUserId &&
+                        x.BusinessLicenseNumber == normalizedBusinessLicenseNumber &&
+                        !x.IsDelete);
+
+                if (exists)
+                {
+                    return (false, "Business license number external user sudah digunakan.");
                 }
             }
 
@@ -1739,16 +1644,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             {
                 var emailLower = normalizedEmail.ToLower();
 
-                var exists = await _dbContext.Set<MstEmployee>()
+                var exists = await _dbContext.Set<MstExternalUser>()
                     .AnyAsync(x =>
-                        x.Id != excludeEmployeeId &&
+                        x.Id != excludeExternalUserId &&
                         x.Email != null &&
                         x.Email.ToLower() == emailLower &&
                         !x.IsDelete);
 
                 if (exists)
                 {
-                    return (false, "Email sudah digunakan.");
+                    return (false, "Email external user sudah digunakan.");
                 }
             }
 
@@ -1756,16 +1661,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         private async Task EnsureWorkforcePrimaryOrganizationAssignmentAsync(
-    MstEmployee employee,
-    DateTime now,
-    Guid actorUserId)
+            MstExternalUser externalUser,
+            DateTime now,
+            Guid actorUserId)
         {
-            if (employee.WorkforceProfileId == Guid.Empty)
+            if (externalUser.WorkforceProfileId == Guid.Empty ||
+                !externalUser.PrimaryDepartmentId.HasValue ||
+                !externalUser.PrimaryPositionId.HasValue)
             {
                 return;
             }
 
-            var workforceProfileId = employee.WorkforceProfileId;
+            var workforceProfileId = externalUser.WorkforceProfileId;
+            var departmentId = externalUser.PrimaryDepartmentId.Value;
+            var positionId = externalUser.PrimaryPositionId.Value;
 
             var currentPrimaries = await _dbContext.Set<WfpOrganizationAssignment>()
                 .Where(x =>
@@ -1784,8 +1693,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             var existing = await _dbContext.Set<WfpOrganizationAssignment>()
                 .FirstOrDefaultAsync(x =>
                     x.WorkforceProfileId == workforceProfileId &&
-                    x.DepartmentId == employee.PrimaryDepartmentId &&
-                    x.PositionId == employee.PrimaryPositionId);
+                    x.DepartmentId == departmentId &&
+                    x.PositionId == positionId);
 
             if (existing == null)
             {
@@ -1793,13 +1702,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     Id = Guid.NewGuid(),
                     WorkforceProfileId = workforceProfileId,
-                    DepartmentId = employee.PrimaryDepartmentId,
-                    PositionId = employee.PrimaryPositionId,
+                    DepartmentId = departmentId,
+                    PositionId = positionId,
                     IsPrimary = true,
-                    IsActive = employee.IsActive,
-                    EffectiveStartDate = employee.JoinDate.Date,
-                    EffectiveEndDate = null,
-                    Description = "Primary organization assignment synced from employee update",
+                    IsActive = externalUser.IsActive,
+                    EffectiveStartDate = (externalUser.ContractStartDate ?? now.Date).Date,
+                    EffectiveEndDate = externalUser.ContractEndDate?.Date,
+                    Description = "Primary organization assignment synced from external user update",
                     CreateDateTime = now,
                     CreateBy = actorUserId,
                     IsDelete = false,
@@ -1811,10 +1720,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             else
             {
                 existing.IsPrimary = true;
-                existing.IsActive = employee.IsActive;
-                existing.EffectiveStartDate = employee.JoinDate.Date;
-                existing.EffectiveEndDate = null;
-                existing.Description = "Primary organization assignment synced from employee update";
+                existing.IsActive = externalUser.IsActive;
+                existing.EffectiveStartDate = (externalUser.ContractStartDate ?? now.Date).Date;
+                existing.EffectiveEndDate = externalUser.ContractEndDate?.Date;
+                existing.Description = "Primary organization assignment synced from external user update";
                 existing.IsDelete = false;
                 existing.DeleteDateTime = null;
                 existing.DeleteBy = Guid.Empty;
@@ -2032,8 +1941,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             return DateRangeResolveResult.Valid(start, endExclusive);
         }
 
-        private static IOrderedQueryable<MstEmployee> ApplyEmployeeSorting(
-            IQueryable<MstEmployee> query,
+        private static IOrderedQueryable<MstExternalUser> ApplyExternalUserSorting(
+            IQueryable<MstExternalUser> query,
             string? sortBy,
             string? sortDirection)
         {
@@ -2042,17 +1951,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             return field switch
             {
-                "employeecode" => desc
-                    ? query.OrderByDescending(x => x.EmployeeCode).ThenBy(x => x.FullName)
-                    : query.OrderBy(x => x.EmployeeCode).ThenBy(x => x.FullName),
-
-                "employeenumber" => desc
-                    ? query.OrderByDescending(x => x.EmployeeNumber).ThenBy(x => x.FullName)
-                    : query.OrderBy(x => x.EmployeeNumber).ThenBy(x => x.FullName),
+                "externalcode" => desc
+                    ? query.OrderByDescending(x => x.ExternalCode).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.ExternalCode).ThenBy(x => x.FullName),
 
                 "fullname" => desc
-                    ? query.OrderByDescending(x => x.FullName).ThenBy(x => x.EmployeeCode)
-                    : query.OrderBy(x => x.FullName).ThenBy(x => x.EmployeeCode),
+                    ? query.OrderByDescending(x => x.FullName).ThenBy(x => x.ExternalCode)
+                    : query.OrderBy(x => x.FullName).ThenBy(x => x.ExternalCode),
+
+                "companyname" => desc
+                    ? query.OrderByDescending(x => x.CompanyName ?? string.Empty).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.CompanyName ?? string.Empty).ThenBy(x => x.FullName),
+
+                "jobtitle" => desc
+                    ? query.OrderByDescending(x => x.JobTitle ?? string.Empty).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.JobTitle ?? string.Empty).ThenBy(x => x.FullName),
 
                 "departmentname" => desc
                     ? query.OrderByDescending(x => x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentName : string.Empty).ThenBy(x => x.FullName)
@@ -2062,9 +1975,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     ? query.OrderByDescending(x => x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty).ThenBy(x => x.FullName)
                     : query.OrderBy(x => x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty).ThenBy(x => x.FullName),
 
-                "joindate" => desc
-                    ? query.OrderByDescending(x => x.JoinDate).ThenBy(x => x.FullName)
-                    : query.OrderBy(x => x.JoinDate).ThenBy(x => x.FullName),
+                "contractenddate" => desc
+                    ? query.OrderByDescending(x => x.ContractEndDate).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.ContractEndDate).ThenBy(x => x.FullName),
+
+                "accessenddate" => desc
+                    ? query.OrderByDescending(x => x.AccessEndDate).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.AccessEndDate).ThenBy(x => x.FullName),
 
                 "isactive" => desc
                     ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.FullName)
@@ -2092,9 +2009,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             );
         }
 
-        private static List<EmployeeCustomPeriodOptionResponse> BuildCustomPeriodOptions()
+        private static List<ExternalUserCustomPeriodOptionResponse> BuildCustomPeriodOptions()
         {
-            return new List<EmployeeCustomPeriodOptionResponse>
+            return new List<ExternalUserCustomPeriodOptionResponse>
             {
                 new()
                 {
@@ -2171,14 +2088,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             };
         }
 
-        private static List<EmployeeQueryParameterInfoResponse> BuildQueryParameterInfo()
+        private static List<ExternalUserQueryParameterInfoResponse> BuildQueryParameterInfo()
         {
-            return new List<EmployeeQueryParameterInfoResponse>
+            return new List<ExternalUserQueryParameterInfoResponse>
             {
                 new() { Name = "startDate", Type = "date", Description = "Tanggal mulai filter berdasarkan CreateDateTime.", Example = "2026-01-01" },
                 new() { Name = "endDate", Type = "date", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-01-31" },
                 new() { Name = "customPeriod", Type = "string", Description = "Pilihan periode cepat.", Example = "last30days" },
-                new() { Name = "search", Type = "string", Description = "Pencarian employee code, employee number, nama, email, phone, department, position, dan region.", Example = "budi" },
+                new() { Name = "search", Type = "string", Description = "Pencarian external code, nama, company, job title, email, phone, department, position, dan region.", Example = "vendor" },
                 new() { Name = "departmentId", Type = "guid", Description = "Filter berdasarkan primary department." },
                 new() { Name = "positionId", Type = "guid", Description = "Filter berdasarkan primary position." },
                 new() { Name = "countryId", Type = "guid", Description = "Filter berdasarkan country." },
@@ -2186,20 +2103,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 new() { Name = "cityId", Type = "guid", Description = "Filter berdasarkan city." },
                 new() { Name = "districtId", Type = "guid", Description = "Filter berdasarkan district." },
                 new() { Name = "postalCodeId", Type = "guid", Description = "Filter berdasarkan postal code/village." },
-                new() { Name = "religion", Type = "enum", Description = "Filter berdasarkan enum Religion." },
-                new() { Name = "maritalStatus", Type = "enum", Description = "Filter berdasarkan enum MaritalStatus." },
-                new() { Name = "bloodType", Type = "enum", Description = "Filter berdasarkan enum BloodType." },
-                new() { Name = "employeeStatus", Type = "enum", Description = "Filter status employee." },
-                new() { Name = "professionType", Type = "enum", Description = "Filter profession type." },
-                new()
-                {
-                    Name = "employmentType",
-                    Type = "enum",
-                    Description = "Filter tipe employment. Contoh: Permanent, Contract, Probation, Internship.",
-                    Example = "2"
-                },
-                new() { Name = "hasTransportAllowanceProfile", Type = "boolean", Description = "Filter employee yang sudah/belum punya profile uang transport workforce.", Example = "true" },
-                new() { Name = "hasUserAccount", Type = "boolean", Description = "Filter employee yang sudah/belum memiliki akun login.", Example = "true" },
+                new() { Name = "externalUserType", Type = "enum", Description = "Filter tipe external user." },
+                new() { Name = "externalUserStatus", Type = "enum", Description = "Filter status external user." },
+                new() { Name = "engagementType", Type = "enum", Description = "Filter tipe engagement." },
+                new() { Name = "hasUserAccount", Type = "boolean", Description = "Filter external user yang sudah/belum memiliki akun login.", Example = "true" },
+                new() { Name = "hasActiveAccess", Type = "boolean", Description = "Filter external user yang aksesnya sedang aktif berdasarkan AccessStartDate dan AccessEndDate.", Example = "true" },
+                new() { Name = "isAccessExpired", Type = "boolean", Description = "Filter external user yang aksesnya sudah expired.", Example = "true" },
                 new() { Name = "sortBy", Type = "string", Description = "Field sorting. Nilai tersedia dari SortOptions.", Example = "fullName" },
                 new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
                 new() { Name = "pageNumber", Type = "integer", Description = "Nomor halaman. Minimal 1.", Example = "1" },
@@ -2207,16 +2116,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             };
         }
 
-        private static List<EmployeeFormFieldMetadataResponse> BuildCreateEmployeeFieldMetadata()
+        private static List<ExternalUserFormFieldMetadataResponse> BuildCreateExternalUserFieldMetadata()
         {
-            return BuildEmployeeFieldMetadata(isUpdate: false);
+            return BuildExternalUserFieldMetadata(isUpdate: false);
         }
 
-        private static List<EmployeeFormFieldMetadataResponse> BuildUpdateEmployeeFieldMetadata()
+        private static List<ExternalUserFormFieldMetadataResponse> BuildUpdateExternalUserFieldMetadata()
         {
-            var fields = BuildEmployeeFieldMetadata(isUpdate: true);
+            var fields = BuildExternalUserFieldMetadata(isUpdate: true);
 
-            fields.Add(new EmployeeFormFieldMetadataResponse
+            fields.Add(new ExternalUserFormFieldMetadataResponse
             {
                 Name = "isActive",
                 Label = "Status Aktif",
@@ -2225,48 +2134,57 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 IsRequiredOnCreate = false,
                 IsRequiredOnUpdate = true,
                 RequiredType = "Required",
-                Description = "Status aktif employee.",
+                Description = "Status aktif external user.",
                 Example = "true",
                 SortOrder = 900
-            });
-
-            fields.Add(new EmployeeFormFieldMetadataResponse
-            {
-                Name = "resignDate",
-                Label = "Tanggal Resign",
-                Section = "Status",
-                InputType = "date",
-                IsRequiredOnCreate = false,
-                IsRequiredOnUpdate = false,
-                RequiredType = "Optional",
-                Description = "Diisi jika employee resign atau dinonaktifkan.",
-                Example = "2026-05-07",
-                SortOrder = 901
-            });
-
-            fields.Add(new EmployeeFormFieldMetadataResponse
-            {
-                Name = "resignReason",
-                Label = "Alasan Resign",
-                Section = "Status",
-                InputType = "textarea",
-                IsRequiredOnCreate = false,
-                IsRequiredOnUpdate = false,
-                RequiredType = "Optional",
-                MaxLength = 250,
-                DependsOn = "resignDate",
-                Description = "Alasan resign atau nonaktif.",
-                Example = "Mengundurkan diri.",
-                SortOrder = 902
             });
 
             return fields.OrderBy(x => x.SortOrder).ToList();
         }
 
-        private static List<EmployeeFormFieldMetadataResponse> BuildEmployeeFieldMetadata(bool isUpdate)
+        private static List<ExternalUserFormFieldMetadataResponse> BuildExternalUserFieldMetadata(bool isUpdate)
         {
-            return new List<EmployeeFormFieldMetadataResponse>
+            return new List<ExternalUserFormFieldMetadataResponse>
             {
+                new()
+                {
+                    Name = "externalUserType",
+                    Label = "Tipe External User",
+                    Section = "Identitas Utama",
+                    InputType = "select",
+                    IsRequiredOnCreate = true,
+                    IsRequiredOnUpdate = true,
+                    RequiredType = "Required",
+                    OptionsSource = "externalUserTypeOptions",
+                    Example = "1",
+                    SortOrder = 1
+                },
+                new()
+                {
+                    Name = "externalUserStatus",
+                    Label = "Status External User",
+                    Section = "Identitas Utama",
+                    InputType = "select",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    OptionsSource = "externalUserStatusOptions",
+                    Example = "1",
+                    SortOrder = 2
+                },
+                new()
+                {
+                    Name = "engagementType",
+                    Label = "Tipe Engagement",
+                    Section = "Identitas Utama",
+                    InputType = "select",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    OptionsSource = "engagementTypeOptions",
+                    Example = "1",
+                    SortOrder = 3
+                },
                 new()
                 {
                     Name = "fullName",
@@ -2277,100 +2195,60 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnUpdate = true,
                     RequiredType = "Required",
                     MaxLength = 200,
-                    Description = "Nama lengkap employee.",
-                    Example = "Maya Lestari",
-                    SortOrder = 1
-                },
-                new()
-                {
-                    Name = "nickName",
-                    Label = "Nama Panggilan",
-                    Section = "Identitas Utama",
-                    InputType = "text",
-                    IsRequiredOnCreate = false,
-                    IsRequiredOnUpdate = false,
-                    RequiredType = "Optional",
-                    MaxLength = 100,
-                    Example = "Maya",
-                    SortOrder = 2
-                },
-                new()
-                {
-                    Name = "gender",
-                    Label = "Jenis Kelamin",
-                    Section = "Identitas Utama",
-                    InputType = "select",
-                    IsRequiredOnCreate = false,
-                    IsRequiredOnUpdate = false,
-                    RequiredType = "Optional",
-                    OptionsSource = "genderOptions",
-                    Example = "2",
-                    SortOrder = 3
-                },
-                new()
-                {
-                    Name = "birthPlace",
-                    Label = "Tempat Lahir",
-                    Section = "Identitas Utama",
-                    InputType = "text",
-                    IsRequiredOnCreate = false,
-                    IsRequiredOnUpdate = false,
-                    RequiredType = "Optional",
-                    MaxLength = 100,
-                    Example = "Bandung",
+                    Description = "Nama lengkap external user.",
+                    Example = "Budi Vendor",
                     SortOrder = 4
                 },
                 new()
                 {
-                    Name = "birthDate",
-                    Label = "Tanggal Lahir",
-                    Section = "Identitas Utama",
-                    InputType = "date",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
-                    Description = "Tanggal lahir wajib diisi. Digunakan juga untuk password awal akun login dengan format ddMMMyyyy.",
-                    Example = "2025-01-01",
-                    SortOrder = 5
-                },
-                new()
-                {
-                    Name = "religion",
-                    Label = "Agama",
-                    Section = "Identitas Utama",
-                    InputType = "select",
+                    Name = "companyName",
+                    Label = "Nama Company",
+                    Section = "Company",
+                    InputType = "text",
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    OptionsSource = "religionOptions",
-                    Example = "1",
-                    SortOrder = 6
+                    MaxLength = 200,
+                    Example = "PT Vendor Medika",
+                    SortOrder = 101
                 },
                 new()
                 {
-                    Name = "maritalStatus",
-                    Label = "Status Pernikahan",
-                    Section = "Identitas Utama",
-                    InputType = "select",
+                    Name = "companyCode",
+                    Label = "Kode Company",
+                    Section = "Company",
+                    InputType = "text",
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    OptionsSource = "maritalStatusOptions",
-                    Example = "1",
-                    SortOrder = 7
+                    MaxLength = 100,
+                    Example = "VDR-001",
+                    SortOrder = 102
                 },
                 new()
                 {
-                    Name = "bloodType",
-                    Label = "Golongan Darah",
-                    Section = "Identitas Utama",
-                    InputType = "select",
+                    Name = "jobTitle",
+                    Label = "Job Title",
+                    Section = "Company",
+                    InputType = "text",
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    OptionsSource = "bloodTypeOptions",
-                    Example = "1",
-                    SortOrder = 8
+                    MaxLength = 100,
+                    Example = "Teknisi Alat Kesehatan",
+                    SortOrder = 103
+                },
+                new()
+                {
+                    Name = "contactPersonName",
+                    Label = "Contact Person",
+                    Section = "Company",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 200,
+                    SortOrder = 104
                 },
                 new()
                 {
@@ -2378,12 +2256,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Label = "Tipe Identitas",
                     Section = "Identitas Legal & Kontak",
                     InputType = "text",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
                     MaxLength = 50,
                     Example = "KTP",
-                    SortOrder = 101
+                    SortOrder = 201
                 },
                 new()
                 {
@@ -2391,14 +2269,38 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Label = "Nomor Identitas",
                     Section = "Identitas Legal & Kontak",
                     InputType = "text",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
-                    MaxLength = 16,
-                    ValidationRule = "digits:16;unique",
-                    Description = "Nomor identitas wajib 16 digit dan harus unik.",
-                    Example = "3273010101250005",
-                    SortOrder = 102
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 100,
+                    ValidationRule = "unique",
+                    SortOrder = 202
+                },
+                new()
+                {
+                    Name = "taxNumber",
+                    Label = "NPWP / Tax Number",
+                    Section = "Identitas Legal & Kontak",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 100,
+                    ValidationRule = "unique",
+                    SortOrder = 203
+                },
+                new()
+                {
+                    Name = "businessLicenseNumber",
+                    Label = "Nomor Izin Usaha",
+                    Section = "Identitas Legal & Kontak",
+                    InputType = "text",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 100,
+                    ValidationRule = "unique",
+                    SortOrder = 204
                 },
                 new()
                 {
@@ -2409,10 +2311,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    MaxLength = 13,
-                    ValidationRule = "digits;max:13",
-                    Description = "Nomor maksimal 13 digit.",
-                    SortOrder = 103
+                    MaxLength = 30,
+                    ValidationRule = "digits;max:30",
+                    SortOrder = 205
                 },
                 new()
                 {
@@ -2423,11 +2324,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    MaxLength = 13,
-                    ValidationRule = "digits;max:13",
-                    Description = "Nomor maksimal 13 digit.",
-                    Example = "0812345678902",
-                    SortOrder = 104
+                    MaxLength = 30,
+                    ValidationRule = "digits;max:30",
+                    SortOrder = 206
                 },
                 new()
                 {
@@ -2435,14 +2334,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Label = "Email",
                     Section = "Identitas Legal & Kontak",
                     InputType = "email",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Conditional",
                     MaxLength = 200,
                     ValidationRule = "email;unique",
-                    Description = "Email wajib diisi dan harus unik. Digunakan juga sebagai username login.",
-                    Example = "maya@admin.com",
-                    SortOrder = 105
+                    Description = "Wajib jika CreateLoginAccount = true.",
+                    SortOrder = 207
                 },
                 new()
                 {
@@ -2454,8 +2352,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
                     MaxLength = 500,
-                    Example = "Jl. Kenanga No. 8",
-                    SortOrder = 106
+                    SortOrder = 208
                 },
                 new()
                 {
@@ -2467,7 +2364,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
                     OptionsSource = "region.countries.options",
-                    SortOrder = 201
+                    SortOrder = 301
                 },
                 new()
                 {
@@ -2480,8 +2377,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     RequiredType = "Conditional",
                     DependsOn = "countryId",
                     OptionsSource = "region.provinces.options",
-                    Description = "Wajib jika cityId diisi. Harus sesuai countryId.",
-                    SortOrder = 202
+                    SortOrder = 302
                 },
                 new()
                 {
@@ -2494,8 +2390,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     RequiredType = "Conditional",
                     DependsOn = "provinceId",
                     OptionsSource = "region.cities.options",
-                    Description = "Wajib jika districtId diisi. Harus sesuai provinceId.",
-                    SortOrder = 203
+                    SortOrder = 303
                 },
                 new()
                 {
@@ -2508,8 +2403,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     RequiredType = "Conditional",
                     DependsOn = "cityId",
                     OptionsSource = "region.districts.options",
-                    Description = "Wajib jika postalCodeId diisi. Harus sesuai cityId.",
-                    SortOrder = 204
+                    SortOrder = 304
                 },
                 new()
                 {
@@ -2522,8 +2416,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     RequiredType = "Optional",
                     DependsOn = "districtId",
                     OptionsSource = "region.postal-codes.options",
-                    Description = "Jika diisi harus sesuai districtId.",
-                    SortOrder = 205
+                    SortOrder = 305
                 },
                 new()
                 {
@@ -2531,12 +2424,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Label = "Department Utama",
                     Section = "Organisasi",
                     InputType = "select",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
                     OptionsSource = "organization.departments.options",
-                    Description = "Department utama wajib dipilih.",
-                    SortOrder = 301
+                    SortOrder = 401
                 },
                 new()
                 {
@@ -2544,192 +2436,106 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Label = "Position Utama",
                     Section = "Organisasi",
                     InputType = "select",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Conditional",
                     DependsOn = "primaryDepartmentId",
                     OptionsSource = "organization.positions.options",
-                    Description = "Position utama wajib dipilih dan harus sesuai department.",
-                    SortOrder = 302
-                },
-                new()
-                {
-                    Name = "employeeStatus",
-                    Label = "Status Employee",
-                    Section = "Employment",
-                    InputType = "select",
-                    IsRequiredOnCreate = false,
-                    IsRequiredOnUpdate = false,
-                    RequiredType = "Optional",
-                    OptionsSource = "employeeStatusOptions",
-                    Description = "Default backend adalah Contract.",
-                    Example = "1",
-                    SortOrder = 401
-                },
-                new()
-                {
-                    Name = "professionType",
-                    Label = "Tipe Profesi",
-                    Section = "Employment",
-                    InputType = "select",
-                    IsRequiredOnCreate = false,
-                    IsRequiredOnUpdate = false,
-                    RequiredType = "Optional",
-                    OptionsSource = "professionTypeOptions",
-                    Description = "Default backend adalah GeneralStaff.",
-                    Example = "1",
+                    Description = "Wajib jika primaryDepartmentId diisi.",
                     SortOrder = 402
-                },
-                new()
-                {
-                    Name = "employmentType",
-                    Label = "Tipe Pekerjaan",
-                    Section = "Employment",
-                    InputType = "select",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
-                    OptionsSource = "employmentTypeOptions",
-                    Description = "Default backend adalah Contract.",
-                    Example = "2",
-                    SortOrder = 403
-                },
-                new()
-                {
-                    Name = "gradeLevel",
-                    Label = "Grade Level",
-                    Section = "Employment",
-                    InputType = "text",
-                    IsRequiredOnCreate = false,
-                    IsRequiredOnUpdate = false,
-                    RequiredType = "Optional",
-                    MaxLength = 50,
-                    Example = "Staff",
-                    SortOrder = 404
                 },
                 new()
                 {
                     Name = "workLocation",
                     Label = "Lokasi Kerja",
-                    Section = "Employment",
+                    Section = "Engagement & Access",
                     InputType = "text",
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
                     MaxLength = 50,
                     Example = "RSMMC",
-                    SortOrder = 405
-                },
-                new()
-                {
-                    Name = "joinDate",
-                    Label = "Tanggal Bergabung",
-                    Section = "Employment",
-                    InputType = "date",
-                    IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = true,
-                    RequiredType = "Required",
-                    Example = "2026-05-07",
-                    SortOrder = 406
-                },
-                new()
-                {
-                    Name = "probationEndDate",
-                    Label = "Tanggal Selesai Probation",
-                    Section = "Employment",
-                    InputType = "date",
-                    IsRequiredOnCreate = false,
-                    IsRequiredOnUpdate = false,
-                    RequiredType = "Optional",
-                    Example = "2026-08-07",
-                    SortOrder = 407
+                    SortOrder = 501
                 },
                 new()
                 {
                     Name = "contractStartDate",
                     Label = "Tanggal Mulai Kontrak",
-                    Section = "Employment",
+                    Section = "Engagement & Access",
                     InputType = "date",
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    Example = "2026-05-07",
-                    SortOrder = 408
+                    SortOrder = 502
                 },
                 new()
                 {
                     Name = "contractEndDate",
                     Label = "Tanggal Akhir Kontrak",
-                    Section = "Employment",
+                    Section = "Engagement & Access",
                     InputType = "date",
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    Example = "2027-05-06",
-                    SortOrder = 409
-                },
-                new()
-                {
-                    Name = "emergencyContactName",
-                    Label = "Nama Kontak Darurat",
-                    Section = "Emergency Contact",
-                    InputType = "text",
-                    IsRequiredOnCreate = false,
-                    IsRequiredOnUpdate = false,
-                    RequiredType = "Optional",
-                    MaxLength = 200,
-                    Example = "Hendra Lestari",
-                    SortOrder = 501
-                },
-                new()
-                {
-                    Name = "emergencyContactRelation",
-                    Label = "Hubungan Kontak Darurat",
-                    Section = "Emergency Contact",
-                    InputType = "text",
-                    IsRequiredOnCreate = false,
-                    IsRequiredOnUpdate = false,
-                    RequiredType = "Optional",
-                    MaxLength = 50,
-                    Example = "Ayah",
-                    SortOrder = 502
-                },
-                new()
-                {
-                    Name = "emergencyContactPhone",
-                    Label = "Telepon Kontak Darurat",
-                    Section = "Emergency Contact",
-                    InputType = "text",
-                    IsRequiredOnCreate = false,
-                    IsRequiredOnUpdate = false,
-                    RequiredType = "Optional",
-                    MaxLength = 13,
-                    ValidationRule = "digits:13",
-                    Example = "0812345678912",
                     SortOrder = 503
                 },
                 new()
                 {
-                    Name = "emergencyContactAddress",
-                    Label = "Alamat Kontak Darurat",
-                    Section = "Emergency Contact",
+                    Name = "accessStartDate",
+                    Label = "Mulai Akses",
+                    Section = "Engagement & Access",
+                    InputType = "datetime",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    Description = "Waktu akses mulai. Backend menyimpan dalam UTC.",
+                    SortOrder = 504
+                },
+                new()
+                {
+                    Name = "accessEndDate",
+                    Label = "Akhir Akses",
+                    Section = "Engagement & Access",
+                    InputType = "datetime",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    Description = "Waktu akses berakhir. Backend menyimpan dalam UTC.",
+                    SortOrder = 505
+                },
+                new()
+                {
+                    Name = "accessPurpose",
+                    Label = "Tujuan Akses",
+                    Section = "Engagement & Access",
                     InputType = "textarea",
                     IsRequiredOnCreate = false,
                     IsRequiredOnUpdate = false,
                     RequiredType = "Optional",
-                    MaxLength = 500,
-                    Example = "Jl. Kenanga No. 8",
-                    SortOrder = 504
+                    MaxLength = 250,
+                    SortOrder = 506
+                },
+                new()
+                {
+                    Name = "description",
+                    Label = "Deskripsi",
+                    Section = "Catatan",
+                    InputType = "textarea",
+                    IsRequiredOnCreate = false,
+                    IsRequiredOnUpdate = false,
+                    RequiredType = "Optional",
+                    MaxLength = 250,
+                    SortOrder = 601
                 }
             }
             .OrderBy(x => x.SortOrder)
             .ToList();
         }
 
-        private static List<EmployeeEnumOptionResponse> BuildEnumOptions<TEnum>() where TEnum : struct, System.Enum
+        private static List<ExternalUserEnumOptionResponse> BuildEnumOptions<TEnum>() where TEnum : struct, System.Enum
         {
             return System.Enum.GetValues<TEnum>()
-                .Select(x => new EmployeeEnumOptionResponse
+                .Select(x => new ExternalUserEnumOptionResponse
                 {
                     Value = Convert.ToInt32(x),
                     Name = x.ToString(),
@@ -2742,72 +2548,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         {
             return value switch
             {
+                "Unknown" => "Tidak Diketahui",
                 "Active" => "Aktif",
                 "Inactive" => "Tidak Aktif",
-                "Probation" => "Probation",
+                "PendingApproval" => "Menunggu Approval",
                 "Suspended" => "Suspended",
-                "Resigned" => "Resign",
-                "Terminated" => "Diberhentikan",
-                "Retired" => "Pensiun",
+                "Blacklisted" => "Blacklisted",
                 "ContractEnded" => "Kontrak Berakhir",
+                "AccessExpired" => "Akses Expired",
 
-                "Permanent" => "Permanent",
-                "Contract" => "Kontrak",
-                "Internship" => "Magang",
-                "PartTime" => "Paruh Waktu",
-                "Outsourced" => "Outsourced",
-                "DailyWorker" => "Harian",
+                "Vendor" => "Vendor",
+                "Supplier" => "Supplier",
+                "Contractor" => "Contractor",
+                "OutsourcedStaff" => "Outsourced Staff",
                 "Consultant" => "Konsultan",
+                "InsurancePartner" => "Partner Asuransi",
+                "GovernmentAuditor" => "Auditor Pemerintah",
+                "StudentIntern" => "Mahasiswa Magang",
                 "Volunteer" => "Relawan",
-
-                "GeneralStaff" => "Staff Umum",
-                "Nurse" => "Perawat",
-                "Midwife" => "Bidan",
-                "Pharmacist" => "Apoteker",
-                "PharmacyTechnician" => "Tenaga Teknis Kefarmasian",
-                "LaboratoryAnalyst" => "Analis Laboratorium",
-                "Radiographer" => "Radiografer",
-                "Physiotherapist" => "Fisioterapis",
-                "Nutritionist" => "Ahli Gizi",
-                "MedicalRecordStaff" => "Rekam Medis",
-                "BillingStaff" => "Billing",
-                "Cashier" => "Kasir",
-                "Administrator" => "Administrator",
-                "ITStaff" => "IT Staff",
-                "FinanceStaff" => "Finance Staff",
-                "HRStaff" => "HR Staff",
-                "Security" => "Security",
-                "CleaningService" => "Cleaning Service",
-                "Driver" => "Driver",
-                "Maintenance" => "Maintenance",
-
-                "Unknown" => "Tidak Diketahui",
-                "Male" => "Laki-laki",
-                "Female" => "Perempuan",
-
-                "Islam" => "Islam",
-                "ProtestantChristian" => "Kristen Protestan",
-                "CatholicChristian" => "Kristen Katolik",
-                "Hindu" => "Hindu",
-                "Buddhist" => "Buddha",
-                "Confucian" => "Konghucu",
+                "Visitor" => "Visitor",
+                "PatientFamilyAccess" => "Akses Keluarga Pasien",
                 "Other" => "Lainnya",
 
-                "Single" => "Belum Menikah",
-                "Married" => "Menikah",
-                "Divorced" => "Cerai Hidup",
-                "Widowed" => "Cerai Mati",
-                "Separated" => "Pisah",
-
-                "APositive" => "A+",
-                "ANegative" => "A-",
-                "BPositive" => "B+",
-                "BNegative" => "B-",
-                "ABPositive" => "AB+",
-                "ABNegative" => "AB-",
-                "OPositive" => "O+",
-                "ONegative" => "O-",
-                "NotDisclosed" => "Tidak Diinformasikan",
+                "ContractBased" => "Berbasis Kontrak",
+                "ProjectBased" => "Berbasis Project",
+                "VisitBased" => "Berbasis Kunjungan",
+                "Partnership" => "Partnership",
+                "Outsourcing" => "Outsourcing",
+                "Audit" => "Audit",
+                "Training" => "Training",
+                "TemporaryAccess" => "Akses Sementara",
                 _ => value
             };
         }
@@ -2857,6 +2627,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 : digits;
         }
 
+        private static DateTime? NormalizeNullableDateTimeUtc(DateTime? value)
+        {
+            if (!value.HasValue)
+            {
+                return null;
+            }
+
+            if (value.Value.Kind == DateTimeKind.Utc)
+            {
+                return value.Value;
+            }
+
+            if (value.Value.Kind == DateTimeKind.Local)
+            {
+                return value.Value.ToUniversalTime();
+            }
+
+            return DateTime.SpecifyKind(value.Value, DateTimeKind.Utc);
+        }
+
         private sealed class DateRangeResolveResult
         {
             public bool IsValid { get; private set; }
@@ -2884,29 +2674,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
         }
 
-        private async Task<(bool IsSuccess, string? ErrorMessage, EmployeeLoginAccountResponse? Response)>
-            CreateLoginAccountForEmployeeAsync(
-                MstEmployee employee,
+        private async Task<(bool IsSuccess, string? ErrorMessage, ExternalUserLoginAccountResponse? Response)>
+            CreateLoginAccountForExternalUserAsync(
+                MstExternalUser externalUser,
                 bool isFingerprintRegistrationEnabled,
                 string? fingerprintRegistrationReason,
                 Guid actorUserId)
         {
-            if (employee.Id == Guid.Empty)
+            if (externalUser.Id == Guid.Empty)
             {
-                return (false, "EmployeeId tidak valid.", null);
+                return (false, "ExternalUserId tidak valid.", null);
             }
 
-            if (string.IsNullOrWhiteSpace(employee.Email))
+            if (string.IsNullOrWhiteSpace(externalUser.Email))
             {
-                return (false, "Email employee wajib diisi untuk membuat akun login.", null);
+                return (false, "Email external user wajib diisi untuk membuat akun login.", null);
             }
 
-            if (employee.BirthDate == default)
-            {
-                return (false, "BirthDate employee wajib diisi untuk generate password awal.", null);
-            }
-
-            var email = employee.Email.Trim().ToLower();
+            var email = externalUser.Email.Trim().ToLowerInvariant();
 
             var existingByEmail = await _userManager.FindByEmailAsync(email);
 
@@ -2922,22 +2707,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 return (false, "Username sudah digunakan oleh akun login lain.", null);
             }
 
-            var existingEmployeeAccount = await _dbContext.Users
+            var existingExternalUserAccount = await _dbContext.Users
                 .AsNoTracking()
                 .AnyAsync(x =>
-                    x.EmployeeId == employee.Id &&
-                    x.UserType == UserType.Employee);
+                    x.ExternalUserId == externalUser.Id &&
+                    x.UserType == UserType.ExternalUser);
 
-            if (existingEmployeeAccount)
+            if (existingExternalUserAccount)
             {
-                return (false, "Employee ini sudah memiliki akun login.", null);
+                return (false, "External user ini sudah memiliki akun login.", null);
             }
 
-            var initialPassword = GenerateInitialPasswordFromBirthDate(employee.BirthDate);
+            var initialPassword = GenerateInitialPasswordForExternalUser();
 
             if (string.IsNullOrWhiteSpace(initialPassword))
             {
-                return (false, "Password awal gagal dibuat dari BirthDate.", null);
+                return (false, "Password awal gagal dibuat.", null);
             }
 
             var now = DateTime.UtcNow;
@@ -2949,20 +2734,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 UserName = email,
                 Email = email,
                 EmailConfirmed = true,
-                DisplayName = employee.FullName,
-                UserType = UserType.Employee,
-                WorkforceProfileId = employee.WorkforceProfileId,
-                EmployeeId = employee.Id,
+                DisplayName = externalUser.FullName,
+                UserType = UserType.ExternalUser,
+                WorkforceProfileId = externalUser.WorkforceProfileId,
+                EmployeeId = null,
                 DoctorId = null,
-                ExternalUserId = null,
-                PrimaryDepartmentId = employee.PrimaryDepartmentId,
-                PrimaryPositionId = employee.PrimaryPositionId,
+                ExternalUserId = externalUser.Id,
+                PrimaryDepartmentId = externalUser.PrimaryDepartmentId,
+                PrimaryPositionId = externalUser.PrimaryPositionId,
                 IsGeolocationBypassEnabled = false,
                 GeolocationBypassReason = null,
                 GeolocationBypassUntil = null,
-                IsActive = employee.IsActive,
+                IsActive = externalUser.IsActive,
                 MustChangePassword = true,
-                AccessValidUntil = null,
+                AccessValidUntil = externalUser.AccessEndDate,
                 CreateDateTime = now,
                 ProfilePhotoPath = DefaultProfilePhotoPath,
                 IsFingerprintRegistrationEnabled = isFingerprintRegistrationEnabled,
@@ -2986,7 +2771,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 return (false, $"Akun login gagal dibuat: {errors}", null);
             }
 
-            var response = new EmployeeLoginAccountResponse
+            var response = new ExternalUserLoginAccountResponse
             {
                 IsCreated = true,
                 UserId = user.Id,
@@ -3001,7 +2786,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 IsFingerprintRegistrationEnabled = user.IsFingerprintRegistrationEnabled,
                 FingerprintRegistrationReason = user.FingerprintRegistrationReason,
                 FingerprintRegistrationEnabledAt = user.FingerprintRegistrationEnabledAt,
-                Message = "Akun login employee berhasil dibuat. Password awal wajib diganti saat login pertama."
+                Message = "Akun login external user berhasil dibuat. Password awal wajib diganti saat login pertama."
             };
 
             return (true, null, response);
@@ -3049,7 +2834,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsActive = true,
                     EffectiveStartDate = effectiveStartUtc,
                     EffectiveEndDate = null,
-                    Description = "Synced from employee primary organization assignment",
+                    Description = "Synced from external user primary organization assignment",
                     CreateDateTime = now,
                     CreateBy = actorUserId,
                     IsDelete = false,
@@ -3064,7 +2849,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 existing.IsActive = true;
                 existing.EffectiveStartDate = effectiveStartUtc;
                 existing.EffectiveEndDate = null;
-                existing.Description = "Synced from employee primary organization assignment";
+                existing.Description = "Synced from external user primary organization assignment";
                 existing.IsDelete = false;
                 existing.DeleteDateTime = null;
                 existing.DeleteBy = Guid.Empty;
@@ -3102,100 +2887,74 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
         }
 
-        private static string GenerateInitialPasswordFromBirthDate(DateTime birthDate)
+        private static string GenerateInitialPasswordForExternalUser()
         {
-            return birthDate.ToString("ddMMMyyyy", CultureInfo.InvariantCulture);
+            var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
+            return $"Ext@{DateTime.UtcNow:yyyyMMdd}{suffix}";
         }
 
-        private static (bool IsValid, string? ErrorMessage) ValidateRequiredEmployeeRequest(CreateEmployeeRequest request)
+        private static (bool IsValid, string? ErrorMessage) ValidateRequiredExternalUserRequest(CreateExternalUserRequest request)
         {
-            return ValidateRequiredEmployeeFields(
+            return ValidateRequiredExternalUserFields(
+                externalUserType: request.ExternalUserType,
                 fullName: request.FullName,
-                birthDate: request.BirthDate,
-                identityType: request.IdentityType,
-                identityNumber: request.IdentityNumber,
-                email: request.Email,
                 primaryDepartmentId: request.PrimaryDepartmentId,
                 primaryPositionId: request.PrimaryPositionId,
-                employmentType: request.EmploymentType,
-                joinDate: request.JoinDate
+                accessStartDate: request.AccessStartDate,
+                accessEndDate: request.AccessEndDate,
+                contractStartDate: request.ContractStartDate,
+                contractEndDate: request.ContractEndDate
             );
         }
 
-        private static (bool IsValid, string? ErrorMessage) ValidateRequiredEmployeeRequest(UpdateEmployeeRequest request)
+        private static (bool IsValid, string? ErrorMessage) ValidateRequiredExternalUserRequest(UpdateExternalUserRequest request)
         {
-            return ValidateRequiredEmployeeFields(
+            return ValidateRequiredExternalUserFields(
+                externalUserType: request.ExternalUserType,
                 fullName: request.FullName,
-                birthDate: request.BirthDate,
-                identityType: request.IdentityType,
-                identityNumber: request.IdentityNumber,
-                email: request.Email,
                 primaryDepartmentId: request.PrimaryDepartmentId,
                 primaryPositionId: request.PrimaryPositionId,
-                employmentType: request.EmploymentType,
-                joinDate: request.JoinDate
+                accessStartDate: request.AccessStartDate,
+                accessEndDate: request.AccessEndDate,
+                contractStartDate: request.ContractStartDate,
+                contractEndDate: request.ContractEndDate
             );
         }
 
-        private static (bool IsValid, string? ErrorMessage) ValidateRequiredEmployeeFields(
-    string? fullName,
-    DateTime birthDate,
-    string? identityType,
-    string? identityNumber,
-    string? email,
-    Guid primaryDepartmentId,
-    Guid primaryPositionId,
-    EmploymentType employmentType,
-    DateTime joinDate)
+        private static (bool IsValid, string? ErrorMessage) ValidateRequiredExternalUserFields(
+            ExternalUserType externalUserType,
+            string? fullName,
+            Guid? primaryDepartmentId,
+            Guid? primaryPositionId,
+            DateTime? accessStartDate,
+            DateTime? accessEndDate,
+            DateTime? contractStartDate,
+            DateTime? contractEndDate)
         {
+            if (externalUserType == ExternalUserType.Unknown)
+            {
+                return (false, "External user type wajib dipilih.");
+            }
+
             if (string.IsNullOrWhiteSpace(fullName))
             {
-                return (false, "Nama employee wajib diisi.");
+                return (false, "Nama external user wajib diisi.");
             }
 
-            if (birthDate == default)
+            if (primaryPositionId.HasValue && primaryPositionId.Value != Guid.Empty &&
+                (!primaryDepartmentId.HasValue || primaryDepartmentId.Value == Guid.Empty))
             {
-                return (false, "Tanggal lahir wajib diisi.");
+                return (false, "Primary department wajib dipilih jika primary position diisi.");
             }
 
-            if (string.IsNullOrWhiteSpace(identityType))
+            if (accessStartDate.HasValue && accessEndDate.HasValue && accessStartDate.Value >= accessEndDate.Value)
             {
-                return (false, "Tipe identitas wajib diisi.");
+                return (false, "AccessStartDate tidak boleh lebih besar atau sama dengan AccessEndDate.");
             }
 
-            if (string.IsNullOrWhiteSpace(identityNumber))
+            if (contractStartDate.HasValue && contractEndDate.HasValue && contractStartDate.Value.Date > contractEndDate.Value.Date)
             {
-                return (false, "Nomor identitas wajib diisi.");
-            }
-
-            if (NormalizeDigitsOnly(identityNumber)?.Length != 16)
-            {
-                return (false, "Nomor identitas harus 16 digit.");
-            }
-
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                return (false, "Email wajib diisi.");
-            }
-
-            if (primaryDepartmentId == Guid.Empty)
-            {
-                return (false, "Primary department wajib dipilih.");
-            }
-
-            if (primaryPositionId == Guid.Empty)
-            {
-                return (false, "Primary position wajib dipilih.");
-            }
-
-            if (employmentType == EmploymentType.Unknown)
-            {
-                return (false, "Employment type wajib dipilih.");
-            }
-
-            if (joinDate == default)
-            {
-                return (false, "Tanggal bergabung wajib diisi.");
+                return (false, "ContractStartDate tidak boleh lebih besar dari ContractEndDate.");
             }
 
             return (true, null);
