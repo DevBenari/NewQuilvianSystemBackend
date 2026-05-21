@@ -87,5 +87,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public ICollection<WfpLeaveRequest> LeaveRequests { get; set; } = new List<WfpLeaveRequest>();
 
         public ICollection<WfpOvertimeRequest> OvertimeRequests { get; set; } = new List<WfpOvertimeRequest>();
+
+        public ICollection<WfpClinicalPrivilege> ClinicalPrivileges { get; set; } = new List<WfpClinicalPrivilege>();
+
+        public ICollection<WfpHealthRecord> HealthRecords { get; set; } = new List<WfpHealthRecord>();
     }
 }
