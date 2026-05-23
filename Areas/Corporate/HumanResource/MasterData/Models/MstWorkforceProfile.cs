@@ -91,5 +91,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public ICollection<WfpClinicalPrivilege> ClinicalPrivileges { get; set; } = new List<WfpClinicalPrivilege>();
 
         public ICollection<WfpHealthRecord> HealthRecords { get; set; } = new List<WfpHealthRecord>();
+        public ICollection<WfpOnboardingChecklist> OnboardingChecklists { get; set; } = new List<WfpOnboardingChecklist>();
+        public ICollection<WfpOffboardingChecklist> OffboardingChecklists { get; set; } = new List<WfpOffboardingChecklist>();
+        public ICollection<WfpEmploymentHistory> EmploymentHistories { get; set; } = new List<WfpEmploymentHistory>();
+        public ICollection<WfpContractHistory> ContractHistories { get; set; } = new List<WfpContractHistory>();
+        public ICollection<WfpCompetencyAssessment> CompetencyAssessments { get; set; } = new List<WfpCompetencyAssessment>();
+        public ICollection<WfpPerformanceReview> PerformanceReviews { get; set; } = new List<WfpPerformanceReview>();
+        public ICollection<WfpDisciplinaryAction> DisciplinaryActions { get; set; } = new List<WfpDisciplinaryAction>();
+        public ICollection<WfpComplianceAlert> ComplianceAlerts { get; set; } = new List<WfpComplianceAlert>();
+        public ICollection<WfpScheduleChangeRequest> ScheduleChangeRequests { get; set; } = new List<WfpScheduleChangeRequest>();
+        public ICollection<WfpShiftSwapRequest> RequestedShiftSwapRequests { get; set; } = new List<WfpShiftSwapRequest>();
+        public ICollection<WfpShiftSwapRequest> TargetShiftSwapRequests { get; set; } = new List<WfpShiftSwapRequest>();
     }
 }

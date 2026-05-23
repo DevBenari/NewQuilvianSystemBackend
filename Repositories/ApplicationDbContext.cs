@@ -36,7 +36,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstWorkforceProfile> MstWorkforceProfiles { get; set; }
         public DbSet<MstWorkforceRequirement> MstWorkforceRequirements { get; set; }
         public DbSet<MstDepartment> MstDepartments { get; set; }
-        public DbSet<MstPosition> MstPositions { get; set; }        
+        public DbSet<MstPosition> MstPositions { get; set; }
+        public DbSet<MstCompetency> MstCompetencies { get; set; }
+        public DbSet<MstPositionCompetencyRequirement> MstPositionCompetencyRequirements { get; set; }        
 
         public DbSet<MstEmployee> MstEmployees { get; set; }        
         public DbSet<MstDoctor> MstDoctors { get; set; }
@@ -64,6 +66,20 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<WfpLeaveBalance> WfpLeaveBalances { get; set; }
         public DbSet<WfpLeaveRequest> WfpLeaveRequests { get; set; }
         public DbSet<WfpOvertimeRequest> WfpOvertimeRequests { get; set; }
+        public DbSet<WfpOnboardingChecklist> WfpOnboardingChecklists { get; set; }
+        public DbSet<WfpOnboardingTask> WfpOnboardingTasks { get; set; }
+        public DbSet<WfpOffboardingChecklist> WfpOffboardingChecklists { get; set; }
+        public DbSet<WfpOffboardingTask> WfpOffboardingTasks { get; set; }
+        public DbSet<WfpEmploymentHistory> WfpEmploymentHistories { get; set; }
+        public DbSet<WfpContractHistory> WfpContractHistories { get; set; }
+        public DbSet<WfpCompetencyAssessment> WfpCompetencyAssessments { get; set; }
+        public DbSet<WfpPerformanceReview> WfpPerformanceReviews { get; set; }
+        public DbSet<WfpPerformanceReviewDetail> WfpPerformanceReviewDetails { get; set; }
+        public DbSet<WfpDisciplinaryAction> WfpDisciplinaryActions { get; set; }
+        public DbSet<WfpComplianceAlert> WfpComplianceAlerts { get; set; }
+        public DbSet<WfpComplianceAlertLog> WfpComplianceAlertLogs { get; set; }
+        public DbSet<WfpScheduleChangeRequest> WfpScheduleChangeRequests { get; set; }
+        public DbSet<WfpShiftSwapRequest> WfpShiftSwapRequests { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -4438,6 +4454,1853 @@ namespace QuilvianSystemBackend.Repositories
                     x.AttendanceId,
                     x.IsDelete
                 });
+            });
+
+            builder.Entity<WfpOnboardingChecklist>(entity =>
+            {
+                entity.ToTable("WfpOnboardingChecklist", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
+                entity.Property(x => x.OnboardingType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(OnboardingType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.StartDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.TargetCompletionDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.CompletedDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.Status)
+                    .HasConversion<int>()
+                    .HasDefaultValue(OnboardingStatus.Draft)
+                    .IsRequired();
+
+                entity.Property(x => x.AssignedToUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithMany(x => x.OnboardingChecklists)
+                    .HasForeignKey(x => x.WorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.AssignedToUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.AssignedToUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.WorkforceProfileId);
+
+                entity.HasIndex(x => x.AssignedToUserId);
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.Status,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.OnboardingType,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.Status,
+                    x.TargetCompletionDate,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.Status
+                })
+                .HasFilter("\"IsDelete\" = false");
+            });
+
+            builder.Entity<WfpOnboardingTask>(entity =>
+            {
+                entity.ToTable("WfpOnboardingTask", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.OnboardingChecklistId)
+                    .IsRequired();
+
+                entity.Property(x => x.TaskCode)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(x => x.TaskName)
+                    .HasMaxLength(200)
+                    .IsRequired();
+
+                entity.Property(x => x.TaskCategory)
+                    .HasConversion<int>()
+                    .HasDefaultValue(OnboardingTaskCategory.Other)
+                    .IsRequired();
+
+                entity.Property(x => x.IsRequired)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsCompleted)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.CompletedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CompletedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.SortOrder)
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.OnboardingChecklist)
+                    .WithMany(x => x.Tasks)
+                    .HasForeignKey(x => x.OnboardingChecklistId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.CompletedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.CompletedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.OnboardingChecklistId);
+
+                entity.HasIndex(x => x.CompletedByUserId);
+
+                entity.HasIndex(x => new
+                {
+                    x.OnboardingChecklistId,
+                    x.TaskCategory,
+                    x.IsCompleted,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.OnboardingChecklistId,
+                    x.TaskCode
+                })
+                .IsUnique()
+                .HasFilter("\"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.OnboardingChecklistId,
+                    x.SortOrder
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.IsRequired,
+                    x.IsCompleted,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<WfpOffboardingChecklist>(entity =>
+            {
+                entity.ToTable("WfpOffboardingChecklist", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
+                entity.Property(x => x.OffboardingType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(OffboardingType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.EffectiveEndDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.StartDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.CompletedDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.Status)
+                    .HasConversion<int>()
+                    .HasDefaultValue(OffboardingStatus.Draft)
+                    .IsRequired();
+
+                entity.Property(x => x.Reason)
+                    .HasMaxLength(500)
+                    .IsRequired();
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithMany(x => x.OffboardingChecklists)
+                    .HasForeignKey(x => x.WorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.WorkforceProfileId);
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.Status,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.OffboardingType,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.Status,
+                    x.EffectiveEndDate,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.Status
+                })
+                .HasFilter("\"IsDelete\" = false");
+            });
+
+            builder.Entity<WfpOffboardingTask>(entity =>
+            {
+                entity.ToTable("WfpOffboardingTask", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.OffboardingChecklistId)
+                    .IsRequired();
+
+                entity.Property(x => x.TaskCode)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(x => x.TaskName)
+                    .HasMaxLength(200)
+                    .IsRequired();
+
+                entity.Property(x => x.TaskCategory)
+                    .HasConversion<int>()
+                    .HasDefaultValue(OffboardingTaskCategory.Other)
+                    .IsRequired();
+
+                entity.Property(x => x.IsRequired)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsCompleted)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.CompletedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CompletedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.SortOrder)
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.OffboardingChecklist)
+                    .WithMany(x => x.Tasks)
+                    .HasForeignKey(x => x.OffboardingChecklistId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.CompletedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.CompletedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.OffboardingChecklistId);
+
+                entity.HasIndex(x => x.CompletedByUserId);
+
+                entity.HasIndex(x => new
+                {
+                    x.OffboardingChecklistId,
+                    x.TaskCategory,
+                    x.IsCompleted,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.OffboardingChecklistId,
+                    x.TaskCode
+                })
+                .IsUnique()
+                .HasFilter("\"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.OffboardingChecklistId,
+                    x.SortOrder
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.IsRequired,
+                    x.IsCompleted,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<WfpEmploymentHistory>(entity =>
+            {
+                entity.ToTable("WfpEmploymentHistory", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
+                entity.Property(x => x.HistoryType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(EmploymentHistoryType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.OldStatus)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.NewStatus)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.EffectiveDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.EndDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.ApprovedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.FilePath)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.FileContentType)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithMany(x => x.EmploymentHistories)
+                    .HasForeignKey(x => x.WorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.OldDepartment)
+                    .WithMany()
+                    .HasForeignKey(x => x.OldDepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.NewDepartment)
+                    .WithMany()
+                    .HasForeignKey(x => x.NewDepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.OldPosition)
+                    .WithMany()
+                    .HasForeignKey(x => x.OldPositionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.NewPosition)
+                    .WithMany()
+                    .HasForeignKey(x => x.NewPositionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.ApprovedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.ApprovedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.WorkforceProfileId);
+
+                entity.HasIndex(x => x.HistoryType);
+
+                entity.HasIndex(x => x.EffectiveDate);
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.HistoryType,
+                    x.EffectiveDate,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.NewDepartmentId,
+                    x.NewPositionId
+                });
+
+                entity.HasIndex(x => x.ApprovedByUserId);
+            });
+
+            builder.Entity<WfpContractHistory>(entity =>
+            {
+                entity.ToTable("WfpContractHistory", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
+                entity.Property(x => x.ContractNumber)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(x => x.ContractType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(ContractHistoryType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.StartDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.EndDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ContractStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(ContractHistoryStatus.Draft)
+                    .IsRequired();
+
+                entity.Property(x => x.FilePath)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.FileContentType)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithMany(x => x.ContractHistories)
+                    .HasForeignKey(x => x.WorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.WorkforceProfileId);
+
+                entity.HasIndex(x => x.ContractType);
+
+                entity.HasIndex(x => x.ContractStatus);
+
+                entity.HasIndex(x => x.EndDate);
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.ContractNumber,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.ContractStatus,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.StartDate,
+                    x.EndDate
+                });
+            });
+
+            builder.Entity<MstCompetency>(entity =>
+            {
+                entity.ToTable("MstCompetency", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.CompetencyCode)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(x => x.CompetencyName)
+                    .HasMaxLength(200)
+                    .IsRequired();
+
+                entity.Property(x => x.CompetencyCategory)
+                    .HasConversion<int>()
+                    .HasDefaultValue(CompetencyCategory.Other)
+                    .IsRequired();
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasIndex(x => x.CompetencyCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.CompetencyName);
+
+                entity.HasIndex(x => x.CompetencyCategory);
+
+                entity.HasIndex(x => new
+                {
+                    x.CompetencyCategory,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstPositionCompetencyRequirement>(entity =>
+            {
+                entity.ToTable("MstPositionCompetencyRequirement", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.PositionId)
+                    .IsRequired();
+
+                entity.Property(x => x.CompetencyId)
+                    .IsRequired();
+
+                entity.Property(x => x.IsRequired)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.MinimumLevel)
+                    .HasConversion<int>()
+                    .HasDefaultValue(CompetencyLevel.Basic)
+                    .IsRequired();
+
+                entity.Property(x => x.IsCertificationRequired)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsTrainingRequired)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.Position)
+                    .WithMany(x => x.CompetencyRequirements)
+                    .HasForeignKey(x => x.PositionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.Competency)
+                    .WithMany(x => x.PositionRequirements)
+                    .HasForeignKey(x => x.CompetencyId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.PositionId);
+
+                entity.HasIndex(x => x.CompetencyId);
+
+                entity.HasIndex(x => new
+                {
+                    x.PositionId,
+                    x.CompetencyId
+                })
+                .IsUnique()
+                .HasFilter("\"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.PositionId,
+                    x.IsRequired,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.CompetencyId,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.MinimumLevel,
+                    x.IsCertificationRequired,
+                    x.IsTrainingRequired
+                });
+            });
+
+            builder.Entity<WfpCompetencyAssessment>(entity =>
+            {
+                entity.ToTable("WfpCompetencyAssessment", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
+                entity.Property(x => x.CompetencyId)
+                    .IsRequired();
+
+                entity.Property(x => x.AssessmentDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.CompetencyLevel)
+                    .HasConversion<int>()
+                    .HasDefaultValue(CompetencyLevel.None)
+                    .IsRequired();
+
+                entity.Property(x => x.ResultStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(CompetencyAssessmentResultStatus.NotAssessed)
+                    .IsRequired();
+
+                entity.Property(x => x.AssessedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.ExpiredDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.FilePath)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.FileContentType)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.IsVerified)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithMany(x => x.CompetencyAssessments)
+                    .HasForeignKey(x => x.WorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.Competency)
+                    .WithMany(x => x.CompetencyAssessments)
+                    .HasForeignKey(x => x.CompetencyId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.AssessedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.AssessedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.WorkforceProfileId);
+
+                entity.HasIndex(x => x.CompetencyId);
+
+                entity.HasIndex(x => x.AssessedByUserId);
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.CompetencyId,
+                    x.AssessmentDate,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.CompetencyId,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.ResultStatus,
+                    x.IsVerified,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.ExpiredDate,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<WfpPerformanceReview>(entity =>
+            {
+                entity.ToTable("WfpPerformanceReview", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
+                entity.Property(x => x.ReviewPeriod)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.ReviewDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.ReviewerUserId)
+                    .IsRequired();
+
+                entity.Property(x => x.ReviewType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(PerformanceReviewType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.TotalScore)
+                    .HasColumnType("numeric(18,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.FinalRating)
+                    .HasConversion<int>()
+                    .HasDefaultValue(PerformanceFinalRating.NotRated)
+                    .IsRequired();
+
+                entity.Property(x => x.ReviewStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(PerformanceReviewStatus.Draft)
+                    .IsRequired();
+
+                entity.Property(x => x.StrengthNotes)
+                    .HasMaxLength(1000);
+
+                entity.Property(x => x.ImprovementNotes)
+                    .HasMaxLength(1000);
+
+                entity.Property(x => x.RecommendationNotes)
+                    .HasMaxLength(1000);
+
+                entity.Property(x => x.IsFinalized)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.FinalizedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithMany(x => x.PerformanceReviews)
+                    .HasForeignKey(x => x.WorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.ReviewerUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.ReviewerUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.WorkforceProfileId);
+
+                entity.HasIndex(x => x.ReviewerUserId);
+
+                entity.HasIndex(x => x.ReviewPeriod);
+
+                entity.HasIndex(x => x.ReviewDate);
+
+                entity.HasIndex(x => x.ReviewType);
+
+                entity.HasIndex(x => x.ReviewStatus);
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.ReviewPeriod,
+                    x.ReviewType,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.ReviewStatus,
+                    x.IsFinalized,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.ReviewerUserId,
+                    x.ReviewDate,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<WfpPerformanceReviewDetail>(entity =>
+            {
+                entity.ToTable("WfpPerformanceReviewDetail", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.PerformanceReviewId)
+                    .IsRequired();
+
+                entity.Property(x => x.CriteriaCode)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(x => x.CriteriaName)
+                    .HasMaxLength(200)
+                    .IsRequired();
+
+                entity.Property(x => x.Score)
+                    .HasColumnType("numeric(18,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.Weight)
+                    .HasColumnType("numeric(18,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.WeightedScore)
+                    .HasColumnType("numeric(18,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.PerformanceReview)
+                    .WithMany(x => x.Details)
+                    .HasForeignKey(x => x.PerformanceReviewId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.PerformanceReviewId);
+
+                entity.HasIndex(x => x.CriteriaCode);
+
+                entity.HasIndex(x => new
+                {
+                    x.PerformanceReviewId,
+                    x.CriteriaCode
+                })
+                .HasFilter("\"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.PerformanceReviewId,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<WfpDisciplinaryAction>(entity =>
+            {
+                entity.ToTable("WfpDisciplinaryAction", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
+                entity.Property(x => x.ActionType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(DisciplinaryActionType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.IncidentDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.IssuedDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.SeverityLevel)
+                    .HasConversion<int>()
+                    .HasDefaultValue(DisciplinarySeverityLevel.Low)
+                    .IsRequired();
+
+                entity.Property(x => x.Reason)
+                    .HasMaxLength(250)
+                    .IsRequired();
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(1000);
+
+                entity.Property(x => x.IssuedByUserId)
+                    .IsRequired();
+
+                entity.Property(x => x.EffectiveUntil)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.FilePath)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.ActionStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(DisciplinaryActionStatus.Draft)
+                    .IsRequired();
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithMany(x => x.DisciplinaryActions)
+                    .HasForeignKey(x => x.WorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.IssuedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.IssuedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.WorkforceProfileId);
+
+                entity.HasIndex(x => x.IssuedByUserId);
+
+                entity.HasIndex(x => x.ActionType);
+
+                entity.HasIndex(x => x.SeverityLevel);
+
+                entity.HasIndex(x => x.ActionStatus);
+
+                entity.HasIndex(x => x.IncidentDate);
+
+                entity.HasIndex(x => x.IssuedDate);
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.ActionType,
+                    x.IssuedDate,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.ActionStatus,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.SeverityLevel,
+                    x.ActionStatus,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.EffectiveUntil,
+                    x.ActionStatus,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<WfpComplianceAlert>(entity =>
+            {
+                entity.ToTable("WfpComplianceAlert", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
+                entity.Property(x => x.SourceEntityName)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(x => x.SourceEntityId)
+                    .IsRequired();
+
+                entity.Property(x => x.AlertType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(ComplianceAlertType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.AlertTitle)
+                    .HasMaxLength(200)
+                    .IsRequired();
+
+                entity.Property(x => x.AlertMessage)
+                    .HasMaxLength(1000)
+                    .IsRequired();
+
+                entity.Property(x => x.DueDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.AlertStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(ComplianceAlertStatus.Open)
+                    .IsRequired();
+
+                entity.Property(x => x.SeverityLevel)
+                    .HasConversion<int>()
+                    .HasDefaultValue(ComplianceAlertSeverityLevel.Low)
+                    .IsRequired();
+
+                entity.Property(x => x.IsResolved)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.ResolvedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ResolvedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithMany(x => x.ComplianceAlerts)
+                    .HasForeignKey(x => x.WorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.ResolvedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.ResolvedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.WorkforceProfileId);
+
+                entity.HasIndex(x => x.ResolvedByUserId);
+
+                entity.HasIndex(x => x.SourceEntityName);
+
+                entity.HasIndex(x => x.SourceEntityId);
+
+                entity.HasIndex(x => x.AlertType);
+
+                entity.HasIndex(x => x.AlertStatus);
+
+                entity.HasIndex(x => x.SeverityLevel);
+
+                entity.HasIndex(x => x.DueDate);
+
+                entity.HasIndex(x => new
+                {
+                    x.SourceEntityName,
+                    x.SourceEntityId,
+                    x.AlertType,
+                    x.DueDate
+                })
+                .IsUnique()
+                .HasFilter("\"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.AlertStatus,
+                    x.IsResolved,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.DueDate,
+                    x.AlertStatus,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.DueDate,
+                    x.SeverityLevel,
+                    x.AlertStatus,
+                    x.IsResolved,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.SourceEntityName,
+                    x.SourceEntityId,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<WfpComplianceAlertLog>(entity =>
+            {
+                entity.ToTable("WfpComplianceAlertLog", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.ComplianceAlertId)
+                    .IsRequired();
+
+                entity.Property(x => x.LogType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(ComplianceAlertLogType.Created)
+                    .IsRequired();
+
+                entity.Property(x => x.OldStatus)
+                    .HasConversion<int>()
+                    .IsRequired(false);
+
+                entity.Property(x => x.NewStatus)
+                    .HasConversion<int>()
+                    .IsRequired(false);
+
+                entity.Property(x => x.LogMessage)
+                    .HasMaxLength(1000);
+
+                entity.Property(x => x.PerformedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.PerformedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                    .IsRequired();
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.ComplianceAlert)
+                    .WithMany(x => x.Logs)
+                    .HasForeignKey(x => x.ComplianceAlertId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.PerformedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.PerformedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.ComplianceAlertId);
+
+                entity.HasIndex(x => x.PerformedByUserId);
+
+                entity.HasIndex(x => x.LogType);
+
+                entity.HasIndex(x => x.PerformedAt);
+
+                entity.HasIndex(x => new
+                {
+                    x.ComplianceAlertId,
+                    x.LogType,
+                    x.PerformedAt,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.PerformedByUserId,
+                    x.PerformedAt,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<WfpScheduleChangeRequest>(entity =>
+            {
+                entity.ToTable("WfpScheduleChangeRequest", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.WorkforceProfileId)
+                    .IsRequired();
+
+                entity.Property(x => x.CurrentWorkScheduleAssignmentId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.RequestedScheduleDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.RequestedWorkScheduleId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.RequestType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(ScheduleChangeRequestType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.Reason)
+                    .HasMaxLength(500)
+                    .IsRequired();
+
+                entity.Property(x => x.ApprovalStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(ScheduleRequestApprovalStatus.Pending)
+                    .IsRequired();
+
+                entity.Property(x => x.RequestedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                    .IsRequired();
+
+                entity.Property(x => x.ApprovedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.ApprovedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RejectedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.RejectedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RejectedReason)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.WorkforceProfile)
+                    .WithMany(x => x.ScheduleChangeRequests)
+                    .HasForeignKey(x => x.WorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.CurrentWorkScheduleAssignment)
+                    .WithMany()
+                    .HasForeignKey(x => x.CurrentWorkScheduleAssignmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.RequestedWorkSchedule)
+                    .WithMany()
+                    .HasForeignKey(x => x.RequestedWorkScheduleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.ApprovedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.ApprovedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.RejectedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.RejectedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.WorkforceProfileId);
+
+                entity.HasIndex(x => x.CurrentWorkScheduleAssignmentId);
+
+                entity.HasIndex(x => x.RequestedWorkScheduleId);
+
+                entity.HasIndex(x => x.RequestType);
+
+                entity.HasIndex(x => x.ApprovalStatus);
+
+                entity.HasIndex(x => x.RequestedScheduleDate);
+
+                entity.HasIndex(x => x.RequestedAt);
+
+                entity.HasIndex(x => x.ApprovedByUserId);
+
+                entity.HasIndex(x => x.RejectedByUserId);
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.RequestedScheduleDate,
+                    x.ApprovalStatus,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.RequestType,
+                    x.ApprovalStatus,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.CurrentWorkScheduleAssignmentId,
+                    x.ApprovalStatus,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.WorkforceProfileId,
+                    x.RequestedScheduleDate,
+                    x.RequestType,
+                    x.ApprovalStatus
+                })
+                .HasFilter("\"ApprovalStatus\" = 1 AND \"IsDelete\" = false");
+            });
+
+            builder.Entity<WfpShiftSwapRequest>(entity =>
+            {
+                entity.ToTable("WfpShiftSwapRequest", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.RequesterWorkforceProfileId)
+                    .IsRequired();
+
+                entity.Property(x => x.TargetWorkforceProfileId)
+                    .IsRequired();
+
+                entity.Property(x => x.RequesterScheduleAssignmentId)
+                    .IsRequired();
+
+                entity.Property(x => x.TargetScheduleAssignmentId)
+                    .IsRequired();
+
+                entity.Property(x => x.Reason)
+                    .HasMaxLength(500)
+                    .IsRequired();
+
+                entity.Property(x => x.ApprovalStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(ScheduleRequestApprovalStatus.Pending)
+                    .IsRequired();
+
+                entity.Property(x => x.RequestedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                    .IsRequired();
+
+                entity.Property(x => x.ApprovedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.ApprovedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RejectedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.RejectedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.RejectedReason)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.RequesterWorkforceProfile)
+                    .WithMany(x => x.RequestedShiftSwapRequests)
+                    .HasForeignKey(x => x.RequesterWorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.TargetWorkforceProfile)
+                    .WithMany(x => x.TargetShiftSwapRequests)
+                    .HasForeignKey(x => x.TargetWorkforceProfileId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.RequesterScheduleAssignment)
+                    .WithMany()
+                    .HasForeignKey(x => x.RequesterScheduleAssignmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.TargetScheduleAssignment)
+                    .WithMany()
+                    .HasForeignKey(x => x.TargetScheduleAssignmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.ApprovedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.ApprovedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.RejectedByUser)
+                    .WithMany()
+                    .HasForeignKey(x => x.RejectedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.RequesterWorkforceProfileId);
+
+                entity.HasIndex(x => x.TargetWorkforceProfileId);
+
+                entity.HasIndex(x => x.RequesterScheduleAssignmentId);
+
+                entity.HasIndex(x => x.TargetScheduleAssignmentId);
+
+                entity.HasIndex(x => x.ApprovalStatus);
+
+                entity.HasIndex(x => x.RequestedAt);
+
+                entity.HasIndex(x => x.ApprovedByUserId);
+
+                entity.HasIndex(x => x.RejectedByUserId);
+
+                entity.HasIndex(x => new
+                {
+                    x.RequesterWorkforceProfileId,
+                    x.TargetWorkforceProfileId,
+                    x.ApprovalStatus,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.RequesterScheduleAssignmentId,
+                    x.TargetScheduleAssignmentId,
+                    x.ApprovalStatus,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.RequesterWorkforceProfileId,
+                    x.RequesterScheduleAssignmentId,
+                    x.ApprovalStatus,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.TargetWorkforceProfileId,
+                    x.TargetScheduleAssignmentId,
+                    x.ApprovalStatus,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.RequesterScheduleAssignmentId,
+                    x.TargetScheduleAssignmentId,
+                    x.ApprovalStatus
+                })
+                .HasFilter("\"ApprovalStatus\" = 1 AND \"IsDelete\" = false");
             });
         }
     }

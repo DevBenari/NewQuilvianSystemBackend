@@ -2947,4 +2947,1894 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
         [MaxLength(250)]
         public string UnverifyReason { get; set; } = string.Empty;
     }
+
+    public class WorkforceOnboardingChecklistResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public UserType UserType { get; set; }
+
+        public OnboardingType OnboardingType { get; set; }
+
+        public DateTime StartDate { get; set; }
+
+        public DateTime TargetCompletionDate { get; set; }
+
+        public DateTime? CompletedDate { get; set; }
+
+        public OnboardingStatus Status { get; set; }
+
+        public Guid? AssignedToUserId { get; set; }
+
+        public string? AssignedToUserName { get; set; }
+
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public int TotalTask { get; set; }
+
+        public int RequiredTask { get; set; }
+
+        public int CompletedTask { get; set; }
+
+        public int PendingTask { get; set; }
+
+        public int RequiredPendingTask { get; set; }
+
+        public decimal CompletionPercentage { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+
+        public List<WorkforceOnboardingTaskResponse> Tasks { get; set; } = new();
+    }
+
+    public class WorkforceOnboardingChecklistListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int DraftData { get; set; }
+
+        public int InProgressData { get; set; }
+
+        public int CompletedData { get; set; }
+
+        public List<WorkforceOnboardingChecklistResponse> Items { get; set; } = new();
+    }
+
+    public class WorkforceOnboardingTaskResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid OnboardingChecklistId { get; set; }
+
+        public string TaskCode { get; set; } = string.Empty;
+
+        public string TaskName { get; set; } = string.Empty;
+
+        public OnboardingTaskCategory TaskCategory { get; set; }
+
+        public bool IsRequired { get; set; }
+
+        public bool IsCompleted { get; set; }
+
+        public DateTime? CompletedAt { get; set; }
+
+        public Guid? CompletedByUserId { get; set; }
+
+        public string? CompletedByUserName { get; set; }
+
+        public string? Notes { get; set; }
+
+        public int SortOrder { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class CreateWorkforceOnboardingChecklistRequest
+    {
+        [Required]
+        public OnboardingType OnboardingType { get; set; } = OnboardingType.Unknown;
+
+        [Required]
+        public DateTime StartDate { get; set; }
+
+        [Required]
+        public DateTime TargetCompletionDate { get; set; }
+
+        public Guid? AssignedToUserId { get; set; }
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        public bool GenerateDefaultTasks { get; set; } = true;
+    }
+
+    public class UpdateWorkforceOnboardingChecklistRequest
+    {
+        [Required]
+        public OnboardingType OnboardingType { get; set; } = OnboardingType.Unknown;
+
+        [Required]
+        public DateTime StartDate { get; set; }
+
+        [Required]
+        public DateTime TargetCompletionDate { get; set; }
+
+        public OnboardingStatus Status { get; set; } = OnboardingStatus.InProgress;
+
+        public Guid? AssignedToUserId { get; set; }
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceOnboardingChecklistStatusRequest
+    {
+        [Required]
+        public OnboardingStatus Status { get; set; }
+
+        public DateTime? CompletedDate { get; set; }
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class CreateWorkforceOnboardingTaskRequest
+    {
+        [Required]
+        [MaxLength(100)]
+        public string TaskCode { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(200)]
+        public string TaskName { get; set; } = string.Empty;
+
+        public OnboardingTaskCategory TaskCategory { get; set; } = OnboardingTaskCategory.Other;
+
+        public bool IsRequired { get; set; } = true;
+
+        public bool IsCompleted { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public int SortOrder { get; set; } = 0;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceOnboardingTaskRequest
+    {
+        [Required]
+        [MaxLength(100)]
+        public string TaskCode { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(200)]
+        public string TaskName { get; set; } = string.Empty;
+
+        public OnboardingTaskCategory TaskCategory { get; set; } = OnboardingTaskCategory.Other;
+
+        public bool IsRequired { get; set; } = true;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public int SortOrder { get; set; } = 0;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class CompleteWorkforceOnboardingTaskRequest
+    {
+        public bool IsCompleted { get; set; } = true;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+    }
+
+    public class UpdateWorkforceOnboardingTaskStatusRequest
+    {
+        public bool IsActive { get; set; }
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+    }
+
+    public class WorkforceOffboardingChecklistResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public UserType UserType { get; set; }
+
+        public OffboardingType OffboardingType { get; set; }
+
+        public DateTime EffectiveEndDate { get; set; }
+
+        public DateTime StartDate { get; set; }
+
+        public DateTime? CompletedDate { get; set; }
+
+        public OffboardingStatus Status { get; set; }
+
+        public string Reason { get; set; } = string.Empty;
+
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public int TotalTask { get; set; }
+
+        public int RequiredTask { get; set; }
+
+        public int CompletedTask { get; set; }
+
+        public int PendingTask { get; set; }
+
+        public int RequiredPendingTask { get; set; }
+
+        public decimal CompletionPercentage { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+
+        public List<WorkforceOffboardingTaskResponse> Tasks { get; set; } = new();
+    }
+
+    public class WorkforceOffboardingChecklistListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int DraftData { get; set; }
+
+        public int InProgressData { get; set; }
+
+        public int CompletedData { get; set; }
+
+        public int CancelledData { get; set; }
+
+        public List<WorkforceOffboardingChecklistResponse> Items { get; set; } = new();
+    }
+
+    public class WorkforceOffboardingTaskResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid OffboardingChecklistId { get; set; }
+
+        public string TaskCode { get; set; } = string.Empty;
+
+        public string TaskName { get; set; } = string.Empty;
+
+        public OffboardingTaskCategory TaskCategory { get; set; }
+
+        public bool IsRequired { get; set; }
+
+        public bool IsCompleted { get; set; }
+
+        public DateTime? CompletedAt { get; set; }
+
+        public Guid? CompletedByUserId { get; set; }
+
+        public string? CompletedByUserName { get; set; }
+
+        public string? Notes { get; set; }
+
+        public int SortOrder { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class CreateWorkforceOffboardingChecklistRequest
+    {
+        [Required]
+        public OffboardingType OffboardingType { get; set; } = OffboardingType.Unknown;
+
+        [Required]
+        public DateTime EffectiveEndDate { get; set; }
+
+        [Required]
+        public DateTime StartDate { get; set; }
+
+        [Required]
+        [MaxLength(500)]
+        public string Reason { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        public bool GenerateDefaultTasks { get; set; } = true;
+    }
+
+    public class UpdateWorkforceOffboardingChecklistRequest
+    {
+        [Required]
+        public OffboardingType OffboardingType { get; set; } = OffboardingType.Unknown;
+
+        [Required]
+        public DateTime EffectiveEndDate { get; set; }
+
+        [Required]
+        public DateTime StartDate { get; set; }
+
+        public OffboardingStatus Status { get; set; } = OffboardingStatus.InProgress;
+
+        [Required]
+        [MaxLength(500)]
+        public string Reason { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceOffboardingChecklistStatusRequest
+    {
+        [Required]
+        public OffboardingStatus Status { get; set; }
+
+        public DateTime? CompletedDate { get; set; }
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class CreateWorkforceOffboardingTaskRequest
+    {
+        [Required]
+        [MaxLength(100)]
+        public string TaskCode { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(200)]
+        public string TaskName { get; set; } = string.Empty;
+
+        public OffboardingTaskCategory TaskCategory { get; set; } = OffboardingTaskCategory.Other;
+
+        public bool IsRequired { get; set; } = true;
+
+        public bool IsCompleted { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public int SortOrder { get; set; } = 0;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceOffboardingTaskRequest
+    {
+        [Required]
+        [MaxLength(100)]
+        public string TaskCode { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(200)]
+        public string TaskName { get; set; } = string.Empty;
+
+        public OffboardingTaskCategory TaskCategory { get; set; } = OffboardingTaskCategory.Other;
+
+        public bool IsRequired { get; set; } = true;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public int SortOrder { get; set; } = 0;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class CompleteWorkforceOffboardingTaskRequest
+    {
+        public bool IsCompleted { get; set; } = true;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+    }
+
+    public class UpdateWorkforceOffboardingTaskStatusRequest
+    {
+        public bool IsActive { get; set; }
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+    }
+
+    public class WorkforceEmploymentHistoryResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public UserType UserType { get; set; }
+
+        public EmploymentHistoryType HistoryType { get; set; }
+
+        public Guid? OldDepartmentId { get; set; }
+
+        public string? OldDepartmentCode { get; set; }
+
+        public string? OldDepartmentName { get; set; }
+
+        public Guid? NewDepartmentId { get; set; }
+
+        public string? NewDepartmentCode { get; set; }
+
+        public string? NewDepartmentName { get; set; }
+
+        public Guid? OldPositionId { get; set; }
+
+        public string? OldPositionCode { get; set; }
+
+        public string? OldPositionName { get; set; }
+
+        public Guid? NewPositionId { get; set; }
+
+        public string? NewPositionCode { get; set; }
+
+        public string? NewPositionName { get; set; }
+
+        public string? OldStatus { get; set; }
+
+        public string? NewStatus { get; set; }
+
+        public DateTime EffectiveDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public string? Description { get; set; }
+
+        public Guid? ApprovedByUserId { get; set; }
+
+        public string? ApprovedByUserName { get; set; }
+
+        public DateTime? ApprovedAt { get; set; }
+
+        public string? FilePath { get; set; }
+
+        public string? FileContentType { get; set; }
+
+        public bool HasFile { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceEmploymentHistoryListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int JoinData { get; set; }
+
+        public int MutationData { get; set; }
+
+        public int PromotionData { get; set; }
+
+        public int StatusChangeData { get; set; }
+
+        public int ResignOrTerminationData { get; set; }
+
+        public List<WorkforceEmploymentHistoryResponse> Items { get; set; } = new();
+    }
+
+    public class CreateWorkforceEmploymentHistoryRequest
+    {
+        [Required]
+        public EmploymentHistoryType HistoryType { get; set; } = EmploymentHistoryType.Unknown;
+
+        public Guid? OldDepartmentId { get; set; }
+
+        public Guid? NewDepartmentId { get; set; }
+
+        public Guid? OldPositionId { get; set; }
+
+        public Guid? NewPositionId { get; set; }
+
+        [MaxLength(100)]
+        public string? OldStatus { get; set; }
+
+        [MaxLength(100)]
+        public string? NewStatus { get; set; }
+
+        [Required]
+        public DateTime EffectiveDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        public Guid? ApprovedByUserId { get; set; }
+
+        public DateTime? ApprovedAt { get; set; }
+
+        [MaxLength(500)]
+        public string? FilePath { get; set; }
+
+        [MaxLength(100)]
+        public string? FileContentType { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceEmploymentHistoryRequest
+    {
+        [Required]
+        public EmploymentHistoryType HistoryType { get; set; } = EmploymentHistoryType.Unknown;
+
+        public Guid? OldDepartmentId { get; set; }
+
+        public Guid? NewDepartmentId { get; set; }
+
+        public Guid? OldPositionId { get; set; }
+
+        public Guid? NewPositionId { get; set; }
+
+        [MaxLength(100)]
+        public string? OldStatus { get; set; }
+
+        [MaxLength(100)]
+        public string? NewStatus { get; set; }
+
+        [Required]
+        public DateTime EffectiveDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        public Guid? ApprovedByUserId { get; set; }
+
+        public DateTime? ApprovedAt { get; set; }
+
+        [MaxLength(500)]
+        public string? FilePath { get; set; }
+
+        [MaxLength(100)]
+        public string? FileContentType { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceEmploymentHistoryStatusRequest
+    {
+        public bool IsActive { get; set; }
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
+    }
+
+    public class WorkforceContractHistoryResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public UserType UserType { get; set; }
+
+        public string ContractNumber { get; set; } = string.Empty;
+
+        public ContractHistoryType ContractType { get; set; }
+
+        public DateTime StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public ContractHistoryStatus ContractStatus { get; set; }
+
+        public bool IsExpired { get; set; }
+
+        public string? FilePath { get; set; }
+
+        public string? FileContentType { get; set; }
+
+        public bool HasFile { get; set; }
+
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceContractHistoryListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int ActiveContractData { get; set; }
+
+        public int ExpiredContractData { get; set; }
+
+        public int TerminatedContractData { get; set; }
+
+        public int DraftContractData { get; set; }
+
+        public List<WorkforceContractHistoryResponse> Items { get; set; } = new();
+    }
+
+    public class CreateWorkforceContractHistoryRequest
+    {
+        [Required]
+        [MaxLength(100)]
+        public string ContractNumber { get; set; } = string.Empty;
+
+        [Required]
+        public ContractHistoryType ContractType { get; set; } = ContractHistoryType.Unknown;
+
+        [Required]
+        public DateTime StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public ContractHistoryStatus ContractStatus { get; set; } = ContractHistoryStatus.Draft;
+
+        [MaxLength(500)]
+        public string? FilePath { get; set; }
+
+        [MaxLength(100)]
+        public string? FileContentType { get; set; }
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceContractHistoryRequest
+    {
+        [Required]
+        [MaxLength(100)]
+        public string ContractNumber { get; set; } = string.Empty;
+
+        [Required]
+        public ContractHistoryType ContractType { get; set; } = ContractHistoryType.Unknown;
+
+        [Required]
+        public DateTime StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public ContractHistoryStatus ContractStatus { get; set; } = ContractHistoryStatus.Draft;
+
+        [MaxLength(500)]
+        public string? FilePath { get; set; }
+
+        [MaxLength(100)]
+        public string? FileContentType { get; set; }
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceContractHistoryStatusRequest
+    {
+        [Required]
+        public ContractHistoryStatus ContractStatus { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+    }
+
+    public class WorkforceCompetencyAssessmentResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public UserType UserType { get; set; }
+
+        public Guid CompetencyId { get; set; }
+
+        public string CompetencyCode { get; set; } = string.Empty;
+
+        public string CompetencyName { get; set; } = string.Empty;
+
+        public CompetencyCategory CompetencyCategory { get; set; }
+
+        public DateTime AssessmentDate { get; set; }
+
+        public CompetencyLevel CompetencyLevel { get; set; }
+
+        public CompetencyAssessmentResultStatus ResultStatus { get; set; }
+
+        public Guid? AssessedByUserId { get; set; }
+
+        public string? AssessedByUserName { get; set; }
+
+        public DateTime? ExpiredDate { get; set; }
+
+        public bool IsExpired { get; set; }
+
+        public string? FilePath { get; set; }
+
+        public string? FileContentType { get; set; }
+
+        public bool HasFile { get; set; }
+
+        public string? Notes { get; set; }
+
+        public bool IsVerified { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceCompetencyAssessmentListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int VerifiedData { get; set; }
+
+        public int PassedData { get; set; }
+
+        public int FailedData { get; set; }
+
+        public int NeedTrainingData { get; set; }
+
+        public int ExpiredData { get; set; }
+
+        public List<WorkforceCompetencyAssessmentResponse> Items { get; set; } = new();
+    }
+
+    public class CreateWorkforceCompetencyAssessmentRequest
+    {
+        [Required]
+        public Guid CompetencyId { get; set; }
+
+        [Required]
+        public DateTime AssessmentDate { get; set; }
+
+        public CompetencyLevel CompetencyLevel { get; set; } = CompetencyLevel.None;
+
+        public CompetencyAssessmentResultStatus ResultStatus { get; set; } = CompetencyAssessmentResultStatus.NotAssessed;
+
+        public Guid? AssessedByUserId { get; set; }
+
+        public DateTime? ExpiredDate { get; set; }
+
+        [MaxLength(500)]
+        public string? FilePath { get; set; }
+
+        [MaxLength(100)]
+        public string? FileContentType { get; set; }
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsVerified { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceCompetencyAssessmentRequest
+    {
+        [Required]
+        public Guid CompetencyId { get; set; }
+
+        [Required]
+        public DateTime AssessmentDate { get; set; }
+
+        public CompetencyLevel CompetencyLevel { get; set; } = CompetencyLevel.None;
+
+        public CompetencyAssessmentResultStatus ResultStatus { get; set; } = CompetencyAssessmentResultStatus.NotAssessed;
+
+        public Guid? AssessedByUserId { get; set; }
+
+        public DateTime? ExpiredDate { get; set; }
+
+        [MaxLength(500)]
+        public string? FilePath { get; set; }
+
+        [MaxLength(100)]
+        public string? FileContentType { get; set; }
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsVerified { get; set; } = false;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceCompetencyAssessmentStatusRequest
+    {
+        public bool IsActive { get; set; }
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+    }
+
+    public class VerifyWorkforceCompetencyAssessmentRequest
+    {
+        public bool IsVerified { get; set; } = true;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+    }
+
+    public class WorkforceCompetencyMatrixItemResponse
+    {
+        public Guid RequirementId { get; set; }
+
+        public Guid PositionId { get; set; }
+
+        public string PositionName { get; set; } = string.Empty;
+
+        public Guid CompetencyId { get; set; }
+
+        public string CompetencyCode { get; set; } = string.Empty;
+
+        public string CompetencyName { get; set; } = string.Empty;
+
+        public CompetencyCategory CompetencyCategory { get; set; }
+
+        public bool IsRequired { get; set; }
+
+        public CompetencyLevel MinimumLevel { get; set; }
+
+        public bool IsCertificationRequired { get; set; }
+
+        public bool IsTrainingRequired { get; set; }
+
+        public Guid? LatestAssessmentId { get; set; }
+
+        public CompetencyLevel? LatestCompetencyLevel { get; set; }
+
+        public CompetencyAssessmentResultStatus? LatestResultStatus { get; set; }
+
+        public DateTime? LatestAssessmentDate { get; set; }
+
+        public DateTime? ExpiredDate { get; set; }
+
+        public bool IsVerified { get; set; }
+
+        public bool IsExpired { get; set; }
+
+        public bool IsPassed { get; set; }
+
+        public bool IsLevelMet { get; set; }
+
+        public string Status { get; set; } = "Missing";
+    }
+
+    public class WorkforceCompetencyMatrixResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public UserType UserType { get; set; }
+
+        public Guid? PrimaryPositionId { get; set; }
+
+        public string? PrimaryPositionName { get; set; }
+
+        public int TotalRequirement { get; set; }
+
+        public int CompletedRequirement { get; set; }
+
+        public int MissingRequirement { get; set; }
+
+        public int NeedTrainingRequirement { get; set; }
+
+        public int ExpiredRequirement { get; set; }
+
+        public List<WorkforceCompetencyMatrixItemResponse> Items { get; set; } = new();
+    }
+
+    public class WorkforcePerformanceReviewResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public UserType UserType { get; set; }
+
+        public string ReviewPeriod { get; set; } = string.Empty;
+
+        public DateTime ReviewDate { get; set; }
+
+        public Guid ReviewerUserId { get; set; }
+
+        public string? ReviewerUserName { get; set; }
+
+        public PerformanceReviewType ReviewType { get; set; }
+
+        public decimal TotalScore { get; set; }
+
+        public PerformanceFinalRating FinalRating { get; set; }
+
+        public PerformanceReviewStatus ReviewStatus { get; set; }
+
+        public string? StrengthNotes { get; set; }
+
+        public string? ImprovementNotes { get; set; }
+
+        public string? RecommendationNotes { get; set; }
+
+        public bool IsFinalized { get; set; }
+
+        public DateTime? FinalizedAt { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public int DetailCount { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+
+        public List<WorkforcePerformanceReviewDetailResponse> Details { get; set; } = new();
+    }
+
+    public class WorkforcePerformanceReviewListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int DraftData { get; set; }
+
+        public int InProgressData { get; set; }
+
+        public int CompletedData { get; set; }
+
+        public int FinalizedData { get; set; }
+
+        public decimal AverageScore { get; set; }
+
+        public List<WorkforcePerformanceReviewResponse> Items { get; set; } = new();
+    }
+
+    public class WorkforcePerformanceReviewDetailResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid PerformanceReviewId { get; set; }
+
+        public string CriteriaCode { get; set; } = string.Empty;
+
+        public string CriteriaName { get; set; } = string.Empty;
+
+        public decimal Score { get; set; }
+
+        public decimal Weight { get; set; }
+
+        public decimal WeightedScore { get; set; }
+
+        public string? Notes { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class CreateWorkforcePerformanceReviewRequest
+    {
+        [Required]
+        [MaxLength(50)]
+        public string ReviewPeriod { get; set; } = string.Empty;
+
+        [Required]
+        public DateTime ReviewDate { get; set; }
+
+        [Required]
+        public Guid ReviewerUserId { get; set; }
+
+        public PerformanceReviewType ReviewType { get; set; } = PerformanceReviewType.Unknown;
+
+        public PerformanceFinalRating FinalRating { get; set; } = PerformanceFinalRating.NotRated;
+
+        public PerformanceReviewStatus ReviewStatus { get; set; } = PerformanceReviewStatus.Draft;
+
+        [MaxLength(1000)]
+        public string? StrengthNotes { get; set; }
+
+        [MaxLength(1000)]
+        public string? ImprovementNotes { get; set; }
+
+        [MaxLength(1000)]
+        public string? RecommendationNotes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        public List<CreateWorkforcePerformanceReviewDetailRequest> Details { get; set; } = new();
+    }
+
+    public class UpdateWorkforcePerformanceReviewRequest
+    {
+        [Required]
+        [MaxLength(50)]
+        public string ReviewPeriod { get; set; } = string.Empty;
+
+        [Required]
+        public DateTime ReviewDate { get; set; }
+
+        [Required]
+        public Guid ReviewerUserId { get; set; }
+
+        public PerformanceReviewType ReviewType { get; set; } = PerformanceReviewType.Unknown;
+
+        public PerformanceFinalRating FinalRating { get; set; } = PerformanceFinalRating.NotRated;
+
+        public PerformanceReviewStatus ReviewStatus { get; set; } = PerformanceReviewStatus.Draft;
+
+        [MaxLength(1000)]
+        public string? StrengthNotes { get; set; }
+
+        [MaxLength(1000)]
+        public string? ImprovementNotes { get; set; }
+
+        [MaxLength(1000)]
+        public string? RecommendationNotes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforcePerformanceReviewStatusRequest
+    {
+        public PerformanceReviewStatus ReviewStatus { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        [MaxLength(1000)]
+        public string? RecommendationNotes { get; set; }
+    }
+
+    public class FinalizeWorkforcePerformanceReviewRequest
+    {
+        public PerformanceFinalRating FinalRating { get; set; } = PerformanceFinalRating.NotRated;
+
+        [MaxLength(1000)]
+        public string? RecommendationNotes { get; set; }
+    }
+
+    public class CreateWorkforcePerformanceReviewDetailRequest
+    {
+        [Required]
+        [MaxLength(100)]
+        public string CriteriaCode { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(200)]
+        public string CriteriaName { get; set; } = string.Empty;
+
+        public decimal Score { get; set; } = 0;
+
+        public decimal Weight { get; set; } = 0;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+    }
+
+    public class UpdateWorkforcePerformanceReviewDetailRequest
+    {
+        [Required]
+        [MaxLength(100)]
+        public string CriteriaCode { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(200)]
+        public string CriteriaName { get; set; } = string.Empty;
+
+        public decimal Score { get; set; } = 0;
+
+        public decimal Weight { get; set; } = 0;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+    }
+
+    public class WorkforceDisciplinaryActionResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public UserType UserType { get; set; }
+
+        public DisciplinaryActionType ActionType { get; set; }
+
+        public DateTime IncidentDate { get; set; }
+
+        public DateTime IssuedDate { get; set; }
+
+        public DisciplinarySeverityLevel SeverityLevel { get; set; }
+
+        public string Reason { get; set; } = string.Empty;
+
+        public string? Description { get; set; }
+
+        public Guid IssuedByUserId { get; set; }
+
+        public string? IssuedByUserName { get; set; }
+
+        public DateTime? EffectiveUntil { get; set; }
+
+        public string? FilePath { get; set; }
+
+        public bool HasFile { get; set; }
+
+        public DisciplinaryActionStatus ActionStatus { get; set; }
+
+        public string? Notes { get; set; }
+
+        public bool IsExpired { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceDisciplinaryActionListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int DraftData { get; set; }
+
+        public int IssuedData { get; set; }
+
+        public int AcknowledgedData { get; set; }
+
+        public int UnderReviewData { get; set; }
+
+        public int ResolvedData { get; set; }
+
+        public int CancelledData { get; set; }
+
+        public int ExpiredData { get; set; }
+
+        public int HighSeverityData { get; set; }
+
+        public int CriticalSeverityData { get; set; }
+
+        public int WithFileData { get; set; }
+
+        public List<WorkforceDisciplinaryActionResponse> Items { get; set; } = new();
+    }
+
+    public class CreateWorkforceDisciplinaryActionRequest
+    {
+        public DisciplinaryActionType ActionType { get; set; } = DisciplinaryActionType.Unknown;
+
+        [Required]
+        public DateTime IncidentDate { get; set; }
+
+        [Required]
+        public DateTime IssuedDate { get; set; }
+
+        public DisciplinarySeverityLevel SeverityLevel { get; set; } = DisciplinarySeverityLevel.Low;
+
+        [Required]
+        [MaxLength(250)]
+        public string Reason { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [Required]
+        public Guid IssuedByUserId { get; set; }
+
+        public DateTime? EffectiveUntil { get; set; }
+
+        public IFormFile? File { get; set; }
+
+        public DisciplinaryActionStatus ActionStatus { get; set; } = DisciplinaryActionStatus.Draft;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceDisciplinaryActionRequest
+    {
+        public DisciplinaryActionType ActionType { get; set; } = DisciplinaryActionType.Unknown;
+
+        [Required]
+        public DateTime IncidentDate { get; set; }
+
+        [Required]
+        public DateTime IssuedDate { get; set; }
+
+        public DisciplinarySeverityLevel SeverityLevel { get; set; } = DisciplinarySeverityLevel.Low;
+
+        [Required]
+        [MaxLength(250)]
+        public string Reason { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [Required]
+        public Guid IssuedByUserId { get; set; }
+
+        public DateTime? EffectiveUntil { get; set; }
+
+        public IFormFile? File { get; set; }
+
+        public bool ReplaceExistingFile { get; set; } = false;
+
+        public DisciplinaryActionStatus ActionStatus { get; set; } = DisciplinaryActionStatus.Draft;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceDisciplinaryActionStatusRequest
+    {
+        public DisciplinaryActionStatus ActionStatus { get; set; } = DisciplinaryActionStatus.Issued;
+
+        public bool IsActive { get; set; } = true;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+    }
+
+    public class WorkforceComplianceAlertResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid WorkforceProfileId { get; set; }
+
+        public string ProfileCode { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public UserType UserType { get; set; }
+
+        public string SourceEntityName { get; set; } = string.Empty;
+
+        public Guid SourceEntityId { get; set; }
+
+        public string SourceDisplayName { get; set; } = string.Empty;
+
+        public ComplianceAlertType AlertType { get; set; }
+
+        public string AlertTitle { get; set; } = string.Empty;
+
+        public string AlertMessage { get; set; } = string.Empty;
+
+        public DateTime DueDate { get; set; }
+
+        public int DaysRemaining { get; set; }
+
+        public bool IsOverdue { get; set; }
+
+        public ComplianceAlertStatus AlertStatus { get; set; }
+
+        public ComplianceAlertSeverityLevel SeverityLevel { get; set; }
+
+        public bool IsResolved { get; set; }
+
+        public DateTime? ResolvedAt { get; set; }
+
+        public Guid? ResolvedByUserId { get; set; }
+
+        public string? ResolvedByUserName { get; set; }
+
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public int LogCount { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+
+        public List<WorkforceComplianceAlertLogResponse> Logs { get; set; } = new();
+    }
+
+    public class WorkforceComplianceAlertLogResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid ComplianceAlertId { get; set; }
+
+        public ComplianceAlertLogType LogType { get; set; }
+
+        public ComplianceAlertStatus? OldStatus { get; set; }
+
+        public ComplianceAlertStatus? NewStatus { get; set; }
+
+        public string? LogMessage { get; set; }
+
+        public Guid? PerformedByUserId { get; set; }
+
+        public string? PerformedByUserName { get; set; }
+
+        public DateTime PerformedAt { get; set; }
+
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceComplianceAlertListResponse
+    {
+        public int TotalData { get; set; }
+
+        public int ActiveData { get; set; }
+
+        public int OpenData { get; set; }
+
+        public int InProgressData { get; set; }
+
+        public int ResolvedData { get; set; }
+
+        public int IgnoredData { get; set; }
+
+        public int CancelledData { get; set; }
+
+        public int ExpiredData { get; set; }
+
+        public int OverdueData { get; set; }
+
+        public int DueTodayData { get; set; }
+
+        public int DueInSevenDaysData { get; set; }
+
+        public int DueInThirtyDaysData { get; set; }
+
+        public int CriticalData { get; set; }
+
+        public int HighData { get; set; }
+
+        public List<WorkforceComplianceAlertResponse> Items { get; set; } = new();
+    }
+
+    public class WorkforceComplianceAlertSummaryResponse
+    {
+        public int TotalAlert { get; set; }
+
+        public int OpenAlert { get; set; }
+
+        public int InProgressAlert { get; set; }
+
+        public int ResolvedAlert { get; set; }
+
+        public int OverdueAlert { get; set; }
+
+        public int DueTodayAlert { get; set; }
+
+        public int DueInSevenDaysAlert { get; set; }
+
+        public int DueInThirtyDaysAlert { get; set; }
+
+        public int CriticalAlert { get; set; }
+
+        public int HighAlert { get; set; }
+
+        public int DocumentAlert { get; set; }
+
+        public int LicenseAlert { get; set; }
+
+        public int CertificationAlert { get; set; }
+
+        public int HealthRecordAlert { get; set; }
+
+        public int ContractAlert { get; set; }
+
+        public int ClinicalPrivilegeAlert { get; set; }
+
+        public int ExternalAccessAlert { get; set; }
+    }
+
+    public class CreateWorkforceComplianceAlertRequest
+    {
+        [Required]
+        public Guid WorkforceProfileId { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string SourceEntityName { get; set; } = string.Empty;
+
+        [Required]
+        public Guid SourceEntityId { get; set; }
+
+        public ComplianceAlertType AlertType { get; set; } = ComplianceAlertType.Unknown;
+
+        [Required]
+        [MaxLength(200)]
+        public string AlertTitle { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(1000)]
+        public string AlertMessage { get; set; } = string.Empty;
+
+        [Required]
+        public DateTime DueDate { get; set; }
+
+        public ComplianceAlertStatus AlertStatus { get; set; } = ComplianceAlertStatus.Open;
+
+        public ComplianceAlertSeverityLevel SeverityLevel { get; set; } = ComplianceAlertSeverityLevel.Low;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceComplianceAlertRequest
+    {
+        public ComplianceAlertType AlertType { get; set; } = ComplianceAlertType.Unknown;
+
+        [Required]
+        [MaxLength(200)]
+        public string AlertTitle { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(1000)]
+        public string AlertMessage { get; set; } = string.Empty;
+
+        [Required]
+        public DateTime DueDate { get; set; }
+
+        public ComplianceAlertStatus AlertStatus { get; set; } = ComplianceAlertStatus.Open;
+
+        public ComplianceAlertSeverityLevel SeverityLevel { get; set; } = ComplianceAlertSeverityLevel.Low;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceComplianceAlertStatusRequest
+    {
+        public ComplianceAlertStatus AlertStatus { get; set; } = ComplianceAlertStatus.Open;
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class ResolveWorkforceComplianceAlertRequest
+    {
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+    }
+
+    public class ReopenWorkforceComplianceAlertRequest
+    {
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+    }
+
+    public class AddWorkforceComplianceAlertLogRequest
+    {
+        public ComplianceAlertLogType LogType { get; set; } = ComplianceAlertLogType.NoteAdded;
+
+        [MaxLength(1000)]
+        public string? LogMessage { get; set; }
+
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+    }
+
+    public class GenerateWorkforceComplianceAlertRequest
+    {
+        public Guid? WorkforceProfileId { get; set; }
+
+        [Range(0, 365)]
+        public int DaysBeforeDue { get; set; } = 30;
+
+        public bool IncludeExpired { get; set; } = true;
+
+        public bool IncludeWillExpire { get; set; } = true;
+
+        public bool IncludeDocument { get; set; } = true;
+
+        public bool IncludeCertification { get; set; } = true;
+
+        public bool IncludeCredentialLicense { get; set; } = true;
+
+        public bool IncludeClinicalPrivilege { get; set; } = true;
+
+        public bool IncludeHealthRecord { get; set; } = true;
+
+        public bool IncludeEmployeeContract { get; set; } = true;
+
+        public bool IncludeDoctorContract { get; set; } = true;
+
+        public bool IncludeExternalAccess { get; set; } = true;
+
+        public bool IncludeContractHistory { get; set; } = true;
+    }
+
+    public class GenerateWorkforceComplianceAlertResponse
+    {
+        public int DaysBeforeDue { get; set; }
+
+        public Guid? WorkforceProfileId { get; set; }
+
+        public int CandidateData { get; set; }
+
+        public int CreatedData { get; set; }
+
+        public int SkippedDuplicateData { get; set; }
+
+        public int SkippedResolvedData { get; set; }
+
+        public int DocumentCreatedData { get; set; }
+
+        public int CertificationCreatedData { get; set; }
+
+        public int CredentialLicenseCreatedData { get; set; }
+
+        public int ClinicalPrivilegeCreatedData { get; set; }
+
+        public int HealthRecordCreatedData { get; set; }
+
+        public int EmployeeContractCreatedData { get; set; }
+
+        public int DoctorContractCreatedData { get; set; }
+
+        public int ExternalAccessCreatedData { get; set; }
+
+        public int ContractHistoryCreatedData { get; set; }
+
+        public List<WorkforceComplianceAlertResponse> CreatedItems { get; set; } = new();
+    }
+
+    public class WorkforceScheduleChangeRequestResponse
+    {
+        public Guid Id { get; set; }
+        public Guid WorkforceProfileId { get; set; }
+        public string ProfileCode { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public UserType UserType { get; set; }
+
+        public Guid? CurrentWorkScheduleAssignmentId { get; set; }
+        public DateTime? CurrentScheduleDate { get; set; }
+        public Guid? CurrentWorkScheduleId { get; set; }
+        public string? CurrentWorkScheduleCode { get; set; }
+        public string? CurrentWorkScheduleName { get; set; }
+
+        public DateTime RequestedScheduleDate { get; set; }
+        public Guid? RequestedWorkScheduleId { get; set; }
+        public string? RequestedWorkScheduleCode { get; set; }
+        public string? RequestedWorkScheduleName { get; set; }
+
+        public ScheduleChangeRequestType RequestType { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public ScheduleRequestApprovalStatus ApprovalStatus { get; set; }
+        public DateTime RequestedAt { get; set; }
+
+        public Guid? ApprovedByUserId { get; set; }
+        public string? ApprovedByUserName { get; set; }
+        public DateTime? ApprovedAt { get; set; }
+
+        public Guid? RejectedByUserId { get; set; }
+        public string? RejectedByUserName { get; set; }
+        public DateTime? RejectedAt { get; set; }
+        public string? RejectedReason { get; set; }
+
+        public bool IsActive { get; set; }
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceScheduleChangeRequestListResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+        public string ProfileCode { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public int TotalData { get; set; }
+        public int ActiveData { get; set; }
+        public int PendingData { get; set; }
+        public int ApprovedData { get; set; }
+        public int RejectedData { get; set; }
+        public int CancelledData { get; set; }
+        public List<WorkforceScheduleChangeRequestResponse> Items { get; set; } = new();
+    }
+
+    public class CreateWorkforceScheduleChangeRequest
+    {
+        public Guid? CurrentWorkScheduleAssignmentId { get; set; }
+
+        [Required]
+        public DateTime RequestedScheduleDate { get; set; }
+
+        public Guid? RequestedWorkScheduleId { get; set; }
+
+        [Required]
+        public ScheduleChangeRequestType RequestType { get; set; }
+
+        [Required]
+        [MaxLength(500)]
+        public string Reason { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceScheduleChangeRequest
+    {
+        public Guid? CurrentWorkScheduleAssignmentId { get; set; }
+
+        [Required]
+        public DateTime RequestedScheduleDate { get; set; }
+
+        public Guid? RequestedWorkScheduleId { get; set; }
+
+        [Required]
+        public ScheduleChangeRequestType RequestType { get; set; }
+
+        [Required]
+        [MaxLength(500)]
+        public string Reason { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceScheduleChangeStatusRequest
+    {
+        [Required]
+        public ScheduleRequestApprovalStatus ApprovalStatus { get; set; }
+
+        [MaxLength(250)]
+        public string? RejectedReason { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class ApproveWorkforceScheduleChangeRequest
+    {
+        public bool ApplyToScheduleAssignment { get; set; } = false;
+
+        [MaxLength(250)]
+        public string? Notes { get; set; }
+    }
+
+    public class RejectWorkforceScheduleChangeRequest
+    {
+        [Required]
+        [MaxLength(250)]
+        public string RejectedReason { get; set; } = string.Empty;
+    }
+
+    public class CancelWorkforceScheduleChangeRequest
+    {
+        [MaxLength(250)]
+        public string? CancelReason { get; set; }
+    }
+
+    public class WorkforceShiftSwapRequestResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid RequesterWorkforceProfileId { get; set; }
+        public string RequesterProfileCode { get; set; } = string.Empty;
+        public string RequesterDisplayName { get; set; } = string.Empty;
+        public UserType RequesterUserType { get; set; }
+
+        public Guid TargetWorkforceProfileId { get; set; }
+        public string TargetProfileCode { get; set; } = string.Empty;
+        public string TargetDisplayName { get; set; } = string.Empty;
+        public UserType TargetUserType { get; set; }
+
+        public Guid RequesterScheduleAssignmentId { get; set; }
+        public DateTime? RequesterScheduleDate { get; set; }
+        public Guid? RequesterWorkScheduleId { get; set; }
+        public string? RequesterWorkScheduleCode { get; set; }
+        public string? RequesterWorkScheduleName { get; set; }
+
+        public Guid TargetScheduleAssignmentId { get; set; }
+        public DateTime? TargetScheduleDate { get; set; }
+        public Guid? TargetWorkScheduleId { get; set; }
+        public string? TargetWorkScheduleCode { get; set; }
+        public string? TargetWorkScheduleName { get; set; }
+
+        public string Reason { get; set; } = string.Empty;
+        public ScheduleRequestApprovalStatus ApprovalStatus { get; set; }
+        public DateTime RequestedAt { get; set; }
+
+        public Guid? ApprovedByUserId { get; set; }
+        public string? ApprovedByUserName { get; set; }
+        public DateTime? ApprovedAt { get; set; }
+
+        public Guid? RejectedByUserId { get; set; }
+        public string? RejectedByUserName { get; set; }
+        public DateTime? RejectedAt { get; set; }
+        public string? RejectedReason { get; set; }
+
+        public bool IsActive { get; set; }
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class WorkforceShiftSwapRequestListResponse
+    {
+        public int TotalData { get; set; }
+        public int ActiveData { get; set; }
+        public int PendingData { get; set; }
+        public int ApprovedData { get; set; }
+        public int RejectedData { get; set; }
+        public int CancelledData { get; set; }
+        public List<WorkforceShiftSwapRequestResponse> Items { get; set; } = new();
+    }
+
+    public class CreateWorkforceShiftSwapRequest
+    {
+        [Required]
+        public Guid RequesterWorkforceProfileId { get; set; }
+
+        [Required]
+        public Guid TargetWorkforceProfileId { get; set; }
+
+        [Required]
+        public Guid RequesterScheduleAssignmentId { get; set; }
+
+        [Required]
+        public Guid TargetScheduleAssignmentId { get; set; }
+
+        [Required]
+        [MaxLength(500)]
+        public string Reason { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceShiftSwapRequest
+    {
+        [Required]
+        public Guid RequesterWorkforceProfileId { get; set; }
+
+        [Required]
+        public Guid TargetWorkforceProfileId { get; set; }
+
+        [Required]
+        public Guid RequesterScheduleAssignmentId { get; set; }
+
+        [Required]
+        public Guid TargetScheduleAssignmentId { get; set; }
+
+        [Required]
+        [MaxLength(500)]
+        public string Reason { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateWorkforceShiftSwapStatusRequest
+    {
+        [Required]
+        public ScheduleRequestApprovalStatus ApprovalStatus { get; set; }
+
+        [MaxLength(250)]
+        public string? RejectedReason { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class ApproveWorkforceShiftSwapRequest
+    {
+        public bool ApplyToScheduleAssignment { get; set; } = false;
+
+        [MaxLength(250)]
+        public string? Notes { get; set; }
+    }
+
+    public class RejectWorkforceShiftSwapRequest
+    {
+        [Required]
+        [MaxLength(250)]
+        public string RejectedReason { get; set; } = string.Empty;
+    }
+
+    public class CancelWorkforceShiftSwapRequest
+    {
+        [MaxLength(250)]
+        public string? CancelReason { get; set; }
+    }
+
 }

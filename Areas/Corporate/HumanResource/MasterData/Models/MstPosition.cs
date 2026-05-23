@@ -26,5 +26,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models
         public bool IsActive { get; set; } = true;
 
         public MstDepartment? Department { get; set; }
+
+        public ICollection<MstPositionCompetencyRequirement> CompetencyRequirements { get; set; } = new List<MstPositionCompetencyRequirement>();
     }
 }
