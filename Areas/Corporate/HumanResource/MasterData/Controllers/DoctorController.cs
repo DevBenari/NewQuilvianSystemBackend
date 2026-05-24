@@ -188,6 +188,58 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     CanUpdate = false,
                     CanDelete = false,
                     SortOrder = 10
+                },
+                new()
+                {
+                    Key = "disciplinaryActions",
+                    Label = "Disciplinary Actions",
+                    Icon = "warning",
+                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/disciplinary-actions",
+                    IsVisibleInDetail = true,
+                    IsVisibleInUpdate = true,
+                    CanCreate = true,
+                    CanUpdate = true,
+                    CanDelete = true,
+                    SortOrder = 11
+                },
+                new()
+                {
+                    Key = "complianceAlerts",
+                    Label = "Compliance Alerts",
+                    Icon = "alert",
+                    Endpoint = "/api/v1/corporate/human-resource/workforce/compliance-alerts?workforceProfileId={workforceProfileId}",
+                    IsVisibleInDetail = true,
+                    IsVisibleInUpdate = false,
+                    CanCreate = false,
+                    CanUpdate = true,
+                    CanDelete = false,
+                    SortOrder = 12
+                },
+                new()
+                {
+                    Key = "scheduleChangeRequests",
+                    Label = "Schedule Change Requests",
+                    Icon = "calendar-edit",
+                    Endpoint = "/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/schedule-change-requests",
+                    IsVisibleInDetail = true,
+                    IsVisibleInUpdate = true,
+                    CanCreate = true,
+                    CanUpdate = true,
+                    CanDelete = true,
+                    SortOrder = 13
+                },
+                new()
+                {
+                    Key = "shiftSwapRequests",
+                    Label = "Shift Swap Requests",
+                    Icon = "swap",
+                    Endpoint = "/api/v1/corporate/human-resource/workforce/shift-swap-requests?workforceProfileId={workforceProfileId}",
+                    IsVisibleInDetail = true,
+                    IsVisibleInUpdate = true,
+                    CanCreate = true,
+                    CanUpdate = true,
+                    CanDelete = true,
+                    SortOrder = 14
                 }
             }
             .OrderBy(x => x.SortOrder)
