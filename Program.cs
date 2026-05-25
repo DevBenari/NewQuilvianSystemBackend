@@ -211,12 +211,13 @@ builder.Services.AddSwaggerGen(options =>
 
             "self-services" =>
                 path.StartsWith("api/v1/self-services") ||
-                path.StartsWith("api/v1/selfservices"),
+                path.StartsWith("api/v1/selfservices") ||
+                path.StartsWith("api/v1/profile"),
 
             _ => false
         };
     });
-    
+
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",

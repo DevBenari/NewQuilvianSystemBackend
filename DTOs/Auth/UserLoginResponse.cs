@@ -18,6 +18,10 @@
 
         public bool MustChangePassword { get; set; }
 
+        public string? ProfilePhotoPath { get; set; }
+
+        public string? ProfilePhotoUrl { get; set; }
+
         public Guid? DepartmentId { get; set; }
 
         public Guid? PositionId { get; set; }

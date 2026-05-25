@@ -1757,7 +1757,7 @@ namespace QuilvianSystemBackend.Controllers
             };
         }
 
-        private static UserLoginResponse BuildUserResponse(ApplicationUser user, IList<string> roles)
+        private UserLoginResponse BuildUserResponse(ApplicationUser user, IList<string> roles)
         {
             var hasWorkforceProfile = user.WorkforceProfileId.HasValue;
 
@@ -1781,6 +1781,9 @@ namespace QuilvianSystemBackend.Controllers
                 Roles = roles.ToList(),
                 IsActive = user.IsActive,
                 MustChangePassword = user.MustChangePassword,
+
+                ProfilePhotoPath = user.ProfilePhotoPath,
+                ProfilePhotoUrl = BuildPublicFileUrl(user.ProfilePhotoPath),
 
                 DepartmentId = user.PrimaryDepartmentId,
                 PositionId = user.PrimaryPositionId,
@@ -1807,6 +1810,31 @@ namespace QuilvianSystemBackend.Controllers
                     WorkforceProfileBaseEndpoint = workforceProfileBaseEndpoint
                 }
             };
+        }
+
+        private string? BuildPublicFileUrl(string? filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return null;
+            }
+
+            var normalizedPath = filePath.Trim();
+
+            if (normalizedPath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                normalizedPath.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                return normalizedPath;
+            }
+
+            var publicBaseUrl = _configuration["FileStorage:PublicBaseUrl"];
+
+            if (!string.IsNullOrWhiteSpace(publicBaseUrl))
+            {
+                return $"{publicBaseUrl.TrimEnd('/')}/{normalizedPath.TrimStart('/')}";
+            }
+
+            return $"{Request.Scheme}://{Request.Host}/{normalizedPath.TrimStart('/')}";
         }
 
         private class GeofenceValidationResult
