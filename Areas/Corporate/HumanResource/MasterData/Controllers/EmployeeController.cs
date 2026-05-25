@@ -37,22 +37,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
     [Tags("Corporate / Human Resource / Master Data / Employee")]
     public class EmployeeController : ControllerBase
     {
-        private const string DefaultProfilePhotoPath = "http://103.153.60.136:5050/uploads/default-photo/user.jpeg";
+        private const string DefaultUserProfilePhotoPathFallback = "/uploads/default-profile-photos/user.png";
         private const string LogCategory = "Corporate.HumanResource.MasterData";
         private const string HospitalCode = "RSMMC";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IConfiguration _configuration;
 
         public EmployeeController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            IConfiguration configuration)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _userManager = userManager;
+            _configuration = configuration;
         }
 
         private static List<EmployeeDetailTabMetadataResponse> BuildEmployeeDetailTabs()
@@ -2909,6 +2912,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 : digits;
         }
 
+        private string GetDefaultUserProfilePhotoPath()
+        {
+            var configuredPath = _configuration["FileStorage:DefaultUserProfilePhotoPath"];
+
+            return string.IsNullOrWhiteSpace(configuredPath)
+                ? DefaultUserProfilePhotoPathFallback
+                : configuredPath.Trim();
+        }
+
         private sealed class DateRangeResolveResult
         {
             public bool IsValid { get; private set; }
@@ -3016,7 +3028,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 MustChangePassword = true,
                 AccessValidUntil = null,
                 CreateDateTime = now,
-                ProfilePhotoPath = DefaultProfilePhotoPath,
+                ProfilePhotoPath = GetDefaultUserProfilePhotoPath(),
                 IsFingerprintRegistrationEnabled = isFingerprintRegistrationEnabled,
                 FingerprintRegistrationReason = isFingerprintRegistrationEnabled
                     ? NormalizeNullableText(fingerprintRegistrationReason)

@@ -18,6 +18,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ghcr.io/devbenari/newquilviansystembackend
   IMAGE_TAG: developer
+  CONTAINER_NAME: quilviandeveloper-container
 
 jobs:
   build-and-deploy:
@@ -59,4 +60,4 @@ jobs:
 
       - name: Deploy to server
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "bash /opt/QuilvianDeveloper/deploy.sh"
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "IMAGE_NAME='${{ env.IMAGE_NAME }}' IMAGE_TAG='${{ env.IMAGE_TAG }}' CONTAINER_NAME='${{ env.CONTAINER_NAME }}' bash /opt/QuilvianDeveloper/deploy.sh"

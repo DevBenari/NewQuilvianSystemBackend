@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Middlewares;
@@ -271,6 +272,20 @@ builder.Services
     .SetApplicationName(dataProtectionApplicationName);
 
 var app = builder.Build();
+
+var uploadRootPath = builder.Configuration["FileStorage:UploadRootPath"];
+var publicRequestPath = builder.Configuration["FileStorage:PublicRequestPath"] ?? "/uploads";
+
+if (!string.IsNullOrWhiteSpace(uploadRootPath))
+{
+    Directory.CreateDirectory(uploadRootPath);
+
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(uploadRootPath),
+        RequestPath = publicRequestPath
+    });
+}
 
 app.UseForwardedHeaders();
 
