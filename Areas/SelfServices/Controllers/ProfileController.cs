@@ -12,6 +12,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using System.Security.Cryptography;
 
 namespace QuilvianSystemBackend.Areas.SelfServices.Controllers
 {
@@ -663,6 +664,279 @@ namespace QuilvianSystemBackend.Areas.SelfServices.Controllers
                 .GetSection("FileStorage:AllowedProfilePhotoExtensions")
                 .Get<string[]>()
                 ?? new[] { ".jpg", ".jpeg", ".png", ".webp" };
+        }
+
+        [HttpPut("password")]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(ApiResponse<SelfServiceProfileResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        [AccessAction(
+            "Update",
+            "Change Profile Password",
+            Description = "Mengubah password akun user login melalui self service",
+            AccessType = AccessTypes.Update,
+            SortOrder = 4
+        )]
+        [AccessPermission("Profile", "Update")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangeSelfServicePasswordRequest request)
+        {
+            var user = await GetCurrentUserAsync();
+
+            if (user == null)
+            {
+                return Unauthorized(ApiResponse<object>.Fail(
+                    StatusCodes.Status401Unauthorized,
+                    "User tidak ditemukan."
+                ));
+            }
+
+            if (!user.IsActive)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Akun tidak aktif."
+                ));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.CurrentPassword))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Password lama wajib diisi."
+                ));
+            }
+
+            if (string.IsNullOrWhiteSpace(request.NewPassword))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Password baru wajib diisi."
+                ));
+            }
+
+            if (request.NewPassword != request.ConfirmNewPassword)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Konfirmasi password baru tidak sesuai."
+                ));
+            }
+
+            if (request.CurrentPassword == request.NewPassword)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Password baru tidak boleh sama dengan password lama."
+                ));
+            }
+
+            var changePasswordResult = await _userManager.ChangePasswordAsync(
+                user,
+                request.CurrentPassword,
+                request.NewPassword
+            );
+
+            if (!changePasswordResult.Succeeded)
+            {
+                var errors = string.Join(
+                    " | ",
+                    changePasswordResult.Errors.Select(x => $"{x.Code}: {x.Description}")
+                );
+
+                await _loggerService.WarningAsync(
+                    LogCategory,
+                    "Profile.ChangePassword",
+                    "Gagal mengubah password user.",
+                    new
+                    {
+                        user.Id,
+                        user.Email,
+                        Errors = errors
+                    }
+                );
+
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    $"Gagal mengubah password: {errors}"
+                ));
+            }
+
+            user.MustChangePassword = false;
+            user.UpdateDateTime = DateTime.UtcNow;
+
+            var updateResult = await _userManager.UpdateAsync(user);
+
+            if (!updateResult.Succeeded)
+            {
+                var errors = string.Join(
+                    " | ",
+                    updateResult.Errors.Select(x => $"{x.Code}: {x.Description}")
+                );
+
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    $"Password berhasil diganti, tetapi gagal memperbarui status akun: {errors}"
+                ));
+            }
+
+            var response = await BuildProfileResponseAsync(user);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Profile.ChangePassword",
+                "Password user berhasil diubah.",
+                new
+                {
+                    user.Id,
+                    user.Email,
+                    user.UserType
+                }
+            );
+
+            return Ok(ApiResponse<SelfServiceProfileResponse>.Ok(
+                response,
+                "Password berhasil diubah."
+            ));
+        }
+
+        [HttpPost("password/generate")]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(ApiResponse<GenerateSelfServicePasswordResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        [AccessAction(
+            "Update",
+            "Generate Profile Password",
+            Description = "Generate password random berdasarkan username user login",
+            AccessType = AccessTypes.Update,
+            SortOrder = 4
+        )]
+        [AccessPermission("Profile", "Update")]
+        public async Task<IActionResult> GeneratePassword()
+        {
+            var user = await GetCurrentUserAsync();
+
+            if (user == null)
+            {
+                return Unauthorized(ApiResponse<object>.Fail(
+                    StatusCodes.Status401Unauthorized,
+                    "User tidak ditemukan."
+                ));
+            }
+
+            var usernameSource =
+                !string.IsNullOrWhiteSpace(user.UserName)
+                    ? user.UserName!
+                    : !string.IsNullOrWhiteSpace(user.Email)
+                        ? user.Email!
+                        : user.DisplayName;
+
+            var prefix = BuildPasswordPrefix(usernameSource);
+
+            var suggestedPassword = GeneratePasswordFromPrefix(prefix);
+
+            var result = new GenerateSelfServicePasswordResponse
+            {
+                UsernameSource = usernameSource,
+                Prefix = prefix,
+                SuggestedPassword = suggestedPassword,
+                Pattern = "{usernamePrefix}-{4 uppercase}{5 digit}!@#$",
+                GeneratedAt = DateTime.UtcNow
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Profile.GeneratePassword",
+                "Generate password suggestion untuk user login.",
+                new
+                {
+                    user.Id,
+                    user.Email,
+                    user.UserName,
+                    Prefix = prefix
+                }
+            );
+
+            return Ok(ApiResponse<GenerateSelfServicePasswordResponse>.Ok(
+                result,
+                "Password random berhasil dibuat."
+            ));
+        }
+
+        private static string BuildPasswordPrefix(string source)
+        {
+            if (string.IsNullOrWhiteSpace(source))
+            {
+                return "quilvian";
+            }
+
+            var normalizedSource = source.Trim();
+
+            var atIndex = normalizedSource.IndexOf('@');
+
+            if (atIndex > 0)
+            {
+                normalizedSource = normalizedSource[..atIndex];
+            }
+
+            var chars = normalizedSource
+                .Where(char.IsLetterOrDigit)
+                .Select(char.ToLowerInvariant)
+                .ToArray();
+
+            var prefix = new string(chars);
+
+            if (string.IsNullOrWhiteSpace(prefix))
+            {
+                return "quilvian";
+            }
+
+            if (prefix.Length < 4)
+            {
+                prefix = $"{prefix}user";
+            }
+
+            if (prefix.Length > 20)
+            {
+                prefix = prefix[..20];
+            }
+
+            return prefix;
+        }
+
+        private static string GeneratePasswordFromPrefix(string prefix)
+        {
+            const string uppercaseChars = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+            const string digitChars = "23456789";
+
+            var uppercasePart = GetSecureRandomString(uppercaseChars, 4);
+            var digitPart = GetSecureRandomString(digitChars, 5);
+            const string symbolPart = "!@#$";
+
+            return $"{prefix}-{uppercasePart}{digitPart}{symbolPart}";
+        }
+
+        private static string GetSecureRandomString(string allowedChars, int length)
+        {
+            if (string.IsNullOrWhiteSpace(allowedChars))
+            {
+                throw new ArgumentException("Allowed chars tidak boleh kosong.", nameof(allowedChars));
+            }
+
+            if (length <= 0)
+            {
+                return string.Empty;
+            }
+
+            var result = new char[length];
+
+            for (var i = 0; i < length; i++)
+            {
+                var index = RandomNumberGenerator.GetInt32(allowedChars.Length);
+                result[i] = allowedChars[index];
+            }
+
+            return new string(result);
         }
     }
 }

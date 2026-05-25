@@ -74,4 +74,31 @@ namespace QuilvianSystemBackend.Areas.SelfServices.DTOs
 
         public string PublicBaseUrl { get; set; } = string.Empty;
     }
+
+    public class ChangeSelfServicePasswordRequest
+    {
+        [Required]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [Required]
+        [MinLength(8)]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required]
+        [Compare(nameof(NewPassword))]
+        public string ConfirmNewPassword { get; set; } = string.Empty;
+    }
+
+    public class GenerateSelfServicePasswordResponse
+    {
+        public string UsernameSource { get; set; } = string.Empty;
+
+        public string Prefix { get; set; } = string.Empty;
+
+        public string SuggestedPassword { get; set; } = string.Empty;
+
+        public string Pattern { get; set; } = string.Empty;
+
+        public DateTime GeneratedAt { get; set; }
+    }
 }
