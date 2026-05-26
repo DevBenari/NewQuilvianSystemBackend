@@ -9,7 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.DTOs.Auth;
-using QuilvianSystemBackend.Enum;
+using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;

@@ -1,5 +1,6 @@
 ﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
-using QuilvianSystemBackend.Enum;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Enums;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Enums;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;

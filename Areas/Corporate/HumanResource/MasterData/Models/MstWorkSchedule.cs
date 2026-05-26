@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Enum;
+﻿using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;

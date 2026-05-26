@@ -5,8 +5,12 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models;
 using QuilvianSystemBackend.Models;
 using System.Reflection.Emit;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
-using QuilvianSystemBackend.Enum;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Enums;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Enums;
 
 namespace QuilvianSystemBackend.Repositories
 {
@@ -18,6 +22,7 @@ namespace QuilvianSystemBackend.Repositories
         {
         }
 
+        #region GLOBAL
         public DbSet<SysAppVersion> SysAppVersions { get; set; }
         public DbSet<SysApplicationModule> SysApplicationModules { get; set; }
         public DbSet<SysControllerAccess> SysControllerAccesses { get; set; }
@@ -32,7 +37,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstCity> MstCities { get; set; }
         public DbSet<MstDistrict> MstDistricts { get; set; }
         public DbSet<MstPostalCode> MstPostalCodes { get; set; }
+        #endregion GLOBAL
 
+        #region CORPORATE
         public DbSet<MstWorkforceProfile> MstWorkforceProfiles { get; set; }
         public DbSet<MstWorkforceRequirement> MstWorkforceRequirements { get; set; }
         public DbSet<MstDepartment> MstDepartments { get; set; }
@@ -80,11 +87,29 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<WfpComplianceAlertLog> WfpComplianceAlertLogs { get; set; }
         public DbSet<WfpScheduleChangeRequest> WfpScheduleChangeRequests { get; set; }
         public DbSet<WfpShiftSwapRequest> WfpShiftSwapRequests { get; set; }
+        #endregion CORPORATE
+
+        #region HEALTH SERVICE
+        public DbSet<MstServiceUnit> MstServiceUnits { get; set; }
+        public DbSet<MstClinic> MstClinics { get; set; }
+        public DbSet<MstPatientClass> MstPatientClasses { get; set; }
+        public DbSet<MstTariffCategory> MstTariffCategories { get; set; }
+        public DbSet<MstTariff> MstTariffs { get; set; }
+        public DbSet<MstRoom> MstRooms { get; set; }
+        public DbSet<MstBed> MstBeds { get; set; }
+        public DbSet<MstMembershipTier> MstMembershipTiers { get; set; }
+        public DbSet<MstPatient> MstPatients { get; set; }
+        public DbSet<MstPatientMembership> MstPatientMemberships { get; set; }
+        public DbSet<MstPatientIdentityDocument> MstPatientIdentityDocuments { get; set; }
+        public DbSet<MstPatientRelationship> MstPatientRelationships { get; set; }
+        public DbSet<MstPatientEmergencyContact> MstPatientEmergencyContacts { get; set; }
+        #endregion HEALTH SERVICE
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
+            #region GLOBAL
             builder.Entity<ApplicationUser>(entity =>
             {
                 entity.Property(x => x.UserCode)
@@ -941,7 +966,9 @@ namespace QuilvianSystemBackend.Repositories
                     x.IsDelete
                 });
             });
+            #endregion GLOBAL
 
+            #region CORPORATE
             builder.Entity<MstWorkforceProfile>(entity =>
             {
                 entity.ToTable("MstWorkforceProfile", "public");
@@ -6302,6 +6329,1747 @@ namespace QuilvianSystemBackend.Repositories
                 })
                 .HasFilter("\"ApprovalStatus\" = 1 AND \"IsDelete\" = false");
             });
+            #endregion CORPORATE
+
+            #region HEALTH SERVICE
+            builder.Entity<MstServiceUnit>(entity =>
+            {
+                entity.ToTable("MstServiceUnit", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.ServiceUnitCode)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.ServiceUnitName)
+                    .HasMaxLength(150)
+                    .IsRequired();
+
+                entity.Property(x => x.ServiceUnitType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(ServiceUnitType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.ShortName)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.LocationName)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.FloorName)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.IsAvailableForRegistration)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsAvailableForKiosk)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsAvailableForAppointment)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsQueueRequired)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsDoctorRequired)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsScreeningRequired)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.SortOrder)
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasIndex(x => x.ServiceUnitCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.ServiceUnitName);
+
+                entity.HasIndex(x => x.ServiceUnitType);
+
+                entity.HasIndex(x => new
+                {
+                    x.ServiceUnitType,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.IsAvailableForRegistration,
+                    x.IsAvailableForKiosk,
+                    x.IsAvailableForAppointment,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstClinic>(entity =>
+            {
+                entity.ToTable("MstClinic", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.ServiceUnitId)
+                    .IsRequired();
+
+                entity.Property(x => x.ClinicCode)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.ClinicName)
+                    .HasMaxLength(150)
+                    .IsRequired();
+
+                entity.Property(x => x.ClinicType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(ClinicType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.ShortName)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.LocationName)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.FloorName)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.RoomName)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.IsAvailableForRegistration)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsAvailableForKiosk)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsAvailableForAppointment)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsDoctorRequired)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsScreeningRequired)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsQueueRequired)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.DefaultEstimatedServiceMinutes)
+                    .HasDefaultValue(15);
+
+                entity.Property(x => x.SortOrder)
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.ServiceUnit)
+                    .WithMany()
+                    .HasForeignKey(x => x.ServiceUnitId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.ClinicCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.ClinicName);
+
+                entity.HasIndex(x => x.ServiceUnitId);
+
+                entity.HasIndex(x => new
+                {
+                    x.ServiceUnitId,
+                    x.ClinicName
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.ServiceUnitId,
+                    x.ClinicType,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.IsAvailableForRegistration,
+                    x.IsAvailableForKiosk,
+                    x.IsAvailableForAppointment,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstPatientClass>(entity =>
+            {
+                entity.ToTable("MstPatientClass", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.PatientClassCode)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.PatientClassName)
+                    .HasMaxLength(150)
+                    .IsRequired();
+
+                entity.Property(x => x.PatientClassType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(PatientClassType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.ExternalClassCode)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.ClassAlias)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.ClassLevel)
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.IsForOutpatient)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsForInpatient)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsForEmergency)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsForIntensiveCare)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsForNewborn)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsForRoomCharge)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsForTariffMapping)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsDefault)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.DefaultDailyRoomRate)
+                    .HasColumnType("numeric(18,2)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DefaultRegistrationFee)
+                    .HasColumnType("numeric(18,2)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DefaultConsultationFee)
+                    .HasColumnType("numeric(18,2)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.SortOrder)
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasIndex(x => x.PatientClassCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.PatientClassName);
+
+                entity.HasIndex(x => x.ExternalClassCode);
+
+                entity.HasIndex(x => x.PatientClassType);
+
+                entity.HasIndex(x => new
+                {
+                    x.ExternalClassCode,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.PatientClassType,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.IsForRoomCharge,
+                    x.IsForTariffMapping,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstTariffCategory>(entity =>
+            {
+                entity.ToTable("MstTariffCategory", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.TariffCategoryCode)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.TariffCategoryName)
+                    .HasMaxLength(150)
+                    .IsRequired();
+
+                entity.Property(x => x.TariffGroupName)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.IsRegistrationFee)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsAdministrationFee)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsConsultationFee)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsRoomCharge)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsProcedure)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsLaboratory)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsRadiology)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsPharmacy)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsSurgery)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsPackage)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCoveredByInsuranceDefault)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.SortOrder)
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasIndex(x => x.TariffCategoryCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.TariffCategoryName);
+
+                entity.HasIndex(x => x.TariffGroupName);
+
+                entity.HasIndex(x => new
+                {
+                    x.IsRegistrationFee,
+                    x.IsAdministrationFee,
+                    x.IsConsultationFee,
+                    x.IsRoomCharge,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.IsProcedure,
+                    x.IsLaboratory,
+                    x.IsRadiology,
+                    x.IsPharmacy,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstTariff>(entity =>
+            {
+                entity.ToTable("MstTariff", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.TariffCode)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.TariffName)
+                    .HasMaxLength(250)
+                    .IsRequired();
+
+                entity.Property(x => x.TariffCategoryId)
+                    .IsRequired();
+
+                entity.Property(x => x.ExternalServiceCode)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.ExternalClassCode)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.ProviderName)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.IsSurgeryRelated)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsRoomCharge)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsAdministrationFee)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsRegistrationFee)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsConsultationFee)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsPackageTariff)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsNeedDoctor)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsNeedApproval)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.NormalPrice)
+                    .HasColumnType("numeric(18,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.MemberPrice)
+                    .HasColumnType("numeric(18,2)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.InsurancePrice)
+                    .HasColumnType("numeric(18,2)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CompanyPrice)
+                    .HasColumnType("numeric(18,2)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.EffectiveStartDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.EffectiveEndDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsTaxable)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.SortOrder)
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.TariffCategory)
+                    .WithMany()
+                    .HasForeignKey(x => x.TariffCategoryId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.ServiceUnit)
+                    .WithMany()
+                    .HasForeignKey(x => x.ServiceUnitId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.Clinic)
+                    .WithMany()
+                    .HasForeignKey(x => x.ClinicId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.PatientClass)
+                    .WithMany()
+                    .HasForeignKey(x => x.PatientClassId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.TariffCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.TariffName);
+
+                entity.HasIndex(x => x.TariffCategoryId);
+
+                entity.HasIndex(x => x.ServiceUnitId);
+
+                entity.HasIndex(x => x.ClinicId);
+
+                entity.HasIndex(x => x.PatientClassId);
+
+                entity.HasIndex(x => x.ExternalServiceCode);
+
+                entity.HasIndex(x => x.ExternalClassCode);
+
+                entity.HasIndex(x => new
+                {
+                    x.TariffCategoryId,
+                    x.PatientClassId,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.ServiceUnitId,
+                    x.PatientClassId,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.IsRoomCharge,
+                    x.IsAdministrationFee,
+                    x.IsRegistrationFee,
+                    x.IsConsultationFee,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstRoom>(entity =>
+            {
+                entity.ToTable("MstRoom", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.ServiceUnitId)
+                    .IsRequired();
+
+                entity.Property(x => x.RoomCode)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.RoomName)
+                    .HasMaxLength(150)
+                    .IsRequired();
+
+                entity.Property(x => x.RoomType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(RoomType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.RoomNumber)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.LocationName)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.FloorName)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.Capacity)
+                    .HasDefaultValue(1);
+
+                entity.Property(x => x.IsForMale)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsForFemale)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsForNewborn)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsIsolationRoom)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsIntensiveCare)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsOdcRoom)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsAvailableForAdmission)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.SortOrder)
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.ServiceUnit)
+                    .WithMany()
+                    .HasForeignKey(x => x.ServiceUnitId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.PatientClass)
+                    .WithMany()
+                    .HasForeignKey(x => x.PatientClassId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.RoomCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.RoomName);
+
+                entity.HasIndex(x => x.ServiceUnitId);
+
+                entity.HasIndex(x => x.PatientClassId);
+
+                entity.HasIndex(x => new
+                {
+                    x.ServiceUnitId,
+                    x.PatientClassId,
+                    x.RoomType,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.IsIsolationRoom,
+                    x.IsIntensiveCare,
+                    x.IsOdcRoom,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstBed>(entity =>
+            {
+                entity.ToTable("MstBed", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.RoomId)
+                    .IsRequired();
+
+                entity.Property(x => x.BedCode)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.BedName)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(x => x.BedNumber)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.BedStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(BedStatus.Available)
+                    .IsRequired();
+
+                entity.Property(x => x.IsForMale)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsForFemale)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsForNewborn)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsIsolationBed)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsIntensiveCareBed)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsOdcBed)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsReservable)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.SortOrder)
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.Room)
+                    .WithMany()
+                    .HasForeignKey(x => x.RoomId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.BedCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.RoomId);
+
+                entity.HasIndex(x => new
+                {
+                    x.RoomId,
+                    x.BedNumber
+                }).IsUnique()
+                .HasFilter("\"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.RoomId,
+                    x.BedStatus,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.BedStatus,
+                    x.IsReservable,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstMembershipTier>(entity =>
+            {
+                entity.ToTable("MstMembershipTier", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.TierCode)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.TierName)
+                    .HasMaxLength(150)
+                    .IsRequired();
+
+                entity.Property(x => x.TierType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(MembershipTierType.Regular)
+                    .IsRequired();
+
+                entity.Property(x => x.CardTitle)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.CardColor)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.CardImagePath)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.PriorityLevel)
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.IsDefault)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsSelectableInKiosk)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsSelectableInAdmission)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsManagedByMarketingOnly)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.RegistrationDiscountPercent)
+                    .HasColumnType("numeric(5,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.ConsultationDiscountPercent)
+                    .HasColumnType("numeric(5,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.ProcedureDiscountPercent)
+                    .HasColumnType("numeric(5,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.LaboratoryDiscountPercent)
+                    .HasColumnType("numeric(5,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.RadiologyDiscountPercent)
+                    .HasColumnType("numeric(5,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.PharmacyDiscountPercent)
+                    .HasColumnType("numeric(5,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.PriorityQueue)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.FreeAnnualCheckup)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.FreeParking)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.ValidityMonths)
+                    .HasDefaultValue(12);
+
+                entity.Property(x => x.MinimumSpendAmount)
+                    .HasColumnType("numeric(18,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.SortOrder)
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.BenefitDescription)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.Description)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasIndex(x => x.TierCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.TierName);
+
+                entity.HasIndex(x => x.TierType);
+
+                entity.HasIndex(x => new
+                {
+                    x.IsDefault,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.IsSelectableInKiosk,
+                    x.IsSelectableInAdmission,
+                    x.IsManagedByMarketingOnly,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstPatient>(entity =>
+            {
+                entity.ToTable("MstPatient", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.PatientCode)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.MedicalRecordNumber)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.PatientType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(PatientType.General)
+                    .IsRequired();
+
+                entity.Property(x => x.PatientStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(PatientStatus.Active)
+                    .IsRequired();
+
+                entity.Property(x => x.RegistrationSource)
+                    .HasConversion<int>()
+                    .HasDefaultValue(PatientRegistrationSource.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.FullName)
+                    .HasMaxLength(200)
+                    .IsRequired();
+
+                entity.Property(x => x.NickName)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.BirthPlace)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.BirthDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.Gender)
+                    .HasConversion<int>()
+                    .IsRequired(false);
+
+                entity.Property(x => x.Religion)
+                    .HasConversion<int>()
+                    .HasDefaultValue(Religion.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.MaritalStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(MaritalStatus.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.BloodType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(BloodType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.IdentityType)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.IdentityNumber)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.PhoneNumber)
+                    .HasMaxLength(30);
+
+                entity.Property(x => x.WhatsAppNumber)
+                    .HasMaxLength(30);
+
+                entity.Property(x => x.Email)
+                    .HasMaxLength(200);
+
+                entity.Property(x => x.Address)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.PhotoPath)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.IsMember)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.DefaultMembershipTierId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.ActivePatientMembershipId)
+                    .IsRequired(false);
+
+                entity.HasOne(x => x.DefaultMembershipTier)
+                    .WithMany()
+                    .HasForeignKey(x => x.DefaultMembershipTierId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.DefaultMembershipTierId);
+
+                entity.HasIndex(x => x.ActivePatientMembershipId);
+
+                entity.Property(x => x.IsNewborn)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.BirthWeightGram)
+                    .HasColumnType("numeric(18,2)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.BirthLengthCm)
+                    .HasColumnType("numeric(18,2)")
+                    .IsRequired(false);
+
+                entity.Property(x => x.BirthTime)
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeliveryMethod)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.IsDeceased)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.DeceasedDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.MergeReason)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.Country)
+                    .WithMany()
+                    .HasForeignKey(x => x.CountryId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.Province)
+                    .WithMany()
+                    .HasForeignKey(x => x.ProvinceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.City)
+                    .WithMany()
+                    .HasForeignKey(x => x.CityId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.District)
+                    .WithMany()
+                    .HasForeignKey(x => x.DistrictId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.PostalCode)
+                    .WithMany()
+                    .HasForeignKey(x => x.PostalCodeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.DefaultMembershipTier)
+                    .WithMany()
+                    .HasForeignKey(x => x.DefaultMembershipTierId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.MotherPatient)
+                    .WithMany()
+                    .HasForeignKey(x => x.MotherPatientId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.MergedToPatient)
+                    .WithMany()
+                    .HasForeignKey(x => x.MergedToPatientId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.PatientCode)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.MedicalRecordNumber)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.IdentityNumber)
+                    .IsUnique()
+                    .HasFilter("\"IdentityNumber\" IS NOT NULL AND \"IsDelete\" = false");
+
+                entity.HasIndex(x => x.FullName);
+
+                entity.HasIndex(x => x.PhoneNumber);
+
+                entity.HasIndex(x => x.WhatsAppNumber);
+
+                entity.HasIndex(x => x.Email);
+
+                entity.HasIndex(x => x.MotherPatientId);
+
+                entity.HasIndex(x => x.ActivePatientMembershipId);
+
+                entity.HasIndex(x => new
+                {
+                    x.PatientType,
+                    x.PatientStatus,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.FullName,
+                    x.BirthDate,
+                    x.Gender
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.CountryId,
+                    x.ProvinceId,
+                    x.CityId,
+                    x.DistrictId,
+                    x.PostalCodeId
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.IsMember,
+                    x.IsNewborn,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstPatientMembership>(entity =>
+            {
+                entity.ToTable("MstPatientMembership", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.PatientId)
+                    .IsRequired();
+
+                entity.Property(x => x.MembershipTierId)
+                    .IsRequired();
+
+                entity.Property(x => x.MemberNumber)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.MembershipStatus)
+                    .HasConversion<int>()
+                    .HasDefaultValue(MembershipStatus.Active)
+                    .IsRequired();
+
+                entity.Property(x => x.JoinDate)
+                    .HasColumnType("date")
+                    .IsRequired();
+
+                entity.Property(x => x.ExpiredDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsPrimary)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.IsAutoCreated)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCreatedFromKiosk)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCreatedFromAdmission)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCreatedByMarketing)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.PointBalance)
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.TotalSpendAmount)
+                    .HasColumnType("numeric(18,2)")
+                    .HasDefaultValue(0);
+
+                entity.Property(x => x.LastUpgradeDate)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.LastDowngradeDate)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.UpgradeDowngradeReason)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.Patient)
+                    .WithMany()
+                    .HasForeignKey(x => x.PatientId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.MembershipTier)
+                    .WithMany()
+                    .HasForeignKey(x => x.MembershipTierId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.MemberNumber)
+                    .IsUnique();
+
+                entity.HasIndex(x => x.PatientId);
+
+                entity.HasIndex(x => x.MembershipTierId);
+
+                entity.HasIndex(x => new
+                {
+                    x.PatientId,
+                    x.IsPrimary
+                })
+                .IsUnique()
+                .HasFilter("\"IsPrimary\" = true AND \"IsActive\" = true AND \"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.PatientId,
+                    x.MembershipStatus,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.MembershipTierId,
+                    x.MembershipStatus,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstPatientIdentityDocument>(entity =>
+            {
+                entity.ToTable("MstPatientIdentityDocument", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.PatientId)
+                    .IsRequired();
+
+                entity.Property(x => x.IdentityType)
+                    .HasMaxLength(50)
+                    .IsRequired();
+
+                entity.Property(x => x.IdentityNumber)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(x => x.DocumentName)
+                    .HasMaxLength(200);
+
+                entity.Property(x => x.FilePath)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.FileContentType)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.IssuedBy)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.IssueDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.ExpiredDate)
+                    .HasColumnType("date")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsPrimary)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsVerified)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.VerifiedByUserId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.VerifiedAt)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.VerificationNote)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsFromKioskScan)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.Patient)
+                    .WithMany()
+                    .HasForeignKey(x => x.PatientId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.PatientId);
+
+                entity.HasIndex(x => x.IdentityNumber);
+
+                entity.HasIndex(x => new
+                {
+                    x.PatientId,
+                    x.IdentityType,
+                    x.IdentityNumber
+                })
+                .IsUnique()
+                .HasFilter("\"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.PatientId,
+                    x.IsPrimary
+                })
+                .IsUnique()
+                .HasFilter("\"IsPrimary\" = true AND \"IsActive\" = true AND \"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.PatientId,
+                    x.IsVerified,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.IsFromKioskScan,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstPatientRelationship>(entity =>
+            {
+                entity.ToTable("MstPatientRelationship", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.PatientId)
+                    .IsRequired();
+
+                entity.Property(x => x.RelatedPatientId)
+                    .IsRequired(false);
+
+                entity.Property(x => x.RelationshipType)
+                    .HasConversion<int>()
+                    .HasDefaultValue(PatientRelationshipType.Unknown)
+                    .IsRequired();
+
+                entity.Property(x => x.RelatedPersonName)
+                    .HasMaxLength(200);
+
+                entity.Property(x => x.RelatedPersonIdentityType)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.RelatedPersonIdentityNumber)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.RelatedPersonPhoneNumber)
+                    .HasMaxLength(30);
+
+                entity.Property(x => x.RelatedPersonWhatsAppNumber)
+                    .HasMaxLength(30);
+
+                entity.Property(x => x.RelatedPersonEmail)
+                    .HasMaxLength(200);
+
+                entity.Property(x => x.RelatedPersonAddress)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.IsPrimary)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsEmergencyContact)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsResponsiblePerson)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsLegalGuardian)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.Patient)
+                    .WithMany()
+                    .HasForeignKey(x => x.PatientId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(x => x.RelatedPatient)
+                    .WithMany()
+                    .HasForeignKey(x => x.RelatedPatientId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.PatientId);
+
+                entity.HasIndex(x => x.RelatedPatientId);
+
+                entity.HasIndex(x => x.RelationshipType);
+
+                entity.HasIndex(x => x.RelatedPersonIdentityNumber);
+
+                entity.HasIndex(x => new
+                {
+                    x.PatientId,
+                    x.RelationshipType,
+                    x.IsActive,
+                    x.IsDelete
+                });
+
+                entity.HasIndex(x => new
+                {
+                    x.PatientId,
+                    x.IsPrimary
+                })
+                .IsUnique()
+                .HasFilter("\"IsPrimary\" = true AND \"IsActive\" = true AND \"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.PatientId,
+                    x.IsEmergencyContact,
+                    x.IsResponsiblePerson,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+
+            builder.Entity<MstPatientEmergencyContact>(entity =>
+            {
+                entity.ToTable("MstPatientEmergencyContact", "public");
+
+                entity.HasKey(x => x.Id);
+
+                entity.Property(x => x.PatientId)
+                    .IsRequired();
+
+                entity.Property(x => x.ContactName)
+                    .HasMaxLength(200)
+                    .IsRequired();
+
+                entity.Property(x => x.Relationship)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.IdentityType)
+                    .HasMaxLength(50);
+
+                entity.Property(x => x.IdentityNumber)
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.PhoneNumber)
+                    .HasMaxLength(30);
+
+                entity.Property(x => x.WhatsAppNumber)
+                    .HasMaxLength(30);
+
+                entity.Property(x => x.Email)
+                    .HasMaxLength(200);
+
+                entity.Property(x => x.Address)
+                    .HasMaxLength(500);
+
+                entity.Property(x => x.IsPrimary)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsResponsiblePerson)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsSameAddressAsPatient)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.Notes)
+                    .HasMaxLength(250);
+
+                entity.Property(x => x.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(x => x.CreateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(x => x.UpdateDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.DeleteDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.CancelDateTime)
+                    .HasColumnType("timestamp with time zone")
+                    .IsRequired(false);
+
+                entity.Property(x => x.IsDelete)
+                    .HasDefaultValue(false);
+
+                entity.Property(x => x.IsCancel)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(x => x.Patient)
+                    .WithMany()
+                    .HasForeignKey(x => x.PatientId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(x => x.PatientId);
+
+                entity.HasIndex(x => x.ContactName);
+
+                entity.HasIndex(x => x.PhoneNumber);
+
+                entity.HasIndex(x => x.WhatsAppNumber);
+
+                entity.HasIndex(x => x.IdentityNumber);
+
+                entity.HasIndex(x => new
+                {
+                    x.PatientId,
+                    x.IsPrimary
+                })
+                .IsUnique()
+                .HasFilter("\"IsPrimary\" = true AND \"IsActive\" = true AND \"IsDelete\" = false");
+
+                entity.HasIndex(x => new
+                {
+                    x.PatientId,
+                    x.IsResponsiblePerson,
+                    x.IsActive,
+                    x.IsDelete
+                });
+            });
+            #endregion HEALTH SERVICE
         }
     }
 }

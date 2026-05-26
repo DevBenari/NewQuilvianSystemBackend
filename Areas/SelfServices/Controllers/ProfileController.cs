@@ -6,7 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.SelfServices.DTOs;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
-using QuilvianSystemBackend.Enum;
+using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;

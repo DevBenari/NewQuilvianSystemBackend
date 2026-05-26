@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using QuilvianSystemBackend.Enum;
+using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Models;
 
 namespace QuilvianSystemBackend.Seeders

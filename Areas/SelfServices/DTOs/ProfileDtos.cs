@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Enum;
+﻿using QuilvianSystemBackend.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.SelfServices.DTOs

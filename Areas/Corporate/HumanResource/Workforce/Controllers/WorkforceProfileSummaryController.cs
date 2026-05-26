@@ -2,9 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Enums;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
-using QuilvianSystemBackend.Enum;
+using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;

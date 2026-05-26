@@ -11,6 +11,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
+    <Compile Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+    <Content Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
+    <Content Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+    <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
+    <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+    <None Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
+    <None Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.36" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.36" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.36">
@@ -43,9 +54,12 @@
     <Folder Include="Areas\HealthServices\InsuranceManagement\" />
     <Folder Include="Areas\HealthServices\DoctorAndScheduleManagement\" />
     <Folder Include="Areas\HealthServices\OperatingRoomManagement\" />
+    <Folder Include="Areas\HealthServices\PatientManagement\MasterData\Controllers\" />
+    <Folder Include="Areas\HealthServices\PatientManagement\MasterData\DTOs\" />
+    <Folder Include="Areas\HealthServices\PatientManagement\PatientMember\" />
+    <Folder Include="Areas\HealthServices\PatientManagement\Patient\" />
     <Folder Include="Areas\HealthServices\RadiologyManagement\" />
     <Folder Include="Areas\HealthServices\PharmacyManagement\" />
-    <Folder Include="Areas\HealthServices\PatientManagement\" />
     <Folder Include="Areas\HealthServices\RegistrationManagement\" />
     <Folder Include="Areas\HealthServices\OutpatientManagement\" />
     <Folder Include="Areas\HealthServices\Views\" />

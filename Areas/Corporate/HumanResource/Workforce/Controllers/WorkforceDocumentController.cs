@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -647,7 +648,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequirementCodeAsync(
-            Enum.UserType userType,
+            UserType userType,
             string category,
             string requirementCode)
         {

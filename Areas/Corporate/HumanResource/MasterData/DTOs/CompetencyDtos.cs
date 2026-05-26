@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Enum;
+﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs

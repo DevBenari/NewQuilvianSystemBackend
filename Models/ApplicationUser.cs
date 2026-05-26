@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
-using QuilvianSystemBackend.Enum;
+using QuilvianSystemBackend.Enums;
 
 namespace QuilvianSystemBackend.Models
 {

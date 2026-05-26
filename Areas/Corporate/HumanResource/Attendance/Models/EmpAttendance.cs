@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
-using QuilvianSystemBackend.Enum;
+using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models
