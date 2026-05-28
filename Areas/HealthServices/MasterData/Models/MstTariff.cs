@@ -25,6 +25,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public Guid? ClinicId { get; set; }
 
         public Guid? PatientClassId { get; set; }
+        public Guid? ProcedureId { get; set; }
+        public Guid? DrugId { get; set; }
 
         [MaxLength(50)]
         public string? ExternalServiceCode { get; set; }
@@ -79,5 +81,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public MstClinic? Clinic { get; set; }
 
         public MstPatientClass? PatientClass { get; set; }
+
+        public MstProcedure? Procedure { get; set; }
+        public MstDrug? Drug { get; set; }
     }
 }

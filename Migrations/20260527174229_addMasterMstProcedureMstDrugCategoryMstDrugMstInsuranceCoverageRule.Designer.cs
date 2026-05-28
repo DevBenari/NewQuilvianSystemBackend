@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,10 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260527174229_addMasterMstProcedureMstDrugCategoryMstDrugMstInsuranceCoverageRule")]
+    partial class addMasterMstProcedureMstDrugCategoryMstDrugMstInsuranceCoverageRule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -7929,9 +7931,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
 
-                    b.Property<Guid?>("DrugId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime?>("EffectiveEndDate")
                         .HasColumnType("date");
 
@@ -8020,9 +8019,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("PatientClassId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("ProcedureId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("ProviderName")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -8058,15 +8054,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ClinicId");
 
-                    b.HasIndex("DrugId");
-
                     b.HasIndex("ExternalClassCode");
 
                     b.HasIndex("ExternalServiceCode");
 
                     b.HasIndex("PatientClassId");
-
-                    b.HasIndex("ProcedureId");
 
                     b.HasIndex("ServiceUnitId");
 
@@ -8076,10 +8068,6 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique();
 
                     b.HasIndex("TariffName");
-
-                    b.HasIndex("DrugId", "PatientClassId", "IsActive", "IsDelete");
-
-                    b.HasIndex("ProcedureId", "PatientClassId", "IsActive", "IsDelete");
 
                     b.HasIndex("ServiceUnitId", "PatientClassId", "IsActive", "IsDelete");
 
@@ -12039,19 +12027,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("ClinicId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrug", "Drug")
-                        .WithMany()
-                        .HasForeignKey("DrugId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstPatientClass", "PatientClass")
                         .WithMany()
                         .HasForeignKey("PatientClassId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstProcedure", "Procedure")
-                        .WithMany()
-                        .HasForeignKey("ProcedureId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
@@ -12067,11 +12045,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Navigation("Clinic");
 
-                    b.Navigation("Drug");
-
                     b.Navigation("PatientClass");
-
-                    b.Navigation("Procedure");
 
                     b.Navigation("ServiceUnit");
 

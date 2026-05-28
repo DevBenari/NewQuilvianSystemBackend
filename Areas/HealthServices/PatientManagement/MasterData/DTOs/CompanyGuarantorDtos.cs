@@ -1,0 +1,370 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs
+{
+    public class CompanyGuarantorSummaryResponse
+    {
+        public int TotalCompanyGuarantor { get; set; }
+        public int ActiveCompanyGuarantor { get; set; }
+        public int InactiveCompanyGuarantor { get; set; }
+        public int CorporateGuarantor { get; set; }
+        public int GovernmentGuarantor { get; set; }
+        public int FoundationGuarantor { get; set; }
+        public int SchoolGuarantor { get; set; }
+        public int InvoiceBillingGuarantor { get; set; }
+        public int DepositBillingGuarantor { get; set; }
+        public int MixedBillingGuarantor { get; set; }
+        public int UsingCompanyTariffBookGuarantor { get; set; }
+        public int UsingHospitalTariffGuarantor { get; set; }
+        public int NeedGuaranteeLetterGuarantor { get; set; }
+        public int NeedEmployeeVerificationGuarantor { get; set; }
+        public int NeedApprovalForProcedureGuarantor { get; set; }
+        public int NeedApprovalForDrugGuarantor { get; set; }
+        public int CoverageLimitedByEmployeeGradeGuarantor { get; set; }
+        public int ActiveContractGuarantor { get; set; }
+        public int ExpiredContractGuarantor { get; set; }
+    }
+
+    public class CompanyGuarantorResponse
+    {
+        public Guid Id { get; set; }
+
+        public string CompanyGuarantorCode { get; set; } = string.Empty;
+        public string CompanyGuarantorName { get; set; } = string.Empty;
+        public string? CompanyGroupName { get; set; }
+
+        public string GuarantorType { get; set; } = string.Empty;
+        public string BillingMethod { get; set; } = string.Empty;
+
+        public string? ExternalCompanyCode { get; set; }
+        public string? IntegrationCode { get; set; }
+        public string? ContractNumber { get; set; }
+
+        public DateTime? ContractStartDate { get; set; }
+        public DateTime? ContractEndDate { get; set; }
+
+        public bool IsUsingCompanyTariffBook { get; set; }
+        public bool IsUsingHospitalTariff { get; set; }
+        public bool IsNeedGuaranteeLetter { get; set; }
+        public bool IsNeedEmployeeVerification { get; set; }
+        public bool IsNeedApprovalForProcedure { get; set; }
+        public bool IsNeedApprovalForDrug { get; set; }
+        public bool IsCoverageLimitedByEmployeeGrade { get; set; }
+        public bool IsAllowExcessPaymentByPatient { get; set; }
+
+        public decimal? CreditLimitAmount { get; set; }
+        public decimal? CurrentOutstandingAmount { get; set; }
+        public int PaymentDueDays { get; set; }
+
+        public string? PicName { get; set; }
+        public string? PicPhoneNumber { get; set; }
+        public string? PicWhatsAppNumber { get; set; }
+        public string? PicEmail { get; set; }
+        public string? OfficeAddress { get; set; }
+        public string? LogoPath { get; set; }
+
+        public int SortOrder { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class CompanyGuarantorDetailResponse : CompanyGuarantorResponse
+    {
+        public string? BillingInstruction { get; set; }
+        public string? ClaimInstruction { get; set; }
+        public string? Description { get; set; }
+    }
+
+    public class CompanyGuarantorOptionResponse
+    {
+        public Guid Id { get; set; }
+
+        public string CompanyGuarantorCode { get; set; } = string.Empty;
+        public string CompanyGuarantorName { get; set; } = string.Empty;
+        public string? CompanyGroupName { get; set; }
+
+        public string GuarantorType { get; set; } = string.Empty;
+        public string BillingMethod { get; set; } = string.Empty;
+
+        public bool IsUsingCompanyTariffBook { get; set; }
+        public bool IsUsingHospitalTariff { get; set; }
+        public bool IsNeedGuaranteeLetter { get; set; }
+        public bool IsNeedEmployeeVerification { get; set; }
+        public bool IsNeedApprovalForProcedure { get; set; }
+        public bool IsNeedApprovalForDrug { get; set; }
+        public bool IsCoverageLimitedByEmployeeGrade { get; set; }
+        public bool IsAllowExcessPaymentByPatient { get; set; }
+
+        public decimal? CreditLimitAmount { get; set; }
+        public decimal? CurrentOutstandingAmount { get; set; }
+        public int PaymentDueDays { get; set; }
+    }
+
+    public class CompanyGuarantorFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+        public CompanyGuarantorDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<CompanyGuarantorSortOptionResponse> SortOptions { get; set; } = new();
+        public List<string> SortDirections { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new();
+        public List<string> GuarantorTypes { get; set; } = new();
+        public List<string> BillingMethods { get; set; } = new();
+    }
+
+    public class CompanyGuarantorDefaultFilterResponse
+    {
+        public string? Search { get; set; }
+        public bool? IsActive { get; set; }
+
+        public string? GuarantorType { get; set; }
+        public string? BillingMethod { get; set; }
+        public string? CompanyGroupName { get; set; }
+
+        public bool? IsUsingCompanyTariffBook { get; set; }
+        public bool? IsUsingHospitalTariff { get; set; }
+        public bool? IsNeedGuaranteeLetter { get; set; }
+        public bool? IsNeedEmployeeVerification { get; set; }
+        public bool? IsNeedApprovalForProcedure { get; set; }
+        public bool? IsNeedApprovalForDrug { get; set; }
+        public bool? IsCoverageLimitedByEmployeeGrade { get; set; }
+        public bool? IsAllowExcessPaymentByPatient { get; set; }
+
+        public DateTime? ContractDate { get; set; }
+        public decimal? MinimumCreditLimitAmount { get; set; }
+        public decimal? MaximumCreditLimitAmount { get; set; }
+        public decimal? MinimumCurrentOutstandingAmount { get; set; }
+        public decimal? MaximumCurrentOutstandingAmount { get; set; }
+
+        public string SortBy { get; set; } = "sortOrder";
+        public string SortDirection { get; set; } = "asc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class CompanyGuarantorSortOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+    }
+
+    public class CreateCompanyGuarantorRequest
+    {
+        [Required]
+        [MaxLength(50)]
+        public string CompanyGuarantorCode { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(200)]
+        public string CompanyGuarantorName { get; set; } = string.Empty;
+
+        [MaxLength(100)]
+        public string? CompanyGroupName { get; set; }
+
+        [MaxLength(50)]
+        public string GuarantorType { get; set; } = "Corporate";
+
+        [MaxLength(50)]
+        public string BillingMethod { get; set; } = "Invoice";
+
+        [MaxLength(50)]
+        public string? ExternalCompanyCode { get; set; }
+
+        [MaxLength(50)]
+        public string? IntegrationCode { get; set; }
+
+        [MaxLength(100)]
+        public string? ContractNumber { get; set; }
+
+        public DateTime? ContractStartDate { get; set; }
+
+        public DateTime? ContractEndDate { get; set; }
+
+        public bool IsUsingCompanyTariffBook { get; set; } = true;
+
+        public bool IsUsingHospitalTariff { get; set; } = false;
+
+        public bool IsNeedGuaranteeLetter { get; set; } = true;
+
+        public bool IsNeedEmployeeVerification { get; set; } = true;
+
+        public bool IsNeedApprovalForProcedure { get; set; } = true;
+
+        public bool IsNeedApprovalForDrug { get; set; } = false;
+
+        public bool IsCoverageLimitedByEmployeeGrade { get; set; } = true;
+
+        public bool IsAllowExcessPaymentByPatient { get; set; } = true;
+
+        public decimal? CreditLimitAmount { get; set; }
+
+        public decimal? CurrentOutstandingAmount { get; set; }
+
+        public int PaymentDueDays { get; set; } = 30;
+
+        [MaxLength(100)]
+        public string? PicName { get; set; }
+
+        [MaxLength(30)]
+        public string? PicPhoneNumber { get; set; }
+
+        [MaxLength(30)]
+        public string? PicWhatsAppNumber { get; set; }
+
+        [MaxLength(200)]
+        public string? PicEmail { get; set; }
+
+        [MaxLength(500)]
+        public string? OfficeAddress { get; set; }
+
+        [MaxLength(500)]
+        public string? LogoPath { get; set; }
+
+        [MaxLength(250)]
+        public string? BillingInstruction { get; set; }
+
+        [MaxLength(250)]
+        public string? ClaimInstruction { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+
+        public int SortOrder { get; set; } = 0;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateCompanyGuarantorRequest
+    {
+        [Required]
+        [MaxLength(50)]
+        public string CompanyGuarantorCode { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(200)]
+        public string CompanyGuarantorName { get; set; } = string.Empty;
+
+        [MaxLength(100)]
+        public string? CompanyGroupName { get; set; }
+
+        [MaxLength(50)]
+        public string GuarantorType { get; set; } = "Corporate";
+
+        [MaxLength(50)]
+        public string BillingMethod { get; set; } = "Invoice";
+
+        [MaxLength(50)]
+        public string? ExternalCompanyCode { get; set; }
+
+        [MaxLength(50)]
+        public string? IntegrationCode { get; set; }
+
+        [MaxLength(100)]
+        public string? ContractNumber { get; set; }
+
+        public DateTime? ContractStartDate { get; set; }
+
+        public DateTime? ContractEndDate { get; set; }
+
+        public bool IsUsingCompanyTariffBook { get; set; } = true;
+
+        public bool IsUsingHospitalTariff { get; set; } = false;
+
+        public bool IsNeedGuaranteeLetter { get; set; } = true;
+
+        public bool IsNeedEmployeeVerification { get; set; } = true;
+
+        public bool IsNeedApprovalForProcedure { get; set; } = true;
+
+        public bool IsNeedApprovalForDrug { get; set; } = false;
+
+        public bool IsCoverageLimitedByEmployeeGrade { get; set; } = true;
+
+        public bool IsAllowExcessPaymentByPatient { get; set; } = true;
+
+        public decimal? CreditLimitAmount { get; set; }
+
+        public decimal? CurrentOutstandingAmount { get; set; }
+
+        public int PaymentDueDays { get; set; } = 30;
+
+        [MaxLength(100)]
+        public string? PicName { get; set; }
+
+        [MaxLength(30)]
+        public string? PicPhoneNumber { get; set; }
+
+        [MaxLength(30)]
+        public string? PicWhatsAppNumber { get; set; }
+
+        [MaxLength(200)]
+        public string? PicEmail { get; set; }
+
+        [MaxLength(500)]
+        public string? OfficeAddress { get; set; }
+
+        [MaxLength(500)]
+        public string? LogoPath { get; set; }
+
+        [MaxLength(250)]
+        public string? BillingInstruction { get; set; }
+
+        [MaxLength(250)]
+        public string? ClaimInstruction { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+
+        public int SortOrder { get; set; } = 0;
+
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class CompanyGuarantorOutstandingRequest
+    {
+        public decimal? CurrentOutstandingAmount { get; set; }
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+    }
+
+    public class CompanyGuarantorCreateResponse
+    {
+        public Guid Id { get; set; }
+        public string CompanyGuarantorCode { get; set; } = string.Empty;
+        public string CompanyGuarantorName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+    }
+
+    public class CompanyGuarantorUpdateResponse
+    {
+        public Guid Id { get; set; }
+        public string CompanyGuarantorCode { get; set; } = string.Empty;
+        public string CompanyGuarantorName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+    }
+
+    public class CompanyGuarantorDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string CompanyGuarantorCode { get; set; } = string.Empty;
+        public string CompanyGuarantorName { get; set; } = string.Empty;
+        public bool IsDelete { get; set; }
+    }
+
+    public class CompanyGuarantorStatusResponse
+    {
+        public Guid Id { get; set; }
+        public string CompanyGuarantorCode { get; set; } = string.Empty;
+        public string CompanyGuarantorName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+    }
+
+    public class CompanyGuarantorOutstandingResponse
+    {
+        public Guid Id { get; set; }
+        public string CompanyGuarantorCode { get; set; } = string.Empty;
+        public string CompanyGuarantorName { get; set; } = string.Empty;
+        public decimal? CreditLimitAmount { get; set; }
+        public decimal? CurrentOutstandingAmount { get; set; }
+    }
+}
