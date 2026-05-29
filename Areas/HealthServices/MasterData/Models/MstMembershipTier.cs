@@ -3,7 +3,7 @@ using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models
+namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 {
     [Table("MstMembershipTier", Schema = "public")]
     public class MstMembershipTier : IdentityModel

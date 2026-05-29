@@ -44,7 +44,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         }
 
         [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceOrganizationAssignmentListResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceOrganizationListResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
             "Read Workforce Organization",
@@ -71,7 +71,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 .OrderByDescending(x => x.IsPrimary)
                 .ThenByDescending(x => x.IsActive)
                 .ThenByDescending(x => x.EffectiveStartDate)
-                .Select(x => new WorkforceOrganizationAssignmentResponse
+                .Select(x => new WorkforceOrganizationResponse
                 {
                     Id = x.Id,
                     WorkforceProfileId = x.WorkforceProfileId,
@@ -92,7 +92,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 })
                 .ToListAsync();
 
-            var result = new WorkforceOrganizationAssignmentListResponse
+            var result = new WorkforceOrganizationListResponse
             {
                 WorkforceProfileId = profile.Id,
                 ProfileCode = profile.ProfileCode,
@@ -103,14 +103,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 Items = items
             };
 
-            return Ok(ApiResponse<WorkforceOrganizationAssignmentListResponse>.Ok(
+            return Ok(ApiResponse<WorkforceOrganizationListResponse>.Ok(
                 result,
                 "Data organization assignment workforce berhasil diambil."
             ));
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceOrganizationAssignmentResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceOrganizationResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Create",
             "Create Workforce Organization",
@@ -121,7 +121,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         [AccessPermission("WorkforceOrganization", "Create")]
         public async Task<IActionResult> CreateOrganization(
             Guid workforceProfileId,
-            [FromBody] CreateWorkforceOrganizationAssignmentRequest request)
+            [FromBody] CreateWorkforceOrganizationRequest request)
         {
             var profile = await _dbContext.Set<MstWorkforceProfile>()
                 .FirstOrDefaultAsync(x => x.Id == workforceProfileId && !x.IsDelete);
@@ -213,7 +213,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                     }
                 );
 
-                return Ok(ApiResponse<WorkforceOrganizationAssignmentResponse>.Ok(
+                return Ok(ApiResponse<WorkforceOrganizationResponse>.Ok(
                     response!,
                     "Organization assignment workforce berhasil dibuat."
                 ));
@@ -240,7 +240,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         }
 
         [HttpPut("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceOrganizationAssignmentResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceOrganizationResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Update",
             "Update Workforce Organization",
@@ -252,7 +252,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         public async Task<IActionResult> UpdateOrganization(
             Guid workforceProfileId,
             Guid id,
-            [FromBody] UpdateWorkforceOrganizationAssignmentRequest request)
+            [FromBody] UpdateWorkforceOrganizationRequest request)
         {
             var profile = await _dbContext.Set<MstWorkforceProfile>()
                 .FirstOrDefaultAsync(x => x.Id == workforceProfileId && !x.IsDelete);
@@ -337,7 +337,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
                 var response = await BuildOrganizationAssignmentResponseAsync(assignment.Id);
 
-                return Ok(ApiResponse<WorkforceOrganizationAssignmentResponse>.Ok(
+                return Ok(ApiResponse<WorkforceOrganizationResponse>.Ok(
                     response!,
                     "Organization assignment workforce berhasil diperbarui."
                 ));
@@ -376,7 +376,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         public async Task<IActionResult> UpdateOrganizationStatus(
     Guid workforceProfileId,
     Guid id,
-    [FromBody] UpdateWorkforceOrganizationAssignmentStatusRequest request)
+    [FromBody] UpdateWorkforceOrganizationStatusRequest request)
         {
             var assignment = await _dbContext.Set<WfpOrganizationAssignment>()
                 .FirstOrDefaultAsync(x =>
@@ -437,7 +437,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         }
 
         [HttpPatch("{id:guid}/primary")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceOrganizationAssignmentResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceOrganizationResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Update",
             "Update Workforce Organization",
@@ -449,7 +449,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         public async Task<IActionResult> SetPrimaryOrganization(
             Guid workforceProfileId,
             Guid id,
-            [FromBody] SetWorkforceOrganizationAssignmentPrimaryRequest request)
+            [FromBody] SetWorkforceOrganizationPrimaryRequest request)
         {
             if (!request.IsPrimary)
             {
@@ -506,7 +506,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
                 var response = await BuildOrganizationAssignmentResponseAsync(assignment.Id);
 
-                return Ok(ApiResponse<WorkforceOrganizationAssignmentResponse>.Ok(
+                return Ok(ApiResponse<WorkforceOrganizationResponse>.Ok(
                     response!,
                     "Primary organization workforce berhasil diperbarui."
                 ));
@@ -803,12 +803,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             return (true, null);
         }
 
-        private async Task<WorkforceOrganizationAssignmentResponse?> BuildOrganizationAssignmentResponseAsync(Guid id)
+        private async Task<WorkforceOrganizationResponse?> BuildOrganizationAssignmentResponseAsync(Guid id)
         {
             return await _dbContext.Set<WfpOrganizationAssignment>()
                 .AsNoTracking()
                 .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new WorkforceOrganizationAssignmentResponse
+                .Select(x => new WorkforceOrganizationResponse
                 {
                     Id = x.Id,
                     WorkforceProfileId = x.WorkforceProfileId,

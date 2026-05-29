@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
-using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -12,9 +12,9 @@ using System.Security.Claims;
 
 using ResponseCompanyGuarantorPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs.CompanyGuarantorResponse>;
+        QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs.CompanyGuarantorResponse>;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Controllers
+namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 {
     [ApiController]
     [Authorize]
@@ -303,7 +303,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 query = query.Where(x =>
                     x.CompanyGuarantorCode.ToLower().Contains(keyword) ||
                     x.CompanyGuarantorName.ToLower().Contains(keyword) ||
-                    (x.CompanyGroupName != null && x.CompanyGroupName.ToLower().Contains(keyword)));
+                    x.CompanyGroupName != null && x.CompanyGroupName.ToLower().Contains(keyword));
             }
 
             var data = await query
@@ -727,15 +727,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 query = query.Where(x =>
                     x.CompanyGuarantorCode.ToLower().Contains(keyword) ||
                     x.CompanyGuarantorName.ToLower().Contains(keyword) ||
-                    (x.CompanyGroupName != null && x.CompanyGroupName.ToLower().Contains(keyword)) ||
+                    x.CompanyGroupName != null && x.CompanyGroupName.ToLower().Contains(keyword) ||
                     x.GuarantorType.ToLower().Contains(keyword) ||
                     x.BillingMethod.ToLower().Contains(keyword) ||
-                    (x.ExternalCompanyCode != null && x.ExternalCompanyCode.ToLower().Contains(keyword)) ||
-                    (x.IntegrationCode != null && x.IntegrationCode.ToLower().Contains(keyword)) ||
-                    (x.ContractNumber != null && x.ContractNumber.ToLower().Contains(keyword)) ||
-                    (x.PicName != null && x.PicName.ToLower().Contains(keyword)) ||
-                    (x.PicEmail != null && x.PicEmail.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
+                    x.ExternalCompanyCode != null && x.ExternalCompanyCode.ToLower().Contains(keyword) ||
+                    x.IntegrationCode != null && x.IntegrationCode.ToLower().Contains(keyword) ||
+                    x.ContractNumber != null && x.ContractNumber.ToLower().Contains(keyword) ||
+                    x.PicName != null && x.PicName.ToLower().Contains(keyword) ||
+                    x.PicEmail != null && x.PicEmail.ToLower().Contains(keyword) ||
+                    x.Description != null && x.Description.ToLower().Contains(keyword));
             }
 
             if (isActive.HasValue)

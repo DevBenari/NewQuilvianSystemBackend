@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
-using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -13,9 +14,9 @@ using System.Security.Claims;
 
 using ResponseMembershipTierPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs.MembershipTierResponse>;
+        QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs.MembershipTierResponse>;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Controllers
+namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 {
     [ApiController]
     [Authorize]
@@ -150,9 +151,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 query = query.Where(x =>
                     x.TierCode.ToLower().Contains(keyword) ||
                     x.TierName.ToLower().Contains(keyword) ||
-                    (x.CardTitle != null && x.CardTitle.ToLower().Contains(keyword)) ||
-                    (x.BenefitDescription != null && x.BenefitDescription.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
+                    x.CardTitle != null && x.CardTitle.ToLower().Contains(keyword) ||
+                    x.BenefitDescription != null && x.BenefitDescription.ToLower().Contains(keyword) ||
+                    x.Description != null && x.Description.ToLower().Contains(keyword));
             }
 
             if (isActive.HasValue)
@@ -271,7 +272,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 query = query.Where(x =>
                     x.TierCode.ToLower().Contains(keyword) ||
                     x.TierName.ToLower().Contains(keyword) ||
-                    (x.CardTitle != null && x.CardTitle.ToLower().Contains(keyword)));
+                    x.CardTitle != null && x.CardTitle.ToLower().Contains(keyword));
             }
 
             var data = await query

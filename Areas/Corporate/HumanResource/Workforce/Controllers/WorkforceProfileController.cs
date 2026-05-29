@@ -25,14 +25,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         SortOrder = 1
     )]
     [Tags("Corporate / Human Resource / Workforce / Profile Summary")]
-    public class WorkforceProfileSummaryController : ControllerBase
+    public class WorkforceProfileController : ControllerBase
     {
         private const string LogCategory = "Corporate.HumanResource.Workforce";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
 
-        public WorkforceProfileSummaryController(
+        public WorkforceProfileController(
             ApplicationDbContext dbContext,
             LoggerService loggerService)
         {

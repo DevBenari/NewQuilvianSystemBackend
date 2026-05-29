@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
-using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -12,9 +12,9 @@ using System.Security.Claims;
 
 using ResponseInsuranceProviderPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs.InsuranceProviderResponse>;
+        QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs.InsuranceProviderResponse>;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Controllers
+namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 {
     [ApiController]
     [Authorize]
@@ -183,15 +183,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 query = query.Where(x =>
                     x.InsuranceProviderCode.ToLower().Contains(keyword) ||
                     x.InsuranceProviderName.ToLower().Contains(keyword) ||
-                    (x.InsuranceGroupName != null && x.InsuranceGroupName.ToLower().Contains(keyword)) ||
+                    x.InsuranceGroupName != null && x.InsuranceGroupName.ToLower().Contains(keyword) ||
                     x.ProviderType.ToLower().Contains(keyword) ||
                     x.ClaimMethod.ToLower().Contains(keyword) ||
-                    (x.ExternalProviderCode != null && x.ExternalProviderCode.ToLower().Contains(keyword)) ||
-                    (x.IntegrationCode != null && x.IntegrationCode.ToLower().Contains(keyword)) ||
-                    (x.ContractNumber != null && x.ContractNumber.ToLower().Contains(keyword)) ||
-                    (x.PicName != null && x.PicName.ToLower().Contains(keyword)) ||
-                    (x.PicEmail != null && x.PicEmail.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
+                    x.ExternalProviderCode != null && x.ExternalProviderCode.ToLower().Contains(keyword) ||
+                    x.IntegrationCode != null && x.IntegrationCode.ToLower().Contains(keyword) ||
+                    x.ContractNumber != null && x.ContractNumber.ToLower().Contains(keyword) ||
+                    x.PicName != null && x.PicName.ToLower().Contains(keyword) ||
+                    x.PicEmail != null && x.PicEmail.ToLower().Contains(keyword) ||
+                    x.Description != null && x.Description.ToLower().Contains(keyword));
             }
 
             if (isActive.HasValue)
@@ -363,7 +363,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 query = query.Where(x =>
                     x.InsuranceProviderCode.ToLower().Contains(keyword) ||
                     x.InsuranceProviderName.ToLower().Contains(keyword) ||
-                    (x.InsuranceGroupName != null && x.InsuranceGroupName.ToLower().Contains(keyword)));
+                    x.InsuranceGroupName != null && x.InsuranceGroupName.ToLower().Contains(keyword));
             }
 
             var data = await query
