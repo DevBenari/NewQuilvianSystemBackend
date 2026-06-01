@@ -1,6 +1,6 @@
 ﻿using QuilvianSystemBackend.Models;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 {
@@ -11,8 +11,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 
         [Required]
         public Guid DrugCategoryId { get; set; }
-
-        public Guid? DefaultTariffId { get; set; }
 
         [Required]
         [MaxLength(50)]
@@ -37,15 +35,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 
         [MaxLength(100)]
         public string? Strength { get; set; }
-        // 500 mg, 5 mg/ml, 1 g, etc
+        // Display text: 500 mg, 5 mg/ml, 1 g, etc
+
+        public decimal? StrengthValue { get; set; }
+        // Numeric strength, contoh: 500
+
+        public Guid? StrengthMeasurementId { get; set; }
+        // contoh: mg, g, ml, mg/ml jika tersedia di MstMeasurement
 
         [MaxLength(50)]
         public string? BaseUnit { get; set; }
-        // tablet, vial, ampoule, bottle, strip
+        // Legacy/display: tablet, vial, ampoule, bottle, strip
 
         [MaxLength(50)]
         public string? DispenseUnit { get; set; }
-        // tablet, pcs, bottle, vial
+        // Legacy/display: tablet, pcs, bottle, vial
+
+        public Guid? BaseUnitMeasurementId { get; set; }
+        // Satuan terkecil untuk perhitungan stok/racikan.
+        // Contoh: tablet, ml, vial, ampul.
+
+        public Guid? DispenseUnitMeasurementId { get; set; }
+        // Satuan default saat diberikan ke pasien.
+        // Contoh: tablet, kapsul, botol, vial.
+
+        public Guid? PurchaseUnitMeasurementId { get; set; }
+        // Satuan pembelian.
+        // Contoh: box, strip, bottle.
+
+        public Guid? StockUnitMeasurementId { get; set; }
+        // Satuan tampilan stok default.
+        // Bisa sama dengan BaseUnitMeasurementId.
+
+        public Guid? DefaultDoseUnitMeasurementId { get; set; }
+        // Satuan default dosis resep.
+        // Contoh: mg, tablet, ml.
 
         [MaxLength(50)]
         public string? Route { get; set; }
@@ -68,6 +92,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public bool IsVaccine { get; set; } = false;
 
         public bool IsConsumable { get; set; } = false;
+
+        public bool IsCompoundIngredientAllowed { get; set; } = true;
+        // Boleh dipakai sebagai bahan racikan.
+
+        public bool IsStockManaged { get; set; } = true;
+        // Jika false, item tidak dihitung stoknya, misalnya jasa/obat tertentu.
+
+        public bool IsBatchTracked { get; set; } = true;
+        // Untuk lot/batch obat.
+
+        public bool IsExpiryDateTracked { get; set; } = true;
+        // Untuk expired date obat.
+
+        public bool IsAllowFractionalDispense { get; set; } = false;
+        // Contoh true untuk syrup ml, false untuk tablet utuh.
 
         public bool IsNeedPrescription { get; set; } = true;
 
@@ -140,6 +179,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 
         public MstDrugCategory? DrugCategory { get; set; }
 
-        public MstTariff? DefaultTariff { get; set; }
+        public MstMeasurement? StrengthMeasurement { get; set; }
+
+        public MstMeasurement? BaseUnitMeasurement { get; set; }
+
+        public MstMeasurement? DispenseUnitMeasurement { get; set; }
+
+        public MstMeasurement? PurchaseUnitMeasurement { get; set; }
+
+        public MstMeasurement? StockUnitMeasurement { get; set; }
+
+        public MstMeasurement? DefaultDoseUnitMeasurement { get; set; }
     }
 }

@@ -6382,6 +6382,2148 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("MstPaymentMethod", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxDoctorConsultation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Assessment")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<Guid?>("AssessmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("BMI")
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<int?>("BloodPressureDiastolic")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("BloodPressureSystolic")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ChiefComplaint")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ClinicalDocumentCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CompletedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ConsentCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime>("ConsultationDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConsultationNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("ConsultationStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DiagnosisCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("DiagnosisText")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DoctorNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("EducationPlan")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("FollowUpDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("FollowUpNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("HasPrescription")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("HasPrimaryDiagnosis")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("HasProcedure")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("HasSupportingOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal?>("Height")
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<string>("HistoryOfPresentIllness")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsVitalSignCopiedFromAssessment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("MedicalCertificateCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("Objective")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<decimal?>("OxygenSaturation")
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PhysicalExamination")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("Plan")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<int>("PrescriptionCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("PrescriptionPlan")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("PrescriptionText")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("PrimaryDiagnosisText")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("ProcedureCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("ProcedurePlan")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ProcedureText")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int?>("PulseRate")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("QueueId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReferralPlan")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int?>("RespiratoryRate")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SecondaryDiagnosisText")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("StartedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Subjective")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("SupportingExamPlan")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("SupportingOrderCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("SupportingOrderText")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<decimal?>("Temperature")
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("Weight")
+                        .HasColumnType("numeric(8,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssessmentId");
+
+                    b.HasIndex("CancelledByUserId");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("CompletedByUserId");
+
+                    b.HasIndex("ConsultationNumber")
+                        .IsUnique();
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("EncounterId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("QueueId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("StartedByUserId");
+
+                    b.HasIndex("FollowUpDate", "IsDelete");
+
+                    b.HasIndex("HasPrescription", "IsDelete");
+
+                    b.HasIndex("HasPrimaryDiagnosis", "IsDelete");
+
+                    b.HasIndex("HasProcedure", "IsDelete");
+
+                    b.HasIndex("HasSupportingOrder", "IsDelete");
+
+                    b.HasIndex("ConsultationStatus", "IsActive", "IsDelete");
+
+                    b.HasIndex("EncounterId", "ConsultationStatus", "IsDelete");
+
+                    b.HasIndex("PatientId", "ConsultationDateTime", "IsDelete");
+
+                    b.HasIndex("DoctorId", "ConsultationDateTime", "ConsultationStatus", "IsDelete");
+
+                    b.HasIndex("DiagnosisCount", "ProcedureCount", "PrescriptionCount", "SupportingOrderCount", "IsDelete");
+
+                    b.HasIndex("ServiceUnitId", "ClinicId", "ConsultationDateTime", "ConsultationStatus", "IsDelete");
+
+                    b.ToTable("TrxDoctorConsultation", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientAllergy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AllergenCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("AllergenGroupName")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("AllergenName")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<int>("AllergyCategory")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("AllergyRecordNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("AllergyStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("AssessmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Certainty")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClinicalNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("ConsultationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DrugId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("FirstReactionDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAlertEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsHighRisk")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsLifeThreatening")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsVerified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("LastReactionDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PatientSafetyNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ReactionDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ReactionType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("ReportedDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResolvedReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid?>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SourceOfInformation")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("VerifiedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AllergyRecordNumber")
+                        .IsUnique();
+
+                    b.HasIndex("AssessmentId");
+
+                    b.HasIndex("CancelledByUserId");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("ConsultationId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("DrugId");
+
+                    b.HasIndex("EncounterId");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("ResolvedByUserId");
+
+                    b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("VerifiedByUserId");
+
+                    b.HasIndex("PatientId", "AllergyCategory", "AllergenName");
+
+                    b.HasIndex("PatientId", "AllergyStatus", "IsActive");
+
+                    b.HasIndex("PatientId", "IsAlertEnabled", "IsHighRisk", "IsLifeThreatening");
+
+                    b.ToTable("TrxPatientAllergy", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientAssessment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AllergyNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("AllergyType")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<int>("AppetiteStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid?>("AssessmentByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AssessmentDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AssessmentNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("AssessmentStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<decimal?>("BMI")
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<int?>("BloodPressureDiastolic")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("BloodPressureSystolic")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ChiefComplaint")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CompletedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ConsciousnessStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("CurrentIllnessHistory")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("EarlyWarningScore")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EducationNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EwsMonitoringRecommendation")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<int>("EwsRiskLevel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("FallRiskNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("FallRiskScore")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("FallRiskStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("FunctionalNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("FunctionalStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("HasAllergy")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("HasAtaxia")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("HasFallRisk")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("HasHereditaryDisease")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("HasNausea")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("HasPain")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("HasPosturalInstability")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("HasVomiting")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal?>("Height")
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<string>("HereditaryDiseaseNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPulseReadable")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsUsingOxygen")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("MapStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<decimal?>("MeanArterialPressure")
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<string>("NurseNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("NutritionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("NutritionRiskScore")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("NutritionRiskStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<decimal?>("OxygenFlowRate")
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<decimal?>("OxygenSaturation")
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<string>("OxygenSupportNote")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("OxygenSupportType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("PainFrequency")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("PainLocation")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("PainManagement")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("PainNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PainQuality")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<int?>("PainScale")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PainTrigger")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PsychosocialNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("PulseRate")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("QueueId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("RespiratoryRate")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("Temperature")
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("Weight")
+                        .HasColumnType("numeric(8,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssessmentByUserId");
+
+                    b.HasIndex("AssessmentNumber")
+                        .IsUnique();
+
+                    b.HasIndex("CancelledByUserId");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("CompletedByUserId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("EncounterId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("QueueId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("EwsRiskLevel", "IsDelete");
+
+                    b.HasIndex("FallRiskStatus", "IsDelete");
+
+                    b.HasIndex("AssessmentStatus", "IsActive", "IsDelete");
+
+                    b.HasIndex("EncounterId", "AssessmentStatus", "IsDelete");
+
+                    b.HasIndex("PatientId", "AssessmentDateTime", "IsDelete");
+
+                    b.HasIndex("ServiceUnitId", "ClinicId", "AssessmentDateTime", "AssessmentStatus", "IsDelete");
+
+                    b.ToTable("TrxPatientAssessment", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientDiagnosis", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AssessmentNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClinicalNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("ConsultationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DiagnosisCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("DiagnosisDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DiagnosisId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DiagnosisMasterType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("ICD10");
+
+                    b.Property<string>("DiagnosisName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("DiagnosisStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("DiagnosisType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(2);
+
+                    b.Property<string>("DifferentialDiagnosisNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("IcdVersion")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsChronic")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsConfirmed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsFromMasterDiagnosis")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsNewCase")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsPrimary")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("OnsetDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PlanNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResolvedReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid?>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("SupportingFindingNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CancelledByUserId");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("ConsultationId");
+
+                    b.HasIndex("DiagnosisCode");
+
+                    b.HasIndex("DiagnosisId");
+
+                    b.HasIndex("DiagnosisName");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("EncounterId");
+
+                    b.HasIndex("IcdVersion");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("ResolvedByUserId");
+
+                    b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("ConsultationId", "DiagnosisCode", "IsDelete");
+
+                    b.HasIndex("ConsultationId", "DiagnosisId", "IsDelete")
+                        .HasFilter("\"DiagnosisId\" IS NOT NULL");
+
+                    b.HasIndex("ConsultationId", "IsPrimary", "IsDelete");
+
+                    b.HasIndex("DoctorId", "DiagnosisDateTime", "IsDelete");
+
+                    b.HasIndex("EncounterId", "SortOrder", "IsDelete");
+
+                    b.HasIndex("DiagnosisType", "DiagnosisStatus", "IsActive", "IsDelete");
+
+                    b.HasIndex("PatientId", "DiagnosisCode", "DiagnosisStatus", "IsDelete");
+
+                    b.HasIndex("PatientId", "DiagnosisId", "DiagnosisStatus", "IsDelete")
+                        .HasFilter("\"DiagnosisId\" IS NOT NULL");
+
+                    b.HasIndex("DiagnosisMasterType", "IcdVersion", "IsFromMasterDiagnosis", "IsActive", "IsDelete");
+
+                    b.HasIndex("IsPrimary", "IsConfirmed", "IsChronic", "IsNewCase", "IsActive", "IsDelete");
+
+                    b.ToTable("TrxPatientDiagnosis", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientFamilyHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("AgeAtDeathYear")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("AgeAtDiagnosisYear")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("AssessmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CauseOfDeath")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<int>("Certainty")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClinicalNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ConditionCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ConditionGroupName")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("ConditionMasterType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Manual");
+
+                    b.Property<string>("ConditionName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("ConsultationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeathDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DiagnosedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DiagnosisId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FamilyHistoryRecordNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("FamilyHistoryStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FamilyMemberNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("FamilyMemberPatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("IcdVersion")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAlertEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCancerRelated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCardiovascularRisk")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsChronicDisease")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsFamilyMemberDeceased")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsFirstDegreeRelative")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsFromMasterDiagnosis")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsGeneticRisk")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsHereditaryDisease")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsHighRisk")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsInfectiousDisease")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsMentalHealthRelated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsMetabolicRisk")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsSameHousehold")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsScreeningRecommended")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsSecondDegreeRelative")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsVerified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("RecordedDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RelationshipDescription")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("RelationshipSide")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RelationshipType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResolvedReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<int>("RiskLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RiskNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ScreeningRecommendation")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceOfInformation")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("VerifiedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssessmentId");
+
+                    b.HasIndex("CancelledByUserId");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("ConsultationId");
+
+                    b.HasIndex("DiagnosisId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("EncounterId");
+
+                    b.HasIndex("FamilyHistoryRecordNumber")
+                        .IsUnique();
+
+                    b.HasIndex("FamilyMemberPatientId");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("ResolvedByUserId");
+
+                    b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("VerifiedByUserId");
+
+                    b.HasIndex("PatientId", "RecordedDateTime");
+
+                    b.HasIndex("PatientId", "FamilyHistoryStatus", "IsActive");
+
+                    b.HasIndex("PatientId", "IsAlertEnabled", "IsScreeningRecommended");
+
+                    b.HasIndex("PatientId", "RelationshipSide", "RelationshipType");
+
+                    b.HasIndex("PatientId", "RelationshipType", "ConditionName");
+
+                    b.HasIndex("PatientId", "IsHereditaryDisease", "IsGeneticRisk", "IsHighRisk");
+
+                    b.ToTable("TrxPatientFamilyHistory", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientMedicalHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AssessmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Certainty")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClinicalNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ComplicationNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ConditionCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ConditionGroupName")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("ConditionMasterType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Manual");
+
+                    b.Property<string>("ConditionName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("ConsultationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DiagnosedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DiagnosisId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("HistoryStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("HistoryType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("HospitalizationHistory")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("IcdVersion")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAlertEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsChronic")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsComorbidity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsControlled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCurrentProblem")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsFromMasterDiagnosis")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsHereditaryRelated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsHighRisk")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsHospitalizationHistory")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsInfectiousDisease")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsMentalHealthRelated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPregnancyRelated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsSurgicalHistory")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsUnderTreatment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsVerified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("LastControlDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastTreatmentDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MedicalHistoryRecordNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("MedicationHistory")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("OnsetAgeYear")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("OnsetDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("RecordedDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResolvedReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("RiskNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SourceOfInformation")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SurgeryHistory")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("TreatmentHistory")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("VerifiedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssessmentId");
+
+                    b.HasIndex("CancelledByUserId");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("ConsultationId");
+
+                    b.HasIndex("DiagnosisId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("EncounterId");
+
+                    b.HasIndex("MedicalHistoryRecordNumber")
+                        .IsUnique();
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("ResolvedByUserId");
+
+                    b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("VerifiedByUserId");
+
+                    b.HasIndex("PatientId", "RecordedDateTime");
+
+                    b.HasIndex("PatientId", "HistoryStatus", "IsActive");
+
+                    b.HasIndex("PatientId", "HistoryType", "ConditionName");
+
+                    b.HasIndex("PatientId", "IsAlertEnabled", "IsHighRisk");
+
+                    b.HasIndex("PatientId", "IsCurrentProblem", "IsChronic", "IsComorbidity");
+
+                    b.ToTable("TrxPatientMedicalHistory", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientProcedure", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApprovalNote")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BenefitPlanNameSnapshot")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime?>("BillingGeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("BillingItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClinicalNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ComplicationNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("ConsultationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CoverageNote")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<decimal>("CoveragePercent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<string>("CoverageStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Unknown");
+
+                    b.Property<decimal>("CoveredAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DispositionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ExecutedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ExecutedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FollowUpInstruction")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("FreeOfChargeReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<decimal?>("HospitalPriceSnapshot")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("InstructionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal?>("InsuranceContractPrice")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("InsuranceCoverageRuleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("InsuranceProviderNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("InsuranceTariffCodeSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("InsuranceTariffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("InsuranceTariffNameSnapshot")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsApproved")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsBillable")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsBillingGenerated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCoveredByInsurance")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsEmergencyProcedure")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsExecuted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsFreeOfCharge")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsFromMasterProcedure")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsNeedApproval")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPackageProcedure")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPrimaryProcedure")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsSurgeryRelated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("PatientClassNameSnapshot")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PatientPayAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<string>("PatientTypeSnapshot")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PaymentTypeSnapshot")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("PerformedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PerformedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("PlannedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProcedureCategoryNameSnapshot")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ProcedureCodeSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("ProcedureDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ProcedureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProcedureMasterType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Master");
+
+                    b.Property<string>("ProcedureNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<int>("ProcedureSource")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("ProcedureStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("ProcedureTypeSnapshot")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("Quantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(1m);
+
+                    b.Property<string>("ResultNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("ScheduledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("TariffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalPrice")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<string>("UnitNameSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("CancelledByUserId");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("ConsultationId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("EncounterId");
+
+                    b.HasIndex("ExecutedByUserId");
+
+                    b.HasIndex("InsuranceCoverageRuleId");
+
+                    b.HasIndex("InsuranceTariffId");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("PerformedByUserId");
+
+                    b.HasIndex("ProcedureCodeSnapshot");
+
+                    b.HasIndex("ProcedureId");
+
+                    b.HasIndex("ProcedureNameSnapshot");
+
+                    b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("TariffId");
+
+                    b.HasIndex("ConsultationId", "IsPrimaryProcedure", "IsDelete");
+
+                    b.HasIndex("ConsultationId", "ProcedureCodeSnapshot", "IsDelete");
+
+                    b.HasIndex("ConsultationId", "ProcedureId", "IsDelete");
+
+                    b.HasIndex("CoverageStatus", "IsCoveredByInsurance", "IsDelete");
+
+                    b.HasIndex("DoctorId", "ProcedureDateTime", "IsDelete");
+
+                    b.HasIndex("EncounterId", "ProcedureStatus", "IsDelete");
+
+                    b.HasIndex("IsExecuted", "ExecutedAt", "IsDelete");
+
+                    b.HasIndex("IsFreeOfCharge", "IsBillable", "IsDelete");
+
+                    b.HasIndex("IsNeedApproval", "IsApproved", "IsDelete");
+
+                    b.HasIndex("IsSurgeryRelated", "IsPackageProcedure", "IsDelete");
+
+                    b.HasIndex("PatientId", "ProcedureDateTime", "IsDelete");
+
+                    b.HasIndex("PerformedAt", "PerformedByUserId", "IsDelete");
+
+                    b.HasIndex("ProcedureStatus", "IsBillable", "IsBillingGenerated", "IsDelete");
+
+                    b.HasIndex("ProcedureMasterType", "IsFromMasterProcedure", "IsPrimaryProcedure", "IsEmergencyProcedure", "IsDelete");
+
+                    b.HasIndex("ServiceUnitId", "ClinicId", "ProcedureDateTime", "ProcedureStatus", "IsDelete");
+
+                    b.ToTable("TrxPatientProcedure", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstBed", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6869,6 +9011,731 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("MstCompanyGuarantor", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosis", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("DiagnosisCategoryName")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid?>("DiagnosisChapterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DiagnosisCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("DiagnosisGroupName")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("DiagnosisName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("DiagnosisNameEnglish")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("DiagnosisType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("ICD10");
+
+                    b.Property<string>("ExternalDiagnosisCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("GenderRestriction")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("IcdVersion")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("ICD-10");
+
+                    b.Property<string>("IntegrationCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsBillable")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsChronicDisease")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsExternalCause")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsInfectiousDisease")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsMentalHealthRelated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPregnancyRelated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPrimaryDiagnosisAllowed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsRareDisease")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsSecondaryDiagnosisAllowed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsSelectableForClinicalUse")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int?>("MaximumAgeYear")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("MinimumAgeYear")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ParentDiagnosisId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ShortName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DiagnosisChapterId");
+
+                    b.HasIndex("DiagnosisCode")
+                        .IsUnique();
+
+                    b.HasIndex("DiagnosisName");
+
+                    b.HasIndex("DiagnosisType");
+
+                    b.HasIndex("ExternalDiagnosisCode")
+                        .HasFilter("\"ExternalDiagnosisCode\" IS NOT NULL");
+
+                    b.HasIndex("IcdVersion");
+
+                    b.HasIndex("IntegrationCode")
+                        .HasFilter("\"IntegrationCode\" IS NOT NULL");
+
+                    b.HasIndex("ParentDiagnosisId");
+
+                    b.HasIndex("ShortName");
+
+                    b.HasIndex("DiagnosisChapterId", "IsActive", "IsDelete");
+
+                    b.HasIndex("GenderRestriction", "MinimumAgeYear", "MaximumAgeYear");
+
+                    b.HasIndex("ParentDiagnosisId", "IsActive", "IsDelete");
+
+                    b.HasIndex("DiagnosisType", "IcdVersion", "IsSelectableForClinicalUse", "IsActive", "IsDelete");
+
+                    b.HasIndex("IsBillable", "IsPrimaryDiagnosisAllowed", "IsSecondaryDiagnosisAllowed", "IsActive", "IsDelete");
+
+                    b.HasIndex("IsChronicDisease", "IsInfectiousDisease", "IsExternalCause", "IsActive", "IsDelete");
+
+                    b.HasIndex("IsPregnancyRelated", "IsMentalHealthRelated", "IsRareDisease", "IsActive", "IsDelete");
+
+                    b.ToTable("MstDiagnosis", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosisChapter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ChapterCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ChapterName")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("DiagnosisCodeRangeEnd")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("DiagnosisCodeRangeStart")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("IcdVersion")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("ICD-10");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChapterCode")
+                        .IsUnique();
+
+                    b.HasIndex("ChapterName");
+
+                    b.HasIndex("IcdVersion");
+
+                    b.HasIndex("DiagnosisCodeRangeStart", "DiagnosisCodeRangeEnd");
+
+                    b.HasIndex("IcdVersion", "IsActive", "IsDelete");
+
+                    b.ToTable("MstDiagnosisChapter", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDoctorSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("EffectiveEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("EffectiveStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<int>("EstimatedServiceMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(15);
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAllowAppointment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAllowKioskRegistration")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAllowWalkIn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsOvernight")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsSubstituteSchedule")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsTelemedicineAvailable")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("MaxAppointmentQuota")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("MaxPatientQuota")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("MaxWalkInQuota")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("PracticeDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("PracticeDay")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("PracticeLocation")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("RoomId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RoomName")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ScheduleCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ScheduleName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("ScheduleStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(2);
+
+                    b.Property<int>("ScheduleType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<Guid>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SessionName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<Guid?>("SubstituteDoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("PracticeDate");
+
+                    b.HasIndex("PracticeDay");
+
+                    b.HasIndex("RoomId");
+
+                    b.HasIndex("ScheduleCode")
+                        .IsUnique();
+
+                    b.HasIndex("ScheduleName");
+
+                    b.HasIndex("ScheduleStatus");
+
+                    b.HasIndex("ScheduleType");
+
+                    b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("SubstituteDoctorId");
+
+                    b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsActive", "IsDelete");
+
+                    b.HasIndex("DoctorId", "PracticeDay", "ScheduleStatus", "IsActive", "IsDelete");
+
+                    b.HasIndex("DoctorId", "ServiceUnitId", "ClinicId", "PracticeDate", "StartTime", "EndTime")
+                        .IsUnique()
+                        .HasFilter("\"PracticeDate\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("DoctorId", "ServiceUnitId", "ClinicId", "PracticeDay", "StartTime", "EndTime")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MstDoctorSchedule_DoctorId_ServiceUnitId_ClinicId_Practice~1")
+                        .HasFilter("\"PracticeDate\" IS NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("IsAllowWalkIn", "IsAllowAppointment", "IsAllowKioskRegistration", "IsTelemedicineAvailable", "IsActive", "IsDelete");
+
+                    b.HasIndex("ServiceUnitId", "ClinicId", "PracticeDate", "ScheduleStatus", "IsActive", "IsDelete");
+
+                    b.HasIndex("ServiceUnitId", "ClinicId", "PracticeDay", "ScheduleStatus", "IsActive", "IsDelete");
+
+                    b.ToTable("MstDoctorSchedule", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDoctorServiceRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("DailyQuotaLimit")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("EffectiveEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("EffectiveStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAllowAppointment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAllowKioskRegistration")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAllowTelemedicine")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsAllowWalkIn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDefaultForClinic")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsNeedApproval")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsNeedReferral")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPrimaryForClinic")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid?>("PatientClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("PriorityLevel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid?>("ProcedureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RuleCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("RuleName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("RuleStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(2);
+
+                    b.Property<int>("RuleType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<Guid>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid?>("TariffCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TariffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("PatientClassId");
+
+                    b.HasIndex("ProcedureId");
+
+                    b.HasIndex("RuleCode")
+                        .IsUnique();
+
+                    b.HasIndex("RuleName");
+
+                    b.HasIndex("RuleStatus");
+
+                    b.HasIndex("RuleType");
+
+                    b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("TariffCategoryId");
+
+                    b.HasIndex("TariffId");
+
+                    b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsActive", "IsDelete");
+
+                    b.HasIndex("IsNeedReferral", "IsNeedApproval", "RuleStatus", "IsActive", "IsDelete");
+
+                    b.HasIndex("IsPrimaryForClinic", "IsDefaultForClinic", "PriorityLevel", "IsActive", "IsDelete");
+
+                    b.HasIndex("DoctorId", "TariffCategoryId", "TariffId", "PatientClassId", "IsActive", "IsDelete");
+
+                    b.HasIndex("IsAllowWalkIn", "IsAllowAppointment", "IsAllowKioskRegistration", "IsAllowTelemedicine", "IsActive", "IsDelete");
+
+                    b.HasIndex("DoctorId", "ServiceUnitId", "ClinicId", "RuleType", "RuleStatus", "IsActive", "IsDelete");
+
+                    b.HasIndex("DoctorId", "ServiceUnitId", "ClinicId", "TariffCategoryId", "TariffId", "ProcedureId", "PatientClassId")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("ServiceUnitId", "ClinicId", "TariffCategoryId", "TariffId", "PatientClassId", "IsActive", "IsDelete");
+
+                    b.ToTable("MstDoctorServiceRule", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrug", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6882,6 +9749,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<string>("BaseUnit")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("BaseUnitMeasurementId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("BpomRegistrationNumber")
                         .HasMaxLength(50)
@@ -6912,13 +9782,13 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<Guid?>("DefaultDoseUnitMeasurementId")
+                        .HasColumnType("uuid");
+
                     b.Property<decimal>("DefaultPrice")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("numeric(18,2)")
                         .HasDefaultValue(0m);
-
-                    b.Property<Guid?>("DefaultTariffId")
-                        .HasColumnType("uuid");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -6933,6 +9803,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<string>("DispenseUnit")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("DispenseUnitMeasurementId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("DosageInformation")
                         .HasMaxLength(1000)
@@ -6987,10 +9860,20 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
+                    b.Property<bool>("IsAllowFractionalDispense")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("IsAntibiotic")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
+
+                    b.Property<bool>("IsBatchTracked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsCancel")
                         .ValueGeneratedOnAdd()
@@ -7001,6 +9884,11 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCompoundIngredientAllowed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsConsumable")
                         .ValueGeneratedOnAdd()
@@ -7016,6 +9904,11 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
+
+                    b.Property<bool>("IsExpiryDateTracked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsFormulary")
                         .ValueGeneratedOnAdd()
@@ -7052,6 +9945,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("IsStockManaged")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<bool>("IsVaccine")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -7080,6 +9978,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid?>("PurchaseUnitMeasurementId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Route")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -7093,6 +9994,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
+                    b.Property<Guid?>("StockUnitMeasurementId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("StorageInstruction")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -7100,6 +10004,12 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<string>("Strength")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("StrengthMeasurementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("StrengthValue")
+                        .HasColumnType("numeric(18,6)");
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -7113,17 +10023,23 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BaseUnitMeasurementId");
+
                     b.HasIndex("BpomRegistrationNumber")
                         .HasFilter("\"BpomRegistrationNumber\" IS NOT NULL");
 
                     b.HasIndex("BrandName");
 
-                    b.HasIndex("DefaultTariffId");
+                    b.HasIndex("DefaultDoseUnitMeasurementId");
+
+                    b.HasIndex("DispenseUnitMeasurementId");
 
                     b.HasIndex("DrugCategoryId");
 
                     b.HasIndex("DrugCode")
                         .IsUnique();
+
+                    b.HasIndex("DrugForm");
 
                     b.HasIndex("DrugName");
 
@@ -7135,11 +10051,30 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("IntegrationCode")
                         .HasFilter("\"IntegrationCode\" IS NOT NULL");
 
+                    b.HasIndex("NationalDrugCode")
+                        .HasFilter("\"NationalDrugCode\" IS NOT NULL");
+
+                    b.HasIndex("PurchaseUnitMeasurementId");
+
+                    b.HasIndex("Route");
+
+                    b.HasIndex("StockUnitMeasurementId");
+
+                    b.HasIndex("StrengthMeasurementId");
+
+                    b.HasIndex("BaseUnitMeasurementId", "DispenseUnitMeasurementId", "StockUnitMeasurementId");
+
                     b.HasIndex("IsNeedPrescription", "IsActive", "IsDelete");
+
+                    b.HasIndex("DrugCategoryId", "DrugForm", "IsActive", "IsDelete");
 
                     b.HasIndex("DrugCategoryId", "IsFormulary", "IsActive", "IsDelete");
 
+                    b.HasIndex("IsCompoundIngredientAllowed", "IsAllowFractionalDispense", "IsActive", "IsDelete");
+
                     b.HasIndex("IsCoveredByInsuranceDefault", "IsNeedApproval", "IsActive", "IsDelete");
+
+                    b.HasIndex("IsStockManaged", "IsBatchTracked", "IsExpiryDateTracked", "IsActive", "IsDelete");
 
                     b.HasIndex("IsAntibiotic", "IsNarcotic", "IsPsychotropic", "IsHighAlert", "IsActive", "IsDelete");
 
@@ -7279,6 +10214,761 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("IsAntibiotic", "IsNarcotic", "IsPsychotropic", "IsHighAlert", "IsActive", "IsDelete");
 
                     b.ToTable("MstDrugCategory", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrugStockPolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<decimal>("CriticalStockQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,4)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid>("DrugId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("EffectiveEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("EffectiveStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("ExpiryWarningDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(90);
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAllowNegativeStock")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsAutoReorderEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsBatchRequired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsExpiryDateRequired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsStockOpnameRequired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("LeadTimeDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<decimal>("MaximumStockQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,4)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("MinimumStockQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,4)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<int>("NearExpiryWarningDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(30);
+
+                    b.Property<decimal>("ReorderPointQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,4)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("ReorderQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,4)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("SafetyStockQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,4)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<Guid?>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("StockOpnameIntervalDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(30);
+
+                    b.Property<string>("StockPolicyCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("StockPolicyName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("StockUnitMeasurementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("StorageLocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("DrugId")
+                        .IsUnique()
+                        .HasFilter("\"StorageLocationId\" IS NULL AND \"ServiceUnitId\" IS NULL AND \"ClinicId\" IS NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("StockPolicyCode")
+                        .IsUnique();
+
+                    b.HasIndex("StockUnitMeasurementId");
+
+                    b.HasIndex("StorageLocationId");
+
+                    b.HasIndex("DrugId", "StorageLocationId")
+                        .IsUnique()
+                        .HasFilter("\"StorageLocationId\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("DrugId", "ServiceUnitId", "ClinicId")
+                        .IsUnique()
+                        .HasFilter("\"StorageLocationId\" IS NULL AND \"ClinicId\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("DrugId", "StockUnitMeasurementId", "IsActive", "IsDelete");
+
+                    b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsActive", "IsDelete");
+
+                    b.HasIndex("ExpiryWarningDays", "NearExpiryWarningDays", "IsActive", "IsDelete");
+
+                    b.HasIndex("MinimumStockQuantity", "MaximumStockQuantity", "ReorderPointQuantity", "IsActive", "IsDelete");
+
+                    b.HasIndex("IsAutoReorderEnabled", "IsAllowNegativeStock", "IsBatchRequired", "IsExpiryDateRequired", "IsActive", "IsDelete");
+
+                    b.ToTable("MstDrugStockPolicy", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrugStorageLocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BinCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("FloorName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAllowDispensing")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAllowReceiving")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAllowTransferIn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAllowTransferOut")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsColdChain")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsControlledDrugStorage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDefault")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsHighAlertStorage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsMainWarehouse")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPharmacyLocation")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsQuarantineLocation")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("LocationGroupName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal?>("MaximumHumidityPercent")
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<decimal?>("MaximumTemperatureCelsius")
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<decimal?>("MinimumHumidityPercent")
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<decimal?>("MinimumTemperatureCelsius")
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<Guid?>("ParentStorageLocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RackCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("RoomId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RoomName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ShelfCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("StorageLocationCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("StorageLocationName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("StorageLocationType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("General");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("ParentStorageLocationId");
+
+                    b.HasIndex("RoomId");
+
+                    b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("StorageLocationCode")
+                        .IsUnique();
+
+                    b.HasIndex("StorageLocationName");
+
+                    b.HasIndex("StorageLocationType");
+
+                    b.HasIndex("ParentStorageLocationId", "StorageLocationName", "IsDelete");
+
+                    b.HasIndex("IsDefault", "IsMainWarehouse", "IsPharmacyLocation", "IsActive", "IsDelete");
+
+                    b.HasIndex("ServiceUnitId", "ClinicId", "StorageLocationType", "IsActive", "IsDelete");
+
+                    b.HasIndex("IsAllowReceiving", "IsAllowDispensing", "IsAllowTransferIn", "IsAllowTransferOut", "IsActive", "IsDelete");
+
+                    b.HasIndex("IsColdChain", "IsControlledDrugStorage", "IsHighAlertStorage", "IsQuarantineLocation", "IsActive", "IsDelete");
+
+                    b.ToTable("MstDrugStorageLocation", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrugUnitConversion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConversionCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("ConversionFactor")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,6)")
+                        .HasDefaultValue(1m);
+
+                    b.Property<string>("ConversionName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("ConversionType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("General");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid>("DrugId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("EffectiveEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("EffectiveStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("FromMeasurementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("FromQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,6)")
+                        .HasDefaultValue(1m);
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsBidirectional")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDefault")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsForCompound")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsForDispensing")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsForPrescription")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsForPurchase")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsForStock")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("ToMeasurementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ToQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,6)")
+                        .HasDefaultValue(1m);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversionCode")
+                        .IsUnique();
+
+                    b.HasIndex("DrugId");
+
+                    b.HasIndex("FromMeasurementId");
+
+                    b.HasIndex("ToMeasurementId");
+
+                    b.HasIndex("DrugId", "FromMeasurementId", "ToMeasurementId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("DrugId", "ConversionType", "IsActive", "IsDelete");
+
+                    b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsActive", "IsDelete");
+
+                    b.HasIndex("DrugId", "IsForPurchase", "IsForStock", "IsForDispensing", "IsForPrescription", "IsForCompound", "IsActive", "IsDelete");
+
+                    b.ToTable("MstDrugUnitConversion", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstIdentityScannerProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AddressFieldName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("BirthDateFieldName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CardNumberRegex")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("ConfigurationJson")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("FullNameFieldName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("GenderFieldName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("IdentityNumberFieldName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("IdentityNumberRegex")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("InputFormat")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAutoCreatePatientAllowed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsBarcodeEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsForIdentityCard")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsForInsuranceCard")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsForMembershipCard")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsForPatientCard")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsManualInputAllowed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsOcrEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsQrEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsVerificationRequired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("MemberNumberRegex")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("OutputFormat")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ProfileCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ProfileName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("ProfileType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("ScannerModel")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ScannerVendorName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProfileCode")
+                        .IsUnique();
+
+                    b.HasIndex("ProfileName");
+
+                    b.HasIndex("ProfileType");
+
+                    b.HasIndex("ProfileType", "IsActive", "IsDelete");
+
+                    b.ToTable("MstIdentityScannerProfile", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstInsuranceCoverageRule", b =>
@@ -7903,6 +11593,419 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("InsuranceProviderId", "ProcedureId", "PatientClassId", "IsActive", "IsDelete");
 
                     b.ToTable("MstInsuranceTariff", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstKioskDevice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid?>("DefaultScannerProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("DeviceCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("DeviceModel")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("DeviceName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("DeviceStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("DeviceType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("FloorName")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAllowAppointment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAllowInsuranceRegistration")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAllowWalkIn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAvailableForCheckIn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAvailableForPayment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsAvailableForRegistration")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("LastErrorMessage")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("LastOfflineAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastOnlineAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LocationName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("MacAddress")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SerialNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("VendorName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("DefaultScannerProfileId");
+
+                    b.HasIndex("DeviceCode")
+                        .IsUnique();
+
+                    b.HasIndex("DeviceName");
+
+                    b.HasIndex("IpAddress")
+                        .HasFilter("\"IpAddress\" IS NOT NULL");
+
+                    b.HasIndex("SerialNumber")
+                        .HasFilter("\"SerialNumber\" IS NOT NULL");
+
+                    b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("DeviceType", "DeviceStatus", "IsActive", "IsDelete");
+
+                    b.HasIndex("ServiceUnitId", "ClinicId", "IsAvailableForRegistration", "IsActive", "IsDelete");
+
+                    b.ToTable("MstKioskDevice", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("DecimalPrecision")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(2);
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsBaseUnit")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDecimalAllowed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsForDrug")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsForGeneralUse")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsForLaboratory")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsForVitalSign")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("MeasurementCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("MeasurementGroupName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("MeasurementName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("MeasurementSymbol")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("MeasurementType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("General");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MeasurementCode")
+                        .IsUnique();
+
+                    b.HasIndex("MeasurementName");
+
+                    b.HasIndex("MeasurementSymbol");
+
+                    b.HasIndex("MeasurementType");
+
+                    b.HasIndex("MeasurementType", "MeasurementGroupName", "IsActive", "IsDelete");
+
+                    b.HasIndex("IsForDrug", "IsForLaboratory", "IsForVitalSign", "IsForGeneralUse", "IsActive", "IsDelete");
+
+                    b.ToTable("MstMeasurement", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurementConversion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("ConversionFactor")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,6)")
+                        .HasDefaultValue(1m);
+
+                    b.Property<string>("ConversionGroupName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("FormulaNote")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid>("FromMeasurementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsBidirectional")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsStandardConversion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("ToMeasurementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FromMeasurementId");
+
+                    b.HasIndex("ToMeasurementId");
+
+                    b.HasIndex("FromMeasurementId", "ToMeasurementId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("ConversionGroupName", "IsStandardConversion", "IsActive", "IsDelete");
+
+                    b.ToTable("MstMeasurementConversion", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMembershipTier", b =>
@@ -10172,6 +14275,705 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("MstPatientRelationship", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxKioskScanSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("BirthDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CardNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("FullName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("GenderText")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("IdentityNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("IdentityScannerProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("IdentityType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("InsuranceCardNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsManualInput")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPatientFound")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsUsedForRegistration")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid?>("KioskDeviceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("MemberNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ParsedJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RawScanText")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("ScanSource")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("ScanStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("SessionCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CardNumber");
+
+                    b.HasIndex("IdentityNumber");
+
+                    b.HasIndex("IdentityScannerProfileId");
+
+                    b.HasIndex("KioskDeviceId");
+
+                    b.HasIndex("MemberNumber");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("SessionCode")
+                        .IsUnique();
+
+                    b.HasIndex("PatientId", "IsUsedForRegistration", "IsDelete");
+
+                    b.HasIndex("ScanStatus", "ScanSource", "IsDelete");
+
+                    b.HasIndex("StartedAt", "ScanStatus", "IsDelete");
+
+                    b.ToTable("TrxKioskScanSession", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CheckedInAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ChiefComplaint")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CompanyGuarantorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DoctorScheduleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DoctorServiceRuleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("EligibilityCheckedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EligibilityReferenceNumber")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime>("EncounterDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EncounterNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("EncounterStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("EncounterType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<Guid?>("InsuranceProviderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAppointment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDoctorRequired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsFromKiosk")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsNewPatient")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsQueueRequired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsReferral")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsScreeningRequired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsWalkIn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<Guid?>("KioskScanSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("NoShowAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("NoShowByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NoShowReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("PatientClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PatientCompanyGuarantorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PatientInsuranceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PatientMembershipId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PaymentMethodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("PaymentType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("ReferralNumber")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime>("RegisteredAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("RegisteredByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("RegistrationSource")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<Guid>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("VisitType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CancelledByUserId");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("CompanyGuarantorId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("DoctorScheduleId");
+
+                    b.HasIndex("DoctorServiceRuleId");
+
+                    b.HasIndex("EncounterNumber")
+                        .IsUnique();
+
+                    b.HasIndex("InsuranceProviderId");
+
+                    b.HasIndex("KioskScanSessionId");
+
+                    b.HasIndex("NoShowByUserId");
+
+                    b.HasIndex("PatientClassId");
+
+                    b.HasIndex("PatientCompanyGuarantorId");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("PatientInsuranceId");
+
+                    b.HasIndex("PatientMembershipId");
+
+                    b.HasIndex("PaymentMethodId");
+
+                    b.HasIndex("RegisteredByUserId");
+
+                    b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("PatientId", "EncounterDate", "IsDelete");
+
+                    b.HasIndex("PaymentType", "PaymentMethodId", "IsDelete");
+
+                    b.HasIndex("RegisteredAt", "EncounterStatus", "IsDelete");
+
+                    b.HasIndex("EncounterStatus", "EncounterType", "IsActive", "IsDelete");
+
+                    b.HasIndex("ServiceUnitId", "ClinicId", "DoctorId", "EncounterDate", "IsDelete");
+
+                    b.ToTable("TrxPatientEncounter", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxQueue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CompletedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ConsultationCompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ConsultationStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DoctorCallAttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("DoctorCallExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DoctorScheduleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsAppointment")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDoctorRequired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsFromKiosk")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsPriorityQueue")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsScreeningRequired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsWalkIn")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime?>("LastDoctorCalledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LastDoctorCalledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("LastNurseCalledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LastNurseCalledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("LastRequeuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LastRequeuedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("LastSkippedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LastSkippedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("NoShowAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("NoShowByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NoShowReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("NurseCallAttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("NurseCallExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("QueueCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("QueueDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("QueueNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QueueStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("RequeueCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("RequeueReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("ScreeningCompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ScreeningStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SkipCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("SkipReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CancelledByUserId");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("CompletedByUserId");
+
+                    b.HasIndex("DoctorId");
+
+                    b.HasIndex("DoctorScheduleId");
+
+                    b.HasIndex("EncounterId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("LastDoctorCalledByUserId");
+
+                    b.HasIndex("LastNurseCalledByUserId");
+
+                    b.HasIndex("LastRequeuedByUserId");
+
+                    b.HasIndex("LastSkippedByUserId");
+
+                    b.HasIndex("NoShowByUserId");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("QueueCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("PatientId", "QueueDate", "IsDelete");
+
+                    b.HasIndex("DoctorId", "QueueDate", "QueueStatus", "IsDelete");
+
+                    b.HasIndex("QueueDate", "QueueStatus", "IsActive", "IsDelete");
+
+                    b.HasIndex("QueueStatus", "IsScreeningRequired", "IsDoctorRequired", "IsDelete");
+
+                    b.HasIndex("QueueDate", "ServiceUnitId", "ClinicId", "DoctorId", "QueueNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("QueueDate", "ServiceUnitId", "ClinicId", "DoctorId", "QueueStatus", "IsDelete");
+
+                    b.ToTable("TrxQueue", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Models.ApplicationRole", b =>
                 {
                     b.Property<Guid>("Id")
@@ -12134,6 +16936,573 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxDoctorConsultation", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientAssessment", "PatientAssessment")
+                        .WithMany()
+                        .HasForeignKey("AssessmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CancelledByUser")
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CompletedByUser")
+                        .WithMany()
+                        .HasForeignKey("CompletedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstDoctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", "Encounter")
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxQueue", "Queue")
+                        .WithMany()
+                        .HasForeignKey("QueueId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "StartedByUser")
+                        .WithMany()
+                        .HasForeignKey("StartedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CancelledByUser");
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("CompletedByUser");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Encounter");
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("PatientAssessment");
+
+                    b.Navigation("Queue");
+
+                    b.Navigation("ServiceUnit");
+
+                    b.Navigation("StartedByUser");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientAllergy", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientAssessment", "Assessment")
+                        .WithMany()
+                        .HasForeignKey("AssessmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CancelledByUser")
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxDoctorConsultation", "Consultation")
+                        .WithMany()
+                        .HasForeignKey("ConsultationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstDoctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrug", "Drug")
+                        .WithMany()
+                        .HasForeignKey("DrugId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", "Encounter")
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ResolvedByUser")
+                        .WithMany()
+                        .HasForeignKey("ResolvedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "VerifiedByUser")
+                        .WithMany()
+                        .HasForeignKey("VerifiedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Assessment");
+
+                    b.Navigation("CancelledByUser");
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("Consultation");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Drug");
+
+                    b.Navigation("Encounter");
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("ResolvedByUser");
+
+                    b.Navigation("ServiceUnit");
+
+                    b.Navigation("VerifiedByUser");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientAssessment", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "AssessmentByUser")
+                        .WithMany()
+                        .HasForeignKey("AssessmentByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CancelledByUser")
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CompletedByUser")
+                        .WithMany()
+                        .HasForeignKey("CompletedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", "Encounter")
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxQueue", "Queue")
+                        .WithMany()
+                        .HasForeignKey("QueueId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AssessmentByUser");
+
+                    b.Navigation("CancelledByUser");
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("CompletedByUser");
+
+                    b.Navigation("Encounter");
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("Queue");
+
+                    b.Navigation("ServiceUnit");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientDiagnosis", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CancelledByUser")
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxDoctorConsultation", "Consultation")
+                        .WithMany()
+                        .HasForeignKey("ConsultationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosis", "Diagnosis")
+                        .WithMany()
+                        .HasForeignKey("DiagnosisId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstDoctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", "Encounter")
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ResolvedByUser")
+                        .WithMany()
+                        .HasForeignKey("ResolvedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CancelledByUser");
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("Consultation");
+
+                    b.Navigation("Diagnosis");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Encounter");
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("ResolvedByUser");
+
+                    b.Navigation("ServiceUnit");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientFamilyHistory", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientAssessment", "Assessment")
+                        .WithMany()
+                        .HasForeignKey("AssessmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CancelledByUser")
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxDoctorConsultation", "Consultation")
+                        .WithMany()
+                        .HasForeignKey("ConsultationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosis", "Diagnosis")
+                        .WithMany()
+                        .HasForeignKey("DiagnosisId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstDoctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", "Encounter")
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "FamilyMemberPatient")
+                        .WithMany()
+                        .HasForeignKey("FamilyMemberPatientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ResolvedByUser")
+                        .WithMany()
+                        .HasForeignKey("ResolvedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "VerifiedByUser")
+                        .WithMany()
+                        .HasForeignKey("VerifiedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Assessment");
+
+                    b.Navigation("CancelledByUser");
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("Consultation");
+
+                    b.Navigation("Diagnosis");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Encounter");
+
+                    b.Navigation("FamilyMemberPatient");
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("ResolvedByUser");
+
+                    b.Navigation("ServiceUnit");
+
+                    b.Navigation("VerifiedByUser");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientMedicalHistory", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientAssessment", "Assessment")
+                        .WithMany()
+                        .HasForeignKey("AssessmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CancelledByUser")
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxDoctorConsultation", "Consultation")
+                        .WithMany()
+                        .HasForeignKey("ConsultationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosis", "Diagnosis")
+                        .WithMany()
+                        .HasForeignKey("DiagnosisId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstDoctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", "Encounter")
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ResolvedByUser")
+                        .WithMany()
+                        .HasForeignKey("ResolvedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "VerifiedByUser")
+                        .WithMany()
+                        .HasForeignKey("VerifiedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Assessment");
+
+                    b.Navigation("CancelledByUser");
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("Consultation");
+
+                    b.Navigation("Diagnosis");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Encounter");
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("ResolvedByUser");
+
+                    b.Navigation("ServiceUnit");
+
+                    b.Navigation("VerifiedByUser");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientProcedure", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CancelledByUser")
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxDoctorConsultation", "Consultation")
+                        .WithMany()
+                        .HasForeignKey("ConsultationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstDoctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", "Encounter")
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ExecutedByUser")
+                        .WithMany()
+                        .HasForeignKey("ExecutedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstInsuranceCoverageRule", "InsuranceCoverageRule")
+                        .WithMany()
+                        .HasForeignKey("InsuranceCoverageRuleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstInsuranceTariff", "InsuranceTariff")
+                        .WithMany()
+                        .HasForeignKey("InsuranceTariffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PerformedByUser")
+                        .WithMany()
+                        .HasForeignKey("PerformedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstProcedure", "Procedure")
+                        .WithMany()
+                        .HasForeignKey("ProcedureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstTariff", "Tariff")
+                        .WithMany()
+                        .HasForeignKey("TariffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("CancelledByUser");
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("Consultation");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Encounter");
+
+                    b.Navigation("ExecutedByUser");
+
+                    b.Navigation("InsuranceCoverageRule");
+
+                    b.Navigation("InsuranceTariff");
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("PerformedByUser");
+
+                    b.Navigation("Procedure");
+
+                    b.Navigation("ServiceUnit");
+
+                    b.Navigation("Tariff");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstBed", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstRoom", "Room")
@@ -12156,11 +17525,133 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ServiceUnit");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosis", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosisChapter", "DiagnosisChapter")
+                        .WithMany("Diagnoses")
+                        .HasForeignKey("DiagnosisChapterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosis", "ParentDiagnosis")
+                        .WithMany("ChildDiagnoses")
+                        .HasForeignKey("ParentDiagnosisId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DiagnosisChapter");
+
+                    b.Navigation("ParentDiagnosis");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDoctorSchedule", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstDoctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstRoom", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstDoctor", "SubstituteDoctor")
+                        .WithMany()
+                        .HasForeignKey("SubstituteDoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("Room");
+
+                    b.Navigation("ServiceUnit");
+
+                    b.Navigation("SubstituteDoctor");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDoctorServiceRule", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstDoctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstPatientClass", "PatientClass")
+                        .WithMany()
+                        .HasForeignKey("PatientClassId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstProcedure", "Procedure")
+                        .WithMany()
+                        .HasForeignKey("ProcedureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstTariffCategory", "TariffCategory")
+                        .WithMany()
+                        .HasForeignKey("TariffCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstTariff", "Tariff")
+                        .WithMany()
+                        .HasForeignKey("TariffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("PatientClass");
+
+                    b.Navigation("Procedure");
+
+                    b.Navigation("ServiceUnit");
+
+                    b.Navigation("Tariff");
+
+                    b.Navigation("TariffCategory");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrug", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstTariff", "DefaultTariff")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurement", "BaseUnitMeasurement")
                         .WithMany()
-                        .HasForeignKey("DefaultTariffId")
+                        .HasForeignKey("BaseUnitMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurement", "DefaultDoseUnitMeasurement")
+                        .WithMany()
+                        .HasForeignKey("DefaultDoseUnitMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurement", "DispenseUnitMeasurement")
+                        .WithMany()
+                        .HasForeignKey("DispenseUnitMeasurementId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrugCategory", "DrugCategory")
@@ -12169,9 +17660,132 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("DefaultTariff");
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurement", "PurchaseUnitMeasurement")
+                        .WithMany()
+                        .HasForeignKey("PurchaseUnitMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurement", "StockUnitMeasurement")
+                        .WithMany()
+                        .HasForeignKey("StockUnitMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurement", "StrengthMeasurement")
+                        .WithMany()
+                        .HasForeignKey("StrengthMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BaseUnitMeasurement");
+
+                    b.Navigation("DefaultDoseUnitMeasurement");
+
+                    b.Navigation("DispenseUnitMeasurement");
 
                     b.Navigation("DrugCategory");
+
+                    b.Navigation("PurchaseUnitMeasurement");
+
+                    b.Navigation("StockUnitMeasurement");
+
+                    b.Navigation("StrengthMeasurement");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrugStockPolicy", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrug", "Drug")
+                        .WithMany()
+                        .HasForeignKey("DrugId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurement", "StockUnitMeasurement")
+                        .WithMany()
+                        .HasForeignKey("StockUnitMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrugStorageLocation", "StorageLocation")
+                        .WithMany()
+                        .HasForeignKey("StorageLocationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("Drug");
+
+                    b.Navigation("ServiceUnit");
+
+                    b.Navigation("StockUnitMeasurement");
+
+                    b.Navigation("StorageLocation");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrugStorageLocation", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrugStorageLocation", "ParentStorageLocation")
+                        .WithMany("ChildStorageLocations")
+                        .HasForeignKey("ParentStorageLocationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstRoom", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("ParentStorageLocation");
+
+                    b.Navigation("Room");
+
+                    b.Navigation("ServiceUnit");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrugUnitConversion", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrug", "Drug")
+                        .WithMany()
+                        .HasForeignKey("DrugId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurement", "FromMeasurement")
+                        .WithMany()
+                        .HasForeignKey("FromMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurement", "ToMeasurement")
+                        .WithMany()
+                        .HasForeignKey("ToMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Drug");
+
+                    b.Navigation("FromMeasurement");
+
+                    b.Navigation("ToMeasurement");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstInsuranceCoverageRule", b =>
@@ -12264,6 +17878,49 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Tariff");
 
                     b.Navigation("TariffCategory");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstKioskDevice", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstIdentityScannerProfile", "DefaultScannerProfile")
+                        .WithMany()
+                        .HasForeignKey("DefaultScannerProfileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("DefaultScannerProfile");
+
+                    b.Navigation("ServiceUnit");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurementConversion", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurement", "FromMeasurement")
+                        .WithMany()
+                        .HasForeignKey("FromMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurement", "ToMeasurement")
+                        .WithMany()
+                        .HasForeignKey("ToMeasurementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FromMeasurement");
+
+                    b.Navigation("ToMeasurement");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstProcedure", b =>
@@ -12494,6 +18151,252 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Patient");
 
                     b.Navigation("RelatedPatient");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxKioskScanSession", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstIdentityScannerProfile", "IdentityScannerProfile")
+                        .WithMany()
+                        .HasForeignKey("IdentityScannerProfileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstKioskDevice", "KioskDevice")
+                        .WithMany()
+                        .HasForeignKey("KioskDeviceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("IdentityScannerProfile");
+
+                    b.Navigation("KioskDevice");
+
+                    b.Navigation("Patient");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CancelledByUser")
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstCompanyGuarantor", "CompanyGuarantor")
+                        .WithMany()
+                        .HasForeignKey("CompanyGuarantorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstDoctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDoctorSchedule", "DoctorSchedule")
+                        .WithMany()
+                        .HasForeignKey("DoctorScheduleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDoctorServiceRule", "DoctorServiceRule")
+                        .WithMany()
+                        .HasForeignKey("DoctorServiceRuleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstInsuranceProvider", "InsuranceProvider")
+                        .WithMany()
+                        .HasForeignKey("InsuranceProviderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxKioskScanSession", "KioskScanSession")
+                        .WithMany()
+                        .HasForeignKey("KioskScanSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "NoShowByUser")
+                        .WithMany()
+                        .HasForeignKey("NoShowByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstPatientClass", "PatientClass")
+                        .WithMany()
+                        .HasForeignKey("PatientClassId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatientCompanyGuarantor", "PatientCompanyGuarantor")
+                        .WithMany()
+                        .HasForeignKey("PatientCompanyGuarantorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatientInsurance", "PatientInsurance")
+                        .WithMany()
+                        .HasForeignKey("PatientInsuranceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatientMembership", "PatientMembership")
+                        .WithMany()
+                        .HasForeignKey("PatientMembershipId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models.MstPaymentMethod", "PaymentMethod")
+                        .WithMany()
+                        .HasForeignKey("PaymentMethodId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "RegisteredByUser")
+                        .WithMany()
+                        .HasForeignKey("RegisteredByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CancelledByUser");
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("CompanyGuarantor");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("DoctorSchedule");
+
+                    b.Navigation("DoctorServiceRule");
+
+                    b.Navigation("InsuranceProvider");
+
+                    b.Navigation("KioskScanSession");
+
+                    b.Navigation("NoShowByUser");
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("PatientClass");
+
+                    b.Navigation("PatientCompanyGuarantor");
+
+                    b.Navigation("PatientInsurance");
+
+                    b.Navigation("PatientMembership");
+
+                    b.Navigation("PaymentMethod");
+
+                    b.Navigation("RegisteredByUser");
+
+                    b.Navigation("ServiceUnit");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxQueue", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CancelledByUser")
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "Clinic")
+                        .WithMany()
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CompletedByUser")
+                        .WithMany()
+                        .HasForeignKey("CompletedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models.MstDoctor", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDoctorSchedule", "DoctorSchedule")
+                        .WithMany()
+                        .HasForeignKey("DoctorScheduleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", "Encounter")
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "LastDoctorCalledByUser")
+                        .WithMany()
+                        .HasForeignKey("LastDoctorCalledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "LastNurseCalledByUser")
+                        .WithMany()
+                        .HasForeignKey("LastNurseCalledByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "LastRequeuedByUser")
+                        .WithMany()
+                        .HasForeignKey("LastRequeuedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "LastSkippedByUser")
+                        .WithMany()
+                        .HasForeignKey("LastSkippedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "NoShowByUser")
+                        .WithMany()
+                        .HasForeignKey("NoShowByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CancelledByUser");
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("CompletedByUser");
+
+                    b.Navigation("Doctor");
+
+                    b.Navigation("DoctorSchedule");
+
+                    b.Navigation("Encounter");
+
+                    b.Navigation("LastDoctorCalledByUser");
+
+                    b.Navigation("LastNurseCalledByUser");
+
+                    b.Navigation("LastRequeuedByUser");
+
+                    b.Navigation("LastSkippedByUser");
+
+                    b.Navigation("NoShowByUser");
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("ServiceUnit");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Models.ApplicationUser", b =>
@@ -12786,6 +18689,21 @@ namespace QuilvianSystemBackend.Migrations
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models.WfpPerformanceReview", b =>
                 {
                     b.Navigation("Details");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosis", b =>
+                {
+                    b.Navigation("ChildDiagnoses");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosisChapter", b =>
+                {
+                    b.Navigation("Diagnoses");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrugStorageLocation", b =>
+                {
+                    b.Navigation("ChildStorageLocations");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Models.ApplicationUser", b =>

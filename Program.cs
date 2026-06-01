@@ -299,6 +299,15 @@ await DefaultWorkScheduleSeeder.SeedAsync(app.Services);
 await SuperAdminSeeder.SeedAsync(app.Services);
 await AccessMenuSeeder.SeedAsync(app.Services);
 
+//Seed Awal Saja
+//var icd10FolderPath = Path.Combine(
+//    app.Environment.ContentRootPath,
+//    "SeedData",
+//    "ICD10"
+//);
+
+//await Icd10DiagnosisSeeder.SeedAsync(app.Services, icd10FolderPath);
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

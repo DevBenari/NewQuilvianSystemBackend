@@ -14,15 +14,23 @@
     <Compile Remove="Areas\HealthServices\DeviceManagement\**" />
     <Compile Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <Compile Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+    <Compile Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
+    <Compile Remove="Areas\HealthServices\PatientManagement\Patient\**" />
     <Content Remove="Areas\HealthServices\DeviceManagement\**" />
     <Content Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <Content Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+    <Content Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
+    <Content Remove="Areas\HealthServices\PatientManagement\Patient\**" />
     <EmbeddedResource Remove="Areas\HealthServices\DeviceManagement\**" />
     <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+    <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
+    <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Patient\**" />
     <None Remove="Areas\HealthServices\DeviceManagement\**" />
     <None Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <None Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+    <None Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
+    <None Remove="Areas\HealthServices\PatientManagement\Patient\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -57,16 +65,14 @@
     <Folder Include="Areas\HealthServices\InsuranceManagement\" />
     <Folder Include="Areas\HealthServices\DoctorAndScheduleManagement\" />
     <Folder Include="Areas\HealthServices\OperatingRoomManagement\" />
-    <Folder Include="Areas\HealthServices\PatientManagement\PatientMember\" />
-    <Folder Include="Areas\HealthServices\PatientManagement\Patient\" />
     <Folder Include="Areas\HealthServices\RadiologyManagement\" />
     <Folder Include="Areas\HealthServices\PharmacyManagement\" />
-    <Folder Include="Areas\HealthServices\RegistrationManagement\" />
     <Folder Include="Areas\HealthServices\OutpatientManagement\" />
     <Folder Include="Areas\SelfServices\Models\" />
     <Folder Include="Areas\SelfServices\Views\" />
     <Folder Include="Logs\" />
     <Folder Include="Helpers\" />
+    <Folder Include="SeedData\ICD10\" />
   </ItemGroup>
 
   <ItemGroup>

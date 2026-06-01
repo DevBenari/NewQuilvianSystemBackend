@@ -1,0 +1,11 @@
+﻿namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums
+{
+    public enum KioskDeviceStatus
+    {
+        Unknown = 0,
+        Active = 1,
+        Maintenance = 2,
+        Offline = 3,
+        Retired = 4
+    }
+}

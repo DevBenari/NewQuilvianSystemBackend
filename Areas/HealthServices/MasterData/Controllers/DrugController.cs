@@ -141,8 +141,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ConsumableDrug = await query.CountAsync(x => x.IsConsumable),
                 NeedPrescriptionDrug = await query.CountAsync(x => x.IsNeedPrescription),
                 CoveredByInsuranceDefaultDrug = await query.CountAsync(x => x.IsCoveredByInsuranceDefault),
-                NeedApprovalDrug = await query.CountAsync(x => x.IsNeedApproval),
-                HasDefaultTariffDrug = await query.CountAsync(x => x.DefaultTariffId.HasValue)
+                NeedApprovalDrug = await query.CountAsync(x => x.IsNeedApproval)
             };
 
             return Ok(ApiResponse<DrugSummaryResponse>.Ok(
@@ -316,9 +315,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     Id = x.Id,
                     DrugCategoryId = x.DrugCategoryId,
                     DrugCategoryName = x.DrugCategory != null ? x.DrugCategory.DrugCategoryName : string.Empty,
-                    DefaultTariffId = x.DefaultTariffId,
-                    DefaultTariffName = x.DefaultTariff != null ? x.DefaultTariff.TariffName : null,
-                    DefaultTariffNormalPrice = x.DefaultTariff != null ? x.DefaultTariff.NormalPrice : null,
                     DrugCode = x.DrugCode,
                     DrugName = x.DrugName,
                     GenericName = x.GenericName,
@@ -370,10 +366,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     DrugCategoryName = x.DrugCategory != null ? x.DrugCategory.DrugCategoryName : string.Empty,
                     DrugCategoryType = x.DrugCategory != null ? x.DrugCategory.DrugCategoryType : null,
                     DrugGroupName = x.DrugCategory != null ? x.DrugCategory.DrugGroupName : null,
-                    DefaultTariffId = x.DefaultTariffId,
-                    DefaultTariffCode = x.DefaultTariff != null ? x.DefaultTariff.TariffCode : null,
-                    DefaultTariffName = x.DefaultTariff != null ? x.DefaultTariff.TariffName : null,
-                    DefaultTariffNormalPrice = x.DefaultTariff != null ? x.DefaultTariff.NormalPrice : null,
                     DrugCode = x.DrugCode,
                     DrugName = x.DrugName,
                     GenericName = x.GenericName,
@@ -470,7 +462,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             {
                 Id = Guid.NewGuid(),
                 DrugCategoryId = request.DrugCategoryId,
-                DefaultTariffId = NormalizeNullableGuid(request.DefaultTariffId),
                 DrugCode = request.DrugCode.Trim().ToUpperInvariant(),
                 DrugName = request.DrugName.Trim(),
                 GenericName = NormalizeNullableString(request.GenericName),
@@ -588,7 +579,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var actorUserId = GetCurrentUserId();
 
             entity.DrugCategoryId = request.DrugCategoryId;
-            entity.DefaultTariffId = NormalizeNullableGuid(request.DefaultTariffId);
             entity.DrugCode = request.DrugCode.Trim().ToUpperInvariant();
             entity.DrugName = request.DrugName.Trim();
             entity.GenericName = NormalizeNullableString(request.GenericName);
@@ -795,7 +785,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return _dbContext.Set<MstDrug>()
                 .AsNoTracking()
                 .Include(x => x.DrugCategory)
-                .Include(x => x.DefaultTariff)
                 .Where(x => !x.IsDelete);
         }
 
@@ -849,26 +838,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.NationalDrugCode != null && x.NationalDrugCode.ToLower().Contains(keyword)) ||
                     (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
                     (x.DrugCategory != null && x.DrugCategory.DrugCategoryCode.ToLower().Contains(keyword)) ||
-                    (x.DrugCategory != null && x.DrugCategory.DrugCategoryName.ToLower().Contains(keyword)) ||
-                    (x.DefaultTariff != null && x.DefaultTariff.TariffCode.ToLower().Contains(keyword)) ||
-                    (x.DefaultTariff != null && x.DefaultTariff.TariffName.ToLower().Contains(keyword)));
+                    (x.DrugCategory != null && x.DrugCategory.DrugCategoryName.ToLower().Contains(keyword)));
             }
 
             if (isActive.HasValue)
                 query = query.Where(x => x.IsActive == isActive.Value);
 
             if (drugCategoryId.HasValue && drugCategoryId.Value != Guid.Empty)
-                query = query.Where(x => x.DrugCategoryId == drugCategoryId.Value);
-
-            if (defaultTariffId.HasValue && defaultTariffId.Value != Guid.Empty)
-                query = query.Where(x => x.DefaultTariffId == defaultTariffId.Value);
-
-            if (hasDefaultTariff.HasValue)
-            {
-                query = hasDefaultTariff.Value
-                    ? query.Where(x => x.DefaultTariffId.HasValue)
-                    : query.Where(x => !x.DefaultTariffId.HasValue);
-            }
+                query = query.Where(x => x.DrugCategoryId == drugCategoryId.Value);            
 
             if (!string.IsNullOrWhiteSpace(genericName))
             {
@@ -1046,10 +1023,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 DrugCategoryName = x.DrugCategory != null ? x.DrugCategory.DrugCategoryName : string.Empty,
                 DrugCategoryType = x.DrugCategory != null ? x.DrugCategory.DrugCategoryType : null,
                 DrugGroupName = x.DrugCategory != null ? x.DrugCategory.DrugGroupName : null,
-                DefaultTariffId = x.DefaultTariffId,
-                DefaultTariffCode = x.DefaultTariff != null ? x.DefaultTariff.TariffCode : null,
-                DefaultTariffName = x.DefaultTariff != null ? x.DefaultTariff.TariffName : null,
-                DefaultTariffNormalPrice = x.DefaultTariff != null ? x.DefaultTariff.NormalPrice : null,
                 DrugCode = x.DrugCode,
                 DrugName = x.DrugName,
                 GenericName = x.GenericName,
