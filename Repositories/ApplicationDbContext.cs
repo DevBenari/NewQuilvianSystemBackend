@@ -137,6 +137,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxPatientVitalSign> TrxPatientVitalSigns { get; set; }
         public DbSet<TrxPatientClinicalDocument> TrxPatientClinicalDocuments { get; set; }
         public DbSet<TrxPatientConsent> TrxPatientConsents { get; set; }
+        public DbSet<TrxMedicalCertificate> TrxMedicalCertificates { get; set; }
+        public DbSet<TrxClinicalNoteAttachment> TrxClinicalNoteAttachments { get; set; }
         #endregion HEALTH SERVICE
 
         protected override void OnModelCreating(ModelBuilder builder)

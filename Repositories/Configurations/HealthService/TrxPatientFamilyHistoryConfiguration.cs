@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Configurations
+namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 {
     public class TrxPatientFamilyHistoryConfiguration : IEntityTypeConfiguration<TrxPatientFamilyHistory>
     {

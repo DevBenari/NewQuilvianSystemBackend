@@ -1,14 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
+﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 {
-    public class TrxPatientClinicalDocumentConfiguration : IEntityTypeConfiguration<TrxPatientClinicalDocument>
+    public class TrxClinicalNoteAttachmentConfiguration : IEntityTypeConfiguration<TrxClinicalNoteAttachment>
     {
-        public void Configure(EntityTypeBuilder<TrxPatientClinicalDocument> builder)
+        public void Configure(EntityTypeBuilder<TrxClinicalNoteAttachment> builder)
         {
-            builder.ToTable("TrxPatientClinicalDocument", "public");
+            builder.ToTable("TrxClinicalNoteAttachment", "public");
 
             builder.HasKey(x => x.Id);
 
@@ -16,28 +16,49 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             // PROPERTIES
             // =========================
 
-            builder.Property(x => x.ClinicalDocumentNumber)
+            builder.Property(x => x.AttachmentNumber)
                 .HasMaxLength(50)
                 .IsRequired();
 
-            builder.Property(x => x.DocumentTitle)
+            builder.Property(x => x.AttachmentTitle)
                 .HasMaxLength(250)
                 .IsRequired();
 
-            builder.Property(x => x.DocumentCode)
+            builder.Property(x => x.AttachmentCode)
                 .HasMaxLength(100);
 
-            builder.Property(x => x.DocumentCategoryName)
+            builder.Property(x => x.AttachmentCategoryName)
                 .HasMaxLength(250);
 
-            builder.Property(x => x.ExternalDocumentNumber)
+            builder.Property(x => x.AttachmentDescription)
+                .HasMaxLength(1000);
+
+            builder.Property(x => x.NoteSectionName)
                 .HasMaxLength(250);
 
-            builder.Property(x => x.ExternalProviderName)
+            builder.Property(x => x.ClinicalNote)
+                .HasMaxLength(1000);
+
+            builder.Property(x => x.FindingNote)
+                .HasMaxLength(1000);
+
+            builder.Property(x => x.InterpretationNote)
+                .HasMaxLength(1000);
+
+            builder.Property(x => x.FollowUpNote)
+                .HasMaxLength(1000);
+
+            builder.Property(x => x.BodySite)
                 .HasMaxLength(250);
 
-            builder.Property(x => x.ExternalDoctorName)
+            builder.Property(x => x.BodySiteDescription)
                 .HasMaxLength(250);
+
+            builder.Property(x => x.ViewPosition)
+                .HasMaxLength(100);
+
+            builder.Property(x => x.CaptureDeviceName)
+                .HasMaxLength(100);
 
             builder.Property(x => x.FilePath)
                 .HasMaxLength(500)
@@ -68,28 +89,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             builder.Property(x => x.PreviewPath)
                 .HasMaxLength(500);
 
-            builder.Property(x => x.DocumentSummary)
-                .HasMaxLength(1000);
-
-            builder.Property(x => x.ClinicalFindingSummary)
-                .HasMaxLength(1000);
-
-            builder.Property(x => x.Impression)
-                .HasMaxLength(1000);
-
-            builder.Property(x => x.Recommendation)
-                .HasMaxLength(1000);
-
-            builder.Property(x => x.Keywords)
-                .HasMaxLength(500);
-
             builder.Property(x => x.ReviewNote)
                 .HasMaxLength(500);
 
             builder.Property(x => x.VerificationNote)
-                .HasMaxLength(500);
-
-            builder.Property(x => x.ApprovalNote)
                 .HasMaxLength(500);
 
             builder.Property(x => x.Notes)
@@ -114,13 +117,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             builder.Property(x => x.IsShareable)
                 .HasDefaultValue(false);
 
-            builder.Property(x => x.IsExternalDocument)
-                .HasDefaultValue(false);
-
             builder.Property(x => x.IsPartOfMedicalRecord)
                 .HasDefaultValue(true);
 
-            builder.Property(x => x.IsLegalDocument)
+            builder.Property(x => x.IsClinicalMedia)
+                .HasDefaultValue(true);
+
+            builder.Property(x => x.IsBeforeAfterComparison)
                 .HasDefaultValue(false);
 
             builder.Property(x => x.IsNeedReview)
@@ -130,9 +133,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasDefaultValue(false);
 
             builder.Property(x => x.IsVerified)
-                .HasDefaultValue(false);
-
-            builder.Property(x => x.IsApproved)
                 .HasDefaultValue(false);
 
             builder.Property(x => x.IsArchived)
@@ -151,7 +151,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             // INDEXES
             // =========================
 
-            builder.HasIndex(x => x.ClinicalDocumentNumber)
+            builder.HasIndex(x => x.AttachmentNumber)
                 .IsUnique();
 
             builder.HasIndex(x => x.PatientId);
@@ -168,6 +168,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 
             builder.HasIndex(x => x.PatientProcedureId);
 
+            builder.HasIndex(x => x.ClinicalDocumentId);
+
             builder.HasIndex(x => x.DoctorId);
 
             builder.HasIndex(x => x.ServiceUnitId);
@@ -176,31 +178,48 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 
             builder.HasIndex(x => x.UploadedByUserId);
 
+            builder.HasIndex(x => x.CapturedByUserId);
+
             builder.HasIndex(x => x.FileHash);
+
+            builder.HasIndex(x => x.RelatedAttachmentId);
 
             builder.HasIndex(x => new
             {
                 x.PatientId,
-                x.DocumentType,
-                x.DocumentStatus
+                x.AttachmentType,
+                x.AttachmentStatus
             });
 
             builder.HasIndex(x => new
             {
                 x.PatientId,
-                x.DocumentDateTime
+                x.AttachmentContext,
+                x.UploadedAt
             });
 
             builder.HasIndex(x => new
             {
                 x.EncounterId,
-                x.DocumentDateTime
+                x.UploadedAt
             });
 
             builder.HasIndex(x => new
             {
                 x.ConsultationId,
-                x.DocumentDateTime
+                x.UploadedAt
+            });
+
+            builder.HasIndex(x => new
+            {
+                x.PatientDiagnosisId,
+                x.UploadedAt
+            });
+
+            builder.HasIndex(x => new
+            {
+                x.PatientProcedureId,
+                x.UploadedAt
             });
 
             builder.HasIndex(x => new
@@ -226,13 +245,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             builder.HasIndex(x => new
             {
                 x.IsVerified,
-                x.IsApproved
-            });
-
-            builder.HasIndex(x => new
-            {
-                x.IsArchived,
-                x.IsActive
+                x.IsArchived
             });
 
             // =========================
@@ -274,6 +287,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasForeignKey(x => x.PatientProcedureId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne(x => x.ClinicalDocument)
+                .WithMany()
+                .HasForeignKey(x => x.ClinicalDocumentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasOne(x => x.Doctor)
                 .WithMany()
                 .HasForeignKey(x => x.DoctorId)
@@ -289,9 +307,19 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasForeignKey(x => x.ClinicId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne(x => x.RelatedAttachment)
+                .WithMany()
+                .HasForeignKey(x => x.RelatedAttachmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasOne(x => x.UploadedByUser)
                 .WithMany()
                 .HasForeignKey(x => x.UploadedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.CapturedByUser)
+                .WithMany()
+                .HasForeignKey(x => x.CapturedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(x => x.ReviewedByUser)
@@ -302,11 +330,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             builder.HasOne(x => x.VerifiedByUser)
                 .WithMany()
                 .HasForeignKey(x => x.VerifiedByUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            builder.HasOne(x => x.ApprovedByUser)
-                .WithMany()
-                .HasForeignKey(x => x.ApprovedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(x => x.ArchivedByUser)
