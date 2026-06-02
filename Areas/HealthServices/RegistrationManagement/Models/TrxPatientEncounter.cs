@@ -18,6 +18,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         [MaxLength(50)]
         public string EncounterNumber { get; set; } = string.Empty;
 
+        // =========================
+        // PATIENT / SERVICE CONTEXT
+        // =========================
+
         [Required]
         public Guid PatientId { get; set; }
 
@@ -34,19 +38,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
 
         public Guid? PatientClassId { get; set; }
 
-        public Guid? PaymentMethodId { get; set; }
-
-        public Guid? PatientInsuranceId { get; set; }
-
-        public Guid? InsuranceProviderId { get; set; }
-
-        public Guid? CompanyGuarantorId { get; set; }
-
-        public Guid? PatientCompanyGuarantorId { get; set; }
-
-        public Guid? PatientMembershipId { get; set; }
-
         public Guid? KioskScanSessionId { get; set; }
+
+        // =========================
+        // ENCOUNTER INFORMATION
+        // =========================
 
         public DateTime EncounterDate { get; set; } = DateTime.UtcNow;
 
@@ -54,22 +50,65 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
 
         public VisitType VisitType { get; set; } = VisitType.NewVisit;
 
-        public EncounterRegistrationSource RegistrationSource { get; set; } = EncounterRegistrationSource.FrontDesk;
-
-        public EncounterPaymentType PaymentType { get; set; } = EncounterPaymentType.Cash;
+        public EncounterRegistrationSource RegistrationSource { get; set; } =
+            EncounterRegistrationSource.FrontDesk;
 
         public EncounterStatus EncounterStatus { get; set; } = EncounterStatus.Registered;
 
         [MaxLength(500)]
         public string? ChiefComplaint { get; set; }
 
+        // =========================
+        // PAYMENT SUMMARY
+        // =========================
+        // Detail penjamin tidak lagi disimpan di encounter.
+        // Detailnya masuk ke TrxPatientEncounterGuarantor.
+
+        public EncounterPaymentType PaymentType { get; set; } = EncounterPaymentType.Cash;
+
+        public Guid? PaymentMethodId { get; set; }
+
+        public bool IsInsurancePatient { get; set; } = false;
+
+        public bool IsCompanyPatient { get; set; } = false;
+
+        public bool IsMembershipPatient { get; set; } = false;
+
+        public bool IsMixedPayment { get; set; } = false;
+
         [MaxLength(250)]
-        public string? ReferralNumber { get; set; }
+        public string? PrimaryGuarantorNameSnapshot { get; set; }
+
+        [MaxLength(100)]
+        public string? PrimaryGuarantorTypeSnapshot { get; set; }
 
         [MaxLength(250)]
         public string? EligibilityReferenceNumber { get; set; }
 
         public DateTime? EligibilityCheckedAt { get; set; }
+
+        public bool IsEligibilityRequired { get; set; } = false;
+
+        public bool IsEligibilityCompleted { get; set; } = false;
+
+        // =========================
+        // REFERRAL SUMMARY
+        // =========================
+        // Detail rujukan nanti masuk ke TrxPatientReferral.
+        // Encounter cukup menyimpan snapshot cepat.
+
+        public bool IsReferral { get; set; } = false;
+
+        [MaxLength(250)]
+        public string? ReferralNumber { get; set; }
+
+        public bool IsReferralRequired { get; set; } = false;
+
+        public bool IsReferralVerified { get; set; } = false;
+
+        // =========================
+        // REGISTRATION FLAGS
+        // =========================
 
         public bool IsNewPatient { get; set; } = false;
 
@@ -79,13 +118,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
 
         public bool IsAppointment { get; set; } = false;
 
-        public bool IsReferral { get; set; } = false;
-
         public bool IsScreeningRequired { get; set; } = false;
 
         public bool IsQueueRequired { get; set; } = true;
 
         public bool IsDoctorRequired { get; set; } = true;
+
+        // =========================
+        // REGISTRATION TIMELINE
+        // =========================
 
         public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
 
@@ -114,6 +155,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
 
         public bool IsActive { get; set; } = true;
 
+        // =========================
+        // NAVIGATION
+        // =========================
+
         public MstPatient? Patient { get; set; }
 
         public MstServiceUnit? ServiceUnit { get; set; }
@@ -130,16 +175,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
 
         public MstPaymentMethod? PaymentMethod { get; set; }
 
-        public MstPatientInsurance? PatientInsurance { get; set; }
-
-        public MstInsuranceProvider? InsuranceProvider { get; set; }
-
-        public MstCompanyGuarantor? CompanyGuarantor { get; set; }
-
-        public MstPatientCompanyGuarantor? PatientCompanyGuarantor { get; set; }
-
-        public MstPatientMembership? PatientMembership { get; set; }
-
         public TrxKioskScanSession? KioskScanSession { get; set; }
 
         public ApplicationUser? RegisteredByUser { get; set; }
@@ -147,5 +182,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public ApplicationUser? CancelledByUser { get; set; }
 
         public ApplicationUser? NoShowByUser { get; set; }
+
+        public ICollection<TrxPatientEncounterGuarantor> EncounterGuarantors { get; set; } =
+            new List<TrxPatientEncounterGuarantor>();
     }
 }

@@ -3,9 +3,10 @@
     public enum EncounterPaymentType
     {
         Cash = 1,
-        Insurance = 2,
-        CompanyGuarantor = 3,
-        Membership = 4,
-        Mixed = 5
+        Company = 2,
+        Insurance = 3,
+        CompanyGuarantor = 4,
+        Membership = 5,
+        Mixed = 6
     }
 }

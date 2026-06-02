@@ -13,6 +13,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 
             entity.HasKey(x => x.Id);
 
+            // =========================
+            // PROPERTIES
+            // =========================
+
             entity.Property(x => x.EncounterNumber)
                 .HasMaxLength(50)
                 .IsRequired();
@@ -38,24 +42,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.PatientClassId)
                 .IsRequired(false);
 
-            entity.Property(x => x.PaymentMethodId)
-                .IsRequired(false);
-
-            entity.Property(x => x.PatientInsuranceId)
-                .IsRequired(false);
-
-            entity.Property(x => x.InsuranceProviderId)
-                .IsRequired(false);
-
-            entity.Property(x => x.CompanyGuarantorId)
-                .IsRequired(false);
-
-            entity.Property(x => x.PatientCompanyGuarantorId)
-                .IsRequired(false);
-
-            entity.Property(x => x.PatientMembershipId)
-                .IsRequired(false);
-
             entity.Property(x => x.KioskScanSessionId)
                 .IsRequired(false);
 
@@ -78,11 +64,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasDefaultValue(EncounterRegistrationSource.FrontDesk)
                 .IsRequired();
 
-            entity.Property(x => x.PaymentType)
-                .HasConversion<int>()
-                .HasDefaultValue(EncounterPaymentType.Cash)
-                .IsRequired();
-
             entity.Property(x => x.EncounterStatus)
                 .HasConversion<int>()
                 .HasDefaultValue(EncounterStatus.Registered)
@@ -91,8 +72,35 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.ChiefComplaint)
                 .HasMaxLength(500);
 
-            entity.Property(x => x.ReferralNumber)
+            // =========================
+            // PAYMENT SUMMARY
+            // =========================
+
+            entity.Property(x => x.PaymentType)
+                .HasConversion<int>()
+                .HasDefaultValue(EncounterPaymentType.Cash)
+                .IsRequired();
+
+            entity.Property(x => x.PaymentMethodId)
+                .IsRequired(false);
+
+            entity.Property(x => x.IsInsurancePatient)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsCompanyPatient)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsMembershipPatient)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsMixedPayment)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.PrimaryGuarantorNameSnapshot)
                 .HasMaxLength(250);
+
+            entity.Property(x => x.PrimaryGuarantorTypeSnapshot)
+                .HasMaxLength(100);
 
             entity.Property(x => x.EligibilityReferenceNumber)
                 .HasMaxLength(250);
@@ -100,6 +108,32 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.EligibilityCheckedAt)
                 .HasColumnType("timestamp with time zone")
                 .IsRequired(false);
+
+            entity.Property(x => x.IsEligibilityRequired)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsEligibilityCompleted)
+                .HasDefaultValue(false);
+
+            // =========================
+            // REFERRAL SUMMARY
+            // =========================
+
+            entity.Property(x => x.IsReferral)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.ReferralNumber)
+                .HasMaxLength(250);
+
+            entity.Property(x => x.IsReferralRequired)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsReferralVerified)
+                .HasDefaultValue(false);
+
+            // =========================
+            // REGISTRATION FLAGS
+            // =========================
 
             entity.Property(x => x.IsNewPatient)
                 .HasDefaultValue(false);
@@ -113,9 +147,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.IsAppointment)
                 .HasDefaultValue(false);
 
-            entity.Property(x => x.IsReferral)
-                .HasDefaultValue(false);
-
             entity.Property(x => x.IsScreeningRequired)
                 .HasDefaultValue(false);
 
@@ -124,6 +155,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 
             entity.Property(x => x.IsDoctorRequired)
                 .HasDefaultValue(true);
+
+            // =========================
+            // TIMELINE
+            // =========================
 
             entity.Property(x => x.RegisteredAt)
                 .HasColumnType("timestamp with time zone")
@@ -167,6 +202,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.IsActive)
                 .HasDefaultValue(true);
 
+            // =========================
+            // IDENTITY MODEL
+            // =========================
+
             entity.Property(x => x.CreateDateTime)
                 .HasColumnType("timestamp with time zone")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -188,6 +227,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 
             entity.Property(x => x.IsCancel)
                 .HasDefaultValue(false);
+
+            // =========================
+            // RELATIONS
+            // =========================
 
             entity.HasOne(x => x.Patient)
                 .WithMany()
@@ -229,31 +272,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasForeignKey(x => x.PaymentMethodId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(x => x.PatientInsurance)
-                .WithMany()
-                .HasForeignKey(x => x.PatientInsuranceId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(x => x.InsuranceProvider)
-                .WithMany()
-                .HasForeignKey(x => x.InsuranceProviderId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(x => x.CompanyGuarantor)
-                .WithMany()
-                .HasForeignKey(x => x.CompanyGuarantorId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(x => x.PatientCompanyGuarantor)
-                .WithMany()
-                .HasForeignKey(x => x.PatientCompanyGuarantorId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(x => x.PatientMembership)
-                .WithMany()
-                .HasForeignKey(x => x.PatientMembershipId)
-                .OnDelete(DeleteBehavior.Restrict);
-
             entity.HasOne(x => x.KioskScanSession)
                 .WithMany()
                 .HasForeignKey(x => x.KioskScanSessionId)
@@ -274,6 +292,15 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasForeignKey(x => x.NoShowByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasMany(x => x.EncounterGuarantors)
+                .WithOne(x => x.Encounter)
+                .HasForeignKey(x => x.EncounterId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // =========================
+            // INDEXES
+            // =========================
+
             entity.HasIndex(x => x.EncounterNumber)
                 .IsUnique();
 
@@ -292,16 +319,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.HasIndex(x => x.PatientClassId);
 
             entity.HasIndex(x => x.PaymentMethodId);
-
-            entity.HasIndex(x => x.PatientInsuranceId);
-
-            entity.HasIndex(x => x.InsuranceProviderId);
-
-            entity.HasIndex(x => x.CompanyGuarantorId);
-
-            entity.HasIndex(x => x.PatientCompanyGuarantorId);
-
-            entity.HasIndex(x => x.PatientMembershipId);
 
             entity.HasIndex(x => x.KioskScanSessionId);
 
@@ -333,6 +350,21 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             {
                 x.PaymentType,
                 x.PaymentMethodId,
+                x.IsDelete
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.IsInsurancePatient,
+                x.IsCompanyPatient,
+                x.IsMixedPayment,
+                x.IsDelete
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.IsEligibilityRequired,
+                x.IsEligibilityCompleted,
                 x.IsDelete
             });
 
