@@ -22,7 +22,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/health-services/clinical/patient-family-histories")]
+    [Route("api/v1/health-services/clinical-management/patient-family-histories")]
     [AccessController(
         moduleCode: "HEALTH_SERVICE_CLINICAL",
         moduleName: "Health Service Clinical",
@@ -32,7 +32,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         Description = "Riwayat penyakit keluarga pasien dan hereditary risk alert",
         SortOrder = 7
     )]
-    [Tags("Health Services / Clinical / Patient Family History")]
+    [Tags("Health Services / Clinical Management / Patient Family History")]
     public class PatientFamilyHistoryController : ControllerBase
     {
         private const string LogCategory = "HealthServices.Clinical";

@@ -22,7 +22,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/health-services/clinical/patient-allergies")]
+    [Route("api/v1/health-services/clinical-management/patient-allergies")]
     [AccessController(
         moduleCode: "HEALTH_SERVICE_CLINICAL",
         moduleName: "Health Service Clinical",
@@ -32,7 +32,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         Description = "Riwayat alergi pasien dan patient safety alert",
         SortOrder = 5
     )]
-    [Tags("Health Services / Clinical / Patient Allergy")]
+    [Tags("Health Services / Clinical Management / Patient Allergy")]
     public class PatientAllergyController : ControllerBase
     {
         private const string LogCategory = "HealthServices.Clinical";

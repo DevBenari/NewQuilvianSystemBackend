@@ -20,7 +20,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/health-services/clinical/patient-procedures")]
+    [Route("api/v1/health-services/clinical-management/patient-procedures")]
     [AccessController(
         moduleCode: "HEALTH_SERVICE_CLINICAL",
         moduleName: "Health Service Clinical",
@@ -30,7 +30,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         Description = "Tindakan pasien berdasarkan konsultasi dokter",
         SortOrder = 4
     )]
-    [Tags("Health Services / Clinical / Patient Procedure")]
+    [Tags("Health Services / Clinical Management / Patient Procedure")]
     public class PatientProcedureController : ControllerBase
     {
         private const string LogCategory = "HealthServices.Clinical";
