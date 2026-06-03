@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -33,6 +34,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
     public class ClinicController : ControllerBase
     {
         private const string LogCategory = "HealthServices.MasterData";
+        private const string ClinicCodePrefix = "CL-RSMMC-";
+        private const int ClinicCodeDigitLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -54,6 +57,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var result = new ClinicFilterMetadataResponse
             {
                 DefaultFilter = new ClinicDefaultFilterResponse(),
+                CustomPeriods = BuildCustomPeriodOptions(),
                 SortOptions = new List<ClinicSortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -61,12 +65,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     new() { Value = "clinicCode", Label = "Kode clinic" },
                     new() { Value = "clinicName", Label = "Nama clinic" },
                     new() { Value = "serviceUnitName", Label = "Nama service unit" },
-                    new() { Value = "clinicType", Label = "Tipe clinic" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                ClinicTypeOptions = BuildEnumOptions<ClinicType>()
+                ClinicTypeOptions = BuildEnumOptions<ClinicType>(),
+                QueryParameters = BuildQueryParameterInfo(),
+                CreateFields = BuildCreateFieldMetadata(),
+                UpdateFields = BuildUpdateFieldMetadata()
             };
 
             await _loggerService.InfoAsync(
@@ -115,13 +121,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Clinic", Description = "Melihat data clinic", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Clinic", "Read")]
         public async Task<IActionResult> GetClinics(
-            [FromQuery] string? search,
-            [FromQuery] bool? isActive,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? serviceUnitId,
-            [FromQuery] ClinicType? clinicType,
-            [FromQuery] bool? isAvailableForRegistration,
-            [FromQuery] bool? isAvailableForKiosk,
-            [FromQuery] bool? isAvailableForAppointment,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -131,9 +136,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
             var query = _dbContext.Set<MstClinic>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
+
+            if (dateRange.Start.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
+            }
+
+            if (dateRange.EndExclusive.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
+            }
+
+            if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
+                query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -150,24 +181,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitCode.ToLower().Contains(keyword)) ||
                     (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)));
             }
-
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
-
-            if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
-                query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
-
-            if (clinicType.HasValue)
-                query = query.Where(x => x.ClinicType == clinicType.Value);
-
-            if (isAvailableForRegistration.HasValue)
-                query = query.Where(x => x.IsAvailableForRegistration == isAvailableForRegistration.Value);
-
-            if (isAvailableForKiosk.HasValue)
-                query = query.Where(x => x.IsAvailableForKiosk == isAvailableForKiosk.Value);
-
-            if (isAvailableForAppointment.HasValue)
-                query = query.Where(x => x.IsAvailableForAppointment == isAvailableForAppointment.Value);
 
             var totalData = await query.CountAsync();
 
@@ -221,10 +234,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("Clinic", "Read")]
         public async Task<IActionResult> GetClinicOptions(
             [FromQuery] Guid? serviceUnitId,
-            [FromQuery] ClinicType? clinicType,
-            [FromQuery] bool? isAvailableForRegistration,
-            [FromQuery] bool? isAvailableForKiosk,
-            [FromQuery] bool? isAvailableForAppointment,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null)
         {
@@ -238,18 +247,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
                 query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
 
-            if (clinicType.HasValue)
-                query = query.Where(x => x.ClinicType == clinicType.Value);
-
-            if (isAvailableForRegistration.HasValue)
-                query = query.Where(x => x.IsAvailableForRegistration == isAvailableForRegistration.Value);
-
-            if (isAvailableForKiosk.HasValue)
-                query = query.Where(x => x.IsAvailableForKiosk == isAvailableForKiosk.Value);
-
-            if (isAvailableForAppointment.HasValue)
-                query = query.Where(x => x.IsAvailableForAppointment == isAvailableForAppointment.Value);
-
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -257,7 +254,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 query = query.Where(x =>
                     x.ClinicCode.ToLower().Contains(keyword) ||
                     x.ClinicName.ToLower().Contains(keyword) ||
-                    (x.ShortName != null && x.ShortName.ToLower().Contains(keyword)));
+                    (x.ShortName != null && x.ShortName.ToLower().Contains(keyword)) ||
+                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)));
             }
 
             var data = await query
@@ -271,6 +269,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     ClinicCode = x.ClinicCode,
                     ClinicName = x.ClinicName,
                     ClinicType = x.ClinicType,
+                    ShortName = x.ShortName,
                     IsAvailableForRegistration = x.IsAvailableForRegistration,
                     IsAvailableForKiosk = x.IsAvailableForKiosk,
                     IsAvailableForAppointment = x.IsAvailableForAppointment
@@ -336,15 +335,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<ClinicCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Clinic", Description = "Membuat data clinic", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("Clinic", "Create")]
         public async Task<IActionResult> CreateClinic([FromBody] CreateClinicRequest request)
         {
-            var validation = await ValidateRequestAsync(
+            var validation = await ValidateCreateUpdateRequestAsync(
                 excludeId: null,
                 serviceUnitId: request.ServiceUnitId,
-                clinicCode: request.ClinicCode,
-                clinicName: request.ClinicName
+                clinicName: request.ClinicName,
+                defaultEstimatedServiceMinutes: request.DefaultEstimatedServiceMinutes
             );
 
             if (!validation.IsValid)
@@ -358,11 +358,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+            var generatedClinicCode = await GenerateClinicCodeAsync();
+            var codeValidation = await ValidateGeneratedClinicCodeAsync(generatedClinicCode);
+
+            if (!codeValidation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    codeValidation.ErrorMessage ?? "Kode clinic otomatis tidak valid."
+                ));
+            }
+
             var entity = new MstClinic
             {
                 Id = Guid.NewGuid(),
                 ServiceUnitId = request.ServiceUnitId,
-                ClinicCode = request.ClinicCode.Trim().ToUpperInvariant(),
+                ClinicCode = generatedClinicCode,
                 ClinicName = request.ClinicName.Trim(),
                 ClinicType = request.ClinicType,
                 ShortName = NormalizeNullableText(request.ShortName),
@@ -387,6 +400,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             _dbContext.Set<MstClinic>().Add(entity);
             await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
 
             var response = new ClinicCreateResponse
             {
@@ -398,6 +412,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsActive = entity.IsActive
             };
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Clinic.CreateClinic",
+                "Membuat data clinic.",
+                response
+            );
+
             return Ok(ApiResponse<ClinicCreateResponse>.Ok(
                 response,
                 "Clinic berhasil dibuat."
@@ -405,7 +426,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ClinicUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Clinic", Description = "Mengubah data clinic", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("Clinic", "Update")]
@@ -422,11 +444,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            var validation = await ValidateRequestAsync(
+            var validation = await ValidateCreateUpdateRequestAsync(
                 excludeId: id,
                 serviceUnitId: request.ServiceUnitId,
-                clinicCode: request.ClinicCode,
-                clinicName: request.ClinicName
+                clinicName: request.ClinicName,
+                defaultEstimatedServiceMinutes: request.DefaultEstimatedServiceMinutes
             );
 
             if (!validation.IsValid)
@@ -437,8 +459,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.ServiceUnitId = request.ServiceUnitId;
-            entity.ClinicCode = request.ClinicCode.Trim().ToUpperInvariant();
             entity.ClinicName = request.ClinicName.Trim();
             entity.ClinicType = request.ClinicType;
             entity.ShortName = NormalizeNullableText(request.ShortName);
@@ -455,19 +479,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.SortOrder = request.SortOrder;
             entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var response = new ClinicUpdateResponse
+            {
+                Id = entity.Id,
+                ServiceUnitId = entity.ServiceUnitId,
+                ClinicCode = entity.ClinicCode,
+                ClinicName = entity.ClinicName,
+                ClinicType = entity.ClinicType,
+                IsActive = entity.IsActive
+            };
+
+            return Ok(ApiResponse<ClinicUpdateResponse>.Ok(
+                response,
                 "Clinic berhasil diperbarui."
             ));
         }
 
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Clinic", Description = "Menghapus data clinic", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("Clinic", "Delete")]
@@ -508,20 +543,64 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
+        private async Task<string> GenerateClinicCodeAsync()
+        {
+            var existingCodes = await _dbContext.Set<MstClinic>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.ClinicCode.StartsWith(ClinicCodePrefix))
+                .Select(x => x.ClinicCode)
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(ExtractClinicCodeNumber)
+                .Where(x => x.HasValue && x.Value > 0)
+                .Select(x => x!.Value)
+                .ToHashSet();
+
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
+            {
+                nextNumber++;
+            }
+
+            return $"{ClinicCodePrefix}{nextNumber.ToString().PadLeft(ClinicCodeDigitLength, '0')}";
+        }
+
+        private static int? ExtractClinicCodeNumber(string clinicCode)
+        {
+            if (string.IsNullOrWhiteSpace(clinicCode))
+                return null;
+
+            if (!clinicCode.StartsWith(ClinicCodePrefix, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var numberText = clinicCode[ClinicCodePrefix.Length..];
+
+            return int.TryParse(numberText, out var number)
+                ? number
+                : null;
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateUpdateRequestAsync(
             Guid? excludeId,
             Guid serviceUnitId,
-            string clinicCode,
-            string clinicName)
+            string clinicName,
+            int defaultEstimatedServiceMinutes)
         {
             if (serviceUnitId == Guid.Empty)
                 return (false, "Service unit wajib dipilih.");
 
-            if (string.IsNullOrWhiteSpace(clinicCode))
-                return (false, "Kode clinic wajib diisi.");
-
             if (string.IsNullOrWhiteSpace(clinicName))
                 return (false, "Nama clinic wajib diisi.");
+
+            if (defaultEstimatedServiceMinutes <= 0)
+                return (false, "Estimasi menit pelayanan harus lebih besar dari 0.");
+
+            if (defaultEstimatedServiceMinutes > 1440)
+                return (false, "Estimasi menit pelayanan tidak boleh lebih dari 1440 menit.");
 
             var serviceUnitExists = await _dbContext.Set<MstServiceUnit>()
                 .AnyAsync(x => x.Id == serviceUnitId && x.IsActive && !x.IsDelete);
@@ -529,17 +608,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (!serviceUnitExists)
                 return (false, "Service unit tidak valid atau tidak aktif.");
 
-            var normalizedCode = clinicCode.Trim().ToUpperInvariant();
             var normalizedName = clinicName.Trim().ToLower();
-
-            var duplicateCode = await _dbContext.Set<MstClinic>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.ClinicCode.ToUpper() == normalizedCode &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
-
-            if (duplicateCode)
-                return (false, "Kode clinic sudah digunakan.");
 
             var duplicateNameInServiceUnit = await _dbContext.Set<MstClinic>()
                 .AnyAsync(x =>
@@ -550,6 +619,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             if (duplicateNameInServiceUnit)
                 return (false, "Nama clinic pada service unit tersebut sudah digunakan.");
+
+            return (true, null);
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateGeneratedClinicCodeAsync(string clinicCode)
+        {
+            if (string.IsNullOrWhiteSpace(clinicCode))
+                return (false, "Kode clinic otomatis gagal dibuat.");
+
+            var normalizedCode = clinicCode.Trim().ToUpperInvariant();
+
+            var duplicateCode = await _dbContext.Set<MstClinic>()
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    x.ClinicCode.ToUpper() == normalizedCode);
+
+            if (duplicateCode)
+                return (false, "Kode clinic otomatis sudah digunakan. Silakan ulangi proses create.");
 
             return (true, null);
         }
@@ -579,10 +666,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     ? query.OrderByDescending(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : "")
                     : query.OrderBy(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : ""),
 
-                "clinictype" => isDesc
-                    ? query.OrderByDescending(x => x.ClinicType)
-                    : query.OrderBy(x => x.ClinicType),
-
                 "isactive" => isDesc
                     ? query.OrderByDescending(x => x.IsActive)
                     : query.OrderBy(x => x.IsActive),
@@ -602,6 +685,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return (pageNumber, pageSize);
         }
 
+        private static (bool IsValid, DateTime? Start, DateTime? EndExclusive, string? ErrorMessage)
+            ResolveDateRange(DateTime? startDate, DateTime? endDate, string? customPeriod)
+        {
+            var today = DateTime.UtcNow.Date;
+
+            if (!string.IsNullOrWhiteSpace(customPeriod) &&
+                !string.Equals(customPeriod, "custom", StringComparison.OrdinalIgnoreCase))
+            {
+                return customPeriod.ToLowerInvariant() switch
+                {
+                    "today" => (true, today, today.AddDays(1), null),
+                    "last7days" => (true, today.AddDays(-6), today.AddDays(1), null),
+                    "last30days" => (true, today.AddDays(-29), today.AddDays(1), null),
+                    "thismonth" => (true, new DateTime(today.Year, today.Month, 1), new DateTime(today.Year, today.Month, 1).AddMonths(1), null),
+                    _ => (false, null, null, "Custom period tidak valid.")
+                };
+            }
+
+            if (startDate.HasValue && endDate.HasValue && startDate.Value.Date > endDate.Value.Date)
+            {
+                return (false, null, null, "Start date tidak boleh lebih besar dari end date.");
+            }
+
+            return (
+                true,
+                startDate?.Date,
+                endDate?.Date.AddDays(1),
+                null
+            );
+        }
+
+        private static List<ClinicCustomPeriodOptionResponse> BuildCustomPeriodOptions()
+        {
+            return new List<ClinicCustomPeriodOptionResponse>
+            {
+                new() { Value = "custom", Label = "Custom", Description = "Gunakan startDate dan endDate.", UsesStartDate = true, UsesEndDate = true },
+                new() { Value = "today", Label = "Hari ini", Description = "Data yang dibuat hari ini.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last7days", Label = "7 hari terakhir", Description = "Data yang dibuat dalam 7 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last30days", Label = "30 hari terakhir", Description = "Data yang dibuat dalam 30 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "thismonth", Label = "Bulan ini", Description = "Data yang dibuat pada bulan berjalan.", UsesStartDate = false, UsesEndDate = false }
+            };
+        }
+
         private static List<ClinicEnumOptionResponse> BuildEnumOptions<TEnum>() where TEnum : Enum
         {
             return Enum.GetValues(typeof(TEnum))
@@ -619,6 +745,71 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         {
             return string.Concat(value.Select((x, i) =>
                 i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
+        }
+
+        private static List<ClinicQueryParameterInfoResponse> BuildQueryParameterInfo()
+        {
+            return new List<ClinicQueryParameterInfoResponse>
+            {
+                new() { Name = "startDate", Type = "date", Description = "Filter tanggal mulai berdasarkan CreateDateTime.", Example = "2026-06-01" },
+                new() { Name = "endDate", Type = "date", Description = "Filter tanggal akhir berdasarkan CreateDateTime.", Example = "2026-06-30" },
+                new() { Name = "customPeriod", Type = "string", Description = "Preset periode. Pilihan: custom, today, last7days, last30days, thismonth.", Example = "last7days" },
+                new() { Name = "serviceUnitId", Type = "guid", Description = "Relasi table 1. Filter clinic berdasarkan service unit.", Example = "3fa85f64-5717-4562-b3fc-2c963f66afa6" },
+                new() { Name = "isActive", Type = "bool", Description = "Filter status aktif.", Example = "true" },
+                new() { Name = "search", Type = "string", Description = "Cari berdasarkan kode clinic, nama clinic, nama singkat, lokasi, ruangan, deskripsi, atau service unit.", Example = "Poli Umum" },
+                new() { Name = "sortBy", Type = "string", Description = "Kolom sorting.", Example = "sortOrder" },
+                new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
+                new() { Name = "pageNumber", Type = "int", Description = "Nomor halaman.", Example = "1" },
+                new() { Name = "pageSize", Type = "int", Description = "Jumlah data per halaman.", Example = "25" }
+            };
+        }
+
+        private static List<ClinicFormFieldMetadataResponse> BuildCreateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: false);
+        }
+
+        private static List<ClinicFormFieldMetadataResponse> BuildUpdateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: true);
+        }
+
+        private static List<ClinicFormFieldMetadataResponse> BuildFieldMetadata(bool isUpdate)
+        {
+            var fields = new List<ClinicFormFieldMetadataResponse>
+            {
+                new() { Name = "clinicCode", Label = "Kode Clinic", Section = "Basic", InputType = "readonly", IsRequiredOnCreate = false, IsRequiredOnUpdate = false, RequiredType = "AutoGenerated", MaxLength = 50, Description = "Digenerate otomatis oleh sistem dengan format CL-RSMMC-00001. Nomor terkecil yang kosong dari data aktif akan dipakai kembali.", Example = "CL-RSMMC-00001", SortOrder = 1 },
+                new() { Name = "serviceUnitId", Label = "Service Unit", Section = "Basic", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "/api/v1/health-services/master-data/service-units/options", SortOrder = 2 },
+                new() { Name = "clinicName", Label = "Nama Clinic", Section = "Basic", InputType = "text", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", MaxLength = 150, Example = "Poli Umum", SortOrder = 3 },
+                new() { Name = "clinicType", Label = "Tipe Clinic", Section = "Basic", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "clinicTypeOptions", SortOrder = 4 },
+                new() { Name = "shortName", Label = "Nama Singkat", Section = "Basic", InputType = "text", MaxLength = 50, Example = "UMUM", SortOrder = 5 },
+                new() { Name = "locationName", Label = "Lokasi", Section = "Location", InputType = "text", MaxLength = 100, Example = "Gedung Rawat Jalan", SortOrder = 6 },
+                new() { Name = "floorName", Label = "Lantai", Section = "Location", InputType = "text", MaxLength = 50, Example = "Lantai 1", SortOrder = 7 },
+                new() { Name = "roomName", Label = "Ruang", Section = "Location", InputType = "text", MaxLength = 50, Example = "Ruang 101", SortOrder = 8 },
+                new() { Name = "isAvailableForRegistration", Label = "Tersedia Untuk Registrasi", Section = "Rule", InputType = "switch", SortOrder = 9 },
+                new() { Name = "isAvailableForKiosk", Label = "Tampil di Kiosk", Section = "Rule", InputType = "switch", SortOrder = 10 },
+                new() { Name = "isAvailableForAppointment", Label = "Tersedia Untuk Appointment", Section = "Rule", InputType = "switch", SortOrder = 11 },
+                new() { Name = "isDoctorRequired", Label = "Butuh Dokter", Section = "Rule", InputType = "switch", SortOrder = 12 },
+                new() { Name = "isScreeningRequired", Label = "Butuh Screening", Section = "Rule", InputType = "switch", SortOrder = 13 },
+                new() { Name = "isQueueRequired", Label = "Butuh Antrian", Section = "Rule", InputType = "switch", SortOrder = 14 },
+                new() { Name = "defaultEstimatedServiceMinutes", Label = "Estimasi Pelayanan", Section = "Rule", InputType = "number", Description = "Estimasi durasi pelayanan dalam menit.", Example = "15", SortOrder = 15 },
+                new() { Name = "sortOrder", Label = "Urutan", Section = "Display", InputType = "number", SortOrder = 16 },
+                new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 17 }
+            };
+
+            if (isUpdate)
+            {
+                fields.Add(new ClinicFormFieldMetadataResponse
+                {
+                    Name = "isActive",
+                    Label = "Status Aktif",
+                    Section = "Status",
+                    InputType = "switch",
+                    SortOrder = 99
+                });
+            }
+
+            return fields.OrderBy(x => x.SortOrder).ToList();
         }
 
         private Guid GetCurrentUserId()

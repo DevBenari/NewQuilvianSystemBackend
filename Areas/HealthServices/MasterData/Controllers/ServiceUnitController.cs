@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -34,6 +35,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
     public class ServiceUnitController : ControllerBase
     {
         private const string LogCategory = "HealthServices.MasterData";
+        private const string ServiceUnitCodePrefix = "SU-RSMMC-";
+        private const int ServiceUnitCodeDigitLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -243,10 +246,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Service Unit", Description = "Melihat data service unit", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("ServiceUnit", "Read")]
         public async Task<IActionResult> GetServiceUnitOptions(
-            [FromQuery] ServiceUnitType? serviceUnitType,
-            [FromQuery] bool? isAvailableForRegistration,
-            [FromQuery] bool? isAvailableForKiosk,
-            [FromQuery] bool? isAvailableForAppointment,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null)
         {
@@ -256,18 +255,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             if (onlyActive)
                 query = query.Where(x => x.IsActive);
-
-            if (serviceUnitType.HasValue)
-                query = query.Where(x => x.ServiceUnitType == serviceUnitType.Value);
-
-            if (isAvailableForRegistration.HasValue)
-                query = query.Where(x => x.IsAvailableForRegistration == isAvailableForRegistration.Value);
-
-            if (isAvailableForKiosk.HasValue)
-                query = query.Where(x => x.IsAvailableForKiosk == isAvailableForKiosk.Value);
-
-            if (isAvailableForAppointment.HasValue)
-                query = query.Where(x => x.IsAvailableForAppointment == isAvailableForAppointment.Value);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -353,7 +340,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("ServiceUnit", "Create")]
         public async Task<IActionResult> CreateServiceUnit([FromBody] CreateServiceUnitRequest request)
         {
-            var validation = await ValidateRequestAsync(null, request.ServiceUnitCode, request.ServiceUnitName);
+            var validation = await ValidateRequestAsync(null, request.ServiceUnitName);
 
             if (!validation.IsValid)
             {
@@ -366,10 +353,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+            var generatedServiceUnitCode = await GenerateReusableServiceUnitCodeAsync();
+
+            var codeValidation = await ValidateGeneratedCodeIsAvailableAsync(generatedServiceUnitCode);
+            if (!codeValidation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    codeValidation.ErrorMessage ?? "Kode service unit otomatis tidak valid."
+                ));
+            }
+
             var entity = new MstServiceUnit
             {
                 Id = Guid.NewGuid(),
-                ServiceUnitCode = request.ServiceUnitCode.Trim().ToUpperInvariant(),
+                ServiceUnitCode = generatedServiceUnitCode,
                 ServiceUnitName = request.ServiceUnitName.Trim(),
                 ServiceUnitType = request.ServiceUnitType,
                 ShortName = NormalizeNullableText(request.ShortName),
@@ -392,6 +392,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             _dbContext.Set<MstServiceUnit>().Add(entity);
             await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
 
             var response = new ServiceUnitCreateResponse
             {
@@ -426,7 +427,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            var validation = await ValidateRequestAsync(id, request.ServiceUnitCode, request.ServiceUnitName);
+            var validation = await ValidateRequestAsync(id, request.ServiceUnitName);
 
             if (!validation.IsValid)
             {
@@ -436,7 +437,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            entity.ServiceUnitCode = request.ServiceUnitCode.Trim().ToUpperInvariant();
             entity.ServiceUnitName = request.ServiceUnitName.Trim();
             entity.ServiceUnitType = request.ServiceUnitType;
             entity.ShortName = NormalizeNullableText(request.ShortName);
@@ -506,32 +506,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
-            string serviceUnitCode,
             string serviceUnitName)
         {
-            if (string.IsNullOrWhiteSpace(serviceUnitCode))
-            {
-                return (false, "Kode service unit wajib diisi.");
-            }
-
             if (string.IsNullOrWhiteSpace(serviceUnitName))
             {
                 return (false, "Nama service unit wajib diisi.");
             }
 
-            var normalizedCode = serviceUnitCode.Trim().ToUpperInvariant();
             var normalizedName = serviceUnitName.Trim().ToLower();
-
-            var duplicateCode = await _dbContext.Set<MstServiceUnit>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.ServiceUnitCode.ToUpper() == normalizedCode &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
-
-            if (duplicateCode)
-            {
-                return (false, "Kode service unit sudah digunakan.");
-            }
 
             var duplicateName = await _dbContext.Set<MstServiceUnit>()
                 .AnyAsync(x =>
@@ -542,6 +524,55 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (duplicateName)
             {
                 return (false, "Nama service unit sudah digunakan.");
+            }
+
+            return (true, null);
+        }
+
+        private async Task<string> GenerateReusableServiceUnitCodeAsync()
+        {
+            var usedCodes = await _dbContext.Set<MstServiceUnit>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.ServiceUnitCode.StartsWith(ServiceUnitCodePrefix))
+                .Select(x => x.ServiceUnitCode)
+                .ToListAsync();
+
+            var usedNumbers = new HashSet<int>();
+
+            foreach (var code in usedCodes)
+            {
+                var suffix = code[ServiceUnitCodePrefix.Length..];
+
+                if (int.TryParse(suffix, NumberStyles.None, CultureInfo.InvariantCulture, out var number) && number > 0)
+                {
+                    usedNumbers.Add(number);
+                }
+            }
+
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
+            {
+                nextNumber++;
+            }
+
+            return $"{ServiceUnitCodePrefix}{nextNumber.ToString($"D{ServiceUnitCodeDigitLength}", CultureInfo.InvariantCulture)}";
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateGeneratedCodeIsAvailableAsync(string serviceUnitCode)
+        {
+            var normalizedCode = serviceUnitCode.Trim().ToUpperInvariant();
+
+            var duplicateCode = await _dbContext.Set<MstServiceUnit>()
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    x.ServiceUnitCode.ToUpper() == normalizedCode);
+
+            if (duplicateCode)
+            {
+                return (false, "Kode service unit otomatis sudah digunakan. Silakan ulangi proses create.");
             }
 
             return (true, null);
@@ -679,7 +710,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         {
             var fields = new List<ServiceUnitFormFieldMetadataResponse>
             {
-                new() { Name = "serviceUnitCode", Label = "Kode Service Unit", Section = "Basic", InputType = "text", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", MaxLength = 50, Example = "SU-OPD-001", SortOrder = 1 },
+                new() { Name = "serviceUnitCode", Label = "Kode Service Unit", Section = "Basic", InputType = "readonly", IsRequiredOnCreate = false, IsRequiredOnUpdate = false, RequiredType = "AutoGenerated", MaxLength = 50, Description = "Digenerate otomatis oleh sistem dengan format SU-RSMMC-00001. Nomor terkecil yang kosong dari data aktif akan dipakai kembali.", Example = "SU-RSMMC-00001", SortOrder = 1 },
                 new() { Name = "serviceUnitName", Label = "Nama Service Unit", Section = "Basic", InputType = "text", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", MaxLength = 150, Example = "Rawat Jalan", SortOrder = 2 },
                 new() { Name = "serviceUnitType", Label = "Tipe Service Unit", Section = "Basic", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "serviceUnitTypeOptions", SortOrder = 3 },
                 new() { Name = "shortName", Label = "Nama Singkat", Section = "Basic", InputType = "text", MaxLength = 50, Example = "RAJAL", SortOrder = 4 },
