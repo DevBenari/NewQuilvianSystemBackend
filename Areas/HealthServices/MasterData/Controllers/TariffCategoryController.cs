@@ -32,6 +32,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
     public class TariffCategoryController : ControllerBase
     {
         private const string LogCategory = "HealthServices.MasterData";
+        private const string TariffCategoryCodePrefix = "TC-RSMMC-";
+        private const int TariffCategoryCodeDigitLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -53,6 +55,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var result = new TariffCategoryFilterMetadataResponse
             {
                 DefaultFilter = new TariffCategoryDefaultFilterResponse(),
+                CustomPeriods = BuildCustomPeriodOptions(),
                 SortOptions = new List<TariffCategorySortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -64,7 +67,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
-                PageSizeOptions = new List<int> { 10, 25, 50, 100 }
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                QueryParameters = BuildQueryParameterInfo(),
+                CreateFields = BuildCreateFieldMetadata(),
+                UpdateFields = BuildUpdateFieldMetadata()
             };
 
             await _loggerService.InfoAsync(
@@ -119,20 +125,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Tariff Category", Description = "Melihat data tariff category", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("TariffCategory", "Read")]
         public async Task<IActionResult> GetTariffCategories(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] string? search,
             [FromQuery] bool? isActive,
-            [FromQuery] string? tariffGroupName,
-            [FromQuery] bool? isRegistrationFee,
-            [FromQuery] bool? isAdministrationFee,
-            [FromQuery] bool? isConsultationFee,
-            [FromQuery] bool? isRoomCharge,
-            [FromQuery] bool? isProcedure,
-            [FromQuery] bool? isLaboratory,
-            [FromQuery] bool? isRadiology,
-            [FromQuery] bool? isPharmacy,
-            [FromQuery] bool? isSurgery,
-            [FromQuery] bool? isPackage,
-            [FromQuery] bool? isCoveredByInsuranceDefault,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -142,9 +139,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
             var query = _dbContext.Set<MstTariffCategory>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
+
+            if (dateRange.Start.HasValue)
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
+
+            if (dateRange.EndExclusive.HasValue)
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -159,45 +172,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             if (isActive.HasValue)
                 query = query.Where(x => x.IsActive == isActive.Value);
-
-            if (!string.IsNullOrWhiteSpace(tariffGroupName))
-            {
-                var groupKeyword = tariffGroupName.Trim().ToLower();
-                query = query.Where(x => x.TariffGroupName != null && x.TariffGroupName.ToLower().Contains(groupKeyword));
-            }
-
-            if (isRegistrationFee.HasValue)
-                query = query.Where(x => x.IsRegistrationFee == isRegistrationFee.Value);
-
-            if (isAdministrationFee.HasValue)
-                query = query.Where(x => x.IsAdministrationFee == isAdministrationFee.Value);
-
-            if (isConsultationFee.HasValue)
-                query = query.Where(x => x.IsConsultationFee == isConsultationFee.Value);
-
-            if (isRoomCharge.HasValue)
-                query = query.Where(x => x.IsRoomCharge == isRoomCharge.Value);
-
-            if (isProcedure.HasValue)
-                query = query.Where(x => x.IsProcedure == isProcedure.Value);
-
-            if (isLaboratory.HasValue)
-                query = query.Where(x => x.IsLaboratory == isLaboratory.Value);
-
-            if (isRadiology.HasValue)
-                query = query.Where(x => x.IsRadiology == isRadiology.Value);
-
-            if (isPharmacy.HasValue)
-                query = query.Where(x => x.IsPharmacy == isPharmacy.Value);
-
-            if (isSurgery.HasValue)
-                query = query.Where(x => x.IsSurgery == isSurgery.Value);
-
-            if (isPackage.HasValue)
-                query = query.Where(x => x.IsPackage == isPackage.Value);
-
-            if (isCoveredByInsuranceDefault.HasValue)
-                query = query.Where(x => x.IsCoveredByInsuranceDefault == isCoveredByInsuranceDefault.Value);
 
             var totalData = await query.CountAsync();
 
@@ -247,18 +221,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Tariff Category", Description = "Melihat data tariff category", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("TariffCategory", "Read")]
         public async Task<IActionResult> GetTariffCategoryOptions(
-            [FromQuery] string? tariffGroupName,
-            [FromQuery] bool? isRegistrationFee,
-            [FromQuery] bool? isAdministrationFee,
-            [FromQuery] bool? isConsultationFee,
-            [FromQuery] bool? isRoomCharge,
-            [FromQuery] bool? isProcedure,
-            [FromQuery] bool? isLaboratory,
-            [FromQuery] bool? isRadiology,
-            [FromQuery] bool? isPharmacy,
-            [FromQuery] bool? isSurgery,
-            [FromQuery] bool? isPackage,
-            [FromQuery] bool? isCoveredByInsuranceDefault,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null)
         {
@@ -268,45 +230,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             if (onlyActive)
                 query = query.Where(x => x.IsActive);
-
-            if (!string.IsNullOrWhiteSpace(tariffGroupName))
-            {
-                var groupKeyword = tariffGroupName.Trim().ToLower();
-                query = query.Where(x => x.TariffGroupName != null && x.TariffGroupName.ToLower().Contains(groupKeyword));
-            }
-
-            if (isRegistrationFee.HasValue)
-                query = query.Where(x => x.IsRegistrationFee == isRegistrationFee.Value);
-
-            if (isAdministrationFee.HasValue)
-                query = query.Where(x => x.IsAdministrationFee == isAdministrationFee.Value);
-
-            if (isConsultationFee.HasValue)
-                query = query.Where(x => x.IsConsultationFee == isConsultationFee.Value);
-
-            if (isRoomCharge.HasValue)
-                query = query.Where(x => x.IsRoomCharge == isRoomCharge.Value);
-
-            if (isProcedure.HasValue)
-                query = query.Where(x => x.IsProcedure == isProcedure.Value);
-
-            if (isLaboratory.HasValue)
-                query = query.Where(x => x.IsLaboratory == isLaboratory.Value);
-
-            if (isRadiology.HasValue)
-                query = query.Where(x => x.IsRadiology == isRadiology.Value);
-
-            if (isPharmacy.HasValue)
-                query = query.Where(x => x.IsPharmacy == isPharmacy.Value);
-
-            if (isSurgery.HasValue)
-                query = query.Where(x => x.IsSurgery == isSurgery.Value);
-
-            if (isPackage.HasValue)
-                query = query.Where(x => x.IsPackage == isPackage.Value);
-
-            if (isCoveredByInsuranceDefault.HasValue)
-                query = query.Where(x => x.IsCoveredByInsuranceDefault == isCoveredByInsuranceDefault.Value);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -397,13 +320,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<TariffCategoryCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Tariff Category", Description = "Membuat data tariff category", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("TariffCategory", "Create")]
         public async Task<IActionResult> CreateTariffCategory([FromBody] CreateTariffCategoryRequest request)
         {
             var validation = await ValidateRequestAsync(
                 excludeId: null,
-                tariffCategoryCode: request.TariffCategoryCode,
                 tariffCategoryName: request.TariffCategoryName
             );
 
@@ -421,7 +344,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var entity = new MstTariffCategory
             {
                 Id = Guid.NewGuid(),
-                TariffCategoryCode = request.TariffCategoryCode.Trim().ToUpperInvariant(),
+                TariffCategoryCode = await GenerateTariffCategoryCodeAsync(),
                 TariffCategoryName = request.TariffCategoryName.Trim(),
                 TariffGroupName = NormalizeNullableText(request.TariffGroupName),
                 IsRegistrationFee = request.IsRegistrationFee,
@@ -457,6 +380,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsActive = entity.IsActive
             };
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "TariffCategory.CreateTariffCategory",
+                "Membuat data tariff category.",
+                response
+            );
+
             return Ok(ApiResponse<TariffCategoryCreateResponse>.Ok(
                 response,
                 "Tariff category berhasil dibuat."
@@ -464,7 +394,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<TariffCategoryUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Tariff Category", Description = "Mengubah data tariff category", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("TariffCategory", "Update")]
@@ -483,7 +414,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var validation = await ValidateRequestAsync(
                 excludeId: id,
-                tariffCategoryCode: request.TariffCategoryCode,
                 tariffCategoryName: request.TariffCategoryName
             );
 
@@ -495,7 +425,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            entity.TariffCategoryCode = request.TariffCategoryCode.Trim().ToUpperInvariant();
             entity.TariffCategoryName = request.TariffCategoryName.Trim();
             entity.TariffGroupName = NormalizeNullableText(request.TariffGroupName);
             entity.IsRegistrationFee = request.IsRegistrationFee;
@@ -517,8 +446,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var response = new TariffCategoryUpdateResponse
+            {
+                Id = entity.Id,
+                TariffCategoryCode = entity.TariffCategoryCode,
+                TariffCategoryName = entity.TariffCategoryName,
+                TariffGroupName = entity.TariffGroupName,
+                IsCoveredByInsuranceDefault = entity.IsCoveredByInsuranceDefault,
+                IsActive = entity.IsActive
+            };
+
+            return Ok(ApiResponse<TariffCategoryUpdateResponse>.Ok(
+                response,
                 "Tariff category berhasil diperbarui."
             ));
         }
@@ -567,26 +506,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
-            string tariffCategoryCode,
             string tariffCategoryName)
         {
-            if (string.IsNullOrWhiteSpace(tariffCategoryCode))
-                return (false, "Kode tariff category wajib diisi.");
-
             if (string.IsNullOrWhiteSpace(tariffCategoryName))
                 return (false, "Nama tariff category wajib diisi.");
 
-            var normalizedCode = tariffCategoryCode.Trim().ToUpperInvariant();
             var normalizedName = tariffCategoryName.Trim().ToLower();
-
-            var duplicateCode = await _dbContext.Set<MstTariffCategory>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.TariffCategoryCode.ToUpper() == normalizedCode &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
-
-            if (duplicateCode)
-                return (false, "Kode tariff category sudah digunakan.");
 
             var duplicateName = await _dbContext.Set<MstTariffCategory>()
                 .AnyAsync(x =>
@@ -598,6 +523,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 return (false, "Nama tariff category sudah digunakan.");
 
             return (true, null);
+        }
+
+        private async Task<string> GenerateTariffCategoryCodeAsync()
+        {
+            var existingCodes = await _dbContext.Set<MstTariffCategory>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.TariffCategoryCode.StartsWith(TariffCategoryCodePrefix))
+                .Select(x => x.TariffCategoryCode)
+                .ToListAsync();
+
+            var usedNumbers = new HashSet<int>();
+
+            foreach (var code in existingCodes)
+            {
+                var suffix = code.Substring(TariffCategoryCodePrefix.Length);
+
+                if (int.TryParse(suffix, out var number) && number > 0)
+                    usedNumbers.Add(number);
+            }
+
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
+            {
+                nextNumber++;
+            }
+
+            return $"{TariffCategoryCodePrefix}{nextNumber.ToString().PadLeft(TariffCategoryCodeDigitLength, '0')}";
         }
 
         private static IQueryable<MstTariffCategory> ApplySorting(
@@ -639,6 +592,110 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             };
         }
 
+        private static DateRangeResult ResolveDateRange(
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            if (!string.IsNullOrWhiteSpace(customPeriod) &&
+                !string.Equals(customPeriod, "custom", StringComparison.OrdinalIgnoreCase))
+            {
+                var today = DateTime.UtcNow.Date;
+                var period = customPeriod.Trim().ToLowerInvariant();
+
+                return period switch
+                {
+                    "today" => DateRangeResult.Valid(today, today.AddDays(1)),
+                    "yesterday" => DateRangeResult.Valid(today.AddDays(-1), today),
+                    "last7days" => DateRangeResult.Valid(today.AddDays(-6), today.AddDays(1)),
+                    "last30days" => DateRangeResult.Valid(today.AddDays(-29), today.AddDays(1)),
+                    "thismonth" => DateRangeResult.Valid(new DateTime(today.Year, today.Month, 1), new DateTime(today.Year, today.Month, 1).AddMonths(1)),
+                    "lastmonth" => DateRangeResult.Valid(new DateTime(today.Year, today.Month, 1).AddMonths(-1), new DateTime(today.Year, today.Month, 1)),
+                    "thisyear" => DateRangeResult.Valid(new DateTime(today.Year, 1, 1), new DateTime(today.Year + 1, 1, 1)),
+                    _ => DateRangeResult.Invalid("Custom period tidak dikenali.")
+                };
+            }
+
+            var start = startDate?.Date;
+            var endExclusive = endDate?.Date.AddDays(1);
+
+            if (start.HasValue && endExclusive.HasValue && start.Value >= endExclusive.Value)
+                return DateRangeResult.Invalid("StartDate tidak boleh lebih besar dari EndDate.");
+
+            return DateRangeResult.Valid(start, endExclusive);
+        }
+
+        private static List<TariffCategoryCustomPeriodOptionResponse> BuildCustomPeriodOptions()
+        {
+            return new List<TariffCategoryCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini", Description = "Data yang dibuat hari ini.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "yesterday", Label = "Kemarin", Description = "Data yang dibuat kemarin.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last7days", Label = "7 hari terakhir", Description = "Data yang dibuat dalam 7 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last30days", Label = "30 hari terakhir", Description = "Data yang dibuat dalam 30 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "thisMonth", Label = "Bulan ini", Description = "Data yang dibuat pada bulan berjalan.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "lastMonth", Label = "Bulan lalu", Description = "Data yang dibuat pada bulan sebelumnya.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "thisYear", Label = "Tahun ini", Description = "Data yang dibuat pada tahun berjalan.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "custom", Label = "Custom", Description = "Gunakan startDate dan endDate.", UsesStartDate = true, UsesEndDate = true }
+            };
+        }
+
+        private static List<TariffCategoryQueryParameterInfoResponse> BuildQueryParameterInfo()
+        {
+            return new List<TariffCategoryQueryParameterInfoResponse>
+            {
+                new() { Name = "startDate", Type = "date", Description = "Tanggal awal filter berdasarkan CreateDateTime.", Example = "2026-06-01" },
+                new() { Name = "endDate", Type = "date", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-06-30" },
+                new() { Name = "customPeriod", Type = "string", Description = "Preset periode. Jika bukan custom, startDate dan endDate diabaikan.", Example = "thisMonth" },
+                new() { Name = "isActive", Type = "boolean", Description = "Filter status aktif." },
+                new() { Name = "search", Type = "string", Description = "Pencarian kode, nama, grup tarif, atau deskripsi." },
+                new() { Name = "sortBy", Type = "string", Description = "Kolom sorting." },
+                new() { Name = "sortDirection", Type = "string", Description = "asc atau desc.", Example = "asc" },
+                new() { Name = "pageNumber", Type = "integer", Description = "Nomor halaman.", Example = "1" },
+                new() { Name = "pageSize", Type = "integer", Description = "Jumlah data per halaman.", Example = "25" }
+            };
+        }
+
+        private static List<TariffCategoryFormFieldMetadataResponse> BuildCreateFieldMetadata()
+        {
+            return new List<TariffCategoryFormFieldMetadataResponse>
+            {
+                new() { Name = "tariffCategoryCode", Label = "Kode kategori tarif", DataType = "string", InputType = "text", Required = false, IsReadonly = true, Placeholder = "Auto generated", Description = "Dibuat otomatis oleh sistem dengan format TC-RSMMC-00001." },
+                new() { Name = "tariffCategoryName", Label = "Nama kategori tarif", DataType = "string", InputType = "text", Required = true, IsReadonly = false },
+                new() { Name = "tariffGroupName", Label = "Grup tarif", DataType = "string", InputType = "text", Required = false, IsReadonly = false },
+                new() { Name = "isRegistrationFee", Label = "Biaya registrasi", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isAdministrationFee", Label = "Biaya administrasi", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isConsultationFee", Label = "Biaya konsultasi", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isRoomCharge", Label = "Biaya kamar", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isProcedure", Label = "Tindakan/procedure", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isLaboratory", Label = "Laboratorium", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isRadiology", Label = "Radiologi", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isPharmacy", Label = "Farmasi", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isSurgery", Label = "Operasi/bedah", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isPackage", Label = "Paket", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isCoveredByInsuranceDefault", Label = "Default ditanggung asuransi", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "sortOrder", Label = "Urutan", DataType = "integer", InputType = "number", Required = false, IsReadonly = false },
+                new() { Name = "description", Label = "Deskripsi", DataType = "string", InputType = "textarea", Required = false, IsReadonly = false }
+            };
+        }
+
+        private static List<TariffCategoryFormFieldMetadataResponse> BuildUpdateFieldMetadata()
+        {
+            var fields = BuildCreateFieldMetadata();
+
+            fields.Add(new TariffCategoryFormFieldMetadataResponse
+            {
+                Name = "isActive",
+                Label = "Status aktif",
+                DataType = "boolean",
+                InputType = "switch",
+                Required = false,
+                IsReadonly = false
+            });
+
+            return fields;
+        }
+
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {
             if (pageNumber < 1) pageNumber = 1;
@@ -662,6 +719,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private sealed class DateRangeResult
+        {
+            public bool IsValid { get; private set; }
+            public DateTime? Start { get; private set; }
+            public DateTime? EndExclusive { get; private set; }
+            public string? ErrorMessage { get; private set; }
+
+            public static DateRangeResult Valid(DateTime? start, DateTime? endExclusive)
+            {
+                return new DateRangeResult
+                {
+                    IsValid = true,
+                    Start = start,
+                    EndExclusive = endExclusive
+                };
+            }
+
+            public static DateRangeResult Invalid(string errorMessage)
+            {
+                return new DateRangeResult
+                {
+                    IsValid = false,
+                    ErrorMessage = errorMessage
+                };
+            }
         }
     }
 }

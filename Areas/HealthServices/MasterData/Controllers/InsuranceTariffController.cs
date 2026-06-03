@@ -26,12 +26,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         AreaName = "HealthServices",
         ControllerName = "InsuranceTariff",
         Description = "Health service master data insurance tariff",
-        SortOrder = 27
+        SortOrder = 14
     )]
     [Tags("Health Services / Master Data / Insurance Tariff")]
     public class InsuranceTariffController : ControllerBase
     {
         private const string LogCategory = "HealthServices.MasterData";
+        private const string InsuranceTariffCodePrefix = "ITR-RSMMC-";
+        private const int InsuranceTariffCodeDigitLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -53,6 +55,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var result = new InsuranceTariffFilterMetadataResponse
             {
                 DefaultFilter = new InsuranceTariffDefaultFilterResponse(),
+                CustomPeriods = new List<InsuranceTariffCustomPeriodOptionResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7Days", Label = "7 hari terakhir" },
+                    new() { Value = "thisMonth", Label = "Bulan ini" },
+                    new() { Value = "lastMonth", Label = "Bulan lalu" }
+                },
                 SortOptions = new List<InsuranceTariffSortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -91,7 +100,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("InsuranceTariff", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var now = DateTime.UtcNow.Date;
+            var today = DateTime.UtcNow.Date;
 
             var query = _dbContext.Set<MstInsuranceTariff>()
                 .AsNoTracking()
@@ -108,12 +117,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 LaboratoryTariff = await query.CountAsync(x => x.IsLaboratory),
                 RadiologyTariff = await query.CountAsync(x => x.IsRadiology),
                 RoomChargeTariff = await query.CountAsync(x => x.IsRoomCharge),
+                SurgeryRelatedTariff = await query.CountAsync(x => x.IsSurgeryRelated),
                 NeedApprovalTariff = await query.CountAsync(x => x.IsNeedApproval),
+                UsingContractPriceTariff = await query.CountAsync(x => x.IsUsingContractPrice),
                 EffectiveTariff = await query.CountAsync(x =>
-                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= now) &&
-                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= now)),
+                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= today) &&
+                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today)),
                 ExpiredTariff = await query.CountAsync(x =>
-                    x.EffectiveEndDate.HasValue && x.EffectiveEndDate.Value.Date < now)
+                    x.EffectiveEndDate.HasValue && x.EffectiveEndDate.Value.Date < today)
             };
 
             return Ok(ApiResponse<InsuranceTariffSummaryResponse>.Ok(
@@ -127,28 +138,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Insurance Tariff", Description = "Melihat data insurance tariff", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("InsuranceTariff", "Read")]
         public async Task<IActionResult> GetInsuranceTariffs(
-            [FromQuery] string? search,
-            [FromQuery] bool? isActive,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? insuranceProviderId,
-            [FromQuery] Guid? tariffId,
-            [FromQuery] Guid? drugId,
-            [FromQuery] Guid? procedureId,
             [FromQuery] Guid? tariffCategoryId,
-            [FromQuery] Guid? patientClassId,
-            [FromQuery] string? benefitPlanCode,
-            [FromQuery] string? providerName,
-            [FromQuery] bool? isUsingContractPrice,
-            [FromQuery] bool? isSurgeryRelated,
-            [FromQuery] bool? isRoomCharge,
-            [FromQuery] bool? isDrug,
-            [FromQuery] bool? isConsumable,
-            [FromQuery] bool? isProcedure,
-            [FromQuery] bool? isLaboratory,
-            [FromQuery] bool? isRadiology,
-            [FromQuery] bool? isNeedApproval,
-            [FromQuery] DateTime? effectiveDate,
-            [FromQuery] decimal? minimumPrice,
-            [FromQuery] decimal? maximumPrice,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -160,31 +156,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var query = BuildBaseQuery();
 
-            query = ApplyFilters(
-                query,
-                search,
-                isActive,
-                insuranceProviderId,
-                tariffId,
-                drugId,
-                procedureId,
-                tariffCategoryId,
-                patientClassId,
-                benefitPlanCode,
-                providerName,
-                isUsingContractPrice,
-                isSurgeryRelated,
-                isRoomCharge,
-                isDrug,
-                isConsumable,
-                isProcedure,
-                isLaboratory,
-                isRadiology,
-                isNeedApproval,
-                effectiveDate,
-                minimumPrice,
-                maximumPrice
-            );
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+
+            if (insuranceProviderId.HasValue && insuranceProviderId.Value != Guid.Empty)
+                query = query.Where(x => x.InsuranceProviderId == insuranceProviderId.Value);
+
+            if (tariffCategoryId.HasValue && tariffCategoryId.Value != Guid.Empty)
+                query = query.Where(x => x.TariffCategoryId == tariffCategoryId.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            query = ApplySearch(query, search);
 
             var totalData = await query.CountAsync();
 
@@ -262,13 +245,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("InsuranceTariff", "Read")]
         public async Task<IActionResult> GetInsuranceTariffOptions(
             [FromQuery] Guid? insuranceProviderId,
-            [FromQuery] Guid? tariffId,
-            [FromQuery] Guid? drugId,
-            [FromQuery] Guid? procedureId,
             [FromQuery] Guid? tariffCategoryId,
-            [FromQuery] Guid? patientClassId,
-            [FromQuery] string? benefitPlanCode,
-            [FromQuery] DateTime? effectiveDate,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null)
         {
@@ -277,31 +254,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (onlyActive)
                 query = query.Where(x => x.IsActive);
 
-            query = ApplyFilters(
-                query,
-                search,
-                null,
-                insuranceProviderId,
-                tariffId,
-                drugId,
-                procedureId,
-                tariffCategoryId,
-                patientClassId,
-                benefitPlanCode,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                effectiveDate,
-                null,
-                null
-            );
+            if (insuranceProviderId.HasValue && insuranceProviderId.Value != Guid.Empty)
+                query = query.Where(x => x.InsuranceProviderId == insuranceProviderId.Value);
+
+            if (tariffCategoryId.HasValue && tariffCategoryId.Value != Guid.Empty)
+                query = query.Where(x => x.TariffCategoryId == tariffCategoryId.Value);
+
+            query = ApplySearch(query, search);
 
             var data = await query
                 .OrderBy(x => x.SortOrder)
@@ -319,11 +278,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     DrugName = x.Drug != null ? x.Drug.DrugName : null,
                     ProcedureId = x.ProcedureId,
                     ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : null,
+                    TariffCategoryId = x.TariffCategoryId,
+                    TariffCategoryName = x.TariffCategory != null ? x.TariffCategory.TariffCategoryName : null,
                     PatientClassId = x.PatientClassId,
                     PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : x.PatientClassName,
                     BenefitPlanCode = x.BenefitPlanCode,
                     BenefitPlanName = x.BenefitPlanName,
                     ContractPrice = x.ContractPrice,
+                    IsUsingContractPrice = x.IsUsingContractPrice,
                     IsNeedApproval = x.IsNeedApproval
                 })
                 .ToListAsync();
@@ -429,6 +391,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+            var generatedCode = await GenerateInsuranceTariffCodeAsync();
 
             var entity = new MstInsuranceTariff
             {
@@ -439,7 +402,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ProcedureId = NormalizeNullableGuid(request.ProcedureId),
                 TariffCategoryId = NormalizeNullableGuid(request.TariffCategoryId),
                 PatientClassId = NormalizeNullableGuid(request.PatientClassId),
-                InsuranceTariffCode = request.InsuranceTariffCode.Trim().ToUpperInvariant(),
+                InsuranceTariffCode = generatedCode,
                 InsuranceTariffName = request.InsuranceTariffName.Trim(),
                 ExternalServiceCode = NormalizeNullableString(request.ExternalServiceCode),
                 ExternalClassCode = NormalizeNullableString(request.ExternalClassCode),
@@ -466,12 +429,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 BillingInstruction = NormalizeNullableString(request.BillingInstruction),
                 ClaimInstruction = NormalizeNullableString(request.ClaimInstruction),
                 Description = NormalizeNullableString(request.Description),
-                IsActive = request.IsActive,
+                IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
-                UpdateBy = Guid.Empty,
-                DeleteBy = Guid.Empty,
-                CancelBy = Guid.Empty,
                 IsDelete = false,
                 IsCancel = false
             };
@@ -479,14 +439,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             _dbContext.Set<MstInsuranceTariff>().Add(entity);
             await _dbContext.SaveChangesAsync();
 
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "InsuranceTariff.Create",
-                "Membuat data insurance tariff.",
-                entity
-            );
-
-            var result = new InsuranceTariffCreateResponse
+            var response = new InsuranceTariffCreateResponse
             {
                 Id = entity.Id,
                 InsuranceProviderId = entity.InsuranceProviderId,
@@ -501,14 +454,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsActive = entity.IsActive
             };
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InsuranceTariff.CreateInsuranceTariff",
+                "Membuat data insurance tariff.",
+                response
+            );
+
             return Ok(ApiResponse<InsuranceTariffCreateResponse>.Ok(
-                result,
+                response,
                 "Insurance tariff berhasil dibuat."
             ));
         }
 
         [HttpPut("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<InsuranceTariffDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Insurance Tariff", Description = "Mengubah data insurance tariff", AccessType = AccessTypes.Update, SortOrder = 3)]
@@ -542,7 +502,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.ProcedureId = NormalizeNullableGuid(request.ProcedureId);
             entity.TariffCategoryId = NormalizeNullableGuid(request.TariffCategoryId);
             entity.PatientClassId = NormalizeNullableGuid(request.PatientClassId);
-            entity.InsuranceTariffCode = request.InsuranceTariffCode.Trim().ToUpperInvariant();
             entity.InsuranceTariffName = request.InsuranceTariffName.Trim();
             entity.ExternalServiceCode = NormalizeNullableString(request.ExternalServiceCode);
             entity.ExternalClassCode = NormalizeNullableString(request.ExternalClassCode);
@@ -575,52 +534,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "InsuranceTariff.Update",
-                "Mengubah data insurance tariff.",
-                entity
-            );
-
-            return await GetInsuranceTariffById(entity.Id);
-        }
-
-        [HttpPatch("{id:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Insurance Tariff Status", Description = "Mengubah status insurance tariff", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("InsuranceTariff", "Update")]
-        public async Task<IActionResult> UpdateInsuranceTariffStatus(Guid id, [FromBody] InsuranceTariffStatusRequest request)
-        {
-            var entity = await _dbContext.Set<MstInsuranceTariff>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Insurance tariff tidak ditemukan."
-                ));
-            }
-
-            entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
-
-            await _dbContext.SaveChangesAsync();
-
             return Ok(ApiResponse<object>.Ok(
-                new { entity.Id, entity.IsActive },
-                request.IsActive
-                    ? "Insurance tariff berhasil diaktifkan."
-                    : "Insurance tariff berhasil dinonaktifkan."
+                null,
+                "Insurance tariff berhasil diperbarui."
             ));
         }
 
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Delete", "Delete Insurance Tariff", Description = "Menghapus data insurance tariff", AccessType = AccessTypes.Delete, SortOrder = 5)]
+        [AccessAction("Delete", "Delete Insurance Tariff", Description = "Menghapus data insurance tariff", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("InsuranceTariff", "Delete")]
         public async Task<IActionResult> DeleteInsuranceTariff(Guid id)
         {
@@ -643,56 +566,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             await _dbContext.SaveChangesAsync();
 
             return Ok(ApiResponse<object>.Ok(
-                new { entity.Id },
+                null,
                 "Insurance tariff berhasil dihapus."
-            ));
-        }
-
-        [HttpPost("bulk-delete")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [AccessAction("Delete", "Bulk Delete Insurance Tariff", Description = "Menghapus banyak data insurance tariff", AccessType = AccessTypes.Delete, SortOrder = 6)]
-        [AccessPermission("InsuranceTariff", "Delete")]
-        public async Task<IActionResult> BulkDeleteInsuranceTariff([FromBody] BulkDeleteInsuranceTariffRequest request)
-        {
-            if (request.Ids == null || request.Ids.Count == 0)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Minimal pilih satu insurance tariff."
-                ));
-            }
-
-            var ids = request.Ids.Distinct().ToList();
-
-            var entities = await _dbContext.Set<MstInsuranceTariff>()
-                .Where(x => ids.Contains(x.Id) && !x.IsDelete)
-                .ToListAsync();
-
-            if (entities.Count == 0)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Data insurance tariff tidak ditemukan atau sudah dihapus."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            foreach (var entity in entities)
-            {
-                entity.IsDelete = true;
-                entity.IsActive = false;
-                entity.DeleteDateTime = now;
-                entity.DeleteBy = actorUserId;
-            }
-
-            await _dbContext.SaveChangesAsync();
-
-            return Ok(ApiResponse<object>.Ok(
-                new { DeletedCount = entities.Count },
-                $"{entities.Count} insurance tariff berhasil dihapus."
             ));
         }
 
@@ -709,184 +584,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 .Where(x => !x.IsDelete);
         }
 
-        private static IQueryable<MstInsuranceTariff> ApplyFilters(
+        private static IQueryable<MstInsuranceTariff> ApplySearch(
             IQueryable<MstInsuranceTariff> query,
-            string? search,
-            bool? isActive,
-            Guid? insuranceProviderId,
-            Guid? tariffId,
-            Guid? drugId,
-            Guid? procedureId,
-            Guid? tariffCategoryId,
-            Guid? patientClassId,
-            string? benefitPlanCode,
-            string? providerName,
-            bool? isUsingContractPrice,
-            bool? isSurgeryRelated,
-            bool? isRoomCharge,
-            bool? isDrug,
-            bool? isConsumable,
-            bool? isProcedure,
-            bool? isLaboratory,
-            bool? isRadiology,
-            bool? isNeedApproval,
-            DateTime? effectiveDate,
-            decimal? minimumPrice,
-            decimal? maximumPrice)
+            string? search)
         {
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
+            if (string.IsNullOrWhiteSpace(search))
+                return query;
 
-                query = query.Where(x =>
-                    x.InsuranceTariffCode.ToLower().Contains(keyword) ||
-                    x.InsuranceTariffName.ToLower().Contains(keyword) ||
-                    (x.ExternalServiceCode != null && x.ExternalServiceCode.ToLower().Contains(keyword)) ||
-                    (x.ExternalClassCode != null && x.ExternalClassCode.ToLower().Contains(keyword)) ||
-                    (x.BenefitPlanCode != null && x.BenefitPlanCode.ToLower().Contains(keyword)) ||
-                    (x.BenefitPlanName != null && x.BenefitPlanName.ToLower().Contains(keyword)) ||
-                    (x.PatientClassName != null && x.PatientClassName.ToLower().Contains(keyword)) ||
-                    (x.ProviderName != null && x.ProviderName.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
-                    (x.InsuranceProvider != null && x.InsuranceProvider.InsuranceProviderCode.ToLower().Contains(keyword)) ||
-                    (x.InsuranceProvider != null && x.InsuranceProvider.InsuranceProviderName.ToLower().Contains(keyword)) ||
-                    (x.Tariff != null && x.Tariff.TariffCode.ToLower().Contains(keyword)) ||
-                    (x.Tariff != null && x.Tariff.TariffName.ToLower().Contains(keyword)) ||
-                    (x.Drug != null && x.Drug.DrugCode.ToLower().Contains(keyword)) ||
-                    (x.Drug != null && x.Drug.DrugName.ToLower().Contains(keyword)) ||
-                    (x.Procedure != null && x.Procedure.ProcedureCode.ToLower().Contains(keyword)) ||
-                    (x.Procedure != null && x.Procedure.ProcedureName.ToLower().Contains(keyword)) ||
-                    (x.TariffCategory != null && x.TariffCategory.TariffCategoryCode.ToLower().Contains(keyword)) ||
-                    (x.TariffCategory != null && x.TariffCategory.TariffCategoryName.ToLower().Contains(keyword)) ||
-                    (x.PatientClass != null && x.PatientClass.PatientClassCode.ToLower().Contains(keyword)) ||
-                    (x.PatientClass != null && x.PatientClass.PatientClassName.ToLower().Contains(keyword)));
-            }
+            var keyword = search.Trim().ToLower();
 
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
-
-            if (insuranceProviderId.HasValue && insuranceProviderId.Value != Guid.Empty)
-                query = query.Where(x => x.InsuranceProviderId == insuranceProviderId.Value);
-
-            if (tariffId.HasValue && tariffId.Value != Guid.Empty)
-                query = query.Where(x => x.TariffId == tariffId.Value);
-
-            if (drugId.HasValue && drugId.Value != Guid.Empty)
-                query = query.Where(x => x.DrugId == drugId.Value);
-
-            if (procedureId.HasValue && procedureId.Value != Guid.Empty)
-                query = query.Where(x => x.ProcedureId == procedureId.Value);
-
-            if (tariffCategoryId.HasValue && tariffCategoryId.Value != Guid.Empty)
-                query = query.Where(x => x.TariffCategoryId == tariffCategoryId.Value);
-
-            if (patientClassId.HasValue && patientClassId.Value != Guid.Empty)
-                query = query.Where(x => x.PatientClassId == patientClassId.Value);
-
-            if (!string.IsNullOrWhiteSpace(benefitPlanCode))
-            {
-                var normalizedBenefitPlanCode = benefitPlanCode.Trim().ToLower();
-                query = query.Where(x => x.BenefitPlanCode != null && x.BenefitPlanCode.ToLower().Contains(normalizedBenefitPlanCode));
-            }
-
-            if (!string.IsNullOrWhiteSpace(providerName))
-            {
-                var normalizedProviderName = providerName.Trim().ToLower();
-                query = query.Where(x => x.ProviderName != null && x.ProviderName.ToLower().Contains(normalizedProviderName));
-            }
-
-            if (isUsingContractPrice.HasValue)
-                query = query.Where(x => x.IsUsingContractPrice == isUsingContractPrice.Value);
-
-            if (isSurgeryRelated.HasValue)
-                query = query.Where(x => x.IsSurgeryRelated == isSurgeryRelated.Value);
-
-            if (isRoomCharge.HasValue)
-                query = query.Where(x => x.IsRoomCharge == isRoomCharge.Value);
-
-            if (isDrug.HasValue)
-                query = query.Where(x => x.IsDrug == isDrug.Value);
-
-            if (isConsumable.HasValue)
-                query = query.Where(x => x.IsConsumable == isConsumable.Value);
-
-            if (isProcedure.HasValue)
-                query = query.Where(x => x.IsProcedure == isProcedure.Value);
-
-            if (isLaboratory.HasValue)
-                query = query.Where(x => x.IsLaboratory == isLaboratory.Value);
-
-            if (isRadiology.HasValue)
-                query = query.Where(x => x.IsRadiology == isRadiology.Value);
-
-            if (isNeedApproval.HasValue)
-                query = query.Where(x => x.IsNeedApproval == isNeedApproval.Value);
-
-            if (effectiveDate.HasValue)
-            {
-                var selectedDate = effectiveDate.Value.Date;
-
-                query = query.Where(x =>
-                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= selectedDate) &&
-                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= selectedDate));
-            }
-
-            if (minimumPrice.HasValue)
-                query = query.Where(x => x.ContractPrice >= minimumPrice.Value);
-
-            if (maximumPrice.HasValue)
-                query = query.Where(x => x.ContractPrice <= maximumPrice.Value);
-
-            return query;
-        }
-
-        private static IQueryable<MstInsuranceTariff> ApplySorting(
-            IQueryable<MstInsuranceTariff> query,
-            string? sortBy,
-            string? sortDirection)
-        {
-            var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-            var normalizedSortBy = (sortBy ?? "sortOrder").Trim().ToLowerInvariant();
-
-            return normalizedSortBy switch
-            {
-                "createdatetime" => isDescending
-                    ? query.OrderByDescending(x => x.CreateDateTime)
-                    : query.OrderBy(x => x.CreateDateTime),
-                "insuranceprovidername" => isDescending
-                    ? query.OrderByDescending(x => x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderName : string.Empty)
-                    : query.OrderBy(x => x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderName : string.Empty),
-                "insurancetariffcode" => isDescending
-                    ? query.OrderByDescending(x => x.InsuranceTariffCode)
-                    : query.OrderBy(x => x.InsuranceTariffCode),
-                "insurancetariffname" => isDescending
-                    ? query.OrderByDescending(x => x.InsuranceTariffName)
-                    : query.OrderBy(x => x.InsuranceTariffName),
-                "tariffcategoryname" => isDescending
-                    ? query.OrderByDescending(x => x.TariffCategory != null ? x.TariffCategory.TariffCategoryName : string.Empty)
-                    : query.OrderBy(x => x.TariffCategory != null ? x.TariffCategory.TariffCategoryName : string.Empty),
-                "patientclassname" => isDescending
-                    ? query.OrderByDescending(x => x.PatientClass != null ? x.PatientClass.PatientClassName : x.PatientClassName)
-                    : query.OrderBy(x => x.PatientClass != null ? x.PatientClass.PatientClassName : x.PatientClassName),
-                "benefitplancode" => isDescending
-                    ? query.OrderByDescending(x => x.BenefitPlanCode)
-                    : query.OrderBy(x => x.BenefitPlanCode),
-                "contractprice" => isDescending
-                    ? query.OrderByDescending(x => x.ContractPrice)
-                    : query.OrderBy(x => x.ContractPrice),
-                "effectivestartdate" => isDescending
-                    ? query.OrderByDescending(x => x.EffectiveStartDate)
-                    : query.OrderBy(x => x.EffectiveStartDate),
-                "effectiveenddate" => isDescending
-                    ? query.OrderByDescending(x => x.EffectiveEndDate)
-                    : query.OrderBy(x => x.EffectiveEndDate),
-                "isactive" => isDescending
-                    ? query.OrderByDescending(x => x.IsActive)
-                    : query.OrderBy(x => x.IsActive),
-                _ => isDescending
-                    ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.InsuranceTariffName)
-                    : query.OrderBy(x => x.SortOrder).ThenBy(x => x.InsuranceTariffName)
-            };
+            return query.Where(x =>
+                x.InsuranceTariffCode.ToLower().Contains(keyword) ||
+                x.InsuranceTariffName.ToLower().Contains(keyword) ||
+                (x.ExternalServiceCode != null && x.ExternalServiceCode.ToLower().Contains(keyword)) ||
+                (x.ExternalClassCode != null && x.ExternalClassCode.ToLower().Contains(keyword)) ||
+                (x.BenefitPlanCode != null && x.BenefitPlanCode.ToLower().Contains(keyword)) ||
+                (x.BenefitPlanName != null && x.BenefitPlanName.ToLower().Contains(keyword)) ||
+                (x.PatientClassName != null && x.PatientClassName.ToLower().Contains(keyword)) ||
+                (x.ProviderName != null && x.ProviderName.ToLower().Contains(keyword)) ||
+                (x.BillingInstruction != null && x.BillingInstruction.ToLower().Contains(keyword)) ||
+                (x.ClaimInstruction != null && x.ClaimInstruction.ToLower().Contains(keyword)) ||
+                (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
+                (x.InsuranceProvider != null && x.InsuranceProvider.InsuranceProviderCode.ToLower().Contains(keyword)) ||
+                (x.InsuranceProvider != null && x.InsuranceProvider.InsuranceProviderName.ToLower().Contains(keyword)) ||
+                (x.Tariff != null && x.Tariff.TariffCode.ToLower().Contains(keyword)) ||
+                (x.Tariff != null && x.Tariff.TariffName.ToLower().Contains(keyword)) ||
+                (x.Drug != null && x.Drug.DrugCode.ToLower().Contains(keyword)) ||
+                (x.Drug != null && x.Drug.DrugName.ToLower().Contains(keyword)) ||
+                (x.Procedure != null && x.Procedure.ProcedureCode.ToLower().Contains(keyword)) ||
+                (x.Procedure != null && x.Procedure.ProcedureName.ToLower().Contains(keyword)) ||
+                (x.TariffCategory != null && x.TariffCategory.TariffCategoryCode.ToLower().Contains(keyword)) ||
+                (x.TariffCategory != null && x.TariffCategory.TariffCategoryName.ToLower().Contains(keyword)) ||
+                (x.PatientClass != null && x.PatientClass.PatientClassCode.ToLower().Contains(keyword)) ||
+                (x.PatientClass != null && x.PatientClass.PatientClassName.ToLower().Contains(keyword)));
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
@@ -895,9 +625,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         {
             if (request.InsuranceProviderId == Guid.Empty)
                 return (false, "Insurance provider wajib diisi.");
-
-            if (string.IsNullOrWhiteSpace(request.InsuranceTariffCode))
-                return (false, "Kode insurance tariff wajib diisi.");
 
             if (string.IsNullOrWhiteSpace(request.InsuranceTariffName))
                 return (false, "Nama insurance tariff wajib diisi.");
@@ -941,6 +668,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 return (false, "Insurance tariff hanya boleh terhubung ke salah satu: tariff, drug, procedure, atau tariff category.");
 
             var providerExists = await _dbContext.Set<MstInsuranceProvider>()
+                .AsNoTracking()
                 .AnyAsync(x => x.Id == request.InsuranceProviderId && x.IsActive && !x.IsDelete);
 
             if (!providerExists)
@@ -949,6 +677,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (normalizedTariffId.HasValue)
             {
                 var tariffExists = await _dbContext.Set<MstTariff>()
+                    .AsNoTracking()
                     .AnyAsync(x => x.Id == normalizedTariffId.Value && x.IsActive && !x.IsDelete);
 
                 if (!tariffExists)
@@ -958,6 +687,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (normalizedDrugId.HasValue)
             {
                 var drugExists = await _dbContext.Set<MstDrug>()
+                    .AsNoTracking()
                     .AnyAsync(x => x.Id == normalizedDrugId.Value && x.IsActive && !x.IsDelete);
 
                 if (!drugExists)
@@ -967,6 +697,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (normalizedProcedureId.HasValue)
             {
                 var procedureExists = await _dbContext.Set<MstProcedure>()
+                    .AsNoTracking()
                     .AnyAsync(x => x.Id == normalizedProcedureId.Value && x.IsActive && !x.IsDelete);
 
                 if (!procedureExists)
@@ -976,6 +707,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (normalizedTariffCategoryId.HasValue)
             {
                 var tariffCategoryExists = await _dbContext.Set<MstTariffCategory>()
+                    .AsNoTracking()
                     .AnyAsync(x => x.Id == normalizedTariffCategoryId.Value && x.IsActive && !x.IsDelete);
 
                 if (!tariffCategoryExists)
@@ -985,31 +717,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (normalizedPatientClassId.HasValue)
             {
                 var patientClassExists = await _dbContext.Set<MstPatientClass>()
+                    .AsNoTracking()
                     .AnyAsync(x => x.Id == normalizedPatientClassId.Value && x.IsActive && !x.IsDelete);
 
                 if (!patientClassExists)
                     return (false, "Patient class tidak valid atau tidak aktif.");
             }
 
-            var normalizedCode = request.InsuranceTariffCode.Trim().ToUpperInvariant();
-            var normalizedExternalClassCode = NormalizeNullableString(request.ExternalClassCode);
             var normalizedBenefitPlanCode = NormalizeNullableString(request.BenefitPlanCode)?.ToUpperInvariant();
-
-            var duplicateCode = await _dbContext.Set<MstInsuranceTariff>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.InsuranceProviderId == request.InsuranceProviderId &&
-                    x.InsuranceTariffCode == normalizedCode &&
-                    x.ExternalClassCode == normalizedExternalClassCode &&
-                    x.BenefitPlanCode == normalizedBenefitPlanCode &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
-
-            if (duplicateCode)
-                return (false, "Kode insurance tariff dengan provider, kelas eksternal, dan benefit plan tersebut sudah digunakan.");
-
             var normalizedName = request.InsuranceTariffName.Trim().ToLowerInvariant();
 
             var duplicateNameInScope = await _dbContext.Set<MstInsuranceTariff>()
+                .AsNoTracking()
                 .AnyAsync(x =>
                     !x.IsDelete &&
                     x.InsuranceProviderId == request.InsuranceProviderId &&
@@ -1028,34 +747,174 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return (true, null);
         }
 
-        private static Guid? NormalizeNullableGuid(Guid? value)
+        private async Task<string> GenerateInsuranceTariffCodeAsync()
         {
-            if (!value.HasValue || value.Value == Guid.Empty)
-                return null;
+            var existingCodes = await _dbContext.Set<MstInsuranceTariff>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.InsuranceTariffCode.StartsWith(InsuranceTariffCodePrefix))
+                .Select(x => x.InsuranceTariffCode)
+                .ToListAsync();
 
-            return value.Value;
+            var usedNumbers = existingCodes
+                .Select(TryExtractInsuranceTariffSequenceNumber)
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .ToHashSet();
+
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
+                nextNumber++;
+
+            return $"{InsuranceTariffCodePrefix}{nextNumber.ToString().PadLeft(InsuranceTariffCodeDigitLength, '0')}";
         }
 
-        private static string? NormalizeNullableString(string? value)
+        private static int? TryExtractInsuranceTariffSequenceNumber(string insuranceTariffCode)
         {
-            if (string.IsNullOrWhiteSpace(value))
+            if (string.IsNullOrWhiteSpace(insuranceTariffCode))
                 return null;
 
-            return value.Trim();
+            if (!insuranceTariffCode.StartsWith(InsuranceTariffCodePrefix, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var numberText = insuranceTariffCode[InsuranceTariffCodePrefix.Length..];
+
+            return int.TryParse(numberText, out var number)
+                ? number
+                : null;
+        }
+
+        private static IQueryable<MstInsuranceTariff> ApplyDateFilter(
+            IQueryable<MstInsuranceTariff> query,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            var now = DateTime.UtcNow.Date;
+
+            if (!string.IsNullOrWhiteSpace(customPeriod))
+            {
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        startDate = now;
+                        endDate = now;
+                        break;
+
+                    case "last7days":
+                        startDate = now.AddDays(-6);
+                        endDate = now;
+                        break;
+
+                    case "thismonth":
+                        startDate = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        endDate = startDate.Value.AddMonths(1).AddDays(-1);
+                        break;
+
+                    case "lastmonth":
+                        var firstDayThisMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        startDate = firstDayThisMonth.AddMonths(-1);
+                        endDate = firstDayThisMonth.AddDays(-1);
+                        break;
+                }
+            }
+
+            if (startDate.HasValue)
+            {
+                var start = startDate.Value.Date;
+                query = query.Where(x => x.CreateDateTime >= start);
+            }
+
+            if (endDate.HasValue)
+            {
+                var end = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(x => x.CreateDateTime <= end);
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstInsuranceTariff> ApplySorting(
+            IQueryable<MstInsuranceTariff> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            var normalizedSortBy = (sortBy ?? "sortOrder").Trim().ToLowerInvariant();
+
+            return normalizedSortBy switch
+            {
+                "createdatetime" => isDesc
+                    ? query.OrderByDescending(x => x.CreateDateTime)
+                    : query.OrderBy(x => x.CreateDateTime),
+
+                "insuranceprovidername" => isDesc
+                    ? query.OrderByDescending(x => x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderName : string.Empty)
+                    : query.OrderBy(x => x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderName : string.Empty),
+
+                "insurancetariffcode" => isDesc
+                    ? query.OrderByDescending(x => x.InsuranceTariffCode)
+                    : query.OrderBy(x => x.InsuranceTariffCode),
+
+                "insurancetariffname" => isDesc
+                    ? query.OrderByDescending(x => x.InsuranceTariffName)
+                    : query.OrderBy(x => x.InsuranceTariffName),
+
+                "tariffcategoryname" => isDesc
+                    ? query.OrderByDescending(x => x.TariffCategory != null ? x.TariffCategory.TariffCategoryName : string.Empty)
+                    : query.OrderBy(x => x.TariffCategory != null ? x.TariffCategory.TariffCategoryName : string.Empty),
+
+                "patientclassname" => isDesc
+                    ? query.OrderByDescending(x => x.PatientClass != null ? x.PatientClass.PatientClassName : x.PatientClassName)
+                    : query.OrderBy(x => x.PatientClass != null ? x.PatientClass.PatientClassName : x.PatientClassName),
+
+                "benefitplancode" => isDesc
+                    ? query.OrderByDescending(x => x.BenefitPlanCode)
+                    : query.OrderBy(x => x.BenefitPlanCode),
+
+                "contractprice" => isDesc
+                    ? query.OrderByDescending(x => x.ContractPrice)
+                    : query.OrderBy(x => x.ContractPrice),
+
+                "effectivestartdate" => isDesc
+                    ? query.OrderByDescending(x => x.EffectiveStartDate)
+                    : query.OrderBy(x => x.EffectiveStartDate),
+
+                "effectiveenddate" => isDesc
+                    ? query.OrderByDescending(x => x.EffectiveEndDate)
+                    : query.OrderBy(x => x.EffectiveEndDate),
+
+                "isactive" => isDesc
+                    ? query.OrderByDescending(x => x.IsActive)
+                    : query.OrderBy(x => x.IsActive),
+
+                _ => isDesc
+                    ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.InsuranceTariffName)
+                    : query.OrderBy(x => x.SortOrder).ThenBy(x => x.InsuranceTariffName)
+            };
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {
-            if (pageNumber < 1)
-                pageNumber = 1;
-
-            if (pageSize < 1)
-                pageSize = 25;
-
-            if (pageSize > 100)
-                pageSize = 100;
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 25;
+            if (pageSize > 100) pageSize = 100;
 
             return (pageNumber, pageSize);
+        }
+
+        private static Guid? NormalizeNullableGuid(Guid? value)
+        {
+            return value.HasValue && value.Value != Guid.Empty
+                ? value.Value
+                : null;
+        }
+
+        private static string? NormalizeNullableString(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value.Trim();
         }
 
         private Guid GetCurrentUserId()

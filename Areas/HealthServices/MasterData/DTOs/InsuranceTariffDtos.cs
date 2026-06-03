@@ -13,7 +13,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int LaboratoryTariff { get; set; }
         public int RadiologyTariff { get; set; }
         public int RoomChargeTariff { get; set; }
+        public int SurgeryRelatedTariff { get; set; }
         public int NeedApprovalTariff { get; set; }
+        public int UsingContractPriceTariff { get; set; }
         public int EffectiveTariff { get; set; }
         public int ExpiredTariff { get; set; }
     }
@@ -51,7 +53,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         public string? ExternalServiceCode { get; set; }
         public string? ExternalClassCode { get; set; }
-
         public string? BenefitPlanCode { get; set; }
         public string? BenefitPlanName { get; set; }
         public string? PatientClassName { get; set; }
@@ -106,6 +107,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid? ProcedureId { get; set; }
         public string? ProcedureName { get; set; }
 
+        public Guid? TariffCategoryId { get; set; }
+        public string? TariffCategoryName { get; set; }
+
         public Guid? PatientClassId { get; set; }
         public string? PatientClassName { get; set; }
 
@@ -113,6 +117,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? BenefitPlanName { get; set; }
 
         public decimal ContractPrice { get; set; }
+        public bool IsUsingContractPrice { get; set; }
         public bool IsNeedApproval { get; set; }
     }
 
@@ -120,6 +125,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public InsuranceTariffDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<InsuranceTariffCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<InsuranceTariffSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
@@ -127,37 +133,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
     public class InsuranceTariffDefaultFilterResponse
     {
-        public string? Search { get; set; }
-        public bool? IsActive { get; set; }
-
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? InsuranceProviderId { get; set; }
-        public Guid? TariffId { get; set; }
-        public Guid? DrugId { get; set; }
-        public Guid? ProcedureId { get; set; }
         public Guid? TariffCategoryId { get; set; }
-        public Guid? PatientClassId { get; set; }
-
-        public string? BenefitPlanCode { get; set; }
-        public string? ProviderName { get; set; }
-
-        public bool? IsUsingContractPrice { get; set; }
-        public bool? IsSurgeryRelated { get; set; }
-        public bool? IsRoomCharge { get; set; }
-        public bool? IsDrug { get; set; }
-        public bool? IsConsumable { get; set; }
-        public bool? IsProcedure { get; set; }
-        public bool? IsLaboratory { get; set; }
-        public bool? IsRadiology { get; set; }
-        public bool? IsNeedApproval { get; set; }
-
-        public DateTime? EffectiveDate { get; set; }
-        public decimal? MinimumPrice { get; set; }
-        public decimal? MaximumPrice { get; set; }
-
+        public bool? IsActive { get; set; }
+        public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class InsuranceTariffCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class InsuranceTariffSortOptionResponse
@@ -176,10 +168,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid? ProcedureId { get; set; }
         public Guid? TariffCategoryId { get; set; }
         public Guid? PatientClassId { get; set; }
-
-        [Required]
-        [MaxLength(50)]
-        public string InsuranceTariffCode { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(250)]
@@ -209,7 +197,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public decimal? DiscountPercent { get; set; }
 
         public bool IsUsingContractPrice { get; set; } = true;
-
         public bool IsSurgeryRelated { get; set; } = false;
         public bool IsRoomCharge { get; set; } = false;
         public bool IsDrug { get; set; } = false;
@@ -232,41 +219,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         [MaxLength(250)]
         public string? Description { get; set; }
-
-        public bool IsActive { get; set; } = true;
     }
 
     public class UpdateInsuranceTariffRequest : CreateInsuranceTariffRequest
     {
+        public bool IsActive { get; set; } = true;
     }
 
     public class InsuranceTariffCreateResponse
     {
         public Guid Id { get; set; }
         public Guid InsuranceProviderId { get; set; }
-
         public Guid? TariffId { get; set; }
         public Guid? DrugId { get; set; }
         public Guid? ProcedureId { get; set; }
         public Guid? TariffCategoryId { get; set; }
         public Guid? PatientClassId { get; set; }
-
         public string InsuranceTariffCode { get; set; } = string.Empty;
         public string InsuranceTariffName { get; set; } = string.Empty;
-
         public decimal ContractPrice { get; set; }
         public bool IsActive { get; set; }
-    }
-
-    public class InsuranceTariffStatusRequest
-    {
-        public bool IsActive { get; set; }
-    }
-
-    public class BulkDeleteInsuranceTariffRequest
-    {
-        [Required]
-        [MinLength(1)]
-        public List<Guid> Ids { get; set; } = new();
     }
 }

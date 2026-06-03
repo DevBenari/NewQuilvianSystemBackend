@@ -32,6 +32,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
     public class DrugCategoryController : ControllerBase
     {
         private const string LogCategory = "HealthServices.MasterData";
+        private const string DrugCategoryCodePrefix = "DGC-RSMMC-";
+        private const int DrugCategoryCodeDigitLength = 5;
 
         private static readonly HashSet<string> AllowedDrugCategoryTypes = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -67,6 +69,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var result = new DrugCategoryFilterMetadataResponse
             {
                 DefaultFilter = new DrugCategoryDefaultFilterResponse(),
+                CustomPeriods = BuildCustomPeriodOptions(),
                 SortOptions = new List<DrugCategorySortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -84,7 +87,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                DrugCategoryTypeOptions = AllowedDrugCategoryTypes.OrderBy(x => x).ToList()
+                DrugCategoryTypeOptions = AllowedDrugCategoryTypes.OrderBy(x => x).ToList(),
+                QueryParameters = BuildQueryParameterInfo(),
+                CreateFields = BuildCreateFieldMetadata(),
+                UpdateFields = BuildUpdateFieldMetadata()
             };
 
             await _loggerService.InfoAsync(
@@ -136,18 +142,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Drug Category", Description = "Melihat data drug category", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DrugCategory", "Read")]
         public async Task<IActionResult> GetDrugCategories(
-            [FromQuery] string? search,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] bool? isActive,
-            [FromQuery] string? drugGroupName,
-            [FromQuery] string? drugCategoryType,
-            [FromQuery] bool? isAntibiotic,
-            [FromQuery] bool? isNarcotic,
-            [FromQuery] bool? isPsychotropic,
-            [FromQuery] bool? isHighAlert,
-            [FromQuery] bool? isChronicDiseaseDrug,
-            [FromQuery] bool? isVaccine,
-            [FromQuery] bool? isConsumable,
-            [FromQuery] bool? isCoveredByInsuranceDefault,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -157,23 +156,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = BuildBaseQuery();
+            var query = _dbContext.Set<MstDrugCategory>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
 
-            query = ApplyFilter(
-                query,
-                search,
-                isActive,
-                drugGroupName,
-                drugCategoryType,
-                isAntibiotic,
-                isNarcotic,
-                isPsychotropic,
-                isHighAlert,
-                isChronicDiseaseDrug,
-                isVaccine,
-                isConsumable,
-                isCoveredByInsuranceDefault
-            );
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.DrugCategoryCode.ToLower().Contains(keyword) ||
+                    x.DrugCategoryName.ToLower().Contains(keyword) ||
+                    x.DrugCategoryType.ToLower().Contains(keyword) ||
+                    (x.DrugGroupName != null && x.DrugGroupName.ToLower().Contains(keyword)) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
+            }
 
             var totalData = await query.CountAsync();
 
@@ -203,36 +205,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Drug Category", Description = "Melihat data drug category", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DrugCategory", "Read")]
         public async Task<IActionResult> GetDrugCategoryOptions(
-            [FromQuery] string? drugGroupName,
-            [FromQuery] string? drugCategoryType,
-            [FromQuery] bool? isAntibiotic,
-            [FromQuery] bool? isNarcotic,
-            [FromQuery] bool? isPsychotropic,
-            [FromQuery] bool? isHighAlert,
-            [FromQuery] bool? isChronicDiseaseDrug,
-            [FromQuery] bool? isVaccine,
-            [FromQuery] bool? isConsumable,
-            [FromQuery] bool? isCoveredByInsuranceDefault,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null)
         {
-            var query = BuildBaseQuery();
+            var query = _dbContext.Set<MstDrugCategory>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
 
-            query = ApplyFilter(
-                query,
-                search,
-                onlyActive ? true : null,
-                drugGroupName,
-                drugCategoryType,
-                isAntibiotic,
-                isNarcotic,
-                isPsychotropic,
-                isHighAlert,
-                isChronicDiseaseDrug,
-                isVaccine,
-                isConsumable,
-                isCoveredByInsuranceDefault
-            );
+            if (onlyActive)
+                query = query.Where(x => x.IsActive);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.DrugCategoryCode.ToLower().Contains(keyword) ||
+                    x.DrugCategoryName.ToLower().Contains(keyword) ||
+                    x.DrugCategoryType.ToLower().Contains(keyword) ||
+                    (x.DrugGroupName != null && x.DrugGroupName.ToLower().Contains(keyword)));
+            }
 
             var data = await query
                 .OrderBy(x => x.SortOrder)
@@ -268,8 +260,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("DrugCategory", "Read")]
         public async Task<IActionResult> GetDrugCategoryById(Guid id)
         {
-            var data = await BuildBaseQuery()
-                .Where(x => x.Id == id)
+            var data = await _dbContext.Set<MstDrugCategory>()
+                .AsNoTracking()
+                .Where(x => x.Id == id && !x.IsDelete)
                 .Select(x => new DrugCategoryDetailResponse
                 {
                     Id = x.Id,
@@ -308,13 +301,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<DrugCategoryCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Drug Category", Description = "Membuat data drug category", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("DrugCategory", "Create")]
         public async Task<IActionResult> CreateDrugCategory([FromBody] CreateDrugCategoryRequest request)
         {
             var validation = await ValidateRequestAsync(
                 excludeId: null,
-                drugCategoryCode: request.DrugCategoryCode,
                 drugCategoryName: request.DrugCategoryName,
                 drugCategoryType: request.DrugCategoryType
             );
@@ -333,9 +326,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var entity = new MstDrugCategory
             {
                 Id = Guid.NewGuid(),
-                DrugCategoryCode = request.DrugCategoryCode.Trim().ToUpperInvariant(),
+                DrugCategoryCode = await GenerateDrugCategoryCodeAsync(),
                 DrugCategoryName = request.DrugCategoryName.Trim(),
-                DrugGroupName = NormalizeNullableString(request.DrugGroupName),
+                DrugGroupName = NormalizeNullableText(request.DrugGroupName),
                 DrugCategoryType = NormalizeDrugCategoryType(request.DrugCategoryType),
                 IsAntibiotic = request.IsAntibiotic,
                 IsNarcotic = request.IsNarcotic,
@@ -346,8 +339,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsConsumable = request.IsConsumable,
                 IsCoveredByInsuranceDefault = request.IsCoveredByInsuranceDefault,
                 SortOrder = request.SortOrder,
-                Description = NormalizeNullableString(request.Description),
-                IsActive = request.IsActive,
+                Description = NormalizeNullableText(request.Description),
+                IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
                 IsDelete = false,
@@ -357,28 +350,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             _dbContext.Set<MstDrugCategory>().Add(entity);
             await _dbContext.SaveChangesAsync();
 
-            var result = new DrugCategoryCreateResponse
-            {
-                Id = entity.Id,
-                DrugCategoryCode = entity.DrugCategoryCode,
-                DrugCategoryName = entity.DrugCategoryName
-            };
+            var response = ToCreateUpdateResponse(entity);
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "DrugCategory.CreateDrugCategory",
                 "Membuat data drug category.",
-                result
+                response
             );
 
             return Ok(ApiResponse<DrugCategoryCreateResponse>.Ok(
-                result,
+                response,
                 "Drug category berhasil dibuat."
             ));
         }
 
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<DrugCategoryUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Drug Category", Description = "Mengubah data drug category", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("DrugCategory", "Update")]
@@ -397,7 +386,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var validation = await ValidateRequestAsync(
                 excludeId: id,
-                drugCategoryCode: request.DrugCategoryCode,
                 drugCategoryName: request.DrugCategoryName,
                 drugCategoryType: request.DrugCategoryType
             );
@@ -413,9 +401,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            entity.DrugCategoryCode = request.DrugCategoryCode.Trim().ToUpperInvariant();
             entity.DrugCategoryName = request.DrugCategoryName.Trim();
-            entity.DrugGroupName = NormalizeNullableString(request.DrugGroupName);
+            entity.DrugGroupName = NormalizeNullableText(request.DrugGroupName);
             entity.DrugCategoryType = NormalizeDrugCategoryType(request.DrugCategoryType);
             entity.IsAntibiotic = request.IsAntibiotic;
             entity.IsNarcotic = request.IsNarcotic;
@@ -426,57 +413,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.IsConsumable = request.IsConsumable;
             entity.IsCoveredByInsuranceDefault = request.IsCoveredByInsuranceDefault;
             entity.SortOrder = request.SortOrder;
-            entity.Description = NormalizeNullableString(request.Description);
+            entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            var result = new DrugCategoryUpdateResponse
-            {
-                Id = entity.Id,
-                DrugCategoryCode = entity.DrugCategoryCode,
-                DrugCategoryName = entity.DrugCategoryName,
-                IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime
-            };
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "DrugCategory.UpdateDrugCategory",
-                "Mengubah data drug category.",
-                result
-            );
+            var response = ToUpdateResponse(entity);
 
             return Ok(ApiResponse<DrugCategoryUpdateResponse>.Ok(
-                result,
+                response,
                 "Drug category berhasil diperbarui."
             ));
         }
 
-        [HttpPatch("{id:guid}/activate")]
-        [ProducesResponseType(typeof(ApiResponse<DrugCategoryStatusResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Drug Category", Description = "Mengaktifkan data drug category", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("DrugCategory", "Update")]
-        public async Task<IActionResult> ActivateDrugCategory(Guid id)
-        {
-            return await UpdateStatusAsync(id, true, "Drug category berhasil diaktifkan.");
-        }
-
-        [HttpPatch("{id:guid}/deactivate")]
-        [ProducesResponseType(typeof(ApiResponse<DrugCategoryStatusResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Drug Category", Description = "Menonaktifkan data drug category", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("DrugCategory", "Update")]
-        public async Task<IActionResult> DeactivateDrugCategory(Guid id)
-        {
-            return await UpdateStatusAsync(id, false, "Drug category berhasil dinonaktifkan.");
-        }
-
         [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<DrugCategoryDeleteResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Drug Category", Description = "Menghapus data drug category", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("DrugCategory", "Delete")]
@@ -493,17 +446,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            var hasDrug = await _dbContext.Set<MstDrug>()
+            var isUsedByDrug = await _dbContext.Set<MstDrug>()
                 .AsNoTracking()
-                .AnyAsync(x =>
-                    x.DrugCategoryId == id &&
-                    !x.IsDelete);
+                .AnyAsync(x => x.DrugCategoryId == id && !x.IsDelete);
 
-            if (hasDrug)
+            if (isUsedByDrug)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    "Drug category tidak dapat dihapus karena sudah digunakan pada data drug."
+                    "Drug category tidak dapat dihapus karena sudah digunakan oleh data drug."
                 ));
             }
 
@@ -519,148 +470,132 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
-            var result = new DrugCategoryDeleteResponse
-            {
-                Id = entity.Id,
-                DrugCategoryCode = entity.DrugCategoryCode,
-                DrugCategoryName = entity.DrugCategoryName,
-                DeleteDateTime = entity.DeleteDateTime
-            };
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "DrugCategory.DeleteDrugCategory",
-                "Menghapus data drug category.",
-                result
-            );
-
-            return Ok(ApiResponse<DrugCategoryDeleteResponse>.Ok(
-                result,
+            return Ok(ApiResponse<object>.Ok(
+                null,
                 "Drug category berhasil dihapus."
             ));
         }
 
-        private async Task<IActionResult> UpdateStatusAsync(Guid id, bool isActive, string successMessage)
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
+            Guid? excludeId,
+            string drugCategoryName,
+            string drugCategoryType)
         {
-            var entity = await _dbContext.Set<MstDrugCategory>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            if (string.IsNullOrWhiteSpace(drugCategoryName))
+                return (false, "Nama drug category wajib diisi.");
 
-            if (entity == null)
+            if (string.IsNullOrWhiteSpace(drugCategoryType))
+                return (false, "Tipe drug category wajib diisi.");
+
+            if (!AllowedDrugCategoryTypes.Contains(drugCategoryType.Trim()))
             {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Drug category tidak ditemukan."
-                ));
+                return (false, "Tipe drug category tidak valid. Gunakan salah satu: General, Antibiotic, Analgesic, Antipyretic, Antihypertensive, Antidiabetic, Vitamin, Vaccine, Consumable, Other.");
             }
 
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
+            var normalizedName = drugCategoryName.Trim().ToLower();
 
-            entity.IsActive = isActive;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
+            var duplicateName = await _dbContext.Set<MstDrugCategory>()
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    x.DrugCategoryName.ToLower() == normalizedName &&
+                    (!excludeId.HasValue || x.Id != excludeId.Value));
 
-            await _dbContext.SaveChangesAsync();
+            if (duplicateName)
+                return (false, "Nama drug category sudah digunakan.");
 
-            var result = new DrugCategoryStatusResponse
-            {
-                Id = entity.Id,
-                DrugCategoryCode = entity.DrugCategoryCode,
-                DrugCategoryName = entity.DrugCategoryName,
-                IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime
-            };
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "DrugCategory.UpdateStatus",
-                successMessage,
-                result
-            );
-
-            return Ok(ApiResponse<DrugCategoryStatusResponse>.Ok(
-                result,
-                successMessage
-            ));
+            return (true, null);
         }
 
-        private IQueryable<MstDrugCategory> BuildBaseQuery()
+        private async Task<string> GenerateDrugCategoryCodeAsync()
         {
-            return _dbContext.Set<MstDrugCategory>()
+            var existingCodes = await _dbContext.Set<MstDrugCategory>()
                 .AsNoTracking()
-                .Where(x => !x.IsDelete);
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.DrugCategoryCode.StartsWith(DrugCategoryCodePrefix))
+                .Select(x => x.DrugCategoryCode)
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(ParseDrugCategoryCodeNumber)
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .ToHashSet();
+
+            var nextNumber = 1;
+            while (usedNumbers.Contains(nextNumber))
+                nextNumber++;
+
+            return $"{DrugCategoryCodePrefix}{nextNumber.ToString($"D{DrugCategoryCodeDigitLength}")}";
         }
 
-        private static IQueryable<MstDrugCategory> ApplyFilter(
-            IQueryable<MstDrugCategory> query,
-            string? search,
-            bool? isActive,
-            string? drugGroupName,
-            string? drugCategoryType,
-            bool? isAntibiotic,
-            bool? isNarcotic,
-            bool? isPsychotropic,
-            bool? isHighAlert,
-            bool? isChronicDiseaseDrug,
-            bool? isVaccine,
-            bool? isConsumable,
-            bool? isCoveredByInsuranceDefault)
+        private static int? ParseDrugCategoryCodeNumber(string code)
         {
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
+            if (string.IsNullOrWhiteSpace(code))
+                return null;
 
-                query = query.Where(x =>
-                    x.DrugCategoryCode.ToLower().Contains(keyword) ||
-                    x.DrugCategoryName.ToLower().Contains(keyword) ||
-                    x.DrugCategoryType.ToLower().Contains(keyword) ||
-                    (x.DrugGroupName != null && x.DrugGroupName.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
+            if (!code.StartsWith(DrugCategoryCodePrefix, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var numberText = code[DrugCategoryCodePrefix.Length..];
+
+            return int.TryParse(numberText, out var number)
+                ? number
+                : null;
+        }
+
+        private static IQueryable<MstDrugCategory> ApplyDateFilter(
+            IQueryable<MstDrugCategory> query,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            var period = customPeriod?.Trim().ToLowerInvariant();
+            var today = DateTime.UtcNow.Date;
+
+            if (!string.IsNullOrWhiteSpace(period) && period != "custom")
+            {
+                switch (period)
+                {
+                    case "today":
+                        startDate = today;
+                        endDate = today;
+                        break;
+                    case "yesterday":
+                        startDate = today.AddDays(-1);
+                        endDate = today.AddDays(-1);
+                        break;
+                    case "last7days":
+                        startDate = today.AddDays(-6);
+                        endDate = today;
+                        break;
+                    case "last30days":
+                        startDate = today.AddDays(-29);
+                        endDate = today;
+                        break;
+                    case "thismonth":
+                        startDate = new DateTime(today.Year, today.Month, 1);
+                        endDate = today;
+                        break;
+                    case "lastmonth":
+                        var firstDayThisMonth = new DateTime(today.Year, today.Month, 1);
+                        var firstDayLastMonth = firstDayThisMonth.AddMonths(-1);
+                        startDate = firstDayLastMonth;
+                        endDate = firstDayThisMonth.AddDays(-1);
+                        break;
+                }
             }
 
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
+            if (startDate.HasValue)
+                query = query.Where(x => x.CreateDateTime >= startDate.Value.Date);
 
-            if (!string.IsNullOrWhiteSpace(drugGroupName))
-            {
-                var keyword = drugGroupName.Trim().ToLower();
-                query = query.Where(x => x.DrugGroupName != null && x.DrugGroupName.ToLower().Contains(keyword));
-            }
-
-            if (!string.IsNullOrWhiteSpace(drugCategoryType))
-            {
-                var normalizedType = drugCategoryType.Trim().ToLower();
-                query = query.Where(x => x.DrugCategoryType.ToLower() == normalizedType);
-            }
-
-            if (isAntibiotic.HasValue)
-                query = query.Where(x => x.IsAntibiotic == isAntibiotic.Value);
-
-            if (isNarcotic.HasValue)
-                query = query.Where(x => x.IsNarcotic == isNarcotic.Value);
-
-            if (isPsychotropic.HasValue)
-                query = query.Where(x => x.IsPsychotropic == isPsychotropic.Value);
-
-            if (isHighAlert.HasValue)
-                query = query.Where(x => x.IsHighAlert == isHighAlert.Value);
-
-            if (isChronicDiseaseDrug.HasValue)
-                query = query.Where(x => x.IsChronicDiseaseDrug == isChronicDiseaseDrug.Value);
-
-            if (isVaccine.HasValue)
-                query = query.Where(x => x.IsVaccine == isVaccine.Value);
-
-            if (isConsumable.HasValue)
-                query = query.Where(x => x.IsConsumable == isConsumable.Value);
-
-            if (isCoveredByInsuranceDefault.HasValue)
-                query = query.Where(x => x.IsCoveredByInsuranceDefault == isCoveredByInsuranceDefault.Value);
+            if (endDate.HasValue)
+                query = query.Where(x => x.CreateDateTime < endDate.Value.Date.AddDays(1));
 
             return query;
         }
 
-        private static IOrderedQueryable<MstDrugCategory> ApplySorting(
+        private static IQueryable<MstDrugCategory> ApplySorting(
             IQueryable<MstDrugCategory> query,
             string? sortBy,
             string? sortDirection)
@@ -742,66 +677,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             };
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
-            Guid? excludeId,
-            string drugCategoryCode,
-            string drugCategoryName,
-            string drugCategoryType)
+        private static DrugCategoryCreateResponse ToCreateUpdateResponse(MstDrugCategory entity)
         {
-            if (string.IsNullOrWhiteSpace(drugCategoryCode))
-                return (false, "Kode drug category wajib diisi.");
-
-            if (string.IsNullOrWhiteSpace(drugCategoryName))
-                return (false, "Nama drug category wajib diisi.");
-
-            if (string.IsNullOrWhiteSpace(drugCategoryType))
-                return (false, "Tipe drug category wajib diisi.");
-
-            if (!AllowedDrugCategoryTypes.Contains(drugCategoryType.Trim()))
+            return new DrugCategoryCreateResponse
             {
-                return (false, "Tipe drug category tidak valid. Gunakan salah satu: General, Antibiotic, Analgesic, Antipyretic, Antihypertensive, Antidiabetic, Vitamin, Vaccine, Consumable, Other.");
-            }
+                Id = entity.Id,
+                DrugCategoryCode = entity.DrugCategoryCode,
+                DrugCategoryName = entity.DrugCategoryName,
+                DrugGroupName = entity.DrugGroupName,
+                DrugCategoryType = entity.DrugCategoryType,
+                IsActive = entity.IsActive
+            };
+        }
 
-            var normalizedCode = drugCategoryCode.Trim().ToUpperInvariant();
-            var normalizedName = drugCategoryName.Trim().ToLower();
-
-            var duplicateCodeQuery = _dbContext.Set<MstDrugCategory>()
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.DrugCategoryCode.ToUpper() == normalizedCode);
-
-            if (excludeId.HasValue)
-                duplicateCodeQuery = duplicateCodeQuery.Where(x => x.Id != excludeId.Value);
-
-            if (await duplicateCodeQuery.AnyAsync())
-                return (false, "Kode drug category sudah digunakan.");
-
-            var duplicateNameQuery = _dbContext.Set<MstDrugCategory>()
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.DrugCategoryName.ToLower() == normalizedName);
-
-            if (excludeId.HasValue)
-                duplicateNameQuery = duplicateNameQuery.Where(x => x.Id != excludeId.Value);
-
-            if (await duplicateNameQuery.AnyAsync())
-                return (false, "Nama drug category sudah digunakan.");
-
-            return (true, null);
+        private static DrugCategoryUpdateResponse ToUpdateResponse(MstDrugCategory entity)
+        {
+            return new DrugCategoryUpdateResponse
+            {
+                Id = entity.Id,
+                DrugCategoryCode = entity.DrugCategoryCode,
+                DrugCategoryName = entity.DrugCategoryName,
+                DrugGroupName = entity.DrugGroupName,
+                DrugCategoryType = entity.DrugCategoryType,
+                IsActive = entity.IsActive
+            };
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {
-            if (pageNumber < 1)
-                pageNumber = 1;
-
-            if (pageSize < 1)
-                pageSize = 25;
-
-            if (pageSize > 100)
-                pageSize = 100;
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 25;
+            if (pageSize > 100) pageSize = 100;
 
             return (pageNumber, pageSize);
         }
@@ -816,13 +722,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return matched ?? "General";
         }
 
-        private static string? NormalizeNullableString(string? value)
-        {
-            return string.IsNullOrWhiteSpace(value)
-                ? null
-                : value.Trim();
-        }
-
         private Guid GetCurrentUserId()
         {
             var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -830,6 +729,81 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return Guid.TryParse(userIdValue, out var userId)
                 ? userId
                 : Guid.Empty;
+        }
+
+        private static string? NormalizeNullableText(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value.Trim();
+        }
+
+        private static List<DrugCategoryCustomPeriodOptionResponse> BuildCustomPeriodOptions()
+        {
+            return new List<DrugCategoryCustomPeriodOptionResponse>
+            {
+                new() { Value = "custom", Label = "Custom", Description = "Gunakan startDate dan endDate manual.", UsesStartDate = true, UsesEndDate = true },
+                new() { Value = "today", Label = "Hari ini", Description = "Data yang dibuat hari ini.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "yesterday", Label = "Kemarin", Description = "Data yang dibuat kemarin.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last7days", Label = "7 hari terakhir", Description = "Data yang dibuat dalam 7 hari terakhir termasuk hari ini.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last30days", Label = "30 hari terakhir", Description = "Data yang dibuat dalam 30 hari terakhir termasuk hari ini.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "thismonth", Label = "Bulan ini", Description = "Data yang dibuat dari awal bulan ini sampai hari ini.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "lastmonth", Label = "Bulan lalu", Description = "Data yang dibuat pada bulan sebelumnya.", UsesStartDate = false, UsesEndDate = false }
+            };
+        }
+
+        private static List<DrugCategoryQueryParameterInfoResponse> BuildQueryParameterInfo()
+        {
+            return new List<DrugCategoryQueryParameterInfoResponse>
+            {
+                new() { Name = "startDate", Type = "DateTime?", Description = "Tanggal awal berdasarkan CreateDateTime. Dipakai jika customPeriod kosong atau custom.", Example = "2026-01-01" },
+                new() { Name = "endDate", Type = "DateTime?", Description = "Tanggal akhir berdasarkan CreateDateTime. Dipakai jika customPeriod kosong atau custom.", Example = "2026-01-31" },
+                new() { Name = "customPeriod", Type = "string", Description = "Pilihan periode cepat: custom, today, yesterday, last7days, last30days, thismonth, lastmonth.", Example = "last30days" },
+                new() { Name = "isActive", Type = "bool?", Description = "Filter status aktif." },
+                new() { Name = "search", Type = "string", Description = "Pencarian text berdasarkan kode, nama, tipe, group, dan deskripsi." },
+                new() { Name = "sortBy", Type = "string", Description = "Kolom sorting." },
+                new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc." },
+                new() { Name = "pageNumber", Type = "int", Description = "Nomor halaman." },
+                new() { Name = "pageSize", Type = "int", Description = "Jumlah data per halaman, maksimal 100." }
+            };
+        }
+
+        private static List<DrugCategoryFormFieldMetadataResponse> BuildCreateFieldMetadata()
+        {
+            return new List<DrugCategoryFormFieldMetadataResponse>
+            {
+                new() { Name = "drugCategoryCode", Label = "Kode kategori obat", DataType = "string", InputType = "text", Required = false, IsReadonly = true, Placeholder = "Auto generated", Description = "Dibuat otomatis oleh sistem dengan format DGC-RSMMC-00001." },
+                new() { Name = "drugCategoryName", Label = "Nama kategori obat", DataType = "string", InputType = "text", Required = true, IsReadonly = false },
+                new() { Name = "drugGroupName", Label = "Group obat", DataType = "string", InputType = "text", Required = false, IsReadonly = false },
+                new() { Name = "drugCategoryType", Label = "Tipe kategori obat", DataType = "string", InputType = "select", Required = true, IsReadonly = false, Description = "Ambil pilihan dari DrugCategoryTypeOptions." },
+                new() { Name = "isAntibiotic", Label = "Antibiotik", DataType = "bool", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isNarcotic", Label = "Narkotik", DataType = "bool", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isPsychotropic", Label = "Psikotropik", DataType = "bool", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isHighAlert", Label = "High alert", DataType = "bool", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isChronicDiseaseDrug", Label = "Obat penyakit kronis", DataType = "bool", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isVaccine", Label = "Vaksin", DataType = "bool", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isConsumable", Label = "Consumable", DataType = "bool", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "isCoveredByInsuranceDefault", Label = "Default ditanggung asuransi", DataType = "bool", InputType = "switch", Required = false, IsReadonly = false },
+                new() { Name = "sortOrder", Label = "Urutan", DataType = "int", InputType = "number", Required = false, IsReadonly = false },
+                new() { Name = "description", Label = "Deskripsi", DataType = "string", InputType = "textarea", Required = false, IsReadonly = false }
+            };
+        }
+
+        private static List<DrugCategoryFormFieldMetadataResponse> BuildUpdateFieldMetadata()
+        {
+            var fields = BuildCreateFieldMetadata();
+
+            fields.Add(new DrugCategoryFormFieldMetadataResponse
+            {
+                Name = "isActive",
+                Label = "Status aktif",
+                DataType = "bool",
+                InputType = "switch",
+                Required = false,
+                IsReadonly = false
+            });
+
+            return fields;
         }
     }
 }

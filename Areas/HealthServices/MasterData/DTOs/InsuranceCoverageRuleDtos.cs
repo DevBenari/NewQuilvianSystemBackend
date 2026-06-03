@@ -140,49 +140,48 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public InsuranceCoverageRuleDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<InsuranceCoverageRuleCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<InsuranceCoverageRuleSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
-        public List<string> ItemTypeOptions { get; set; } = new();
-        public List<string> CoverageStatusOptions { get; set; } = new();
+        public List<InsuranceCoverageRuleItemTypeOptionResponse> ItemTypeOptions { get; set; } = new();
+        public List<InsuranceCoverageRuleCoverageStatusOptionResponse> CoverageStatusOptions { get; set; } = new();
     }
 
     public class InsuranceCoverageRuleDefaultFilterResponse
     {
-        public string? Search { get; set; }
-        public bool? IsActive { get; set; }
-
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? InsuranceProviderId { get; set; }
         public string? ItemType { get; set; }
-
-        public Guid? TariffId { get; set; }
-        public Guid? DrugId { get; set; }
-        public Guid? DrugCategoryId { get; set; }
-        public Guid? ProcedureId { get; set; }
-        public Guid? TariffCategoryId { get; set; }
-
-        public string? BenefitPlanCode { get; set; }
-        public string? BenefitPlanName { get; set; }
-        public string? PatientClassName { get; set; }
-
-        public string? CoverageStatus { get; set; }
-        public bool? IsCovered { get; set; }
-        public bool? IsExcluded { get; set; }
-        public bool? IsNeedApproval { get; set; }
-        public bool? IsNeedGuaranteeLetter { get; set; }
-        public bool? IsAllowExcessPaymentByPatient { get; set; }
-
-        public DateTime? EffectiveDate { get; set; }
-        public decimal? MinimumCoveragePercent { get; set; }
-        public decimal? MaximumCoveragePercent { get; set; }
-
+        public bool? IsActive { get; set; }
+        public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
     }
 
+    public class InsuranceCoverageRuleCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+    }
+
     public class InsuranceCoverageRuleSortOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+    }
+
+    public class InsuranceCoverageRuleItemTypeOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+    }
+
+    public class InsuranceCoverageRuleCoverageStatusOptionResponse
     {
         public string Value { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
@@ -194,10 +193,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid InsuranceProviderId { get; set; }
 
         [Required]
-        [MaxLength(50)]
-        public string RuleCode { get; set; } = string.Empty;
-
-        [Required]
         [MaxLength(150)]
         public string RuleName { get; set; } = string.Empty;
 
@@ -267,90 +262,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? Description { get; set; }
 
         public int SortOrder { get; set; } = 0;
-
-        public bool IsActive { get; set; } = true;
     }
 
-    public class UpdateInsuranceCoverageRuleRequest
+    public class UpdateInsuranceCoverageRuleRequest : CreateInsuranceCoverageRuleRequest
     {
-        [Required]
-        public Guid InsuranceProviderId { get; set; }
-
-        [Required]
-        [MaxLength(50)]
-        public string RuleCode { get; set; } = string.Empty;
-
-        [Required]
-        [MaxLength(150)]
-        public string RuleName { get; set; } = string.Empty;
-
-        [Required]
-        [MaxLength(50)]
-        public string ItemType { get; set; } = string.Empty;
-
-        public Guid? TariffId { get; set; }
-        public Guid? DrugId { get; set; }
-        public Guid? DrugCategoryId { get; set; }
-        public Guid? ProcedureId { get; set; }
-        public Guid? TariffCategoryId { get; set; }
-
-        [MaxLength(100)]
-        public string? BenefitPlanCode { get; set; }
-
-        [MaxLength(150)]
-        public string? BenefitPlanName { get; set; }
-
-        [MaxLength(100)]
-        public string? PatientClassName { get; set; }
-
-        [Required]
-        [MaxLength(50)]
-        public string CoverageStatus { get; set; } = "Covered";
-
-        [Range(0, 100)]
-        public decimal CoveragePercent { get; set; } = 100;
-
-        [Range(0, 999999999999)]
-        public decimal? MaxCoverageAmount { get; set; }
-
-        [Range(0, 100)]
-        public decimal? CoPaymentPercent { get; set; }
-
-        [Range(0, 999999999999)]
-        public decimal? CoPaymentAmount { get; set; }
-
-        public bool IsCovered { get; set; } = true;
-        public bool IsExcluded { get; set; } = false;
-        public bool IsNeedApproval { get; set; } = false;
-        public bool IsNeedGuaranteeLetter { get; set; } = false;
-        public bool IsAllowExcessPaymentByPatient { get; set; } = true;
-
-        [Range(0, int.MaxValue)]
-        public int? MaxQuantityPerVisit { get; set; }
-
-        [Range(0, int.MaxValue)]
-        public int? MaxQuantityPerMonth { get; set; }
-
-        [Range(0, 999999999999)]
-        public decimal? MaxAmountPerVisit { get; set; }
-
-        [Range(0, 999999999999)]
-        public decimal? MaxAmountPerMonth { get; set; }
-
-        public DateTime? EffectiveStartDate { get; set; }
-        public DateTime? EffectiveEndDate { get; set; }
-
-        [MaxLength(250)]
-        public string? ApprovalInstruction { get; set; }
-
-        [MaxLength(250)]
-        public string? BillingInstruction { get; set; }
-
-        [MaxLength(250)]
-        public string? Description { get; set; }
-
-        public int SortOrder { get; set; } = 0;
-
         public bool IsActive { get; set; } = true;
     }
 
@@ -360,6 +275,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string RuleCode { get; set; } = string.Empty;
         public string RuleName { get; set; } = string.Empty;
         public Guid InsuranceProviderId { get; set; }
+        public string ItemType { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
     }
 
     public class InsuranceCoverageRuleUpdateResponse

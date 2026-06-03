@@ -34,6 +34,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
     public class DoctorScheduleController : ControllerBase
     {
         private const string LogCategory = "HealthServices.MasterData";
+        private const string ScheduleCodePrefix = "DSCH-RSMMC-";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -55,6 +56,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var result = new DoctorScheduleFilterMetadataResponse
             {
                 DefaultFilter = new DoctorScheduleDefaultFilterResponse(),
+                CustomPeriods = new List<DoctorScheduleCustomPeriodResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "last30days", Label = "30 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "thisyear", Label = "Tahun ini" },
+                    new() { Value = "all", Label = "Semua periode" }
+                },
                 SortOptions = new List<DoctorScheduleSortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -76,7 +86,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
                 ScheduleTypeOptions = BuildEnumOptions<DoctorScheduleType>(),
                 ScheduleStatusOptions = BuildEnumOptions<DoctorScheduleStatus>(),
-                PracticeDayOptions = BuildEnumOptions<DayOfWeek>()
+                PracticeDayOptions = BuildEnumOptions<DayOfWeek>(),
+                QueryParameters = BuildQueryParameters(),
+                CreateFields = BuildCreateFields(),
+                UpdateFields = BuildUpdateFields()
             };
 
             await _loggerService.InfoAsync(
@@ -127,21 +140,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DoctorSchedule", "Read")]
         public async Task<IActionResult> GetDoctorSchedules(
-            [FromQuery] string? search,
-            [FromQuery] bool? isActive,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? doctorId,
-            [FromQuery] Guid? serviceUnitId,
             [FromQuery] Guid? clinicId,
-            [FromQuery] Guid? roomId,
-            [FromQuery] DoctorScheduleType? scheduleType,
-            [FromQuery] DoctorScheduleStatus? scheduleStatus,
-            [FromQuery] DayOfWeek? practiceDay,
-            [FromQuery] DateTime? practiceDate,
-            [FromQuery] bool? isAllowWalkIn,
-            [FromQuery] bool? isAllowAppointment,
-            [FromQuery] bool? isAllowKioskRegistration,
-            [FromQuery] bool? isTelemedicineAvailable,
-            [FromQuery] bool? isSubstituteSchedule,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -151,143 +156,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.Set<MstDoctorSchedule>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.ScheduleCode.ToLower().Contains(keyword) ||
-                    x.ScheduleName.ToLower().Contains(keyword) ||
-                    (x.SessionName != null && x.SessionName.ToLower().Contains(keyword)) ||
-                    (x.PracticeLocation != null && x.PracticeLocation.ToLower().Contains(keyword)) ||
-                    (x.RoomName != null && x.RoomName.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
-                    (x.Doctor != null && x.Doctor.DoctorCode.ToLower().Contains(keyword)) ||
-                    (x.Doctor != null && x.Doctor.DoctorNumber.ToLower().Contains(keyword)) ||
-                    (x.Doctor != null && x.Doctor.FullName.ToLower().Contains(keyword)) ||
-                    (x.Doctor != null && x.Doctor.SpecialistName != null && x.Doctor.SpecialistName.ToLower().Contains(keyword)) ||
-                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitCode.ToLower().Contains(keyword)) ||
-                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
-                    (x.Clinic != null && x.Clinic.ClinicCode.ToLower().Contains(keyword)) ||
-                    (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)) ||
-                    (x.Room != null && x.Room.RoomCode.ToLower().Contains(keyword)) ||
-                    (x.Room != null && x.Room.RoomName.ToLower().Contains(keyword)));
-            }
-
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
-
-            if (doctorId.HasValue && doctorId.Value != Guid.Empty)
-                query = query.Where(x => x.DoctorId == doctorId.Value);
-
-            if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
-                query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
-
-            if (clinicId.HasValue && clinicId.Value != Guid.Empty)
-                query = query.Where(x => x.ClinicId == clinicId.Value);
-
-            if (roomId.HasValue && roomId.Value != Guid.Empty)
-                query = query.Where(x => x.RoomId == roomId.Value);
-
-            if (scheduleType.HasValue)
-                query = query.Where(x => x.ScheduleType == scheduleType.Value);
-
-            if (scheduleStatus.HasValue)
-                query = query.Where(x => x.ScheduleStatus == scheduleStatus.Value);
-
-            if (practiceDay.HasValue)
-                query = query.Where(x => x.PracticeDay == practiceDay.Value);
-
-            if (practiceDate.HasValue)
-            {
-                var date = practiceDate.Value.Date;
-                query = query.Where(x => x.PracticeDate == date);
-            }
-
-            if (isAllowWalkIn.HasValue)
-                query = query.Where(x => x.IsAllowWalkIn == isAllowWalkIn.Value);
-
-            if (isAllowAppointment.HasValue)
-                query = query.Where(x => x.IsAllowAppointment == isAllowAppointment.Value);
-
-            if (isAllowKioskRegistration.HasValue)
-                query = query.Where(x => x.IsAllowKioskRegistration == isAllowKioskRegistration.Value);
-
-            if (isTelemedicineAvailable.HasValue)
-                query = query.Where(x => x.IsTelemedicineAvailable == isTelemedicineAvailable.Value);
-
-            if (isSubstituteSchedule.HasValue)
-                query = query.Where(x => x.IsSubstituteSchedule == isSubstituteSchedule.Value);
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyFilters(query, doctorId, clinicId, isActive, search);
 
             var totalData = await query.CountAsync();
 
             var items = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new DoctorScheduleResponse
-                {
-                    Id = x.Id,
-                    ScheduleCode = x.ScheduleCode,
-                    ScheduleName = x.ScheduleName,
-                    ScheduleType = x.ScheduleType,
-                    ScheduleStatus = x.ScheduleStatus,
-
-                    DoctorId = x.DoctorId,
-                    DoctorCode = x.Doctor != null ? x.Doctor.DoctorCode : string.Empty,
-                    DoctorNumber = x.Doctor != null ? x.Doctor.DoctorNumber : string.Empty,
-                    DoctorName = x.Doctor != null ? x.Doctor.FullName : string.Empty,
-                    SpecialistName = x.Doctor != null ? x.Doctor.SpecialistName : null,
-                    SubSpecialistName = x.Doctor != null ? x.Doctor.SubSpecialistName : null,
-                    MedicalStaffGroup = x.Doctor != null ? x.Doctor.MedicalStaffGroup : null,
-
-                    ServiceUnitId = x.ServiceUnitId,
-                    ServiceUnitCode = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitCode : string.Empty,
-                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
-
-                    ClinicId = x.ClinicId,
-                    ClinicCode = x.Clinic != null ? x.Clinic.ClinicCode : string.Empty,
-                    ClinicName = x.Clinic != null ? x.Clinic.ClinicName : string.Empty,
-
-                    RoomId = x.RoomId,
-                    RoomCode = x.Room != null ? x.Room.RoomCode : null,
-                    RoomMasterName = x.Room != null ? x.Room.RoomName : null,
-
-                    PracticeDay = x.PracticeDay,
-                    PracticeDate = x.PracticeDate,
-                    StartTime = x.StartTime,
-                    EndTime = x.EndTime,
-                    IsOvernight = x.IsOvernight,
-
-                    SessionName = x.SessionName,
-                    PracticeLocation = x.PracticeLocation,
-                    RoomName = x.RoomName,
-
-                    MaxPatientQuota = x.MaxPatientQuota,
-                    MaxAppointmentQuota = x.MaxAppointmentQuota,
-                    MaxWalkInQuota = x.MaxWalkInQuota,
-                    EstimatedServiceMinutes = x.EstimatedServiceMinutes,
-
-                    IsAllowWalkIn = x.IsAllowWalkIn,
-                    IsAllowAppointment = x.IsAllowAppointment,
-                    IsAllowKioskRegistration = x.IsAllowKioskRegistration,
-                    IsTelemedicineAvailable = x.IsTelemedicineAvailable,
-
-                    IsSubstituteSchedule = x.IsSubstituteSchedule,
-                    SubstituteDoctorId = x.SubstituteDoctorId,
-                    SubstituteDoctorCode = x.SubstituteDoctor != null ? x.SubstituteDoctor.DoctorCode : null,
-                    SubstituteDoctorName = x.SubstituteDoctor != null ? x.SubstituteDoctor.FullName : null,
-
-                    EffectiveStartDate = x.EffectiveStartDate,
-                    EffectiveEndDate = x.EffectiveEndDate,
-
-                    SortOrder = x.SortOrder,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
+                .Select(x => ToResponse(x))
                 .ToListAsync();
 
             var result = new ResponseDoctorSchedulePagedResult
@@ -311,78 +190,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("DoctorSchedule", "Read")]
         public async Task<IActionResult> GetDoctorScheduleOptions(
             [FromQuery] Guid? doctorId,
-            [FromQuery] Guid? serviceUnitId,
             [FromQuery] Guid? clinicId,
-            [FromQuery] Guid? roomId,
-            [FromQuery] DoctorScheduleType? scheduleType,
-            [FromQuery] DoctorScheduleStatus? scheduleStatus,
-            [FromQuery] DayOfWeek? practiceDay,
-            [FromQuery] DateTime? practiceDate,
-            [FromQuery] bool? isAllowWalkIn,
-            [FromQuery] bool? isAllowAppointment,
-            [FromQuery] bool? isAllowKioskRegistration,
-            [FromQuery] bool? isTelemedicineAvailable,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null)
         {
-            var query = _dbContext.Set<MstDoctorSchedule>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
             if (onlyActive)
                 query = query.Where(x => x.IsActive);
 
-            if (doctorId.HasValue && doctorId.Value != Guid.Empty)
-                query = query.Where(x => x.DoctorId == doctorId.Value);
-
-            if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
-                query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
-
-            if (clinicId.HasValue && clinicId.Value != Guid.Empty)
-                query = query.Where(x => x.ClinicId == clinicId.Value);
-
-            if (roomId.HasValue && roomId.Value != Guid.Empty)
-                query = query.Where(x => x.RoomId == roomId.Value);
-
-            if (scheduleType.HasValue)
-                query = query.Where(x => x.ScheduleType == scheduleType.Value);
-
-            if (scheduleStatus.HasValue)
-                query = query.Where(x => x.ScheduleStatus == scheduleStatus.Value);
-
-            if (practiceDay.HasValue)
-                query = query.Where(x => x.PracticeDay == practiceDay.Value);
-
-            if (practiceDate.HasValue)
-            {
-                var date = practiceDate.Value.Date;
-                query = query.Where(x => x.PracticeDate == date);
-            }
-
-            if (isAllowWalkIn.HasValue)
-                query = query.Where(x => x.IsAllowWalkIn == isAllowWalkIn.Value);
-
-            if (isAllowAppointment.HasValue)
-                query = query.Where(x => x.IsAllowAppointment == isAllowAppointment.Value);
-
-            if (isAllowKioskRegistration.HasValue)
-                query = query.Where(x => x.IsAllowKioskRegistration == isAllowKioskRegistration.Value);
-
-            if (isTelemedicineAvailable.HasValue)
-                query = query.Where(x => x.IsTelemedicineAvailable == isTelemedicineAvailable.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.ScheduleCode.ToLower().Contains(keyword) ||
-                    x.ScheduleName.ToLower().Contains(keyword) ||
-                    (x.SessionName != null && x.SessionName.ToLower().Contains(keyword)) ||
-                    (x.Doctor != null && x.Doctor.FullName.ToLower().Contains(keyword)) ||
-                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
-                    (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)));
-            }
+            query = ApplyFilters(query, doctorId, clinicId, null, search);
 
             var data = await query
                 .OrderBy(x => x.SortOrder)
@@ -392,36 +209,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 .Select(x => new DoctorScheduleOptionResponse
                 {
                     Id = x.Id,
-
                     DoctorId = x.DoctorId,
                     DoctorName = x.Doctor != null ? x.Doctor.FullName : string.Empty,
                     SpecialistName = x.Doctor != null ? x.Doctor.SpecialistName : null,
-
                     ServiceUnitId = x.ServiceUnitId,
                     ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
-
                     ClinicId = x.ClinicId,
                     ClinicName = x.Clinic != null ? x.Clinic.ClinicName : string.Empty,
-
                     RoomId = x.RoomId,
                     RoomMasterName = x.Room != null ? x.Room.RoomName : null,
-
                     ScheduleCode = x.ScheduleCode,
                     ScheduleName = x.ScheduleName,
                     ScheduleType = x.ScheduleType,
                     ScheduleStatus = x.ScheduleStatus,
-
                     PracticeDay = x.PracticeDay,
                     PracticeDate = x.PracticeDate,
                     StartTime = x.StartTime,
                     EndTime = x.EndTime,
                     SessionName = x.SessionName,
-
                     MaxPatientQuota = x.MaxPatientQuota,
                     MaxAppointmentQuota = x.MaxAppointmentQuota,
                     MaxWalkInQuota = x.MaxWalkInQuota,
                     EstimatedServiceMinutes = x.EstimatedServiceMinutes,
-
                     IsAllowWalkIn = x.IsAllowWalkIn,
                     IsAllowAppointment = x.IsAllowAppointment,
                     IsAllowKioskRegistration = x.IsAllowKioskRegistration,
@@ -442,70 +251,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("DoctorSchedule", "Read")]
         public async Task<IActionResult> GetDoctorScheduleById(Guid id)
         {
-            var data = await _dbContext.Set<MstDoctorSchedule>()
-                .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new DoctorScheduleDetailResponse
-                {
-                    Id = x.Id,
-                    ScheduleCode = x.ScheduleCode,
-                    ScheduleName = x.ScheduleName,
-                    ScheduleType = x.ScheduleType,
-                    ScheduleStatus = x.ScheduleStatus,
-
-                    DoctorId = x.DoctorId,
-                    DoctorCode = x.Doctor != null ? x.Doctor.DoctorCode : string.Empty,
-                    DoctorNumber = x.Doctor != null ? x.Doctor.DoctorNumber : string.Empty,
-                    DoctorName = x.Doctor != null ? x.Doctor.FullName : string.Empty,
-                    SpecialistName = x.Doctor != null ? x.Doctor.SpecialistName : null,
-                    SubSpecialistName = x.Doctor != null ? x.Doctor.SubSpecialistName : null,
-                    MedicalStaffGroup = x.Doctor != null ? x.Doctor.MedicalStaffGroup : null,
-
-                    ServiceUnitId = x.ServiceUnitId,
-                    ServiceUnitCode = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitCode : string.Empty,
-                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
-
-                    ClinicId = x.ClinicId,
-                    ClinicCode = x.Clinic != null ? x.Clinic.ClinicCode : string.Empty,
-                    ClinicName = x.Clinic != null ? x.Clinic.ClinicName : string.Empty,
-
-                    RoomId = x.RoomId,
-                    RoomCode = x.Room != null ? x.Room.RoomCode : null,
-                    RoomMasterName = x.Room != null ? x.Room.RoomName : null,
-
-                    PracticeDay = x.PracticeDay,
-                    PracticeDate = x.PracticeDate,
-                    StartTime = x.StartTime,
-                    EndTime = x.EndTime,
-                    IsOvernight = x.IsOvernight,
-
-                    SessionName = x.SessionName,
-                    PracticeLocation = x.PracticeLocation,
-                    RoomName = x.RoomName,
-
-                    MaxPatientQuota = x.MaxPatientQuota,
-                    MaxAppointmentQuota = x.MaxAppointmentQuota,
-                    MaxWalkInQuota = x.MaxWalkInQuota,
-                    EstimatedServiceMinutes = x.EstimatedServiceMinutes,
-
-                    IsAllowWalkIn = x.IsAllowWalkIn,
-                    IsAllowAppointment = x.IsAllowAppointment,
-                    IsAllowKioskRegistration = x.IsAllowKioskRegistration,
-                    IsTelemedicineAvailable = x.IsTelemedicineAvailable,
-
-                    IsSubstituteSchedule = x.IsSubstituteSchedule,
-                    SubstituteDoctorId = x.SubstituteDoctorId,
-                    SubstituteDoctorCode = x.SubstituteDoctor != null ? x.SubstituteDoctor.DoctorCode : null,
-                    SubstituteDoctorName = x.SubstituteDoctor != null ? x.SubstituteDoctor.FullName : null,
-
-                    EffectiveStartDate = x.EffectiveStartDate,
-                    EffectiveEndDate = x.EffectiveEndDate,
-
-                    SortOrder = x.SortOrder,
-                    Description = x.Description,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
+            var data = await BuildBaseQuery()
+                .Where(x => x.Id == id)
+                .Select(x => ToDetailResponse(x))
                 .FirstOrDefaultAsync();
 
             if (data == null)
@@ -544,11 +292,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+            var scheduleCode = await GenerateNextScheduleCodeAsync();
 
             var entity = new MstDoctorSchedule
             {
                 Id = Guid.NewGuid(),
-                ScheduleCode = request.ScheduleCode.Trim().ToUpperInvariant(),
+                ScheduleCode = scheduleCode,
                 ScheduleName = request.ScheduleName.Trim(),
                 ScheduleType = request.ScheduleType,
                 DoctorId = request.DoctorId,
@@ -578,7 +327,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 EffectiveEndDate = request.EffectiveEndDate?.Date,
                 SortOrder = request.SortOrder,
                 Description = NormalizeNullableText(request.Description),
-                IsActive = true,
+                IsActive = request.IsActive,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
                 IsDelete = false,
@@ -603,12 +352,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 PracticeDate = entity.PracticeDate,
                 StartTime = entity.StartTime,
                 EndTime = entity.EndTime,
-                IsAllowWalkIn = entity.IsAllowWalkIn,
-                IsAllowAppointment = entity.IsAllowAppointment,
-                IsAllowKioskRegistration = entity.IsAllowKioskRegistration,
-                IsTelemedicineAvailable = entity.IsTelemedicineAvailable,
                 IsActive = entity.IsActive
             };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "DoctorSchedule.CreateDoctorSchedule",
+                "Membuat data doctor schedule.",
+                response
+            );
 
             return Ok(ApiResponse<DoctorScheduleCreateResponse>.Ok(
                 response,
@@ -617,7 +369,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DoctorScheduleUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Update", "Update Doctor Schedule", Description = "Mengubah data doctor schedule", AccessType = AccessTypes.Update, SortOrder = 3)]
@@ -648,7 +400,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            entity.ScheduleCode = request.ScheduleCode.Trim().ToUpperInvariant();
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.ScheduleName = request.ScheduleName.Trim();
             entity.ScheduleType = request.ScheduleType;
             entity.DoctorId = request.DoctorId;
@@ -679,19 +433,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.SortOrder = request.SortOrder;
             entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var response = new DoctorScheduleUpdateResponse
+            {
+                Id = entity.Id,
+                ScheduleCode = entity.ScheduleCode,
+                ScheduleName = entity.ScheduleName,
+                ScheduleStatus = entity.ScheduleStatus,
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "DoctorSchedule.UpdateDoctorSchedule",
+                "Mengubah data doctor schedule.",
+                response
+            );
+
+            return Ok(ApiResponse<DoctorScheduleUpdateResponse>.Ok(
+                response,
                 "Doctor schedule berhasil diperbarui."
             ));
         }
 
         [HttpPatch("{id:guid}/activate")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DoctorScheduleStatusResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Doctor Schedule", Description = "Mengaktifkan data doctor schedule", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("DoctorSchedule", "Update")]
@@ -701,7 +472,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpPatch("{id:guid}/deactivate")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DoctorScheduleStatusResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Doctor Schedule", Description = "Menonaktifkan data doctor schedule", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("DoctorSchedule", "Update")]
@@ -711,7 +482,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DoctorScheduleDeleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Doctor Schedule", Description = "Menghapus data doctor schedule", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("DoctorSchedule", "Delete")]
@@ -728,15 +499,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsDelete = true;
             entity.IsActive = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var response = new DoctorScheduleDeleteResponse
+            {
+                Id = entity.Id,
+                ScheduleCode = entity.ScheduleCode,
+                ScheduleName = entity.ScheduleName,
+                DeleteDateTime = entity.DeleteDateTime
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "DoctorSchedule.DeleteDoctorSchedule",
+                "Menghapus data doctor schedule.",
+                response
+            );
+
+            return Ok(ApiResponse<DoctorScheduleDeleteResponse>.Ok(
+                response,
                 "Doctor schedule berhasil dihapus."
             ));
         }
@@ -754,27 +545,336 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsActive = isActive;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var response = new DoctorScheduleStatusResponse
+            {
+                Id = entity.Id,
+                ScheduleCode = entity.ScheduleCode,
+                ScheduleName = entity.ScheduleName,
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime
+            };
+
+            return Ok(ApiResponse<DoctorScheduleStatusResponse>.Ok(
+                response,
                 successMessage
             ));
+        }
+
+        private IQueryable<MstDoctorSchedule> BuildBaseQuery()
+        {
+            return _dbContext.Set<MstDoctorSchedule>()
+                .AsNoTracking()
+                .Include(x => x.Doctor)
+                .Include(x => x.SubstituteDoctor)
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.Clinic)
+                .Include(x => x.Room)
+                .Where(x => !x.IsDelete);
+        }
+
+        private static IQueryable<MstDoctorSchedule> ApplyDateFilter(
+            IQueryable<MstDoctorSchedule> query,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            var today = DateTime.UtcNow.Date;
+
+            if (!string.IsNullOrWhiteSpace(customPeriod))
+            {
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        startDate = today;
+                        endDate = today;
+                        break;
+                    case "last7days":
+                        startDate = today.AddDays(-6);
+                        endDate = today;
+                        break;
+                    case "last30days":
+                        startDate = today.AddDays(-29);
+                        endDate = today;
+                        break;
+                    case "thismonth":
+                        startDate = new DateTime(today.Year, today.Month, 1);
+                        endDate = startDate.Value.AddMonths(1).AddDays(-1);
+                        break;
+                    case "thisyear":
+                        startDate = new DateTime(today.Year, 1, 1);
+                        endDate = new DateTime(today.Year, 12, 31);
+                        break;
+                    case "all":
+                        startDate = null;
+                        endDate = null;
+                        break;
+                }
+            }
+
+            if (startDate.HasValue)
+            {
+                var start = startDate.Value.Date;
+                query = query.Where(x => x.CreateDateTime.Date >= start);
+            }
+
+            if (endDate.HasValue)
+            {
+                var end = endDate.Value.Date;
+                query = query.Where(x => x.CreateDateTime.Date <= end);
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstDoctorSchedule> ApplyFilters(
+            IQueryable<MstDoctorSchedule> query,
+            Guid? doctorId,
+            Guid? clinicId,
+            bool? isActive,
+            string? search)
+        {
+            if (doctorId.HasValue && doctorId.Value != Guid.Empty)
+                query = query.Where(x => x.DoctorId == doctorId.Value);
+
+            if (clinicId.HasValue && clinicId.Value != Guid.Empty)
+                query = query.Where(x => x.ClinicId == clinicId.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.ScheduleCode.ToLower().Contains(keyword) ||
+                    x.ScheduleName.ToLower().Contains(keyword) ||
+                    (x.SessionName != null && x.SessionName.ToLower().Contains(keyword)) ||
+                    (x.PracticeLocation != null && x.PracticeLocation.ToLower().Contains(keyword)) ||
+                    (x.RoomName != null && x.RoomName.ToLower().Contains(keyword)) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
+                    (x.Doctor != null && x.Doctor.DoctorCode.ToLower().Contains(keyword)) ||
+                    (x.Doctor != null && x.Doctor.DoctorNumber.ToLower().Contains(keyword)) ||
+                    (x.Doctor != null && x.Doctor.FullName.ToLower().Contains(keyword)) ||
+                    (x.Doctor != null && x.Doctor.SpecialistName != null && x.Doctor.SpecialistName.ToLower().Contains(keyword)) ||
+                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitCode.ToLower().Contains(keyword)) ||
+                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
+                    (x.Clinic != null && x.Clinic.ClinicCode.ToLower().Contains(keyword)) ||
+                    (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.RoomCode.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.RoomName.ToLower().Contains(keyword)));
+            }
+
+            return query;
+        }
+
+        private static IOrderedQueryable<MstDoctorSchedule> ApplySorting(
+            IQueryable<MstDoctorSchedule> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+            return (sortBy ?? "sortOrder").Trim().ToLowerInvariant() switch
+            {
+                "createdatetime" => isDesc
+                    ? query.OrderByDescending(x => x.CreateDateTime)
+                    : query.OrderBy(x => x.CreateDateTime),
+
+                "schedulecode" => isDesc
+                    ? query.OrderByDescending(x => x.ScheduleCode)
+                    : query.OrderBy(x => x.ScheduleCode),
+
+                "schedulename" => isDesc
+                    ? query.OrderByDescending(x => x.ScheduleName)
+                    : query.OrderBy(x => x.ScheduleName),
+
+                "doctorname" => isDesc
+                    ? query.OrderByDescending(x => x.Doctor != null ? x.Doctor.FullName : string.Empty)
+                    : query.OrderBy(x => x.Doctor != null ? x.Doctor.FullName : string.Empty),
+
+                "serviceunitname" => isDesc
+                    ? query.OrderByDescending(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty)
+                    : query.OrderBy(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty),
+
+                "clinicname" => isDesc
+                    ? query.OrderByDescending(x => x.Clinic != null ? x.Clinic.ClinicName : string.Empty)
+                    : query.OrderBy(x => x.Clinic != null ? x.Clinic.ClinicName : string.Empty),
+
+                "practiceday" => isDesc
+                    ? query.OrderByDescending(x => x.PracticeDay)
+                    : query.OrderBy(x => x.PracticeDay),
+
+                "practicedate" => isDesc
+                    ? query.OrderByDescending(x => x.PracticeDate)
+                    : query.OrderBy(x => x.PracticeDate),
+
+                "starttime" => isDesc
+                    ? query.OrderByDescending(x => x.StartTime)
+                    : query.OrderBy(x => x.StartTime),
+
+                "endtime" => isDesc
+                    ? query.OrderByDescending(x => x.EndTime)
+                    : query.OrderBy(x => x.EndTime),
+
+                "scheduletype" => isDesc
+                    ? query.OrderByDescending(x => x.ScheduleType)
+                    : query.OrderBy(x => x.ScheduleType),
+
+                "schedulestatus" => isDesc
+                    ? query.OrderByDescending(x => x.ScheduleStatus)
+                    : query.OrderBy(x => x.ScheduleStatus),
+
+                "isactive" => isDesc
+                    ? query.OrderByDescending(x => x.IsActive)
+                    : query.OrderBy(x => x.IsActive),
+
+                _ => isDesc
+                    ? query.OrderByDescending(x => x.SortOrder)
+                        .ThenByDescending(x => x.Doctor != null ? x.Doctor.FullName : string.Empty)
+                        .ThenByDescending(x => x.PracticeDay)
+                        .ThenByDescending(x => x.StartTime)
+                    : query.OrderBy(x => x.SortOrder)
+                        .ThenBy(x => x.Doctor != null ? x.Doctor.FullName : string.Empty)
+                        .ThenBy(x => x.PracticeDay)
+                        .ThenBy(x => x.StartTime)
+            };
+        }
+
+        private static DoctorScheduleResponse ToResponse(MstDoctorSchedule x)
+        {
+            return new DoctorScheduleResponse
+            {
+                Id = x.Id,
+                ScheduleCode = x.ScheduleCode,
+                ScheduleName = x.ScheduleName,
+                ScheduleType = x.ScheduleType,
+                ScheduleStatus = x.ScheduleStatus,
+                DoctorId = x.DoctorId,
+                DoctorCode = x.Doctor != null ? x.Doctor.DoctorCode : string.Empty,
+                DoctorNumber = x.Doctor != null ? x.Doctor.DoctorNumber : string.Empty,
+                DoctorName = x.Doctor != null ? x.Doctor.FullName : string.Empty,
+                SpecialistName = x.Doctor != null ? x.Doctor.SpecialistName : null,
+                SubSpecialistName = x.Doctor != null ? x.Doctor.SubSpecialistName : null,
+                MedicalStaffGroup = x.Doctor != null ? x.Doctor.MedicalStaffGroup : null,
+                ServiceUnitId = x.ServiceUnitId,
+                ServiceUnitCode = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitCode : string.Empty,
+                ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
+                ClinicId = x.ClinicId,
+                ClinicCode = x.Clinic != null ? x.Clinic.ClinicCode : string.Empty,
+                ClinicName = x.Clinic != null ? x.Clinic.ClinicName : string.Empty,
+                RoomId = x.RoomId,
+                RoomCode = x.Room != null ? x.Room.RoomCode : null,
+                RoomMasterName = x.Room != null ? x.Room.RoomName : null,
+                PracticeDay = x.PracticeDay,
+                PracticeDate = x.PracticeDate,
+                StartTime = x.StartTime,
+                EndTime = x.EndTime,
+                IsOvernight = x.IsOvernight,
+                SessionName = x.SessionName,
+                PracticeLocation = x.PracticeLocation,
+                RoomName = x.RoomName,
+                MaxPatientQuota = x.MaxPatientQuota,
+                MaxAppointmentQuota = x.MaxAppointmentQuota,
+                MaxWalkInQuota = x.MaxWalkInQuota,
+                EstimatedServiceMinutes = x.EstimatedServiceMinutes,
+                IsAllowWalkIn = x.IsAllowWalkIn,
+                IsAllowAppointment = x.IsAllowAppointment,
+                IsAllowKioskRegistration = x.IsAllowKioskRegistration,
+                IsTelemedicineAvailable = x.IsTelemedicineAvailable,
+                IsSubstituteSchedule = x.IsSubstituteSchedule,
+                SubstituteDoctorId = x.SubstituteDoctorId,
+                SubstituteDoctorCode = x.SubstituteDoctor != null ? x.SubstituteDoctor.DoctorCode : null,
+                SubstituteDoctorName = x.SubstituteDoctor != null ? x.SubstituteDoctor.FullName : null,
+                EffectiveStartDate = x.EffectiveStartDate,
+                EffectiveEndDate = x.EffectiveEndDate,
+                SortOrder = x.SortOrder,
+                IsActive = x.IsActive,
+                CreateDateTime = x.CreateDateTime
+            };
+        }
+
+        private static DoctorScheduleDetailResponse ToDetailResponse(MstDoctorSchedule x)
+        {
+            var response = new DoctorScheduleDetailResponse
+            {
+                Description = x.Description
+            };
+
+            response.Id = x.Id;
+            response.ScheduleCode = x.ScheduleCode;
+            response.ScheduleName = x.ScheduleName;
+            response.ScheduleType = x.ScheduleType;
+            response.ScheduleStatus = x.ScheduleStatus;
+            response.DoctorId = x.DoctorId;
+            response.DoctorCode = x.Doctor != null ? x.Doctor.DoctorCode : string.Empty;
+            response.DoctorNumber = x.Doctor != null ? x.Doctor.DoctorNumber : string.Empty;
+            response.DoctorName = x.Doctor != null ? x.Doctor.FullName : string.Empty;
+            response.SpecialistName = x.Doctor != null ? x.Doctor.SpecialistName : null;
+            response.SubSpecialistName = x.Doctor != null ? x.Doctor.SubSpecialistName : null;
+            response.MedicalStaffGroup = x.Doctor != null ? x.Doctor.MedicalStaffGroup : null;
+            response.ServiceUnitId = x.ServiceUnitId;
+            response.ServiceUnitCode = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitCode : string.Empty;
+            response.ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty;
+            response.ClinicId = x.ClinicId;
+            response.ClinicCode = x.Clinic != null ? x.Clinic.ClinicCode : string.Empty;
+            response.ClinicName = x.Clinic != null ? x.Clinic.ClinicName : string.Empty;
+            response.RoomId = x.RoomId;
+            response.RoomCode = x.Room != null ? x.Room.RoomCode : null;
+            response.RoomMasterName = x.Room != null ? x.Room.RoomName : null;
+            response.PracticeDay = x.PracticeDay;
+            response.PracticeDate = x.PracticeDate;
+            response.StartTime = x.StartTime;
+            response.EndTime = x.EndTime;
+            response.IsOvernight = x.IsOvernight;
+            response.SessionName = x.SessionName;
+            response.PracticeLocation = x.PracticeLocation;
+            response.RoomName = x.RoomName;
+            response.MaxPatientQuota = x.MaxPatientQuota;
+            response.MaxAppointmentQuota = x.MaxAppointmentQuota;
+            response.MaxWalkInQuota = x.MaxWalkInQuota;
+            response.EstimatedServiceMinutes = x.EstimatedServiceMinutes;
+            response.IsAllowWalkIn = x.IsAllowWalkIn;
+            response.IsAllowAppointment = x.IsAllowAppointment;
+            response.IsAllowKioskRegistration = x.IsAllowKioskRegistration;
+            response.IsTelemedicineAvailable = x.IsTelemedicineAvailable;
+            response.IsSubstituteSchedule = x.IsSubstituteSchedule;
+            response.SubstituteDoctorId = x.SubstituteDoctorId;
+            response.SubstituteDoctorCode = x.SubstituteDoctor != null ? x.SubstituteDoctor.DoctorCode : null;
+            response.SubstituteDoctorName = x.SubstituteDoctor != null ? x.SubstituteDoctor.FullName : null;
+            response.EffectiveStartDate = x.EffectiveStartDate;
+            response.EffectiveEndDate = x.EffectiveEndDate;
+            response.SortOrder = x.SortOrder;
+            response.IsActive = x.IsActive;
+            response.CreateDateTime = x.CreateDateTime;
+
+            return response;
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
             CreateDoctorScheduleRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.ScheduleCode))
-                return (false, "Kode jadwal dokter wajib diisi.");
-
             if (string.IsNullOrWhiteSpace(request.ScheduleName))
                 return (false, "Nama jadwal dokter wajib diisi.");
+
+            if (!Enum.IsDefined(typeof(DoctorScheduleType), request.ScheduleType))
+                return (false, "Tipe jadwal dokter tidak valid.");
+
+            if (!Enum.IsDefined(typeof(DoctorScheduleStatus), request.ScheduleStatus))
+                return (false, "Status jadwal dokter tidak valid.");
+
+            if (!Enum.IsDefined(typeof(DayOfWeek), request.PracticeDay))
+                return (false, "Hari praktik tidak valid.");
 
             if (request.DoctorId == Guid.Empty)
                 return (false, "Dokter wajib dipilih.");
@@ -824,18 +924,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }
 
             var doctorExists = await _dbContext.Set<MstDoctor>()
+                .AsNoTracking()
                 .AnyAsync(x => x.Id == request.DoctorId && x.IsActive && !x.IsDelete);
 
             if (!doctorExists)
                 return (false, "Dokter tidak valid atau tidak aktif.");
 
             var serviceUnitExists = await _dbContext.Set<MstServiceUnit>()
+                .AsNoTracking()
                 .AnyAsync(x => x.Id == request.ServiceUnitId && x.IsActive && !x.IsDelete);
 
             if (!serviceUnitExists)
                 return (false, "Service unit tidak valid atau tidak aktif.");
 
             var clinicExists = await _dbContext.Set<MstClinic>()
+                .AsNoTracking()
                 .AnyAsync(x =>
                     x.Id == request.ClinicId &&
                     x.ServiceUnitId == request.ServiceUnitId &&
@@ -850,6 +953,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (roomId.HasValue)
             {
                 var roomExists = await _dbContext.Set<MstRoom>()
+                    .AsNoTracking()
                     .AnyAsync(x =>
                         x.Id == roomId.Value &&
                         x.ServiceUnitId == request.ServiceUnitId &&
@@ -868,25 +972,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     return (false, "Dokter pengganti tidak boleh sama dengan dokter utama.");
 
                 var substituteDoctorExists = await _dbContext.Set<MstDoctor>()
+                    .AsNoTracking()
                     .AnyAsync(x => x.Id == substituteDoctorId.Value && x.IsActive && !x.IsDelete);
 
                 if (!substituteDoctorExists)
                     return (false, "Dokter pengganti tidak valid atau tidak aktif.");
             }
 
-            var normalizedCode = request.ScheduleCode.Trim().ToUpperInvariant();
             var normalizedName = request.ScheduleName.Trim().ToLower();
 
-            var duplicateCode = await _dbContext.Set<MstDoctorSchedule>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.ScheduleCode.ToUpper() == normalizedCode &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
-
-            if (duplicateCode)
-                return (false, "Kode jadwal dokter sudah digunakan.");
-
             var duplicateNameInDoctorClinic = await _dbContext.Set<MstDoctorSchedule>()
+                .AsNoTracking()
                 .AnyAsync(x =>
                     !x.IsDelete &&
                     x.DoctorId == request.DoctorId &&
@@ -1001,84 +1097,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             };
         }
 
-        private static IQueryable<MstDoctorSchedule> ApplySorting(
-            IQueryable<MstDoctorSchedule> query,
-            string? sortBy,
-            string? sortDirection)
+        private async Task<string> GenerateNextScheduleCodeAsync()
         {
-            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            var existingCodes = await _dbContext.Set<MstDoctorSchedule>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.ScheduleCode.StartsWith(ScheduleCodePrefix))
+                .Select(x => x.ScheduleCode)
+                .ToListAsync();
 
-            return (sortBy ?? "sortOrder").ToLowerInvariant() switch
-            {
-                "createdatetime" => isDesc
-                    ? query.OrderByDescending(x => x.CreateDateTime)
-                    : query.OrderBy(x => x.CreateDateTime),
+            var usedNumbers = existingCodes
+                .Select(code =>
+                {
+                    var suffix = code.Replace(ScheduleCodePrefix, string.Empty);
+                    return int.TryParse(suffix, out var number) ? number : 0;
+                })
+                .Where(number => number > 0)
+                .ToHashSet();
 
-                "schedulecode" => isDesc
-                    ? query.OrderByDescending(x => x.ScheduleCode)
-                    : query.OrderBy(x => x.ScheduleCode),
+            var nextNumber = 1;
+            while (usedNumbers.Contains(nextNumber))
+                nextNumber++;
 
-                "schedulename" => isDesc
-                    ? query.OrderByDescending(x => x.ScheduleName)
-                    : query.OrderBy(x => x.ScheduleName),
-
-                "doctorname" => isDesc
-                    ? query.OrderByDescending(x => x.Doctor != null ? x.Doctor.FullName : "")
-                    : query.OrderBy(x => x.Doctor != null ? x.Doctor.FullName : ""),
-
-                "serviceunitname" => isDesc
-                    ? query.OrderByDescending(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : "")
-                    : query.OrderBy(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : ""),
-
-                "clinicname" => isDesc
-                    ? query.OrderByDescending(x => x.Clinic != null ? x.Clinic.ClinicName : "")
-                    : query.OrderBy(x => x.Clinic != null ? x.Clinic.ClinicName : ""),
-
-                "practiceday" => isDesc
-                    ? query.OrderByDescending(x => x.PracticeDay)
-                    : query.OrderBy(x => x.PracticeDay),
-
-                "practicedate" => isDesc
-                    ? query.OrderByDescending(x => x.PracticeDate)
-                    : query.OrderBy(x => x.PracticeDate),
-
-                "starttime" => isDesc
-                    ? query.OrderByDescending(x => x.StartTime)
-                    : query.OrderBy(x => x.StartTime),
-
-                "endtime" => isDesc
-                    ? query.OrderByDescending(x => x.EndTime)
-                    : query.OrderBy(x => x.EndTime),
-
-                "scheduletype" => isDesc
-                    ? query.OrderByDescending(x => x.ScheduleType)
-                    : query.OrderBy(x => x.ScheduleType),
-
-                "schedulestatus" => isDesc
-                    ? query.OrderByDescending(x => x.ScheduleStatus)
-                    : query.OrderBy(x => x.ScheduleStatus),
-
-                "isactive" => isDesc
-                    ? query.OrderByDescending(x => x.IsActive)
-                    : query.OrderBy(x => x.IsActive),
-
-                _ => isDesc
-                    ? query.OrderByDescending(x => x.SortOrder)
-                        .ThenByDescending(x => x.Doctor != null ? x.Doctor.FullName : "")
-                        .ThenByDescending(x => x.PracticeDay)
-                        .ThenByDescending(x => x.StartTime)
-                    : query.OrderBy(x => x.SortOrder)
-                        .ThenBy(x => x.Doctor != null ? x.Doctor.FullName : "")
-                        .ThenBy(x => x.PracticeDay)
-                        .ThenBy(x => x.StartTime)
-            };
+            return $"{ScheduleCodePrefix}{nextNumber:00000}";
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 25;
-            if (pageSize > 100) pageSize = 100;
+            if (pageNumber < 1)
+                pageNumber = 1;
+
+            if (pageSize < 1)
+                pageSize = 25;
+
+            if (pageSize > 100)
+                pageSize = 100;
 
             return (pageNumber, pageSize);
         }
@@ -1123,6 +1175,67 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private static List<DoctorScheduleQueryParameterResponse> BuildQueryParameters()
+        {
+            return new List<DoctorScheduleQueryParameterResponse>
+            {
+                new() { Name = "startDate", Type = "DateTime?", Description = "Tanggal awal berdasarkan tanggal dibuat." },
+                new() { Name = "endDate", Type = "DateTime?", Description = "Tanggal akhir berdasarkan tanggal dibuat." },
+                new() { Name = "customPeriod", Type = "string", Description = "today, last7days, last30days, thismonth, thisyear, all." },
+                new() { Name = "doctorId", Type = "Guid?", Description = "Filter relasi dokter." },
+                new() { Name = "clinicId", Type = "Guid?", Description = "Filter relasi clinic." },
+                new() { Name = "isActive", Type = "bool?", Description = "Filter status aktif." },
+                new() { Name = "search", Type = "string", Description = "Pencarian teks." },
+                new() { Name = "sortBy", Type = "string", Description = "Kolom sorting." },
+                new() { Name = "sortDirection", Type = "string", Description = "asc atau desc." },
+                new() { Name = "pageNumber", Type = "int", Description = "Nomor halaman." },
+                new() { Name = "pageSize", Type = "int", Description = "Jumlah data per halaman." }
+            };
+        }
+
+        private static List<DoctorScheduleFieldMetadataResponse> BuildCreateFields()
+        {
+            return new List<DoctorScheduleFieldMetadataResponse>
+            {
+                new() { Name = "scheduleCode", Label = "Kode Jadwal", DataType = "text", Required = false, ReadOnly = true, DefaultValue = "Auto generated by system" },
+                new() { Name = "scheduleName", Label = "Nama Jadwal", DataType = "text", Required = true, ReadOnly = false },
+                new() { Name = "scheduleType", Label = "Tipe Jadwal", DataType = "enum", Required = true, ReadOnly = false, OptionsSource = "scheduleTypeOptions" },
+                new() { Name = "doctorId", Label = "Dokter", DataType = "guid", Required = true, ReadOnly = false, OptionsSource = "/api/v1/health-services/master-data/doctors/options" },
+                new() { Name = "serviceUnitId", Label = "Service Unit", DataType = "guid", Required = true, ReadOnly = false, OptionsSource = "/api/v1/health-services/master-data/service-units/options" },
+                new() { Name = "clinicId", Label = "Clinic", DataType = "guid", Required = true, ReadOnly = false, OptionsSource = "/api/v1/health-services/master-data/clinics/options" },
+                new() { Name = "roomId", Label = "Room", DataType = "guid", Required = false, ReadOnly = false, OptionsSource = "/api/v1/health-services/master-data/rooms/options" },
+                new() { Name = "practiceDay", Label = "Hari Praktik", DataType = "enum", Required = true, ReadOnly = false, OptionsSource = "practiceDayOptions" },
+                new() { Name = "practiceDate", Label = "Tanggal Praktik", DataType = "date", Required = false, ReadOnly = false },
+                new() { Name = "startTime", Label = "Jam Mulai", DataType = "time", Required = true, ReadOnly = false },
+                new() { Name = "endTime", Label = "Jam Selesai", DataType = "time", Required = true, ReadOnly = false },
+                new() { Name = "isOvernight", Label = "Overnight", DataType = "boolean", Required = false, ReadOnly = false },
+                new() { Name = "sessionName", Label = "Nama Sesi", DataType = "text", Required = false, ReadOnly = false },
+                new() { Name = "practiceLocation", Label = "Lokasi Praktik", DataType = "text", Required = false, ReadOnly = false },
+                new() { Name = "roomName", Label = "Nama Ruangan Manual", DataType = "text", Required = false, ReadOnly = false },
+                new() { Name = "maxPatientQuota", Label = "Kuota Pasien", DataType = "number", Required = false, ReadOnly = false },
+                new() { Name = "maxAppointmentQuota", Label = "Kuota Appointment", DataType = "number", Required = false, ReadOnly = false },
+                new() { Name = "maxWalkInQuota", Label = "Kuota Walk-In", DataType = "number", Required = false, ReadOnly = false },
+                new() { Name = "estimatedServiceMinutes", Label = "Estimasi Menit Layanan", DataType = "number", Required = true, ReadOnly = false },
+                new() { Name = "isAllowWalkIn", Label = "Allow Walk-In", DataType = "boolean", Required = false, ReadOnly = false },
+                new() { Name = "isAllowAppointment", Label = "Allow Appointment", DataType = "boolean", Required = false, ReadOnly = false },
+                new() { Name = "isAllowKioskRegistration", Label = "Allow Kiosk Registration", DataType = "boolean", Required = false, ReadOnly = false },
+                new() { Name = "isTelemedicineAvailable", Label = "Telemedicine", DataType = "boolean", Required = false, ReadOnly = false },
+                new() { Name = "isSubstituteSchedule", Label = "Jadwal Pengganti", DataType = "boolean", Required = false, ReadOnly = false },
+                new() { Name = "substituteDoctorId", Label = "Dokter Pengganti", DataType = "guid", Required = false, ReadOnly = false, OptionsSource = "/api/v1/health-services/master-data/doctors/options" },
+                new() { Name = "scheduleStatus", Label = "Status Jadwal", DataType = "enum", Required = true, ReadOnly = false, OptionsSource = "scheduleStatusOptions" },
+                new() { Name = "effectiveStartDate", Label = "Tanggal Mulai Efektif", DataType = "date", Required = false, ReadOnly = false },
+                new() { Name = "effectiveEndDate", Label = "Tanggal Akhir Efektif", DataType = "date", Required = false, ReadOnly = false },
+                new() { Name = "sortOrder", Label = "Urutan", DataType = "number", Required = false, ReadOnly = false },
+                new() { Name = "description", Label = "Deskripsi", DataType = "textarea", Required = false, ReadOnly = false },
+                new() { Name = "isActive", Label = "Aktif", DataType = "boolean", Required = false, ReadOnly = false, DefaultValue = true }
+            };
+        }
+
+        private static List<DoctorScheduleFieldMetadataResponse> BuildUpdateFields()
+        {
+            return BuildCreateFields();
         }
     }
 }

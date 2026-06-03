@@ -32,6 +32,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
     public class ProcedureController : ControllerBase
     {
         private const string LogCategory = "HealthServices.MasterData";
+        private const string CodePrefix = "PR-RSMMC-";
+        private const int CodeSequenceLength = 5;
 
         private static readonly HashSet<string> AllowedProcedureTypes = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -65,6 +67,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var result = new ProcedureFilterMetadataResponse
             {
                 DefaultFilter = new ProcedureDefaultFilterResponse(),
+                CustomPeriods = BuildCustomPeriodOptions(),
                 SortOptions = new List<ProcedureSortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -81,7 +84,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                ProcedureTypeOptions = AllowedProcedureTypes.OrderBy(x => x).ToList()
+                ProcedureTypeOptions = AllowedProcedureTypes.OrderBy(x => x).ToList(),
+                QueryParameters = BuildQueryParameterInfo(),
+                CreateFields = BuildCreateFieldMetadata(),
+                UpdateFields = BuildUpdateFieldMetadata()
             };
 
             await _loggerService.InfoAsync(
@@ -138,27 +144,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Procedure", Description = "Melihat data procedure", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Procedure", "Read")]
         public async Task<IActionResult> GetProcedures(
-            [FromQuery] string? search,
-            [FromQuery] bool? isActive,
-            [FromQuery] string? procedureGroupName,
-            [FromQuery] string? procedureCategoryName,
-            [FromQuery] string? procedureType,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? defaultTariffId,
-            [FromQuery] bool? hasDefaultTariff,
-            [FromQuery] bool? isDoctorAction,
-            [FromQuery] bool? isNursingAction,
-            [FromQuery] bool? isSurgery,
-            [FromQuery] bool? isLaboratory,
-            [FromQuery] bool? isRadiology,
-            [FromQuery] bool? isTherapy,
-            [FromQuery] bool? isNeedDoctor,
-            [FromQuery] bool? isNeedApproval,
-            [FromQuery] bool? isCoveredByInsuranceDefault,
-            [FromQuery] bool? isAvailableForOutpatient,
-            [FromQuery] bool? isAvailableForInpatient,
-            [FromQuery] bool? isAvailableForEmergency,
-            [FromQuery] int? minimumEstimatedDurationMinutes,
-            [FromQuery] int? maximumEstimatedDurationMinutes,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -168,32 +159,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
             var query = BuildBaseQuery();
 
-            query = ApplyFilter(
-                query,
-                search,
-                isActive,
-                procedureGroupName,
-                procedureCategoryName,
-                procedureType,
-                defaultTariffId,
-                hasDefaultTariff,
-                isDoctorAction,
-                isNursingAction,
-                isSurgery,
-                isLaboratory,
-                isRadiology,
-                isTherapy,
-                isNeedDoctor,
-                isNeedApproval,
-                isCoveredByInsuranceDefault,
-                isAvailableForOutpatient,
-                isAvailableForInpatient,
-                isAvailableForEmergency,
-                minimumEstimatedDurationMinutes,
-                maximumEstimatedDurationMinutes
-            );
+            if (dateRange.Start.HasValue)
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
+
+            if (dateRange.EndExclusive.HasValue)
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
+
+            if (defaultTariffId.HasValue && defaultTariffId.Value != Guid.Empty)
+                query = query.Where(x => x.DefaultTariffId == defaultTariffId.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.ProcedureCode.ToLower().Contains(keyword) ||
+                    x.ProcedureName.ToLower().Contains(keyword) ||
+                    x.ProcedureType.ToLower().Contains(keyword) ||
+                    (x.ProcedureGroupName != null && x.ProcedureGroupName.ToLower().Contains(keyword)) ||
+                    (x.ProcedureCategoryName != null && x.ProcedureCategoryName.ToLower().Contains(keyword)) ||
+                    (x.ExternalProcedureCode != null && x.ExternalProcedureCode.ToLower().Contains(keyword)) ||
+                    (x.IntegrationCode != null && x.IntegrationCode.ToLower().Contains(keyword)) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
+                    (x.DefaultTariff != null && x.DefaultTariff.TariffCode.ToLower().Contains(keyword)) ||
+                    (x.DefaultTariff != null && x.DefaultTariff.TariffName.ToLower().Contains(keyword)));
+            }
 
             var totalData = await query.CountAsync();
 
@@ -253,52 +258,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Procedure", Description = "Melihat data procedure", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Procedure", "Read")]
         public async Task<IActionResult> GetProcedureOptions(
-            [FromQuery] string? procedureGroupName,
-            [FromQuery] string? procedureCategoryName,
-            [FromQuery] string? procedureType,
             [FromQuery] Guid? defaultTariffId,
-            [FromQuery] bool? hasDefaultTariff,
-            [FromQuery] bool? isDoctorAction,
-            [FromQuery] bool? isNursingAction,
-            [FromQuery] bool? isSurgery,
-            [FromQuery] bool? isLaboratory,
-            [FromQuery] bool? isRadiology,
-            [FromQuery] bool? isTherapy,
-            [FromQuery] bool? isNeedDoctor,
-            [FromQuery] bool? isNeedApproval,
-            [FromQuery] bool? isCoveredByInsuranceDefault,
-            [FromQuery] bool? isAvailableForOutpatient,
-            [FromQuery] bool? isAvailableForInpatient,
-            [FromQuery] bool? isAvailableForEmergency,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null)
         {
             var query = BuildBaseQuery();
 
-            query = ApplyFilter(
-                query,
-                search,
-                onlyActive ? true : null,
-                procedureGroupName,
-                procedureCategoryName,
-                procedureType,
-                defaultTariffId,
-                hasDefaultTariff,
-                isDoctorAction,
-                isNursingAction,
-                isSurgery,
-                isLaboratory,
-                isRadiology,
-                isTherapy,
-                isNeedDoctor,
-                isNeedApproval,
-                isCoveredByInsuranceDefault,
-                isAvailableForOutpatient,
-                isAvailableForInpatient,
-                isAvailableForEmergency,
-                null,
-                null
-            );
+            if (onlyActive)
+                query = query.Where(x => x.IsActive);
+
+            if (defaultTariffId.HasValue && defaultTariffId.Value != Guid.Empty)
+                query = query.Where(x => x.DefaultTariffId == defaultTariffId.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.ProcedureCode.ToLower().Contains(keyword) ||
+                    x.ProcedureName.ToLower().Contains(keyword) ||
+                    (x.ProcedureGroupName != null && x.ProcedureGroupName.ToLower().Contains(keyword)) ||
+                    (x.ProcedureCategoryName != null && x.ProcedureCategoryName.ToLower().Contains(keyword)) ||
+                    (x.DefaultTariff != null && x.DefaultTariff.TariffName.ToLower().Contains(keyword)));
+            }
 
             var data = await query
                 .OrderBy(x => x.SortOrder)
@@ -395,13 +377,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<ProcedureCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Procedure", Description = "Membuat data procedure", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("Procedure", "Create")]
         public async Task<IActionResult> CreateProcedure([FromBody] CreateProcedureRequest request)
         {
             var validation = await ValidateRequestAsync(
                 excludeId: null,
-                procedureCode: request.ProcedureCode,
                 procedureName: request.ProcedureName,
                 procedureType: request.ProcedureType,
                 defaultTariffId: request.DefaultTariffId,
@@ -422,10 +404,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var entity = new MstProcedure
             {
                 Id = Guid.NewGuid(),
-                ProcedureCode = request.ProcedureCode.Trim().ToUpperInvariant(),
+                ProcedureCode = await GenerateProcedureCodeAsync(),
                 ProcedureName = request.ProcedureName.Trim(),
-                ProcedureGroupName = NormalizeNullableString(request.ProcedureGroupName),
-                ProcedureCategoryName = NormalizeNullableString(request.ProcedureCategoryName),
+                ProcedureGroupName = NormalizeNullableText(request.ProcedureGroupName),
+                ProcedureCategoryName = NormalizeNullableText(request.ProcedureCategoryName),
                 ProcedureType = NormalizeProcedureType(request.ProcedureType),
                 DefaultTariffId = NormalizeNullableGuid(request.DefaultTariffId),
                 IsDoctorAction = request.IsDoctorAction,
@@ -441,12 +423,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsAvailableForInpatient = request.IsAvailableForInpatient,
                 IsAvailableForEmergency = request.IsAvailableForEmergency,
                 EstimatedDurationMinutes = request.EstimatedDurationMinutes,
-                ExternalProcedureCode = NormalizeNullableString(request.ExternalProcedureCode),
-                IntegrationCode = NormalizeNullableString(request.IntegrationCode),
+                ExternalProcedureCode = NormalizeNullableText(request.ExternalProcedureCode),
+                IntegrationCode = NormalizeNullableText(request.IntegrationCode),
                 SortOrder = request.SortOrder,
-                ClinicalNoteTemplate = NormalizeNullableString(request.ClinicalNoteTemplate),
-                Description = NormalizeNullableString(request.Description),
-                IsActive = request.IsActive,
+                ClinicalNoteTemplate = NormalizeNullableText(request.ClinicalNoteTemplate),
+                Description = NormalizeNullableText(request.Description),
+                IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
                 IsDelete = false,
@@ -456,28 +438,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             _dbContext.Set<MstProcedure>().Add(entity);
             await _dbContext.SaveChangesAsync();
 
-            var result = new ProcedureCreateResponse
-            {
-                Id = entity.Id,
-                ProcedureCode = entity.ProcedureCode,
-                ProcedureName = entity.ProcedureName
-            };
+            var response = ToCreateUpdateResponse(entity);
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "Procedure.CreateProcedure",
                 "Membuat data procedure.",
-                result
+                response
             );
 
             return Ok(ApiResponse<ProcedureCreateResponse>.Ok(
-                result,
+                response,
                 "Procedure berhasil dibuat."
             ));
         }
 
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<ProcedureUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Procedure", Description = "Mengubah data procedure", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("Procedure", "Update")]
@@ -496,7 +474,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var validation = await ValidateRequestAsync(
                 excludeId: id,
-                procedureCode: request.ProcedureCode,
                 procedureName: request.ProcedureName,
                 procedureType: request.ProcedureType,
                 defaultTariffId: request.DefaultTariffId,
@@ -514,10 +491,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            entity.ProcedureCode = request.ProcedureCode.Trim().ToUpperInvariant();
             entity.ProcedureName = request.ProcedureName.Trim();
-            entity.ProcedureGroupName = NormalizeNullableString(request.ProcedureGroupName);
-            entity.ProcedureCategoryName = NormalizeNullableString(request.ProcedureCategoryName);
+            entity.ProcedureGroupName = NormalizeNullableText(request.ProcedureGroupName);
+            entity.ProcedureCategoryName = NormalizeNullableText(request.ProcedureCategoryName);
             entity.ProcedureType = NormalizeProcedureType(request.ProcedureType);
             entity.DefaultTariffId = NormalizeNullableGuid(request.DefaultTariffId);
             entity.IsDoctorAction = request.IsDoctorAction;
@@ -533,61 +509,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.IsAvailableForInpatient = request.IsAvailableForInpatient;
             entity.IsAvailableForEmergency = request.IsAvailableForEmergency;
             entity.EstimatedDurationMinutes = request.EstimatedDurationMinutes;
-            entity.ExternalProcedureCode = NormalizeNullableString(request.ExternalProcedureCode);
-            entity.IntegrationCode = NormalizeNullableString(request.IntegrationCode);
+            entity.ExternalProcedureCode = NormalizeNullableText(request.ExternalProcedureCode);
+            entity.IntegrationCode = NormalizeNullableText(request.IntegrationCode);
             entity.SortOrder = request.SortOrder;
-            entity.ClinicalNoteTemplate = NormalizeNullableString(request.ClinicalNoteTemplate);
-            entity.Description = NormalizeNullableString(request.Description);
+            entity.ClinicalNoteTemplate = NormalizeNullableText(request.ClinicalNoteTemplate);
+            entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            var result = new ProcedureUpdateResponse
-            {
-                Id = entity.Id,
-                ProcedureCode = entity.ProcedureCode,
-                ProcedureName = entity.ProcedureName,
-                IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime
-            };
+            var response = ToUpdateResponse(entity);
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "Procedure.UpdateProcedure",
                 "Mengubah data procedure.",
-                result
+                response
             );
 
             return Ok(ApiResponse<ProcedureUpdateResponse>.Ok(
-                result,
+                response,
                 "Procedure berhasil diperbarui."
             ));
         }
 
-        [HttpPatch("{id:guid}/activate")]
-        [ProducesResponseType(typeof(ApiResponse<ProcedureStatusResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Procedure", Description = "Mengaktifkan data procedure", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("Procedure", "Update")]
-        public async Task<IActionResult> ActivateProcedure(Guid id)
-        {
-            return await UpdateStatusAsync(id, true, "Procedure berhasil diaktifkan.");
-        }
-
-        [HttpPatch("{id:guid}/deactivate")]
-        [ProducesResponseType(typeof(ApiResponse<ProcedureStatusResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Procedure", Description = "Menonaktifkan data procedure", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("Procedure", "Update")]
-        public async Task<IActionResult> DeactivateProcedure(Guid id)
-        {
-            return await UpdateStatusAsync(id, false, "Procedure berhasil dinonaktifkan.");
-        }
-
         [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<ProcedureDeleteResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Procedure", Description = "Menghapus data procedure", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("Procedure", "Delete")]
@@ -604,6 +553,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
+            var isUsedByTariff = await _dbContext.Set<MstTariff>()
+                .AnyAsync(x => x.ProcedureId == id && !x.IsDelete);
+
+            if (isUsedByTariff)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Procedure tidak dapat dihapus karena sudah digunakan oleh tariff."
+                ));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -616,68 +576,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
-            var result = new ProcedureDeleteResponse
-            {
-                Id = entity.Id,
-                ProcedureCode = entity.ProcedureCode,
-                ProcedureName = entity.ProcedureName,
-                DeleteDateTime = entity.DeleteDateTime
-            };
-
             await _loggerService.InfoAsync(
                 LogCategory,
                 "Procedure.DeleteProcedure",
                 "Menghapus data procedure.",
-                result
+                new
+                {
+                    entity.Id,
+                    entity.ProcedureCode,
+                    entity.ProcedureName,
+                    entity.DeleteDateTime
+                }
             );
 
-            return Ok(ApiResponse<ProcedureDeleteResponse>.Ok(
-                result,
+            return Ok(ApiResponse<object>.Ok(
+                null,
                 "Procedure berhasil dihapus."
-            ));
-        }
-
-        private async Task<IActionResult> UpdateStatusAsync(Guid id, bool isActive, string successMessage)
-        {
-            var entity = await _dbContext.Set<MstProcedure>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Procedure tidak ditemukan."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.IsActive = isActive;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync();
-
-            var result = new ProcedureStatusResponse
-            {
-                Id = entity.Id,
-                ProcedureCode = entity.ProcedureCode,
-                ProcedureName = entity.ProcedureName,
-                IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime
-            };
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Procedure.UpdateStatus",
-                successMessage,
-                result
-            );
-
-            return Ok(ApiResponse<ProcedureStatusResponse>.Ok(
-                result,
-                successMessage
             ));
         }
 
@@ -685,193 +599,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         {
             return _dbContext.Set<MstProcedure>()
                 .AsNoTracking()
-                .Include(x => x.DefaultTariff)
                 .Where(x => !x.IsDelete);
-        }
-
-        private static IQueryable<MstProcedure> ApplyFilter(
-            IQueryable<MstProcedure> query,
-            string? search,
-            bool? isActive,
-            string? procedureGroupName,
-            string? procedureCategoryName,
-            string? procedureType,
-            Guid? defaultTariffId,
-            bool? hasDefaultTariff,
-            bool? isDoctorAction,
-            bool? isNursingAction,
-            bool? isSurgery,
-            bool? isLaboratory,
-            bool? isRadiology,
-            bool? isTherapy,
-            bool? isNeedDoctor,
-            bool? isNeedApproval,
-            bool? isCoveredByInsuranceDefault,
-            bool? isAvailableForOutpatient,
-            bool? isAvailableForInpatient,
-            bool? isAvailableForEmergency,
-            int? minimumEstimatedDurationMinutes,
-            int? maximumEstimatedDurationMinutes)
-        {
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.ProcedureCode.ToLower().Contains(keyword) ||
-                    x.ProcedureName.ToLower().Contains(keyword) ||
-                    x.ProcedureType.ToLower().Contains(keyword) ||
-                    (x.ProcedureGroupName != null && x.ProcedureGroupName.ToLower().Contains(keyword)) ||
-                    (x.ProcedureCategoryName != null && x.ProcedureCategoryName.ToLower().Contains(keyword)) ||
-                    (x.ExternalProcedureCode != null && x.ExternalProcedureCode.ToLower().Contains(keyword)) ||
-                    (x.IntegrationCode != null && x.IntegrationCode.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
-                    (x.DefaultTariff != null && x.DefaultTariff.TariffCode.ToLower().Contains(keyword)) ||
-                    (x.DefaultTariff != null && x.DefaultTariff.TariffName.ToLower().Contains(keyword)));
-            }
-
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
-
-            if (!string.IsNullOrWhiteSpace(procedureGroupName))
-            {
-                var keyword = procedureGroupName.Trim().ToLower();
-                query = query.Where(x => x.ProcedureGroupName != null && x.ProcedureGroupName.ToLower().Contains(keyword));
-            }
-
-            if (!string.IsNullOrWhiteSpace(procedureCategoryName))
-            {
-                var keyword = procedureCategoryName.Trim().ToLower();
-                query = query.Where(x => x.ProcedureCategoryName != null && x.ProcedureCategoryName.ToLower().Contains(keyword));
-            }
-
-            if (!string.IsNullOrWhiteSpace(procedureType))
-            {
-                var normalizedType = procedureType.Trim().ToLower();
-                query = query.Where(x => x.ProcedureType.ToLower() == normalizedType);
-            }
-
-            if (defaultTariffId.HasValue && defaultTariffId.Value != Guid.Empty)
-                query = query.Where(x => x.DefaultTariffId == defaultTariffId.Value);
-
-            if (hasDefaultTariff.HasValue)
-            {
-                query = hasDefaultTariff.Value
-                    ? query.Where(x => x.DefaultTariffId.HasValue)
-                    : query.Where(x => !x.DefaultTariffId.HasValue);
-            }
-
-            if (isDoctorAction.HasValue)
-                query = query.Where(x => x.IsDoctorAction == isDoctorAction.Value);
-
-            if (isNursingAction.HasValue)
-                query = query.Where(x => x.IsNursingAction == isNursingAction.Value);
-
-            if (isSurgery.HasValue)
-                query = query.Where(x => x.IsSurgery == isSurgery.Value);
-
-            if (isLaboratory.HasValue)
-                query = query.Where(x => x.IsLaboratory == isLaboratory.Value);
-
-            if (isRadiology.HasValue)
-                query = query.Where(x => x.IsRadiology == isRadiology.Value);
-
-            if (isTherapy.HasValue)
-                query = query.Where(x => x.IsTherapy == isTherapy.Value);
-
-            if (isNeedDoctor.HasValue)
-                query = query.Where(x => x.IsNeedDoctor == isNeedDoctor.Value);
-
-            if (isNeedApproval.HasValue)
-                query = query.Where(x => x.IsNeedApproval == isNeedApproval.Value);
-
-            if (isCoveredByInsuranceDefault.HasValue)
-                query = query.Where(x => x.IsCoveredByInsuranceDefault == isCoveredByInsuranceDefault.Value);
-
-            if (isAvailableForOutpatient.HasValue)
-                query = query.Where(x => x.IsAvailableForOutpatient == isAvailableForOutpatient.Value);
-
-            if (isAvailableForInpatient.HasValue)
-                query = query.Where(x => x.IsAvailableForInpatient == isAvailableForInpatient.Value);
-
-            if (isAvailableForEmergency.HasValue)
-                query = query.Where(x => x.IsAvailableForEmergency == isAvailableForEmergency.Value);
-
-            if (minimumEstimatedDurationMinutes.HasValue)
-                query = query.Where(x => x.EstimatedDurationMinutes >= minimumEstimatedDurationMinutes.Value);
-
-            if (maximumEstimatedDurationMinutes.HasValue)
-                query = query.Where(x => x.EstimatedDurationMinutes <= maximumEstimatedDurationMinutes.Value);
-
-            return query;
-        }
-
-        private static IOrderedQueryable<MstProcedure> ApplySorting(
-            IQueryable<MstProcedure> query,
-            string? sortBy,
-            string? sortDirection)
-        {
-            var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-
-            return (sortBy ?? "sortOrder").Trim().ToLowerInvariant() switch
-            {
-                "createdatetime" => isDescending
-                    ? query.OrderByDescending(x => x.CreateDateTime)
-                    : query.OrderBy(x => x.CreateDateTime),
-
-                "procedurecode" => isDescending
-                    ? query.OrderByDescending(x => x.ProcedureCode)
-                    : query.OrderBy(x => x.ProcedureCode),
-
-                "procedurename" => isDescending
-                    ? query.OrderByDescending(x => x.ProcedureName)
-                    : query.OrderBy(x => x.ProcedureName),
-
-                "proceduregroupname" => isDescending
-                    ? query.OrderByDescending(x => x.ProcedureGroupName)
-                    : query.OrderBy(x => x.ProcedureGroupName),
-
-                "procedurecategoryname" => isDescending
-                    ? query.OrderByDescending(x => x.ProcedureCategoryName)
-                    : query.OrderBy(x => x.ProcedureCategoryName),
-
-                "proceduretype" => isDescending
-                    ? query.OrderByDescending(x => x.ProcedureType)
-                    : query.OrderBy(x => x.ProcedureType),
-
-                "estimateddurationminutes" => isDescending
-                    ? query.OrderByDescending(x => x.EstimatedDurationMinutes)
-                    : query.OrderBy(x => x.EstimatedDurationMinutes),
-
-                "isneeddoctor" => isDescending
-                    ? query.OrderByDescending(x => x.IsNeedDoctor)
-                    : query.OrderBy(x => x.IsNeedDoctor),
-
-                "isneedapproval" => isDescending
-                    ? query.OrderByDescending(x => x.IsNeedApproval)
-                    : query.OrderBy(x => x.IsNeedApproval),
-
-                "isactive" => isDescending
-                    ? query.OrderByDescending(x => x.IsActive)
-                    : query.OrderBy(x => x.IsActive),
-
-                _ => isDescending
-                    ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.ProcedureName)
-                    : query.OrderBy(x => x.SortOrder).ThenBy(x => x.ProcedureName)
-            };
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
-            string procedureCode,
             string procedureName,
             string procedureType,
             Guid? defaultTariffId,
             int estimatedDurationMinutes)
         {
-            if (string.IsNullOrWhiteSpace(procedureCode))
-                return (false, "Kode procedure wajib diisi.");
-
             if (string.IsNullOrWhiteSpace(procedureName))
                 return (false, "Nama procedure wajib diisi.");
 
@@ -889,20 +626,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (estimatedDurationMinutes > 1440)
                 return (false, "Estimasi durasi procedure tidak boleh lebih dari 1440 menit.");
 
-            var normalizedCode = procedureCode.Trim().ToUpperInvariant();
             var normalizedName = procedureName.Trim().ToLower();
-
-            var duplicateCodeQuery = _dbContext.Set<MstProcedure>()
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.ProcedureCode.ToUpper() == normalizedCode);
-
-            if (excludeId.HasValue)
-                duplicateCodeQuery = duplicateCodeQuery.Where(x => x.Id != excludeId.Value);
-
-            if (await duplicateCodeQuery.AnyAsync())
-                return (false, "Kode procedure sudah digunakan.");
 
             var duplicateNameQuery = _dbContext.Set<MstProcedure>()
                 .AsNoTracking()
@@ -934,18 +658,238 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return (true, null);
         }
 
+        private async Task<string> GenerateProcedureCodeAsync()
+        {
+            var existingCodes = await _dbContext.Set<MstProcedure>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.ProcedureCode.StartsWith(CodePrefix))
+                .Select(x => x.ProcedureCode)
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(ExtractSequenceNumber)
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .ToHashSet();
+
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
+            {
+                nextNumber++;
+            }
+
+            return $"{CodePrefix}{nextNumber.ToString().PadLeft(CodeSequenceLength, '0')}";
+        }
+
+        private static int? ExtractSequenceNumber(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+                return null;
+
+            if (!code.StartsWith(CodePrefix, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var sequenceText = code[CodePrefix.Length..];
+
+            return int.TryParse(sequenceText, out var sequenceNumber)
+                ? sequenceNumber
+                : null;
+        }
+
+        private static IQueryable<MstProcedure> ApplySorting(
+            IQueryable<MstProcedure> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+            return (sortBy ?? "sortOrder").ToLowerInvariant() switch
+            {
+                "createdatetime" => isDesc
+                    ? query.OrderByDescending(x => x.CreateDateTime)
+                    : query.OrderBy(x => x.CreateDateTime),
+
+                "procedurecode" => isDesc
+                    ? query.OrderByDescending(x => x.ProcedureCode)
+                    : query.OrderBy(x => x.ProcedureCode),
+
+                "procedurename" => isDesc
+                    ? query.OrderByDescending(x => x.ProcedureName)
+                    : query.OrderBy(x => x.ProcedureName),
+
+                "proceduregroupname" => isDesc
+                    ? query.OrderByDescending(x => x.ProcedureGroupName)
+                    : query.OrderBy(x => x.ProcedureGroupName),
+
+                "procedurecategoryname" => isDesc
+                    ? query.OrderByDescending(x => x.ProcedureCategoryName)
+                    : query.OrderBy(x => x.ProcedureCategoryName),
+
+                "proceduretype" => isDesc
+                    ? query.OrderByDescending(x => x.ProcedureType)
+                    : query.OrderBy(x => x.ProcedureType),
+
+                "estimateddurationminutes" => isDesc
+                    ? query.OrderByDescending(x => x.EstimatedDurationMinutes)
+                    : query.OrderBy(x => x.EstimatedDurationMinutes),
+
+                "isneeddoctor" => isDesc
+                    ? query.OrderByDescending(x => x.IsNeedDoctor)
+                    : query.OrderBy(x => x.IsNeedDoctor),
+
+                "isneedapproval" => isDesc
+                    ? query.OrderByDescending(x => x.IsNeedApproval)
+                    : query.OrderBy(x => x.IsNeedApproval),
+
+                "isactive" => isDesc
+                    ? query.OrderByDescending(x => x.IsActive)
+                    : query.OrderBy(x => x.IsActive),
+
+                _ => isDesc
+                    ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.ProcedureName)
+                    : query.OrderBy(x => x.SortOrder).ThenBy(x => x.ProcedureName)
+            };
+        }
+
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {
-            if (pageNumber < 1)
-                pageNumber = 1;
-
-            if (pageSize < 1)
-                pageSize = 25;
-
-            if (pageSize > 100)
-                pageSize = 100;
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 25;
+            if (pageSize > 100) pageSize = 100;
 
             return (pageNumber, pageSize);
+        }
+
+        private static List<ProcedureCustomPeriodOptionResponse> BuildCustomPeriodOptions()
+        {
+            return new List<ProcedureCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini", Description = "Data yang dibuat hari ini.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last7days", Label = "7 hari terakhir", Description = "Data yang dibuat dalam 7 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last30days", Label = "30 hari terakhir", Description = "Data yang dibuat dalam 30 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "thisMonth", Label = "Bulan ini", Description = "Data yang dibuat pada bulan berjalan.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "custom", Label = "Custom", Description = "Gunakan startDate dan endDate.", UsesStartDate = true, UsesEndDate = true }
+            };
+        }
+
+        private static (bool IsValid, DateTime? Start, DateTime? EndExclusive, string? ErrorMessage) ResolveDateRange(
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            var today = DateTime.UtcNow.Date;
+            var period = customPeriod?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(period) && !string.Equals(period, "custom", StringComparison.OrdinalIgnoreCase))
+            {
+                return period.ToLowerInvariant() switch
+                {
+                    "today" => (true, today, today.AddDays(1), null),
+                    "last7days" => (true, today.AddDays(-6), today.AddDays(1), null),
+                    "last30days" => (true, today.AddDays(-29), today.AddDays(1), null),
+                    "thismonth" => (true, new DateTime(today.Year, today.Month, 1), new DateTime(today.Year, today.Month, 1).AddMonths(1), null),
+                    _ => (false, null, null, "Custom period tidak valid.")
+                };
+            }
+
+            if (startDate.HasValue && endDate.HasValue && endDate.Value.Date < startDate.Value.Date)
+            {
+                return (false, null, null, "EndDate tidak boleh lebih kecil dari StartDate.");
+            }
+
+            var start = startDate?.Date;
+            var endExclusive = endDate?.Date.AddDays(1);
+
+            return (true, start, endExclusive, null);
+        }
+
+        private static List<ProcedureQueryParameterInfoResponse> BuildQueryParameterInfo()
+        {
+            return new List<ProcedureQueryParameterInfoResponse>
+            {
+                new() { Name = "startDate", Type = "DateTime?", Description = "Tanggal awal berdasarkan CreateDateTime.", Example = "2026-01-01" },
+                new() { Name = "endDate", Type = "DateTime?", Description = "Tanggal akhir berdasarkan CreateDateTime.", Example = "2026-01-31" },
+                new() { Name = "customPeriod", Type = "string", Description = "today, last7days, last30days, thisMonth, custom.", Example = "thisMonth" },
+                new() { Name = "defaultTariffId", Type = "Guid?", Description = "Filter berdasarkan default tariff.", Example = "3fa85f64-5717-4562-b3fc-2c963f66afa6" },
+                new() { Name = "isActive", Type = "bool?", Description = "Filter status aktif.", Example = "true" },
+                new() { Name = "search", Type = "string", Description = "Pencarian kode, nama, group, kategori, tipe, external code, integration code, default tariff, dan deskripsi.", Example = "surgery" },
+                new() { Name = "sortBy", Type = "string", Description = "Field sorting.", Example = "sortOrder" },
+                new() { Name = "sortDirection", Type = "string", Description = "asc atau desc.", Example = "asc" },
+                new() { Name = "pageNumber", Type = "int", Description = "Nomor halaman.", Example = "1" },
+                new() { Name = "pageSize", Type = "int", Description = "Jumlah data per halaman maksimal 100.", Example = "25" }
+            };
+        }
+
+        private static List<ProcedureFormFieldMetadataResponse> BuildCreateFieldMetadata()
+        {
+            return new List<ProcedureFormFieldMetadataResponse>
+            {
+                new() { Name = "procedureCode", Label = "Kode Procedure", DataType = "string", InputType = "text", IsReadonly = true, Description = "Auto generated oleh sistem dengan format PR-RSMMC-00001." },
+                new() { Name = "procedureName", Label = "Nama Procedure", DataType = "string", InputType = "text", Required = true, Placeholder = "Masukkan nama procedure" },
+                new() { Name = "procedureGroupName", Label = "Group Procedure", DataType = "string", InputType = "text" },
+                new() { Name = "procedureCategoryName", Label = "Kategori Procedure", DataType = "string", InputType = "text" },
+                new() { Name = "procedureType", Label = "Tipe Procedure", DataType = "string", InputType = "select", Required = true, Description = "General, Nursing, DoctorAction, Surgery, Laboratory, Radiology, Therapy, Other." },
+                new() { Name = "defaultTariffId", Label = "Default Tariff", DataType = "Guid?", InputType = "select" },
+                new() { Name = "isDoctorAction", Label = "Tindakan Dokter", DataType = "bool", InputType = "switch" },
+                new() { Name = "isNursingAction", Label = "Tindakan Perawat", DataType = "bool", InputType = "switch" },
+                new() { Name = "isSurgery", Label = "Surgery", DataType = "bool", InputType = "switch" },
+                new() { Name = "isLaboratory", Label = "Laboratory", DataType = "bool", InputType = "switch" },
+                new() { Name = "isRadiology", Label = "Radiology", DataType = "bool", InputType = "switch" },
+                new() { Name = "isTherapy", Label = "Therapy", DataType = "bool", InputType = "switch" },
+                new() { Name = "isNeedDoctor", Label = "Butuh Dokter", DataType = "bool", InputType = "switch" },
+                new() { Name = "isNeedApproval", Label = "Butuh Approval", DataType = "bool", InputType = "switch" },
+                new() { Name = "isCoveredByInsuranceDefault", Label = "Default Ditanggung Asuransi", DataType = "bool", InputType = "switch" },
+                new() { Name = "isAvailableForOutpatient", Label = "Tersedia Rawat Jalan", DataType = "bool", InputType = "switch" },
+                new() { Name = "isAvailableForInpatient", Label = "Tersedia Rawat Inap", DataType = "bool", InputType = "switch" },
+                new() { Name = "isAvailableForEmergency", Label = "Tersedia IGD", DataType = "bool", InputType = "switch" },
+                new() { Name = "estimatedDurationMinutes", Label = "Estimasi Durasi", DataType = "int", InputType = "number" },
+                new() { Name = "externalProcedureCode", Label = "Kode External", DataType = "string", InputType = "text" },
+                new() { Name = "integrationCode", Label = "Kode Integrasi", DataType = "string", InputType = "text" },
+                new() { Name = "sortOrder", Label = "Urutan", DataType = "int", InputType = "number" },
+                new() { Name = "clinicalNoteTemplate", Label = "Template Catatan Klinis", DataType = "string", InputType = "textarea" },
+                new() { Name = "description", Label = "Deskripsi", DataType = "string", InputType = "textarea" }
+            };
+        }
+
+        private static List<ProcedureFormFieldMetadataResponse> BuildUpdateFieldMetadata()
+        {
+            var fields = BuildCreateFieldMetadata();
+            fields.Add(new ProcedureFormFieldMetadataResponse
+            {
+                Name = "isActive",
+                Label = "Status Aktif",
+                DataType = "bool",
+                InputType = "switch"
+            });
+
+            return fields;
+        }
+
+        private static ProcedureCreateResponse ToCreateUpdateResponse(MstProcedure entity)
+        {
+            return new ProcedureCreateResponse
+            {
+                Id = entity.Id,
+                ProcedureCode = entity.ProcedureCode,
+                ProcedureName = entity.ProcedureName,
+                ProcedureType = entity.ProcedureType,
+                DefaultTariffId = entity.DefaultTariffId,
+                IsActive = entity.IsActive
+            };
+        }
+
+        private static ProcedureUpdateResponse ToUpdateResponse(MstProcedure entity)
+        {
+            return new ProcedureUpdateResponse
+            {
+                Id = entity.Id,
+                ProcedureCode = entity.ProcedureCode,
+                ProcedureName = entity.ProcedureName,
+                ProcedureType = entity.ProcedureType,
+                DefaultTariffId = entity.DefaultTariffId,
+                IsActive = entity.IsActive
+            };
         }
 
         private static string NormalizeProcedureType(string value)
@@ -965,7 +909,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 : null;
         }
 
-        private static string? NormalizeNullableString(string? value)
+        private static string? NormalizeNullableText(string? value)
         {
             return string.IsNullOrWhiteSpace(value)
                 ? null

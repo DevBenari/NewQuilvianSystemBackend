@@ -23,6 +23,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string TierCode { get; set; } = string.Empty;
         public string TierName { get; set; } = string.Empty;
         public MembershipTierType TierType { get; set; }
+        public string TierTypeName { get; set; } = string.Empty;
         public string? CardTitle { get; set; }
         public string? CardColor { get; set; }
         public string? CardImagePath { get; set; }
@@ -59,6 +60,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string TierCode { get; set; } = string.Empty;
         public string TierName { get; set; } = string.Empty;
         public MembershipTierType TierType { get; set; }
+        public string TierTypeName { get; set; } = string.Empty;
         public string? CardTitle { get; set; }
         public string? CardColor { get; set; }
         public int PriorityLevel { get; set; }
@@ -80,6 +82,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public MembershipTierDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<MembershipTierCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<MembershipTierSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
@@ -88,20 +91,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
     public class MembershipTierDefaultFilterResponse
     {
-        public string? Search { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public bool? IsActive { get; set; }
-        public MembershipTierType? TierType { get; set; }
-        public bool? IsDefault { get; set; }
-        public bool? IsSelectableInKiosk { get; set; }
-        public bool? IsSelectableInAdmission { get; set; }
-        public bool? IsManagedByMarketingOnly { get; set; }
-        public bool? PriorityQueue { get; set; }
-        public bool? FreeAnnualCheckup { get; set; }
-        public bool? FreeParking { get; set; }
+        public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class MembershipTierCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class MembershipTierSortOptionResponse
@@ -112,10 +116,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
     public class CreateMembershipTierRequest
     {
-        [Required]
-        [MaxLength(50)]
-        public string TierCode { get; set; } = string.Empty;
-
         [Required]
         [MaxLength(150)]
         public string TierName { get; set; } = string.Empty;
@@ -131,22 +131,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         [MaxLength(500)]
         public string? CardImagePath { get; set; }
 
+        [Range(0, int.MaxValue)]
         public int PriorityLevel { get; set; } = 0;
+
         public bool IsDefault { get; set; } = false;
         public bool IsSelectableInKiosk { get; set; } = false;
         public bool IsSelectableInAdmission { get; set; } = false;
         public bool IsManagedByMarketingOnly { get; set; } = true;
+
+        [Range(0, 100)]
         public decimal RegistrationDiscountPercent { get; set; } = 0;
+
+        [Range(0, 100)]
         public decimal ConsultationDiscountPercent { get; set; } = 0;
+
+        [Range(0, 100)]
         public decimal ProcedureDiscountPercent { get; set; } = 0;
+
+        [Range(0, 100)]
         public decimal LaboratoryDiscountPercent { get; set; } = 0;
+
+        [Range(0, 100)]
         public decimal RadiologyDiscountPercent { get; set; } = 0;
+
+        [Range(0, 100)]
         public decimal PharmacyDiscountPercent { get; set; } = 0;
+
         public bool PriorityQueue { get; set; } = false;
         public bool FreeAnnualCheckup { get; set; } = false;
         public bool FreeParking { get; set; } = false;
+
+        [Range(1, 1200)]
         public int ValidityMonths { get; set; } = 12;
+
+        [Range(0, 999999999999)]
         public decimal MinimumSpendAmount { get; set; } = 0;
+
         public int SortOrder { get; set; } = 0;
 
         [MaxLength(500)]
@@ -167,8 +187,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string TierCode { get; set; } = string.Empty;
         public string TierName { get; set; } = string.Empty;
         public MembershipTierType TierType { get; set; }
+        public string TierTypeName { get; set; } = string.Empty;
         public int PriorityLevel { get; set; }
         public bool IsDefault { get; set; }
         public bool IsActive { get; set; }
+    }
+
+    public class MembershipTierUpdateResponse
+    {
+        public Guid Id { get; set; }
+        public string TierCode { get; set; } = string.Empty;
+        public string TierName { get; set; } = string.Empty;
+        public MembershipTierType TierType { get; set; }
+        public string TierTypeName { get; set; } = string.Empty;
+        public bool IsDefault { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+    }
+
+    public class MembershipTierDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string TierCode { get; set; } = string.Empty;
+        public string TierName { get; set; } = string.Empty;
+        public DateTime? DeleteDateTime { get; set; }
     }
 }

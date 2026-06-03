@@ -21,6 +21,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int NeedApprovalForProcedureGuarantor { get; set; }
         public int NeedApprovalForDrugGuarantor { get; set; }
         public int CoverageLimitedByEmployeeGradeGuarantor { get; set; }
+        public int AllowExcessPaymentByPatientGuarantor { get; set; }
         public int ActiveContractGuarantor { get; set; }
         public int ExpiredContractGuarantor { get; set; }
     }
@@ -28,21 +29,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class CompanyGuarantorResponse
     {
         public Guid Id { get; set; }
-
         public string CompanyGuarantorCode { get; set; } = string.Empty;
         public string CompanyGuarantorName { get; set; } = string.Empty;
         public string? CompanyGroupName { get; set; }
-
         public string GuarantorType { get; set; } = string.Empty;
         public string BillingMethod { get; set; } = string.Empty;
-
         public string? ExternalCompanyCode { get; set; }
         public string? IntegrationCode { get; set; }
         public string? ContractNumber { get; set; }
-
         public DateTime? ContractStartDate { get; set; }
         public DateTime? ContractEndDate { get; set; }
-
         public bool IsUsingCompanyTariffBook { get; set; }
         public bool IsUsingHospitalTariff { get; set; }
         public bool IsNeedGuaranteeLetter { get; set; }
@@ -51,18 +47,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsNeedApprovalForDrug { get; set; }
         public bool IsCoverageLimitedByEmployeeGrade { get; set; }
         public bool IsAllowExcessPaymentByPatient { get; set; }
-
         public decimal? CreditLimitAmount { get; set; }
         public decimal? CurrentOutstandingAmount { get; set; }
         public int PaymentDueDays { get; set; }
-
         public string? PicName { get; set; }
         public string? PicPhoneNumber { get; set; }
         public string? PicWhatsAppNumber { get; set; }
         public string? PicEmail { get; set; }
         public string? OfficeAddress { get; set; }
         public string? LogoPath { get; set; }
-
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
@@ -78,14 +71,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class CompanyGuarantorOptionResponse
     {
         public Guid Id { get; set; }
-
         public string CompanyGuarantorCode { get; set; } = string.Empty;
         public string CompanyGuarantorName { get; set; } = string.Empty;
         public string? CompanyGroupName { get; set; }
-
         public string GuarantorType { get; set; } = string.Empty;
         public string BillingMethod { get; set; } = string.Empty;
-
         public bool IsUsingCompanyTariffBook { get; set; }
         public bool IsUsingHospitalTariff { get; set; }
         public bool IsNeedGuaranteeLetter { get; set; }
@@ -94,7 +84,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsNeedApprovalForDrug { get; set; }
         public bool IsCoverageLimitedByEmployeeGrade { get; set; }
         public bool IsAllowExcessPaymentByPatient { get; set; }
-
         public decimal? CreditLimitAmount { get; set; }
         public decimal? CurrentOutstandingAmount { get; set; }
         public int PaymentDueDays { get; set; }
@@ -104,41 +93,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public CompanyGuarantorDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<CompanyGuarantorCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<CompanyGuarantorSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
-        public List<string> GuarantorTypes { get; set; } = new();
-        public List<string> BillingMethods { get; set; } = new();
+        public List<CompanyGuarantorStringOptionResponse> GuarantorTypeOptions { get; set; } = new();
+        public List<CompanyGuarantorStringOptionResponse> BillingMethodOptions { get; set; } = new();
     }
 
     public class CompanyGuarantorDefaultFilterResponse
     {
-        public string? Search { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public bool? IsActive { get; set; }
-
-        public string? GuarantorType { get; set; }
-        public string? BillingMethod { get; set; }
-        public string? CompanyGroupName { get; set; }
-
-        public bool? IsUsingCompanyTariffBook { get; set; }
-        public bool? IsUsingHospitalTariff { get; set; }
-        public bool? IsNeedGuaranteeLetter { get; set; }
-        public bool? IsNeedEmployeeVerification { get; set; }
-        public bool? IsNeedApprovalForProcedure { get; set; }
-        public bool? IsNeedApprovalForDrug { get; set; }
-        public bool? IsCoverageLimitedByEmployeeGrade { get; set; }
-        public bool? IsAllowExcessPaymentByPatient { get; set; }
-
-        public DateTime? ContractDate { get; set; }
-        public decimal? MinimumCreditLimitAmount { get; set; }
-        public decimal? MaximumCreditLimitAmount { get; set; }
-        public decimal? MinimumCurrentOutstandingAmount { get; set; }
-        public decimal? MaximumCurrentOutstandingAmount { get; set; }
-
+        public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class CompanyGuarantorCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class CompanyGuarantorSortOptionResponse
@@ -147,22 +126,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string Label { get; set; } = string.Empty;
     }
 
+    public class CompanyGuarantorStringOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+    }
+
     public class CreateCompanyGuarantorRequest
     {
         [Required]
-        [MaxLength(50)]
-        public string CompanyGuarantorCode { get; set; } = string.Empty;
-
-        [Required]
         [MaxLength(200)]
         public string CompanyGuarantorName { get; set; } = string.Empty;
 
         [MaxLength(100)]
         public string? CompanyGroupName { get; set; }
 
+        [Required]
         [MaxLength(50)]
         public string GuarantorType { get; set; } = "Corporate";
 
+        [Required]
         [MaxLength(50)]
         public string BillingMethod { get; set; } = "Invoice";
 
@@ -176,29 +159,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? ContractNumber { get; set; }
 
         public DateTime? ContractStartDate { get; set; }
-
         public DateTime? ContractEndDate { get; set; }
-
         public bool IsUsingCompanyTariffBook { get; set; } = true;
-
         public bool IsUsingHospitalTariff { get; set; } = false;
-
         public bool IsNeedGuaranteeLetter { get; set; } = true;
-
         public bool IsNeedEmployeeVerification { get; set; } = true;
-
         public bool IsNeedApprovalForProcedure { get; set; } = true;
-
         public bool IsNeedApprovalForDrug { get; set; } = false;
-
         public bool IsCoverageLimitedByEmployeeGrade { get; set; } = true;
-
         public bool IsAllowExcessPaymentByPatient { get; set; } = true;
 
+        [Range(0, 999999999999)]
         public decimal? CreditLimitAmount { get; set; }
 
+        [Range(0, 999999999999)]
         public decimal? CurrentOutstandingAmount { get; set; }
 
+        [Range(0, 3650)]
         public int PaymentDueDays { get; set; } = 30;
 
         [MaxLength(100)]
@@ -229,102 +206,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? Description { get; set; }
 
         public int SortOrder { get; set; } = 0;
-
-        public bool IsActive { get; set; } = true;
     }
 
-    public class UpdateCompanyGuarantorRequest
+    public class UpdateCompanyGuarantorRequest : CreateCompanyGuarantorRequest
     {
-        [Required]
-        [MaxLength(50)]
-        public string CompanyGuarantorCode { get; set; } = string.Empty;
-
-        [Required]
-        [MaxLength(200)]
-        public string CompanyGuarantorName { get; set; } = string.Empty;
-
-        [MaxLength(100)]
-        public string? CompanyGroupName { get; set; }
-
-        [MaxLength(50)]
-        public string GuarantorType { get; set; } = "Corporate";
-
-        [MaxLength(50)]
-        public string BillingMethod { get; set; } = "Invoice";
-
-        [MaxLength(50)]
-        public string? ExternalCompanyCode { get; set; }
-
-        [MaxLength(50)]
-        public string? IntegrationCode { get; set; }
-
-        [MaxLength(100)]
-        public string? ContractNumber { get; set; }
-
-        public DateTime? ContractStartDate { get; set; }
-
-        public DateTime? ContractEndDate { get; set; }
-
-        public bool IsUsingCompanyTariffBook { get; set; } = true;
-
-        public bool IsUsingHospitalTariff { get; set; } = false;
-
-        public bool IsNeedGuaranteeLetter { get; set; } = true;
-
-        public bool IsNeedEmployeeVerification { get; set; } = true;
-
-        public bool IsNeedApprovalForProcedure { get; set; } = true;
-
-        public bool IsNeedApprovalForDrug { get; set; } = false;
-
-        public bool IsCoverageLimitedByEmployeeGrade { get; set; } = true;
-
-        public bool IsAllowExcessPaymentByPatient { get; set; } = true;
-
-        public decimal? CreditLimitAmount { get; set; }
-
-        public decimal? CurrentOutstandingAmount { get; set; }
-
-        public int PaymentDueDays { get; set; } = 30;
-
-        [MaxLength(100)]
-        public string? PicName { get; set; }
-
-        [MaxLength(30)]
-        public string? PicPhoneNumber { get; set; }
-
-        [MaxLength(30)]
-        public string? PicWhatsAppNumber { get; set; }
-
-        [MaxLength(200)]
-        public string? PicEmail { get; set; }
-
-        [MaxLength(500)]
-        public string? OfficeAddress { get; set; }
-
-        [MaxLength(500)]
-        public string? LogoPath { get; set; }
-
-        [MaxLength(250)]
-        public string? BillingInstruction { get; set; }
-
-        [MaxLength(250)]
-        public string? ClaimInstruction { get; set; }
-
-        [MaxLength(250)]
-        public string? Description { get; set; }
-
-        public int SortOrder { get; set; } = 0;
-
         public bool IsActive { get; set; } = true;
-    }
-
-    public class CompanyGuarantorOutstandingRequest
-    {
-        public decimal? CurrentOutstandingAmount { get; set; }
-
-        [MaxLength(250)]
-        public string? Description { get; set; }
     }
 
     public class CompanyGuarantorCreateResponse
@@ -332,6 +218,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid Id { get; set; }
         public string CompanyGuarantorCode { get; set; } = string.Empty;
         public string CompanyGuarantorName { get; set; } = string.Empty;
+        public string GuarantorType { get; set; } = string.Empty;
+        public string BillingMethod { get; set; } = string.Empty;
         public bool IsActive { get; set; }
     }
 
@@ -341,6 +229,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string CompanyGuarantorCode { get; set; } = string.Empty;
         public string CompanyGuarantorName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
     }
 
     public class CompanyGuarantorDeleteResponse
@@ -348,23 +237,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid Id { get; set; }
         public string CompanyGuarantorCode { get; set; } = string.Empty;
         public string CompanyGuarantorName { get; set; } = string.Empty;
-        public bool IsDelete { get; set; }
-    }
-
-    public class CompanyGuarantorStatusResponse
-    {
-        public Guid Id { get; set; }
-        public string CompanyGuarantorCode { get; set; } = string.Empty;
-        public string CompanyGuarantorName { get; set; } = string.Empty;
-        public bool IsActive { get; set; }
-    }
-
-    public class CompanyGuarantorOutstandingResponse
-    {
-        public Guid Id { get; set; }
-        public string CompanyGuarantorCode { get; set; } = string.Empty;
-        public string CompanyGuarantorName { get; set; } = string.Empty;
-        public decimal? CreditLimitAmount { get; set; }
-        public decimal? CurrentOutstandingAmount { get; set; }
+        public DateTime? DeleteDateTime { get; set; }
     }
 }

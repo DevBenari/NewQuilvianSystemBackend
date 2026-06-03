@@ -32,6 +32,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
     public class DrugController : ControllerBase
     {
         private const string LogCategory = "HealthServices.MasterData";
+        private const string CodePrefix = "DRG-RSMMC-";
+        private const int CodeNumberLength = 5;
 
         private static readonly HashSet<string> DrugFormOptions = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -76,6 +78,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var result = new DrugFilterMetadataResponse
             {
                 DefaultFilter = new DrugDefaultFilterResponse(),
+                CustomPeriods = new List<DrugCustomPeriodOptionResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "lastmonth", Label = "Bulan lalu" }
+                },
                 SortOptions = new List<DrugSortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -139,6 +148,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ChronicDiseaseDrug = await query.CountAsync(x => x.IsChronicDiseaseDrug),
                 VaccineDrug = await query.CountAsync(x => x.IsVaccine),
                 ConsumableDrug = await query.CountAsync(x => x.IsConsumable),
+                CompoundIngredientAllowedDrug = await query.CountAsync(x => x.IsCompoundIngredientAllowed),
+                StockManagedDrug = await query.CountAsync(x => x.IsStockManaged),
+                BatchTrackedDrug = await query.CountAsync(x => x.IsBatchTracked),
+                ExpiryDateTrackedDrug = await query.CountAsync(x => x.IsExpiryDateTracked),
+                FractionalDispenseAllowedDrug = await query.CountAsync(x => x.IsAllowFractionalDispense),
                 NeedPrescriptionDrug = await query.CountAsync(x => x.IsNeedPrescription),
                 CoveredByInsuranceDefaultDrug = await query.CountAsync(x => x.IsCoveredByInsuranceDefault),
                 NeedApprovalDrug = await query.CountAsync(x => x.IsNeedApproval)
@@ -155,32 +169,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Drug", Description = "Melihat data drug", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Drug", "Read")]
         public async Task<IActionResult> GetDrugs(
-            [FromQuery] string? search,
-            [FromQuery] bool? isActive,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? drugCategoryId,
-            [FromQuery] Guid? defaultTariffId,
-            [FromQuery] bool? hasDefaultTariff,
-            [FromQuery] string? genericName,
-            [FromQuery] string? brandName,
-            [FromQuery] string? manufacturerName,
-            [FromQuery] string? drugForm,
-            [FromQuery] string? baseUnit,
-            [FromQuery] string? dispenseUnit,
-            [FromQuery] string? route,
-            [FromQuery] bool? isFormulary,
-            [FromQuery] bool? isGeneric,
-            [FromQuery] bool? isAntibiotic,
-            [FromQuery] bool? isNarcotic,
-            [FromQuery] bool? isPsychotropic,
-            [FromQuery] bool? isHighAlert,
-            [FromQuery] bool? isChronicDiseaseDrug,
-            [FromQuery] bool? isVaccine,
-            [FromQuery] bool? isConsumable,
-            [FromQuery] bool? isNeedPrescription,
-            [FromQuery] bool? isCoveredByInsuranceDefault,
-            [FromQuery] bool? isNeedApproval,
-            [FromQuery] decimal? minimumPrice,
-            [FromQuery] decimal? maximumPrice,
+            [FromQuery] Guid? baseUnitMeasurementId,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -192,42 +187,86 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var query = BuildBaseQuery();
 
-            query = ApplyFilter(
-                query,
-                search,
-                isActive,
-                drugCategoryId,
-                defaultTariffId,
-                hasDefaultTariff,
-                genericName,
-                brandName,
-                manufacturerName,
-                drugForm,
-                baseUnit,
-                dispenseUnit,
-                route,
-                isFormulary,
-                isGeneric,
-                isAntibiotic,
-                isNarcotic,
-                isPsychotropic,
-                isHighAlert,
-                isChronicDiseaseDrug,
-                isVaccine,
-                isConsumable,
-                isNeedPrescription,
-                isCoveredByInsuranceDefault,
-                isNeedApproval,
-                minimumPrice,
-                maximumPrice
-            );
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyStandardFilter(query, drugCategoryId, baseUnitMeasurementId, isActive, search);
 
             var totalData = await query.CountAsync();
 
             var items = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => ToResponse(x))
+                .Select(x => new DrugResponse
+                {
+                    Id = x.Id,
+                    DrugCategoryId = x.DrugCategoryId,
+                    DrugCategoryCode = x.DrugCategory != null ? x.DrugCategory.DrugCategoryCode : string.Empty,
+                    DrugCategoryName = x.DrugCategory != null ? x.DrugCategory.DrugCategoryName : string.Empty,
+                    DrugCategoryType = x.DrugCategory != null ? x.DrugCategory.DrugCategoryType : null,
+                    DrugGroupName = x.DrugCategory != null ? x.DrugCategory.DrugGroupName : null,
+                    DrugCode = x.DrugCode,
+                    DrugName = x.DrugName,
+                    GenericName = x.GenericName,
+                    BrandName = x.BrandName,
+                    ManufacturerName = x.ManufacturerName,
+                    DrugForm = x.DrugForm,
+                    Strength = x.Strength,
+                    StrengthValue = x.StrengthValue,
+                    StrengthMeasurementId = x.StrengthMeasurementId,
+                    StrengthMeasurementCode = x.StrengthMeasurement != null ? x.StrengthMeasurement.MeasurementCode : null,
+                    StrengthMeasurementName = x.StrengthMeasurement != null ? x.StrengthMeasurement.MeasurementName : null,
+                    StrengthMeasurementSymbol = x.StrengthMeasurement != null ? x.StrengthMeasurement.MeasurementSymbol : null,
+                    BaseUnit = x.BaseUnit,
+                    DispenseUnit = x.DispenseUnit,
+                    BaseUnitMeasurementId = x.BaseUnitMeasurementId,
+                    BaseUnitMeasurementCode = x.BaseUnitMeasurement != null ? x.BaseUnitMeasurement.MeasurementCode : null,
+                    BaseUnitMeasurementName = x.BaseUnitMeasurement != null ? x.BaseUnitMeasurement.MeasurementName : null,
+                    BaseUnitMeasurementSymbol = x.BaseUnitMeasurement != null ? x.BaseUnitMeasurement.MeasurementSymbol : null,
+                    DispenseUnitMeasurementId = x.DispenseUnitMeasurementId,
+                    DispenseUnitMeasurementCode = x.DispenseUnitMeasurement != null ? x.DispenseUnitMeasurement.MeasurementCode : null,
+                    DispenseUnitMeasurementName = x.DispenseUnitMeasurement != null ? x.DispenseUnitMeasurement.MeasurementName : null,
+                    DispenseUnitMeasurementSymbol = x.DispenseUnitMeasurement != null ? x.DispenseUnitMeasurement.MeasurementSymbol : null,
+                    PurchaseUnitMeasurementId = x.PurchaseUnitMeasurementId,
+                    PurchaseUnitMeasurementCode = x.PurchaseUnitMeasurement != null ? x.PurchaseUnitMeasurement.MeasurementCode : null,
+                    PurchaseUnitMeasurementName = x.PurchaseUnitMeasurement != null ? x.PurchaseUnitMeasurement.MeasurementName : null,
+                    PurchaseUnitMeasurementSymbol = x.PurchaseUnitMeasurement != null ? x.PurchaseUnitMeasurement.MeasurementSymbol : null,
+                    StockUnitMeasurementId = x.StockUnitMeasurementId,
+                    StockUnitMeasurementCode = x.StockUnitMeasurement != null ? x.StockUnitMeasurement.MeasurementCode : null,
+                    StockUnitMeasurementName = x.StockUnitMeasurement != null ? x.StockUnitMeasurement.MeasurementName : null,
+                    StockUnitMeasurementSymbol = x.StockUnitMeasurement != null ? x.StockUnitMeasurement.MeasurementSymbol : null,
+                    DefaultDoseUnitMeasurementId = x.DefaultDoseUnitMeasurementId,
+                    DefaultDoseUnitMeasurementCode = x.DefaultDoseUnitMeasurement != null ? x.DefaultDoseUnitMeasurement.MeasurementCode : null,
+                    DefaultDoseUnitMeasurementName = x.DefaultDoseUnitMeasurement != null ? x.DefaultDoseUnitMeasurement.MeasurementName : null,
+                    DefaultDoseUnitMeasurementSymbol = x.DefaultDoseUnitMeasurement != null ? x.DefaultDoseUnitMeasurement.MeasurementSymbol : null,
+                    Route = x.Route,
+                    IsFormulary = x.IsFormulary,
+                    IsGeneric = x.IsGeneric,
+                    IsAntibiotic = x.IsAntibiotic,
+                    IsNarcotic = x.IsNarcotic,
+                    IsPsychotropic = x.IsPsychotropic,
+                    IsHighAlert = x.IsHighAlert,
+                    IsChronicDiseaseDrug = x.IsChronicDiseaseDrug,
+                    IsVaccine = x.IsVaccine,
+                    IsConsumable = x.IsConsumable,
+                    IsCompoundIngredientAllowed = x.IsCompoundIngredientAllowed,
+                    IsStockManaged = x.IsStockManaged,
+                    IsBatchTracked = x.IsBatchTracked,
+                    IsExpiryDateTracked = x.IsExpiryDateTracked,
+                    IsAllowFractionalDispense = x.IsAllowFractionalDispense,
+                    IsNeedPrescription = x.IsNeedPrescription,
+                    IsCoveredByInsuranceDefault = x.IsCoveredByInsuranceDefault,
+                    IsNeedApproval = x.IsNeedApproval,
+                    DefaultPrice = x.DefaultPrice,
+                    InsurancePrice = x.InsurancePrice,
+                    MemberPrice = x.MemberPrice,
+                    CompanyPrice = x.CompanyPrice,
+                    ExternalDrugCode = x.ExternalDrugCode,
+                    IntegrationCode = x.IntegrationCode,
+                    BpomRegistrationNumber = x.BpomRegistrationNumber,
+                    NationalDrugCode = x.NationalDrugCode,
+                    SortOrder = x.SortOrder,
+                    IsActive = x.IsActive,
+                    CreateDateTime = x.CreateDateTime
+                })
                 .ToListAsync();
 
             var result = new ResponseDrugPagedResult
@@ -251,60 +290,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("Drug", "Read")]
         public async Task<IActionResult> GetDrugOptions(
             [FromQuery] Guid? drugCategoryId,
-            [FromQuery] Guid? defaultTariffId,
-            [FromQuery] bool? hasDefaultTariff,
-            [FromQuery] string? genericName,
-            [FromQuery] string? brandName,
-            [FromQuery] string? manufacturerName,
-            [FromQuery] string? drugForm,
-            [FromQuery] string? baseUnit,
-            [FromQuery] string? dispenseUnit,
-            [FromQuery] string? route,
-            [FromQuery] bool? isFormulary,
-            [FromQuery] bool? isGeneric,
-            [FromQuery] bool? isAntibiotic,
-            [FromQuery] bool? isNarcotic,
-            [FromQuery] bool? isPsychotropic,
-            [FromQuery] bool? isHighAlert,
-            [FromQuery] bool? isChronicDiseaseDrug,
-            [FromQuery] bool? isVaccine,
-            [FromQuery] bool? isConsumable,
-            [FromQuery] bool? isNeedPrescription,
-            [FromQuery] bool? isCoveredByInsuranceDefault,
-            [FromQuery] bool? isNeedApproval,
+            [FromQuery] Guid? baseUnitMeasurementId,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null)
         {
             var query = BuildBaseQuery();
 
-            query = ApplyFilter(
+            query = ApplyStandardFilter(
                 query,
-                search,
-                onlyActive ? true : null,
                 drugCategoryId,
-                defaultTariffId,
-                hasDefaultTariff,
-                genericName,
-                brandName,
-                manufacturerName,
-                drugForm,
-                baseUnit,
-                dispenseUnit,
-                route,
-                isFormulary,
-                isGeneric,
-                isAntibiotic,
-                isNarcotic,
-                isPsychotropic,
-                isHighAlert,
-                isChronicDiseaseDrug,
-                isVaccine,
-                isConsumable,
-                isNeedPrescription,
-                isCoveredByInsuranceDefault,
-                isNeedApproval,
-                null,
-                null
+                baseUnitMeasurementId,
+                onlyActive ? true : null,
+                search
             );
 
             var data = await query
@@ -321,8 +318,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     BrandName = x.BrandName,
                     DrugForm = x.DrugForm,
                     Strength = x.Strength,
+                    StrengthValue = x.StrengthValue,
+                    StrengthMeasurementSymbol = x.StrengthMeasurement != null ? x.StrengthMeasurement.MeasurementSymbol : null,
                     BaseUnit = x.BaseUnit,
                     DispenseUnit = x.DispenseUnit,
+                    BaseUnitMeasurementSymbol = x.BaseUnitMeasurement != null ? x.BaseUnitMeasurement.MeasurementSymbol : null,
+                    DispenseUnitMeasurementSymbol = x.DispenseUnitMeasurement != null ? x.DispenseUnitMeasurement.MeasurementSymbol : null,
+                    PurchaseUnitMeasurementSymbol = x.PurchaseUnitMeasurement != null ? x.PurchaseUnitMeasurement.MeasurementSymbol : null,
+                    StockUnitMeasurementSymbol = x.StockUnitMeasurement != null ? x.StockUnitMeasurement.MeasurementSymbol : null,
+                    DefaultDoseUnitMeasurementSymbol = x.DefaultDoseUnitMeasurement != null ? x.DefaultDoseUnitMeasurement.MeasurementSymbol : null,
                     Route = x.Route,
                     IsFormulary = x.IsFormulary,
                     IsGeneric = x.IsGeneric,
@@ -333,6 +337,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     IsChronicDiseaseDrug = x.IsChronicDiseaseDrug,
                     IsVaccine = x.IsVaccine,
                     IsConsumable = x.IsConsumable,
+                    IsCompoundIngredientAllowed = x.IsCompoundIngredientAllowed,
                     IsNeedPrescription = x.IsNeedPrescription,
                     IsCoveredByInsuranceDefault = x.IsCoveredByInsuranceDefault,
                     IsNeedApproval = x.IsNeedApproval,
@@ -373,8 +378,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     ManufacturerName = x.ManufacturerName,
                     DrugForm = x.DrugForm,
                     Strength = x.Strength,
+                    StrengthValue = x.StrengthValue,
+                    StrengthMeasurementId = x.StrengthMeasurementId,
+                    StrengthMeasurementCode = x.StrengthMeasurement != null ? x.StrengthMeasurement.MeasurementCode : null,
+                    StrengthMeasurementName = x.StrengthMeasurement != null ? x.StrengthMeasurement.MeasurementName : null,
+                    StrengthMeasurementSymbol = x.StrengthMeasurement != null ? x.StrengthMeasurement.MeasurementSymbol : null,
                     BaseUnit = x.BaseUnit,
                     DispenseUnit = x.DispenseUnit,
+                    BaseUnitMeasurementId = x.BaseUnitMeasurementId,
+                    BaseUnitMeasurementCode = x.BaseUnitMeasurement != null ? x.BaseUnitMeasurement.MeasurementCode : null,
+                    BaseUnitMeasurementName = x.BaseUnitMeasurement != null ? x.BaseUnitMeasurement.MeasurementName : null,
+                    BaseUnitMeasurementSymbol = x.BaseUnitMeasurement != null ? x.BaseUnitMeasurement.MeasurementSymbol : null,
+                    DispenseUnitMeasurementId = x.DispenseUnitMeasurementId,
+                    DispenseUnitMeasurementCode = x.DispenseUnitMeasurement != null ? x.DispenseUnitMeasurement.MeasurementCode : null,
+                    DispenseUnitMeasurementName = x.DispenseUnitMeasurement != null ? x.DispenseUnitMeasurement.MeasurementName : null,
+                    DispenseUnitMeasurementSymbol = x.DispenseUnitMeasurement != null ? x.DispenseUnitMeasurement.MeasurementSymbol : null,
+                    PurchaseUnitMeasurementId = x.PurchaseUnitMeasurementId,
+                    PurchaseUnitMeasurementCode = x.PurchaseUnitMeasurement != null ? x.PurchaseUnitMeasurement.MeasurementCode : null,
+                    PurchaseUnitMeasurementName = x.PurchaseUnitMeasurement != null ? x.PurchaseUnitMeasurement.MeasurementName : null,
+                    PurchaseUnitMeasurementSymbol = x.PurchaseUnitMeasurement != null ? x.PurchaseUnitMeasurement.MeasurementSymbol : null,
+                    StockUnitMeasurementId = x.StockUnitMeasurementId,
+                    StockUnitMeasurementCode = x.StockUnitMeasurement != null ? x.StockUnitMeasurement.MeasurementCode : null,
+                    StockUnitMeasurementName = x.StockUnitMeasurement != null ? x.StockUnitMeasurement.MeasurementName : null,
+                    StockUnitMeasurementSymbol = x.StockUnitMeasurement != null ? x.StockUnitMeasurement.MeasurementSymbol : null,
+                    DefaultDoseUnitMeasurementId = x.DefaultDoseUnitMeasurementId,
+                    DefaultDoseUnitMeasurementCode = x.DefaultDoseUnitMeasurement != null ? x.DefaultDoseUnitMeasurement.MeasurementCode : null,
+                    DefaultDoseUnitMeasurementName = x.DefaultDoseUnitMeasurement != null ? x.DefaultDoseUnitMeasurement.MeasurementName : null,
+                    DefaultDoseUnitMeasurementSymbol = x.DefaultDoseUnitMeasurement != null ? x.DefaultDoseUnitMeasurement.MeasurementSymbol : null,
                     Route = x.Route,
                     IsFormulary = x.IsFormulary,
                     IsGeneric = x.IsGeneric,
@@ -385,6 +415,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     IsChronicDiseaseDrug = x.IsChronicDiseaseDrug,
                     IsVaccine = x.IsVaccine,
                     IsConsumable = x.IsConsumable,
+                    IsCompoundIngredientAllowed = x.IsCompoundIngredientAllowed,
+                    IsStockManaged = x.IsStockManaged,
+                    IsBatchTracked = x.IsBatchTracked,
+                    IsExpiryDateTracked = x.IsExpiryDateTracked,
+                    IsAllowFractionalDispense = x.IsAllowFractionalDispense,
                     IsNeedPrescription = x.IsNeedPrescription,
                     IsCoveredByInsuranceDefault = x.IsCoveredByInsuranceDefault,
                     IsNeedApproval = x.IsNeedApproval,
@@ -431,20 +466,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<DrugCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Drug", Description = "Membuat data drug", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("Drug", "Create")]
         public async Task<IActionResult> CreateDrug([FromBody] CreateDrugRequest request)
         {
             var validation = await ValidateRequestAsync(
                 excludeId: null,
-                drugCategoryId: request.DrugCategoryId,
-                defaultTariffId: request.DefaultTariffId,
-                drugCode: request.DrugCode,
-                drugName: request.DrugName,
-                defaultPrice: request.DefaultPrice,
-                insurancePrice: request.InsurancePrice,
-                memberPrice: request.MemberPrice,
-                companyPrice: request.CompanyPrice
+                request: request
             );
 
             if (!validation.IsValid)
@@ -462,15 +491,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             {
                 Id = Guid.NewGuid(),
                 DrugCategoryId = request.DrugCategoryId,
-                DrugCode = request.DrugCode.Trim().ToUpperInvariant(),
+                DrugCode = await GenerateDrugCodeAsync(),
                 DrugName = request.DrugName.Trim(),
                 GenericName = NormalizeNullableString(request.GenericName),
                 BrandName = NormalizeNullableString(request.BrandName),
                 ManufacturerName = NormalizeNullableString(request.ManufacturerName),
                 DrugForm = NormalizeNullableString(request.DrugForm),
                 Strength = NormalizeNullableString(request.Strength),
+                StrengthValue = request.StrengthValue,
+                StrengthMeasurementId = NormalizeNullableGuid(request.StrengthMeasurementId),
                 BaseUnit = NormalizeNullableString(request.BaseUnit),
                 DispenseUnit = NormalizeNullableString(request.DispenseUnit),
+                BaseUnitMeasurementId = NormalizeNullableGuid(request.BaseUnitMeasurementId),
+                DispenseUnitMeasurementId = NormalizeNullableGuid(request.DispenseUnitMeasurementId),
+                PurchaseUnitMeasurementId = NormalizeNullableGuid(request.PurchaseUnitMeasurementId),
+                StockUnitMeasurementId = NormalizeNullableGuid(request.StockUnitMeasurementId),
+                DefaultDoseUnitMeasurementId = NormalizeNullableGuid(request.DefaultDoseUnitMeasurementId),
                 Route = NormalizeNullableString(request.Route),
                 IsFormulary = request.IsFormulary,
                 IsGeneric = request.IsGeneric,
@@ -481,6 +517,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsChronicDiseaseDrug = request.IsChronicDiseaseDrug,
                 IsVaccine = request.IsVaccine,
                 IsConsumable = request.IsConsumable,
+                IsCompoundIngredientAllowed = request.IsCompoundIngredientAllowed,
+                IsStockManaged = request.IsStockManaged,
+                IsBatchTracked = request.IsBatchTracked,
+                IsExpiryDateTracked = request.IsExpiryDateTracked,
+                IsAllowFractionalDispense = request.IsAllowFractionalDispense,
                 IsNeedPrescription = request.IsNeedPrescription,
                 IsCoveredByInsuranceDefault = request.IsCoveredByInsuranceDefault,
                 IsNeedApproval = request.IsNeedApproval,
@@ -506,7 +547,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 NationalDrugCode = NormalizeNullableString(request.NationalDrugCode),
                 SortOrder = request.SortOrder,
                 Description = NormalizeNullableString(request.Description),
-                IsActive = request.IsActive,
+                IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
                 IsDelete = false,
@@ -521,7 +562,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 Id = entity.Id,
                 DrugCode = entity.DrugCode,
                 DrugName = entity.DrugName,
-                DrugCategoryId = entity.DrugCategoryId
+                DrugCategoryId = entity.DrugCategoryId,
+                IsActive = entity.IsActive
             };
 
             await _loggerService.InfoAsync(
@@ -538,7 +580,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<DrugUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Drug", Description = "Mengubah data drug", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("Drug", "Update")]
@@ -557,14 +599,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var validation = await ValidateRequestAsync(
                 excludeId: id,
-                drugCategoryId: request.DrugCategoryId,
-                defaultTariffId: request.DefaultTariffId,
-                drugCode: request.DrugCode,
-                drugName: request.DrugName,
-                defaultPrice: request.DefaultPrice,
-                insurancePrice: request.InsurancePrice,
-                memberPrice: request.MemberPrice,
-                companyPrice: request.CompanyPrice
+                request: request
             );
 
             if (!validation.IsValid)
@@ -579,15 +614,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var actorUserId = GetCurrentUserId();
 
             entity.DrugCategoryId = request.DrugCategoryId;
-            entity.DrugCode = request.DrugCode.Trim().ToUpperInvariant();
             entity.DrugName = request.DrugName.Trim();
             entity.GenericName = NormalizeNullableString(request.GenericName);
             entity.BrandName = NormalizeNullableString(request.BrandName);
             entity.ManufacturerName = NormalizeNullableString(request.ManufacturerName);
             entity.DrugForm = NormalizeNullableString(request.DrugForm);
             entity.Strength = NormalizeNullableString(request.Strength);
+            entity.StrengthValue = request.StrengthValue;
+            entity.StrengthMeasurementId = NormalizeNullableGuid(request.StrengthMeasurementId);
             entity.BaseUnit = NormalizeNullableString(request.BaseUnit);
             entity.DispenseUnit = NormalizeNullableString(request.DispenseUnit);
+            entity.BaseUnitMeasurementId = NormalizeNullableGuid(request.BaseUnitMeasurementId);
+            entity.DispenseUnitMeasurementId = NormalizeNullableGuid(request.DispenseUnitMeasurementId);
+            entity.PurchaseUnitMeasurementId = NormalizeNullableGuid(request.PurchaseUnitMeasurementId);
+            entity.StockUnitMeasurementId = NormalizeNullableGuid(request.StockUnitMeasurementId);
+            entity.DefaultDoseUnitMeasurementId = NormalizeNullableGuid(request.DefaultDoseUnitMeasurementId);
             entity.Route = NormalizeNullableString(request.Route);
             entity.IsFormulary = request.IsFormulary;
             entity.IsGeneric = request.IsGeneric;
@@ -598,6 +639,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.IsChronicDiseaseDrug = request.IsChronicDiseaseDrug;
             entity.IsVaccine = request.IsVaccine;
             entity.IsConsumable = request.IsConsumable;
+            entity.IsCompoundIngredientAllowed = request.IsCompoundIngredientAllowed;
+            entity.IsStockManaged = request.IsStockManaged;
+            entity.IsBatchTracked = request.IsBatchTracked;
+            entity.IsExpiryDateTracked = request.IsExpiryDateTracked;
+            entity.IsAllowFractionalDispense = request.IsAllowFractionalDispense;
             entity.IsNeedPrescription = request.IsNeedPrescription;
             entity.IsCoveredByInsuranceDefault = request.IsCoveredByInsuranceDefault;
             entity.IsNeedApproval = request.IsNeedApproval;
@@ -629,50 +675,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
-            var result = new DrugUpdateResponse
-            {
-                Id = entity.Id,
-                DrugCode = entity.DrugCode,
-                DrugName = entity.DrugName,
-                IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime
-            };
-
             await _loggerService.InfoAsync(
                 LogCategory,
                 "Drug.UpdateDrug",
                 "Mengubah data drug.",
-                result
+                new { entity.Id, entity.DrugCode, entity.DrugName, entity.IsActive }
             );
 
-            return Ok(ApiResponse<DrugUpdateResponse>.Ok(
-                result,
+            return Ok(ApiResponse<object>.Ok(
+                null,
                 "Drug berhasil diperbarui."
             ));
         }
 
-        [HttpPatch("{id:guid}/activate")]
-        [ProducesResponseType(typeof(ApiResponse<DrugStatusResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Drug", Description = "Mengaktifkan data drug", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("Drug", "Update")]
-        public async Task<IActionResult> ActivateDrug(Guid id)
-        {
-            return await UpdateStatusAsync(id, true, "Drug berhasil diaktifkan.");
-        }
-
-        [HttpPatch("{id:guid}/deactivate")]
-        [ProducesResponseType(typeof(ApiResponse<DrugStatusResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Drug", Description = "Menonaktifkan data drug", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("Drug", "Update")]
-        public async Task<IActionResult> DeactivateDrug(Guid id)
-        {
-            return await UpdateStatusAsync(id, false, "Drug berhasil dinonaktifkan.");
-        }
-
         [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<DrugDeleteResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Drug", Description = "Menghapus data drug", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("Drug", "Delete")]
@@ -689,17 +706,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
+            var usedByTariff = await _dbContext.Set<MstTariff>()
+                .AsNoTracking()
+                .AnyAsync(x => x.DrugId == id && !x.IsDelete);
+
+            var usedByDrugUnitConversion = await _dbContext.Set<MstDrugUnitConversion>()
+                .AsNoTracking()
+                .AnyAsync(x => x.DrugId == id && !x.IsDelete);
+
             var usedInCoverageRule = await _dbContext.Set<MstInsuranceCoverageRule>()
                 .AsNoTracking()
-                .AnyAsync(x =>
-                    x.DrugId == id &&
-                    !x.IsDelete);
+                .AnyAsync(x => x.DrugId == id && !x.IsDelete);
 
-            if (usedInCoverageRule)
+            if (usedByTariff || usedByDrugUnitConversion || usedInCoverageRule)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    "Drug tidak dapat dihapus karena sudah digunakan pada insurance coverage rule."
+                    "Drug tidak dapat dihapus karena sudah digunakan oleh tariff, drug unit conversion, atau insurance coverage rule."
                 ));
             }
 
@@ -715,68 +738,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
-            var result = new DrugDeleteResponse
-            {
-                Id = entity.Id,
-                DrugCode = entity.DrugCode,
-                DrugName = entity.DrugName,
-                DeleteDateTime = entity.DeleteDateTime
-            };
-
             await _loggerService.InfoAsync(
                 LogCategory,
                 "Drug.DeleteDrug",
                 "Menghapus data drug.",
-                result
+                new { entity.Id, entity.DrugCode, entity.DrugName, entity.DeleteDateTime }
             );
 
-            return Ok(ApiResponse<DrugDeleteResponse>.Ok(
-                result,
+            return Ok(ApiResponse<object>.Ok(
+                null,
                 "Drug berhasil dihapus."
-            ));
-        }
-
-        private async Task<IActionResult> UpdateStatusAsync(Guid id, bool isActive, string successMessage)
-        {
-            var entity = await _dbContext.Set<MstDrug>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Drug tidak ditemukan."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.IsActive = isActive;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync();
-
-            var result = new DrugStatusResponse
-            {
-                Id = entity.Id,
-                DrugCode = entity.DrugCode,
-                DrugName = entity.DrugName,
-                IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime
-            };
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Drug.UpdateStatus",
-                successMessage,
-                result
-            );
-
-            return Ok(ApiResponse<DrugStatusResponse>.Ok(
-                result,
-                successMessage
             ));
         }
 
@@ -784,39 +755,74 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         {
             return _dbContext.Set<MstDrug>()
                 .AsNoTracking()
-                .Include(x => x.DrugCategory)
                 .Where(x => !x.IsDelete);
         }
 
-        private static IQueryable<MstDrug> ApplyFilter(
+        private static IQueryable<MstDrug> ApplyDateFilter(
             IQueryable<MstDrug> query,
-            string? search,
-            bool? isActive,
-            Guid? drugCategoryId,
-            Guid? defaultTariffId,
-            bool? hasDefaultTariff,
-            string? genericName,
-            string? brandName,
-            string? manufacturerName,
-            string? drugForm,
-            string? baseUnit,
-            string? dispenseUnit,
-            string? route,
-            bool? isFormulary,
-            bool? isGeneric,
-            bool? isAntibiotic,
-            bool? isNarcotic,
-            bool? isPsychotropic,
-            bool? isHighAlert,
-            bool? isChronicDiseaseDrug,
-            bool? isVaccine,
-            bool? isConsumable,
-            bool? isNeedPrescription,
-            bool? isCoveredByInsuranceDefault,
-            bool? isNeedApproval,
-            decimal? minimumPrice,
-            decimal? maximumPrice)
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
         {
+            if (startDate.HasValue)
+            {
+                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime >= start);
+            }
+
+            if (endDate.HasValue)
+            {
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime < end);
+            }
+
+            if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var now = DateTime.UtcNow;
+                var today = now.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x => x.CreateDateTime >= today && x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "last7days":
+                        query = query.Where(x => x.CreateDateTime >= today.AddDays(-6) && x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        query = query.Where(x => x.CreateDateTime >= thisMonthStart && x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        break;
+
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+                        query = query.Where(x => x.CreateDateTime >= lastMonthStart && x.CreateDateTime < currentMonthStart);
+                        break;
+                }
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstDrug> ApplyStandardFilter(
+            IQueryable<MstDrug> query,
+            Guid? drugCategoryId,
+            Guid? baseUnitMeasurementId,
+            bool? isActive,
+            string? search)
+        {
+            if (drugCategoryId.HasValue && drugCategoryId.Value != Guid.Empty)
+                query = query.Where(x => x.DrugCategoryId == drugCategoryId.Value);
+
+            if (baseUnitMeasurementId.HasValue && baseUnitMeasurementId.Value != Guid.Empty)
+                query = query.Where(x => x.BaseUnitMeasurementId == baseUnitMeasurementId.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -838,98 +844,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.NationalDrugCode != null && x.NationalDrugCode.ToLower().Contains(keyword)) ||
                     (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
                     (x.DrugCategory != null && x.DrugCategory.DrugCategoryCode.ToLower().Contains(keyword)) ||
-                    (x.DrugCategory != null && x.DrugCategory.DrugCategoryName.ToLower().Contains(keyword)));
+                    (x.DrugCategory != null && x.DrugCategory.DrugCategoryName.ToLower().Contains(keyword)) ||
+                    (x.StrengthMeasurement != null && x.StrengthMeasurement.MeasurementName.ToLower().Contains(keyword)) ||
+                    (x.BaseUnitMeasurement != null && x.BaseUnitMeasurement.MeasurementName.ToLower().Contains(keyword)) ||
+                    (x.DispenseUnitMeasurement != null && x.DispenseUnitMeasurement.MeasurementName.ToLower().Contains(keyword)) ||
+                    (x.PurchaseUnitMeasurement != null && x.PurchaseUnitMeasurement.MeasurementName.ToLower().Contains(keyword)) ||
+                    (x.StockUnitMeasurement != null && x.StockUnitMeasurement.MeasurementName.ToLower().Contains(keyword)) ||
+                    (x.DefaultDoseUnitMeasurement != null && x.DefaultDoseUnitMeasurement.MeasurementName.ToLower().Contains(keyword)));
             }
-
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
-
-            if (drugCategoryId.HasValue && drugCategoryId.Value != Guid.Empty)
-                query = query.Where(x => x.DrugCategoryId == drugCategoryId.Value);            
-
-            if (!string.IsNullOrWhiteSpace(genericName))
-            {
-                var keyword = genericName.Trim().ToLower();
-                query = query.Where(x => x.GenericName != null && x.GenericName.ToLower().Contains(keyword));
-            }
-
-            if (!string.IsNullOrWhiteSpace(brandName))
-            {
-                var keyword = brandName.Trim().ToLower();
-                query = query.Where(x => x.BrandName != null && x.BrandName.ToLower().Contains(keyword));
-            }
-
-            if (!string.IsNullOrWhiteSpace(manufacturerName))
-            {
-                var keyword = manufacturerName.Trim().ToLower();
-                query = query.Where(x => x.ManufacturerName != null && x.ManufacturerName.ToLower().Contains(keyword));
-            }
-
-            if (!string.IsNullOrWhiteSpace(drugForm))
-            {
-                var keyword = drugForm.Trim().ToLower();
-                query = query.Where(x => x.DrugForm != null && x.DrugForm.ToLower() == keyword);
-            }
-
-            if (!string.IsNullOrWhiteSpace(baseUnit))
-            {
-                var keyword = baseUnit.Trim().ToLower();
-                query = query.Where(x => x.BaseUnit != null && x.BaseUnit.ToLower().Contains(keyword));
-            }
-
-            if (!string.IsNullOrWhiteSpace(dispenseUnit))
-            {
-                var keyword = dispenseUnit.Trim().ToLower();
-                query = query.Where(x => x.DispenseUnit != null && x.DispenseUnit.ToLower().Contains(keyword));
-            }
-
-            if (!string.IsNullOrWhiteSpace(route))
-            {
-                var keyword = route.Trim().ToLower();
-                query = query.Where(x => x.Route != null && x.Route.ToLower() == keyword);
-            }
-
-            if (isFormulary.HasValue)
-                query = query.Where(x => x.IsFormulary == isFormulary.Value);
-
-            if (isGeneric.HasValue)
-                query = query.Where(x => x.IsGeneric == isGeneric.Value);
-
-            if (isAntibiotic.HasValue)
-                query = query.Where(x => x.IsAntibiotic == isAntibiotic.Value);
-
-            if (isNarcotic.HasValue)
-                query = query.Where(x => x.IsNarcotic == isNarcotic.Value);
-
-            if (isPsychotropic.HasValue)
-                query = query.Where(x => x.IsPsychotropic == isPsychotropic.Value);
-
-            if (isHighAlert.HasValue)
-                query = query.Where(x => x.IsHighAlert == isHighAlert.Value);
-
-            if (isChronicDiseaseDrug.HasValue)
-                query = query.Where(x => x.IsChronicDiseaseDrug == isChronicDiseaseDrug.Value);
-
-            if (isVaccine.HasValue)
-                query = query.Where(x => x.IsVaccine == isVaccine.Value);
-
-            if (isConsumable.HasValue)
-                query = query.Where(x => x.IsConsumable == isConsumable.Value);
-
-            if (isNeedPrescription.HasValue)
-                query = query.Where(x => x.IsNeedPrescription == isNeedPrescription.Value);
-
-            if (isCoveredByInsuranceDefault.HasValue)
-                query = query.Where(x => x.IsCoveredByInsuranceDefault == isCoveredByInsuranceDefault.Value);
-
-            if (isNeedApproval.HasValue)
-                query = query.Where(x => x.IsNeedApproval == isNeedApproval.Value);
-
-            if (minimumPrice.HasValue)
-                query = query.Where(x => x.DefaultPrice >= minimumPrice.Value);
-
-            if (maximumPrice.HasValue)
-                query = query.Where(x => x.DefaultPrice <= maximumPrice.Value);
 
             return query;
         }
@@ -943,207 +865,154 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             return (sortBy ?? "sortOrder").Trim().ToLowerInvariant() switch
             {
-                "createdatetime" => isDescending
-                    ? query.OrderByDescending(x => x.CreateDateTime)
-                    : query.OrderBy(x => x.CreateDateTime),
-
-                "drugcode" => isDescending
-                    ? query.OrderByDescending(x => x.DrugCode)
-                    : query.OrderBy(x => x.DrugCode),
-
-                "drugname" => isDescending
-                    ? query.OrderByDescending(x => x.DrugName)
-                    : query.OrderBy(x => x.DrugName),
-
-                "genericname" => isDescending
-                    ? query.OrderByDescending(x => x.GenericName)
-                    : query.OrderBy(x => x.GenericName),
-
-                "brandname" => isDescending
-                    ? query.OrderByDescending(x => x.BrandName)
-                    : query.OrderBy(x => x.BrandName),
-
-                "manufacturername" => isDescending
-                    ? query.OrderByDescending(x => x.ManufacturerName)
-                    : query.OrderBy(x => x.ManufacturerName),
-
+                "createdatetime" => isDescending ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime),
+                "drugcode" => isDescending ? query.OrderByDescending(x => x.DrugCode) : query.OrderBy(x => x.DrugCode),
+                "drugname" => isDescending ? query.OrderByDescending(x => x.DrugName) : query.OrderBy(x => x.DrugName),
+                "genericname" => isDescending ? query.OrderByDescending(x => x.GenericName) : query.OrderBy(x => x.GenericName),
+                "brandname" => isDescending ? query.OrderByDescending(x => x.BrandName) : query.OrderBy(x => x.BrandName),
+                "manufacturername" => isDescending ? query.OrderByDescending(x => x.ManufacturerName) : query.OrderBy(x => x.ManufacturerName),
                 "drugcategoryname" => isDescending
                     ? query.OrderByDescending(x => x.DrugCategory != null ? x.DrugCategory.DrugCategoryName : string.Empty)
                     : query.OrderBy(x => x.DrugCategory != null ? x.DrugCategory.DrugCategoryName : string.Empty),
-
-                "drugform" => isDescending
-                    ? query.OrderByDescending(x => x.DrugForm)
-                    : query.OrderBy(x => x.DrugForm),
-
-                "route" => isDescending
-                    ? query.OrderByDescending(x => x.Route)
-                    : query.OrderBy(x => x.Route),
-
-                "defaultprice" => isDescending
-                    ? query.OrderByDescending(x => x.DefaultPrice)
-                    : query.OrderBy(x => x.DefaultPrice),
-
-                "isformulary" => isDescending
-                    ? query.OrderByDescending(x => x.IsFormulary)
-                    : query.OrderBy(x => x.IsFormulary),
-
-                "isgeneric" => isDescending
-                    ? query.OrderByDescending(x => x.IsGeneric)
-                    : query.OrderBy(x => x.IsGeneric),
-
-                "ishighalert" => isDescending
-                    ? query.OrderByDescending(x => x.IsHighAlert)
-                    : query.OrderBy(x => x.IsHighAlert),
-
-                "isneedprescription" => isDescending
-                    ? query.OrderByDescending(x => x.IsNeedPrescription)
-                    : query.OrderBy(x => x.IsNeedPrescription),
-
-                "isneedapproval" => isDescending
-                    ? query.OrderByDescending(x => x.IsNeedApproval)
-                    : query.OrderBy(x => x.IsNeedApproval),
-
-                "isactive" => isDescending
-                    ? query.OrderByDescending(x => x.IsActive)
-                    : query.OrderBy(x => x.IsActive),
-
+                "drugform" => isDescending ? query.OrderByDescending(x => x.DrugForm) : query.OrderBy(x => x.DrugForm),
+                "route" => isDescending ? query.OrderByDescending(x => x.Route) : query.OrderBy(x => x.Route),
+                "defaultprice" => isDescending ? query.OrderByDescending(x => x.DefaultPrice) : query.OrderBy(x => x.DefaultPrice),
+                "isformulary" => isDescending ? query.OrderByDescending(x => x.IsFormulary) : query.OrderBy(x => x.IsFormulary),
+                "isgeneric" => isDescending ? query.OrderByDescending(x => x.IsGeneric) : query.OrderBy(x => x.IsGeneric),
+                "ishighalert" => isDescending ? query.OrderByDescending(x => x.IsHighAlert) : query.OrderBy(x => x.IsHighAlert),
+                "isneedprescription" => isDescending ? query.OrderByDescending(x => x.IsNeedPrescription) : query.OrderBy(x => x.IsNeedPrescription),
+                "isneedapproval" => isDescending ? query.OrderByDescending(x => x.IsNeedApproval) : query.OrderBy(x => x.IsNeedApproval),
+                "isactive" => isDescending ? query.OrderByDescending(x => x.IsActive) : query.OrderBy(x => x.IsActive),
                 _ => isDescending
                     ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.DrugName)
                     : query.OrderBy(x => x.SortOrder).ThenBy(x => x.DrugName)
             };
         }
 
-        private static DrugResponse ToResponse(MstDrug x)
-        {
-            return new DrugResponse
-            {
-                Id = x.Id,
-                DrugCategoryId = x.DrugCategoryId,
-                DrugCategoryCode = x.DrugCategory != null ? x.DrugCategory.DrugCategoryCode : string.Empty,
-                DrugCategoryName = x.DrugCategory != null ? x.DrugCategory.DrugCategoryName : string.Empty,
-                DrugCategoryType = x.DrugCategory != null ? x.DrugCategory.DrugCategoryType : null,
-                DrugGroupName = x.DrugCategory != null ? x.DrugCategory.DrugGroupName : null,
-                DrugCode = x.DrugCode,
-                DrugName = x.DrugName,
-                GenericName = x.GenericName,
-                BrandName = x.BrandName,
-                ManufacturerName = x.ManufacturerName,
-                DrugForm = x.DrugForm,
-                Strength = x.Strength,
-                BaseUnit = x.BaseUnit,
-                DispenseUnit = x.DispenseUnit,
-                Route = x.Route,
-                IsFormulary = x.IsFormulary,
-                IsGeneric = x.IsGeneric,
-                IsAntibiotic = x.IsAntibiotic,
-                IsNarcotic = x.IsNarcotic,
-                IsPsychotropic = x.IsPsychotropic,
-                IsHighAlert = x.IsHighAlert,
-                IsChronicDiseaseDrug = x.IsChronicDiseaseDrug,
-                IsVaccine = x.IsVaccine,
-                IsConsumable = x.IsConsumable,
-                IsNeedPrescription = x.IsNeedPrescription,
-                IsCoveredByInsuranceDefault = x.IsCoveredByInsuranceDefault,
-                IsNeedApproval = x.IsNeedApproval,
-                DefaultPrice = x.DefaultPrice,
-                InsurancePrice = x.InsurancePrice,
-                MemberPrice = x.MemberPrice,
-                CompanyPrice = x.CompanyPrice,
-                ExternalDrugCode = x.ExternalDrugCode,
-                IntegrationCode = x.IntegrationCode,
-                BpomRegistrationNumber = x.BpomRegistrationNumber,
-                NationalDrugCode = x.NationalDrugCode,
-                SortOrder = x.SortOrder,
-                IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
-            };
-        }
-
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
-            Guid drugCategoryId,
-            Guid? defaultTariffId,
-            string drugCode,
-            string drugName,
-            decimal defaultPrice,
-            decimal? insurancePrice,
-            decimal? memberPrice,
-            decimal? companyPrice)
+            CreateDrugRequest request)
         {
-            if (drugCategoryId == Guid.Empty)
+            if (request.DrugCategoryId == Guid.Empty)
                 return (false, "Drug category wajib dipilih.");
 
-            if (string.IsNullOrWhiteSpace(drugCode))
-                return (false, "Kode drug wajib diisi.");
-
-            if (string.IsNullOrWhiteSpace(drugName))
+            if (string.IsNullOrWhiteSpace(request.DrugName))
                 return (false, "Nama drug wajib diisi.");
 
-            if (defaultPrice < 0)
+            if (request.DefaultPrice < 0)
                 return (false, "Harga default tidak boleh kurang dari 0.");
 
-            if (insurancePrice.HasValue && insurancePrice.Value < 0)
+            if (request.InsurancePrice.HasValue && request.InsurancePrice.Value < 0)
                 return (false, "Harga insurance tidak boleh kurang dari 0.");
 
-            if (memberPrice.HasValue && memberPrice.Value < 0)
+            if (request.MemberPrice.HasValue && request.MemberPrice.Value < 0)
                 return (false, "Harga member tidak boleh kurang dari 0.");
 
-            if (companyPrice.HasValue && companyPrice.Value < 0)
+            if (request.CompanyPrice.HasValue && request.CompanyPrice.Value < 0)
                 return (false, "Harga company tidak boleh kurang dari 0.");
+
+            if (request.StrengthValue.HasValue && request.StrengthValue.Value < 0)
+                return (false, "Nilai strength tidak boleh kurang dari 0.");
 
             var categoryExists = await _dbContext.Set<MstDrugCategory>()
                 .AsNoTracking()
                 .AnyAsync(x =>
-                    x.Id == drugCategoryId &&
+                    x.Id == request.DrugCategoryId &&
                     !x.IsDelete &&
                     x.IsActive);
 
             if (!categoryExists)
                 return (false, "Drug category tidak ditemukan atau tidak aktif.");
 
-            var normalizedDefaultTariffId = NormalizeNullableGuid(defaultTariffId);
-
-            if (normalizedDefaultTariffId.HasValue)
+            var measurementIds = new List<Guid?>
             {
-                var tariffExists = await _dbContext.Set<MstTariff>()
+                request.StrengthMeasurementId,
+                request.BaseUnitMeasurementId,
+                request.DispenseUnitMeasurementId,
+                request.PurchaseUnitMeasurementId,
+                request.StockUnitMeasurementId,
+                request.DefaultDoseUnitMeasurementId
+            }
+            .Where(x => x.HasValue && x.Value != Guid.Empty)
+            .Select(x => x!.Value)
+            .Distinct()
+            .ToList();
+
+            if (measurementIds.Count > 0)
+            {
+                var validMeasurementCount = await _dbContext.Set<MstMeasurement>()
                     .AsNoTracking()
-                    .AnyAsync(x =>
-                        x.Id == normalizedDefaultTariffId.Value &&
+                    .CountAsync(x =>
+                        measurementIds.Contains(x.Id) &&
                         !x.IsDelete &&
                         x.IsActive);
 
-                if (!tariffExists)
-                    return (false, "Default tariff tidak ditemukan atau tidak aktif.");
+                if (validMeasurementCount != measurementIds.Count)
+                    return (false, "Measurement yang dipilih tidak valid atau tidak aktif.");
             }
 
-            var normalizedCode = drugCode.Trim().ToUpperInvariant();
-            var normalizedName = drugName.Trim().ToLower();
-
-            var duplicateCodeQuery = _dbContext.Set<MstDrug>()
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.DrugCode.ToUpper() == normalizedCode);
-
-            if (excludeId.HasValue)
-                duplicateCodeQuery = duplicateCodeQuery.Where(x => x.Id != excludeId.Value);
-
-            if (await duplicateCodeQuery.AnyAsync())
-                return (false, "Kode drug sudah digunakan.");
+            var normalizedName = request.DrugName.Trim().ToLower();
+            var normalizedStrength = NormalizeComparableText(request.Strength);
+            var normalizedDrugForm = NormalizeComparableText(request.DrugForm);
+            var normalizedBrandName = NormalizeComparableText(request.BrandName);
 
             var duplicateNameQuery = _dbContext.Set<MstDrug>()
                 .AsNoTracking()
                 .Where(x =>
                     !x.IsDelete &&
-                    x.DrugName.ToLower() == normalizedName);
+                    x.DrugCategoryId == request.DrugCategoryId &&
+                    x.DrugName.ToLower() == normalizedName &&
+                    (x.Strength ?? string.Empty).Trim().ToLower() == normalizedStrength &&
+                    (x.DrugForm ?? string.Empty).Trim().ToLower() == normalizedDrugForm &&
+                    (x.BrandName ?? string.Empty).Trim().ToLower() == normalizedBrandName);
 
             if (excludeId.HasValue)
                 duplicateNameQuery = duplicateNameQuery.Where(x => x.Id != excludeId.Value);
 
             if (await duplicateNameQuery.AnyAsync())
-                return (false, "Nama drug sudah digunakan.");
+                return (false, "Drug dengan nama, kategori, strength, bentuk, dan brand tersebut sudah digunakan.");
+
+            if (!string.IsNullOrWhiteSpace(request.ExternalDrugCode))
+            {
+                var externalCode = request.ExternalDrugCode.Trim().ToLower();
+
+                var duplicateExternalCodeQuery = _dbContext.Set<MstDrug>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        !x.IsDelete &&
+                        x.ExternalDrugCode != null &&
+                        x.ExternalDrugCode.ToLower() == externalCode);
+
+                if (excludeId.HasValue)
+                    duplicateExternalCodeQuery = duplicateExternalCodeQuery.Where(x => x.Id != excludeId.Value);
+
+                if (await duplicateExternalCodeQuery.AnyAsync())
+                    return (false, "External drug code sudah digunakan.");
+            }
 
             return (true, null);
+        }
+
+        private async Task<string> GenerateDrugCodeAsync()
+        {
+            var existingCodes = await _dbContext.Set<MstDrug>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.DrugCode.StartsWith(CodePrefix))
+                .Select(x => x.DrugCode)
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(x => x.Replace(CodePrefix, string.Empty))
+                .Where(x => int.TryParse(x, out _))
+                .Select(int.Parse)
+                .Where(x => x > 0)
+                .ToHashSet();
+
+            var nextNumber = 1;
+            while (usedNumbers.Contains(nextNumber))
+                nextNumber++;
+
+            return CodePrefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
@@ -1172,6 +1041,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private static string NormalizeComparableText(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? string.Empty
+                : value.Trim().ToLower();
         }
 
         private Guid GetCurrentUserId()

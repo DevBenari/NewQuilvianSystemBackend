@@ -78,32 +78,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class BedFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
+        public string CustomPeriodPriorityInfo { get; set; } =
+            "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
+
         public BedDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<BedCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<BedSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
         public List<BedEnumOptionResponse> BedStatusOptions { get; set; } = new();
+        public List<BedQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+        public List<BedFormFieldMetadataResponse> CreateFields { get; set; } = new();
+        public List<BedFormFieldMetadataResponse> UpdateFields { get; set; } = new();
     }
 
     public class BedDefaultFilterResponse
     {
-        public string? Search { get; set; }
-        public bool? IsActive { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? RoomId { get; set; }
         public Guid? ServiceUnitId { get; set; }
-        public Guid? PatientClassId { get; set; }
-        public BedStatus? BedStatus { get; set; }
-        public bool? IsForMale { get; set; }
-        public bool? IsForFemale { get; set; }
-        public bool? IsForNewborn { get; set; }
-        public bool? IsIsolationBed { get; set; }
-        public bool? IsIntensiveCareBed { get; set; }
-        public bool? IsOdcBed { get; set; }
-        public bool? IsReservable { get; set; }
+        public bool? IsActive { get; set; }
+        public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class BedCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public bool UsesStartDate { get; set; }
+        public bool UsesEndDate { get; set; }
     }
 
     public class BedSortOptionResponse
@@ -112,14 +122,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string Label { get; set; } = string.Empty;
     }
 
+    public class BedQueryParameterInfoResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Required { get; set; } = "No";
+        public string Description { get; set; } = string.Empty;
+        public string? Example { get; set; }
+    }
+
+    public class BedFormFieldMetadataResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Section { get; set; } = string.Empty;
+        public string InputType { get; set; } = string.Empty;
+        public bool IsRequiredOnCreate { get; set; }
+        public bool IsRequiredOnUpdate { get; set; }
+        public string RequiredType { get; set; } = "Optional";
+        public int? MaxLength { get; set; }
+        public string? OptionsSource { get; set; }
+        public string? Description { get; set; }
+        public string? Example { get; set; }
+        public int SortOrder { get; set; }
+    }
+
     public class CreateBedRequest
     {
         [Required]
         public Guid RoomId { get; set; }
-
-        [Required]
-        [MaxLength(50)]
-        public string BedCode { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(100)]
@@ -142,8 +173,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? Description { get; set; }
     }
 
-    public class UpdateBedRequest : CreateBedRequest
+    public class UpdateBedRequest
     {
+        [Required]
+        public Guid RoomId { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string BedName { get; set; } = string.Empty;
+
+        [MaxLength(50)]
+        public string? BedNumber { get; set; }
+
+        public BedStatus BedStatus { get; set; } = BedStatus.Available;
+        public bool IsForMale { get; set; } = true;
+        public bool IsForFemale { get; set; } = true;
+        public bool IsForNewborn { get; set; } = false;
+        public bool IsIsolationBed { get; set; } = false;
+        public bool IsIntensiveCareBed { get; set; } = false;
+        public bool IsOdcBed { get; set; } = false;
+        public bool IsReservable { get; set; } = true;
+        public int SortOrder { get; set; } = 0;
+
+        [MaxLength(250)]
+        public string? Description { get; set; }
+
         public bool IsActive { get; set; } = true;
     }
 
@@ -157,5 +211,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public BedStatus BedStatus { get; set; }
         public bool IsReservable { get; set; }
         public bool IsActive { get; set; }
+    }
+
+    public class BedUpdateResponse : BedCreateResponse
+    {
     }
 }

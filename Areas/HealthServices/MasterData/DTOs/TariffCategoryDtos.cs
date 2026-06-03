@@ -69,32 +69,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class TariffCategoryFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
+        public string CustomPeriodPriorityInfo { get; set; } =
+            "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
+
         public TariffCategoryDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<TariffCategoryCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<TariffCategorySortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
+        public List<TariffCategoryQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+        public List<TariffCategoryFormFieldMetadataResponse> CreateFields { get; set; } = new();
+        public List<TariffCategoryFormFieldMetadataResponse> UpdateFields { get; set; } = new();
     }
 
     public class TariffCategoryDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public string? Search { get; set; }
         public bool? IsActive { get; set; }
-        public string? TariffGroupName { get; set; }
-        public bool? IsRegistrationFee { get; set; }
-        public bool? IsAdministrationFee { get; set; }
-        public bool? IsConsultationFee { get; set; }
-        public bool? IsRoomCharge { get; set; }
-        public bool? IsProcedure { get; set; }
-        public bool? IsLaboratory { get; set; }
-        public bool? IsRadiology { get; set; }
-        public bool? IsPharmacy { get; set; }
-        public bool? IsSurgery { get; set; }
-        public bool? IsPackage { get; set; }
-        public bool? IsCoveredByInsuranceDefault { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class TariffCategoryCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public bool UsesStartDate { get; set; }
+        public bool UsesEndDate { get; set; }
     }
 
     public class TariffCategorySortOptionResponse
@@ -103,12 +110,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string Label { get; set; } = string.Empty;
     }
 
+    public class TariffCategoryQueryParameterInfoResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Required { get; set; } = "No";
+        public string Description { get; set; } = string.Empty;
+        public string? Example { get; set; }
+    }
+
+    public class TariffCategoryFormFieldMetadataResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string DataType { get; set; } = string.Empty;
+        public string InputType { get; set; } = string.Empty;
+        public bool Required { get; set; }
+        public bool IsReadonly { get; set; }
+        public string? Placeholder { get; set; }
+        public string? Description { get; set; }
+    }
+
     public class CreateTariffCategoryRequest
     {
-        [Required]
-        [MaxLength(50)]
-        public string TariffCategoryCode { get; set; } = string.Empty;
-
         [Required]
         [MaxLength(150)]
         public string TariffCategoryName { get; set; } = string.Empty;
@@ -147,5 +171,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? TariffGroupName { get; set; }
         public bool IsCoveredByInsuranceDefault { get; set; }
         public bool IsActive { get; set; }
+    }
+
+    public class TariffCategoryUpdateResponse : TariffCategoryCreateResponse
+    {
     }
 }

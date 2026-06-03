@@ -24,18 +24,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
     [Authorize]
     [Route("api/v1/health-services/patient-management/master-data/patients")]
     [AccessController(
-        moduleCode: "HEALTH_SERVICE_PATIENT_MANAGEMENT",
-        moduleName: "Health Service Patient Management",
+        moduleCode: "HEALTH_SERVICE_PATIENT_MANAGEMENT_MASTER_DATA",
+        moduleName: "Health Service Patient Management Master Data",
         displayName: "Patient",
         AreaName = "HealthServices",
         ControllerName = "Patient",
         Description = "Health service patient management master data patient",
         SortOrder = 1
     )]
-    [Tags("Health Services / Patient Management / Patient")]
+    [Tags("Health Services / Patient Management / Master Data / Patient")]
     public class PatientController : ControllerBase
     {
-        private const string LogCategory = "HealthServices.PatientManagement";
+        private const string LogCategory = "HealthServices.PatientManagement.MasterData";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;

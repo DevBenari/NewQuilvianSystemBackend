@@ -144,48 +144,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class DoctorServiceRuleFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
-
         public DoctorServiceRuleDefaultFilterResponse DefaultFilter { get; set; } = new();
-
+        public List<DoctorServiceRuleCustomPeriodResponse> CustomPeriods { get; set; } = new();
         public List<DoctorServiceRuleSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
-
         public List<DoctorServiceRuleEnumOptionResponse> RuleTypeOptions { get; set; } = new();
         public List<DoctorServiceRuleEnumOptionResponse> RuleStatusOptions { get; set; } = new();
+        public List<DoctorServiceRuleQueryParameterResponse> QueryParameters { get; set; } = new();
+        public List<DoctorServiceRuleFieldMetadataResponse> CreateFields { get; set; } = new();
+        public List<DoctorServiceRuleFieldMetadataResponse> UpdateFields { get; set; } = new();
     }
 
     public class DoctorServiceRuleDefaultFilterResponse
     {
-        public string? Search { get; set; }
-        public bool? IsActive { get; set; }
-
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? DoctorId { get; set; }
-        public Guid? ServiceUnitId { get; set; }
         public Guid? ClinicId { get; set; }
-        public Guid? TariffCategoryId { get; set; }
-        public Guid? TariffId { get; set; }
-        public Guid? ProcedureId { get; set; }
-        public Guid? PatientClassId { get; set; }
-
-        public DoctorServiceRuleType? RuleType { get; set; }
-        public DoctorServiceRuleStatus? RuleStatus { get; set; }
-
-        public bool? IsAllowWalkIn { get; set; }
-        public bool? IsAllowAppointment { get; set; }
-        public bool? IsAllowKioskRegistration { get; set; }
-        public bool? IsAllowTelemedicine { get; set; }
-
-        public bool? IsNeedReferral { get; set; }
-        public bool? IsNeedApproval { get; set; }
-
-        public bool? IsPrimaryForClinic { get; set; }
-        public bool? IsDefaultForClinic { get; set; }
-
+        public bool? IsActive { get; set; }
+        public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class DoctorServiceRuleCustomPeriodResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class DoctorServiceRuleSortOptionResponse
@@ -194,12 +183,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string Label { get; set; } = string.Empty;
     }
 
+    public class DoctorServiceRuleQueryParameterResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string? Description { get; set; }
+    }
+
+    public class DoctorServiceRuleFieldMetadataResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string DataType { get; set; } = string.Empty;
+        public bool Required { get; set; }
+        public bool ReadOnly { get; set; }
+        public bool IsVisible { get; set; } = true;
+        public object? DefaultValue { get; set; }
+        public string? OptionsSource { get; set; }
+    }
+
     public class CreateDoctorServiceRuleRequest
     {
-        [Required]
-        [MaxLength(50)]
-        public string RuleCode { get; set; } = string.Empty;
-
         [Required]
         [MaxLength(200)]
         public string RuleName { get; set; } = string.Empty;
@@ -252,23 +256,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         [MaxLength(250)]
         public string? Description { get; set; }
+
+        public bool IsActive { get; set; } = true;
     }
 
     public class UpdateDoctorServiceRuleRequest : CreateDoctorServiceRuleRequest
     {
-        public bool IsActive { get; set; } = true;
     }
 
     public class DoctorServiceRuleCreateResponse
     {
         public Guid Id { get; set; }
-
         public string RuleCode { get; set; } = string.Empty;
         public string RuleName { get; set; } = string.Empty;
-
         public DoctorServiceRuleType RuleType { get; set; }
         public DoctorServiceRuleStatus RuleStatus { get; set; }
-
         public Guid DoctorId { get; set; }
         public Guid ServiceUnitId { get; set; }
         public Guid? ClinicId { get; set; }
@@ -276,21 +278,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid? TariffId { get; set; }
         public Guid? ProcedureId { get; set; }
         public Guid? PatientClassId { get; set; }
-
-        public bool IsAllowWalkIn { get; set; }
-        public bool IsAllowAppointment { get; set; }
-        public bool IsAllowKioskRegistration { get; set; }
-        public bool IsAllowTelemedicine { get; set; }
-
-        public bool IsNeedReferral { get; set; }
-        public bool IsNeedApproval { get; set; }
-
-        public bool IsPrimaryForClinic { get; set; }
-        public bool IsDefaultForClinic { get; set; }
-
-        public int DailyQuotaLimit { get; set; }
-        public int PriorityLevel { get; set; }
-
         public bool IsActive { get; set; }
+    }
+
+    public class DoctorServiceRuleUpdateResponse
+    {
+        public Guid Id { get; set; }
+        public string RuleCode { get; set; } = string.Empty;
+        public string RuleName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+    }
+
+    public class DoctorServiceRuleDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string RuleCode { get; set; } = string.Empty;
+        public string RuleName { get; set; } = string.Empty;
+        public bool IsDelete { get; set; }
+        public DateTime? DeleteDateTime { get; set; }
     }
 }

@@ -32,6 +32,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
     public class InsuranceCoverageRuleController : ControllerBase
     {
         private const string LogCategory = "HealthServices.MasterData";
+        private const string RuleCodePrefix = "ICR-RSMMC-";
+        private const int RuleCodeDigitLength = 5;
 
         private static readonly HashSet<string> AllowedItemTypes = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -70,6 +72,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var result = new InsuranceCoverageRuleFilterMetadataResponse
             {
                 DefaultFilter = new InsuranceCoverageRuleDefaultFilterResponse(),
+                CustomPeriods = new List<InsuranceCoverageRuleCustomPeriodOptionResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7Days", Label = "7 hari terakhir" },
+                    new() { Value = "thisMonth", Label = "Bulan ini" },
+                    new() { Value = "lastMonth", Label = "Bulan lalu" }
+                },
                 SortOptions = new List<InsuranceCoverageRuleSortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -90,8 +99,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                ItemTypeOptions = AllowedItemTypes.OrderBy(x => x).ToList(),
-                CoverageStatusOptions = AllowedCoverageStatuses.OrderBy(x => x).ToList()
+                ItemTypeOptions = AllowedItemTypes
+                    .OrderBy(x => x)
+                    .Select(x => new InsuranceCoverageRuleItemTypeOptionResponse
+                    {
+                        Value = x,
+                        Label = SplitPascalCase(x)
+                    })
+                    .ToList(),
+                CoverageStatusOptions = AllowedCoverageStatuses
+                    .OrderBy(x => x)
+                    .Select(x => new InsuranceCoverageRuleCoverageStatusOptionResponse
+                    {
+                        Value = x,
+                        Label = SplitPascalCase(x)
+                    })
+                    .ToList()
             };
 
             await _loggerService.InfoAsync(
@@ -155,27 +178,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Insurance Coverage Rule", Description = "Melihat data insurance coverage rule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("InsuranceCoverageRule", "Read")]
         public async Task<IActionResult> GetInsuranceCoverageRules(
-            [FromQuery] string? search,
-            [FromQuery] bool? isActive,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? insuranceProviderId,
             [FromQuery] string? itemType,
-            [FromQuery] Guid? tariffId,
-            [FromQuery] Guid? drugId,
-            [FromQuery] Guid? drugCategoryId,
-            [FromQuery] Guid? procedureId,
-            [FromQuery] Guid? tariffCategoryId,
-            [FromQuery] string? benefitPlanCode,
-            [FromQuery] string? benefitPlanName,
-            [FromQuery] string? patientClassName,
-            [FromQuery] string? coverageStatus,
-            [FromQuery] bool? isCovered,
-            [FromQuery] bool? isExcluded,
-            [FromQuery] bool? isNeedApproval,
-            [FromQuery] bool? isNeedGuaranteeLetter,
-            [FromQuery] bool? isAllowExcessPaymentByPatient,
-            [FromQuery] DateTime? effectiveDate,
-            [FromQuery] decimal? minimumCoveragePercent,
-            [FromQuery] decimal? maximumCoveragePercent,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -187,38 +196,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var query = BuildBaseQuery();
 
-            query = ApplyFilter(
-                query,
-                search,
-                isActive,
-                insuranceProviderId,
-                itemType,
-                tariffId,
-                drugId,
-                drugCategoryId,
-                procedureId,
-                tariffCategoryId,
-                benefitPlanCode,
-                benefitPlanName,
-                patientClassName,
-                coverageStatus,
-                isCovered,
-                isExcluded,
-                isNeedApproval,
-                isNeedGuaranteeLetter,
-                isAllowExcessPaymentByPatient,
-                effectiveDate,
-                minimumCoveragePercent,
-                maximumCoveragePercent
-            );
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplySimpleFilter(query, insuranceProviderId, itemType, isActive, search);
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => ToResponse(x))
                 .ToListAsync();
+
+            var items = entities
+                .Select(ToResponse)
+                .ToList();
 
             var result = new ResponseInsuranceCoverageRulePagedResult
             {
@@ -237,54 +227,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpGet("options")]
         [ProducesResponseType(typeof(ApiResponse<List<InsuranceCoverageRuleOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Insurance Coverage Rule", Description = "Melihat data insurance coverage rule", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Insurance Coverage Rule", Description = "Melihat data pilihan insurance coverage rule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("InsuranceCoverageRule", "Read")]
         public async Task<IActionResult> GetInsuranceCoverageRuleOptions(
             [FromQuery] Guid? insuranceProviderId,
             [FromQuery] string? itemType,
-            [FromQuery] Guid? tariffId,
-            [FromQuery] Guid? drugId,
-            [FromQuery] Guid? drugCategoryId,
-            [FromQuery] Guid? procedureId,
-            [FromQuery] Guid? tariffCategoryId,
-            [FromQuery] string? benefitPlanCode,
-            [FromQuery] string? benefitPlanName,
-            [FromQuery] string? patientClassName,
-            [FromQuery] string? coverageStatus,
-            [FromQuery] bool? isCovered,
-            [FromQuery] bool? isExcluded,
-            [FromQuery] bool? isNeedApproval,
-            [FromQuery] bool? isNeedGuaranteeLetter,
-            [FromQuery] bool? isAllowExcessPaymentByPatient,
-            [FromQuery] DateTime? effectiveDate,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null)
         {
             var query = BuildBaseQuery();
 
-            query = ApplyFilter(
+            query = ApplySimpleFilter(
                 query,
-                search,
-                onlyActive ? true : null,
                 insuranceProviderId,
                 itemType,
-                tariffId,
-                drugId,
-                drugCategoryId,
-                procedureId,
-                tariffCategoryId,
-                benefitPlanCode,
-                benefitPlanName,
-                patientClassName,
-                coverageStatus,
-                isCovered,
-                isExcluded,
-                isNeedApproval,
-                isNeedGuaranteeLetter,
-                isAllowExcessPaymentByPatient,
-                effectiveDate,
-                null,
-                null
+                onlyActive ? true : null,
+                search
             );
 
             var data = await query
@@ -333,7 +291,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<InsuranceCoverageRuleDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Insurance Coverage Rule", Description = "Melihat data insurance coverage rule", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Insurance Coverage Rule", Description = "Melihat detail insurance coverage rule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("InsuranceCoverageRule", "Read")]
         public async Task<IActionResult> GetInsuranceCoverageRuleById(Guid id)
         {
@@ -408,33 +366,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<InsuranceCoverageRuleCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Insurance Coverage Rule", Description = "Membuat data insurance coverage rule", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("InsuranceCoverageRule", "Create")]
         public async Task<IActionResult> CreateInsuranceCoverageRule([FromBody] CreateInsuranceCoverageRuleRequest request)
         {
-            var validation = await ValidateRequestAsync(
-                excludeId: null,
-                insuranceProviderId: request.InsuranceProviderId,
-                ruleCode: request.RuleCode,
-                ruleName: request.RuleName,
-                itemType: request.ItemType,
-                tariffId: request.TariffId,
-                drugId: request.DrugId,
-                drugCategoryId: request.DrugCategoryId,
-                procedureId: request.ProcedureId,
-                tariffCategoryId: request.TariffCategoryId,
-                coverageStatus: request.CoverageStatus,
-                coveragePercent: request.CoveragePercent,
-                maxCoverageAmount: request.MaxCoverageAmount,
-                coPaymentPercent: request.CoPaymentPercent,
-                coPaymentAmount: request.CoPaymentAmount,
-                maxQuantityPerVisit: request.MaxQuantityPerVisit,
-                maxQuantityPerMonth: request.MaxQuantityPerMonth,
-                maxAmountPerVisit: request.MaxAmountPerVisit,
-                maxAmountPerMonth: request.MaxAmountPerMonth,
-                effectiveStartDate: request.EffectiveStartDate,
-                effectiveEndDate: request.EffectiveEndDate
-            );
+            var validation = await ValidateRequestAsync(null, request);
 
             if (!validation.IsValid)
             {
@@ -446,13 +383,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
-
             var itemType = NormalizeItemType(request.ItemType);
+
             var entity = new MstInsuranceCoverageRule
             {
                 Id = Guid.NewGuid(),
                 InsuranceProviderId = request.InsuranceProviderId,
-                RuleCode = request.RuleCode.Trim().ToUpperInvariant(),
+                RuleCode = await GenerateRuleCodeAsync(),
                 RuleName = request.RuleName.Trim(),
                 ItemType = itemType,
                 TariffId = itemType == "Tariff" ? NormalizeNullableGuid(request.TariffId) : null,
@@ -460,7 +397,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 DrugCategoryId = itemType == "DrugCategory" ? NormalizeNullableGuid(request.DrugCategoryId) : null,
                 ProcedureId = itemType == "Procedure" ? NormalizeNullableGuid(request.ProcedureId) : null,
                 TariffCategoryId = itemType == "ServiceCategory" ? NormalizeNullableGuid(request.TariffCategoryId) : null,
-                BenefitPlanCode = NormalizeNullableString(request.BenefitPlanCode),
+                BenefitPlanCode = NormalizeNullableString(request.BenefitPlanCode)?.ToUpperInvariant(),
                 BenefitPlanName = NormalizeNullableString(request.BenefitPlanName),
                 PatientClassName = NormalizeNullableString(request.PatientClassName),
                 CoverageStatus = NormalizeCoverageStatus(request.CoverageStatus),
@@ -483,7 +420,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 BillingInstruction = NormalizeNullableString(request.BillingInstruction),
                 Description = NormalizeNullableString(request.Description),
                 SortOrder = request.SortOrder,
-                IsActive = request.IsActive,
+                IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
                 IsDelete = false,
@@ -498,7 +435,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 Id = entity.Id,
                 RuleCode = entity.RuleCode,
                 RuleName = entity.RuleName,
-                InsuranceProviderId = entity.InsuranceProviderId
+                InsuranceProviderId = entity.InsuranceProviderId,
+                ItemType = entity.ItemType,
+                IsActive = entity.IsActive
             };
 
             await _loggerService.InfoAsync(
@@ -516,6 +455,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<InsuranceCoverageRuleUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Insurance Coverage Rule", Description = "Mengubah data insurance coverage rule", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("InsuranceCoverageRule", "Update")]
@@ -532,29 +472,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            var validation = await ValidateRequestAsync(
-                excludeId: id,
-                insuranceProviderId: request.InsuranceProviderId,
-                ruleCode: request.RuleCode,
-                ruleName: request.RuleName,
-                itemType: request.ItemType,
-                tariffId: request.TariffId,
-                drugId: request.DrugId,
-                drugCategoryId: request.DrugCategoryId,
-                procedureId: request.ProcedureId,
-                tariffCategoryId: request.TariffCategoryId,
-                coverageStatus: request.CoverageStatus,
-                coveragePercent: request.CoveragePercent,
-                maxCoverageAmount: request.MaxCoverageAmount,
-                coPaymentPercent: request.CoPaymentPercent,
-                coPaymentAmount: request.CoPaymentAmount,
-                maxQuantityPerVisit: request.MaxQuantityPerVisit,
-                maxQuantityPerMonth: request.MaxQuantityPerMonth,
-                maxAmountPerVisit: request.MaxAmountPerVisit,
-                maxAmountPerMonth: request.MaxAmountPerMonth,
-                effectiveStartDate: request.EffectiveStartDate,
-                effectiveEndDate: request.EffectiveEndDate
-            );
+            var validation = await ValidateRequestAsync(id, request);
 
             if (!validation.IsValid)
             {
@@ -566,11 +484,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
-
             var itemType = NormalizeItemType(request.ItemType);
 
             entity.InsuranceProviderId = request.InsuranceProviderId;
-            entity.RuleCode = request.RuleCode.Trim().ToUpperInvariant();
             entity.RuleName = request.RuleName.Trim();
             entity.ItemType = itemType;
             entity.TariffId = itemType == "Tariff" ? NormalizeNullableGuid(request.TariffId) : null;
@@ -578,7 +494,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.DrugCategoryId = itemType == "DrugCategory" ? NormalizeNullableGuid(request.DrugCategoryId) : null;
             entity.ProcedureId = itemType == "Procedure" ? NormalizeNullableGuid(request.ProcedureId) : null;
             entity.TariffCategoryId = itemType == "ServiceCategory" ? NormalizeNullableGuid(request.TariffCategoryId) : null;
-            entity.BenefitPlanCode = NormalizeNullableString(request.BenefitPlanCode);
+            entity.BenefitPlanCode = NormalizeNullableString(request.BenefitPlanCode)?.ToUpperInvariant();
             entity.BenefitPlanName = NormalizeNullableString(request.BenefitPlanName);
             entity.PatientClassName = NormalizeNullableString(request.PatientClassName);
             entity.CoverageStatus = NormalizeCoverageStatus(request.CoverageStatus);
@@ -757,30 +673,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 .Where(x => !x.IsDelete);
         }
 
-        private static IQueryable<MstInsuranceCoverageRule> ApplyFilter(
+        private static IQueryable<MstInsuranceCoverageRule> ApplySimpleFilter(
             IQueryable<MstInsuranceCoverageRule> query,
-            string? search,
-            bool? isActive,
             Guid? insuranceProviderId,
             string? itemType,
-            Guid? tariffId,
-            Guid? drugId,
-            Guid? drugCategoryId,
-            Guid? procedureId,
-            Guid? tariffCategoryId,
-            string? benefitPlanCode,
-            string? benefitPlanName,
-            string? patientClassName,
-            string? coverageStatus,
-            bool? isCovered,
-            bool? isExcluded,
-            bool? isNeedApproval,
-            bool? isNeedGuaranteeLetter,
-            bool? isAllowExcessPaymentByPatient,
-            DateTime? effectiveDate,
-            decimal? minimumCoveragePercent,
-            decimal? maximumCoveragePercent)
+            bool? isActive,
+            string? search)
         {
+            if (insuranceProviderId.HasValue && insuranceProviderId.Value != Guid.Empty)
+                query = query.Where(x => x.InsuranceProviderId == insuranceProviderId.Value);
+
+            if (!string.IsNullOrWhiteSpace(itemType))
+            {
+                var normalizedItemType = itemType.Trim().ToLower();
+                query = query.Where(x => x.ItemType.ToLower() == normalizedItemType);
+            }
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -808,86 +719,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.TariffCategory != null && x.TariffCategory.TariffCategoryName.ToLower().Contains(keyword)));
             }
 
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
+            return query;
+        }
 
-            if (insuranceProviderId.HasValue && insuranceProviderId.Value != Guid.Empty)
-                query = query.Where(x => x.InsuranceProviderId == insuranceProviderId.Value);
+        private static IQueryable<MstInsuranceCoverageRule> ApplyDateFilter(
+            IQueryable<MstInsuranceCoverageRule> query,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            var now = DateTime.UtcNow.Date;
 
-            if (!string.IsNullOrWhiteSpace(itemType))
+            if (!string.IsNullOrWhiteSpace(customPeriod))
             {
-                var normalizedItemType = itemType.Trim().ToLower();
-                query = query.Where(x => x.ItemType.ToLower() == normalizedItemType);
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        startDate = now;
+                        endDate = now;
+                        break;
+
+                    case "last7days":
+                        startDate = now.AddDays(-6);
+                        endDate = now;
+                        break;
+
+                    case "thismonth":
+                        startDate = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        endDate = startDate.Value.AddMonths(1).AddDays(-1);
+                        break;
+
+                    case "lastmonth":
+                        var firstDayThisMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        startDate = firstDayThisMonth.AddMonths(-1);
+                        endDate = firstDayThisMonth.AddDays(-1);
+                        break;
+                }
             }
 
-            if (tariffId.HasValue && tariffId.Value != Guid.Empty)
-                query = query.Where(x => x.TariffId == tariffId.Value);
+            if (startDate.HasValue)
+                query = query.Where(x => x.CreateDateTime >= startDate.Value.Date);
 
-            if (drugId.HasValue && drugId.Value != Guid.Empty)
-                query = query.Where(x => x.DrugId == drugId.Value);
-
-            if (drugCategoryId.HasValue && drugCategoryId.Value != Guid.Empty)
-                query = query.Where(x => x.DrugCategoryId == drugCategoryId.Value);
-
-            if (procedureId.HasValue && procedureId.Value != Guid.Empty)
-                query = query.Where(x => x.ProcedureId == procedureId.Value);
-
-            if (tariffCategoryId.HasValue && tariffCategoryId.Value != Guid.Empty)
-                query = query.Where(x => x.TariffCategoryId == tariffCategoryId.Value);
-
-            if (!string.IsNullOrWhiteSpace(benefitPlanCode))
-            {
-                var keyword = benefitPlanCode.Trim().ToLower();
-                query = query.Where(x => x.BenefitPlanCode != null && x.BenefitPlanCode.ToLower().Contains(keyword));
-            }
-
-            if (!string.IsNullOrWhiteSpace(benefitPlanName))
-            {
-                var keyword = benefitPlanName.Trim().ToLower();
-                query = query.Where(x => x.BenefitPlanName != null && x.BenefitPlanName.ToLower().Contains(keyword));
-            }
-
-            if (!string.IsNullOrWhiteSpace(patientClassName))
-            {
-                var keyword = patientClassName.Trim().ToLower();
-                query = query.Where(x => x.PatientClassName != null && x.PatientClassName.ToLower().Contains(keyword));
-            }
-
-            if (!string.IsNullOrWhiteSpace(coverageStatus))
-            {
-                var normalizedStatus = coverageStatus.Trim().ToLower();
-                query = query.Where(x => x.CoverageStatus.ToLower() == normalizedStatus);
-            }
-
-            if (isCovered.HasValue)
-                query = query.Where(x => x.IsCovered == isCovered.Value);
-
-            if (isExcluded.HasValue)
-                query = query.Where(x => x.IsExcluded == isExcluded.Value);
-
-            if (isNeedApproval.HasValue)
-                query = query.Where(x => x.IsNeedApproval == isNeedApproval.Value);
-
-            if (isNeedGuaranteeLetter.HasValue)
-                query = query.Where(x => x.IsNeedGuaranteeLetter == isNeedGuaranteeLetter.Value);
-
-            if (isAllowExcessPaymentByPatient.HasValue)
-                query = query.Where(x => x.IsAllowExcessPaymentByPatient == isAllowExcessPaymentByPatient.Value);
-
-            if (effectiveDate.HasValue)
-            {
-                var selectedDate = effectiveDate.Value;
-
-                query = query.Where(x =>
-                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value <= selectedDate) &&
-                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= selectedDate));
-            }
-
-            if (minimumCoveragePercent.HasValue)
-                query = query.Where(x => x.CoveragePercent >= minimumCoveragePercent.Value);
-
-            if (maximumCoveragePercent.HasValue)
-                query = query.Where(x => x.CoveragePercent <= maximumCoveragePercent.Value);
+            if (endDate.HasValue)
+                query = query.Where(x => x.CreateDateTime < endDate.Value.Date.AddDays(1));
 
             return query;
         }
@@ -912,6 +786,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 "rulename" => isDescending
                     ? query.OrderByDescending(x => x.RuleName)
                     : query.OrderBy(x => x.RuleName),
+
+                "insuranceProviderName" => isDescending
+                    ? query.OrderByDescending(x => x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderName : string.Empty)
+                    : query.OrderBy(x => x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderName : string.Empty),
 
                 "insuranceprovidername" => isDescending
                     ? query.OrderByDescending(x => x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderName : string.Empty)
@@ -1017,75 +895,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
-            Guid insuranceProviderId,
-            string ruleCode,
-            string ruleName,
-            string itemType,
-            Guid? tariffId,
-            Guid? drugId,
-            Guid? drugCategoryId,
-            Guid? procedureId,
-            Guid? tariffCategoryId,
-            string coverageStatus,
-            decimal coveragePercent,
-            decimal? maxCoverageAmount,
-            decimal? coPaymentPercent,
-            decimal? coPaymentAmount,
-            int? maxQuantityPerVisit,
-            int? maxQuantityPerMonth,
-            decimal? maxAmountPerVisit,
-            decimal? maxAmountPerMonth,
-            DateTime? effectiveStartDate,
-            DateTime? effectiveEndDate)
+            CreateInsuranceCoverageRuleRequest request)
         {
-            if (insuranceProviderId == Guid.Empty)
+            if (request.InsuranceProviderId == Guid.Empty)
                 return (false, "Insurance provider wajib dipilih.");
 
-            if (string.IsNullOrWhiteSpace(ruleCode))
-                return (false, "Kode rule wajib diisi.");
-
-            if (string.IsNullOrWhiteSpace(ruleName))
+            if (string.IsNullOrWhiteSpace(request.RuleName))
                 return (false, "Nama rule wajib diisi.");
 
-            if (string.IsNullOrWhiteSpace(itemType))
+            if (string.IsNullOrWhiteSpace(request.ItemType))
                 return (false, "Item type wajib diisi.");
 
-            if (!AllowedItemTypes.Contains(itemType.Trim()))
+            if (!AllowedItemTypes.Contains(request.ItemType.Trim()))
                 return (false, "Item type tidak valid. Gunakan salah satu: Tariff, Drug, DrugCategory, Procedure, ServiceCategory.");
 
-            if (string.IsNullOrWhiteSpace(coverageStatus))
+            if (string.IsNullOrWhiteSpace(request.CoverageStatus))
                 return (false, "Coverage status wajib diisi.");
 
-            if (!AllowedCoverageStatuses.Contains(coverageStatus.Trim()))
+            if (!AllowedCoverageStatuses.Contains(request.CoverageStatus.Trim()))
                 return (false, "Coverage status tidak valid. Gunakan salah satu: Covered, NotCovered, PartialCovered, NeedApproval.");
 
-            if (coveragePercent < 0 || coveragePercent > 100)
+            if (request.CoveragePercent < 0 || request.CoveragePercent > 100)
                 return (false, "Coverage percent harus berada di antara 0 sampai 100.");
 
-            if (maxCoverageAmount.HasValue && maxCoverageAmount.Value < 0)
+            if (request.MaxCoverageAmount.HasValue && request.MaxCoverageAmount.Value < 0)
                 return (false, "Max coverage amount tidak boleh kurang dari 0.");
 
-            if (coPaymentPercent.HasValue && (coPaymentPercent.Value < 0 || coPaymentPercent.Value > 100))
+            if (request.CoPaymentPercent.HasValue && (request.CoPaymentPercent.Value < 0 || request.CoPaymentPercent.Value > 100))
                 return (false, "Co payment percent harus berada di antara 0 sampai 100.");
 
-            if (coPaymentAmount.HasValue && coPaymentAmount.Value < 0)
+            if (request.CoPaymentAmount.HasValue && request.CoPaymentAmount.Value < 0)
                 return (false, "Co payment amount tidak boleh kurang dari 0.");
 
-            if (maxQuantityPerVisit.HasValue && maxQuantityPerVisit.Value < 0)
+            if (request.MaxQuantityPerVisit.HasValue && request.MaxQuantityPerVisit.Value < 0)
                 return (false, "Max quantity per visit tidak boleh kurang dari 0.");
 
-            if (maxQuantityPerMonth.HasValue && maxQuantityPerMonth.Value < 0)
+            if (request.MaxQuantityPerMonth.HasValue && request.MaxQuantityPerMonth.Value < 0)
                 return (false, "Max quantity per month tidak boleh kurang dari 0.");
 
-            if (maxAmountPerVisit.HasValue && maxAmountPerVisit.Value < 0)
+            if (request.MaxAmountPerVisit.HasValue && request.MaxAmountPerVisit.Value < 0)
                 return (false, "Max amount per visit tidak boleh kurang dari 0.");
 
-            if (maxAmountPerMonth.HasValue && maxAmountPerMonth.Value < 0)
+            if (request.MaxAmountPerMonth.HasValue && request.MaxAmountPerMonth.Value < 0)
                 return (false, "Max amount per month tidak boleh kurang dari 0.");
 
-            if (effectiveStartDate.HasValue &&
-                effectiveEndDate.HasValue &&
-                effectiveEndDate.Value < effectiveStartDate.Value)
+            if (request.EffectiveStartDate.HasValue &&
+                request.EffectiveEndDate.HasValue &&
+                request.EffectiveEndDate.Value < request.EffectiveStartDate.Value)
             {
                 return (false, "Tanggal akhir berlaku tidak boleh lebih kecil dari tanggal mulai berlaku.");
             }
@@ -1093,102 +949,147 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var providerExists = await _dbContext.Set<MstInsuranceProvider>()
                 .AsNoTracking()
                 .AnyAsync(x =>
-                    x.Id == insuranceProviderId &&
+                    x.Id == request.InsuranceProviderId &&
                     !x.IsDelete &&
                     x.IsActive);
 
             if (!providerExists)
                 return (false, "Insurance provider tidak ditemukan atau tidak aktif.");
 
-            var normalizedItemType = NormalizeItemType(itemType);
+            var itemType = NormalizeItemType(request.ItemType);
 
-            var normalizedTariffId = NormalizeNullableGuid(tariffId);
-            var normalizedDrugId = NormalizeNullableGuid(drugId);
-            var normalizedDrugCategoryId = NormalizeNullableGuid(drugCategoryId);
-            var normalizedProcedureId = NormalizeNullableGuid(procedureId);
-            var normalizedTariffCategoryId = NormalizeNullableGuid(tariffCategoryId);
+            var tariffId = NormalizeNullableGuid(request.TariffId);
+            var drugId = NormalizeNullableGuid(request.DrugId);
+            var drugCategoryId = NormalizeNullableGuid(request.DrugCategoryId);
+            var procedureId = NormalizeNullableGuid(request.ProcedureId);
+            var tariffCategoryId = NormalizeNullableGuid(request.TariffCategoryId);
 
-            if (normalizedItemType == "Tariff")
+            if (itemType == "Tariff")
             {
-                if (!normalizedTariffId.HasValue)
+                if (!tariffId.HasValue)
                     return (false, "Tariff wajib dipilih untuk item type Tariff.");
 
                 var exists = await _dbContext.Set<MstTariff>()
                     .AsNoTracking()
-                    .AnyAsync(x => x.Id == normalizedTariffId.Value && !x.IsDelete && x.IsActive);
+                    .AnyAsync(x => x.Id == tariffId.Value && !x.IsDelete && x.IsActive);
 
                 if (!exists)
                     return (false, "Tariff tidak ditemukan atau tidak aktif.");
             }
 
-            if (normalizedItemType == "Drug")
+            if (itemType == "Drug")
             {
-                if (!normalizedDrugId.HasValue)
+                if (!drugId.HasValue)
                     return (false, "Drug wajib dipilih untuk item type Drug.");
 
                 var exists = await _dbContext.Set<MstDrug>()
                     .AsNoTracking()
-                    .AnyAsync(x => x.Id == normalizedDrugId.Value && !x.IsDelete && x.IsActive);
+                    .AnyAsync(x => x.Id == drugId.Value && !x.IsDelete && x.IsActive);
 
                 if (!exists)
                     return (false, "Drug tidak ditemukan atau tidak aktif.");
             }
 
-            if (normalizedItemType == "DrugCategory")
+            if (itemType == "DrugCategory")
             {
-                if (!normalizedDrugCategoryId.HasValue)
+                if (!drugCategoryId.HasValue)
                     return (false, "Drug category wajib dipilih untuk item type DrugCategory.");
 
                 var exists = await _dbContext.Set<MstDrugCategory>()
                     .AsNoTracking()
-                    .AnyAsync(x => x.Id == normalizedDrugCategoryId.Value && !x.IsDelete && x.IsActive);
+                    .AnyAsync(x => x.Id == drugCategoryId.Value && !x.IsDelete && x.IsActive);
 
                 if (!exists)
                     return (false, "Drug category tidak ditemukan atau tidak aktif.");
             }
 
-            if (normalizedItemType == "Procedure")
+            if (itemType == "Procedure")
             {
-                if (!normalizedProcedureId.HasValue)
+                if (!procedureId.HasValue)
                     return (false, "Procedure wajib dipilih untuk item type Procedure.");
 
                 var exists = await _dbContext.Set<MstProcedure>()
                     .AsNoTracking()
-                    .AnyAsync(x => x.Id == normalizedProcedureId.Value && !x.IsDelete && x.IsActive);
+                    .AnyAsync(x => x.Id == procedureId.Value && !x.IsDelete && x.IsActive);
 
                 if (!exists)
                     return (false, "Procedure tidak ditemukan atau tidak aktif.");
             }
 
-            if (normalizedItemType == "ServiceCategory")
+            if (itemType == "ServiceCategory")
             {
-                if (!normalizedTariffCategoryId.HasValue)
+                if (!tariffCategoryId.HasValue)
                     return (false, "Tariff category wajib dipilih untuk item type ServiceCategory.");
 
                 var exists = await _dbContext.Set<MstTariffCategory>()
                     .AsNoTracking()
-                    .AnyAsync(x => x.Id == normalizedTariffCategoryId.Value && !x.IsDelete && x.IsActive);
+                    .AnyAsync(x => x.Id == tariffCategoryId.Value && !x.IsDelete && x.IsActive);
 
                 if (!exists)
                     return (false, "Tariff category tidak ditemukan atau tidak aktif.");
             }
 
-            var normalizedCode = ruleCode.Trim().ToUpperInvariant();
+            var benefitPlanCode = NormalizeNullableString(request.BenefitPlanCode)?.ToUpperInvariant();
+            var patientClassName = NormalizeNullableString(request.PatientClassName)?.ToLowerInvariant();
+            var normalizedName = request.RuleName.Trim().ToLowerInvariant();
 
-            var duplicateCodeQuery = _dbContext.Set<MstInsuranceCoverageRule>()
+            var duplicateName = await _dbContext.Set<MstInsuranceCoverageRule>()
                 .AsNoTracking()
-                .Where(x =>
+                .AnyAsync(x =>
                     !x.IsDelete &&
-                    x.InsuranceProviderId == insuranceProviderId &&
-                    x.RuleCode.ToUpper() == normalizedCode);
+                    x.InsuranceProviderId == request.InsuranceProviderId &&
+                    x.ItemType == itemType &&
+                    x.TariffId == (itemType == "Tariff" ? tariffId : null) &&
+                    x.DrugId == (itemType == "Drug" ? drugId : null) &&
+                    x.DrugCategoryId == (itemType == "DrugCategory" ? drugCategoryId : null) &&
+                    x.ProcedureId == (itemType == "Procedure" ? procedureId : null) &&
+                    x.TariffCategoryId == (itemType == "ServiceCategory" ? tariffCategoryId : null) &&
+                    x.BenefitPlanCode == benefitPlanCode &&
+                    (x.PatientClassName == null ? patientClassName == null : x.PatientClassName.ToLower() == patientClassName) &&
+                    x.RuleName.ToLower() == normalizedName &&
+                    (!excludeId.HasValue || x.Id != excludeId.Value));
 
-            if (excludeId.HasValue)
-                duplicateCodeQuery = duplicateCodeQuery.Where(x => x.Id != excludeId.Value);
-
-            if (await duplicateCodeQuery.AnyAsync())
-                return (false, "Kode rule sudah digunakan pada insurance provider tersebut.");
+            if (duplicateName)
+                return (false, "Nama insurance coverage rule pada provider, item, benefit plan, dan kelas pasien tersebut sudah digunakan.");
 
             return (true, null);
+        }
+
+        private async Task<string> GenerateRuleCodeAsync()
+        {
+            var existingCodes = await _dbContext.Set<MstInsuranceCoverageRule>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.RuleCode.StartsWith(RuleCodePrefix))
+                .Select(x => x.RuleCode)
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(TryExtractRuleSequenceNumber)
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .ToHashSet();
+
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
+                nextNumber++;
+
+            return $"{RuleCodePrefix}{nextNumber.ToString().PadLeft(RuleCodeDigitLength, '0')}";
+        }
+
+        private static int? TryExtractRuleSequenceNumber(string ruleCode)
+        {
+            if (string.IsNullOrWhiteSpace(ruleCode))
+                return null;
+
+            if (!ruleCode.StartsWith(RuleCodePrefix, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var numberText = ruleCode[RuleCodePrefix.Length..];
+
+            return int.TryParse(numberText, out var number)
+                ? number
+                : null;
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
@@ -1246,6 +1147,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return Guid.TryParse(userIdValue, out var userId)
                 ? userId
                 : Guid.Empty;
+        }
+
+        private static string SplitPascalCase(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+
+            var chars = new List<char> { value[0] };
+
+            for (var i = 1; i < value.Length; i++)
+            {
+                if (char.IsUpper(value[i]) && !char.IsWhiteSpace(value[i - 1]))
+                    chars.Add(' ');
+
+                chars.Add(value[i]);
+            }
+
+            return new string(chars.ToArray());
         }
     }
 }

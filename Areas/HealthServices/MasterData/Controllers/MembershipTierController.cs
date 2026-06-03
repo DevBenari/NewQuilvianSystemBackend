@@ -20,20 +20,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/health-services/patient-management/master-data/membership-tiers")]
+    [Route("api/v1/health-services/master-data/membership-tiers")]
     [AccessController(
-        moduleCode: "HEALTH_SERVICE_PATIENT_MANAGEMENT",
-        moduleName: "Health Service Patient Management",
+        moduleCode: "HEALTH_SERVICE_MASTER_DATA",
+        moduleName: "Health Service Master Data",
         displayName: "Membership Tier",
         AreaName = "HealthServices",
         ControllerName = "MembershipTier",
-        Description = "Health service patient management master data membership tier",
+        Description = "Health service master data membership tier",
         SortOrder = 5
     )]
-    [Tags("Health Services / Patient Management / Membership Tier")]
+    [Tags("Health Services / Master Data / Membership Tier")]
     public class MembershipTierController : ControllerBase
     {
-        private const string LogCategory = "HealthServices.PatientManagement";
+        private const string LogCategory = "HealthServices.MasterData";
+        private const string TierCodePrefix = "MT-RSMMC-";
+        private const int TierCodeDigitLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -55,6 +57,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var result = new MembershipTierFilterMetadataResponse
             {
                 DefaultFilter = new MembershipTierDefaultFilterResponse(),
+                CustomPeriods = new List<MembershipTierCustomPeriodOptionResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7Days", Label = "7 hari terakhir" },
+                    new() { Value = "thisMonth", Label = "Bulan ini" },
+                    new() { Value = "lastMonth", Label = "Bulan lalu" }
+                },
                 SortOptions = new List<MembershipTierSortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -121,16 +130,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Membership Tier", Description = "Melihat data membership tier", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("MembershipTier", "Read")]
         public async Task<IActionResult> GetMembershipTiers(
-            [FromQuery] string? search,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] bool? isActive,
-            [FromQuery] MembershipTierType? tierType,
-            [FromQuery] bool? isDefault,
-            [FromQuery] bool? isSelectableInKiosk,
-            [FromQuery] bool? isSelectableInAdmission,
-            [FromQuery] bool? isManagedByMarketingOnly,
-            [FromQuery] bool? priorityQueue,
-            [FromQuery] bool? freeAnnualCheckup,
-            [FromQuery] bool? freeParking,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -144,6 +148,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -151,72 +160,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 query = query.Where(x =>
                     x.TierCode.ToLower().Contains(keyword) ||
                     x.TierName.ToLower().Contains(keyword) ||
-                    x.CardTitle != null && x.CardTitle.ToLower().Contains(keyword) ||
-                    x.BenefitDescription != null && x.BenefitDescription.ToLower().Contains(keyword) ||
-                    x.Description != null && x.Description.ToLower().Contains(keyword));
+                    x.TierType.ToString().ToLower().Contains(keyword) ||
+                    (x.CardTitle != null && x.CardTitle.ToLower().Contains(keyword)) ||
+                    (x.CardColor != null && x.CardColor.ToLower().Contains(keyword)) ||
+                    (x.BenefitDescription != null && x.BenefitDescription.ToLower().Contains(keyword)) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
             }
-
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
-
-            if (tierType.HasValue)
-                query = query.Where(x => x.TierType == tierType.Value);
-
-            if (isDefault.HasValue)
-                query = query.Where(x => x.IsDefault == isDefault.Value);
-
-            if (isSelectableInKiosk.HasValue)
-                query = query.Where(x => x.IsSelectableInKiosk == isSelectableInKiosk.Value);
-
-            if (isSelectableInAdmission.HasValue)
-                query = query.Where(x => x.IsSelectableInAdmission == isSelectableInAdmission.Value);
-
-            if (isManagedByMarketingOnly.HasValue)
-                query = query.Where(x => x.IsManagedByMarketingOnly == isManagedByMarketingOnly.Value);
-
-            if (priorityQueue.HasValue)
-                query = query.Where(x => x.PriorityQueue == priorityQueue.Value);
-
-            if (freeAnnualCheckup.HasValue)
-                query = query.Where(x => x.FreeAnnualCheckup == freeAnnualCheckup.Value);
-
-            if (freeParking.HasValue)
-                query = query.Where(x => x.FreeParking == freeParking.Value);
 
             var totalData = await query.CountAsync();
 
             var items = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new MembershipTierResponse
-                {
-                    Id = x.Id,
-                    TierCode = x.TierCode,
-                    TierName = x.TierName,
-                    TierType = x.TierType,
-                    CardTitle = x.CardTitle,
-                    CardColor = x.CardColor,
-                    CardImagePath = x.CardImagePath,
-                    PriorityLevel = x.PriorityLevel,
-                    IsDefault = x.IsDefault,
-                    IsSelectableInKiosk = x.IsSelectableInKiosk,
-                    IsSelectableInAdmission = x.IsSelectableInAdmission,
-                    IsManagedByMarketingOnly = x.IsManagedByMarketingOnly,
-                    RegistrationDiscountPercent = x.RegistrationDiscountPercent,
-                    ConsultationDiscountPercent = x.ConsultationDiscountPercent,
-                    ProcedureDiscountPercent = x.ProcedureDiscountPercent,
-                    LaboratoryDiscountPercent = x.LaboratoryDiscountPercent,
-                    RadiologyDiscountPercent = x.RadiologyDiscountPercent,
-                    PharmacyDiscountPercent = x.PharmacyDiscountPercent,
-                    PriorityQueue = x.PriorityQueue,
-                    FreeAnnualCheckup = x.FreeAnnualCheckup,
-                    FreeParking = x.FreeParking,
-                    ValidityMonths = x.ValidityMonths,
-                    MinimumSpendAmount = x.MinimumSpendAmount,
-                    SortOrder = x.SortOrder,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
+                .Select(x => ToResponse(x))
                 .ToListAsync();
 
             var result = new ResponseMembershipTierPagedResult
@@ -239,10 +195,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Membership Tier", Description = "Melihat data membership tier", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("MembershipTier", "Read")]
         public async Task<IActionResult> GetMembershipTierOptions(
-            [FromQuery] MembershipTierType? tierType,
-            [FromQuery] bool? isSelectableInKiosk,
-            [FromQuery] bool? isSelectableInAdmission,
-            [FromQuery] bool? priorityQueue,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null)
         {
@@ -253,18 +205,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (onlyActive)
                 query = query.Where(x => x.IsActive);
 
-            if (tierType.HasValue)
-                query = query.Where(x => x.TierType == tierType.Value);
-
-            if (isSelectableInKiosk.HasValue)
-                query = query.Where(x => x.IsSelectableInKiosk == isSelectableInKiosk.Value);
-
-            if (isSelectableInAdmission.HasValue)
-                query = query.Where(x => x.IsSelectableInAdmission == isSelectableInAdmission.Value);
-
-            if (priorityQueue.HasValue)
-                query = query.Where(x => x.PriorityQueue == priorityQueue.Value);
-
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -272,7 +212,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 query = query.Where(x =>
                     x.TierCode.ToLower().Contains(keyword) ||
                     x.TierName.ToLower().Contains(keyword) ||
-                    x.CardTitle != null && x.CardTitle.ToLower().Contains(keyword));
+                    x.TierType.ToString().ToLower().Contains(keyword) ||
+                    (x.CardTitle != null && x.CardTitle.ToLower().Contains(keyword)) ||
+                    (x.CardColor != null && x.CardColor.ToLower().Contains(keyword)));
             }
 
             var data = await query
@@ -286,6 +228,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     TierCode = x.TierCode,
                     TierName = x.TierName,
                     TierType = x.TierType,
+                    TierTypeName = x.TierType.ToString(),
                     CardTitle = x.CardTitle,
                     CardColor = x.CardColor,
                     PriorityLevel = x.PriorityLevel,
@@ -306,7 +249,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<MembershipTierDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Membership Tier", Description = "Melihat data membership tier", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Membership Tier", Description = "Melihat detail membership tier", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("MembershipTier", "Read")]
         public async Task<IActionResult> GetMembershipTierById(Guid id)
         {
@@ -319,6 +262,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     TierCode = x.TierCode,
                     TierName = x.TierName,
                     TierType = x.TierType,
+                    TierTypeName = x.TierType.ToString(),
                     CardTitle = x.CardTitle,
                     CardColor = x.CardColor,
                     CardImagePath = x.CardImagePath,
@@ -362,14 +306,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<MembershipTierCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Membership Tier", Description = "Membuat data membership tier", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("MembershipTier", "Create")]
         public async Task<IActionResult> CreateMembershipTier([FromBody] CreateMembershipTierRequest request)
         {
             var validation = await ValidateRequestAsync(
                 excludeId: null,
-                tierCode: request.TierCode,
                 tierName: request.TierName,
+                tierType: request.TierType,
                 priorityLevel: request.PriorityLevel,
                 validityMonths: request.ValidityMonths,
                 minimumSpendAmount: request.MinimumSpendAmount,
@@ -400,12 +345,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var entity = new MstMembershipTier
             {
                 Id = Guid.NewGuid(),
-                TierCode = request.TierCode.Trim().ToUpperInvariant(),
+                TierCode = await GenerateTierCodeAsync(),
                 TierName = request.TierName.Trim(),
                 TierType = request.TierType,
-                CardTitle = NormalizeNullableText(request.CardTitle),
-                CardColor = NormalizeNullableText(request.CardColor),
-                CardImagePath = NormalizeNullableText(request.CardImagePath),
+                CardTitle = NormalizeNullableString(request.CardTitle),
+                CardColor = NormalizeNullableString(request.CardColor),
+                CardImagePath = NormalizeNullableString(request.CardImagePath),
                 PriorityLevel = request.PriorityLevel,
                 IsDefault = request.IsDefault,
                 IsSelectableInKiosk = request.IsSelectableInKiosk,
@@ -423,8 +368,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ValidityMonths = request.ValidityMonths,
                 MinimumSpendAmount = request.MinimumSpendAmount,
                 SortOrder = request.SortOrder,
-                BenefitDescription = NormalizeNullableText(request.BenefitDescription),
-                Description = NormalizeNullableText(request.Description),
+                BenefitDescription = NormalizeNullableString(request.BenefitDescription),
+                Description = NormalizeNullableString(request.Description),
                 IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
@@ -435,25 +380,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             _dbContext.Set<MstMembershipTier>().Add(entity);
             await _dbContext.SaveChangesAsync();
 
-            var response = new MembershipTierCreateResponse
+            var result = new MembershipTierCreateResponse
             {
                 Id = entity.Id,
                 TierCode = entity.TierCode,
                 TierName = entity.TierName,
                 TierType = entity.TierType,
+                TierTypeName = entity.TierType.ToString(),
                 PriorityLevel = entity.PriorityLevel,
                 IsDefault = entity.IsDefault,
                 IsActive = entity.IsActive
             };
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "MembershipTier.CreateMembershipTier",
+                "Membuat data membership tier.",
+                result
+            );
+
             return Ok(ApiResponse<MembershipTierCreateResponse>.Ok(
-                response,
+                result,
                 "Membership tier berhasil dibuat."
             ));
         }
 
         [HttpPut("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<MembershipTierUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Membership Tier", Description = "Mengubah data membership tier", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("MembershipTier", "Update")]
@@ -472,8 +426,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var validation = await ValidateRequestAsync(
                 excludeId: id,
-                tierCode: request.TierCode,
                 tierName: request.TierName,
+                tierType: request.TierType,
                 priorityLevel: request.PriorityLevel,
                 validityMonths: request.ValidityMonths,
                 minimumSpendAmount: request.MinimumSpendAmount,
@@ -501,12 +455,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 await ClearOtherDefaultTiersAsync(id, now, actorUserId);
             }
 
-            entity.TierCode = request.TierCode.Trim().ToUpperInvariant();
             entity.TierName = request.TierName.Trim();
             entity.TierType = request.TierType;
-            entity.CardTitle = NormalizeNullableText(request.CardTitle);
-            entity.CardColor = NormalizeNullableText(request.CardColor);
-            entity.CardImagePath = NormalizeNullableText(request.CardImagePath);
+            entity.CardTitle = NormalizeNullableString(request.CardTitle);
+            entity.CardColor = NormalizeNullableString(request.CardColor);
+            entity.CardImagePath = NormalizeNullableString(request.CardImagePath);
             entity.PriorityLevel = request.PriorityLevel;
             entity.IsDefault = request.IsDefault;
             entity.IsSelectableInKiosk = request.IsSelectableInKiosk;
@@ -524,22 +477,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.ValidityMonths = request.ValidityMonths;
             entity.MinimumSpendAmount = request.MinimumSpendAmount;
             entity.SortOrder = request.SortOrder;
-            entity.BenefitDescription = NormalizeNullableText(request.BenefitDescription);
-            entity.Description = NormalizeNullableText(request.Description);
+            entity.BenefitDescription = NormalizeNullableString(request.BenefitDescription);
+            entity.Description = NormalizeNullableString(request.Description);
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var result = new MembershipTierUpdateResponse
+            {
+                Id = entity.Id,
+                TierCode = entity.TierCode,
+                TierName = entity.TierName,
+                TierType = entity.TierType,
+                TierTypeName = entity.TierType.ToString(),
+                IsDefault = entity.IsDefault,
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "MembershipTier.UpdateMembershipTier",
+                "Mengubah data membership tier.",
+                result
+            );
+
+            return Ok(ApiResponse<MembershipTierUpdateResponse>.Ok(
+                result,
                 "Membership tier berhasil diperbarui."
             ));
         }
 
         [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<MembershipTierDeleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Membership Tier", Description = "Menghapus data membership tier", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("MembershipTier", "Delete")]
@@ -557,6 +529,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }
 
             var isUsedByPatientDefaultTier = await _dbContext.Set<MstPatient>()
+                .AsNoTracking()
                 .AnyAsync(x => x.DefaultMembershipTierId == id && !x.IsDelete);
 
             if (isUsedByPatientDefaultTier)
@@ -568,6 +541,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }
 
             var isUsedByPatientMembership = await _dbContext.Set<MstPatientMembership>()
+                .AsNoTracking()
                 .AnyAsync(x => x.MembershipTierId == id && !x.IsDelete);
 
             if (isUsedByPatientMembership)
@@ -578,86 +552,124 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsDelete = true;
             entity.IsActive = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var result = new MembershipTierDeleteResponse
+            {
+                Id = entity.Id,
+                TierCode = entity.TierCode,
+                TierName = entity.TierName,
+                DeleteDateTime = entity.DeleteDateTime
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "MembershipTier.DeleteMembershipTier",
+                "Menghapus data membership tier.",
+                result
+            );
+
+            return Ok(ApiResponse<MembershipTierDeleteResponse>.Ok(
+                result,
                 "Membership tier berhasil dihapus."
             ));
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
-            Guid? excludeId,
-            string tierCode,
-            string tierName,
-            int priorityLevel,
-            int validityMonths,
-            decimal minimumSpendAmount,
-            decimal registrationDiscountPercent,
-            decimal consultationDiscountPercent,
-            decimal procedureDiscountPercent,
-            decimal laboratoryDiscountPercent,
-            decimal radiologyDiscountPercent,
-            decimal pharmacyDiscountPercent)
+        private static IQueryable<MstMembershipTier> ApplyDateFilter(
+            IQueryable<MstMembershipTier> query,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
         {
-            if (string.IsNullOrWhiteSpace(tierCode))
-                return (false, "Kode membership tier wajib diisi.");
+            var now = DateTime.UtcNow.Date;
 
-            if (string.IsNullOrWhiteSpace(tierName))
-                return (false, "Nama membership tier wajib diisi.");
-
-            if (priorityLevel < 0)
-                return (false, "Priority level tidak boleh kurang dari 0.");
-
-            if (validityMonths < 1)
-                return (false, "Masa berlaku membership minimal 1 bulan.");
-
-            if (minimumSpendAmount < 0)
-                return (false, "Minimum spend amount tidak boleh kurang dari 0.");
-
-            var discounts = new Dictionary<string, decimal>
+            if (!string.IsNullOrWhiteSpace(customPeriod))
             {
-                { "Diskon registrasi", registrationDiscountPercent },
-                { "Diskon konsultasi", consultationDiscountPercent },
-                { "Diskon tindakan", procedureDiscountPercent },
-                { "Diskon laboratorium", laboratoryDiscountPercent },
-                { "Diskon radiologi", radiologyDiscountPercent },
-                { "Diskon farmasi", pharmacyDiscountPercent }
-            };
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        startDate = now;
+                        endDate = now;
+                        break;
 
-            foreach (var discount in discounts)
-            {
-                if (discount.Value < 0 || discount.Value > 100)
-                    return (false, $"{discount.Key} harus berada di antara 0 sampai 100 persen.");
+                    case "last7days":
+                        startDate = now.AddDays(-6);
+                        endDate = now;
+                        break;
+
+                    case "thismonth":
+                        startDate = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        endDate = startDate.Value.AddMonths(1).AddDays(-1);
+                        break;
+
+                    case "lastmonth":
+                        var firstDayThisMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        startDate = firstDayThisMonth.AddMonths(-1);
+                        endDate = firstDayThisMonth.AddDays(-1);
+                        break;
+                }
             }
 
-            var normalizedCode = tierCode.Trim().ToUpperInvariant();
-            var normalizedName = tierName.Trim().ToLower();
+            if (startDate.HasValue)
+            {
+                var start = startDate.Value.Date;
+                query = query.Where(x => x.CreateDateTime >= start);
+            }
 
-            var duplicateCode = await _dbContext.Set<MstMembershipTier>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.TierCode.ToUpper() == normalizedCode &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
+            if (endDate.HasValue)
+            {
+                var end = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(x => x.CreateDateTime <= end);
+            }
 
-            if (duplicateCode)
-                return (false, "Kode membership tier sudah digunakan.");
+            return query;
+        }
 
-            var duplicateName = await _dbContext.Set<MstMembershipTier>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.TierName.ToLower() == normalizedName &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
+        private async Task<string> GenerateTierCodeAsync()
+        {
+            var existingCodes = await _dbContext.Set<MstMembershipTier>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.TierCode.StartsWith(TierCodePrefix))
+                .Select(x => x.TierCode)
+                .ToListAsync();
 
-            if (duplicateName)
-                return (false, "Nama membership tier sudah digunakan.");
+            var usedNumbers = existingCodes
+                .Select(TryExtractTierSequenceNumber)
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .ToHashSet();
 
-            return (true, null);
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
+                nextNumber++;
+
+            return $"{TierCodePrefix}{nextNumber.ToString().PadLeft(TierCodeDigitLength, '0')}";
+        }
+
+        private static int? TryExtractTierSequenceNumber(string tierCode)
+        {
+            if (string.IsNullOrWhiteSpace(tierCode))
+                return null;
+
+            if (!tierCode.StartsWith(TierCodePrefix, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var numberText = tierCode[TierCodePrefix.Length..];
+
+            return int.TryParse(numberText, out var number)
+                ? number
+                : null;
         }
 
         private async Task ClearOtherDefaultTiersAsync(Guid? excludeId, DateTime now, Guid actorUserId)
@@ -678,14 +690,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }
         }
 
-        private static IQueryable<MstMembershipTier> ApplySorting(
+        private static IOrderedQueryable<MstMembershipTier> ApplySorting(
             IQueryable<MstMembershipTier> query,
             string? sortBy,
             string? sortDirection)
         {
             var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 
-            return (sortBy ?? "sortOrder").ToLowerInvariant() switch
+            return (sortBy ?? "sortOrder").Trim().ToLowerInvariant() switch
             {
                 "createdatetime" => isDesc
                     ? query.OrderByDescending(x => x.CreateDateTime)
@@ -729,11 +741,110 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             };
         }
 
+        private static MembershipTierResponse ToResponse(MstMembershipTier x)
+        {
+            return new MembershipTierResponse
+            {
+                Id = x.Id,
+                TierCode = x.TierCode,
+                TierName = x.TierName,
+                TierType = x.TierType,
+                TierTypeName = x.TierType.ToString(),
+                CardTitle = x.CardTitle,
+                CardColor = x.CardColor,
+                CardImagePath = x.CardImagePath,
+                PriorityLevel = x.PriorityLevel,
+                IsDefault = x.IsDefault,
+                IsSelectableInKiosk = x.IsSelectableInKiosk,
+                IsSelectableInAdmission = x.IsSelectableInAdmission,
+                IsManagedByMarketingOnly = x.IsManagedByMarketingOnly,
+                RegistrationDiscountPercent = x.RegistrationDiscountPercent,
+                ConsultationDiscountPercent = x.ConsultationDiscountPercent,
+                ProcedureDiscountPercent = x.ProcedureDiscountPercent,
+                LaboratoryDiscountPercent = x.LaboratoryDiscountPercent,
+                RadiologyDiscountPercent = x.RadiologyDiscountPercent,
+                PharmacyDiscountPercent = x.PharmacyDiscountPercent,
+                PriorityQueue = x.PriorityQueue,
+                FreeAnnualCheckup = x.FreeAnnualCheckup,
+                FreeParking = x.FreeParking,
+                ValidityMonths = x.ValidityMonths,
+                MinimumSpendAmount = x.MinimumSpendAmount,
+                SortOrder = x.SortOrder,
+                IsActive = x.IsActive,
+                CreateDateTime = x.CreateDateTime
+            };
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
+            Guid? excludeId,
+            string tierName,
+            MembershipTierType tierType,
+            int priorityLevel,
+            int validityMonths,
+            decimal minimumSpendAmount,
+            decimal registrationDiscountPercent,
+            decimal consultationDiscountPercent,
+            decimal procedureDiscountPercent,
+            decimal laboratoryDiscountPercent,
+            decimal radiologyDiscountPercent,
+            decimal pharmacyDiscountPercent)
+        {
+            if (string.IsNullOrWhiteSpace(tierName))
+                return (false, "Nama membership tier wajib diisi.");
+
+            if (!Enum.IsDefined(typeof(MembershipTierType), tierType))
+                return (false, "Tipe membership tier tidak valid.");
+
+            if (priorityLevel < 0)
+                return (false, "Priority level tidak boleh kurang dari 0.");
+
+            if (validityMonths < 1)
+                return (false, "Masa berlaku membership minimal 1 bulan.");
+
+            if (minimumSpendAmount < 0)
+                return (false, "Minimum spend amount tidak boleh kurang dari 0.");
+
+            var discounts = new Dictionary<string, decimal>
+            {
+                { "Diskon registrasi", registrationDiscountPercent },
+                { "Diskon konsultasi", consultationDiscountPercent },
+                { "Diskon tindakan", procedureDiscountPercent },
+                { "Diskon laboratorium", laboratoryDiscountPercent },
+                { "Diskon radiologi", radiologyDiscountPercent },
+                { "Diskon farmasi", pharmacyDiscountPercent }
+            };
+
+            foreach (var discount in discounts)
+            {
+                if (discount.Value < 0 || discount.Value > 100)
+                    return (false, $"{discount.Key} harus berada di antara 0 sampai 100 persen.");
+            }
+
+            var normalizedName = tierName.Trim().ToLower();
+
+            var duplicateName = await _dbContext.Set<MstMembershipTier>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    x.TierName.ToLower() == normalizedName &&
+                    (!excludeId.HasValue || x.Id != excludeId.Value));
+
+            if (duplicateName)
+                return (false, "Nama membership tier sudah digunakan.");
+
+            return (true, null);
+        }
+
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 25;
-            if (pageSize > 100) pageSize = 100;
+            if (pageNumber < 1)
+                pageNumber = 1;
+
+            if (pageSize < 1)
+                pageSize = 25;
+
+            if (pageSize > 100)
+                pageSize = 100;
 
             return (pageNumber, pageSize);
         }
@@ -766,7 +877,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 : Guid.Empty;
         }
 
-        private static string? NormalizeNullableText(string? value)
+        private static string? NormalizeNullableString(string? value)
         {
             return string.IsNullOrWhiteSpace(value)
                 ? null

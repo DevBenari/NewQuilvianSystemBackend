@@ -137,44 +137,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public string TimeFormat { get; set; } = "HH:mm:ss";
-
         public DoctorScheduleDefaultFilterResponse DefaultFilter { get; set; } = new();
-
+        public List<DoctorScheduleCustomPeriodResponse> CustomPeriods { get; set; } = new();
         public List<DoctorScheduleSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
-
         public List<DoctorScheduleEnumOptionResponse> ScheduleTypeOptions { get; set; } = new();
         public List<DoctorScheduleEnumOptionResponse> ScheduleStatusOptions { get; set; } = new();
         public List<DoctorScheduleEnumOptionResponse> PracticeDayOptions { get; set; } = new();
+        public List<DoctorScheduleQueryParameterResponse> QueryParameters { get; set; } = new();
+        public List<DoctorScheduleFieldMetadataResponse> CreateFields { get; set; } = new();
+        public List<DoctorScheduleFieldMetadataResponse> UpdateFields { get; set; } = new();
     }
 
     public class DoctorScheduleDefaultFilterResponse
     {
-        public string? Search { get; set; }
-        public bool? IsActive { get; set; }
-
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? DoctorId { get; set; }
-        public Guid? ServiceUnitId { get; set; }
         public Guid? ClinicId { get; set; }
-        public Guid? RoomId { get; set; }
-
-        public DoctorScheduleType? ScheduleType { get; set; }
-        public DoctorScheduleStatus? ScheduleStatus { get; set; }
-
-        public DayOfWeek? PracticeDay { get; set; }
-        public DateTime? PracticeDate { get; set; }
-
-        public bool? IsAllowWalkIn { get; set; }
-        public bool? IsAllowAppointment { get; set; }
-        public bool? IsAllowKioskRegistration { get; set; }
-        public bool? IsTelemedicineAvailable { get; set; }
-        public bool? IsSubstituteSchedule { get; set; }
-
+        public bool? IsActive { get; set; }
+        public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class DoctorScheduleCustomPeriodResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class DoctorScheduleSortOptionResponse
@@ -183,12 +177,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string Label { get; set; } = string.Empty;
     }
 
+    public class DoctorScheduleQueryParameterResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string? Description { get; set; }
+    }
+
+    public class DoctorScheduleFieldMetadataResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string DataType { get; set; } = string.Empty;
+        public bool Required { get; set; }
+        public bool ReadOnly { get; set; }
+        public bool IsVisible { get; set; } = true;
+        public object? DefaultValue { get; set; }
+        public string? OptionsSource { get; set; }
+    }
+
     public class CreateDoctorScheduleRequest
     {
-        [Required]
-        [MaxLength(50)]
-        public string ScheduleCode { get; set; } = string.Empty;
-
         [Required]
         [MaxLength(200)]
         public string ScheduleName { get; set; } = string.Empty;
@@ -257,39 +266,56 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         [MaxLength(250)]
         public string? Description { get; set; }
+
+        public bool IsActive { get; set; } = true;
     }
 
     public class UpdateDoctorScheduleRequest : CreateDoctorScheduleRequest
     {
-        public bool IsActive { get; set; } = true;
     }
 
     public class DoctorScheduleCreateResponse
     {
         public Guid Id { get; set; }
-
         public string ScheduleCode { get; set; } = string.Empty;
         public string ScheduleName { get; set; } = string.Empty;
-
         public DoctorScheduleType ScheduleType { get; set; }
         public DoctorScheduleStatus ScheduleStatus { get; set; }
-
         public Guid DoctorId { get; set; }
         public Guid ServiceUnitId { get; set; }
         public Guid ClinicId { get; set; }
         public Guid? RoomId { get; set; }
-
         public DayOfWeek PracticeDay { get; set; }
         public DateTime? PracticeDate { get; set; }
-
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
-
-        public bool IsAllowWalkIn { get; set; }
-        public bool IsAllowAppointment { get; set; }
-        public bool IsAllowKioskRegistration { get; set; }
-        public bool IsTelemedicineAvailable { get; set; }
-
         public bool IsActive { get; set; }
+    }
+
+    public class DoctorScheduleUpdateResponse
+    {
+        public Guid Id { get; set; }
+        public string ScheduleCode { get; set; } = string.Empty;
+        public string ScheduleName { get; set; } = string.Empty;
+        public DoctorScheduleStatus ScheduleStatus { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+    }
+
+    public class DoctorScheduleStatusResponse
+    {
+        public Guid Id { get; set; }
+        public string ScheduleCode { get; set; } = string.Empty;
+        public string ScheduleName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+    }
+
+    public class DoctorScheduleDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string ScheduleCode { get; set; } = string.Empty;
+        public string ScheduleName { get; set; } = string.Empty;
+        public DateTime? DeleteDateTime { get; set; }
     }
 }
