@@ -150,6 +150,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? FingerprintRegistrationReason { get; set; }
 
         public DateTime? FingerprintRegistrationEnabledAt { get; set; }
+
+        public bool IsGeolocationBypassEnabled { get; set; }
+
+        public string? GeolocationBypassReason { get; set; }
+
+        public DateTime? GeolocationBypassUntil { get; set; }
+
+        public bool IsGeolocationBypassActive { get; set; }
+    }
+
+    public class UpdateExternalUserAccountGeolocationBypassRequest
+    {
+        public bool IsGeolocationBypassEnabled { get; set; }
+
+        public DateTime? GeolocationBypassUntil { get; set; }
+
+        [MaxLength(250)]
+        public string? GeolocationBypassReason { get; set; }
     }
 
     public class ExternalUserChildSummaryResponse
@@ -214,17 +232,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string DateFormat { get; set; } = "yyyy-MM-dd";
 
         public string ExternalCodeInfo { get; set; } =
-            "ExternalCode dibuat otomatis oleh backend saat create external user.";
+            "ExternalCode dibuat otomatis oleh backend dengan format EXT-RSMMC-00001.";
 
         public string InitialPasswordFormatInfo { get; set; } =
-            "Jika akun user dibuat dari external user, password awal sebaiknya digenerate backend dan wajib diganti saat login pertama.";
+            "Jika akun user dibuat dari external user, password awal digenerate backend dan wajib diganti saat login pertama.";
 
-        public string CustomPeriodPriorityInfo { get; set; } =
-            "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
+        public string PeriodPriorityInfo { get; set; } =
+            "Jika period diisi selain custom, maka startDate dan endDate akan diabaikan.";
+
+        public bool ShowResetButton { get; set; } = true;
+
+        public string ResetButtonLabel { get; set; } = "Reset";
 
         public ExternalUserDefaultFilterResponse DefaultFilter { get; set; } = new();
 
-        public List<ExternalUserCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
+        public List<ExternalUserCustomPeriodOptionResponse> Periods { get; set; } = new();
 
         public List<ExternalUserSortOptionResponse> SortOptions { get; set; } = new();
 
@@ -253,37 +275,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public DateTime? EndDate { get; set; }
 
-        public string? CustomPeriod { get; set; }
-
-        public string? Search { get; set; }
-
-        public bool? IsActive { get; set; }
+        public string? Period { get; set; }
 
         public Guid? DepartmentId { get; set; }
 
         public Guid? PositionId { get; set; }
 
-        public Guid? CountryId { get; set; }
+        public bool? IsActive { get; set; }
 
-        public Guid? ProvinceId { get; set; }
-
-        public Guid? CityId { get; set; }
-
-        public Guid? DistrictId { get; set; }
-
-        public Guid? PostalCodeId { get; set; }
-
-        public ExternalUserType? ExternalUserType { get; set; }
-
-        public ExternalUserStatus? ExternalUserStatus { get; set; }
-
-        public ExternalEngagementType? EngagementType { get; set; }
-
-        public bool? HasUserAccount { get; set; }
-
-        public bool? HasActiveAccess { get; set; }
-
-        public bool? IsAccessExpired { get; set; }
+        public string? Search { get; set; }
 
         public string SortBy { get; set; } = "createDateTime";
 

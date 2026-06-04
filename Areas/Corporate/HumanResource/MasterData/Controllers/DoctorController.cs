@@ -269,32 +269,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     StartDate = null,
                     EndDate = null,
-                    CustomPeriod = null,
-                    Search = null,
-                    IsActive = null,
-                    IsAvailableForAppointment = null,
+                    Period = null,
                     DepartmentId = null,
                     PositionId = null,
-                    CountryId = null,
-                    ProvinceId = null,
-                    CityId = null,
-                    DistrictId = null,
-                    PostalCodeId = null,
-                    WorkforceUserType = null,
-                    DoctorStatus = null,
-                    DoctorType = null,
-                    PracticeType = null,
-                    EmploymentType = null,
-                    Religion = null,
-                    MaritalStatus = null,
-                    BloodType = null,
-                    HasUserAccount = null,
+                    IsActive = null,
+                    Search = null,
                     SortBy = "createDateTime",
                     SortDirection = "desc",
                     PageNumber = 1,
                     PageSize = 25
                 },
-                CustomPeriods = BuildCustomPeriodOptions(),
+                Periods = BuildCustomPeriodOptions(),
                 SortOptions = new List<DoctorSortOptionResponse>
                 {
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
@@ -303,8 +288,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     new() { Value = "fullName", Label = "Nama doctor" },
                     new() { Value = "departmentName", Label = "Nama department" },
                     new() { Value = "positionName", Label = "Nama position" },
-                    new() { Value = "specialistName", Label = "Spesialis" },
-                    new() { Value = "joinDate", Label = "Tanggal bergabung" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
@@ -395,26 +378,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         public async Task<IActionResult> GetDoctors(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
-            [FromQuery] string? customPeriod,
-            [FromQuery] string? search,
-            [FromQuery] bool? isActive,
-            [FromQuery] bool? isAvailableForAppointment,
+            [FromQuery] string? period,
             [FromQuery] Guid? departmentId,
             [FromQuery] Guid? positionId,
-            [FromQuery] Guid? countryId,
-            [FromQuery] Guid? provinceId,
-            [FromQuery] Guid? cityId,
-            [FromQuery] Guid? districtId,
-            [FromQuery] Guid? postalCodeId,
-            [FromQuery] UserType? workforceUserType,
-            [FromQuery] DoctorStatus? doctorStatus,
-            [FromQuery] DoctorType? doctorType,
-            [FromQuery] DoctorPracticeType? practiceType,
-            [FromQuery] EmploymentType? employmentType,
-            [FromQuery] Religion? religion,
-            [FromQuery] MaritalStatus? maritalStatus,
-            [FromQuery] BloodType? bloodType,
-            [FromQuery] bool? hasUserAccount,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -424,21 +392,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+            var dateRange = ResolveDateRange(startDate, endDate, period);
 
             if (!dateRange.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
-                ));
-            }
-
-            if (workforceUserType.HasValue && !IsDoctorUserType(workforceUserType.Value))
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "workforceUserType doctor hanya boleh PermanentDoctor atau GuestDoctor."
                 ));
             }
 
@@ -454,6 +414,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             if (dateRange.EndExclusive.HasValue)
             {
                 query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
+            }
+
+            if (departmentId.HasValue && departmentId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.PrimaryDepartmentId == departmentId.Value);
+            }
+
+            if (positionId.HasValue && positionId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.PrimaryPositionId == positionId.Value);
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -475,118 +450,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     (x.PrimaryDepartment != null && x.PrimaryDepartment.DepartmentCode.ToLower().Contains(keyword)) ||
                     (x.PrimaryDepartment != null && x.PrimaryDepartment.DepartmentName.ToLower().Contains(keyword)) ||
                     (x.PrimaryPosition != null && x.PrimaryPosition.PositionCode.ToLower().Contains(keyword)) ||
-                    (x.PrimaryPosition != null && x.PrimaryPosition.PositionName.ToLower().Contains(keyword)) ||
-                    (x.Country != null && x.Country.CountryName.ToLower().Contains(keyword)) ||
-                    (x.Province != null && x.Province.ProvinceName.ToLower().Contains(keyword)) ||
-                    (x.City != null && x.City.CityName.ToLower().Contains(keyword)) ||
-                    (x.District != null && x.District.DistrictName.ToLower().Contains(keyword)) ||
-                    (x.PostalCode != null && x.PostalCode.PostalCode.ToLower().Contains(keyword)) ||
-                    (x.PostalCode != null && x.PostalCode.VillageName != null && x.PostalCode.VillageName.ToLower().Contains(keyword)));
-            }
-
-            if (isActive.HasValue)
-            {
-                query = query.Where(x => x.IsActive == isActive.Value);
-            }
-
-            if (isAvailableForAppointment.HasValue)
-            {
-                query = query.Where(x => x.IsAvailableForAppointment == isAvailableForAppointment.Value);
-            }
-
-            if (departmentId.HasValue && departmentId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.PrimaryDepartmentId == departmentId.Value);
-            }
-
-            if (positionId.HasValue && positionId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.PrimaryPositionId == positionId.Value);
-            }
-
-            if (countryId.HasValue && countryId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.CountryId == countryId.Value);
-            }
-
-            if (provinceId.HasValue && provinceId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.ProvinceId == provinceId.Value);
-            }
-
-            if (cityId.HasValue && cityId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.CityId == cityId.Value);
-            }
-
-            if (districtId.HasValue && districtId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.DistrictId == districtId.Value);
-            }
-
-            if (postalCodeId.HasValue && postalCodeId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.PostalCodeId == postalCodeId.Value);
-            }
-
-            if (workforceUserType.HasValue)
-            {
-                query = query.Where(x =>
-                    x.WorkforceProfile != null &&
-                    x.WorkforceProfile.UserType == workforceUserType.Value);
-            }
-
-            if (doctorStatus.HasValue)
-            {
-                query = query.Where(x => x.DoctorStatus == doctorStatus.Value);
-            }
-
-            if (doctorType.HasValue)
-            {
-                query = query.Where(x => x.DoctorType == doctorType.Value);
-            }
-
-            if (practiceType.HasValue)
-            {
-                query = query.Where(x => x.PracticeType == practiceType.Value);
-            }
-
-            if (employmentType.HasValue)
-            {
-                query = query.Where(x => x.EmploymentType == employmentType.Value);
-            }
-
-            if (religion.HasValue)
-            {
-                query = query.Where(x => x.Religion == religion.Value);
-            }
-
-            if (maritalStatus.HasValue)
-            {
-                query = query.Where(x => x.MaritalStatus == maritalStatus.Value);
-            }
-
-            if (bloodType.HasValue)
-            {
-                query = query.Where(x => x.BloodType == bloodType.Value);
-            }
-
-            if (hasUserAccount.HasValue)
-            {
-                if (hasUserAccount.Value)
-                {
-                    query = query.Where(x =>
-                        _dbContext.Users.Any(u =>
-                            u.DoctorId == x.Id &&
-                            (u.UserType == UserType.PermanentDoctor || u.UserType == UserType.GuestDoctor)));
-                }
-                else
-                {
-                    query = query.Where(x =>
-                        !_dbContext.Users.Any(u =>
-                            u.DoctorId == x.Id &&
-                            (u.UserType == UserType.PermanentDoctor || u.UserType == UserType.GuestDoctor)));
-                }
+                    (x.PrimaryPosition != null && x.PrimaryPosition.PositionName.ToLower().Contains(keyword)));
             }
 
             var totalData = await query.CountAsync();
@@ -666,28 +530,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     startDate,
                     endDate,
-                    customPeriod,
+                    period,
                     AppliedStartDate = dateRange.Start,
                     AppliedEndExclusive = dateRange.EndExclusive,
-                    search,
-                    isActive,
-                    isAvailableForAppointment,
                     departmentId,
                     positionId,
-                    countryId,
-                    provinceId,
-                    cityId,
-                    districtId,
-                    postalCodeId,
-                    workforceUserType,
-                    doctorStatus,
-                    doctorType,
-                    practiceType,
-                    employmentType,
-                    religion,
-                    maritalStatus,
-                    bloodType,
-                    hasUserAccount,
+                    isActive,
+                    search,
                     sortBy,
                     sortDirection,
                     pageNumber,
@@ -703,11 +552,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<DoctorOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<DoctorOptionResponse>>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
             "Read Doctor",
-            Description = "Melihat data doctor",
+            Description = "Melihat pilihan doctor",
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
@@ -715,18 +564,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         public async Task<IActionResult> GetDoctorOptions(
             [FromQuery] Guid? departmentId,
             [FromQuery] Guid? positionId,
-            [FromQuery] UserType? workforceUserType,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] bool onlyAvailableForAppointment = false,
-            [FromQuery] string? search = null)
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
-            if (workforceUserType.HasValue && !IsDoctorUserType(workforceUserType.Value))
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "workforceUserType doctor hanya boleh PermanentDoctor atau GuestDoctor."
-                ));
-            }
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
 
             var query = _dbContext.Set<MstDoctor>()
                 .AsNoTracking()
@@ -735,11 +580,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             if (onlyActive)
             {
                 query = query.Where(x => x.IsActive);
-            }
-
-            if (onlyAvailableForAppointment)
-            {
-                query = query.Where(x => x.IsAvailableForAppointment);
             }
 
             if (departmentId.HasValue && departmentId.Value != Guid.Empty)
@@ -752,13 +592,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 query = query.Where(x => x.PrimaryPositionId == positionId.Value);
             }
 
-            if (workforceUserType.HasValue)
-            {
-                query = query.Where(x =>
-                    x.WorkforceProfile != null &&
-                    x.WorkforceProfile.UserType == workforceUserType.Value);
-            }
-
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -768,11 +601,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     x.DoctorNumber.ToLower().Contains(keyword) ||
                     x.FullName.ToLower().Contains(keyword) ||
                     (x.SpecialistName != null && x.SpecialistName.ToLower().Contains(keyword)) ||
-                    (x.SubSpecialistName != null && x.SubSpecialistName.ToLower().Contains(keyword)));
+                    (x.SubSpecialistName != null && x.SubSpecialistName.ToLower().Contains(keyword)) ||
+                    (x.PrimaryDepartment != null && x.PrimaryDepartment.DepartmentName.ToLower().Contains(keyword)) ||
+                    (x.PrimaryPosition != null && x.PrimaryPosition.PositionName.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.FullName)
+                .ThenBy(x => x.DoctorCode)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new DoctorOptionResponse
                 {
                     Id = x.Id,
@@ -791,8 +631,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<DoctorOptionResponse>>.Ok(
-                data,
+            var result = new PagedResult<DoctorOptionResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<PagedResult<DoctorOptionResponse>>.Ok(
+                result,
                 "Data pilihan doctor berhasil diambil."
             ));
         }
@@ -1103,6 +952,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                         userType: request.DoctorUserType,
                         isFingerprintRegistrationEnabled: request.IsFingerprintRegistrationEnabled,
                         fingerprintRegistrationReason: request.FingerprintRegistrationReason,
+                        isGeolocationBypassEnabled: request.IsGeolocationBypassEnabled,
+                        geolocationBypassUntil: request.GeolocationBypassUntil,
+                        geolocationBypassReason: request.GeolocationBypassReason,
                         actorUserId: actorUserId
                     );
 
@@ -1455,6 +1307,122 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             ));
         }
 
+        [HttpPatch("{id:guid}/user-account/geolocation-bypass")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+    "Update",
+    "Update Doctor",
+    Description = "Mengubah pengaturan geolocation bypass akun doctor",
+    AccessType = AccessTypes.Update,
+    SortOrder = 3
+)]
+        [AccessPermission("Doctor", "Update")]
+        public async Task<IActionResult> UpdateDoctorUserGeolocationBypass(
+    Guid id,
+    [FromBody] UpdateDoctorUserGeolocationBypassRequest request)
+        {
+            var doctorExists = await _dbContext.Set<MstDoctor>()
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == id && !x.IsDelete);
+
+            if (!doctorExists)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Doctor tidak ditemukan."
+                ));
+            }
+
+            var linkedUser = await _dbContext.Users.FirstOrDefaultAsync(x =>
+                x.DoctorId == id &&
+                (x.UserType == UserType.PermanentDoctor || x.UserType == UserType.GuestDoctor));
+
+            if (linkedUser == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Doctor belum memiliki akun login, sehingga geolocation bypass tidak dapat diubah."
+                ));
+            }
+
+            if (request.IsGeolocationBypassEnabled &&
+                request.GeolocationBypassUntil.HasValue &&
+                request.GeolocationBypassUntil.Value <= DateTime.UtcNow)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Batas waktu geolocation bypass harus lebih besar dari waktu sekarang."
+                ));
+            }
+
+            if (request.IsGeolocationBypassEnabled &&
+                string.IsNullOrWhiteSpace(request.GeolocationBypassReason))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan geolocation bypass wajib diisi."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+
+            linkedUser.IsGeolocationBypassEnabled = request.IsGeolocationBypassEnabled;
+
+            linkedUser.GeolocationBypassUntil = request.IsGeolocationBypassEnabled
+                ? request.GeolocationBypassUntil
+                : null;
+
+            linkedUser.GeolocationBypassReason = request.IsGeolocationBypassEnabled
+                ? NormalizeNullableText(request.GeolocationBypassReason)
+                : null;
+
+            linkedUser.UpdateDateTime = now;
+
+            var updateResult = await _userManager.UpdateAsync(linkedUser);
+
+            if (!updateResult.Succeeded)
+            {
+                var errors = string.Join("; ", updateResult.Errors.Select(x => x.Description));
+
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    $"Pengaturan geolocation bypass gagal diperbarui: {errors}"
+                ));
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Doctor.UpdateDoctorUserGeolocationBypass",
+                "Pengaturan geolocation bypass akun doctor berhasil diperbarui.",
+                new
+                {
+                    DoctorId = id,
+                    UserId = linkedUser.Id,
+                    linkedUser.UserName,
+                    linkedUser.Email,
+                    linkedUser.IsGeolocationBypassEnabled,
+                    linkedUser.GeolocationBypassUntil,
+                    linkedUser.GeolocationBypassReason
+                }
+            );
+
+            return Ok(ApiResponse<object>.Ok(
+                new
+                {
+                    DoctorId = id,
+                    UserId = linkedUser.Id,
+                    linkedUser.IsGeolocationBypassEnabled,
+                    linkedUser.GeolocationBypassUntil,
+                    linkedUser.GeolocationBypassReason
+                },
+                request.IsGeolocationBypassEnabled
+                    ? "Geolocation bypass akun doctor berhasil diaktifkan."
+                    : "Geolocation bypass akun doctor berhasil dinonaktifkan."
+            ));
+        }
+
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -1547,19 +1515,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         private async Task<string> GenerateDoctorCodeAsync()
         {
-            const string prefix = $"DOC-{HospitalCode}-";
+            const string menuCode = "DOC";
+            const string prefix = $"{menuCode}-{HospitalCode}-";
 
-            var totalData = await _dbContext.Set<MstDoctor>()
+            var existingCount = await _dbContext.Set<MstDoctor>()
                 .IgnoreQueryFilters()
-                .CountAsync();
+                .CountAsync(x => x.DoctorCode.StartsWith(prefix));
 
-            var nextNumber = totalData + 1;
+            var nextNumber = existingCount + 1;
 
             while (true)
             {
-                var code = $"{prefix}{nextNumber.ToString("D5")}";
+                var code = $"{prefix}{nextNumber:D5}";
 
                 var exists = await _dbContext.Set<MstDoctor>()
+                    .IgnoreQueryFilters()
                     .AnyAsync(x => x.DoctorCode == code);
 
                 if (!exists)
@@ -1627,6 +1597,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         private async Task<DoctorUserAccountCompactResponse?> BuildDoctorUserAccountCompactResponseAsync(Guid doctorId)
         {
+            var now = DateTime.UtcNow;
+
             var user = await _dbContext.Users
                 .AsNoTracking()
                 .Where(x =>
@@ -1644,9 +1616,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsActive = x.IsActive,
                     MustChangePassword = x.MustChangePassword,
                     ProfilePhotoPath = x.ProfilePhotoPath,
+
                     IsFingerprintRegistrationEnabled = x.IsFingerprintRegistrationEnabled,
                     FingerprintRegistrationReason = x.FingerprintRegistrationReason,
-                    FingerprintRegistrationEnabledAt = x.FingerprintRegistrationEnabledAt
+                    FingerprintRegistrationEnabledAt = x.FingerprintRegistrationEnabledAt,
+
+                    IsGeolocationBypassEnabled = x.IsGeolocationBypassEnabled,
+                    GeolocationBypassReason = x.GeolocationBypassReason,
+                    GeolocationBypassUntil = x.GeolocationBypassUntil,
+                    IsGeolocationBypassActive =
+                        x.IsGeolocationBypassEnabled &&
+                        (!x.GeolocationBypassUntil.HasValue || x.GeolocationBypassUntil.Value >= now)
                 })
                 .FirstOrDefaultAsync();
 
@@ -1654,7 +1634,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             {
                 IsAvailable = false,
                 IsActive = false,
-                MustChangePassword = false
+                MustChangePassword = false,
+                IsGeolocationBypassEnabled = false,
+                IsGeolocationBypassActive = false
             };
         }
 
@@ -2148,14 +2130,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     ? query.OrderByDescending(x => x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty).ThenBy(x => x.FullName)
                     : query.OrderBy(x => x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty).ThenBy(x => x.FullName),
 
-                "specialistname" => desc
-                    ? query.OrderByDescending(x => x.SpecialistName ?? string.Empty).ThenBy(x => x.FullName)
-                    : query.OrderBy(x => x.SpecialistName ?? string.Empty).ThenBy(x => x.FullName),
-
-                "joindate" => desc
-                    ? query.OrderByDescending(x => x.JoinDate).ThenBy(x => x.FullName)
-                    : query.OrderBy(x => x.JoinDate).ThenBy(x => x.FullName),
-
                 "isactive" => desc
                     ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.FullName)
                     : query.OrderBy(x => x.IsActive).ThenBy(x => x.FullName),
@@ -2265,31 +2239,81 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         {
             return new List<DoctorQueryParameterInfoResponse>
             {
-                new() { Name = "startDate", Type = "date", Description = "Tanggal mulai filter berdasarkan CreateDateTime.", Example = "2026-01-01" },
-                new() { Name = "endDate", Type = "date", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-01-31" },
-                new() { Name = "customPeriod", Type = "string", Description = "Pilihan periode cepat.", Example = "last30days" },
-                new() { Name = "search", Type = "string", Description = "Pencarian doctor code, doctor number, nama, email, phone, spesialis, department, position, dan region.", Example = "andi" },
-                new() { Name = "departmentId", Type = "guid", Description = "Filter berdasarkan primary department." },
-                new() { Name = "positionId", Type = "guid", Description = "Filter berdasarkan primary position." },
-                new() { Name = "countryId", Type = "guid", Description = "Filter berdasarkan country." },
-                new() { Name = "provinceId", Type = "guid", Description = "Filter berdasarkan province." },
-                new() { Name = "cityId", Type = "guid", Description = "Filter berdasarkan city." },
-                new() { Name = "districtId", Type = "guid", Description = "Filter berdasarkan district." },
-                new() { Name = "postalCodeId", Type = "guid", Description = "Filter berdasarkan postal code/village." },
-                new() { Name = "workforceUserType", Type = "enum", Description = "Filter UserType doctor. Hanya PermanentDoctor atau GuestDoctor.", Example = "PermanentDoctor" },
-                new() { Name = "doctorStatus", Type = "enum", Description = "Filter status doctor." },
-                new() { Name = "doctorType", Type = "enum", Description = "Filter tipe doctor." },
-                new() { Name = "practiceType", Type = "enum", Description = "Filter tipe praktik doctor." },
-                new() { Name = "employmentType", Type = "enum", Description = "Filter tipe employment.", Example = "2" },
-                new() { Name = "religion", Type = "enum", Description = "Filter berdasarkan enum Religion." },
-                new() { Name = "maritalStatus", Type = "enum", Description = "Filter berdasarkan enum MaritalStatus." },
-                new() { Name = "bloodType", Type = "enum", Description = "Filter berdasarkan enum BloodType." },
-                new() { Name = "isAvailableForAppointment", Type = "boolean", Description = "Filter doctor yang tersedia untuk appointment.", Example = "true" },
-                new() { Name = "hasUserAccount", Type = "boolean", Description = "Filter doctor yang sudah/belum memiliki akun login.", Example = "true" },
-                new() { Name = "sortBy", Type = "string", Description = "Field sorting. Nilai tersedia dari SortOptions.", Example = "fullName" },
-                new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
-                new() { Name = "pageNumber", Type = "integer", Description = "Nomor halaman. Minimal 1.", Example = "1" },
-                new() { Name = "pageSize", Type = "integer", Description = "Jumlah data per halaman. Maksimal 100.", Example = "25" }
+                new()
+                {
+                    Name = "startDate",
+                    Type = "date",
+                    Description = "Tanggal mulai filter berdasarkan CreateDateTime. Digunakan jika period kosong atau custom.",
+                    Example = "2026-01-01"
+                },
+                new()
+                {
+                    Name = "endDate",
+                    Type = "date",
+                    Description = "Tanggal akhir filter berdasarkan CreateDateTime. Digunakan jika period kosong atau custom.",
+                    Example = "2026-01-31"
+                },
+                new()
+                {
+                    Name = "period",
+                    Type = "string",
+                    Description = "Pilihan periode cepat. Jika period selain custom diisi, startDate dan endDate akan diabaikan.",
+                    Example = "last30days"
+                },
+                new()
+                {
+                    Name = "departmentId",
+                    Type = "guid",
+                    Description = "Relasi filter 1: filter berdasarkan primary department."
+                },
+                new()
+                {
+                    Name = "positionId",
+                    Type = "guid",
+                    Description = "Relasi filter 2: filter berdasarkan primary position."
+                },
+                new()
+                {
+                    Name = "isActive",
+                    Type = "boolean",
+                    Description = "Filter status aktif doctor.",
+                    Example = "true"
+                },
+                new()
+                {
+                    Name = "search",
+                    Type = "string",
+                    Description = "Pencarian doctor code, doctor number, nama, email, phone, spesialis, department, dan position.",
+                    Example = "andi"
+                },
+                new()
+                {
+                    Name = "sortBy",
+                    Type = "string",
+                    Description = "Field sorting. Nilai tersedia dari SortOptions.",
+                    Example = "fullName"
+                },
+                new()
+                {
+                    Name = "sortDirection",
+                    Type = "string",
+                    Description = "Arah sorting: asc atau desc.",
+                    Example = "asc"
+                },
+                new()
+                {
+                    Name = "pageNumber",
+                    Type = "integer",
+                    Description = "Nomor halaman. Minimal 1.",
+                    Example = "1"
+                },
+                new()
+                {
+                    Name = "pageSize",
+                    Type = "integer",
+                    Description = "Jumlah data per halaman. Maksimal 100.",
+                    Example = "25"
+                }
             };
         }
 
@@ -3026,6 +3050,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 UserType userType,
                 bool isFingerprintRegistrationEnabled,
                 string? fingerprintRegistrationReason,
+                bool isGeolocationBypassEnabled,
+                DateTime? geolocationBypassUntil,
+                string? geolocationBypassReason,
                 Guid actorUserId)
         {
             if (doctor.Id == Guid.Empty)
@@ -3099,9 +3126,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ExternalUserId = null,
                 PrimaryDepartmentId = doctor.PrimaryDepartmentId,
                 PrimaryPositionId = doctor.PrimaryPositionId,
-                IsGeolocationBypassEnabled = false,
-                GeolocationBypassReason = null,
-                GeolocationBypassUntil = null,
+                IsGeolocationBypassEnabled = isGeolocationBypassEnabled,
+                GeolocationBypassReason = isGeolocationBypassEnabled
+                ? NormalizeNullableText(geolocationBypassReason)
+                : null,
+                            GeolocationBypassUntil = isGeolocationBypassEnabled
+                ? geolocationBypassUntil
+                : null,
                 IsActive = doctor.IsActive,
                 MustChangePassword = true,
                 AccessValidUntil = null,

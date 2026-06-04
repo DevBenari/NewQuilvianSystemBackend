@@ -164,6 +164,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? FingerprintRegistrationReason { get; set; }
 
         public DateTime? FingerprintRegistrationEnabledAt { get; set; }
+
+        public bool IsGeolocationBypassEnabled { get; set; }
+
+        public string? GeolocationBypassReason { get; set; }
+
+        public DateTime? GeolocationBypassUntil { get; set; }
+
+        public bool IsGeolocationBypassActive { get; set; }
+    }
+
+    public class UpdateEmployeeUserGeolocationBypassRequest
+    {
+        public bool IsGeolocationBypassEnabled { get; set; }
+
+        public DateTime? GeolocationBypassUntil { get; set; }
+
+        [MaxLength(250)]
+        public string? GeolocationBypassReason { get; set; }
     }
 
     public class EmployeeChildSummaryResponse
@@ -235,18 +253,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
 
+        public string EmployeeCodeInfo { get; set; } =
+            "EmployeeCode dibuat otomatis oleh backend dengan format EMP-RSMMC-00001.";
+
         public string EmployeeNumberInfo { get; set; } =
             "EmployeeNumber dibuat otomatis oleh backend saat create employee.";
 
         public string InitialPasswordFormatInfo { get; set; } =
             "Jika akun user dibuat dari employee, password awal digenerate dari BirthDate dengan format ddMMMyyyy, contoh 01Jan2025.";
 
-        public string CustomPeriodPriorityInfo { get; set; } =
-            "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan. Jika customPeriod kosong atau custom, frontend boleh mengirim startDate dan endDate.";
+        public string PeriodPriorityInfo { get; set; } =
+            "Jika period diisi selain custom, maka startDate dan endDate akan diabaikan.";
+
+        public bool ShowResetButton { get; set; } = true;
+
+        public string ResetButtonLabel { get; set; } = "Reset";
 
         public EmployeeDefaultFilterResponse DefaultFilter { get; set; } = new();
 
-        public List<EmployeeCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
+        public List<EmployeeCustomPeriodOptionResponse> Periods { get; set; } = new();
 
         public List<EmployeeSortOptionResponse> SortOptions { get; set; } = new();
 
@@ -289,41 +314,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public DateTime? EndDate { get; set; }
 
-        public string? CustomPeriod { get; set; }
-
-        public string? Search { get; set; }
-
-        public bool? IsActive { get; set; }
+        public string? Period { get; set; }
 
         public Guid? DepartmentId { get; set; }
 
         public Guid? PositionId { get; set; }
 
-        public Guid? CountryId { get; set; }
+        public bool? IsActive { get; set; }
 
-        public Guid? ProvinceId { get; set; }
-
-        public Guid? CityId { get; set; }
-
-        public Guid? DistrictId { get; set; }
-
-        public Guid? PostalCodeId { get; set; }
-
-        public EmployeeStatus? EmployeeStatus { get; set; }
-
-        public EmployeeProfessionType? ProfessionType { get; set; }
-
-        public EmploymentType? EmploymentType { get; set; }
-
-        public Religion? Religion { get; set; }
-
-        public MaritalStatus? MaritalStatus { get; set; }
-
-        public BloodType? BloodType { get; set; }
-
-        public bool? HasUserAccount { get; set; }
-
-        public bool? HasTransportAllowanceProfile { get; set; }
+        public string? Search { get; set; }
 
         public string SortBy { get; set; } = "createDateTime";
 

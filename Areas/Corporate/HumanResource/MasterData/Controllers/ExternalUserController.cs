@@ -229,38 +229,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     StartDate = null,
                     EndDate = null,
-                    CustomPeriod = null,
-                    Search = null,
-                    IsActive = null,
+                    Period = null,
                     DepartmentId = null,
                     PositionId = null,
-                    CountryId = null,
-                    ProvinceId = null,
-                    CityId = null,
-                    DistrictId = null,
-                    PostalCodeId = null,
-                    ExternalUserType = null,
-                    ExternalUserStatus = null,
-                    EngagementType = null,
-                    HasUserAccount = null,
-                    HasActiveAccess = null,
-                    IsAccessExpired = null,
+                    IsActive = null,
+                    Search = null,
                     SortBy = "createDateTime",
                     SortDirection = "desc",
                     PageNumber = 1,
                     PageSize = 25
                 },
-                CustomPeriods = BuildCustomPeriodOptions(),
+                Periods = BuildCustomPeriodOptions(),
                 SortOptions = new List<ExternalUserSortOptionResponse>
                 {
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
                     new() { Value = "externalCode", Label = "Kode external user" },
                     new() { Value = "fullName", Label = "Nama external user" },
                     new() { Value = "companyName", Label = "Nama company" },
-                    new() { Value = "jobTitle", Label = "Job title" },
                     new() { Value = "departmentName", Label = "Nama department" },
                     new() { Value = "positionName", Label = "Nama position" },
-                    new() { Value = "contractEndDate", Label = "Tanggal akhir kontrak" },
                     new() { Value = "accessEndDate", Label = "Tanggal akhir akses" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
@@ -348,22 +335,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         public async Task<IActionResult> GetExternalUsers(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
-            [FromQuery] string? customPeriod,
-            [FromQuery] string? search,
-            [FromQuery] bool? isActive,
+            [FromQuery] string? period,
             [FromQuery] Guid? departmentId,
             [FromQuery] Guid? positionId,
-            [FromQuery] Guid? countryId,
-            [FromQuery] Guid? provinceId,
-            [FromQuery] Guid? cityId,
-            [FromQuery] Guid? districtId,
-            [FromQuery] Guid? postalCodeId,
-            [FromQuery] ExternalUserType? externalUserType,
-            [FromQuery] ExternalUserStatus? externalUserStatus,
-            [FromQuery] ExternalEngagementType? engagementType,
-            [FromQuery] bool? hasUserAccount,
-            [FromQuery] bool? hasActiveAccess,
-            [FromQuery] bool? isAccessExpired,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -373,7 +349,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+            var dateRange = ResolveDateRange(startDate, endDate, period);
 
             if (!dateRange.IsValid)
             {
@@ -382,8 +358,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
                 ));
             }
-
-            var now = DateTime.UtcNow;
 
             var query = _dbContext.Set<MstExternalUser>()
                 .AsNoTracking()
@@ -397,6 +371,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             if (dateRange.EndExclusive.HasValue)
             {
                 query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
+            }
+
+            if (departmentId.HasValue && departmentId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.PrimaryDepartmentId == departmentId.Value);
+            }
+
+            if (positionId.HasValue && positionId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.PrimaryPositionId == positionId.Value);
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -419,120 +408,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     (x.PrimaryDepartment != null && x.PrimaryDepartment.DepartmentCode.ToLower().Contains(keyword)) ||
                     (x.PrimaryDepartment != null && x.PrimaryDepartment.DepartmentName.ToLower().Contains(keyword)) ||
                     (x.PrimaryPosition != null && x.PrimaryPosition.PositionCode.ToLower().Contains(keyword)) ||
-                    (x.PrimaryPosition != null && x.PrimaryPosition.PositionName.ToLower().Contains(keyword)) ||
-                    (x.Country != null && x.Country.CountryName.ToLower().Contains(keyword)) ||
-                    (x.Province != null && x.Province.ProvinceName.ToLower().Contains(keyword)) ||
-                    (x.City != null && x.City.CityName.ToLower().Contains(keyword)) ||
-                    (x.District != null && x.District.DistrictName.ToLower().Contains(keyword)) ||
-                    (x.PostalCode != null && x.PostalCode.PostalCode.ToLower().Contains(keyword)) ||
-                    (x.PostalCode != null && x.PostalCode.VillageName != null && x.PostalCode.VillageName.ToLower().Contains(keyword)));
-            }
-
-            if (isActive.HasValue)
-            {
-                query = query.Where(x => x.IsActive == isActive.Value);
-            }
-
-            if (departmentId.HasValue && departmentId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.PrimaryDepartmentId == departmentId.Value);
-            }
-
-            if (positionId.HasValue && positionId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.PrimaryPositionId == positionId.Value);
-            }
-
-            if (countryId.HasValue && countryId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.CountryId == countryId.Value);
-            }
-
-            if (provinceId.HasValue && provinceId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.ProvinceId == provinceId.Value);
-            }
-
-            if (cityId.HasValue && cityId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.CityId == cityId.Value);
-            }
-
-            if (districtId.HasValue && districtId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.DistrictId == districtId.Value);
-            }
-
-            if (postalCodeId.HasValue && postalCodeId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.PostalCodeId == postalCodeId.Value);
-            }
-
-            if (externalUserType.HasValue)
-            {
-                query = query.Where(x => x.ExternalUserType == externalUserType.Value);
-            }
-
-            if (externalUserStatus.HasValue)
-            {
-                query = query.Where(x => x.ExternalUserStatus == externalUserStatus.Value);
-            }
-
-            if (engagementType.HasValue)
-            {
-                query = query.Where(x => x.EngagementType == engagementType.Value);
-            }
-
-            if (hasUserAccount.HasValue)
-            {
-                if (hasUserAccount.Value)
-                {
-                    query = query.Where(x =>
-                        _dbContext.Users.Any(u =>
-                            u.ExternalUserId == x.Id &&
-                            u.UserType == UserType.ExternalUser));
-                }
-                else
-                {
-                    query = query.Where(x =>
-                        !_dbContext.Users.Any(u =>
-                            u.ExternalUserId == x.Id &&
-                            u.UserType == UserType.ExternalUser));
-                }
-            }
-
-            if (hasActiveAccess.HasValue)
-            {
-                if (hasActiveAccess.Value)
-                {
-                    query = query.Where(x =>
-                        x.IsActive &&
-                        (!x.AccessStartDate.HasValue || x.AccessStartDate.Value <= now) &&
-                        (!x.AccessEndDate.HasValue || x.AccessEndDate.Value >= now));
-                }
-                else
-                {
-                    query = query.Where(x =>
-                        !x.IsActive ||
-                        (x.AccessStartDate.HasValue && x.AccessStartDate.Value > now) ||
-                        (x.AccessEndDate.HasValue && x.AccessEndDate.Value < now));
-                }
-            }
-
-            if (isAccessExpired.HasValue)
-            {
-                if (isAccessExpired.Value)
-                {
-                    query = query.Where(x =>
-                        x.ExternalUserStatus == ExternalUserStatus.AccessExpired ||
-                        (x.AccessEndDate.HasValue && x.AccessEndDate.Value < now));
-                }
-                else
-                {
-                    query = query.Where(x =>
-                        x.ExternalUserStatus != ExternalUserStatus.AccessExpired &&
-                        (!x.AccessEndDate.HasValue || x.AccessEndDate.Value >= now));
-                }
+                    (x.PrimaryPosition != null && x.PrimaryPosition.PositionName.ToLower().Contains(keyword)));
             }
 
             var totalData = await query.CountAsync();
@@ -607,24 +483,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     startDate,
                     endDate,
-                    customPeriod,
+                    period,
                     AppliedStartDate = dateRange.Start,
                     AppliedEndExclusive = dateRange.EndExclusive,
-                    search,
-                    isActive,
                     departmentId,
                     positionId,
-                    countryId,
-                    provinceId,
-                    cityId,
-                    districtId,
-                    postalCodeId,
-                    externalUserType,
-                    externalUserStatus,
-                    engagementType,
-                    hasUserAccount,
-                    hasActiveAccess,
-                    isAccessExpired,
+                    isActive,
+                    search,
                     sortBy,
                     sortDirection,
                     pageNumber,
@@ -640,11 +505,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<ExternalUserOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<ExternalUserOptionResponse>>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
             "Read External User",
-            Description = "Melihat data external user",
+            Description = "Melihat pilihan external user",
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
@@ -652,10 +517,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         public async Task<IActionResult> GetExternalUserOptions(
             [FromQuery] Guid? departmentId,
             [FromQuery] Guid? positionId,
-            [FromQuery] ExternalUserType? externalUserType,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = _dbContext.Set<MstExternalUser>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
@@ -675,11 +545,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 query = query.Where(x => x.PrimaryPositionId == positionId.Value);
             }
 
-            if (externalUserType.HasValue)
-            {
-                query = query.Where(x => x.ExternalUserType == externalUserType.Value);
-            }
-
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -688,11 +553,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     x.ExternalCode.ToLower().Contains(keyword) ||
                     x.FullName.ToLower().Contains(keyword) ||
                     (x.CompanyName != null && x.CompanyName.ToLower().Contains(keyword)) ||
-                    (x.JobTitle != null && x.JobTitle.ToLower().Contains(keyword)));
+                    (x.CompanyCode != null && x.CompanyCode.ToLower().Contains(keyword)) ||
+                    (x.JobTitle != null && x.JobTitle.ToLower().Contains(keyword)) ||
+                    (x.Email != null && x.Email.ToLower().Contains(keyword)) ||
+                    (x.PrimaryDepartment != null && x.PrimaryDepartment.DepartmentName.ToLower().Contains(keyword)) ||
+                    (x.PrimaryPosition != null && x.PrimaryPosition.PositionName.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.FullName)
+                .ThenBy(x => x.ExternalCode)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new ExternalUserOptionResponse
                 {
                     Id = x.Id,
@@ -710,8 +584,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<ExternalUserOptionResponse>>.Ok(
-                data,
+            var result = new PagedResult<ExternalUserOptionResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<PagedResult<ExternalUserOptionResponse>>.Ok(
+                result,
                 "Data pilihan external user berhasil diambil."
             ));
         }
@@ -1341,6 +1224,146 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             ));
         }
 
+        [HttpPatch("{id:guid}/user-account/geolocation-bypass")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+    "Update",
+    "Update External User",
+    Description = "Mengubah pengaturan geolocation bypass akun external user",
+    AccessType = AccessTypes.Update,
+    SortOrder = 3
+)]
+        [AccessPermission("ExternalUser", "Update")]
+        public async Task<IActionResult> UpdateExternalUserAccountGeolocationBypass(
+    Guid id,
+    [FromBody] UpdateExternalUserAccountGeolocationBypassRequest request)
+        {
+            var externalUser = await _dbContext.Set<MstExternalUser>()
+                .AsNoTracking()
+                .Where(x => x.Id == id && !x.IsDelete)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.ExternalCode,
+                    x.FullName,
+                    x.AccessEndDate,
+                    x.IsActive
+                })
+                .FirstOrDefaultAsync();
+
+            if (externalUser == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "External user tidak ditemukan."
+                ));
+            }
+
+            var linkedUser = await _dbContext.Users.FirstOrDefaultAsync(x =>
+                x.ExternalUserId == id &&
+                x.UserType == UserType.ExternalUser);
+
+            if (linkedUser == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "External user belum memiliki akun login, sehingga geolocation bypass tidak dapat diubah."
+                ));
+            }
+
+            if (request.IsGeolocationBypassEnabled &&
+                request.GeolocationBypassUntil.HasValue &&
+                request.GeolocationBypassUntil.Value <= DateTime.UtcNow)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Batas waktu geolocation bypass harus lebih besar dari waktu sekarang."
+                ));
+            }
+
+            if (request.IsGeolocationBypassEnabled &&
+                linkedUser.AccessValidUntil.HasValue &&
+                request.GeolocationBypassUntil.HasValue &&
+                request.GeolocationBypassUntil.Value > linkedUser.AccessValidUntil.Value)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Batas waktu geolocation bypass tidak boleh melebihi batas akhir akses external user."
+                ));
+            }
+
+            if (request.IsGeolocationBypassEnabled &&
+                string.IsNullOrWhiteSpace(request.GeolocationBypassReason))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan geolocation bypass wajib diisi."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+
+            linkedUser.IsGeolocationBypassEnabled = request.IsGeolocationBypassEnabled;
+
+            linkedUser.GeolocationBypassUntil = request.IsGeolocationBypassEnabled
+                ? request.GeolocationBypassUntil
+                : null;
+
+            linkedUser.GeolocationBypassReason = request.IsGeolocationBypassEnabled
+                ? NormalizeNullableText(request.GeolocationBypassReason)
+                : null;
+
+            linkedUser.UpdateDateTime = now;
+
+            var updateResult = await _userManager.UpdateAsync(linkedUser);
+
+            if (!updateResult.Succeeded)
+            {
+                var errors = string.Join("; ", updateResult.Errors.Select(x => x.Description));
+
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    $"Pengaturan geolocation bypass gagal diperbarui: {errors}"
+                ));
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "ExternalUser.UpdateExternalUserAccountGeolocationBypass",
+                "Pengaturan geolocation bypass akun external user berhasil diperbarui.",
+                new
+                {
+                    ExternalUserId = id,
+                    externalUser.ExternalCode,
+                    externalUser.FullName,
+                    UserId = linkedUser.Id,
+                    linkedUser.UserName,
+                    linkedUser.Email,
+                    linkedUser.IsGeolocationBypassEnabled,
+                    linkedUser.GeolocationBypassUntil,
+                    linkedUser.GeolocationBypassReason,
+                    linkedUser.AccessValidUntil
+                }
+            );
+
+            return Ok(ApiResponse<object>.Ok(
+                new
+                {
+                    ExternalUserId = id,
+                    UserId = linkedUser.Id,
+                    linkedUser.IsGeolocationBypassEnabled,
+                    linkedUser.GeolocationBypassUntil,
+                    linkedUser.GeolocationBypassReason,
+                    linkedUser.AccessValidUntil
+                },
+                request.IsGeolocationBypassEnabled
+                    ? "Geolocation bypass akun external user berhasil diaktifkan."
+                    : "Geolocation bypass akun external user berhasil dinonaktifkan."
+            ));
+        }
+
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -1433,19 +1456,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         private async Task<string> GenerateExternalCodeAsync()
         {
-            const string prefix = $"EXT-{HospitalCode}-";
+            const string menuCode = "EXT";
+            const string prefix = $"{menuCode}-{HospitalCode}-";
 
-            var totalData = await _dbContext.Set<MstExternalUser>()
+            var existingCount = await _dbContext.Set<MstExternalUser>()
                 .IgnoreQueryFilters()
-                .CountAsync();
+                .CountAsync(x => x.ExternalCode.StartsWith(prefix));
 
-            var nextNumber = totalData + 1;
+            var nextNumber = existingCount + 1;
 
             while (true)
             {
-                var code = $"{prefix}{nextNumber.ToString("D5")}";
+                var code = $"{prefix}{nextNumber:D5}";
 
                 var exists = await _dbContext.Set<MstExternalUser>()
+                    .IgnoreQueryFilters()
                     .AnyAsync(x => x.ExternalCode == code);
 
                 if (!exists)
@@ -1485,6 +1510,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         private async Task<ExternalUserAccountCompactResponse?> BuildExternalUserAccountCompactResponseAsync(Guid externalUserId)
         {
+            var now = DateTime.UtcNow;
+
             var user = await _dbContext.Users
                 .AsNoTracking()
                 .Where(x =>
@@ -1502,9 +1529,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsActive = x.IsActive,
                     MustChangePassword = x.MustChangePassword,
                     ProfilePhotoPath = x.ProfilePhotoPath,
+
                     IsFingerprintRegistrationEnabled = x.IsFingerprintRegistrationEnabled,
                     FingerprintRegistrationReason = x.FingerprintRegistrationReason,
-                    FingerprintRegistrationEnabledAt = x.FingerprintRegistrationEnabledAt
+                    FingerprintRegistrationEnabledAt = x.FingerprintRegistrationEnabledAt,
+
+                    IsGeolocationBypassEnabled = x.IsGeolocationBypassEnabled,
+                    GeolocationBypassReason = x.GeolocationBypassReason,
+                    GeolocationBypassUntil = x.GeolocationBypassUntil,
+                    IsGeolocationBypassActive =
+                        x.IsGeolocationBypassEnabled &&
+                        (!x.GeolocationBypassUntil.HasValue || x.GeolocationBypassUntil.Value >= now)
                 })
                 .FirstOrDefaultAsync();
 
@@ -1512,7 +1547,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             {
                 IsAvailable = false,
                 IsActive = false,
-                MustChangePassword = false
+                MustChangePassword = false,
+                IsGeolocationBypassEnabled = false,
+                IsGeolocationBypassActive = false
             };
         }
 
@@ -1915,15 +1952,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         private static DateRangeResolveResult ResolveDateRange(
             DateTime? startDate,
             DateTime? endDate,
-            string? customPeriod)
+            string? period)
         {
-            var period = customPeriod?.Trim().ToLower();
+            var selectedPeriod = period?.Trim().ToLower();
             var today = DateTime.UtcNow.Date;
 
             DateTime? start = null;
             DateTime? endExclusive = null;
 
-            switch (period)
+            switch (selectedPeriod)
             {
                 case null:
                 case "":
@@ -1983,7 +2020,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
                 default:
                     return DateRangeResolveResult.Invalid(
-                        $"customPeriod '{customPeriod}' tidak valid. Gunakan endpoint filters/metadata untuk melihat daftar customPeriod yang tersedia."
+                        $"period '{period}' tidak valid. Gunakan endpoint filters/metadata untuk melihat daftar period yang tersedia."
                     );
             }
 
@@ -2019,10 +2056,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     ? query.OrderByDescending(x => x.CompanyName ?? string.Empty).ThenBy(x => x.FullName)
                     : query.OrderBy(x => x.CompanyName ?? string.Empty).ThenBy(x => x.FullName),
 
-                "jobtitle" => desc
-                    ? query.OrderByDescending(x => x.JobTitle ?? string.Empty).ThenBy(x => x.FullName)
-                    : query.OrderBy(x => x.JobTitle ?? string.Empty).ThenBy(x => x.FullName),
-
                 "departmentname" => desc
                     ? query.OrderByDescending(x => x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentName : string.Empty).ThenBy(x => x.FullName)
                     : query.OrderBy(x => x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentName : string.Empty).ThenBy(x => x.FullName),
@@ -2030,10 +2063,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 "positionname" => desc
                     ? query.OrderByDescending(x => x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty).ThenBy(x => x.FullName)
                     : query.OrderBy(x => x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty).ThenBy(x => x.FullName),
-
-                "contractenddate" => desc
-                    ? query.OrderByDescending(x => x.ContractEndDate).ThenBy(x => x.FullName)
-                    : query.OrderBy(x => x.ContractEndDate).ThenBy(x => x.FullName),
 
                 "accessenddate" => desc
                     ? query.OrderByDescending(x => x.AccessEndDate).ThenBy(x => x.FullName)
@@ -2148,27 +2177,81 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         {
             return new List<ExternalUserQueryParameterInfoResponse>
             {
-                new() { Name = "startDate", Type = "date", Description = "Tanggal mulai filter berdasarkan CreateDateTime.", Example = "2026-01-01" },
-                new() { Name = "endDate", Type = "date", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-01-31" },
-                new() { Name = "customPeriod", Type = "string", Description = "Pilihan periode cepat.", Example = "last30days" },
-                new() { Name = "search", Type = "string", Description = "Pencarian external code, nama, company, job title, email, phone, department, position, dan region.", Example = "vendor" },
-                new() { Name = "departmentId", Type = "guid", Description = "Filter berdasarkan primary department." },
-                new() { Name = "positionId", Type = "guid", Description = "Filter berdasarkan primary position." },
-                new() { Name = "countryId", Type = "guid", Description = "Filter berdasarkan country." },
-                new() { Name = "provinceId", Type = "guid", Description = "Filter berdasarkan province." },
-                new() { Name = "cityId", Type = "guid", Description = "Filter berdasarkan city." },
-                new() { Name = "districtId", Type = "guid", Description = "Filter berdasarkan district." },
-                new() { Name = "postalCodeId", Type = "guid", Description = "Filter berdasarkan postal code/village." },
-                new() { Name = "externalUserType", Type = "enum", Description = "Filter tipe external user." },
-                new() { Name = "externalUserStatus", Type = "enum", Description = "Filter status external user." },
-                new() { Name = "engagementType", Type = "enum", Description = "Filter tipe engagement." },
-                new() { Name = "hasUserAccount", Type = "boolean", Description = "Filter external user yang sudah/belum memiliki akun login.", Example = "true" },
-                new() { Name = "hasActiveAccess", Type = "boolean", Description = "Filter external user yang aksesnya sedang aktif berdasarkan AccessStartDate dan AccessEndDate.", Example = "true" },
-                new() { Name = "isAccessExpired", Type = "boolean", Description = "Filter external user yang aksesnya sudah expired.", Example = "true" },
-                new() { Name = "sortBy", Type = "string", Description = "Field sorting. Nilai tersedia dari SortOptions.", Example = "fullName" },
-                new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
-                new() { Name = "pageNumber", Type = "integer", Description = "Nomor halaman. Minimal 1.", Example = "1" },
-                new() { Name = "pageSize", Type = "integer", Description = "Jumlah data per halaman. Maksimal 100.", Example = "25" }
+                new()
+                {
+                    Name = "startDate",
+                    Type = "date",
+                    Description = "Tanggal mulai filter berdasarkan CreateDateTime. Digunakan jika period kosong atau custom.",
+                    Example = "2026-01-01"
+                },
+                new()
+                {
+                    Name = "endDate",
+                    Type = "date",
+                    Description = "Tanggal akhir filter berdasarkan CreateDateTime. Digunakan jika period kosong atau custom.",
+                    Example = "2026-01-31"
+                },
+                new()
+                {
+                    Name = "period",
+                    Type = "string",
+                    Description = "Pilihan periode cepat. Jika period selain custom diisi, startDate dan endDate akan diabaikan.",
+                    Example = "last30days"
+                },
+                new()
+                {
+                    Name = "departmentId",
+                    Type = "guid",
+                    Description = "Relasi filter 1: filter berdasarkan primary department."
+                },
+                new()
+                {
+                    Name = "positionId",
+                    Type = "guid",
+                    Description = "Relasi filter 2: filter berdasarkan primary position."
+                },
+                new()
+                {
+                    Name = "isActive",
+                    Type = "boolean",
+                    Description = "Filter status aktif external user.",
+                    Example = "true"
+                },
+                new()
+                {
+                    Name = "search",
+                    Type = "string",
+                    Description = "Pencarian external code, nama, company, job title, email, phone, department, dan position.",
+                    Example = "vendor"
+                },
+                new()
+                {
+                    Name = "sortBy",
+                    Type = "string",
+                    Description = "Field sorting. Nilai tersedia dari SortOptions.",
+                    Example = "fullName"
+                },
+                new()
+                {
+                    Name = "sortDirection",
+                    Type = "string",
+                    Description = "Arah sorting: asc atau desc.",
+                    Example = "asc"
+                },
+                new()
+                {
+                    Name = "pageNumber",
+                    Type = "integer",
+                    Description = "Nomor halaman. Minimal 1.",
+                    Example = "1"
+                },
+                new()
+                {
+                    Name = "pageSize",
+                    Type = "integer",
+                    Description = "Jumlah data per halaman. Maksimal 100.",
+                    Example = "25"
+                }
             };
         }
 

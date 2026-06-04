@@ -175,6 +175,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? FingerprintRegistrationReason { get; set; }
 
         public DateTime? FingerprintRegistrationEnabledAt { get; set; }
+
+        public bool IsGeolocationBypassEnabled { get; set; }
+
+        public string? GeolocationBypassReason { get; set; }
+
+        public DateTime? GeolocationBypassUntil { get; set; }
+
+        public bool IsGeolocationBypassActive { get; set; }
+    }
+
+    public class UpdateDoctorUserGeolocationBypassRequest
+    {
+        public bool IsGeolocationBypassEnabled { get; set; }
+
+        public DateTime? GeolocationBypassUntil { get; set; }
+
+        [MaxLength(250)]
+        public string? GeolocationBypassReason { get; set; }
     }
 
     public class DoctorChildSummaryResponse
@@ -248,6 +266,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
 
+        public string DoctorCodeInfo { get; set; } =
+            "DoctorCode dibuat otomatis oleh backend dengan format DOC-RSMMC-00001.";
+
         public string DoctorNumberInfo { get; set; } =
             "DoctorNumber dibuat otomatis oleh backend saat create doctor.";
 
@@ -257,12 +278,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string DoctorUserTypeInfo { get; set; } =
             "Doctor hanya boleh menggunakan UserType PermanentDoctor atau GuestDoctor.";
 
-        public string CustomPeriodPriorityInfo { get; set; } =
-            "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
+        public string PeriodPriorityInfo { get; set; } =
+            "Jika period diisi selain custom, maka startDate dan endDate akan diabaikan.";
+
+        public bool ShowResetButton { get; set; } = true;
+
+        public string ResetButtonLabel { get; set; } = "Reset";
 
         public DoctorDefaultFilterResponse DefaultFilter { get; set; } = new();
 
-        public List<DoctorCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
+        public List<DoctorCustomPeriodOptionResponse> Periods { get; set; } = new();
 
         public List<DoctorSortOptionResponse> SortOptions { get; set; } = new();
 
@@ -303,45 +328,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public DateTime? EndDate { get; set; }
 
-        public string? CustomPeriod { get; set; }
-
-        public string? Search { get; set; }
-
-        public bool? IsActive { get; set; }
-
-        public bool? IsAvailableForAppointment { get; set; }
+        public string? Period { get; set; }
 
         public Guid? DepartmentId { get; set; }
 
         public Guid? PositionId { get; set; }
 
-        public Guid? CountryId { get; set; }
+        public bool? IsActive { get; set; }
 
-        public Guid? ProvinceId { get; set; }
-
-        public Guid? CityId { get; set; }
-
-        public Guid? DistrictId { get; set; }
-
-        public Guid? PostalCodeId { get; set; }
-
-        public UserType? WorkforceUserType { get; set; }
-
-        public DoctorStatus? DoctorStatus { get; set; }
-
-        public DoctorType? DoctorType { get; set; }
-
-        public DoctorPracticeType? PracticeType { get; set; }
-
-        public EmploymentType? EmploymentType { get; set; }
-
-        public Religion? Religion { get; set; }
-
-        public MaritalStatus? MaritalStatus { get; set; }
-
-        public BloodType? BloodType { get; set; }
-
-        public bool? HasUserAccount { get; set; }
+        public string? Search { get; set; }
 
         public string SortBy { get; set; } = "createDateTime";
 
@@ -539,6 +534,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public DateTime? CredentialingDate { get; set; }
 
         public bool IsAvailableForAppointment { get; set; } = true;
+
+        public bool IsGeolocationBypassEnabled { get; set; } = false;
+
+        public DateTime? GeolocationBypassUntil { get; set; }
+
+        [MaxLength(250)]
+        public string? GeolocationBypassReason { get; set; }
     }
 
     public class UpdateDoctorRequest
