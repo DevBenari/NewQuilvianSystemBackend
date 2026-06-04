@@ -62,6 +62,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? ConversionGroupName { get; set; }
     }
 
+    public class MeasurementConversionOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<MeasurementConversionOptionResponse> Items { get; set; } = new();
+    }
+
     public class MeasurementConversionFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";

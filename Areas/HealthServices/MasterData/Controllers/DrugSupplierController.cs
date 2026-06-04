@@ -238,15 +238,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<DrugSupplierOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DrugSupplierOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Drug Supplier", Description = "Melihat data pilihan drug supplier", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DrugSupplier", "Read")]
         public async Task<IActionResult> GetDrugSupplierOptions(
-            [FromQuery] Guid? drugId,
-            [FromQuery] Guid? supplierId,
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] Guid? drugId,
+    [FromQuery] Guid? supplierId,
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = BuildBaseQuery();
 
             if (onlyActive)
@@ -260,32 +266,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             query = ApplySearch(query, search);
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.Drug != null ? x.Drug.DrugName : string.Empty)
                 .ThenBy(x => x.Supplier != null ? x.Supplier.SupplierName : string.Empty)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new DrugSupplierOptionResponse
                 {
                     Id = x.Id,
+
                     DrugId = x.DrugId,
-                    DrugName = x.Drug != null ? x.Drug.DrugName : string.Empty,
+                    DrugName = x.Drug != null
+                        ? x.Drug.DrugName
+                        : string.Empty,
+
                     SupplierId = x.SupplierId,
-                    SupplierName = x.Supplier != null ? x.Supplier.SupplierName : string.Empty,
+                    SupplierName = x.Supplier != null
+                        ? x.Supplier.SupplierName
+                        : string.Empty,
+
                     DrugSupplierCode = x.DrugSupplierCode,
                     SupplierDrugCode = x.SupplierDrugCode,
                     SupplierDrugName = x.SupplierDrugName,
+
                     PurchaseUnitMeasurementId = x.PurchaseUnitMeasurementId,
-                    PurchaseUnitMeasurementName = x.PurchaseUnitMeasurement != null ? x.PurchaseUnitMeasurement.MeasurementName : null,
-                    PurchaseUnitMeasurementSymbol = x.PurchaseUnitMeasurement != null ? x.PurchaseUnitMeasurement.MeasurementSymbol : null,
+                    PurchaseUnitMeasurementName = x.PurchaseUnitMeasurement != null
+                        ? x.PurchaseUnitMeasurement.MeasurementName
+                        : null,
+                    PurchaseUnitMeasurementSymbol = x.PurchaseUnitMeasurement != null
+                        ? x.PurchaseUnitMeasurement.MeasurementSymbol
+                        : null,
+
                     MinimumOrderQuantity = x.MinimumOrderQuantity,
                     OrderMultipleQuantity = x.OrderMultipleQuantity,
                     MaximumOrderQuantity = x.MaximumOrderQuantity,
+
                     DefaultPurchasePrice = x.DefaultPurchasePrice,
                     LastPurchasePrice = x.LastPurchasePrice,
                     ContractPurchasePrice = x.ContractPurchasePrice,
                     DiscountPercent = x.DiscountPercent,
                     TaxPercent = x.TaxPercent,
                     LeadTimeDays = x.LeadTimeDays,
+
                     IsPreferredSupplier = x.IsPreferredSupplier,
                     IsContractSupplier = x.IsContractSupplier,
                     IsDefaultForPurchase = x.IsDefaultForPurchase,
@@ -294,8 +319,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<DrugSupplierOptionResponse>>.Ok(
-                data,
+            var result = new DrugSupplierOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<DrugSupplierOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan drug supplier berhasil diambil."
             ));
         }

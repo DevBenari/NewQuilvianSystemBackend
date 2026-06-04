@@ -176,15 +176,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<DoctorServiceRuleOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Doctor Service Rule", Description = "Melihat data doctor service rule", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<DoctorServiceRuleOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Doctor Service Rule", Description = "Melihat data pilihan doctor service rule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DoctorServiceRule", "Read")]
         public async Task<IActionResult> GetDoctorServiceRuleOptions(
-            [FromQuery] Guid? doctorId,
-            [FromQuery] Guid? clinicId,
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] Guid? doctorId,
+    [FromQuery] Guid? clinicId,
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = BuildBaseQuery();
 
             if (onlyActive)
@@ -192,47 +198,72 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             query = ApplyFilters(query, doctorId, clinicId, null, search);
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.Doctor != null ? x.Doctor.FullName : string.Empty)
                 .ThenBy(x => x.RuleName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new DoctorServiceRuleOptionResponse
                 {
                     Id = x.Id,
+
                     RuleCode = x.RuleCode,
                     RuleName = x.RuleName,
                     RuleType = x.RuleType,
                     RuleStatus = x.RuleStatus,
+
                     DoctorId = x.DoctorId,
                     DoctorName = x.Doctor != null ? x.Doctor.FullName : string.Empty,
                     SpecialistName = x.Doctor != null ? x.Doctor.SpecialistName : null,
+
                     ServiceUnitId = x.ServiceUnitId,
                     ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
+
                     ClinicId = x.ClinicId,
                     ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
+
                     TariffCategoryId = x.TariffCategoryId,
                     TariffCategoryName = x.TariffCategory != null ? x.TariffCategory.TariffCategoryName : null,
+
                     TariffId = x.TariffId,
                     TariffName = x.Tariff != null ? x.Tariff.TariffName : null,
+
                     ProcedureId = x.ProcedureId,
                     ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : null,
+
                     PatientClassId = x.PatientClassId,
                     PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : null,
+
                     IsAllowWalkIn = x.IsAllowWalkIn,
                     IsAllowAppointment = x.IsAllowAppointment,
                     IsAllowKioskRegistration = x.IsAllowKioskRegistration,
                     IsAllowTelemedicine = x.IsAllowTelemedicine,
+
                     IsNeedReferral = x.IsNeedReferral,
                     IsNeedApproval = x.IsNeedApproval,
+
                     IsPrimaryForClinic = x.IsPrimaryForClinic,
                     IsDefaultForClinic = x.IsDefaultForClinic,
+
                     DailyQuotaLimit = x.DailyQuotaLimit,
                     PriorityLevel = x.PriorityLevel
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<DoctorServiceRuleOptionResponse>>.Ok(
-                data,
+            var result = new DoctorServiceRuleOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<DoctorServiceRuleOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan doctor service rule berhasil diambil."
             ));
         }

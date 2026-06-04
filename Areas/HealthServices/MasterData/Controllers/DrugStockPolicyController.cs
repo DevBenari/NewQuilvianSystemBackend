@@ -255,15 +255,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<DrugStockPolicyOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DrugStockPolicyOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Drug Stock Policy", Description = "Melihat data pilihan drug stock policy", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DrugStockPolicy", "Read")]
         public async Task<IActionResult> GetDrugStockPolicyOptions(
-            [FromQuery] Guid? drugId,
-            [FromQuery] Guid? storageLocationId,
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] Guid? drugId,
+    [FromQuery] Guid? storageLocationId,
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = BuildBaseQuery();
 
             if (onlyActive)
@@ -277,31 +283,55 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             query = ApplySearch(query, search);
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.StockPolicyName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new DrugStockPolicyOptionResponse
                 {
                     Id = x.Id,
+
                     DrugId = x.DrugId,
-                    DrugName = x.Drug != null ? x.Drug.DrugName : string.Empty,
+                    DrugName = x.Drug != null
+                        ? x.Drug.DrugName
+                        : string.Empty,
+
                     StorageLocationId = x.StorageLocationId,
-                    StorageLocationName = x.StorageLocation != null ? x.StorageLocation.StorageLocationName : null,
+                    StorageLocationName = x.StorageLocation != null
+                        ? x.StorageLocation.StorageLocationName
+                        : null,
+
                     ServiceUnitId = x.ServiceUnitId,
-                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
+                    ServiceUnitName = x.ServiceUnit != null
+                        ? x.ServiceUnit.ServiceUnitName
+                        : null,
+
                     ClinicId = x.ClinicId,
-                    ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
+                    ClinicName = x.Clinic != null
+                        ? x.Clinic.ClinicName
+                        : null,
+
                     StockUnitMeasurementId = x.StockUnitMeasurementId,
-                    StockUnitMeasurementName = x.StockUnitMeasurement != null ? x.StockUnitMeasurement.MeasurementName : string.Empty,
-                    StockUnitMeasurementSymbol = x.StockUnitMeasurement != null ? x.StockUnitMeasurement.MeasurementSymbol : null,
+                    StockUnitMeasurementName = x.StockUnitMeasurement != null
+                        ? x.StockUnitMeasurement.MeasurementName
+                        : string.Empty,
+                    StockUnitMeasurementSymbol = x.StockUnitMeasurement != null
+                        ? x.StockUnitMeasurement.MeasurementSymbol
+                        : null,
+
                     StockPolicyCode = x.StockPolicyCode,
                     StockPolicyName = x.StockPolicyName,
+
                     MinimumStockQuantity = x.MinimumStockQuantity,
                     MaximumStockQuantity = x.MaximumStockQuantity,
                     ReorderPointQuantity = x.ReorderPointQuantity,
                     ReorderQuantity = x.ReorderQuantity,
                     SafetyStockQuantity = x.SafetyStockQuantity,
                     CriticalStockQuantity = x.CriticalStockQuantity,
+
                     IsAutoReorderEnabled = x.IsAutoReorderEnabled,
                     IsAllowNegativeStock = x.IsAllowNegativeStock,
                     IsBatchRequired = x.IsBatchRequired,
@@ -310,8 +340,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<DrugStockPolicyOptionResponse>>.Ok(
-                data,
+            var result = new DrugStockPolicyOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<DrugStockPolicyOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan drug stock policy berhasil diambil."
             ));
         }

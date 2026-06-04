@@ -211,15 +211,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<DrugStorageLocationOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Drug Storage Location", Description = "Melihat data drug storage location", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<DrugStorageLocationOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Drug Storage Location", Description = "Melihat data pilihan drug storage location", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DrugStorageLocation", "Read")]
         public async Task<IActionResult> GetDrugStorageLocationOptions(
-            [FromQuery] Guid? parentStorageLocationId,
-            [FromQuery] Guid? serviceUnitId,
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] Guid? parentStorageLocationId,
+    [FromQuery] Guid? serviceUnitId,
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = BuildBaseQuery();
 
             if (onlyActive)
@@ -233,20 +239,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             query = ApplySearch(query, search);
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.StorageLocationName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new DrugStorageLocationOptionResponse
                 {
                     Id = x.Id,
                     ParentStorageLocationId = x.ParentStorageLocationId,
-                    ParentStorageLocationName = x.ParentStorageLocation != null ? x.ParentStorageLocation.StorageLocationName : null,
+                    ParentStorageLocationName = x.ParentStorageLocation != null
+                        ? x.ParentStorageLocation.StorageLocationName
+                        : null,
+
                     ServiceUnitId = x.ServiceUnitId,
-                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
+                    ServiceUnitName = x.ServiceUnit != null
+                        ? x.ServiceUnit.ServiceUnitName
+                        : null,
+
                     StorageLocationCode = x.StorageLocationCode,
                     StorageLocationName = x.StorageLocationName,
                     StorageLocationType = x.StorageLocationType,
                     LocationGroupName = x.LocationGroupName,
+
                     IsDefault = x.IsDefault,
                     IsMainWarehouse = x.IsMainWarehouse,
                     IsPharmacyLocation = x.IsPharmacyLocation,
@@ -261,8 +278,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<DrugStorageLocationOptionResponse>>.Ok(
-                data,
+            var result = new DrugStorageLocationOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<DrugStorageLocationOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan drug storage location berhasil diambil."
             ));
         }

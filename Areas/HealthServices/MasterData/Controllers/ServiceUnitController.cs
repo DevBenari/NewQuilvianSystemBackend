@@ -242,13 +242,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<ServiceUnitOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ServiceUnitOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Service Unit", Description = "Melihat data service unit", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("ServiceUnit", "Read")]
         public async Task<IActionResult> GetServiceUnitOptions(
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = _dbContext.Set<MstServiceUnit>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
@@ -266,9 +272,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.ShortName != null && x.ShortName.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.ServiceUnitName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new ServiceUnitOptionResponse
                 {
                     Id = x.Id,
@@ -282,8 +292,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<ServiceUnitOptionResponse>>.Ok(
-                data,
+            var result = new ServiceUnitOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<ServiceUnitOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan service unit berhasil diambil."
             ));
         }

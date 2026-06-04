@@ -243,15 +243,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<BedOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Bed", Description = "Melihat data bed", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<BedOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Bed", Description = "Melihat data pilihan bed", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Bed", "Read")]
         public async Task<IActionResult> GetBedOptions(
-            [FromQuery] Guid? roomId,
-            [FromQuery] Guid? serviceUnitId,
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] Guid? roomId,
+    [FromQuery] Guid? serviceUnitId,
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = _dbContext.Set<MstBed>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
@@ -273,21 +279,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     x.BedCode.ToLower().Contains(keyword) ||
                     x.BedName.ToLower().Contains(keyword) ||
                     (x.BedNumber != null && x.BedNumber.ToLower().Contains(keyword)) ||
-                    (x.Room != null && x.Room.RoomName.ToLower().Contains(keyword)));
+                    (x.Room != null && x.Room.RoomName.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.RoomCode.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.ServiceUnit != null && x.Room.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.PatientClass != null && x.Room.PatientClass.PatientClassName.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.BedName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new BedOptionResponse
                 {
                     Id = x.Id,
                     RoomId = x.RoomId,
                     RoomName = x.Room != null ? x.Room.RoomName : string.Empty,
+
                     ServiceUnitId = x.Room != null ? x.Room.ServiceUnitId : Guid.Empty,
-                    ServiceUnitName = x.Room != null && x.Room.ServiceUnit != null ? x.Room.ServiceUnit.ServiceUnitName : string.Empty,
+                    ServiceUnitName = x.Room != null && x.Room.ServiceUnit != null
+                        ? x.Room.ServiceUnit.ServiceUnitName
+                        : string.Empty,
+
                     PatientClassId = x.Room != null ? x.Room.PatientClassId : null,
-                    PatientClassName = x.Room != null && x.Room.PatientClass != null ? x.Room.PatientClass.PatientClassName : null,
+                    PatientClassName = x.Room != null && x.Room.PatientClass != null
+                        ? x.Room.PatientClass.PatientClassName
+                        : null,
+
                     BedCode = x.BedCode,
                     BedName = x.BedName,
                     BedNumber = x.BedNumber,
@@ -299,8 +319,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<BedOptionResponse>>.Ok(
-                data,
+            var result = new BedOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<BedOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan bed berhasil diambil."
             ));
         }

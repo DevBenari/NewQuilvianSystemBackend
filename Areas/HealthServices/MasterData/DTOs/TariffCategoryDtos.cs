@@ -66,6 +66,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsCoveredByInsuranceDefault { get; set; }
     }
 
+    public class TariffCategoryOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<TariffCategoryOptionResponse> Items { get; set; } = new();
+    }
+
     public class TariffCategoryFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";

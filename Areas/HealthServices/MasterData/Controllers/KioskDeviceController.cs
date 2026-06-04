@@ -218,8 +218,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<KioskDeviceOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Kiosk Device", Description = "Melihat data kiosk device", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<KioskDeviceOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Kiosk Device", Description = "Melihat data pilihan kiosk device", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("KioskDevice", "Read")]
         public async Task<IActionResult> GetOptions(
             [FromQuery] Guid? serviceUnitId,
@@ -230,14 +230,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] bool? isAvailableForRegistration,
             [FromQuery] bool? isAvailableForCheckIn,
             [FromQuery] bool? isAvailableForPayment,
-            [FromQuery] bool activeOnly = true,
-            [FromQuery] string? search = null)
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] bool? activeOnly = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var useOnlyActive = activeOnly ?? onlyActive;
+
             var query = _dbContext.Set<MstKioskDevice>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
-            if (activeOnly)
+            if (useOnlyActive)
                 query = query.Where(x => x.IsActive);
 
             if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
@@ -272,12 +281,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     x.DeviceCode.ToLower().Contains(keyword) ||
                     x.DeviceName.ToLower().Contains(keyword) ||
                     (x.SerialNumber != null && x.SerialNumber.ToLower().Contains(keyword)) ||
-                    (x.LocationName != null && x.LocationName.ToLower().Contains(keyword)));
+                    (x.LocationName != null && x.LocationName.ToLower().Contains(keyword)) ||
+                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
+                    (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)) ||
+                    (x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileName.ToLower().Contains(keyword)));
             }
 
-            var result = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.DeviceName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new KioskDeviceOptionResponse
                 {
                     Id = x.Id,
@@ -285,21 +301,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     DeviceName = x.DeviceName,
                     DeviceType = x.DeviceType,
                     DeviceStatus = x.DeviceStatus,
+
                     ServiceUnitId = x.ServiceUnitId,
-                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
+                    ServiceUnitName = x.ServiceUnit != null
+                        ? x.ServiceUnit.ServiceUnitName
+                        : null,
+
                     ClinicId = x.ClinicId,
-                    ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
+                    ClinicName = x.Clinic != null
+                        ? x.Clinic.ClinicName
+                        : null,
+
                     DefaultScannerProfileId = x.DefaultScannerProfileId,
-                    DefaultScannerProfileName = x.DefaultScannerProfile != null ? x.DefaultScannerProfile.ProfileName : null,
+                    DefaultScannerProfileName = x.DefaultScannerProfile != null
+                        ? x.DefaultScannerProfile.ProfileName
+                        : null,
+
                     IsAvailableForRegistration = x.IsAvailableForRegistration,
                     IsAvailableForCheckIn = x.IsAvailableForCheckIn,
                     IsAvailableForPayment = x.IsAvailableForPayment
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<KioskDeviceOptionResponse>>.Ok(
+            var result = new KioskDeviceOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<KioskDeviceOptionPagedResponse>.Ok(
                 result,
-                "Option kiosk device berhasil diambil."
+                "Data pilihan kiosk device berhasil diambil."
             ));
         }
 

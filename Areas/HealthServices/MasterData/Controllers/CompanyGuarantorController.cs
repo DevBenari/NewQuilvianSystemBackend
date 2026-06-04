@@ -246,13 +246,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<CompanyGuarantorOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Company Guarantor", Description = "Melihat data company guarantor", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Company Guarantor", Description = "Melihat data pilihan company guarantor", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("CompanyGuarantor", "Read")]
         public async Task<IActionResult> GetCompanyGuarantorOptions(
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = _dbContext.Set<MstCompanyGuarantor>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
@@ -271,12 +277,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     x.BillingMethod.ToLower().Contains(keyword) ||
                     (x.CompanyGroupName != null && x.CompanyGroupName.ToLower().Contains(keyword)) ||
                     (x.ExternalCompanyCode != null && x.ExternalCompanyCode.ToLower().Contains(keyword)) ||
-                    (x.IntegrationCode != null && x.IntegrationCode.ToLower().Contains(keyword)));
+                    (x.IntegrationCode != null && x.IntegrationCode.ToLower().Contains(keyword)) ||
+                    (x.ContractNumber != null && x.ContractNumber.ToLower().Contains(keyword)) ||
+                    (x.PicName != null && x.PicName.ToLower().Contains(keyword)) ||
+                    (x.PicEmail != null && x.PicEmail.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.CompanyGuarantorName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new CompanyGuarantorOptionResponse
                 {
                     Id = x.Id,
@@ -299,8 +312,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<CompanyGuarantorOptionResponse>>.Ok(
-                data,
+            var result = new CompanyGuarantorOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<CompanyGuarantorOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan company guarantor berhasil diambil."
             ));
         }

@@ -217,13 +217,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<TariffCategoryOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<TariffCategoryOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Tariff Category", Description = "Melihat data tariff category", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("TariffCategory", "Read")]
         public async Task<IActionResult> GetTariffCategoryOptions(
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = _dbContext.Set<MstTariffCategory>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
@@ -241,9 +247,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.TariffGroupName != null && x.TariffGroupName.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.TariffCategoryName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new TariffCategoryOptionResponse
                 {
                     Id = x.Id,
@@ -264,8 +274,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<TariffCategoryOptionResponse>>.Ok(
-                data,
+            var result = new TariffCategoryOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<TariffCategoryOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan tariff category berhasil diambil."
             ));
         }

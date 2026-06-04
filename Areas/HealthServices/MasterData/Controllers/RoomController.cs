@@ -239,15 +239,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<RoomOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<RoomOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Room", Description = "Melihat data room", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Room", "Read")]
         public async Task<IActionResult> GetRoomOptions(
             [FromQuery] Guid? serviceUnitId,
             [FromQuery] Guid? patientClassId,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = _dbContext.Set<MstRoom>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
@@ -273,16 +279,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.PatientClass != null && x.PatientClass.PatientClassName.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.RoomName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new RoomOptionResponse
                 {
                     Id = x.Id,
                     ServiceUnitId = x.ServiceUnitId,
-                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
+                    ServiceUnitName = x.ServiceUnit != null
+                        ? x.ServiceUnit.ServiceUnitName
+                        : string.Empty,
+
                     PatientClassId = x.PatientClassId,
-                    PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : null,
+                    PatientClassName = x.PatientClass != null
+                        ? x.PatientClass.PatientClassName
+                        : null,
+
                     RoomCode = x.RoomCode,
                     RoomName = x.RoomName,
                     RoomType = x.RoomType,
@@ -292,8 +308,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<RoomOptionResponse>>.Ok(
-                data,
+            var result = new RoomOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<RoomOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan room berhasil diambil."
             ));
         }

@@ -87,6 +87,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsAvailableForPayment { get; set; }
     }
 
+    public class KioskDeviceOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<KioskDeviceOptionResponse> Items { get; set; } = new();
+    }
+
     public class KioskDeviceEnumOptionResponse
     {
         public int Value { get; set; }

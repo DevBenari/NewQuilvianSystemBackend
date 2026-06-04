@@ -213,8 +213,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<IdentityScannerProfileOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Identity Scanner Profile", Description = "Melihat data identity scanner profile", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<IdentityScannerProfileOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Identity Scanner Profile", Description = "Melihat data pilihan identity scanner profile", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("IdentityScannerProfile", "Read")]
         public async Task<IActionResult> GetOptions(
             [FromQuery] IdentityScannerProfileType? profileType,
@@ -226,14 +226,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] bool? isBarcodeEnabled,
             [FromQuery] bool? isQrEnabled,
             [FromQuery] bool? isManualInputAllowed,
-            [FromQuery] bool activeOnly = true,
-            [FromQuery] string? search = null)
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] bool? activeOnly = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var useOnlyActive = activeOnly ?? onlyActive;
+
             var query = _dbContext.Set<MstIdentityScannerProfile>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
-            if (activeOnly)
+            if (useOnlyActive)
                 query = query.Where(x => x.IsActive);
 
             if (profileType.HasValue)
@@ -274,9 +283,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.ScannerModel != null && x.ScannerModel.ToLower().Contains(keyword)));
             }
 
-            var result = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.ProfileName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new IdentityScannerProfileOptionResponse
                 {
                     Id = x.Id,
@@ -294,9 +307,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<IdentityScannerProfileOptionResponse>>.Ok(
+            var result = new IdentityScannerProfileOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<IdentityScannerProfileOptionPagedResponse>.Ok(
                 result,
-                "Option identity scanner profile berhasil diambil."
+                "Data pilihan identity scanner profile berhasil diambil."
             ));
         }
 

@@ -269,15 +269,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<TariffOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<TariffOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Tariff", Description = "Melihat data tariff", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Tariff", "Read")]
         public async Task<IActionResult> GetTariffOptions(
-            [FromQuery] Guid? tariffCategoryId,
-            [FromQuery] Guid? serviceUnitId,
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] Guid? tariffCategoryId,
+    [FromQuery] Guid? serviceUnitId,
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = BuildBaseQuery();
 
             if (onlyActive)
@@ -304,38 +310,71 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.Drug != null && x.Drug.DrugName.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.TariffName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new TariffOptionResponse
                 {
                     Id = x.Id,
                     TariffCode = x.TariffCode,
                     TariffName = x.TariffName,
+
                     TariffCategoryId = x.TariffCategoryId,
-                    TariffCategoryName = x.TariffCategory != null ? x.TariffCategory.TariffCategoryName : string.Empty,
+                    TariffCategoryName = x.TariffCategory != null
+                        ? x.TariffCategory.TariffCategoryName
+                        : string.Empty,
+
                     ServiceUnitId = x.ServiceUnitId,
-                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
+                    ServiceUnitName = x.ServiceUnit != null
+                        ? x.ServiceUnit.ServiceUnitName
+                        : null,
+
                     ClinicId = x.ClinicId,
-                    ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
+                    ClinicName = x.Clinic != null
+                        ? x.Clinic.ClinicName
+                        : null,
+
                     PatientClassId = x.PatientClassId,
-                    PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : null,
+                    PatientClassName = x.PatientClass != null
+                        ? x.PatientClass.PatientClassName
+                        : null,
+
                     ProcedureId = x.ProcedureId,
-                    ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : null,
+                    ProcedureName = x.Procedure != null
+                        ? x.Procedure.ProcedureName
+                        : null,
+
                     DrugId = x.DrugId,
-                    DrugName = x.Drug != null ? x.Drug.DrugName : null,
+                    DrugName = x.Drug != null
+                        ? x.Drug.DrugName
+                        : null,
+
                     NormalPrice = x.NormalPrice,
                     MemberPrice = x.MemberPrice,
                     InsurancePrice = x.InsurancePrice,
                     CompanyPrice = x.CompanyPrice,
+
                     IsNeedDoctor = x.IsNeedDoctor,
                     IsNeedApproval = x.IsNeedApproval,
                     IsTaxable = x.IsTaxable
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<TariffOptionResponse>>.Ok(
-                data,
+            var result = new TariffOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<TariffOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan tariff berhasil diambil."
             ));
         }

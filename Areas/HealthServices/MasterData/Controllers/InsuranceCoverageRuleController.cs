@@ -226,15 +226,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<InsuranceCoverageRuleOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<InsuranceCoverageRuleOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Insurance Coverage Rule", Description = "Melihat data pilihan insurance coverage rule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("InsuranceCoverageRule", "Read")]
         public async Task<IActionResult> GetInsuranceCoverageRuleOptions(
-            [FromQuery] Guid? insuranceProviderId,
-            [FromQuery] string? itemType,
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] Guid? insuranceProviderId,
+    [FromQuery] string? itemType,
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = BuildBaseQuery();
 
             query = ApplySimpleFilter(
@@ -245,35 +251,61 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 search
             );
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.RuleName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new InsuranceCoverageRuleOptionResponse
                 {
                     Id = x.Id,
+
                     InsuranceProviderId = x.InsuranceProviderId,
-                    InsuranceProviderName = x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderName : string.Empty,
+                    InsuranceProviderName = x.InsuranceProvider != null
+                        ? x.InsuranceProvider.InsuranceProviderName
+                        : string.Empty,
+
                     RuleCode = x.RuleCode,
                     RuleName = x.RuleName,
                     ItemType = x.ItemType,
+
                     TariffId = x.TariffId,
-                    TariffName = x.Tariff != null ? x.Tariff.TariffName : null,
+                    TariffName = x.Tariff != null
+                        ? x.Tariff.TariffName
+                        : null,
+
                     DrugId = x.DrugId,
-                    DrugName = x.Drug != null ? x.Drug.DrugName : null,
+                    DrugName = x.Drug != null
+                        ? x.Drug.DrugName
+                        : null,
+
                     DrugCategoryId = x.DrugCategoryId,
-                    DrugCategoryName = x.DrugCategory != null ? x.DrugCategory.DrugCategoryName : null,
+                    DrugCategoryName = x.DrugCategory != null
+                        ? x.DrugCategory.DrugCategoryName
+                        : null,
+
                     ProcedureId = x.ProcedureId,
-                    ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : null,
+                    ProcedureName = x.Procedure != null
+                        ? x.Procedure.ProcedureName
+                        : null,
+
                     TariffCategoryId = x.TariffCategoryId,
-                    TariffCategoryName = x.TariffCategory != null ? x.TariffCategory.TariffCategoryName : null,
+                    TariffCategoryName = x.TariffCategory != null
+                        ? x.TariffCategory.TariffCategoryName
+                        : null,
+
                     BenefitPlanCode = x.BenefitPlanCode,
                     BenefitPlanName = x.BenefitPlanName,
                     PatientClassName = x.PatientClassName,
+
                     CoverageStatus = x.CoverageStatus,
                     CoveragePercent = x.CoveragePercent,
                     MaxCoverageAmount = x.MaxCoverageAmount,
                     CoPaymentPercent = x.CoPaymentPercent,
                     CoPaymentAmount = x.CoPaymentAmount,
+
                     IsCovered = x.IsCovered,
                     IsExcluded = x.IsExcluded,
                     IsNeedApproval = x.IsNeedApproval,
@@ -282,8 +314,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<InsuranceCoverageRuleOptionResponse>>.Ok(
-                data,
+            var result = new InsuranceCoverageRuleOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<InsuranceCoverageRuleOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan insurance coverage rule berhasil diambil."
             ));
         }

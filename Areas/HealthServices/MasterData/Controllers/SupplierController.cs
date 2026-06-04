@@ -223,13 +223,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<SupplierOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<SupplierOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Supplier", Description = "Melihat data supplier", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Supplier", "Read")]
         public async Task<IActionResult> GetSupplierOptions(
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = _dbContext.Set<MstSupplier>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
@@ -253,9 +259,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.Email != null && x.Email.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.SupplierName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new SupplierOptionResponse
                 {
                     Id = x.Id,
@@ -277,8 +287,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<SupplierOptionResponse>>.Ok(
-                data,
+            var result = new SupplierOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<SupplierOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan supplier berhasil diambil."
             ));
         }

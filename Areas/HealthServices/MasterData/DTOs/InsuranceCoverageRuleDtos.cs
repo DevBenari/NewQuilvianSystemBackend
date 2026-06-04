@@ -136,6 +136,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsAllowExcessPaymentByPatient { get; set; }
     }
 
+    public class InsuranceCoverageRuleOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<InsuranceCoverageRuleOptionResponse> Items { get; set; } = new();
+    }
+
     public class InsuranceCoverageRuleFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";

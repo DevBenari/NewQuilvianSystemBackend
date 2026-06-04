@@ -191,13 +191,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<MembershipTierOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<MembershipTierOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Membership Tier", Description = "Melihat data membership tier", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("MembershipTier", "Read")]
         public async Task<IActionResult> GetMembershipTierOptions(
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = _dbContext.Set<MstMembershipTier>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
@@ -217,11 +223,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.CardColor != null && x.CardColor.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderByDescending(x => x.IsDefault)
                 .ThenByDescending(x => x.PriorityLevel)
                 .ThenBy(x => x.SortOrder)
                 .ThenBy(x => x.TierName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new MembershipTierOptionResponse
                 {
                     Id = x.Id,
@@ -240,8 +250,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<MembershipTierOptionResponse>>.Ok(
-                data,
+            var result = new MembershipTierOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<MembershipTierOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan membership tier berhasil diambil."
             ));
         }

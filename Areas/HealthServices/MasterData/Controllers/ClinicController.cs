@@ -229,14 +229,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<ClinicOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Clinic", Description = "Melihat data clinic", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<ClinicOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Clinic", Description = "Melihat data pilihan clinic", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Clinic", "Read")]
         public async Task<IActionResult> GetClinicOptions(
             [FromQuery] Guid? serviceUnitId,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = _dbContext.Set<MstClinic>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
@@ -255,17 +261,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     x.ClinicCode.ToLower().Contains(keyword) ||
                     x.ClinicName.ToLower().Contains(keyword) ||
                     (x.ShortName != null && x.ShortName.ToLower().Contains(keyword)) ||
+                    (x.LocationName != null && x.LocationName.ToLower().Contains(keyword)) ||
+                    (x.FloorName != null && x.FloorName.ToLower().Contains(keyword)) ||
+                    (x.RoomName != null && x.RoomName.ToLower().Contains(keyword)) ||
+                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitCode.ToLower().Contains(keyword)) ||
                     (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.ClinicName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new ClinicOptionResponse
                 {
                     Id = x.Id,
                     ServiceUnitId = x.ServiceUnitId,
-                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
+                    ServiceUnitName = x.ServiceUnit != null
+                        ? x.ServiceUnit.ServiceUnitName
+                        : string.Empty,
                     ClinicCode = x.ClinicCode,
                     ClinicName = x.ClinicName,
                     ClinicType = x.ClinicType,
@@ -276,8 +292,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<ClinicOptionResponse>>.Ok(
-                data,
+            var result = new ClinicOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<ClinicOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan clinic berhasil diambil."
             ));
         }

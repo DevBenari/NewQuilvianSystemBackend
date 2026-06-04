@@ -245,13 +245,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<InsuranceProviderOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<InsuranceProviderOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Insurance Provider", Description = "Melihat data insurance provider", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("InsuranceProvider", "Read")]
         public async Task<IActionResult> GetInsuranceProviderOptions(
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = _dbContext.Set<MstInsuranceProvider>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
@@ -273,9 +279,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.IntegrationCode != null && x.IntegrationCode.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.InsuranceProviderName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new InsuranceProviderOptionResponse
                 {
                     Id = x.Id,
@@ -296,8 +306,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<InsuranceProviderOptionResponse>>.Ok(
-                data,
+            var result = new InsuranceProviderOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<InsuranceProviderOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan insurance provider berhasil diambil."
             ));
         }

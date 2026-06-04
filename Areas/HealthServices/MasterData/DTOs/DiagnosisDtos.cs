@@ -96,6 +96,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int? MaximumAgeYear { get; set; }
     }
 
+    public class DiagnosisOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<DiagnosisOptionResponse> Items { get; set; } = new();
+    }
+
     public class DiagnosisFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";

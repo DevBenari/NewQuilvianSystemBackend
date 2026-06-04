@@ -89,6 +89,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int PaymentDueDays { get; set; }
     }
 
+    public class CompanyGuarantorOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<CompanyGuarantorOptionResponse> Items { get; set; } = new();
+    }
+
     public class CompanyGuarantorFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";

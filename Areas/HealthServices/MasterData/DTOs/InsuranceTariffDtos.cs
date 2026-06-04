@@ -121,6 +121,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsNeedApproval { get; set; }
     }
 
+    public class InsuranceTariffOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<InsuranceTariffOptionResponse> Items { get; set; } = new();
+    }
+
     public class InsuranceTariffFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";

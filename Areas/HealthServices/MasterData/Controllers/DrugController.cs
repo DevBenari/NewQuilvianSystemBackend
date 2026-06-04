@@ -285,15 +285,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<DrugOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Drug", Description = "Melihat data drug", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<DrugOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Drug", Description = "Melihat data pilihan drug", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Drug", "Read")]
         public async Task<IActionResult> GetDrugOptions(
             [FromQuery] Guid? drugCategoryId,
             [FromQuery] Guid? baseUnitMeasurementId,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = BuildBaseQuery();
 
             query = ApplyStandardFilter(
@@ -304,14 +310,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 search
             );
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.DrugName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new DrugOptionResponse
                 {
                     Id = x.Id,
+
                     DrugCategoryId = x.DrugCategoryId,
-                    DrugCategoryName = x.DrugCategory != null ? x.DrugCategory.DrugCategoryName : string.Empty,
+                    DrugCategoryName = x.DrugCategory != null
+                        ? x.DrugCategory.DrugCategoryName
+                        : string.Empty,
+
                     DrugCode = x.DrugCode,
                     DrugName = x.DrugName,
                     GenericName = x.GenericName,
@@ -319,15 +333,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     DrugForm = x.DrugForm,
                     Strength = x.Strength,
                     StrengthValue = x.StrengthValue,
-                    StrengthMeasurementSymbol = x.StrengthMeasurement != null ? x.StrengthMeasurement.MeasurementSymbol : null,
+
+                    StrengthMeasurementSymbol = x.StrengthMeasurement != null
+                        ? x.StrengthMeasurement.MeasurementSymbol
+                        : null,
+
                     BaseUnit = x.BaseUnit,
                     DispenseUnit = x.DispenseUnit,
-                    BaseUnitMeasurementSymbol = x.BaseUnitMeasurement != null ? x.BaseUnitMeasurement.MeasurementSymbol : null,
-                    DispenseUnitMeasurementSymbol = x.DispenseUnitMeasurement != null ? x.DispenseUnitMeasurement.MeasurementSymbol : null,
-                    PurchaseUnitMeasurementSymbol = x.PurchaseUnitMeasurement != null ? x.PurchaseUnitMeasurement.MeasurementSymbol : null,
-                    StockUnitMeasurementSymbol = x.StockUnitMeasurement != null ? x.StockUnitMeasurement.MeasurementSymbol : null,
-                    DefaultDoseUnitMeasurementSymbol = x.DefaultDoseUnitMeasurement != null ? x.DefaultDoseUnitMeasurement.MeasurementSymbol : null,
+
+                    BaseUnitMeasurementSymbol = x.BaseUnitMeasurement != null
+                        ? x.BaseUnitMeasurement.MeasurementSymbol
+                        : null,
+
+                    DispenseUnitMeasurementSymbol = x.DispenseUnitMeasurement != null
+                        ? x.DispenseUnitMeasurement.MeasurementSymbol
+                        : null,
+
+                    PurchaseUnitMeasurementSymbol = x.PurchaseUnitMeasurement != null
+                        ? x.PurchaseUnitMeasurement.MeasurementSymbol
+                        : null,
+
+                    StockUnitMeasurementSymbol = x.StockUnitMeasurement != null
+                        ? x.StockUnitMeasurement.MeasurementSymbol
+                        : null,
+
+                    DefaultDoseUnitMeasurementSymbol = x.DefaultDoseUnitMeasurement != null
+                        ? x.DefaultDoseUnitMeasurement.MeasurementSymbol
+                        : null,
+
                     Route = x.Route,
+
                     IsFormulary = x.IsFormulary,
                     IsGeneric = x.IsGeneric,
                     IsAntibiotic = x.IsAntibiotic,
@@ -341,6 +376,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     IsNeedPrescription = x.IsNeedPrescription,
                     IsCoveredByInsuranceDefault = x.IsCoveredByInsuranceDefault,
                     IsNeedApproval = x.IsNeedApproval,
+
                     DefaultPrice = x.DefaultPrice,
                     InsurancePrice = x.InsurancePrice,
                     MemberPrice = x.MemberPrice,
@@ -348,8 +384,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<DrugOptionResponse>>.Ok(
-                data,
+            var result = new DrugOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<DrugOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan drug berhasil diambil."
             ));
         }

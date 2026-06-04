@@ -77,6 +77,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsManualInputAllowed { get; set; }
     }
 
+    public class IdentityScannerProfileOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<IdentityScannerProfileOptionResponse> Items { get; set; } = new();
+    }
+
     public class IdentityScannerProfileEnumOptionResponse
     {
         public int Value { get; set; }

@@ -109,6 +109,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsRequireQuotation { get; set; }
     }
 
+    public class DrugSupplierOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<DrugSupplierOptionResponse> Items { get; set; } = new();
+    }
+
     public class DrugSupplierFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";

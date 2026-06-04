@@ -174,6 +174,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public decimal? CompanyPrice { get; set; }
     }
 
+    public class DrugOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<DrugOptionResponse> Items { get; set; } = new();
+    }
+
     public class DrugFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";

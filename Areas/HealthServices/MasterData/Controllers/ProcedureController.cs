@@ -254,14 +254,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<ProcedureOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ProcedureOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Procedure", Description = "Melihat data procedure", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Procedure", "Read")]
         public async Task<IActionResult> GetProcedureOptions(
-            [FromQuery] Guid? defaultTariffId,
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] Guid? defaultTariffId,
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = BuildBaseQuery();
 
             if (onlyActive)
@@ -277,14 +283,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 query = query.Where(x =>
                     x.ProcedureCode.ToLower().Contains(keyword) ||
                     x.ProcedureName.ToLower().Contains(keyword) ||
+                    x.ProcedureType.ToLower().Contains(keyword) ||
                     (x.ProcedureGroupName != null && x.ProcedureGroupName.ToLower().Contains(keyword)) ||
                     (x.ProcedureCategoryName != null && x.ProcedureCategoryName.ToLower().Contains(keyword)) ||
-                    (x.DefaultTariff != null && x.DefaultTariff.TariffName.ToLower().Contains(keyword)));
+                    (x.ExternalProcedureCode != null && x.ExternalProcedureCode.ToLower().Contains(keyword)) ||
+                    (x.IntegrationCode != null && x.IntegrationCode.ToLower().Contains(keyword)) ||
+                    (x.DefaultTariff != null && x.DefaultTariff.TariffName.ToLower().Contains(keyword)) ||
+                    (x.DefaultTariff != null && x.DefaultTariff.TariffCode.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.ProcedureName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new ProcedureOptionResponse
                 {
                     Id = x.Id,
@@ -293,9 +307,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     ProcedureGroupName = x.ProcedureGroupName,
                     ProcedureCategoryName = x.ProcedureCategoryName,
                     ProcedureType = x.ProcedureType,
+
                     DefaultTariffId = x.DefaultTariffId,
-                    DefaultTariffName = x.DefaultTariff != null ? x.DefaultTariff.TariffName : null,
-                    DefaultTariffNormalPrice = x.DefaultTariff != null ? x.DefaultTariff.NormalPrice : null,
+                    DefaultTariffName = x.DefaultTariff != null
+                        ? x.DefaultTariff.TariffName
+                        : null,
+                    DefaultTariffNormalPrice = x.DefaultTariff != null
+                        ? x.DefaultTariff.NormalPrice
+                        : null,
+
                     IsDoctorAction = x.IsDoctorAction,
                     IsNursingAction = x.IsNursingAction,
                     IsSurgery = x.IsSurgery,
@@ -311,8 +331,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<ProcedureOptionResponse>>.Ok(
-                data,
+            var result = new ProcedureOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<ProcedureOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan procedure berhasil diambil."
             ));
         }

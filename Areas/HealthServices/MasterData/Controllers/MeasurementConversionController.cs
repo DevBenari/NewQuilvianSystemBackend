@@ -217,61 +217,75 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<MeasurementConversionOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Measurement Conversion", Description = "Melihat data measurement conversion", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("MeasurementConversion", "Read")]
-        public async Task<IActionResult> GetMeasurementConversionOptions(
-            [FromQuery] Guid? fromMeasurementId,
-            [FromQuery] Guid? toMeasurementId,
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+        [ProducesResponseType(typeof(ApiResponse<MeasurementOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Measurement", Description = "Melihat data measurement", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Measurement", "Read")]
+        public async Task<IActionResult> GetMeasurementOptions(
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
-            var query = BuildBaseQuery();
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = _dbContext.Set<MstMeasurement>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
 
             if (onlyActive)
                 query = query.Where(x => x.IsActive);
-
-            if (fromMeasurementId.HasValue && fromMeasurementId.Value != Guid.Empty)
-                query = query.Where(x => x.FromMeasurementId == fromMeasurementId.Value);
-
-            if (toMeasurementId.HasValue && toMeasurementId.Value != Guid.Empty)
-                query = query.Where(x => x.ToMeasurementId == toMeasurementId.Value);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
 
                 query = query.Where(x =>
-                    (x.FromMeasurement != null && x.FromMeasurement.MeasurementName.ToLower().Contains(keyword)) ||
-                    (x.FromMeasurement != null && x.FromMeasurement.MeasurementSymbol != null && x.FromMeasurement.MeasurementSymbol.ToLower().Contains(keyword)) ||
-                    (x.ToMeasurement != null && x.ToMeasurement.MeasurementName.ToLower().Contains(keyword)) ||
-                    (x.ToMeasurement != null && x.ToMeasurement.MeasurementSymbol != null && x.ToMeasurement.MeasurementSymbol.ToLower().Contains(keyword)) ||
-                    (x.ConversionGroupName != null && x.ConversionGroupName.ToLower().Contains(keyword)));
+                    x.MeasurementCode.ToLower().Contains(keyword) ||
+                    x.MeasurementName.ToLower().Contains(keyword) ||
+                    x.MeasurementType.ToLower().Contains(keyword) ||
+                    (x.MeasurementSymbol != null && x.MeasurementSymbol.ToLower().Contains(keyword)) ||
+                    (x.MeasurementGroupName != null && x.MeasurementGroupName.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
-                .ThenBy(x => x.FromMeasurement != null ? x.FromMeasurement.MeasurementName : string.Empty)
-                .ThenBy(x => x.ToMeasurement != null ? x.ToMeasurement.MeasurementName : string.Empty)
-                .Select(x => new MeasurementConversionOptionResponse
+                .ThenBy(x => x.MeasurementName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new MeasurementOptionResponse
                 {
                     Id = x.Id,
-                    FromMeasurementId = x.FromMeasurementId,
-                    FromMeasurementName = x.FromMeasurement != null ? x.FromMeasurement.MeasurementName : string.Empty,
-                    FromMeasurementSymbol = x.FromMeasurement != null ? x.FromMeasurement.MeasurementSymbol : null,
-                    ToMeasurementId = x.ToMeasurementId,
-                    ToMeasurementName = x.ToMeasurement != null ? x.ToMeasurement.MeasurementName : string.Empty,
-                    ToMeasurementSymbol = x.ToMeasurement != null ? x.ToMeasurement.MeasurementSymbol : null,
-                    ConversionFactor = x.ConversionFactor,
-                    IsBidirectional = x.IsBidirectional,
-                    IsStandardConversion = x.IsStandardConversion,
-                    ConversionGroupName = x.ConversionGroupName
+                    MeasurementCode = x.MeasurementCode,
+                    MeasurementName = x.MeasurementName,
+                    MeasurementSymbol = x.MeasurementSymbol,
+                    MeasurementType = x.MeasurementType,
+                    MeasurementGroupName = x.MeasurementGroupName,
+                    IsBaseUnit = x.IsBaseUnit,
+                    IsDecimalAllowed = x.IsDecimalAllowed,
+                    DecimalPrecision = x.DecimalPrecision,
+                    IsForDrug = x.IsForDrug,
+                    IsForLaboratory = x.IsForLaboratory,
+                    IsForVitalSign = x.IsForVitalSign,
+                    IsForGeneralUse = x.IsForGeneralUse
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<MeasurementConversionOptionResponse>>.Ok(
-                data,
-                "Data pilihan measurement conversion berhasil diambil."
+            var result = new MeasurementOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<MeasurementOptionPagedResponse>.Ok(
+                result,
+                "Data pilihan measurement berhasil diambil."
             ));
         }
 

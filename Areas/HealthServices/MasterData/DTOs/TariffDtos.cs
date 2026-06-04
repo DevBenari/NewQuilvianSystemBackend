@@ -119,6 +119,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsTaxable { get; set; }
     }
 
+    public class TariffOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<TariffOptionResponse> Items { get; set; } = new();
+    }
+
     public class TariffFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";

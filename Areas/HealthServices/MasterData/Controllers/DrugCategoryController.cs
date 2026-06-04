@@ -201,13 +201,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<DrugCategoryOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Drug Category", Description = "Melihat data drug category", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<DrugCategoryOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Drug Category", Description = "Melihat data pilihan drug category", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DrugCategory", "Read")]
         public async Task<IActionResult> GetDrugCategoryOptions(
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = _dbContext.Set<MstDrugCategory>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
@@ -226,9 +232,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.DrugGroupName != null && x.DrugGroupName.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.DrugCategoryName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new DrugCategoryOptionResponse
                 {
                     Id = x.Id,
@@ -247,8 +257,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<DrugCategoryOptionResponse>>.Ok(
-                data,
+            var result = new DrugCategoryOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<DrugCategoryOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan drug category berhasil diambil."
             ));
         }

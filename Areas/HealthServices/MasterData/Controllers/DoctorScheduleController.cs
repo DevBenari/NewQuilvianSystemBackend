@@ -185,15 +185,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<DoctorScheduleOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<DoctorScheduleOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data pilihan doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DoctorSchedule", "Read")]
         public async Task<IActionResult> GetDoctorScheduleOptions(
-            [FromQuery] Guid? doctorId,
-            [FromQuery] Guid? clinicId,
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] Guid? doctorId,
+    [FromQuery] Guid? clinicId,
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = BuildBaseQuery();
 
             if (onlyActive)
@@ -201,36 +207,50 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             query = ApplyFilters(query, doctorId, clinicId, null, search);
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.Doctor != null ? x.Doctor.FullName : string.Empty)
                 .ThenBy(x => x.PracticeDay)
                 .ThenBy(x => x.StartTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new DoctorScheduleOptionResponse
                 {
                     Id = x.Id,
+
                     DoctorId = x.DoctorId,
                     DoctorName = x.Doctor != null ? x.Doctor.FullName : string.Empty,
                     SpecialistName = x.Doctor != null ? x.Doctor.SpecialistName : null,
+
                     ServiceUnitId = x.ServiceUnitId,
                     ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
+
                     ClinicId = x.ClinicId,
                     ClinicName = x.Clinic != null ? x.Clinic.ClinicName : string.Empty,
+
                     RoomId = x.RoomId,
                     RoomMasterName = x.Room != null ? x.Room.RoomName : null,
+
                     ScheduleCode = x.ScheduleCode,
                     ScheduleName = x.ScheduleName,
                     ScheduleType = x.ScheduleType,
                     ScheduleStatus = x.ScheduleStatus,
+
                     PracticeDay = x.PracticeDay,
                     PracticeDate = x.PracticeDate,
+
                     StartTime = x.StartTime,
                     EndTime = x.EndTime,
+
                     SessionName = x.SessionName,
+
                     MaxPatientQuota = x.MaxPatientQuota,
                     MaxAppointmentQuota = x.MaxAppointmentQuota,
                     MaxWalkInQuota = x.MaxWalkInQuota,
                     EstimatedServiceMinutes = x.EstimatedServiceMinutes,
+
                     IsAllowWalkIn = x.IsAllowWalkIn,
                     IsAllowAppointment = x.IsAllowAppointment,
                     IsAllowKioskRegistration = x.IsAllowKioskRegistration,
@@ -238,8 +258,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<DoctorScheduleOptionResponse>>.Ok(
-                data,
+            var result = new DoctorScheduleOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<DoctorScheduleOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan doctor schedule berhasil diambil."
             ));
         }

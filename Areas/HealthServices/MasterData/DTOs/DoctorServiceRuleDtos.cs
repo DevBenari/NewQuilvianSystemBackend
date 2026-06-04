@@ -134,6 +134,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int PriorityLevel { get; set; }
     }
 
+    public class DoctorServiceRuleOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<DoctorServiceRuleOptionResponse> Items { get; set; } = new();
+    }
+
     public class DoctorServiceRuleEnumOptionResponse
     {
         public int Value { get; set; }

@@ -211,15 +211,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<DiagnosisOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Diagnosis", Description = "Melihat data diagnosis", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<DiagnosisOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Diagnosis", Description = "Melihat data pilihan diagnosis", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Diagnosis", "Read")]
         public async Task<IActionResult> GetDiagnosisOptions(
-            [FromQuery] Guid? diagnosisChapterId,
-            [FromQuery] Guid? parentDiagnosisId,
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] Guid? diagnosisChapterId,
+    [FromQuery] Guid? parentDiagnosisId,
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = BuildBaseQuery();
 
             if (onlyActive)
@@ -233,18 +239,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             query = ApplySearch(query, search);
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.DiagnosisCode)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new DiagnosisOptionResponse
                 {
                     Id = x.Id,
+
                     DiagnosisChapterId = x.DiagnosisChapterId,
                     ChapterCode = x.DiagnosisChapter != null ? x.DiagnosisChapter.ChapterCode : null,
                     ChapterName = x.DiagnosisChapter != null ? x.DiagnosisChapter.ChapterName : null,
+
                     ParentDiagnosisId = x.ParentDiagnosisId,
                     ParentDiagnosisCode = x.ParentDiagnosis != null ? x.ParentDiagnosis.DiagnosisCode : null,
                     ParentDiagnosisName = x.ParentDiagnosis != null ? x.ParentDiagnosis.DiagnosisName : null,
+
                     DiagnosisCode = x.DiagnosisCode,
                     DiagnosisName = x.DiagnosisName,
                     ShortName = x.ShortName,
@@ -252,18 +265,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     DiagnosisCategoryName = x.DiagnosisCategoryName,
                     DiagnosisType = x.DiagnosisType,
                     IcdVersion = x.IcdVersion,
+
                     IsSelectableForClinicalUse = x.IsSelectableForClinicalUse,
                     IsBillable = x.IsBillable,
                     IsPrimaryDiagnosisAllowed = x.IsPrimaryDiagnosisAllowed,
                     IsSecondaryDiagnosisAllowed = x.IsSecondaryDiagnosisAllowed,
+
                     GenderRestriction = x.GenderRestriction,
                     MinimumAgeYear = x.MinimumAgeYear,
                     MaximumAgeYear = x.MaximumAgeYear
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<DiagnosisOptionResponse>>.Ok(
-                data,
+            var result = new DiagnosisOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<DiagnosisOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan diagnosis berhasil diambil."
             ));
         }

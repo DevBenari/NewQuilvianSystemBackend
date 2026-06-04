@@ -221,13 +221,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<PatientClassOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<PatientClassOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Patient Class", Description = "Melihat data patient class", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PatientClass", "Read")]
         public async Task<IActionResult> GetPatientClassOptions(
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = _dbContext.Set<MstPatientClass>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
@@ -246,10 +252,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.ExternalClassCode != null && x.ExternalClassCode.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.ClassLevel)
                 .ThenBy(x => x.SortOrder)
                 .ThenBy(x => x.PatientClassName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new PatientClassOptionResponse
                 {
                     Id = x.Id,
@@ -269,8 +279,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<PatientClassOptionResponse>>.Ok(
-                data,
+            var result = new PatientClassOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<PatientClassOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan patient class berhasil diambil."
             ));
         }

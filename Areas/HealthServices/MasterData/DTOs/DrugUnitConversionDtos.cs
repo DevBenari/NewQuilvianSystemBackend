@@ -97,6 +97,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsForCompound { get; set; }
     }
 
+    public class DrugUnitConversionOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<DrugUnitConversionOptionResponse> Items { get; set; } = new();
+    }
+
     public class DrugUnitConversionFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";

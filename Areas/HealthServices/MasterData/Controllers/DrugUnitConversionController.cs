@@ -210,15 +210,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<DrugUnitConversionOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DrugUnitConversionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Drug Unit Conversion", Description = "Melihat data pilihan drug unit conversion", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DrugUnitConversion", "Read")]
         public async Task<IActionResult> GetDrugUnitConversionOptions(
-            [FromQuery] Guid? drugId,
-            [FromQuery] Guid? fromMeasurementId,
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+    [FromQuery] Guid? drugId,
+    [FromQuery] Guid? fromMeasurementId,
+    [FromQuery] bool onlyActive = true,
+    [FromQuery] string? search = null,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = BuildBaseQuery();
 
             if (onlyActive)
@@ -232,27 +238,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             query = ApplySearch(query, search);
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.Drug != null ? x.Drug.DrugName : string.Empty)
                 .ThenBy(x => x.ConversionName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new DrugUnitConversionOptionResponse
                 {
                     Id = x.Id,
+
                     DrugId = x.DrugId,
-                    DrugName = x.Drug != null ? x.Drug.DrugName : string.Empty,
+                    DrugName = x.Drug != null
+                        ? x.Drug.DrugName
+                        : string.Empty,
+
                     ConversionCode = x.ConversionCode,
                     ConversionName = x.ConversionName,
+
                     FromMeasurementId = x.FromMeasurementId,
-                    FromMeasurementName = x.FromMeasurement != null ? x.FromMeasurement.MeasurementName : string.Empty,
-                    FromMeasurementSymbol = x.FromMeasurement != null ? x.FromMeasurement.MeasurementSymbol : null,
+                    FromMeasurementName = x.FromMeasurement != null
+                        ? x.FromMeasurement.MeasurementName
+                        : string.Empty,
+                    FromMeasurementSymbol = x.FromMeasurement != null
+                        ? x.FromMeasurement.MeasurementSymbol
+                        : null,
+
                     ToMeasurementId = x.ToMeasurementId,
-                    ToMeasurementName = x.ToMeasurement != null ? x.ToMeasurement.MeasurementName : string.Empty,
-                    ToMeasurementSymbol = x.ToMeasurement != null ? x.ToMeasurement.MeasurementSymbol : null,
+                    ToMeasurementName = x.ToMeasurement != null
+                        ? x.ToMeasurement.MeasurementName
+                        : string.Empty,
+                    ToMeasurementSymbol = x.ToMeasurement != null
+                        ? x.ToMeasurement.MeasurementSymbol
+                        : null,
+
                     FromQuantity = x.FromQuantity,
                     ToQuantity = x.ToQuantity,
                     ConversionFactor = x.ConversionFactor,
                     ConversionType = x.ConversionType,
+
                     IsDefault = x.IsDefault,
                     IsBidirectional = x.IsBidirectional,
                     IsForPurchase = x.IsForPurchase,
@@ -263,8 +289,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<DrugUnitConversionOptionResponse>>.Ok(
-                data,
+            var result = new DrugUnitConversionOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<DrugUnitConversionOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan drug unit conversion berhasil diambil."
             ));
         }

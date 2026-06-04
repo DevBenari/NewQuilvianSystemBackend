@@ -203,13 +203,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<DiagnosisChapterOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Diagnosis Chapter", Description = "Melihat data diagnosis chapter", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<DiagnosisChapterOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Diagnosis Chapter", Description = "Melihat data pilihan diagnosis chapter", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DiagnosisChapter", "Read")]
         public async Task<IActionResult> GetDiagnosisChapterOptions(
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = _dbContext.Set<MstDiagnosisChapter>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
@@ -229,9 +235,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.DiagnosisCodeRangeEnd != null && x.DiagnosisCodeRangeEnd.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.ChapterCode)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new DiagnosisChapterOptionResponse
                 {
                     Id = x.Id,
@@ -243,8 +253,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<DiagnosisChapterOptionResponse>>.Ok(
-                data,
+            var result = new DiagnosisChapterOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<DiagnosisChapterOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan diagnosis chapter berhasil diambil."
             ));
         }
