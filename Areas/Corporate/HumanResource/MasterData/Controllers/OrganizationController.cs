@@ -36,6 +36,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
     public class OrganizationController : ControllerBase
     {
         private const string LogCategory = "Corporate.HumanResource.MasterData";
+        private const string DepartmentCodePrefix = "DPT-RSMMC-";
+        private const string PositionCodePrefix = "POS-RSMMC-";
+        private const int CodeNumberLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -48,53 +51,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             _loggerService = loggerService;
         }
 
-        // =========================================================
-        // FILTER METADATA
-        // =========================================================
-
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<OrganizationFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Organization",
-            Description = "Melihat data organization department dan position",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [AccessAction("Read", "Read Organization", Description = "Melihat data organization department dan position", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Organization", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new OrganizationFilterMetadataResponse
             {
-                DepartmentDefaultFilter = new OrganizationDefaultFilterResponse
+                DepartmentDefaultFilter = new OrganizationDepartmentDefaultFilterResponse(),
+                PositionDefaultFilter = new OrganizationPositionDefaultFilterResponse(),
+                CustomPeriods = new List<OrganizationCustomPeriodOptionResponse>
                 {
-                    StartDate = null,
-                    EndDate = null,
-                    CustomPeriod = null,
-                    Search = null,
-                    IsActive = null,
-                    DepartmentId = null,
-                    IncludePositions = false,
-                    SortBy = "createDateTime",
-                    SortDirection = "desc",
-                    PageNumber = 1,
-                    PageSize = 25
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "lastmonth", Label = "Bulan lalu" }
                 },
-                PositionDefaultFilter = new OrganizationDefaultFilterResponse
-                {
-                    StartDate = null,
-                    EndDate = null,
-                    CustomPeriod = null,
-                    Search = null,
-                    IsActive = null,
-                    DepartmentId = null,
-                    IncludePositions = false,
-                    SortBy = "createDateTime",
-                    SortDirection = "desc",
-                    PageNumber = 1,
-                    PageSize = 25
-                },
-                CustomPeriods = BuildCustomPeriodOptions(),
                 DepartmentSortOptions = new List<OrganizationSortOptionResponse>
                 {
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
@@ -109,102 +82,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
                     new() { Value = "positionCode", Label = "Kode position" },
                     new() { Value = "positionName", Label = "Nama position" },
+                    new() { Value = "departmentCode", Label = "Kode department" },
                     new() { Value = "departmentName", Label = "Nama department" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
-                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                QueryParameters = new List<OrganizationQueryParameterInfoResponse>
-                {
-                    new()
-                    {
-                        Name = "startDate",
-                        Type = "date",
-                        Required = "No",
-                        Description = "Tanggal mulai filter berdasarkan CreateDateTime. Dipakai jika customPeriod kosong atau custom.",
-                        Example = "2026-01-01"
-                    },
-                    new()
-                    {
-                        Name = "endDate",
-                        Type = "date",
-                        Required = "No",
-                        Description = "Tanggal akhir filter berdasarkan CreateDateTime. Sistem akan membaca sampai akhir hari endDate.",
-                        Example = "2026-01-31"
-                    },
-                    new()
-                    {
-                        Name = "customPeriod",
-                        Type = "string",
-                        Required = "No",
-                        Description = "Pilihan periode cepat. Nilai tersedia dari response CustomPeriods.",
-                        Example = "last7days"
-                    },
-                    new()
-                    {
-                        Name = "search",
-                        Type = "string",
-                        Required = "No",
-                        Description = "Pencarian teks untuk kode, nama, dan deskripsi.",
-                        Example = "finance"
-                    },
-                    new()
-                    {
-                        Name = "isActive",
-                        Type = "boolean",
-                        Required = "No",
-                        Description = "Filter status aktif. Kosongkan untuk semua status.",
-                        Example = "true"
-                    },
-                    new()
-                    {
-                        Name = "departmentId",
-                        Type = "guid",
-                        Required = "No",
-                        Description = "Khusus endpoint positions. Filter position berdasarkan department.",
-                        Example = "00000000-0000-0000-0000-000000000000"
-                    },
-                    new()
-                    {
-                        Name = "includePositions",
-                        Type = "boolean",
-                        Required = "No",
-                        Description = "Khusus endpoint departments. Jika true, response department menyertakan list position compact.",
-                        Example = "false"
-                    },
-                    new()
-                    {
-                        Name = "sortBy",
-                        Type = "string",
-                        Required = "No",
-                        Description = "Field sorting. Nilai tersedia dari DepartmentSortOptions atau PositionSortOptions.",
-                        Example = "createDateTime"
-                    },
-                    new()
-                    {
-                        Name = "sortDirection",
-                        Type = "string",
-                        Required = "No",
-                        Description = "Arah sorting. Nilai: asc atau desc.",
-                        Example = "desc"
-                    },
-                    new()
-                    {
-                        Name = "pageNumber",
-                        Type = "integer",
-                        Required = "No",
-                        Description = "Nomor halaman. Minimal 1.",
-                        Example = "1"
-                    },
-                    new()
-                    {
-                        Name = "pageSize",
-                        Type = "integer",
-                        Required = "No",
-                        Description = "Jumlah data per halaman. Maksimal 100.",
-                        Example = "25"
-                    }
-                }
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 }
             };
 
             await _loggerService.InfoAsync(
@@ -220,27 +103,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             ));
         }
 
-        // =========================================================
-        // SUMMARY
-        // =========================================================
-
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<OrganizationSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Organization",
-            Description = "Melihat data organization department dan position",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [AccessAction("Read", "Read Organization", Description = "Melihat data organization department dan position", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Organization", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var departmentQuery = _dbContext.MstDepartments
+            var departmentQuery = _dbContext.Set<MstDepartment>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
-            var positionQuery = _dbContext.MstPositions
+            var positionQuery = _dbContext.Set<MstPosition>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
@@ -249,18 +122,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 TotalDepartment = await departmentQuery.CountAsync(),
                 ActiveDepartment = await departmentQuery.CountAsync(x => x.IsActive),
                 InactiveDepartment = await departmentQuery.CountAsync(x => !x.IsActive),
-
                 TotalPosition = await positionQuery.CountAsync(),
                 ActivePosition = await positionQuery.CountAsync(x => x.IsActive),
                 InactivePosition = await positionQuery.CountAsync(x => !x.IsActive)
             };
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Organization.GetSummary",
-                "Mengambil ringkasan data organization.",
-                result
-            );
 
             return Ok(ApiResponse<OrganizationSummaryResponse>.Ok(
                 result,
@@ -268,26 +133,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             ));
         }
 
-        // =========================================================
-        // DEPARTMENT
-        // =========================================================
-
         [HttpGet("departments")]
         [ProducesResponseType(typeof(ApiResponse<ResponseDepartmentPagedResult>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Organization",
-            Description = "Melihat data organization department dan position",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [AccessAction("Read", "Read Organization", Description = "Melihat data department", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Organization", "Read")]
         public async Task<IActionResult> GetDepartments(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
-            [FromQuery] string? search,
+            [FromQuery] Guid? positionId,
             [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] bool includePositions = false,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
@@ -298,57 +154,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+            var query = BuildDepartmentBaseQuery();
 
-            if (!dateRange.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
-                ));
-            }
-
-            var query = _dbContext.MstDepartments
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
-
-            if (dateRange.Start.HasValue)
-            {
-                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
-            }
-
-            if (dateRange.EndExclusive.HasValue)
-            {
-                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.DepartmentCode.ToLower().Contains(keyword) ||
-                    x.DepartmentName.ToLower().Contains(keyword) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
-                    x.Positions.Any(p =>
-                        !p.IsDelete &&
-                        (
-                            p.PositionCode.ToLower().Contains(keyword) ||
-                            p.PositionName.ToLower().Contains(keyword) ||
-                            (p.Description != null && p.Description.ToLower().Contains(keyword))
-                        )));
-            }
-
-            if (isActive.HasValue)
-            {
-                query = query.Where(x => x.IsActive == isActive.Value);
-            }
+            query = ApplyDepartmentDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyDepartmentStandardFilter(query, positionId, isActive, search);
 
             var totalData = await query.CountAsync();
 
-            var sortedQuery = ApplyDepartmentSorting(query, sortBy, sortDirection);
-
-            var items = await sortedQuery
+            var items = await ApplyDepartmentSorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(x => new OrganizationDepartmentResponse
@@ -387,68 +200,42 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 Items = items
             };
 
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Organization.GetDepartments",
-                "Mengambil data department.",
-                new
-                {
-                    startDate,
-                    endDate,
-                    customPeriod,
-                    AppliedStartDate = dateRange.Start,
-                    AppliedEndExclusive = dateRange.EndExclusive,
-                    search,
-                    isActive,
-                    includePositions,
-                    sortBy,
-                    sortDirection,
-                    pageNumber,
-                    pageSize,
-                    totalData
-                }
-            );
-
             return Ok(ApiResponse<ResponseDepartmentPagedResult>.Ok(
                 result,
-                "Data department berhasil ditampilkan."
+                "Data department berhasil diambil."
             ));
         }
 
         [HttpGet("departments/options")]
-        [ProducesResponseType(typeof(ApiResponse<List<OrganizationDepartmentOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Organization",
-            Description = "Melihat data organization department dan position",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [ProducesResponseType(typeof(ApiResponse<OrganizationDepartmentOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Organization", Description = "Melihat data pilihan department", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Organization", "Read")]
         public async Task<IActionResult> GetDepartmentOptions(
+            [FromQuery] Guid? positionId,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
-            var query = _dbContext.MstDepartments
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
 
-            if (onlyActive)
-            {
-                query = query.Where(x => x.IsActive);
-            }
+            var query = BuildDepartmentBaseQuery();
 
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
+            query = ApplyDepartmentStandardFilter(
+                query,
+                positionId,
+                onlyActive ? true : null,
+                search
+            );
 
-                query = query.Where(x =>
-                    x.DepartmentCode.ToLower().Contains(keyword) ||
-                    x.DepartmentName.ToLower().Contains(keyword));
-            }
+            var totalData = await query.CountAsync();
 
-            var data = await query
+            var items = await query
                 .OrderBy(x => x.DepartmentName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new OrganizationDepartmentOptionResponse
                 {
                     Id = x.Id,
@@ -457,20 +244,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 })
                 .ToListAsync();
 
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Organization.GetDepartmentOptions",
-                "Mengambil data pilihan department.",
-                new
-                {
-                    onlyActive,
-                    search,
-                    TotalData = data.Count
-                }
-            );
+            var result = new OrganizationDepartmentOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
 
-            return Ok(ApiResponse<List<OrganizationDepartmentOptionResponse>>.Ok(
-                data,
+            return Ok(ApiResponse<OrganizationDepartmentOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan department berhasil diambil."
             ));
         }
@@ -478,21 +262,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [HttpGet("departments/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<OrganizationDepartmentResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction(
-            "Read",
-            "Read Organization",
-            Description = "Melihat data organization department dan position",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [AccessAction("Read", "Read Organization", Description = "Melihat detail department", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Organization", "Read")]
         public async Task<IActionResult> GetDepartmentById(
             Guid id,
             [FromQuery] bool includePositions = true)
         {
-            var data = await _dbContext.MstDepartments
-                .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
+            var data = await BuildDepartmentBaseQuery()
+                .Where(x => x.Id == id)
                 .Select(x => new OrganizationDepartmentResponse
                 {
                     Id = x.Id,
@@ -522,25 +299,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             if (data == null)
             {
-                await _loggerService.WarningAsync(
-                    LogCategory,
-                    "Organization.GetDepartmentById",
-                    "Department tidak ditemukan.",
-                    new { Id = id }
-                );
-
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Department tidak ditemukan."
                 ));
             }
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Organization.GetDepartmentById",
-                "Mengambil detail department.",
-                new { Id = id }
-            );
 
             return Ok(ApiResponse<OrganizationDepartmentResponse>.Ok(
                 data,
@@ -549,99 +312,72 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpPost("departments")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Create",
-            "Create Organization",
-            Description = "Membuat data organization department atau position",
-            AccessType = AccessTypes.Create,
-            SortOrder = 2
-        )]
+        [ProducesResponseType(typeof(ApiResponse<OrganizationDepartmentCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Create", "Create Organization", Description = "Membuat data department", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("Organization", "Create")]
         public async Task<IActionResult> CreateDepartment([FromBody] CreateOrganizationDepartmentRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.DepartmentName))
+            var validation = await ValidateDepartmentRequestAsync(null, request.DepartmentName);
+
+            if (!validation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    "Nama department wajib diisi."
+                    validation.ErrorMessage ?? "Data department tidak valid."
                 ));
             }
 
-            var name = request.DepartmentName.Trim();
-
-            var nameExists = await _dbContext.MstDepartments
-                .AnyAsync(x =>
-                    x.DepartmentName.ToLower() == name.ToLower() &&
-                    !x.IsDelete);
-
-            if (nameExists)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Nama department sudah digunakan."
-                ));
-            }
-
-            var code = await GenerateDepartmentCodeAsync();
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
 
             var entity = new MstDepartment
             {
                 Id = Guid.NewGuid(),
-                DepartmentCode = code,
-                DepartmentName = name,
+                DepartmentCode = await GenerateDepartmentCodeAsync(),
+                DepartmentName = request.DepartmentName.Trim(),
                 Description = NormalizeNullableText(request.Description),
                 IsActive = true,
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = GetCurrentUserId(),
+                CreateDateTime = now,
+                CreateBy = actorUserId,
                 IsDelete = false,
                 IsCancel = false
             };
 
-            _dbContext.MstDepartments.Add(entity);
+            _dbContext.Set<MstDepartment>().Add(entity);
             await _dbContext.SaveChangesAsync();
+
+            var result = new OrganizationDepartmentCreateResponse
+            {
+                Id = entity.Id,
+                DepartmentCode = entity.DepartmentCode,
+                DepartmentName = entity.DepartmentName,
+                IsActive = entity.IsActive
+            };
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "Organization.CreateDepartment",
-                "Department berhasil dibuat.",
-                new
-                {
-                    entity.Id,
-                    entity.DepartmentCode,
-                    entity.DepartmentName,
-                    entity.IsActive
-                }
+                "Membuat data department.",
+                result
             );
 
-            return Ok(ApiResponse<object>.Ok(
-                new
-                {
-                    entity.Id,
-                    entity.DepartmentCode,
-                    entity.DepartmentName,
-                    entity.Description,
-                    entity.IsActive
-                },
+            return Ok(ApiResponse<OrganizationDepartmentCreateResponse>.Ok(
+                result,
                 "Department berhasil dibuat."
             ));
         }
 
         [HttpPut("departments/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Update",
-            "Update Organization",
-            Description = "Mengubah data organization department atau position",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Organization", Description = "Mengubah data department", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("Organization", "Update")]
         public async Task<IActionResult> UpdateDepartment(
             Guid id,
             [FromBody] UpdateOrganizationDepartmentRequest request)
         {
-            var entity = await _dbContext.MstDepartments
+            var entity = await _dbContext.Set<MstDepartment>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
@@ -652,43 +388,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
-            if (string.IsNullOrWhiteSpace(request.DepartmentName))
+            var validation = await ValidateDepartmentRequestAsync(id, request.DepartmentName);
+
+            if (!validation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    "Nama department wajib diisi."
+                    validation.ErrorMessage ?? "Data department tidak valid."
                 ));
             }
 
-            var name = request.DepartmentName.Trim();
-
-            var nameExists = await _dbContext.MstDepartments
-                .AnyAsync(x =>
-                    x.Id != id &&
-                    x.DepartmentName.ToLower() == name.ToLower() &&
-                    !x.IsDelete);
-
-            if (nameExists)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Nama department sudah digunakan."
-                ));
-            }
-
-            var oldStatus = entity.IsActive;
             var now = DateTime.UtcNow;
-            var userId = GetCurrentUserId();
+            var actorUserId = GetCurrentUserId();
 
-            entity.DepartmentName = name;
+            entity.DepartmentName = request.DepartmentName.Trim();
             entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
-            entity.UpdateBy = userId;
+            entity.UpdateBy = actorUserId;
 
-            if (oldStatus && !request.IsActive && request.CascadeToPositions)
+            if (!request.IsActive && request.CascadeToPositions)
             {
-                var positions = await _dbContext.MstPositions
+                var positions = await _dbContext.Set<MstPosition>()
                     .Where(x => x.DepartmentId == id && !x.IsDelete)
                     .ToListAsync();
 
@@ -696,7 +417,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     position.IsActive = false;
                     position.UpdateDateTime = now;
-                    position.UpdateBy = userId;
+                    position.UpdateBy = actorUserId;
                 }
             }
 
@@ -705,15 +426,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             await _loggerService.InfoAsync(
                 LogCategory,
                 "Organization.UpdateDepartment",
-                "Department berhasil diperbarui.",
-                new
-                {
-                    entity.Id,
-                    entity.DepartmentCode,
-                    entity.DepartmentName,
-                    entity.IsActive,
-                    request.CascadeToPositions
-                }
+                "Mengubah data department.",
+                new { entity.Id, entity.DepartmentCode, entity.DepartmentName, entity.IsActive }
             );
 
             return Ok(ApiResponse<object>.Ok(
@@ -724,19 +438,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         [HttpPatch("departments/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Update",
-            "Update Organization",
-            Description = "Mengubah data organization department atau position",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Organization Status", Description = "Mengubah status department", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("Organization", "Update")]
         public async Task<IActionResult> UpdateDepartmentStatus(
             Guid id,
             [FromBody] UpdateOrganizationStatusRequest request)
         {
-            var entity = await _dbContext.MstDepartments
+            var entity = await _dbContext.Set<MstDepartment>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
@@ -748,15 +457,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
 
             var now = DateTime.UtcNow;
-            var userId = GetCurrentUserId();
+            var actorUserId = GetCurrentUserId();
 
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
-            entity.UpdateBy = userId;
+            entity.UpdateBy = actorUserId;
 
             if (!request.IsActive && request.CascadeToPositions)
             {
-                var positions = await _dbContext.MstPositions
+                var positions = await _dbContext.Set<MstPosition>()
                     .Where(x => x.DepartmentId == id && !x.IsDelete)
                     .ToListAsync();
 
@@ -764,25 +473,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 {
                     position.IsActive = false;
                     position.UpdateDateTime = now;
-                    position.UpdateBy = userId;
+                    position.UpdateBy = actorUserId;
                 }
             }
 
             await _dbContext.SaveChangesAsync();
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Organization.UpdateDepartmentStatus",
-                "Status department berhasil diperbarui.",
-                new
-                {
-                    entity.Id,
-                    entity.DepartmentCode,
-                    entity.DepartmentName,
-                    entity.IsActive,
-                    request.CascadeToPositions
-                }
-            );
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -792,19 +487,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         [HttpDelete("departments/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Delete",
-            "Delete Organization",
-            Description = "Menghapus data organization department atau position",
-            AccessType = AccessTypes.Delete,
-            SortOrder = 4
-        )]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Delete", "Delete Organization", Description = "Menghapus data department", AccessType = AccessTypes.Delete, SortOrder = 5)]
         [AccessPermission("Organization", "Delete")]
         public async Task<IActionResult> DeleteDepartment(
             Guid id,
             [FromQuery] bool cascadePositions = true)
         {
-            var entity = await _dbContext.MstDepartments
+            var entity = await _dbContext.Set<MstDepartment>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
@@ -816,16 +506,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
 
             var now = DateTime.UtcNow;
-            var userId = GetCurrentUserId();
+            var actorUserId = GetCurrentUserId();
 
             entity.IsDelete = true;
             entity.IsActive = false;
             entity.DeleteDateTime = now;
-            entity.DeleteBy = userId;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             if (cascadePositions)
             {
-                var positions = await _dbContext.MstPositions
+                var positions = await _dbContext.Set<MstPosition>()
                     .Where(x => x.DepartmentId == id && !x.IsDelete)
                     .ToListAsync();
 
@@ -834,7 +526,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     position.IsDelete = true;
                     position.IsActive = false;
                     position.DeleteDateTime = now;
-                    position.DeleteBy = userId;
+                    position.DeleteBy = actorUserId;
+                    position.UpdateDateTime = now;
+                    position.UpdateBy = actorUserId;
                 }
             }
 
@@ -843,14 +537,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             await _loggerService.InfoAsync(
                 LogCategory,
                 "Organization.DeleteDepartment",
-                "Department berhasil dihapus.",
-                new
-                {
-                    entity.Id,
-                    entity.DepartmentCode,
-                    entity.DepartmentName,
-                    cascadePositions
-                }
+                "Menghapus data department.",
+                new { entity.Id, entity.DepartmentCode, entity.DepartmentName, cascadePositions }
             );
 
             return Ok(ApiResponse<object>.Ok(
@@ -859,27 +547,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             ));
         }
 
-        // =========================================================
-        // POSITION
-        // =========================================================
-
         [HttpGet("positions")]
         [ProducesResponseType(typeof(ApiResponse<ResponsePositionPagedResult>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Organization",
-            Description = "Melihat data organization department dan position",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [AccessAction("Read", "Read Organization", Description = "Melihat data position", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Organization", "Read")]
         public async Task<IActionResult> GetPositions(
-            [FromQuery] Guid? departmentId,
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
-            [FromQuery] string? search,
+            [FromQuery] Guid? departmentId,
             [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -889,57 +567,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+            var query = BuildPositionBaseQuery();
 
-            if (!dateRange.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
-                ));
-            }
-
-            var query = _dbContext.MstPositions
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
-
-            if (departmentId.HasValue && departmentId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.DepartmentId == departmentId.Value);
-            }
-
-            if (dateRange.Start.HasValue)
-            {
-                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
-            }
-
-            if (dateRange.EndExclusive.HasValue)
-            {
-                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.PositionCode.ToLower().Contains(keyword) ||
-                    x.PositionName.ToLower().Contains(keyword) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
-                    (x.Department != null && x.Department.DepartmentCode.ToLower().Contains(keyword)) ||
-                    (x.Department != null && x.Department.DepartmentName.ToLower().Contains(keyword)));
-            }
-
-            if (isActive.HasValue)
-            {
-                query = query.Where(x => x.IsActive == isActive.Value);
-            }
+            query = ApplyPositionDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyPositionStandardFilter(query, departmentId, isActive, search);
 
             var totalData = await query.CountAsync();
 
-            var sortedQuery = ApplyPositionSorting(query, sortBy, sortDirection);
-
-            var items = await sortedQuery
+            var items = await ApplyPositionSorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .Select(x => new OrganizationPositionResponse
@@ -965,28 +600,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 Items = items
             };
 
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Organization.GetPositions",
-                "Mengambil data position organization.",
-                new
-                {
-                    departmentId,
-                    startDate,
-                    endDate,
-                    customPeriod,
-                    AppliedStartDate = dateRange.Start,
-                    AppliedEndExclusive = dateRange.EndExclusive,
-                    search,
-                    isActive,
-                    sortBy,
-                    sortDirection,
-                    pageNumber,
-                    pageSize,
-                    totalData
-                }
-            );
-
             return Ok(ApiResponse<ResponsePositionPagedResult>.Ok(
                 result,
                 "Data position berhasil diambil."
@@ -994,74 +607,58 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet("positions/options")]
-        [ProducesResponseType(typeof(ApiResponse<List<OrganizationPositionOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Organization",
-            Description = "Melihat data organization department dan position",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [ProducesResponseType(typeof(ApiResponse<OrganizationPositionOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Organization", Description = "Melihat data pilihan position", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Organization", "Read")]
         public async Task<IActionResult> GetPositionOptions(
-            [FromQuery] Guid departmentId,
+            [FromQuery] Guid? departmentId,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
-            if (departmentId == Guid.Empty)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Department wajib dipilih."
-                ));
-            }
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
 
-            var query = _dbContext.MstPositions
-                .AsNoTracking()
-                .Where(x =>
-                    x.DepartmentId == departmentId &&
-                    !x.IsDelete);
+            var query = BuildPositionBaseQuery();
 
-            if (onlyActive)
-            {
-                query = query.Where(x => x.IsActive);
-            }
+            query = ApplyPositionStandardFilter(
+                query,
+                departmentId,
+                onlyActive ? true : null,
+                search
+            );
 
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
+            var totalData = await query.CountAsync();
 
-                query = query.Where(x =>
-                    x.PositionCode.ToLower().Contains(keyword) ||
-                    x.PositionName.ToLower().Contains(keyword));
-            }
-
-            var data = await query
-                .OrderBy(x => x.PositionName)
+            var items = await query
+                .OrderBy(x => x.Department != null ? x.Department.DepartmentName : string.Empty)
+                .ThenBy(x => x.PositionName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new OrganizationPositionOptionResponse
                 {
                     Id = x.Id,
                     DepartmentId = x.DepartmentId,
+                    DepartmentCode = x.Department != null ? x.Department.DepartmentCode : string.Empty,
+                    DepartmentName = x.Department != null ? x.Department.DepartmentName : string.Empty,
                     PositionCode = x.PositionCode,
                     PositionName = x.PositionName
                 })
                 .ToListAsync();
 
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Organization.GetPositionOptions",
-                "Mengambil data pilihan position.",
-                new
-                {
-                    departmentId,
-                    onlyActive,
-                    search,
-                    TotalData = data.Count
-                }
-            );
+            var result = new OrganizationPositionOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
 
-            return Ok(ApiResponse<List<OrganizationPositionOptionResponse>>.Ok(
-                data,
+            return Ok(ApiResponse<OrganizationPositionOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan position berhasil diambil."
             ));
         }
@@ -1069,19 +666,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [HttpGet("positions/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<OrganizationPositionResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction(
-            "Read",
-            "Read Organization",
-            Description = "Melihat data organization department dan position",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [AccessAction("Read", "Read Organization", Description = "Melihat detail position", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Organization", "Read")]
         public async Task<IActionResult> GetPositionById(Guid id)
         {
-            var data = await _dbContext.MstPositions
-                .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
+            var data = await BuildPositionBaseQuery()
+                .Where(x => x.Id == id)
                 .Select(x => new OrganizationPositionResponse
                 {
                     Id = x.Id,
@@ -1104,13 +694,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Organization.GetPositionById",
-                "Mengambil detail position.",
-                new { Id = id }
-            );
-
             return Ok(ApiResponse<OrganizationPositionResponse>.Ok(
                 data,
                 "Detail position berhasil diambil."
@@ -1118,128 +701,75 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpPost("positions")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Create",
-            "Create Organization",
-            Description = "Membuat data organization department atau position",
-            AccessType = AccessTypes.Create,
-            SortOrder = 2
-        )]
+        [ProducesResponseType(typeof(ApiResponse<OrganizationPositionCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Create", "Create Organization", Description = "Membuat data position", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("Organization", "Create")]
         public async Task<IActionResult> CreatePosition([FromBody] CreateOrganizationPositionRequest request)
         {
-            if (request.DepartmentId == Guid.Empty)
+            var validation = await ValidatePositionRequestAsync(null, request);
+
+            if (!validation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    "Department wajib dipilih."
+                    validation.ErrorMessage ?? "Data position tidak valid."
                 ));
             }
 
-            if (string.IsNullOrWhiteSpace(request.PositionName))
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Nama position wajib diisi."
-                ));
-            }
-
-            var department = await _dbContext.MstDepartments
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == request.DepartmentId &&
-                    x.IsActive &&
-                    !x.IsDelete);
-
-            if (department == null)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Department tidak valid atau tidak aktif."
-                ));
-            }
-
-            var name = request.PositionName.Trim();
-
-            var nameExists = await _dbContext.MstPositions
-                .AnyAsync(x =>
-                    x.DepartmentId == request.DepartmentId &&
-                    x.PositionName.ToLower() == name.ToLower() &&
-                    !x.IsDelete);
-
-            if (nameExists)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Nama position sudah digunakan pada department ini."
-                ));
-            }
-
-            var code = await GeneratePositionCodeAsync();
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
 
             var entity = new MstPosition
             {
                 Id = Guid.NewGuid(),
                 DepartmentId = request.DepartmentId,
-                PositionCode = code,
-                PositionName = name,
+                PositionCode = await GeneratePositionCodeAsync(),
+                PositionName = request.PositionName.Trim(),
                 Description = NormalizeNullableText(request.Description),
                 IsActive = true,
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = GetCurrentUserId(),
+                CreateDateTime = now,
+                CreateBy = actorUserId,
                 IsDelete = false,
                 IsCancel = false
             };
 
-            _dbContext.MstPositions.Add(entity);
+            _dbContext.Set<MstPosition>().Add(entity);
             await _dbContext.SaveChangesAsync();
+
+            var result = new OrganizationPositionCreateResponse
+            {
+                Id = entity.Id,
+                DepartmentId = entity.DepartmentId,
+                DepartmentName = validation.DepartmentName ?? string.Empty,
+                PositionCode = entity.PositionCode,
+                PositionName = entity.PositionName,
+                IsActive = entity.IsActive
+            };
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "Organization.CreatePosition",
-                "Position berhasil dibuat.",
-                new
-                {
-                    entity.Id,
-                    entity.DepartmentId,
-                    DepartmentName = department.DepartmentName,
-                    entity.PositionCode,
-                    entity.PositionName,
-                    entity.IsActive
-                }
+                "Membuat data position.",
+                result
             );
 
-            return Ok(ApiResponse<object>.Ok(
-                new
-                {
-                    entity.Id,
-                    entity.DepartmentId,
-                    department.DepartmentName,
-                    entity.PositionCode,
-                    entity.PositionName,
-                    entity.Description,
-                    entity.IsActive
-                },
+            return Ok(ApiResponse<OrganizationPositionCreateResponse>.Ok(
+                result,
                 "Position berhasil dibuat."
             ));
         }
 
         [HttpPut("positions/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Update",
-            "Update Organization",
-            Description = "Mengubah data organization department atau position",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Organization", Description = "Mengubah data position", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("Organization", "Update")]
         public async Task<IActionResult> UpdatePosition(
             Guid id,
             [FromBody] UpdateOrganizationPositionRequest request)
         {
-            var entity = await _dbContext.MstPositions
+            var entity = await _dbContext.Set<MstPosition>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
@@ -1250,56 +780,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
-            if (request.DepartmentId == Guid.Empty)
+            var validation = await ValidatePositionRequestAsync(id, request);
+
+            if (!validation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    "Department wajib dipilih."
-                ));
-            }
-
-            if (string.IsNullOrWhiteSpace(request.PositionName))
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Nama position wajib diisi."
-                ));
-            }
-
-            var department = await _dbContext.MstDepartments
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == request.DepartmentId &&
-                    x.IsActive &&
-                    !x.IsDelete);
-
-            if (department == null)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Department tidak valid atau tidak aktif."
-                ));
-            }
-
-            var name = request.PositionName.Trim();
-
-            var nameExists = await _dbContext.MstPositions
-                .AnyAsync(x =>
-                    x.Id != id &&
-                    x.DepartmentId == request.DepartmentId &&
-                    x.PositionName.ToLower() == name.ToLower() &&
-                    !x.IsDelete);
-
-            if (nameExists)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Nama position sudah digunakan pada department ini."
+                    validation.ErrorMessage ?? "Data position tidak valid."
                 ));
             }
 
             entity.DepartmentId = request.DepartmentId;
-            entity.PositionName = name;
+            entity.PositionName = request.PositionName.Trim();
             entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = DateTime.UtcNow;
@@ -1310,16 +802,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             await _loggerService.InfoAsync(
                 LogCategory,
                 "Organization.UpdatePosition",
-                "Position berhasil diperbarui.",
-                new
-                {
-                    entity.Id,
-                    entity.DepartmentId,
-                    DepartmentName = department.DepartmentName,
-                    entity.PositionCode,
-                    entity.PositionName,
-                    entity.IsActive
-                }
+                "Mengubah data position.",
+                new { entity.Id, entity.DepartmentId, entity.PositionCode, entity.PositionName, entity.IsActive }
             );
 
             return Ok(ApiResponse<object>.Ok(
@@ -1330,19 +814,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         [HttpPatch("positions/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Update",
-            "Update Organization",
-            Description = "Mengubah data organization department atau position",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Organization Status", Description = "Mengubah status position", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("Organization", "Update")]
         public async Task<IActionResult> UpdatePositionStatus(
             Guid id,
             [FromBody] UpdateOrganizationStatusRequest request)
         {
-            var entity = await _dbContext.MstPositions
+            var entity = await _dbContext.Set<MstPosition>()
                 .Include(x => x.Department)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
@@ -1368,20 +847,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             await _dbContext.SaveChangesAsync();
 
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Organization.UpdatePositionStatus",
-                "Status position berhasil diperbarui.",
-                new
-                {
-                    entity.Id,
-                    entity.DepartmentId,
-                    entity.PositionCode,
-                    entity.PositionName,
-                    entity.IsActive
-                }
-            );
-
             return Ok(ApiResponse<object>.Ok(
                 null,
                 "Status position berhasil diperbarui."
@@ -1390,17 +855,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         [HttpDelete("positions/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Delete",
-            "Delete Organization",
-            Description = "Menghapus data organization department atau position",
-            AccessType = AccessTypes.Delete,
-            SortOrder = 4
-        )]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Delete", "Delete Organization", Description = "Menghapus data position", AccessType = AccessTypes.Delete, SortOrder = 5)]
         [AccessPermission("Organization", "Delete")]
         public async Task<IActionResult> DeletePosition(Guid id)
         {
-            var entity = await _dbContext.MstPositions
+            var entity = await _dbContext.Set<MstPosition>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
@@ -1411,24 +871,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsDelete = true;
             entity.IsActive = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "Organization.DeletePosition",
-                "Position berhasil dihapus.",
-                new
-                {
-                    entity.Id,
-                    entity.DepartmentId,
-                    entity.PositionCode,
-                    entity.PositionName
-                }
+                "Menghapus data position.",
+                new { entity.Id, entity.DepartmentId, entity.PositionCode, entity.PositionName }
             );
 
             return Ok(ApiResponse<object>.Ok(
@@ -1437,156 +896,173 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             ));
         }
 
-        // =========================================================
-        // PRIVATE HELPERS
-        // =========================================================
-
-        private async Task<string> GenerateDepartmentCodeAsync()
+        private IQueryable<MstDepartment> BuildDepartmentBaseQuery()
         {
-            const string prefix = "DPT";
-
-            var totalData = await _dbContext.MstDepartments
-                .IgnoreQueryFilters()
-                .CountAsync();
-
-            var nextNumber = totalData + 1;
-
-            while (true)
-            {
-                var code = $"{prefix}{nextNumber.ToString("D6")}";
-
-                var exists = await _dbContext.MstDepartments
-                    .AnyAsync(x => x.DepartmentCode == code);
-
-                if (!exists)
-                {
-                    return code;
-                }
-
-                nextNumber++;
-            }
+            return _dbContext.Set<MstDepartment>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
         }
 
-        private async Task<string> GeneratePositionCodeAsync()
+        private IQueryable<MstPosition> BuildPositionBaseQuery()
         {
-            const string prefix = "POS";
-
-            var totalData = await _dbContext.MstPositions
-                .IgnoreQueryFilters()
-                .CountAsync();
-
-            var nextNumber = totalData + 1;
-
-            while (true)
-            {
-                var code = $"{prefix}{nextNumber.ToString("D6")}";
-
-                var exists = await _dbContext.MstPositions
-                    .AnyAsync(x => x.PositionCode == code);
-
-                if (!exists)
-                {
-                    return code;
-                }
-
-                nextNumber++;
-            }
+            return _dbContext.Set<MstPosition>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
         }
 
-        private static (int PageNumber, int PageSize) NormalizePaging(
-            int pageNumber,
-            int pageSize)
-        {
-            pageNumber = pageNumber <= 0 ? 1 : pageNumber;
-            pageSize = pageSize <= 0 ? 25 : pageSize;
-            pageSize = pageSize > 100 ? 100 : pageSize;
-
-            return (pageNumber, pageSize);
-        }
-
-        private static DateRangeResolveResult ResolveDateRange(
+        private static IQueryable<MstDepartment> ApplyDepartmentDateFilter(
+            IQueryable<MstDepartment> query,
             DateTime? startDate,
             DateTime? endDate,
             string? customPeriod)
         {
-            var period = customPeriod?.Trim().ToLower();
-            var today = DateTime.UtcNow.Date;
-
-            DateTime? start = null;
-            DateTime? endExclusive = null;
-
-            switch (period)
+            if (startDate.HasValue)
             {
-                case null:
-                case "":
-                case "custom":
-                    if (startDate.HasValue)
-                    {
-                        start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
-                    }
-
-                    if (endDate.HasValue)
-                    {
-                        endExclusive = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
-                    }
-
-                    break;
-
-                case "today":
-                    start = today;
-                    endExclusive = today.AddDays(1);
-                    break;
-
-                case "yesterday":
-                    start = today.AddDays(-1);
-                    endExclusive = today;
-                    break;
-
-                case "last7days":
-                    start = today.AddDays(-6);
-                    endExclusive = today.AddDays(1);
-                    break;
-
-                case "last30days":
-                    start = today.AddDays(-29);
-                    endExclusive = today.AddDays(1);
-                    break;
-
-                case "last90days":
-                    start = today.AddDays(-89);
-                    endExclusive = today.AddDays(1);
-                    break;
-
-                case "thismonth":
-                    start = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-                    endExclusive = start.Value.AddMonths(1);
-                    break;
-
-                case "lastmonth":
-                    var thisMonth = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-                    start = thisMonth.AddMonths(-1);
-                    endExclusive = thisMonth;
-                    break;
-
-                case "thisyear":
-                    start = new DateTime(today.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-                    endExclusive = start.Value.AddYears(1);
-                    break;
-
-                default:
-                    return DateRangeResolveResult.Invalid(
-                        $"customPeriod '{customPeriod}' tidak valid. Gunakan endpoint filters/metadata untuk melihat daftar customPeriod yang tersedia."
-                    );
+                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime >= start);
             }
 
-            if (start.HasValue && endExclusive.HasValue && start.Value >= endExclusive.Value)
+            if (endDate.HasValue)
             {
-                return DateRangeResolveResult.Invalid(
-                    "startDate tidak boleh lebih besar atau sama dengan endDate."
-                );
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime < end);
             }
 
-            return DateRangeResolveResult.Valid(start, endExclusive);
+            if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var today = DateTime.UtcNow.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x => x.CreateDateTime >= today && x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "last7days":
+                        query = query.Where(x => x.CreateDateTime >= today.AddDays(-6) && x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        query = query.Where(x => x.CreateDateTime >= thisMonthStart && x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        break;
+
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+                        query = query.Where(x => x.CreateDateTime >= lastMonthStart && x.CreateDateTime < currentMonthStart);
+                        break;
+                }
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstPosition> ApplyPositionDateFilter(
+            IQueryable<MstPosition> query,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            if (startDate.HasValue)
+            {
+                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime >= start);
+            }
+
+            if (endDate.HasValue)
+            {
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime < end);
+            }
+
+            if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var today = DateTime.UtcNow.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x => x.CreateDateTime >= today && x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "last7days":
+                        query = query.Where(x => x.CreateDateTime >= today.AddDays(-6) && x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        query = query.Where(x => x.CreateDateTime >= thisMonthStart && x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        break;
+
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+                        query = query.Where(x => x.CreateDateTime >= lastMonthStart && x.CreateDateTime < currentMonthStart);
+                        break;
+                }
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstDepartment> ApplyDepartmentStandardFilter(
+            IQueryable<MstDepartment> query,
+            Guid? positionId,
+            bool? isActive,
+            string? search)
+        {
+            if (positionId.HasValue && positionId.Value != Guid.Empty)
+                query = query.Where(x => x.Positions.Any(p => p.Id == positionId.Value && !p.IsDelete));
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.DepartmentCode.ToLower().Contains(keyword) ||
+                    x.DepartmentName.ToLower().Contains(keyword) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
+                    x.Positions.Any(p =>
+                        !p.IsDelete &&
+                        (
+                            p.PositionCode.ToLower().Contains(keyword) ||
+                            p.PositionName.ToLower().Contains(keyword) ||
+                            (p.Description != null && p.Description.ToLower().Contains(keyword))
+                        )));
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstPosition> ApplyPositionStandardFilter(
+            IQueryable<MstPosition> query,
+            Guid? departmentId,
+            bool? isActive,
+            string? search)
+        {
+            if (departmentId.HasValue && departmentId.Value != Guid.Empty)
+                query = query.Where(x => x.DepartmentId == departmentId.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.PositionCode.ToLower().Contains(keyword) ||
+                    x.PositionName.ToLower().Contains(keyword) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
+                    (x.Department != null && x.Department.DepartmentCode.ToLower().Contains(keyword)) ||
+                    (x.Department != null && x.Department.DepartmentName.ToLower().Contains(keyword)));
+            }
+
+            return query;
         }
 
         private static IOrderedQueryable<MstDepartment> ApplyDepartmentSorting(
@@ -1594,34 +1070,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             string? sortBy,
             string? sortDirection)
         {
-            var field = NormalizeSortBy(sortBy);
-            var desc = IsDescending(sortDirection);
+            var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 
-            return field switch
+            return (sortBy ?? "createDateTime").Trim().ToLowerInvariant() switch
             {
-                "departmentcode" => desc
-                    ? query.OrderByDescending(x => x.DepartmentCode).ThenBy(x => x.DepartmentName)
-                    : query.OrderBy(x => x.DepartmentCode).ThenBy(x => x.DepartmentName),
-
-                "departmentname" => desc
-                    ? query.OrderByDescending(x => x.DepartmentName).ThenBy(x => x.DepartmentCode)
-                    : query.OrderBy(x => x.DepartmentName).ThenBy(x => x.DepartmentCode),
-
-                "positioncount" => desc
-                    ? query.OrderByDescending(x => x.Positions.Count(p => !p.IsDelete)).ThenBy(x => x.DepartmentName)
-                    : query.OrderBy(x => x.Positions.Count(p => !p.IsDelete)).ThenBy(x => x.DepartmentName),
-
-                "activepositioncount" => desc
-                    ? query.OrderByDescending(x => x.Positions.Count(p => !p.IsDelete && p.IsActive)).ThenBy(x => x.DepartmentName)
-                    : query.OrderBy(x => x.Positions.Count(p => !p.IsDelete && p.IsActive)).ThenBy(x => x.DepartmentName),
-
-                "isactive" => desc
-                    ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.DepartmentName)
-                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.DepartmentName),
-
-                _ => desc
-                    ? query.OrderByDescending(x => x.CreateDateTime).ThenBy(x => x.DepartmentName)
-                    : query.OrderBy(x => x.CreateDateTime).ThenBy(x => x.DepartmentName)
+                "departmentcode" => isDescending ? query.OrderByDescending(x => x.DepartmentCode) : query.OrderBy(x => x.DepartmentCode),
+                "departmentname" => isDescending ? query.OrderByDescending(x => x.DepartmentName) : query.OrderBy(x => x.DepartmentName),
+                "positioncount" => isDescending ? query.OrderByDescending(x => x.Positions.Count(p => !p.IsDelete)) : query.OrderBy(x => x.Positions.Count(p => !p.IsDelete)),
+                "activepositioncount" => isDescending ? query.OrderByDescending(x => x.Positions.Count(p => !p.IsDelete && p.IsActive)) : query.OrderBy(x => x.Positions.Count(p => !p.IsDelete && p.IsActive)),
+                "isactive" => isDescending ? query.OrderByDescending(x => x.IsActive) : query.OrderBy(x => x.IsActive),
+                _ => isDescending ? query.OrderByDescending(x => x.CreateDateTime).ThenBy(x => x.DepartmentName) : query.OrderBy(x => x.CreateDateTime).ThenBy(x => x.DepartmentName)
             };
         }
 
@@ -1630,140 +1088,158 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             string? sortBy,
             string? sortDirection)
         {
-            var field = NormalizeSortBy(sortBy);
-            var desc = IsDescending(sortDirection);
+            var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 
-            return field switch
+            return (sortBy ?? "createDateTime").Trim().ToLowerInvariant() switch
             {
-                "positioncode" => desc
-                    ? query.OrderByDescending(x => x.PositionCode).ThenBy(x => x.PositionName)
-                    : query.OrderBy(x => x.PositionCode).ThenBy(x => x.PositionName),
-
-                "positionname" => desc
-                    ? query.OrderByDescending(x => x.PositionName).ThenBy(x => x.PositionCode)
-                    : query.OrderBy(x => x.PositionName).ThenBy(x => x.PositionCode),
-
-                "departmentname" => desc
-                    ? query.OrderByDescending(x => x.Department != null ? x.Department.DepartmentName : string.Empty).ThenBy(x => x.PositionName)
-                    : query.OrderBy(x => x.Department != null ? x.Department.DepartmentName : string.Empty).ThenBy(x => x.PositionName),
-
-                "isactive" => desc
-                    ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.PositionName)
-                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.PositionName),
-
-                _ => desc
-                    ? query.OrderByDescending(x => x.CreateDateTime).ThenBy(x => x.PositionName)
-                    : query.OrderBy(x => x.CreateDateTime).ThenBy(x => x.PositionName)
+                "positioncode" => isDescending ? query.OrderByDescending(x => x.PositionCode) : query.OrderBy(x => x.PositionCode),
+                "positionname" => isDescending ? query.OrderByDescending(x => x.PositionName) : query.OrderBy(x => x.PositionName),
+                "departmentcode" => isDescending
+                    ? query.OrderByDescending(x => x.Department != null ? x.Department.DepartmentCode : string.Empty)
+                    : query.OrderBy(x => x.Department != null ? x.Department.DepartmentCode : string.Empty),
+                "departmentname" => isDescending
+                    ? query.OrderByDescending(x => x.Department != null ? x.Department.DepartmentName : string.Empty)
+                    : query.OrderBy(x => x.Department != null ? x.Department.DepartmentName : string.Empty),
+                "isactive" => isDescending ? query.OrderByDescending(x => x.IsActive) : query.OrderBy(x => x.IsActive),
+                _ => isDescending ? query.OrderByDescending(x => x.CreateDateTime).ThenBy(x => x.PositionName) : query.OrderBy(x => x.CreateDateTime).ThenBy(x => x.PositionName)
             };
         }
 
-        private static string NormalizeSortBy(string? sortBy)
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateDepartmentRequestAsync(
+            Guid? excludeId,
+            string departmentName)
         {
-            return string.IsNullOrWhiteSpace(sortBy)
-                ? "createdatetime"
-                : sortBy.Trim().Replace("_", string.Empty).ToLower();
+            if (string.IsNullOrWhiteSpace(departmentName))
+                return (false, "Nama department wajib diisi.");
+
+            var normalizedName = departmentName.Trim().ToLower();
+
+            var duplicateQuery = _dbContext.Set<MstDepartment>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.DepartmentName.ToLower() == normalizedName);
+
+            if (excludeId.HasValue)
+                duplicateQuery = duplicateQuery.Where(x => x.Id != excludeId.Value);
+
+            if (await duplicateQuery.AnyAsync())
+                return (false, "Nama department sudah digunakan.");
+
+            return (true, null);
         }
 
-        private static bool IsDescending(string? sortDirection)
+        private async Task<(bool IsValid, string? ErrorMessage, string? DepartmentName)> ValidatePositionRequestAsync(
+            Guid? excludeId,
+            CreateOrganizationPositionRequest request)
         {
-            return !string.Equals(
-                sortDirection?.Trim(),
-                "asc",
-                StringComparison.OrdinalIgnoreCase
-            );
+            if (request.DepartmentId == Guid.Empty)
+                return (false, "Department wajib dipilih.", null);
+
+            if (string.IsNullOrWhiteSpace(request.PositionName))
+                return (false, "Nama position wajib diisi.", null);
+
+            var department = await _dbContext.Set<MstDepartment>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.Id == request.DepartmentId &&
+                    !x.IsDelete &&
+                    x.IsActive)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.DepartmentName
+                })
+                .FirstOrDefaultAsync();
+
+            if (department == null)
+                return (false, "Department tidak ditemukan atau tidak aktif.", null);
+
+            var normalizedName = request.PositionName.Trim().ToLower();
+
+            var duplicateQuery = _dbContext.Set<MstPosition>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.DepartmentId == request.DepartmentId &&
+                    x.PositionName.ToLower() == normalizedName);
+
+            if (excludeId.HasValue)
+                duplicateQuery = duplicateQuery.Where(x => x.Id != excludeId.Value);
+
+            if (await duplicateQuery.AnyAsync())
+                return (false, "Nama position sudah digunakan pada department ini.", null);
+
+            return (true, null, department.DepartmentName);
         }
 
-        private static List<OrganizationCustomPeriodOptionResponse> BuildCustomPeriodOptions()
+        private async Task<string> GenerateDepartmentCodeAsync()
         {
-            return new List<OrganizationCustomPeriodOptionResponse>
-            {
-                new()
-                {
-                    Value = "custom",
-                    Label = "Custom Date Range",
-                    Description = "Frontend mengirim startDate dan/atau endDate manual. Format tanggal: yyyy-MM-dd.",
-                    UsesStartDate = true,
-                    UsesEndDate = true
-                },
-                new()
-                {
-                    Value = "today",
-                    Label = "Hari Ini",
-                    Description = "Filter data yang dibuat hari ini berdasarkan waktu UTC.",
-                    UsesStartDate = false,
-                    UsesEndDate = false
-                },
-                new()
-                {
-                    Value = "yesterday",
-                    Label = "Kemarin",
-                    Description = "Filter data yang dibuat kemarin berdasarkan waktu UTC.",
-                    UsesStartDate = false,
-                    UsesEndDate = false
-                },
-                new()
-                {
-                    Value = "last7days",
-                    Label = "7 Hari Terakhir",
-                    Description = "Filter data dari 7 hari terakhir termasuk hari ini.",
-                    UsesStartDate = false,
-                    UsesEndDate = false
-                },
-                new()
-                {
-                    Value = "last30days",
-                    Label = "30 Hari Terakhir",
-                    Description = "Filter data dari 30 hari terakhir termasuk hari ini.",
-                    UsesStartDate = false,
-                    UsesEndDate = false
-                },
-                new()
-                {
-                    Value = "last90days",
-                    Label = "90 Hari Terakhir",
-                    Description = "Filter data dari 90 hari terakhir termasuk hari ini.",
-                    UsesStartDate = false,
-                    UsesEndDate = false
-                },
-                new()
-                {
-                    Value = "thismonth",
-                    Label = "Bulan Ini",
-                    Description = "Filter data dari tanggal 1 bulan berjalan sampai akhir bulan berjalan.",
-                    UsesStartDate = false,
-                    UsesEndDate = false
-                },
-                new()
-                {
-                    Value = "lastmonth",
-                    Label = "Bulan Lalu",
-                    Description = "Filter data dari tanggal 1 bulan lalu sampai akhir bulan lalu.",
-                    UsesStartDate = false,
-                    UsesEndDate = false
-                },
-                new()
-                {
-                    Value = "thisyear",
-                    Label = "Tahun Ini",
-                    Description = "Filter data dari tanggal 1 Januari tahun berjalan sampai akhir tahun berjalan.",
-                    UsesStartDate = false,
-                    UsesEndDate = false
-                }
-            };
+            var existingCodes = await _dbContext.Set<MstDepartment>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.DepartmentCode.StartsWith(DepartmentCodePrefix))
+                .Select(x => x.DepartmentCode)
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(x => x.Replace(DepartmentCodePrefix, string.Empty))
+                .Where(x => int.TryParse(x, out _))
+                .Select(int.Parse)
+                .Where(x => x > 0)
+                .ToHashSet();
+
+            var nextNumber = 1;
+            while (usedNumbers.Contains(nextNumber))
+                nextNumber++;
+
+            return DepartmentCodePrefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
+        }
+
+        private async Task<string> GeneratePositionCodeAsync()
+        {
+            var existingCodes = await _dbContext.Set<MstPosition>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.PositionCode.StartsWith(PositionCodePrefix))
+                .Select(x => x.PositionCode)
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(x => x.Replace(PositionCodePrefix, string.Empty))
+                .Where(x => int.TryParse(x, out _))
+                .Select(int.Parse)
+                .Where(x => x > 0)
+                .ToHashSet();
+
+            var nextNumber = 1;
+            while (usedNumbers.Contains(nextNumber))
+                nextNumber++;
+
+            return PositionCodePrefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
+        }
+
+        private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
+        {
+            if (pageNumber < 1)
+                pageNumber = 1;
+
+            if (pageSize < 1)
+                pageSize = 25;
+
+            if (pageSize > 100)
+                pageSize = 100;
+
+            return (pageNumber, pageSize);
         }
 
         private Guid GetCurrentUserId()
         {
-            var userIdText =
-                User.FindFirstValue("user_id") ??
-                User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userIdValue =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("user_id");
 
-            if (Guid.TryParse(userIdText, out var userId))
-            {
-                return userId;
-            }
-
-            return Guid.Empty;
+            return Guid.TryParse(userIdValue, out var userId)
+                ? userId
+                : Guid.Empty;
         }
 
         private static string? NormalizeNullableText(string? value)
@@ -1771,38 +1247,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
-        }
-
-        private sealed class DateRangeResolveResult
-        {
-            public bool IsValid { get; private set; }
-
-            public string? ErrorMessage { get; private set; }
-
-            public DateTime? Start { get; private set; }
-
-            public DateTime? EndExclusive { get; private set; }
-
-            public static DateRangeResolveResult Valid(
-                DateTime? start,
-                DateTime? endExclusive)
-            {
-                return new DateRangeResolveResult
-                {
-                    IsValid = true,
-                    Start = start,
-                    EndExclusive = endExclusive
-                };
-            }
-
-            public static DateRangeResolveResult Invalid(string errorMessage)
-            {
-                return new DateRangeResolveResult
-                {
-                    IsValid = false,
-                    ErrorMessage = errorMessage
-                };
-            }
         }
     }
 }

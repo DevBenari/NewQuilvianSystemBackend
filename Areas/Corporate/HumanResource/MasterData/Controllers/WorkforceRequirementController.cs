@@ -33,6 +33,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
     public class WorkforceRequirementController : ControllerBase
     {
         private const string LogCategory = "Corporate.HumanResource.MasterData";
+        private const string CodePrefix = "WFR-RSMMC-";
+        private const int CodeNumberLength = 5;
+
+        private static readonly List<string> RequirementCategoryOptions = new()
+        {
+            "Document",
+            "Education",
+            "Training",
+            "Certification",
+            "License",
+            "ClinicalPrivilege",
+            "HealthRecord",
+            "BankAccount",
+            "TransportAllowance",
+            "Payroll",
+            "Tax",
+            "Insurance",
+            "Organization",
+            "Other"
+        };
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -47,19 +67,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<WorkforceRequirementFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Workforce Requirement",
-            Description = "Melihat data workforce requirement",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [AccessAction("Read", "Read Workforce Requirement", Description = "Melihat metadata filter workforce requirement", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkforceRequirement", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new WorkforceRequirementFilterMetadataResponse
             {
                 DefaultFilter = new WorkforceRequirementDefaultFilterResponse(),
+                CustomPeriods = new List<WorkforceRequirementCustomPeriodOptionResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "lastmonth", Label = "Bulan lalu" }
+                },
                 SortOptions = new List<WorkforceRequirementSortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -77,13 +98,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                UserTypes = new List<WorkforceRequirementUserTypeOptionResponse>
-                {
-                    new() { Value = UserType.Employee, Label = UserType.Employee.ToString() },
-                    new() { Value = UserType.PermanentDoctor, Label = UserType.PermanentDoctor.ToString() },
-                    new() { Value = UserType.GuestDoctor, Label = UserType.GuestDoctor.ToString() },
-                    new() { Value = UserType.ExternalUser, Label = UserType.ExternalUser.ToString() }
-                }
+                UserTypes = BuildUserTypeOptions(),
+                RequirementCategories = RequirementCategoryOptions
+                    .OrderBy(x => x)
+                    .ToList(),
+                ResetButtonLabel = "Reset"
             };
 
             await _loggerService.InfoAsync(
@@ -101,38 +120,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<WorkforceRequirementSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Workforce Requirement Summary",
-            Description = "Melihat ringkasan workforce requirement",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [AccessAction("Read", "Read Workforce Requirement Summary", Description = "Melihat ringkasan workforce requirement", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkforceRequirement", "Read")]
-        public async Task<IActionResult> GetSummary(
-            [FromQuery] UserType? userType,
-            [FromQuery] string? requirementCategory,
-            [FromQuery] string? targetEntityName,
-            [FromQuery] bool? isActive)
+        public async Task<IActionResult> GetSummary()
         {
             var query = BuildBaseQuery();
-
-            query = ApplyFilters(
-                query,
-                search: null,
-                userType,
-                requirementCategory,
-                targetEntityName,
-                isRequired: null,
-                isMultipleAllowed: null,
-                isFileRequired: null,
-                isNumberRequired: null,
-                isIssueDateRequired: null,
-                isExpiredDateRequired: null,
-                isVerificationRequired: null,
-                isProfileRequired: null,
-                isActive
-            );
 
             var result = new WorkforceRequirementSummaryResponse
             {
@@ -162,28 +154,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponseWorkforceRequirementPagedResult>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Workforce Requirement",
-            Description = "Melihat data workforce requirement",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [AccessAction("Read", "Read Workforce Requirement", Description = "Melihat data workforce requirement", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkforceRequirement", "Read")]
         public async Task<IActionResult> GetWorkforceRequirements(
-            [FromQuery] string? search,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] UserType? userType,
             [FromQuery] string? requirementCategory,
-            [FromQuery] string? targetEntityName,
-            [FromQuery] bool? isRequired,
-            [FromQuery] bool? isMultipleAllowed,
-            [FromQuery] bool? isFileRequired,
-            [FromQuery] bool? isNumberRequired,
-            [FromQuery] bool? isIssueDateRequired,
-            [FromQuery] bool? isExpiredDateRequired,
-            [FromQuery] bool? isVerificationRequired,
-            [FromQuery] bool? isProfileRequired,
             [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -195,33 +175,42 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             var query = BuildBaseQuery();
 
-            query = ApplyFilters(
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyStandardFilter(
                 query,
-                search,
                 userType,
                 requirementCategory,
-                targetEntityName,
-                isRequired,
-                isMultipleAllowed,
-                isFileRequired,
-                isNumberRequired,
-                isIssueDateRequired,
-                isExpiredDateRequired,
-                isVerificationRequired,
-                isProfileRequired,
-                isActive
+                isActive,
+                search
             );
 
             var totalData = await query.CountAsync();
 
-            var entities = await ApplySorting(query, sortBy, sortDirection)
+            var items = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
+                .Select(x => new WorkforceRequirementResponse
+                {
+                    Id = x.Id,
+                    UserType = x.UserType,
+                    UserTypeName = x.UserType.ToString(),
+                    RequirementCategory = x.RequirementCategory,
+                    RequirementCode = x.RequirementCode,
+                    RequirementName = x.RequirementName,
+                    IsRequired = x.IsRequired,
+                    IsMultipleAllowed = x.IsMultipleAllowed,
+                    IsFileRequired = x.IsFileRequired,
+                    IsNumberRequired = x.IsNumberRequired,
+                    IsIssueDateRequired = x.IsIssueDateRequired,
+                    IsExpiredDateRequired = x.IsExpiredDateRequired,
+                    IsVerificationRequired = x.IsVerificationRequired,
+                    IsProfileRequired = x.IsProfileRequired,
+                    TargetEntityName = x.TargetEntityName,
+                    SortOrder = x.SortOrder,
+                    IsActive = x.IsActive,
+                    CreateDateTime = x.CreateDateTime
+                })
                 .ToListAsync();
-
-            var items = entities
-                .Select(MapResponse)
-                .ToList();
 
             var result = new ResponseWorkforceRequirementPagedResult
             {
@@ -239,47 +228,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<WorkforceRequirementOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Workforce Requirement Options",
-            Description = "Melihat pilihan workforce requirement",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceRequirementOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Workforce Requirement Options", Description = "Melihat pilihan workforce requirement", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkforceRequirement", "Read")]
         public async Task<IActionResult> GetOptions(
-            [FromQuery] string? search,
             [FromQuery] UserType? userType,
             [FromQuery] string? requirementCategory,
-            [FromQuery] string? targetEntityName,
-            [FromQuery] bool? isRequired,
-            [FromQuery] bool onlyActive = true)
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = BuildBaseQuery();
 
-            query = ApplyFilters(
+            query = ApplyStandardFilter(
                 query,
-                search,
                 userType,
                 requirementCategory,
-                targetEntityName,
-                isRequired,
-                isMultipleAllowed: null,
-                isFileRequired: null,
-                isNumberRequired: null,
-                isIssueDateRequired: null,
-                isExpiredDateRequired: null,
-                isVerificationRequired: null,
-                isProfileRequired: null,
-                isActive: onlyActive ? true : null
+                onlyActive ? true : null,
+                search
             );
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(x => x.UserType)
                 .ThenBy(x => x.RequirementCategory)
                 .ThenBy(x => x.SortOrder)
                 .ThenBy(x => x.RequirementName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x => new WorkforceRequirementOptionResponse
                 {
                     Id = x.Id,
@@ -301,8 +283,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 })
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<WorkforceRequirementOptionResponse>>.Ok(
-                data,
+            var result = new WorkforceRequirementOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<WorkforceRequirementOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan workforce requirement berhasil diambil."
             ));
         }
@@ -310,28 +301,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [HttpGet("{workforceRequirementId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<WorkforceRequirementDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction(
-            "Read",
-            "Read Workforce Requirement Detail",
-            Description = "Melihat detail workforce requirement",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [AccessAction("Read", "Read Workforce Requirement Detail", Description = "Melihat detail workforce requirement", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkforceRequirement", "Read")]
         public async Task<IActionResult> GetWorkforceRequirementById(Guid workforceRequirementId)
         {
-            var entity = await BuildBaseQuery()
-                .FirstOrDefaultAsync(x => x.Id == workforceRequirementId);
+            var data = await BuildBaseQuery()
+                .Where(x => x.Id == workforceRequirementId)
+                .Select(x => new WorkforceRequirementDetailResponse
+                {
+                    Id = x.Id,
+                    UserType = x.UserType,
+                    UserTypeName = x.UserType.ToString(),
+                    RequirementCategory = x.RequirementCategory,
+                    RequirementCode = x.RequirementCode,
+                    RequirementName = x.RequirementName,
+                    IsRequired = x.IsRequired,
+                    IsMultipleAllowed = x.IsMultipleAllowed,
+                    IsFileRequired = x.IsFileRequired,
+                    IsNumberRequired = x.IsNumberRequired,
+                    IsIssueDateRequired = x.IsIssueDateRequired,
+                    IsExpiredDateRequired = x.IsExpiredDateRequired,
+                    IsVerificationRequired = x.IsVerificationRequired,
+                    IsProfileRequired = x.IsProfileRequired,
+                    TargetEntityName = x.TargetEntityName,
+                    SortOrder = x.SortOrder,
+                    IsActive = x.IsActive,
+                    CreateDateTime = x.CreateDateTime,
+                    Description = x.Description,
+                    UpdateDateTime = x.UpdateDateTime,
+                    CreateBy = x.CreateBy,
+                    UpdateBy = x.UpdateBy
+                })
+                .FirstOrDefaultAsync();
 
-            if (entity == null)
+            if (data == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Workforce requirement tidak ditemukan."
                 ));
             }
-
-            var data = MapDetailResponse(entity);
 
             return Ok(ApiResponse<WorkforceRequirementDetailResponse>.Ok(
                 data,
@@ -340,31 +349,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceRequirementDetailResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Create",
-            "Create Workforce Requirement",
-            Description = "Membuat workforce requirement",
-            AccessType = AccessTypes.Create,
-            SortOrder = 2
-        )]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceRequirementCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Create", "Create Workforce Requirement", Description = "Membuat workforce requirement", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("WorkforceRequirement", "Create")]
         public async Task<IActionResult> CreateWorkforceRequirement([FromBody] CreateWorkforceRequirementRequest request)
         {
-            var validation = await ValidateRequestAsync(
-                request.UserType,
-                request.RequirementCategory,
-                request.RequirementCode,
-                request.RequirementName,
-                request.TargetEntityName,
-                existingId: null
-            );
+            var validation = await ValidateRequestAsync(null, request);
 
             if (!validation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    validation.Message
+                    validation.ErrorMessage ?? "Data workforce requirement tidak valid."
                 ));
             }
 
@@ -376,7 +373,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 Id = Guid.NewGuid(),
                 UserType = request.UserType,
                 RequirementCategory = NormalizeRequiredText(request.RequirementCategory),
-                RequirementCode = NormalizeRequiredText(request.RequirementCode).ToUpperInvariant(),
+                RequirementCode = await GenerateRequirementCodeAsync(),
                 RequirementName = NormalizeRequiredText(request.RequirementName),
                 IsRequired = request.IsRequired,
                 IsMultipleAllowed = request.IsMultipleAllowed,
@@ -388,7 +385,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 IsProfileRequired = request.IsProfileRequired,
                 TargetEntityName = NormalizeNullableText(request.TargetEntityName),
                 SortOrder = request.SortOrder,
-                IsActive = request.IsActive,
+                IsActive = true,
                 Description = NormalizeNullableText(request.Description),
                 CreateDateTime = now,
                 CreateBy = actorUserId,
@@ -396,36 +393,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 IsCancel = false
             };
 
-            _dbContext.MstWorkforceRequirements.Add(entity);
+            _dbContext.Set<MstWorkforceRequirement>().Add(entity);
             await _dbContext.SaveChangesAsync();
+
+            var result = new WorkforceRequirementCreateResponse
+            {
+                Id = entity.Id,
+                UserType = entity.UserType,
+                UserTypeName = entity.UserType.ToString(),
+                RequirementCategory = entity.RequirementCategory,
+                RequirementCode = entity.RequirementCode,
+                RequirementName = entity.RequirementName,
+                IsActive = entity.IsActive
+            };
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "WorkforceRequirement.CreateWorkforceRequirement",
-                "Workforce requirement berhasil dibuat.",
-                new { entity.Id, entity.UserType, entity.RequirementCategory, entity.RequirementCode }
+                "Membuat data workforce requirement.",
+                result
             );
 
-            return await GetWorkforceRequirementById(entity.Id);
+            return Ok(ApiResponse<WorkforceRequirementCreateResponse>.Ok(
+                result,
+                "Workforce requirement berhasil dibuat."
+            ));
         }
 
         [HttpPut("{workforceRequirementId:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceRequirementDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction(
-            "Update",
-            "Update Workforce Requirement",
-            Description = "Mengubah workforce requirement",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [AccessAction("Update", "Update Workforce Requirement", Description = "Mengubah workforce requirement", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("WorkforceRequirement", "Update")]
         public async Task<IActionResult> UpdateWorkforceRequirement(
             Guid workforceRequirementId,
             [FromBody] UpdateWorkforceRequirementRequest request)
         {
-            var entity = await _dbContext.MstWorkforceRequirements
-                .FirstOrDefaultAsync(x => x.Id == workforceRequirementId && !x.IsDelete);
+            var entity = await _dbContext.Set<MstWorkforceRequirement>()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == workforceRequirementId &&
+                    !x.IsDelete);
 
             if (entity == null)
             {
@@ -435,28 +442,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
-            var validation = await ValidateRequestAsync(
-                request.UserType,
-                request.RequirementCategory,
-                request.RequirementCode,
-                request.RequirementName,
-                request.TargetEntityName,
-                workforceRequirementId
-            );
+            var validation = await ValidateRequestAsync(workforceRequirementId, request);
 
             if (!validation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    validation.Message
+                    validation.ErrorMessage ?? "Data workforce requirement tidak valid."
                 ));
             }
 
             var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
 
             entity.UserType = request.UserType;
             entity.RequirementCategory = NormalizeRequiredText(request.RequirementCategory);
-            entity.RequirementCode = NormalizeRequiredText(request.RequirementCode).ToUpperInvariant();
             entity.RequirementName = NormalizeRequiredText(request.RequirementName);
             entity.IsRequired = request.IsRequired;
             entity.IsMultipleAllowed = request.IsMultipleAllowed;
@@ -471,37 +471,44 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             entity.IsActive = request.IsActive;
             entity.Description = NormalizeNullableText(request.Description);
             entity.UpdateDateTime = now;
-            entity.UpdateBy = GetCurrentUserId();
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "WorkforceRequirement.UpdateWorkforceRequirement",
-                "Workforce requirement berhasil diubah.",
-                new { entity.Id, entity.UserType, entity.RequirementCategory, entity.RequirementCode }
+                "Mengubah data workforce requirement.",
+                new
+                {
+                    entity.Id,
+                    entity.UserType,
+                    entity.RequirementCategory,
+                    entity.RequirementCode,
+                    entity.RequirementName,
+                    entity.IsActive
+                }
             );
 
-            return await GetWorkforceRequirementById(entity.Id);
+            return Ok(ApiResponse<object>.Ok(
+                null,
+                "Workforce requirement berhasil diperbarui."
+            ));
         }
 
         [HttpPatch("{workforceRequirementId:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceRequirementDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction(
-            "Update",
-            "Update Workforce Requirement Status",
-            Description = "Mengubah status workforce requirement",
-            AccessType = AccessTypes.Update,
-            SortOrder = 4
-        )]
+        [AccessAction("Update", "Update Workforce Requirement Status", Description = "Mengubah status workforce requirement", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("WorkforceRequirement", "Update")]
         public async Task<IActionResult> UpdateWorkforceRequirementStatus(
             Guid workforceRequirementId,
             [FromBody] UpdateWorkforceRequirementStatusRequest request)
         {
-            var entity = await _dbContext.MstWorkforceRequirements
-                .FirstOrDefaultAsync(x => x.Id == workforceRequirementId && !x.IsDelete);
+            var entity = await _dbContext.Set<MstWorkforceRequirement>()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == workforceRequirementId &&
+                    !x.IsDelete);
 
             if (entity == null)
             {
@@ -511,45 +518,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             if (!string.IsNullOrWhiteSpace(request.Description))
             {
                 entity.Description = request.Description.Trim();
             }
 
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
-
             await _dbContext.SaveChangesAsync();
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "WorkforceRequirement.UpdateWorkforceRequirementStatus",
-                "Status workforce requirement berhasil diubah.",
-                new { entity.Id, entity.IsActive }
+                "Mengubah status workforce requirement.",
+                new { entity.Id, entity.RequirementCode, entity.IsActive }
             );
 
-            return await GetWorkforceRequirementById(entity.Id);
+            return Ok(ApiResponse<object>.Ok(
+                null,
+                "Status workforce requirement berhasil diperbarui."
+            ));
         }
 
         [HttpDelete("{workforceRequirementId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction(
-            "Delete",
-            "Delete Workforce Requirement",
-            Description = "Menghapus workforce requirement",
-            AccessType = AccessTypes.Delete,
-            SortOrder = 5
-        )]
+        [AccessAction("Delete", "Delete Workforce Requirement", Description = "Menghapus workforce requirement", AccessType = AccessTypes.Delete, SortOrder = 5)]
         [AccessPermission("WorkforceRequirement", "Delete")]
         public async Task<IActionResult> DeleteWorkforceRequirement(
             Guid workforceRequirementId,
             [FromBody] DeleteWorkforceRequirementRequest? request = null)
         {
-            var entity = await _dbContext.MstWorkforceRequirements
-                .FirstOrDefaultAsync(x => x.Id == workforceRequirementId && !x.IsDelete);
+            var entity = await _dbContext.Set<MstWorkforceRequirement>()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == workforceRequirementId &&
+                    !x.IsDelete);
 
             if (entity == null)
             {
@@ -563,8 +571,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             var actorUserId = GetCurrentUserId();
 
             entity.IsDelete = true;
+            entity.IsActive = false;
             entity.DeleteDateTime = now;
             entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
             {
@@ -576,39 +587,99 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             await _loggerService.InfoAsync(
                 LogCategory,
                 "WorkforceRequirement.DeleteWorkforceRequirement",
-                "Workforce requirement berhasil dihapus.",
-                new { entity.Id, entity.UserType, entity.RequirementCategory, entity.RequirementCode }
+                "Menghapus data workforce requirement.",
+                new
+                {
+                    entity.Id,
+                    entity.UserType,
+                    entity.RequirementCategory,
+                    entity.RequirementCode,
+                    entity.RequirementName,
+                    entity.DeleteDateTime
+                }
             );
 
             return Ok(ApiResponse<object>.Ok(
-                new { entity.Id },
+                null,
                 "Workforce requirement berhasil dihapus."
             ));
         }
 
         private IQueryable<MstWorkforceRequirement> BuildBaseQuery()
         {
-            return _dbContext.MstWorkforceRequirements
+            return _dbContext.Set<MstWorkforceRequirement>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
         }
 
-        private static IQueryable<MstWorkforceRequirement> ApplyFilters(
+        private static IQueryable<MstWorkforceRequirement> ApplyDateFilter(
             IQueryable<MstWorkforceRequirement> query,
-            string? search,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            if (startDate.HasValue)
+            {
+                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime >= start);
+            }
+
+            if (endDate.HasValue)
+            {
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime < end);
+            }
+
+            if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var now = DateTime.UtcNow;
+                var today = now.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x => x.CreateDateTime >= today && x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "last7days":
+                        query = query.Where(x => x.CreateDateTime >= today.AddDays(-6) && x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        query = query.Where(x => x.CreateDateTime >= thisMonthStart && x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        break;
+
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+                        query = query.Where(x => x.CreateDateTime >= lastMonthStart && x.CreateDateTime < currentMonthStart);
+                        break;
+                }
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstWorkforceRequirement> ApplyStandardFilter(
+            IQueryable<MstWorkforceRequirement> query,
             UserType? userType,
             string? requirementCategory,
-            string? targetEntityName,
-            bool? isRequired,
-            bool? isMultipleAllowed,
-            bool? isFileRequired,
-            bool? isNumberRequired,
-            bool? isIssueDateRequired,
-            bool? isExpiredDateRequired,
-            bool? isVerificationRequired,
-            bool? isProfileRequired,
-            bool? isActive)
+            bool? isActive,
+            string? search)
         {
+            if (userType.HasValue)
+                query = query.Where(x => x.UserType == userType.Value);
+
+            if (!string.IsNullOrWhiteSpace(requirementCategory))
+            {
+                var selectedCategory = requirementCategory.Trim().ToLower();
+                query = query.Where(x => x.RequirementCategory.ToLower() == selectedCategory);
+            }
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -621,218 +692,104 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     (x.Description != null && x.Description.ToLower().Contains(keyword)));
             }
 
-            if (userType.HasValue)
-            {
-                query = query.Where(x => x.UserType == userType.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(requirementCategory))
-            {
-                var selectedCategory = requirementCategory.Trim().ToLower();
-                query = query.Where(x => x.RequirementCategory.ToLower() == selectedCategory);
-            }
-
-            if (!string.IsNullOrWhiteSpace(targetEntityName))
-            {
-                var selectedTargetEntity = targetEntityName.Trim().ToLower();
-                query = query.Where(x =>
-                    x.TargetEntityName != null &&
-                    x.TargetEntityName.ToLower() == selectedTargetEntity);
-            }
-
-            if (isRequired.HasValue)
-            {
-                query = query.Where(x => x.IsRequired == isRequired.Value);
-            }
-
-            if (isMultipleAllowed.HasValue)
-            {
-                query = query.Where(x => x.IsMultipleAllowed == isMultipleAllowed.Value);
-            }
-
-            if (isFileRequired.HasValue)
-            {
-                query = query.Where(x => x.IsFileRequired == isFileRequired.Value);
-            }
-
-            if (isNumberRequired.HasValue)
-            {
-                query = query.Where(x => x.IsNumberRequired == isNumberRequired.Value);
-            }
-
-            if (isIssueDateRequired.HasValue)
-            {
-                query = query.Where(x => x.IsIssueDateRequired == isIssueDateRequired.Value);
-            }
-
-            if (isExpiredDateRequired.HasValue)
-            {
-                query = query.Where(x => x.IsExpiredDateRequired == isExpiredDateRequired.Value);
-            }
-
-            if (isVerificationRequired.HasValue)
-            {
-                query = query.Where(x => x.IsVerificationRequired == isVerificationRequired.Value);
-            }
-
-            if (isProfileRequired.HasValue)
-            {
-                query = query.Where(x => x.IsProfileRequired == isProfileRequired.Value);
-            }
-
-            if (isActive.HasValue)
-            {
-                query = query.Where(x => x.IsActive == isActive.Value);
-            }
-
             return query;
         }
 
-        private static IQueryable<MstWorkforceRequirement> ApplySorting(
+        private static IOrderedQueryable<MstWorkforceRequirement> ApplySorting(
             IQueryable<MstWorkforceRequirement> query,
             string? sortBy,
             string? sortDirection)
         {
             var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 
-            return (sortBy ?? "sortOrder").Trim().ToLower() switch
+            return (sortBy ?? "sortOrder").Trim().ToLowerInvariant() switch
             {
-                "createdatetime" => isDescending
-                    ? query.OrderByDescending(x => x.CreateDateTime)
-                    : query.OrderBy(x => x.CreateDateTime),
-
-                "usertype" => isDescending
-                    ? query.OrderByDescending(x => x.UserType)
-                        .ThenBy(x => x.RequirementCategory)
-                        .ThenBy(x => x.SortOrder)
-                    : query.OrderBy(x => x.UserType)
-                        .ThenBy(x => x.RequirementCategory)
-                        .ThenBy(x => x.SortOrder),
-
-                "requirementcategory" => isDescending
-                    ? query.OrderByDescending(x => x.RequirementCategory)
-                        .ThenBy(x => x.SortOrder)
-                    : query.OrderBy(x => x.RequirementCategory)
-                        .ThenBy(x => x.SortOrder),
-
-                "requirementcode" => isDescending
-                    ? query.OrderByDescending(x => x.RequirementCode)
-                    : query.OrderBy(x => x.RequirementCode),
-
-                "requirementname" => isDescending
-                    ? query.OrderByDescending(x => x.RequirementName)
-                    : query.OrderBy(x => x.RequirementName),
-
-                "targetentityname" => isDescending
-                    ? query.OrderByDescending(x => x.TargetEntityName)
-                    : query.OrderBy(x => x.TargetEntityName),
-
-                "isrequired" => isDescending
-                    ? query.OrderByDescending(x => x.IsRequired)
-                        .ThenBy(x => x.SortOrder)
-                    : query.OrderBy(x => x.IsRequired)
-                        .ThenBy(x => x.SortOrder),
-
-                "isfilerequired" => isDescending
-                    ? query.OrderByDescending(x => x.IsFileRequired)
-                        .ThenBy(x => x.SortOrder)
-                    : query.OrderBy(x => x.IsFileRequired)
-                        .ThenBy(x => x.SortOrder),
-
-                "isverificationrequired" => isDescending
-                    ? query.OrderByDescending(x => x.IsVerificationRequired)
-                        .ThenBy(x => x.SortOrder)
-                    : query.OrderBy(x => x.IsVerificationRequired)
-                        .ThenBy(x => x.SortOrder),
-
-                "isprofilerequired" => isDescending
-                    ? query.OrderByDescending(x => x.IsProfileRequired)
-                        .ThenBy(x => x.SortOrder)
-                    : query.OrderBy(x => x.IsProfileRequired)
-                        .ThenBy(x => x.SortOrder),
-
-                "isactive" => isDescending
-                    ? query.OrderByDescending(x => x.IsActive)
-                        .ThenBy(x => x.SortOrder)
-                    : query.OrderBy(x => x.IsActive)
-                        .ThenBy(x => x.SortOrder),
-
+                "createdatetime" => isDescending ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime),
+                "usertype" => isDescending ? query.OrderByDescending(x => x.UserType).ThenBy(x => x.SortOrder) : query.OrderBy(x => x.UserType).ThenBy(x => x.SortOrder),
+                "requirementcategory" => isDescending ? query.OrderByDescending(x => x.RequirementCategory).ThenBy(x => x.SortOrder) : query.OrderBy(x => x.RequirementCategory).ThenBy(x => x.SortOrder),
+                "requirementcode" => isDescending ? query.OrderByDescending(x => x.RequirementCode) : query.OrderBy(x => x.RequirementCode),
+                "requirementname" => isDescending ? query.OrderByDescending(x => x.RequirementName) : query.OrderBy(x => x.RequirementName),
+                "targetentityname" => isDescending ? query.OrderByDescending(x => x.TargetEntityName) : query.OrderBy(x => x.TargetEntityName),
+                "isrequired" => isDescending ? query.OrderByDescending(x => x.IsRequired).ThenBy(x => x.SortOrder) : query.OrderBy(x => x.IsRequired).ThenBy(x => x.SortOrder),
+                "isfilerequired" => isDescending ? query.OrderByDescending(x => x.IsFileRequired).ThenBy(x => x.SortOrder) : query.OrderBy(x => x.IsFileRequired).ThenBy(x => x.SortOrder),
+                "isverificationrequired" => isDescending ? query.OrderByDescending(x => x.IsVerificationRequired).ThenBy(x => x.SortOrder) : query.OrderBy(x => x.IsVerificationRequired).ThenBy(x => x.SortOrder),
+                "isprofilerequired" => isDescending ? query.OrderByDescending(x => x.IsProfileRequired).ThenBy(x => x.SortOrder) : query.OrderBy(x => x.IsProfileRequired).ThenBy(x => x.SortOrder),
+                "isactive" => isDescending ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.SortOrder) : query.OrderBy(x => x.IsActive).ThenBy(x => x.SortOrder),
                 _ => isDescending
-                    ? query.OrderByDescending(x => x.SortOrder)
-                        .ThenByDescending(x => x.UserType)
-                        .ThenByDescending(x => x.RequirementCategory)
-                        .ThenByDescending(x => x.RequirementName)
-                    : query.OrderBy(x => x.SortOrder)
-                        .ThenBy(x => x.UserType)
-                        .ThenBy(x => x.RequirementCategory)
-                        .ThenBy(x => x.RequirementName)
+                    ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.UserType).ThenByDescending(x => x.RequirementCategory).ThenByDescending(x => x.RequirementName)
+                    : query.OrderBy(x => x.SortOrder).ThenBy(x => x.UserType).ThenBy(x => x.RequirementCategory).ThenBy(x => x.RequirementName)
             };
         }
 
-        private async Task<(bool IsValid, string Message)> ValidateRequestAsync(
-            UserType userType,
-            string requirementCategory,
-            string requirementCode,
-            string requirementName,
-            string? targetEntityName,
-            Guid? existingId)
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
+            Guid? excludeId,
+            CreateWorkforceRequirementRequest request)
         {
-            if (!IsValidWorkforceUserType(userType))
-            {
+            if (!IsValidWorkforceUserType(request.UserType))
                 return (false, "UserType hanya boleh Employee, PermanentDoctor, GuestDoctor, atau ExternalUser.");
-            }
 
-            if (string.IsNullOrWhiteSpace(requirementCategory))
-            {
-                return (false, "RequirementCategory wajib diisi.");
-            }
+            if (string.IsNullOrWhiteSpace(request.RequirementCategory))
+                return (false, "Requirement category wajib diisi.");
 
-            if (string.IsNullOrWhiteSpace(requirementCode))
-            {
-                return (false, "RequirementCode wajib diisi.");
-            }
+            if (!RequirementCategoryOptions.Contains(request.RequirementCategory.Trim(), StringComparer.OrdinalIgnoreCase))
+                return (false, "Requirement category tidak valid. Gunakan nilai dari endpoint filters/metadata.");
 
-            if (string.IsNullOrWhiteSpace(requirementName))
-            {
-                return (false, "RequirementName wajib diisi.");
-            }
+            if (string.IsNullOrWhiteSpace(request.RequirementName))
+                return (false, "Requirement name wajib diisi.");
 
-            var normalizedCategory = NormalizeRequiredText(requirementCategory);
-            var normalizedCode = NormalizeRequiredText(requirementCode).ToUpperInvariant();
-            var normalizedTarget = NormalizeNullableText(targetEntityName);
+            var normalizedCategory = NormalizeRequiredText(request.RequirementCategory).ToLower();
+            var normalizedName = NormalizeRequiredText(request.RequirementName).ToLower();
+            var normalizedTarget = NormalizeComparableText(request.TargetEntityName);
 
-            var duplicateQuery = _dbContext.MstWorkforceRequirements
+            var duplicateQuery = _dbContext.Set<MstWorkforceRequirement>()
                 .AsNoTracking()
                 .Where(x =>
-                    x.UserType == userType &&
-                    x.RequirementCategory.ToLower() == normalizedCategory.ToLower() &&
-                    x.RequirementCode.ToLower() == normalizedCode.ToLower() &&
-                    !x.IsDelete);
+                    !x.IsDelete &&
+                    x.UserType == request.UserType &&
+                    x.RequirementCategory.ToLower() == normalizedCategory &&
+                    x.RequirementName.ToLower() == normalizedName &&
+                    ((x.TargetEntityName ?? string.Empty).Trim().ToLower() == normalizedTarget));
 
-            if (normalizedTarget == null)
+            if (excludeId.HasValue)
+                duplicateQuery = duplicateQuery.Where(x => x.Id != excludeId.Value);
+
+            if (await duplicateQuery.AnyAsync())
+                return (false, "Workforce requirement dengan UserType, RequirementCategory, RequirementName, dan TargetEntityName yang sama sudah ada.");
+
+            return (true, null);
+        }
+
+        private async Task<string> GenerateRequirementCodeAsync()
+        {
+            var existingCodes = await _dbContext.Set<MstWorkforceRequirement>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.RequirementCode.StartsWith(CodePrefix))
+                .Select(x => x.RequirementCode)
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(x => x.Replace(CodePrefix, string.Empty))
+                .Where(x => int.TryParse(x, out _))
+                .Select(int.Parse)
+                .Where(x => x > 0)
+                .ToHashSet();
+
+            var nextNumber = 1;
+            while (usedNumbers.Contains(nextNumber))
+                nextNumber++;
+
+            return CodePrefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
+        }
+
+        private static List<WorkforceRequirementUserTypeOptionResponse> BuildUserTypeOptions()
+        {
+            return new List<WorkforceRequirementUserTypeOptionResponse>
             {
-                duplicateQuery = duplicateQuery.Where(x => x.TargetEntityName == null);
-            }
-            else
-            {
-                duplicateQuery = duplicateQuery.Where(x =>
-                    x.TargetEntityName != null &&
-                    x.TargetEntityName.ToLower() == normalizedTarget.ToLower());
-            }
-
-            if (existingId.HasValue)
-            {
-                duplicateQuery = duplicateQuery.Where(x => x.Id != existingId.Value);
-            }
-
-            var duplicateExists = await duplicateQuery.AnyAsync();
-
-            if (duplicateExists)
-            {
-                return (false, "Workforce requirement dengan UserType, RequirementCategory, RequirementCode, dan TargetEntityName yang sama sudah ada.");
-            }
-
-            return (true, string.Empty);
+                new() { Value = UserType.Employee, Label = UserType.Employee.ToString() },
+                new() { Value = UserType.PermanentDoctor, Label = UserType.PermanentDoctor.ToString() },
+                new() { Value = UserType.GuestDoctor, Label = UserType.GuestDoctor.ToString() },
+                new() { Value = UserType.ExternalUser, Label = UserType.ExternalUser.ToString() }
+            };
         }
 
         private static bool IsValidWorkforceUserType(UserType userType)
@@ -843,69 +800,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                    userType == UserType.ExternalUser;
         }
 
-        private static WorkforceRequirementResponse MapResponse(MstWorkforceRequirement entity)
+        private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {
-            return new WorkforceRequirementResponse
-            {
-                Id = entity.Id,
-                UserType = entity.UserType,
-                UserTypeName = entity.UserType.ToString(),
-                RequirementCategory = entity.RequirementCategory,
-                RequirementCode = entity.RequirementCode,
-                RequirementName = entity.RequirementName,
-                IsRequired = entity.IsRequired,
-                IsMultipleAllowed = entity.IsMultipleAllowed,
-                IsFileRequired = entity.IsFileRequired,
-                IsNumberRequired = entity.IsNumberRequired,
-                IsIssueDateRequired = entity.IsIssueDateRequired,
-                IsExpiredDateRequired = entity.IsExpiredDateRequired,
-                IsVerificationRequired = entity.IsVerificationRequired,
-                IsProfileRequired = entity.IsProfileRequired,
-                TargetEntityName = entity.TargetEntityName,
-                SortOrder = entity.SortOrder,
-                IsActive = entity.IsActive,
-                CreateDateTime = entity.CreateDateTime
-            };
-        }
+            if (pageNumber < 1)
+                pageNumber = 1;
 
-        private static WorkforceRequirementDetailResponse MapDetailResponse(MstWorkforceRequirement entity)
-        {
-            return new WorkforceRequirementDetailResponse
-            {
-                Id = entity.Id,
-                UserType = entity.UserType,
-                UserTypeName = entity.UserType.ToString(),
-                RequirementCategory = entity.RequirementCategory,
-                RequirementCode = entity.RequirementCode,
-                RequirementName = entity.RequirementName,
-                IsRequired = entity.IsRequired,
-                IsMultipleAllowed = entity.IsMultipleAllowed,
-                IsFileRequired = entity.IsFileRequired,
-                IsNumberRequired = entity.IsNumberRequired,
-                IsIssueDateRequired = entity.IsIssueDateRequired,
-                IsExpiredDateRequired = entity.IsExpiredDateRequired,
-                IsVerificationRequired = entity.IsVerificationRequired,
-                IsProfileRequired = entity.IsProfileRequired,
-                TargetEntityName = entity.TargetEntityName,
-                SortOrder = entity.SortOrder,
-                IsActive = entity.IsActive,
-                CreateDateTime = entity.CreateDateTime,
-                Description = entity.Description,
-                UpdateDateTime = entity.UpdateDateTime,
-                CreateBy = entity.CreateBy,
-                UpdateBy = entity.UpdateBy
-            };
-        }
+            if (pageSize < 1)
+                pageSize = 25;
 
-        private Guid GetCurrentUserId()
-        {
-            var userIdText =
-                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
-                User.FindFirstValue("user_id");
+            if (pageSize > 100)
+                pageSize = 100;
 
-            return Guid.TryParse(userIdText, out var userId)
-                ? userId
-                : Guid.Empty;
+            return (pageNumber, pageSize);
         }
 
         private static string NormalizeRequiredText(string value)
@@ -920,24 +826,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 : value.Trim();
         }
 
-        private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
+        private static string NormalizeComparableText(string? value)
         {
-            if (pageNumber <= 0)
-            {
-                pageNumber = 1;
-            }
+            return string.IsNullOrWhiteSpace(value)
+                ? string.Empty
+                : value.Trim().ToLower();
+        }
 
-            if (pageSize <= 0)
-            {
-                pageSize = 25;
-            }
+        private Guid GetCurrentUserId()
+        {
+            var userIdValue =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("user_id");
 
-            if (pageSize > 100)
-            {
-                pageSize = 100;
-            }
-
-            return (pageNumber, pageSize);
+            return Guid.TryParse(userIdValue, out var userId)
+                ? userId
+                : Guid.Empty;
         }
     }
 }

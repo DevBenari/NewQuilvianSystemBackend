@@ -6,18 +6,24 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     {
         public int TotalCountry { get; set; }
         public int ActiveCountry { get; set; }
+        public int InactiveCountry { get; set; }
+        public int DefaultCountry { get; set; }
 
         public int TotalProvince { get; set; }
         public int ActiveProvince { get; set; }
+        public int InactiveProvince { get; set; }
 
         public int TotalCity { get; set; }
         public int ActiveCity { get; set; }
+        public int InactiveCity { get; set; }
 
         public int TotalDistrict { get; set; }
         public int ActiveDistrict { get; set; }
+        public int InactiveDistrict { get; set; }
 
         public int TotalPostalCode { get; set; }
         public int ActivePostalCode { get; set; }
+        public int InactivePostalCode { get; set; }
     }
 
     public class CountryResponse
@@ -68,6 +74,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public Guid ProvinceId { get; set; }
         public string ProvinceCode { get; set; } = string.Empty;
         public string ProvinceName { get; set; } = string.Empty;
+        public Guid CountryId { get; set; }
+        public string CountryCode { get; set; } = string.Empty;
+        public string CountryName { get; set; } = string.Empty;
         public string DistrictCode { get; set; } = string.Empty;
         public string DistrictName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
@@ -83,6 +92,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public Guid CityId { get; set; }
         public string CityCode { get; set; } = string.Empty;
         public string CityName { get; set; } = string.Empty;
+        public Guid ProvinceId { get; set; }
+        public string ProvinceCode { get; set; } = string.Empty;
+        public string ProvinceName { get; set; } = string.Empty;
         public string PostalCode { get; set; } = string.Empty;
         public string? VillageName { get; set; }
         public bool IsActive { get; set; }
@@ -95,113 +107,80 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string Code { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public Guid? ParentId { get; set; }
+        public string? ParentName { get; set; }
         public string? AdditionalInfo { get; set; }
+        public bool IsDefault { get; set; }
+    }
+
+    public class RegionOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<RegionOptionResponse> Items { get; set; } = new();
     }
 
     public class RegionFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
-
-        public string CustomPeriodPriorityInfo { get; set; } =
-            "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan. Jika customPeriod kosong atau custom, frontend boleh mengirim startDate dan endDate.";
+        public string ResetButtonLabel { get; set; } = "Reset Filter";
 
         public RegionDefaultFilterResponse CountryDefaultFilter { get; set; } = new();
-
         public RegionDefaultFilterResponse ProvinceDefaultFilter { get; set; } = new();
-
         public RegionDefaultFilterResponse CityDefaultFilter { get; set; } = new();
-
         public RegionDefaultFilterResponse DistrictDefaultFilter { get; set; } = new();
-
         public RegionDefaultFilterResponse PostalCodeDefaultFilter { get; set; } = new();
 
         public List<RegionCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
-
         public List<RegionSortOptionResponse> CountrySortOptions { get; set; } = new();
-
         public List<RegionSortOptionResponse> ProvinceSortOptions { get; set; } = new();
-
         public List<RegionSortOptionResponse> CitySortOptions { get; set; } = new();
-
         public List<RegionSortOptionResponse> DistrictSortOptions { get; set; } = new();
-
         public List<RegionSortOptionResponse> PostalCodeSortOptions { get; set; } = new();
-
         public List<string> SortDirections { get; set; } = new();
-
         public List<int> PageSizeOptions { get; set; } = new();
-
-        public List<RegionQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+        public List<string> CityTypes { get; set; } = new()
+        {
+            "Kota",
+            "Kabupaten",
+            "City",
+            "Regency"
+        };
     }
 
     public class RegionDefaultFilterResponse
     {
         public DateTime? StartDate { get; set; }
-
         public DateTime? EndDate { get; set; }
-
         public string? CustomPeriod { get; set; }
-
         public string? Search { get; set; }
-
         public bool? IsActive { get; set; }
-
+        public bool? IsDefault { get; set; }
         public Guid? CountryId { get; set; }
-
         public Guid? ProvinceId { get; set; }
-
         public Guid? CityId { get; set; }
-
         public Guid? DistrictId { get; set; }
-
         public string SortBy { get; set; } = "createDateTime";
-
         public string SortDirection { get; set; } = "desc";
-
         public int PageNumber { get; set; } = 1;
-
         public int PageSize { get; set; } = 25;
     }
 
     public class RegionCustomPeriodOptionResponse
     {
         public string Value { get; set; } = string.Empty;
-
         public string Label { get; set; } = string.Empty;
-
-        public string Description { get; set; } = string.Empty;
-
-        public bool UsesStartDate { get; set; }
-
-        public bool UsesEndDate { get; set; }
     }
 
     public class RegionSortOptionResponse
     {
         public string Value { get; set; } = string.Empty;
-
         public string Label { get; set; } = string.Empty;
-    }
-
-    public class RegionQueryParameterInfoResponse
-    {
-        public string Name { get; set; } = string.Empty;
-
-        public string Type { get; set; } = string.Empty;
-
-        public string Required { get; set; } = "No";
-
-        public string Description { get; set; } = string.Empty;
-
-        public string? Example { get; set; }
     }
 
     public class CreateCountryRequest
     {
-        [Required]
-        [MaxLength(20)]
-        public string CountryCode { get; set; } = string.Empty;
-
         [Required]
         [MaxLength(150)]
         public string CountryName { get; set; } = string.Empty;
@@ -223,10 +202,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public Guid CountryId { get; set; }
 
         [Required]
-        [MaxLength(20)]
-        public string ProvinceCode { get; set; } = string.Empty;
-
-        [Required]
         [MaxLength(150)]
         public string ProvinceName { get; set; } = string.Empty;
     }
@@ -240,10 +215,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     {
         [Required]
         public Guid ProvinceId { get; set; }
-
-        [Required]
-        [MaxLength(20)]
-        public string CityCode { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(150)]
@@ -262,10 +233,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     {
         [Required]
         public Guid CityId { get; set; }
-
-        [Required]
-        [MaxLength(20)]
-        public string DistrictCode { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(150)]

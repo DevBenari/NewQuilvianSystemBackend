@@ -33,6 +33,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
     public class WorkScheduleController : ControllerBase
     {
         private const string LogCategory = "Corporate.HumanResource.MasterData";
+        private const string CodePrefix = "WS-RSMMC-";
+        private const int CodeNumberLength = 5;
 
         private static readonly HashSet<string> AllowedScheduleTypes = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -55,19 +57,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<WorkScheduleFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Work Schedule",
-            Description = "Melihat data work schedule",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [AccessAction("Read", "Read Work Schedule", Description = "Melihat metadata filter work schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkSchedule", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new WorkScheduleFilterMetadataResponse
             {
                 DefaultFilter = new WorkScheduleDefaultFilterResponse(),
+                CustomPeriods = new List<WorkScheduleCustomPeriodOptionResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "lastmonth", Label = "Bulan lalu" }
+                },
                 SortOptions = new List<WorkScheduleSortOptionResponse>
                 {
                     new() { Value = "scheduleCode", Label = "Kode jadwal" },
@@ -84,7 +87,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                ScheduleTypes = AllowedScheduleTypes.ToList()
+                ScheduleTypes = AllowedScheduleTypes
+                    .OrderBy(x => x)
+                    .ToList(),
+                ResetButtonLabel = "Reset"
             };
 
             await _loggerService.InfoAsync(
@@ -102,28 +108,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<WorkScheduleSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Work Schedule Summary",
-            Description = "Melihat ringkasan work schedule",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [AccessAction("Read", "Read Work Schedule Summary", Description = "Melihat ringkasan work schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkSchedule", "Read")]
-        public async Task<IActionResult> GetSummary(
-            [FromQuery] string? scheduleType,
-            [FromQuery] bool? isActive)
+        public async Task<IActionResult> GetSummary()
         {
             var query = BuildBaseQuery();
-
-            query = ApplyFilters(
-                query,
-                search: null,
-                scheduleType,
-                isOvernight: null,
-                isDefault: null,
-                isActive
-            );
 
             var result = new WorkScheduleSummaryResponse
             {
@@ -148,20 +137,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponseWorkSchedulePagedResult>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Work Schedule",
-            Description = "Melihat data work schedule",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [AccessAction("Read", "Read Work Schedule", Description = "Melihat data work schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkSchedule", "Read")]
         public async Task<IActionResult> GetWorkSchedules(
-            [FromQuery] string? search,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] string? scheduleType,
-            [FromQuery] bool? isOvernight,
             [FromQuery] bool? isDefault,
             [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "scheduleCode",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -173,14 +158,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
 
             var query = BuildBaseQuery();
 
-            query = ApplyFilters(
-                query,
-                search,
-                scheduleType,
-                isOvernight,
-                isDefault,
-                isActive
-            );
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyStandardFilter(query, scheduleType, isDefault, isActive, search);
 
             var totalData = await query.CountAsync();
 
@@ -209,53 +188,57 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<WorkScheduleOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Work Schedule Options",
-            Description = "Melihat pilihan work schedule",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [ProducesResponseType(typeof(ApiResponse<WorkScheduleOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Work Schedule Options", Description = "Melihat pilihan work schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkSchedule", "Read")]
         public async Task<IActionResult> GetOptions(
-            [FromQuery] string? search,
             [FromQuery] string? scheduleType,
-            [FromQuery] bool onlyActive = true)
+            [FromQuery] bool? isDefault,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = BuildBaseQuery();
 
-            query = ApplyFilters(
+            query = ApplyStandardFilter(
                 query,
-                search,
                 scheduleType,
-                isOvernight: null,
-                isDefault: null,
-                isActive: onlyActive ? true : null
+                isDefault,
+                onlyActive ? true : null,
+                search
             );
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var entities = await query
                 .OrderByDescending(x => x.IsDefault)
                 .ThenBy(x => x.ScheduleType)
                 .ThenBy(x => x.WorkStartTime)
                 .ThenBy(x => x.ScheduleName)
-                .Select(x => new WorkScheduleOptionResponse
-                {
-                    Id = x.Id,
-                    ScheduleCode = x.ScheduleCode,
-                    ScheduleName = x.ScheduleName,
-                    ScheduleType = x.ScheduleType,
-                    WorkStartTime = x.WorkStartTime.ToString("HH:mm:ss"),
-                    WorkEndTime = x.WorkEndTime.ToString("HH:mm:ss"),
-                    IsOvernight = x.IsOvernight,
-                    CheckInToleranceMinutes = x.CheckInToleranceMinutes,
-                    CheckOutToleranceMinutes = x.CheckOutToleranceMinutes,
-                    IsDefault = x.IsDefault
-                })
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<WorkScheduleOptionResponse>>.Ok(
-                data,
+            var items = entities
+                .Select(MapOptionResponse)
+                .ToList();
+
+            var result = new WorkScheduleOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<WorkScheduleOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan work schedule berhasil diambil."
             ));
         }
@@ -263,13 +246,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [HttpGet("{workScheduleId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<WorkScheduleDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction(
-            "Read",
-            "Read Work Schedule Detail",
-            Description = "Melihat detail work schedule",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [AccessAction("Read", "Read Work Schedule Detail", Description = "Melihat detail work schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkSchedule", "Read")]
         public async Task<IActionResult> GetWorkScheduleById(Guid workScheduleId)
         {
@@ -284,33 +261,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
-            var data = MapDetailResponse(entity);
-
             return Ok(ApiResponse<WorkScheduleDetailResponse>.Ok(
-                data,
+                MapDetailResponse(entity),
                 "Detail work schedule berhasil diambil."
             ));
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse<WorkScheduleDetailResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Create",
-            "Create Work Schedule",
-            Description = "Membuat work schedule",
-            AccessType = AccessTypes.Create,
-            SortOrder = 2
-        )]
+        [ProducesResponseType(typeof(ApiResponse<WorkScheduleCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Create", "Create Work Schedule", Description = "Membuat work schedule", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("WorkSchedule", "Create")]
         public async Task<IActionResult> CreateWorkSchedule([FromBody] CreateWorkScheduleRequest request)
         {
             var validation = await ValidateRequestAsync(
-                request.ScheduleCode,
                 request.ScheduleName,
                 request.ScheduleType,
                 request.WorkStartTime,
                 request.WorkEndTime,
                 request.IsOvernight,
+                request.CheckInToleranceMinutes,
+                request.CheckOutToleranceMinutes,
                 existingId: null
             );
 
@@ -321,9 +292,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     validation.Message
                 ));
             }
-
-            var workStartTime = validation.WorkStartTime!.Value;
-            var workEndTime = validation.WorkEndTime!.Value;
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
@@ -340,16 +308,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 var entity = new MstWorkSchedule
                 {
                     Id = Guid.NewGuid(),
-                    ScheduleCode = NormalizeRequiredText(request.ScheduleCode).ToUpperInvariant(),
+                    ScheduleCode = await GenerateWorkScheduleCodeAsync(),
                     ScheduleName = NormalizeRequiredText(request.ScheduleName),
-                    ScheduleType = NormalizeRequiredText(request.ScheduleType),
-                    WorkStartTime = workStartTime,
-                    WorkEndTime = workEndTime,
+                    ScheduleType = NormalizeScheduleType(request.ScheduleType),
+                    WorkStartTime = validation.WorkStartTime!.Value,
+                    WorkEndTime = validation.WorkEndTime!.Value,
                     IsOvernight = request.IsOvernight,
                     CheckInToleranceMinutes = request.CheckInToleranceMinutes,
                     CheckOutToleranceMinutes = request.CheckOutToleranceMinutes,
                     IsDefault = request.IsDefault,
-                    IsActive = request.IsActive,
+                    IsActive = true,
                     CreateDateTime = now,
                     CreateBy = actorUserId,
                     IsDelete = false,
@@ -360,14 +328,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                var result = new WorkScheduleCreateResponse
+                {
+                    Id = entity.Id,
+                    ScheduleCode = entity.ScheduleCode,
+                    ScheduleName = entity.ScheduleName,
+                    ScheduleType = entity.ScheduleType,
+                    IsActive = entity.IsActive
+                };
+
                 await _loggerService.InfoAsync(
                     LogCategory,
                     "WorkSchedule.CreateWorkSchedule",
                     "Work schedule berhasil dibuat.",
-                    new { entity.Id, entity.ScheduleCode, entity.ScheduleName, entity.ScheduleType }
+                    result
                 );
 
-                return await GetWorkScheduleById(entity.Id);
+                return Ok(ApiResponse<WorkScheduleCreateResponse>.Ok(
+                    result,
+                    "Work schedule berhasil dibuat."
+                ));
             }
             catch (Exception ex)
             {
@@ -378,7 +358,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     "WorkSchedule.CreateWorkSchedule",
                     "Gagal membuat work schedule.",
                     ex,
-                    new { request.ScheduleCode, request.ScheduleName }
+                    new { request.ScheduleName, request.ScheduleType }
                 );
 
                 return StatusCode(
@@ -392,15 +372,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpPut("{workScheduleId:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<WorkScheduleDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction(
-            "Update",
-            "Update Work Schedule",
-            Description = "Mengubah work schedule",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [AccessAction("Update", "Update Work Schedule", Description = "Mengubah work schedule", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("WorkSchedule", "Update")]
         public async Task<IActionResult> UpdateWorkSchedule(
             Guid workScheduleId,
@@ -417,13 +391,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
+            if (request.IsDefault && !request.IsActive)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Work schedule default harus aktif."
+                ));
+            }
+
             var validation = await ValidateRequestAsync(
-                request.ScheduleCode,
                 request.ScheduleName,
                 request.ScheduleType,
                 request.WorkStartTime,
                 request.WorkEndTime,
                 request.IsOvernight,
+                request.CheckInToleranceMinutes,
+                request.CheckOutToleranceMinutes,
                 workScheduleId
             );
 
@@ -435,9 +418,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
-            var workStartTime = validation.WorkStartTime!.Value;
-            var workEndTime = validation.WorkEndTime!.Value;
-
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             try
@@ -448,19 +428,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 }
 
                 var now = DateTime.UtcNow;
+                var actorUserId = GetCurrentUserId();
 
-                entity.ScheduleCode = NormalizeRequiredText(request.ScheduleCode).ToUpperInvariant();
                 entity.ScheduleName = NormalizeRequiredText(request.ScheduleName);
-                entity.ScheduleType = NormalizeRequiredText(request.ScheduleType);
-                entity.WorkStartTime = workStartTime;
-                entity.WorkEndTime = workEndTime;
+                entity.ScheduleType = NormalizeScheduleType(request.ScheduleType);
+                entity.WorkStartTime = validation.WorkStartTime!.Value;
+                entity.WorkEndTime = validation.WorkEndTime!.Value;
                 entity.IsOvernight = request.IsOvernight;
                 entity.CheckInToleranceMinutes = request.CheckInToleranceMinutes;
                 entity.CheckOutToleranceMinutes = request.CheckOutToleranceMinutes;
-                entity.IsDefault = request.IsDefault;
+                entity.IsDefault = request.IsActive ? request.IsDefault : false;
                 entity.IsActive = request.IsActive;
                 entity.UpdateDateTime = now;
-                entity.UpdateBy = GetCurrentUserId();
+                entity.UpdateBy = actorUserId;
 
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -469,10 +449,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     LogCategory,
                     "WorkSchedule.UpdateWorkSchedule",
                     "Work schedule berhasil diubah.",
-                    new { entity.Id, entity.ScheduleCode, entity.ScheduleName, entity.ScheduleType }
+                    new { entity.Id, entity.ScheduleCode, entity.ScheduleName, entity.ScheduleType, entity.IsActive }
                 );
 
-                return await GetWorkScheduleById(entity.Id);
+                return Ok(ApiResponse<object>.Ok(
+                    null,
+                    "Work schedule berhasil diperbarui."
+                ));
             }
             catch (Exception ex)
             {
@@ -483,7 +466,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     "WorkSchedule.UpdateWorkSchedule",
                     "Gagal mengubah work schedule.",
                     ex,
-                    new { workScheduleId, request.ScheduleCode, request.ScheduleName }
+                    new { workScheduleId, request.ScheduleName, request.ScheduleType }
                 );
 
                 return StatusCode(
@@ -499,13 +482,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [HttpPatch("{workScheduleId:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<WorkScheduleDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction(
-            "Update",
-            "Update Work Schedule Status",
-            Description = "Mengubah status work schedule",
-            AccessType = AccessTypes.Update,
-            SortOrder = 4
-        )]
+        [AccessAction("Update", "Update Work Schedule Status", Description = "Mengubah status work schedule", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("WorkSchedule", "Update")]
         public async Task<IActionResult> UpdateWorkScheduleStatus(
             Guid workScheduleId,
@@ -538,7 +515,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 LogCategory,
                 "WorkSchedule.UpdateWorkScheduleStatus",
                 "Status work schedule berhasil diubah.",
-                new { entity.Id, entity.IsActive }
+                new { entity.Id, entity.ScheduleCode, entity.IsActive }
             );
 
             return await GetWorkScheduleById(entity.Id);
@@ -547,13 +524,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [HttpPatch("{workScheduleId:guid}/set-default")]
         [ProducesResponseType(typeof(ApiResponse<WorkScheduleDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction(
-            "Update",
-            "Set Work Schedule Default",
-            Description = "Mengubah default work schedule",
-            AccessType = AccessTypes.Update,
-            SortOrder = 5
-        )]
+        [AccessAction("Update", "Set Work Schedule Default", Description = "Mengubah default work schedule", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("WorkSchedule", "Update")]
         public async Task<IActionResult> SetDefaultWorkSchedule(
             Guid workScheduleId,
@@ -598,7 +569,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     LogCategory,
                     "WorkSchedule.SetDefaultWorkSchedule",
                     "Default work schedule berhasil diubah.",
-                    new { entity.Id, entity.IsDefault }
+                    new { entity.Id, entity.ScheduleCode, entity.IsDefault }
                 );
 
                 return await GetWorkScheduleById(entity.Id);
@@ -628,13 +599,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [HttpDelete("{workScheduleId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction(
-            "Delete",
-            "Delete Work Schedule",
-            Description = "Menghapus work schedule",
-            AccessType = AccessTypes.Delete,
-            SortOrder = 6
-        )]
+        [AccessAction("Delete", "Delete Work Schedule", Description = "Menghapus work schedule", AccessType = AccessTypes.Delete, SortOrder = 6)]
         [AccessPermission("WorkSchedule", "Delete")]
         public async Task<IActionResult> DeleteWorkSchedule(
             Guid workScheduleId,
@@ -669,9 +634,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             var actorUserId = GetCurrentUserId();
 
             entity.IsDelete = true;
+            entity.IsActive = false;
+            entity.IsDefault = false;
             entity.DeleteDateTime = now;
             entity.DeleteBy = actorUserId;
-            entity.IsDefault = false;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
@@ -683,7 +651,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             );
 
             return Ok(ApiResponse<object>.Ok(
-                new { entity.Id },
+                null,
                 "Work schedule berhasil dihapus."
             ));
         }
@@ -695,14 +663,74 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 .Where(x => !x.IsDelete);
         }
 
-        private static IQueryable<MstWorkSchedule> ApplyFilters(
+        private static IQueryable<MstWorkSchedule> ApplyDateFilter(
             IQueryable<MstWorkSchedule> query,
-            string? search,
-            string? scheduleType,
-            bool? isOvernight,
-            bool? isDefault,
-            bool? isActive)
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
         {
+            if (startDate.HasValue)
+            {
+                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime >= start);
+            }
+
+            if (endDate.HasValue)
+            {
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime < end);
+            }
+
+            if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var now = DateTime.UtcNow;
+                var today = now.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x => x.CreateDateTime >= today && x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "last7days":
+                        query = query.Where(x => x.CreateDateTime >= today.AddDays(-6) && x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        query = query.Where(x => x.CreateDateTime >= thisMonthStart && x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        break;
+
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+                        query = query.Where(x => x.CreateDateTime >= lastMonthStart && x.CreateDateTime < currentMonthStart);
+                        break;
+                }
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstWorkSchedule> ApplyStandardFilter(
+            IQueryable<MstWorkSchedule> query,
+            string? scheduleType,
+            bool? isDefault,
+            bool? isActive,
+            string? search)
+        {
+            if (!string.IsNullOrWhiteSpace(scheduleType))
+            {
+                var selectedScheduleType = scheduleType.Trim().ToLower();
+                query = query.Where(x => x.ScheduleType.ToLower() == selectedScheduleType);
+            }
+
+            if (isDefault.HasValue)
+                query = query.Where(x => x.IsDefault == isDefault.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -711,27 +739,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     x.ScheduleCode.ToLower().Contains(keyword) ||
                     x.ScheduleName.ToLower().Contains(keyword) ||
                     x.ScheduleType.ToLower().Contains(keyword));
-            }
-
-            if (!string.IsNullOrWhiteSpace(scheduleType))
-            {
-                var selectedScheduleType = scheduleType.Trim().ToLower();
-                query = query.Where(x => x.ScheduleType.ToLower() == selectedScheduleType);
-            }
-
-            if (isOvernight.HasValue)
-            {
-                query = query.Where(x => x.IsOvernight == isOvernight.Value);
-            }
-
-            if (isDefault.HasValue)
-            {
-                query = query.Where(x => x.IsDefault == isDefault.Value);
-            }
-
-            if (isActive.HasValue)
-            {
-                query = query.Where(x => x.IsActive == isActive.Value);
             }
 
             return query;
@@ -744,136 +751,114 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         {
             var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 
-            return (sortBy ?? "scheduleCode").Trim().ToLower() switch
+            return (sortBy ?? "scheduleCode").Trim().ToLowerInvariant() switch
             {
-                "createdatetime" => isDescending
-                    ? query.OrderByDescending(x => x.CreateDateTime)
-                    : query.OrderBy(x => x.CreateDateTime),
-
-                "schedulecode" => isDescending
-                    ? query.OrderByDescending(x => x.ScheduleCode)
-                    : query.OrderBy(x => x.ScheduleCode),
-
-                "schedulename" => isDescending
-                    ? query.OrderByDescending(x => x.ScheduleName)
-                    : query.OrderBy(x => x.ScheduleName),
-
-                "scheduletype" => isDescending
-                    ? query.OrderByDescending(x => x.ScheduleType).ThenBy(x => x.WorkStartTime)
-                    : query.OrderBy(x => x.ScheduleType).ThenBy(x => x.WorkStartTime),
-
-                "workstarttime" => isDescending
-                    ? query.OrderByDescending(x => x.WorkStartTime)
-                    : query.OrderBy(x => x.WorkStartTime),
-
-                "workendtime" => isDescending
-                    ? query.OrderByDescending(x => x.WorkEndTime)
-                    : query.OrderBy(x => x.WorkEndTime),
-
-                "checkintoleranceminutes" => isDescending
-                    ? query.OrderByDescending(x => x.CheckInToleranceMinutes)
-                    : query.OrderBy(x => x.CheckInToleranceMinutes),
-
-                "checkouttoleranceminutes" => isDescending
-                    ? query.OrderByDescending(x => x.CheckOutToleranceMinutes)
-                    : query.OrderBy(x => x.CheckOutToleranceMinutes),
-
-                "isovernight" => isDescending
-                    ? query.OrderByDescending(x => x.IsOvernight).ThenBy(x => x.ScheduleCode)
-                    : query.OrderBy(x => x.IsOvernight).ThenBy(x => x.ScheduleCode),
-
-                "isdefault" => isDescending
-                    ? query.OrderByDescending(x => x.IsDefault).ThenBy(x => x.ScheduleCode)
-                    : query.OrderBy(x => x.IsDefault).ThenBy(x => x.ScheduleCode),
-
-                "isactive" => isDescending
-                    ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.ScheduleCode)
-                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.ScheduleCode),
-
-                _ => isDescending
-                    ? query.OrderByDescending(x => x.ScheduleCode)
-                    : query.OrderBy(x => x.ScheduleCode)
+                "createdatetime" => isDescending ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime),
+                "schedulecode" => isDescending ? query.OrderByDescending(x => x.ScheduleCode) : query.OrderBy(x => x.ScheduleCode),
+                "schedulename" => isDescending ? query.OrderByDescending(x => x.ScheduleName) : query.OrderBy(x => x.ScheduleName),
+                "scheduletype" => isDescending ? query.OrderByDescending(x => x.ScheduleType).ThenBy(x => x.WorkStartTime) : query.OrderBy(x => x.ScheduleType).ThenBy(x => x.WorkStartTime),
+                "workstarttime" => isDescending ? query.OrderByDescending(x => x.WorkStartTime) : query.OrderBy(x => x.WorkStartTime),
+                "workendtime" => isDescending ? query.OrderByDescending(x => x.WorkEndTime) : query.OrderBy(x => x.WorkEndTime),
+                "checkintoleranceminutes" => isDescending ? query.OrderByDescending(x => x.CheckInToleranceMinutes) : query.OrderBy(x => x.CheckInToleranceMinutes),
+                "checkouttoleranceminutes" => isDescending ? query.OrderByDescending(x => x.CheckOutToleranceMinutes) : query.OrderBy(x => x.CheckOutToleranceMinutes),
+                "isovernight" => isDescending ? query.OrderByDescending(x => x.IsOvernight).ThenBy(x => x.ScheduleCode) : query.OrderBy(x => x.IsOvernight).ThenBy(x => x.ScheduleCode),
+                "isdefault" => isDescending ? query.OrderByDescending(x => x.IsDefault).ThenBy(x => x.ScheduleCode) : query.OrderBy(x => x.IsDefault).ThenBy(x => x.ScheduleCode),
+                "isactive" => isDescending ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.ScheduleCode) : query.OrderBy(x => x.IsActive).ThenBy(x => x.ScheduleCode),
+                _ => isDescending ? query.OrderByDescending(x => x.ScheduleCode) : query.OrderBy(x => x.ScheduleCode)
             };
         }
 
         private async Task<(bool IsValid, string Message, TimeOnly? WorkStartTime, TimeOnly? WorkEndTime)> ValidateRequestAsync(
-            string scheduleCode,
             string scheduleName,
             string scheduleType,
             string workStartTimeText,
             string workEndTimeText,
             bool isOvernight,
+            int checkInToleranceMinutes,
+            int checkOutToleranceMinutes,
             Guid? existingId)
         {
-            if (string.IsNullOrWhiteSpace(scheduleCode))
-            {
-                return (false, "ScheduleCode wajib diisi.", null, null);
-            }
-
             if (string.IsNullOrWhiteSpace(scheduleName))
-            {
                 return (false, "ScheduleName wajib diisi.", null, null);
-            }
 
             if (string.IsNullOrWhiteSpace(scheduleType))
-            {
                 return (false, "ScheduleType wajib diisi.", null, null);
-            }
 
-            var normalizedScheduleType = NormalizeRequiredText(scheduleType);
+            var normalizedScheduleType = NormalizeScheduleType(scheduleType);
 
             if (!AllowedScheduleTypes.Contains(normalizedScheduleType))
-            {
                 return (false, "ScheduleType hanya boleh Shift, NonShift, OnCall, atau Off.", null, null);
-            }
 
             if (!TryParseTime(workStartTimeText, out var workStartTime))
-            {
                 return (false, "WorkStartTime harus menggunakan format HH:mm atau HH:mm:ss.", null, null);
-            }
 
             if (!TryParseTime(workEndTimeText, out var workEndTime))
-            {
                 return (false, "WorkEndTime harus menggunakan format HH:mm atau HH:mm:ss.", null, null);
-            }
 
             if (!isOvernight && workEndTime <= workStartTime)
-            {
                 return (false, "WorkEndTime harus lebih besar dari WorkStartTime jika IsOvernight false.", null, null);
-            }
 
-            var normalizedCode = NormalizeRequiredText(scheduleCode).ToUpperInvariant();
+            if (checkInToleranceMinutes < 0 || checkInToleranceMinutes > 1440)
+                return (false, "CheckInToleranceMinutes harus antara 0 sampai 1440.", null, null);
+
+            if (checkOutToleranceMinutes < 0 || checkOutToleranceMinutes > 1440)
+                return (false, "CheckOutToleranceMinutes harus antara 0 sampai 1440.", null, null);
+
+            var normalizedName = NormalizeRequiredText(scheduleName).ToLower();
 
             var duplicateExists = await _dbContext.MstWorkSchedules
                 .AsNoTracking()
                 .AnyAsync(x =>
-                    x.ScheduleCode.ToLower() == normalizedCode.ToLower() &&
+                    x.ScheduleName.ToLower() == normalizedName &&
+                    x.ScheduleType.ToLower() == normalizedScheduleType.ToLower() &&
                     !x.IsDelete &&
                     (!existingId.HasValue || x.Id != existingId.Value));
 
             if (duplicateExists)
-            {
-                return (false, "ScheduleCode sudah digunakan.", null, null);
-            }
+                return (false, "Work schedule dengan nama dan tipe jadwal tersebut sudah digunakan.", null, null);
 
             return (true, string.Empty, workStartTime, workEndTime);
         }
 
+        private async Task<string> GenerateWorkScheduleCodeAsync()
+        {
+            var existingCodes = await _dbContext.MstWorkSchedules
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.ScheduleCode.StartsWith(CodePrefix))
+                .Select(x => x.ScheduleCode)
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(x => x.Replace(CodePrefix, string.Empty))
+                .Where(x => int.TryParse(x, out _))
+                .Select(int.Parse)
+                .Where(x => x > 0)
+                .ToHashSet();
+
+            var nextNumber = 1;
+            while (usedNumbers.Contains(nextNumber))
+                nextNumber++;
+
+            return CodePrefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
+        }
+
         private async Task UnsetOtherDefaultSchedulesAsync(Guid? exceptId)
         {
-            var query = _dbContext.MstWorkSchedules
+            var entities = await _dbContext.MstWorkSchedules
                 .Where(x =>
                     x.IsDefault &&
                     !x.IsDelete &&
-                    (!exceptId.HasValue || x.Id != exceptId.Value));
+                    (!exceptId.HasValue || x.Id != exceptId.Value))
+                .ToListAsync();
 
-            var entities = await query.ToListAsync();
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
 
             foreach (var entity in entities)
             {
                 entity.IsDefault = false;
-                entity.UpdateDateTime = DateTime.UtcNow;
-                entity.UpdateBy = GetCurrentUserId();
+                entity.UpdateDateTime = now;
+                entity.UpdateBy = actorUserId;
             }
         }
 
@@ -930,6 +915,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             };
         }
 
+        private static WorkScheduleOptionResponse MapOptionResponse(MstWorkSchedule entity)
+        {
+            return new WorkScheduleOptionResponse
+            {
+                Id = entity.Id,
+                ScheduleCode = entity.ScheduleCode,
+                ScheduleName = entity.ScheduleName,
+                ScheduleType = entity.ScheduleType,
+                WorkStartTime = entity.WorkStartTime.ToString("HH:mm:ss"),
+                WorkEndTime = entity.WorkEndTime.ToString("HH:mm:ss"),
+                IsOvernight = entity.IsOvernight,
+                CheckInToleranceMinutes = entity.CheckInToleranceMinutes,
+                CheckOutToleranceMinutes = entity.CheckOutToleranceMinutes,
+                IsDefault = entity.IsDefault
+            };
+        }
+
         private Guid GetCurrentUserId()
         {
             var userIdText =
@@ -946,22 +948,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             return value.Trim();
         }
 
+        private static string NormalizeScheduleType(string value)
+        {
+            var trimmedValue = value.Trim();
+
+            return AllowedScheduleTypes.FirstOrDefault(x =>
+                    string.Equals(x, trimmedValue, StringComparison.OrdinalIgnoreCase))
+                ?? trimmedValue;
+        }
+
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {
             if (pageNumber <= 0)
-            {
                 pageNumber = 1;
-            }
 
             if (pageSize <= 0)
-            {
                 pageSize = 25;
-            }
 
             if (pageSize > 100)
-            {
                 pageSize = 100;
-            }
 
             return (pageNumber, pageSize);
         }
