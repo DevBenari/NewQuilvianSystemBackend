@@ -533,14 +533,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public DateTime? CredentialingDate { get; set; }
 
-        public bool IsAvailableForAppointment { get; set; } = true;
-
-        public bool IsGeolocationBypassEnabled { get; set; } = false;
-
-        public DateTime? GeolocationBypassUntil { get; set; }
-
-        [MaxLength(250)]
-        public string? GeolocationBypassReason { get; set; }
+        public bool IsAvailableForAppointment { get; set; } = true;        
     }
 
     public class UpdateDoctorRequest

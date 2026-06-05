@@ -951,10 +951,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                         doctor: entity,
                         userType: request.DoctorUserType,
                         isFingerprintRegistrationEnabled: request.IsFingerprintRegistrationEnabled,
-                        fingerprintRegistrationReason: request.FingerprintRegistrationReason,
-                        isGeolocationBypassEnabled: request.IsGeolocationBypassEnabled,
-                        geolocationBypassUntil: request.GeolocationBypassUntil,
-                        geolocationBypassReason: request.GeolocationBypassReason,
+                        fingerprintRegistrationReason: request.FingerprintRegistrationReason,                        
                         actorUserId: actorUserId
                     );
 
@@ -3045,15 +3042,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         private async Task<(bool IsSuccess, string? ErrorMessage, DoctorLoginAccountResponse? Response)>
-            CreateLoginAccountForDoctorAsync(
-                MstDoctor doctor,
-                UserType userType,
-                bool isFingerprintRegistrationEnabled,
-                string? fingerprintRegistrationReason,
-                bool isGeolocationBypassEnabled,
-                DateTime? geolocationBypassUntil,
-                string? geolocationBypassReason,
-                Guid actorUserId)
+        CreateLoginAccountForDoctorAsync(
+            MstDoctor doctor,
+            UserType userType,
+            bool isFingerprintRegistrationEnabled,
+            string? fingerprintRegistrationReason,
+            Guid actorUserId)
         {
             if (doctor.Id == Guid.Empty)
             {
@@ -3126,13 +3120,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ExternalUserId = null,
                 PrimaryDepartmentId = doctor.PrimaryDepartmentId,
                 PrimaryPositionId = doctor.PrimaryPositionId,
-                IsGeolocationBypassEnabled = isGeolocationBypassEnabled,
-                GeolocationBypassReason = isGeolocationBypassEnabled
-                ? NormalizeNullableText(geolocationBypassReason)
-                : null,
-                            GeolocationBypassUntil = isGeolocationBypassEnabled
-                ? geolocationBypassUntil
-                : null,
+                IsGeolocationBypassEnabled = false,
+                GeolocationBypassReason = null,
+                GeolocationBypassUntil = null,
                 IsActive = doctor.IsActive,
                 MustChangePassword = true,
                 AccessValidUntil = null,

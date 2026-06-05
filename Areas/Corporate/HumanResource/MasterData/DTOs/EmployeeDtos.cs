@@ -523,7 +523,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? EmergencyContactRelation { get; set; }
 
         [MaxLength(500)]
-        public string? EmergencyContactAddress { get; set; }
+        public string? EmergencyContactAddress { get; set; }        
     }
 
     public class UpdateEmployeeRequest
@@ -629,7 +629,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         [MaxLength(500)]
         public string? EmergencyContactAddress { get; set; }
 
-        public bool IsActive { get; set; } = true;
+        public bool IsActive { get; set; } = true;        
     }
 
     public class UpdateEmployeeStatusRequest
