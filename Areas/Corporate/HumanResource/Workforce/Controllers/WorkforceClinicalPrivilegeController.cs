@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Net.Http.Headers;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Enums;
@@ -12,6 +14,10 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+
+using ResponseWorkforceClinicalPrivilegePagedResult =
+    QuilvianSystemBackend.Responses.PagedResult<
+        QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs.WorkforceClinicalPrivilegeResponse>;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controllers
 {
@@ -31,9 +37,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
     public class WorkforceClinicalPrivilegeController : ControllerBase
     {
         private const string LogCategory = "Corporate.HumanResource.Workforce.ClinicalPrivilege";
+        private const string CodePrefix = "CLP-RSMMC-";
+        private const int CodeNumberLength = 5;
         private const long MaxFileSizeBytes = 10 * 1024 * 1024;
 
-        private static readonly string[] AllowedExtensions =
+        private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
             ".pdf",
             ".jpg",
@@ -48,36 +56,87 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly IWebHostEnvironment _environment;
+        private readonly IConfiguration _configuration;
 
         public WorkforceClinicalPrivilegeController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            IWebHostEnvironment environment)
+            IWebHostEnvironment environment,
+            IConfiguration configuration)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _environment = environment;
+            _configuration = configuration;
         }
 
-        [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeListResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Workforce Clinical Privilege",
-            Description = "Melihat clinical privilege workforce profile",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Workforce Clinical Privilege", Description = "Melihat metadata filter clinical privilege workforce", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkforceClinicalPrivilege", "Read")]
-        public async Task<IActionResult> GetClinicalPrivileges(
-            Guid workforceProfileId,
-            [FromQuery] ClinicalPrivilegeStatus? privilegeStatus,
-            [FromQuery] ClinicalPrivilegeType? privilegeType,
-            [FromQuery] Guid? credentialLicenseId,
-            [FromQuery] Guid? departmentId,
-            [FromQuery] Guid? positionId,
-            [FromQuery] bool? isActive,
-            [FromQuery] bool? isExpired)
+        public async Task<IActionResult> GetFilterMetadata(Guid workforceProfileId)
+        {
+            var profile = await GetProfileAsync(workforceProfileId);
+
+            if (profile == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Workforce profile tidak ditemukan."
+                ));
+            }
+
+            var result = new WorkforceClinicalPrivilegeFilterMetadataResponse
+            {
+                DefaultFilter = new WorkforceClinicalPrivilegeDefaultFilterResponse(),
+                CustomPeriods = new List<WorkforceClinicalPrivilegeCustomPeriodOptionResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "lastmonth", Label = "Bulan lalu" }
+                },
+                SortOptions = new List<WorkforceClinicalPrivilegeSortOptionResponse>
+                {
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "privilegeCode", Label = "Kode privilege" },
+                    new() { Value = "privilegeName", Label = "Nama privilege" },
+                    new() { Value = "privilegeType", Label = "Tipe privilege" },
+                    new() { Value = "clinicalScope", Label = "Scope klinis" },
+                    new() { Value = "departmentName", Label = "Department" },
+                    new() { Value = "effectiveStartDate", Label = "Mulai berlaku" },
+                    new() { Value = "effectiveEndDate", Label = "Akhir berlaku" },
+                    new() { Value = "privilegeStatus", Label = "Status privilege" },
+                    new() { Value = "isTemporary", Label = "Temporary" },
+                    new() { Value = "isEmergencyPrivilege", Label = "Emergency" },
+                    new() { Value = "isSupervisionRequired", Label = "Butuh supervisi" },
+                    new() { Value = "isActive", Label = "Status aktif" }
+                },
+                SortDirections = new List<string> { "asc", "desc" },
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                PrivilegeTypeOptions = BuildPrivilegeTypeOptions(),
+                PrivilegeStatusOptions = BuildPrivilegeStatusOptions(),
+                ClinicalScopeOptions = BuildClinicalScopeOptions()
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "WorkforceClinicalPrivilege.GetFilterMetadata",
+                "Mengambil metadata filter clinical privilege workforce.",
+                new { workforceProfileId, profile.ProfileCode }
+            );
+
+            return Ok(ApiResponse<WorkforceClinicalPrivilegeFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter clinical privilege workforce berhasil diambil."
+            ));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Workforce Clinical Privilege", Description = "Melihat ringkasan clinical privilege workforce", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceClinicalPrivilege", "Read")]
+        public async Task<IActionResult> GetSummary(Guid workforceProfileId)
         {
             var profile = await GetProfileAsync(workforceProfileId);
 
@@ -90,210 +149,195 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             }
 
             var today = DateTime.UtcNow.Date;
+            var query = BuildBaseQuery(workforceProfileId);
 
-            var query = _dbContext.Set<WfpClinicalPrivilege>()
-                .AsNoTracking()
-                .Where(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
-
-            if (privilegeStatus.HasValue)
-            {
-                query = query.Where(x => x.PrivilegeStatus == privilegeStatus.Value);
-            }
-
-            if (privilegeType.HasValue)
-            {
-                query = query.Where(x => x.PrivilegeType == privilegeType.Value);
-            }
-
-            if (credentialLicenseId.HasValue && credentialLicenseId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.CredentialLicenseId == credentialLicenseId.Value);
-            }
-
-            if (departmentId.HasValue && departmentId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.DepartmentId == departmentId.Value);
-            }
-
-            if (positionId.HasValue && positionId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.PositionId == positionId.Value);
-            }
-
-            if (isActive.HasValue)
-            {
-                query = query.Where(x => x.IsActive == isActive.Value);
-            }
-
-            if (isExpired.HasValue)
-            {
-                query = isExpired.Value
-                    ? query.Where(x => x.EffectiveEndDate.HasValue && x.EffectiveEndDate.Value.Date < today)
-                    : query.Where(x => !x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today);
-            }
-
-            var rawItems = await query
-                .OrderByDescending(x => x.PrivilegeStatus == ClinicalPrivilegeStatus.Active)
-                .ThenByDescending(x => x.IsActive)
-                .ThenBy(x => x.EffectiveEndDate)
-                .ThenBy(x => x.PrivilegeName)
-                .Select(x => new
-                {
-                    x.Id,
-                    x.WorkforceProfileId,
-                    x.CredentialLicenseId,
-                    CredentialLicenseType = x.CredentialLicense != null ? x.CredentialLicense.LicenseType : null,
-                    CredentialLicenseNumber = x.CredentialLicense != null ? x.CredentialLicense.LicenseNumber : null,
-                    x.DepartmentId,
-                    DepartmentCode = x.Department != null ? x.Department.DepartmentCode : null,
-                    DepartmentName = x.Department != null ? x.Department.DepartmentName : null,
-                    x.PositionId,
-                    PositionCode = x.Position != null ? x.Position.PositionCode : null,
-                    PositionName = x.Position != null ? x.Position.PositionName : null,
-                    x.PrivilegeCode,
-                    x.PrivilegeName,
-                    x.PrivilegeType,
-                    x.ClinicalScope,
-                    x.SpecialtyName,
-                    x.SubSpecialtyName,
-                    x.ProcedureGroup,
-                    x.ProcedureName,
-                    x.PracticeLocation,
-                    x.EffectiveStartDate,
-                    x.EffectiveEndDate,
-                    x.PrivilegeStatus,
-                    x.IsTemporary,
-                    x.IsEmergencyPrivilege,
-                    x.IsSupervisionRequired,
-                    x.SupervisorUserId,
-                    SupervisorUserName = x.SupervisorUser != null ? x.SupervisorUser.DisplayName : null,
-                    x.GrantedByUserId,
-                    GrantedByUserName = x.GrantedByUser != null ? x.GrantedByUser.DisplayName : null,
-                    x.GrantedAt,
-                    x.GrantNote,
-                    x.RejectedByUserId,
-                    RejectedByUserName = x.RejectedByUser != null ? x.RejectedByUser.DisplayName : null,
-                    x.RejectedAt,
-                    x.RejectedReason,
-                    x.SuspendedByUserId,
-                    SuspendedByUserName = x.SuspendedByUser != null ? x.SuspendedByUser.DisplayName : null,
-                    x.SuspendedAt,
-                    x.SuspensionReason,
-                    x.RevokedByUserId,
-                    RevokedByUserName = x.RevokedByUser != null ? x.RevokedByUser.DisplayName : null,
-                    x.RevokedAt,
-                    x.RevokedReason,
-                    x.LastReviewDate,
-                    x.NextReviewDate,
-                    x.SupportingFilePath,
-                    x.SupportingFileContentType,
-                    x.IsActive,
-                    x.Description,
-                    x.CreateDateTime
-                })
-                .ToListAsync();
-
-            var items = rawItems.Select(x => new WorkforceClinicalPrivilegeResponse
-            {
-                Id = x.Id,
-                WorkforceProfileId = x.WorkforceProfileId,
-                ProfileCode = profile.ProfileCode,
-                DisplayName = profile.DisplayName,
-                CredentialLicenseId = x.CredentialLicenseId,
-                CredentialLicenseType = x.CredentialLicenseType,
-                CredentialLicenseNumber = x.CredentialLicenseNumber,
-                DepartmentId = x.DepartmentId,
-                DepartmentCode = x.DepartmentCode,
-                DepartmentName = x.DepartmentName,
-                PositionId = x.PositionId,
-                PositionCode = x.PositionCode,
-                PositionName = x.PositionName,
-                PrivilegeCode = x.PrivilegeCode,
-                PrivilegeName = x.PrivilegeName,
-                PrivilegeType = x.PrivilegeType,
-                ClinicalScope = x.ClinicalScope,
-                SpecialtyName = x.SpecialtyName,
-                SubSpecialtyName = x.SubSpecialtyName,
-                ProcedureGroup = x.ProcedureGroup,
-                ProcedureName = x.ProcedureName,
-                PracticeLocation = x.PracticeLocation,
-                EffectiveStartDate = x.EffectiveStartDate,
-                EffectiveEndDate = x.EffectiveEndDate,
-                PrivilegeStatus = ResolveRuntimeStatus(x.PrivilegeStatus, x.EffectiveEndDate),
-                IsTemporary = x.IsTemporary,
-                IsEmergencyPrivilege = x.IsEmergencyPrivilege,
-                IsSupervisionRequired = x.IsSupervisionRequired,
-                SupervisorUserId = x.SupervisorUserId,
-                SupervisorUserName = x.SupervisorUserName,
-                GrantedByUserId = x.GrantedByUserId,
-                GrantedByUserName = x.GrantedByUserName,
-                GrantedAt = x.GrantedAt,
-                GrantNote = x.GrantNote,
-                RejectedByUserId = x.RejectedByUserId,
-                RejectedByUserName = x.RejectedByUserName,
-                RejectedAt = x.RejectedAt,
-                RejectedReason = x.RejectedReason,
-                SuspendedByUserId = x.SuspendedByUserId,
-                SuspendedByUserName = x.SuspendedByUserName,
-                SuspendedAt = x.SuspendedAt,
-                SuspensionReason = x.SuspensionReason,
-                RevokedByUserId = x.RevokedByUserId,
-                RevokedByUserName = x.RevokedByUserName,
-                RevokedAt = x.RevokedAt,
-                RevokedReason = x.RevokedReason,
-                LastReviewDate = x.LastReviewDate,
-                NextReviewDate = x.NextReviewDate,
-                SupportingFilePath = x.SupportingFilePath,
-                SupportingFileContentType = x.SupportingFileContentType,
-                HasSupportingFile = !string.IsNullOrWhiteSpace(x.SupportingFilePath),
-                IsExpired = x.EffectiveEndDate.HasValue && x.EffectiveEndDate.Value.Date < today,
-                IsCurrentlyValid = x.IsActive &&
-                    x.PrivilegeStatus == ClinicalPrivilegeStatus.Active &&
-                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today),
-                IsActive = x.IsActive,
-                Description = x.Description,
-                CreateDateTime = x.CreateDateTime
-            }).ToList();
-
-            var result = new WorkforceClinicalPrivilegeListResponse
+            var result = new WorkforceClinicalPrivilegeSummaryResponse
             {
                 WorkforceProfileId = profile.Id,
                 ProfileCode = profile.ProfileCode,
                 DisplayName = profile.DisplayName,
-                TotalData = items.Count,
-                ActiveData = items.Count(x => x.PrivilegeStatus == ClinicalPrivilegeStatus.Active),
-                PendingApprovalData = items.Count(x => x.PrivilegeStatus == ClinicalPrivilegeStatus.PendingApproval),
-                SuspendedData = items.Count(x => x.PrivilegeStatus == ClinicalPrivilegeStatus.Suspended),
-                RejectedData = items.Count(x => x.PrivilegeStatus == ClinicalPrivilegeStatus.Rejected),
-                RevokedData = items.Count(x => x.PrivilegeStatus == ClinicalPrivilegeStatus.Revoked),
-                ExpiredData = items.Count(x => x.IsExpired),
-                CurrentlyValidData = items.Count(x => x.IsCurrentlyValid),
-                WithCredentialLicenseData = items.Count(x => x.CredentialLicenseId.HasValue),
-                WithSupportingFileData = items.Count(x => x.HasSupportingFile),
+                TotalClinicalPrivilege = await query.CountAsync(),
+                ActiveClinicalPrivilege = await query.CountAsync(x => x.IsActive),
+                InactiveClinicalPrivilege = await query.CountAsync(x => !x.IsActive),
+                PendingApprovalClinicalPrivilege = await query.CountAsync(x => x.PrivilegeStatus == ClinicalPrivilegeStatus.PendingApproval),
+                GrantedClinicalPrivilege = await query.CountAsync(x => x.PrivilegeStatus == ClinicalPrivilegeStatus.Active),
+                RejectedClinicalPrivilege = await query.CountAsync(x => x.PrivilegeStatus == ClinicalPrivilegeStatus.Rejected),
+                SuspendedClinicalPrivilege = await query.CountAsync(x => x.PrivilegeStatus == ClinicalPrivilegeStatus.Suspended),
+                RevokedClinicalPrivilege = await query.CountAsync(x => x.PrivilegeStatus == ClinicalPrivilegeStatus.Revoked),
+                ExpiredClinicalPrivilege = await query.CountAsync(x => x.EffectiveEndDate.HasValue && x.EffectiveEndDate.Value.Date < today),
+                CurrentlyValidClinicalPrivilege = await query.CountAsync(x => x.IsActive && x.PrivilegeStatus == ClinicalPrivilegeStatus.Active && (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today)),
+                TemporaryClinicalPrivilege = await query.CountAsync(x => x.IsTemporary),
+                EmergencyClinicalPrivilege = await query.CountAsync(x => x.IsEmergencyPrivilege),
+                SupervisionRequiredClinicalPrivilege = await query.CountAsync(x => x.IsSupervisionRequired),
+                ClinicalPrivilegeWithCredentialLicense = await query.CountAsync(x => x.CredentialLicenseId.HasValue),
+                ClinicalPrivilegeWithSupportingFile = await query.CountAsync(x => x.SupportingFilePath != null && x.SupportingFilePath != string.Empty)
+            };
+
+            return Ok(ApiResponse<WorkforceClinicalPrivilegeSummaryResponse>.Ok(
+                result,
+                "Ringkasan clinical privilege workforce berhasil diambil."
+            ));
+        }
+
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiResponse<ResponseWorkforceClinicalPrivilegePagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Workforce Clinical Privilege", Description = "Melihat clinical privilege workforce profile", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceClinicalPrivilege", "Read")]
+        public async Task<IActionResult> GetClinicalPrivileges(
+            Guid workforceProfileId,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] ClinicalPrivilegeType? privilegeType,
+            [FromQuery] ClinicalPrivilegeStatus? privilegeStatus,
+            [FromQuery] Guid? credentialLicenseId,
+            [FromQuery] Guid? departmentId,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "createDateTime",
+            [FromQuery] string? sortDirection = "desc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var profile = await GetProfileAsync(workforceProfileId);
+
+            if (profile == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Workforce profile tidak ditemukan."
+                ));
+            }
+
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = BuildBaseQuery(workforceProfileId);
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyStandardFilter(query, privilegeType, privilegeStatus, credentialLicenseId, departmentId, isActive, search);
+
+            var totalData = await query.CountAsync();
+
+            var entities = await ApplySorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var items = entities
+                .Select(x => MapResponse(x, profile))
+                .ToList();
+
+            var result = new ResponseWorkforceClinicalPrivilegePagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
                 Items = items
             };
 
-            return Ok(ApiResponse<WorkforceClinicalPrivilegeListResponse>.Ok(
+            return Ok(ApiResponse<ResponseWorkforceClinicalPrivilegePagedResult>.Ok(
                 result,
                 "Data clinical privilege workforce berhasil diambil."
             ));
         }
 
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Workforce Clinical Privilege", Description = "Melihat pilihan clinical privilege workforce", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceClinicalPrivilege", "Read")]
+        public async Task<IActionResult> GetOptions(
+            Guid workforceProfileId,
+            [FromQuery] ClinicalPrivilegeType? privilegeType,
+            [FromQuery] ClinicalPrivilegeStatus? privilegeStatus,
+            [FromQuery] Guid? credentialLicenseId,
+            [FromQuery] Guid? departmentId,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var profileExists = await ProfileExistsAsync(workforceProfileId);
+
+            if (!profileExists)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Workforce profile tidak ditemukan."
+                ));
+            }
+
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = BuildBaseQuery(workforceProfileId);
+            query = ApplyStandardFilter(query, privilegeType, privilegeStatus, credentialLicenseId, departmentId, onlyActive ? true : null, search);
+
+            var totalData = await query.CountAsync();
+            var today = DateTime.UtcNow.Date;
+
+            var items = await query
+                .OrderByDescending(x => x.PrivilegeStatus == ClinicalPrivilegeStatus.Active)
+                .ThenBy(x => x.PrivilegeName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new WorkforceClinicalPrivilegeOptionResponse
+                {
+                    Id = x.Id,
+                    PrivilegeCode = x.PrivilegeCode,
+                    PrivilegeName = x.PrivilegeName,
+                    PrivilegeType = x.PrivilegeType,
+                    ClinicalScope = x.ClinicalScope,
+                    SpecialtyName = x.SpecialtyName,
+                    ProcedureGroup = x.ProcedureGroup,
+                    ProcedureName = x.ProcedureName,
+                    EffectiveStartDate = x.EffectiveStartDate,
+                    EffectiveEndDate = x.EffectiveEndDate,
+                    PrivilegeStatus = x.PrivilegeStatus,
+                    HasSupportingFile = x.SupportingFilePath != null && x.SupportingFilePath != string.Empty,
+                    IsExpired = x.EffectiveEndDate.HasValue && x.EffectiveEndDate.Value.Date < today,
+                    IsCurrentlyValid = x.IsActive && x.PrivilegeStatus == ClinicalPrivilegeStatus.Active && (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today)
+                })
+                .ToListAsync();
+
+            var result = new WorkforceClinicalPrivilegeOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<WorkforceClinicalPrivilegeOptionPagedResponse>.Ok(
+                result,
+                "Data pilihan clinical privilege workforce berhasil diambil."
+            ));
+        }
+
         [HttpGet("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Workforce Clinical Privilege",
-            Description = "Melihat detail clinical privilege workforce profile",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Workforce Clinical Privilege", Description = "Melihat detail clinical privilege workforce profile", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkforceClinicalPrivilege", "Read")]
         public async Task<IActionResult> GetClinicalPrivilegeById(Guid workforceProfileId, Guid id)
         {
-            var response = await BuildClinicalPrivilegeResponseAsync(id, workforceProfileId);
+            var profile = await GetProfileAsync(workforceProfileId);
 
-            if (response == null)
+            if (profile == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Workforce profile tidak ditemukan."
+                ));
+            }
+
+            var entity = await BuildBaseQuery(workforceProfileId)
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
@@ -301,22 +345,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            return Ok(ApiResponse<WorkforceClinicalPrivilegeResponse>.Ok(
-                response,
+            return Ok(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>.Ok(
+                MapDetailResponse(entity, profile),
                 "Detail clinical privilege workforce berhasil diambil."
             ));
         }
 
         [HttpPost]
         [Consumes("multipart/form-data")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Create",
-            "Create Workforce Clinical Privilege",
-            Description = "Menambah clinical privilege workforce profile",
-            AccessType = AccessTypes.Create,
-            SortOrder = 2
-        )]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Create", "Create Workforce Clinical Privilege", Description = "Menambah clinical privilege workforce profile", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("WorkforceClinicalPrivilege", "Create")]
         public async Task<IActionResult> CreateClinicalPrivilege(
             Guid workforceProfileId,
@@ -332,74 +371,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            var validation = ValidateClinicalPrivilegeRequest(
-                request.PrivilegeCode,
-                request.PrivilegeName,
-                request.PrivilegeType,
-                request.EffectiveStartDate,
-                request.EffectiveEndDate,
-                request.IsSupervisionRequired,
-                request.SupervisorUserId,
-                request.SupportingFile);
+            var validation = await ValidateRequestAsync(workforceProfileId, null, request);
 
             if (!validation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     validation.ErrorMessage ?? "Data clinical privilege tidak valid."
-                ));
-            }
-
-            var credentialValidation = await ValidateCredentialRequirementAsync(
-                workforceProfileId,
-                request.CredentialLicenseId);
-
-            if (!credentialValidation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    credentialValidation.ErrorMessage ?? "Credential license belum valid."
-                ));
-            }
-
-            var departmentPositionValidation = await ValidateDepartmentAndPositionAsync(
-                request.DepartmentId,
-                request.PositionId);
-
-            if (!departmentPositionValidation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    departmentPositionValidation.ErrorMessage ?? "Department/position tidak valid."
-                ));
-            }
-
-            var supervisorValidation = await ValidateSupervisorAsync(
-                request.IsSupervisionRequired,
-                request.SupervisorUserId);
-
-            if (!supervisorValidation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    supervisorValidation.ErrorMessage ?? "Supervisor tidak valid."
-                ));
-            }
-
-            var normalizedPrivilegeCode = NormalizeCode(request.PrivilegeCode);
-
-            var duplicate = await _dbContext.Set<WfpClinicalPrivilege>()
-                .AsNoTracking()
-                .AnyAsync(x =>
-                    x.WorkforceProfileId == workforceProfileId &&
-                    x.PrivilegeCode == normalizedPrivilegeCode &&
-                    !x.IsDelete);
-
-            if (duplicate)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "PrivilegeCode sudah terdaftar pada workforce profile ini."
                 ));
             }
 
@@ -423,10 +401,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 CredentialLicenseId = NormalizeNullableGuid(request.CredentialLicenseId),
                 DepartmentId = NormalizeNullableGuid(request.DepartmentId),
                 PositionId = NormalizeNullableGuid(request.PositionId),
-                PrivilegeCode = normalizedPrivilegeCode,
-                PrivilegeName = request.PrivilegeName.Trim(),
+                PrivilegeCode = await GeneratePrivilegeCodeAsync(),
+                PrivilegeName = NormalizeRequiredText(request.PrivilegeName),
                 PrivilegeType = request.PrivilegeType,
-                ClinicalScope = NormalizeNullableText(request.ClinicalScope),
+                ClinicalScope = NormalizeClinicalScope(request.ClinicalScope),
                 SpecialtyName = NormalizeNullableText(request.SpecialtyName),
                 SubSpecialtyName = NormalizeNullableText(request.SubSpecialtyName),
                 ProcedureGroup = NormalizeNullableText(request.ProcedureGroup),
@@ -454,49 +432,42 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             _dbContext.Set<WfpClinicalPrivilege>().Add(entity);
             await _dbContext.SaveChangesAsync();
 
-            var response = await BuildClinicalPrivilegeResponseAsync(entity.Id, workforceProfileId);
-
             await _loggerService.InfoAsync(
                 LogCategory,
                 "WorkforceClinicalPrivilege.CreateClinicalPrivilege",
                 "Clinical privilege workforce berhasil dibuat.",
-                new
-                {
-                    WorkforceProfileId = workforceProfileId,
-                    entity.Id,
-                    entity.PrivilegeCode,
-                    entity.PrivilegeName,
-                    entity.PrivilegeStatus
-                }
+                new { workforceProfileId, entity.Id, entity.PrivilegeCode, entity.PrivilegeName, entity.PrivilegeStatus }
             );
 
-            return Ok(ApiResponse<WorkforceClinicalPrivilegeResponse>.Ok(
-                response!,
+            return Ok(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>.Ok(
+                MapDetailResponse(entity, profile),
                 "Clinical privilege workforce berhasil dibuat."
             ));
         }
 
         [HttpPut("{id:guid}")]
         [Consumes("multipart/form-data")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Update",
-            "Update Workforce Clinical Privilege",
-            Description = "Mengubah clinical privilege workforce profile",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Workforce Clinical Privilege", Description = "Mengubah clinical privilege workforce profile", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("WorkforceClinicalPrivilege", "Update")]
         public async Task<IActionResult> UpdateClinicalPrivilege(
             Guid workforceProfileId,
             Guid id,
             [FromForm] UpdateWorkforceClinicalPrivilegeRequest request)
         {
+            var profile = await GetProfileAsync(workforceProfileId);
+
+            if (profile == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Workforce profile tidak ditemukan."
+                ));
+            }
+
             var entity = await _dbContext.Set<WfpClinicalPrivilege>()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == id &&
-                    x.WorkforceProfileId == workforceProfileId &&
-                    !x.IsDelete);
+                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
             if (entity == null)
             {
@@ -516,15 +487,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            var validation = ValidateClinicalPrivilegeRequest(
-                request.PrivilegeCode,
-                request.PrivilegeName,
-                request.PrivilegeType,
-                request.EffectiveStartDate,
-                request.EffectiveEndDate,
-                request.IsSupervisionRequired,
-                request.SupervisorUserId,
-                request.SupportingFile);
+            var validation = await ValidateRequestAsync(workforceProfileId, id, request);
 
             if (!validation.IsValid)
             {
@@ -534,83 +497,34 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            var credentialValidation = await ValidateCredentialRequirementAsync(
-                workforceProfileId,
-                request.CredentialLicenseId);
-
-            if (!credentialValidation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    credentialValidation.ErrorMessage ?? "Credential license belum valid."
-                ));
-            }
-
-            var departmentPositionValidation = await ValidateDepartmentAndPositionAsync(
-                request.DepartmentId,
-                request.PositionId);
-
-            if (!departmentPositionValidation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    departmentPositionValidation.ErrorMessage ?? "Department/position tidak valid."
-                ));
-            }
-
-            var supervisorValidation = await ValidateSupervisorAsync(
-                request.IsSupervisionRequired,
-                request.SupervisorUserId);
-
-            if (!supervisorValidation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    supervisorValidation.ErrorMessage ?? "Supervisor tidak valid."
-                ));
-            }
-
-            var normalizedPrivilegeCode = NormalizeCode(request.PrivilegeCode);
-
-            var duplicate = await _dbContext.Set<WfpClinicalPrivilege>()
-                .AsNoTracking()
-                .AnyAsync(x =>
-                    x.Id != id &&
-                    x.WorkforceProfileId == workforceProfileId &&
-                    x.PrivilegeCode == normalizedPrivilegeCode &&
-                    !x.IsDelete);
-
-            if (duplicate)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "PrivilegeCode sudah terdaftar pada workforce profile ini."
-                ));
-            }
-
             if (request.ReplaceExistingFile && request.SupportingFile == null)
             {
+                DeletePhysicalFileIfExists(entity.SupportingFilePath);
                 entity.SupportingFilePath = null;
                 entity.SupportingFileContentType = null;
             }
 
             if (request.SupportingFile != null)
             {
-                var savedFile = await SaveSupportingFileAsync(workforceProfileId, request.SupportingFile);
-                entity.SupportingFilePath = savedFile.FilePath;
-                entity.SupportingFileContentType = savedFile.ContentType;
-            }
+                if (request.ReplaceExistingFile)
+                {
+                    DeletePhysicalFileIfExists(entity.SupportingFilePath);
+                }
 
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
+                if (request.ReplaceExistingFile || string.IsNullOrWhiteSpace(entity.SupportingFilePath))
+                {
+                    var savedFile = await SaveSupportingFileAsync(workforceProfileId, request.SupportingFile);
+                    entity.SupportingFilePath = savedFile.FilePath;
+                    entity.SupportingFileContentType = savedFile.ContentType;
+                }
+            }
 
             entity.CredentialLicenseId = NormalizeNullableGuid(request.CredentialLicenseId);
             entity.DepartmentId = NormalizeNullableGuid(request.DepartmentId);
             entity.PositionId = NormalizeNullableGuid(request.PositionId);
-            entity.PrivilegeCode = normalizedPrivilegeCode;
-            entity.PrivilegeName = request.PrivilegeName.Trim();
+            entity.PrivilegeName = NormalizeRequiredText(request.PrivilegeName);
             entity.PrivilegeType = request.PrivilegeType;
-            entity.ClinicalScope = NormalizeNullableText(request.ClinicalScope);
+            entity.ClinicalScope = NormalizeClinicalScope(request.ClinicalScope);
             entity.SpecialtyName = NormalizeNullableText(request.SpecialtyName);
             entity.SubSpecialtyName = NormalizeNullableText(request.SubSpecialtyName);
             entity.ProcedureGroup = NormalizeNullableText(request.ProcedureGroup);
@@ -626,28 +540,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             entity.NextReviewDate = request.NextReviewDate?.Date;
             entity.IsActive = request.IsActive;
             entity.Description = NormalizeNullableText(request.Description);
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = GetCurrentUserId();
 
             await _dbContext.SaveChangesAsync();
 
-            var response = await BuildClinicalPrivilegeResponseAsync(entity.Id, workforceProfileId);
-
-            return Ok(ApiResponse<WorkforceClinicalPrivilegeResponse>.Ok(
-                response!,
+            return Ok(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>.Ok(
+                MapDetailResponse(entity, profile),
                 "Clinical privilege workforce berhasil diperbarui."
             ));
         }
 
         [HttpPatch("{id:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Update",
-            "Update Workforce Clinical Privilege",
-            Description = "Mengubah status aktif clinical privilege workforce profile",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Workforce Clinical Privilege", Description = "Mengubah status aktif clinical privilege workforce profile", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("WorkforceClinicalPrivilege", "Update")]
         public async Task<IActionResult> UpdateClinicalPrivilegeStatus(
             Guid workforceProfileId,
@@ -655,10 +562,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             [FromBody] UpdateWorkforceClinicalPrivilegeStatusRequest request)
         {
             var entity = await _dbContext.Set<WfpClinicalPrivilege>()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == id &&
-                    x.WorkforceProfileId == workforceProfileId &&
-                    !x.IsDelete);
+                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
             if (entity == null)
             {
@@ -685,273 +589,160 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             await _dbContext.SaveChangesAsync();
 
-            var response = await BuildClinicalPrivilegeResponseAsync(entity.Id, workforceProfileId);
-
-            return Ok(ApiResponse<WorkforceClinicalPrivilegeResponse>.Ok(
-                response!,
-                "Status clinical privilege workforce berhasil diperbarui."
-            ));
+            return Ok(ApiResponse<object>.Ok(null, "Status clinical privilege workforce berhasil diperbarui."));
         }
 
         [HttpPatch("{id:guid}/grant")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Update",
-            "Update Workforce Clinical Privilege",
-            Description = "Grant clinical privilege workforce profile",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Update", "Grant Workforce Clinical Privilege", Description = "Grant clinical privilege workforce profile", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("WorkforceClinicalPrivilege", "Update")]
         public async Task<IActionResult> GrantClinicalPrivilege(
             Guid workforceProfileId,
             Guid id,
             [FromBody] GrantWorkforceClinicalPrivilegeRequest request)
         {
-            var entity = await _dbContext.Set<WfpClinicalPrivilege>()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == id &&
-                    x.WorkforceProfileId == workforceProfileId &&
-                    !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Clinical privilege workforce tidak ditemukan."
-                ));
-            }
-
-            if (entity.PrivilegeStatus == ClinicalPrivilegeStatus.Revoked ||
-                entity.PrivilegeStatus == ClinicalPrivilegeStatus.Rejected)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Clinical privilege rejected/revoked tidak bisa di-grant. Buat pengajuan baru."
-                ));
-            }
-
-            if (entity.EffectiveEndDate.HasValue && entity.EffectiveEndDate.Value.Date < DateTime.UtcNow.Date)
-            {
-                entity.PrivilegeStatus = ClinicalPrivilegeStatus.Expired;
-                entity.IsActive = false;
-                entity.UpdateDateTime = DateTime.UtcNow;
-                entity.UpdateBy = GetCurrentUserId();
-                await _dbContext.SaveChangesAsync();
-
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Clinical privilege sudah expired dan tidak bisa di-grant."
-                ));
-            }
-
-            var credentialValidation = await ValidateCredentialRequirementAsync(
+            var result = await ChangeLifecycleAsync(
                 workforceProfileId,
-                entity.CredentialLicenseId);
+                id,
+                targetStatus: ClinicalPrivilegeStatus.Active,
+                note: request.GrantNote,
+                requiredReason: false,
+                actionName: "grant",
+                nextReviewDate: request.NextReviewDate);
 
-            if (!credentialValidation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    credentialValidation.ErrorMessage ?? "Credential license belum valid."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.PrivilegeStatus = ClinicalPrivilegeStatus.Active;
-            entity.IsActive = true;
-            entity.GrantedByUserId = actorUserId;
-            entity.GrantedAt = now;
-            entity.GrantNote = NormalizeNullableText(request.GrantNote);
-            entity.RejectedByUserId = null;
-            entity.RejectedAt = null;
-            entity.RejectedReason = null;
-            entity.SuspendedByUserId = null;
-            entity.SuspendedAt = null;
-            entity.SuspensionReason = null;
-            entity.RevokedByUserId = null;
-            entity.RevokedAt = null;
-            entity.RevokedReason = null;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            if (request.NextReviewDate.HasValue)
-            {
-                entity.NextReviewDate = request.NextReviewDate.Value.Date;
-            }
-
-            await _dbContext.SaveChangesAsync();
-
-            var response = await BuildClinicalPrivilegeResponseAsync(entity.Id, workforceProfileId);
-
-            return Ok(ApiResponse<WorkforceClinicalPrivilegeResponse>.Ok(
-                response!,
-                "Clinical privilege workforce berhasil di-grant."
-            ));
+            return result;
         }
 
         [HttpPatch("{id:guid}/reject")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Update",
-            "Update Workforce Clinical Privilege",
-            Description = "Reject clinical privilege workforce profile",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Update", "Reject Workforce Clinical Privilege", Description = "Reject clinical privilege workforce profile", AccessType = AccessTypes.Update, SortOrder = 6)]
         [AccessPermission("WorkforceClinicalPrivilege", "Update")]
         public async Task<IActionResult> RejectClinicalPrivilege(
             Guid workforceProfileId,
             Guid id,
             [FromBody] RejectWorkforceClinicalPrivilegeRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.RejectedReason))
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Alasan reject wajib diisi."
-                ));
-            }
-
-            var entity = await _dbContext.Set<WfpClinicalPrivilege>()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == id &&
-                    x.WorkforceProfileId == workforceProfileId &&
-                    !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Clinical privilege workforce tidak ditemukan."
-                ));
-            }
-
-            if (entity.PrivilegeStatus == ClinicalPrivilegeStatus.Active)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Clinical privilege active tidak bisa di-reject. Gunakan suspend atau revoke."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.PrivilegeStatus = ClinicalPrivilegeStatus.Rejected;
-            entity.IsActive = false;
-            entity.RejectedByUserId = actorUserId;
-            entity.RejectedAt = now;
-            entity.RejectedReason = request.RejectedReason.Trim();
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync();
-
-            var response = await BuildClinicalPrivilegeResponseAsync(entity.Id, workforceProfileId);
-
-            return Ok(ApiResponse<WorkforceClinicalPrivilegeResponse>.Ok(
-                response!,
-                "Clinical privilege workforce berhasil di-reject."
-            ));
+            return await ChangeLifecycleAsync(
+                workforceProfileId,
+                id,
+                ClinicalPrivilegeStatus.Rejected,
+                request.RejectedReason,
+                requiredReason: true,
+                actionName: "reject");
         }
 
         [HttpPatch("{id:guid}/suspend")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Update",
-            "Update Workforce Clinical Privilege",
-            Description = "Suspend clinical privilege workforce profile",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Update", "Suspend Workforce Clinical Privilege", Description = "Suspend clinical privilege workforce profile", AccessType = AccessTypes.Update, SortOrder = 7)]
         [AccessPermission("WorkforceClinicalPrivilege", "Update")]
         public async Task<IActionResult> SuspendClinicalPrivilege(
             Guid workforceProfileId,
             Guid id,
             [FromBody] SuspendWorkforceClinicalPrivilegeRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.SuspensionReason))
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Alasan suspend wajib diisi."
-                ));
-            }
-
-            var entity = await _dbContext.Set<WfpClinicalPrivilege>()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == id &&
-                    x.WorkforceProfileId == workforceProfileId &&
-                    !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Clinical privilege workforce tidak ditemukan."
-                ));
-            }
-
-            if (entity.PrivilegeStatus != ClinicalPrivilegeStatus.Active)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Hanya clinical privilege active yang bisa di-suspend."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.PrivilegeStatus = ClinicalPrivilegeStatus.Suspended;
-            entity.IsActive = false;
-            entity.SuspendedByUserId = actorUserId;
-            entity.SuspendedAt = now;
-            entity.SuspensionReason = request.SuspensionReason.Trim();
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync();
-
-            var response = await BuildClinicalPrivilegeResponseAsync(entity.Id, workforceProfileId);
-
-            return Ok(ApiResponse<WorkforceClinicalPrivilegeResponse>.Ok(
-                response!,
-                "Clinical privilege workforce berhasil di-suspend."
-            ));
+            return await ChangeLifecycleAsync(
+                workforceProfileId,
+                id,
+                ClinicalPrivilegeStatus.Suspended,
+                request.SuspensionReason,
+                requiredReason: true,
+                actionName: "suspend");
         }
 
         [HttpPatch("{id:guid}/revoke")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Update",
-            "Update Workforce Clinical Privilege",
-            Description = "Revoke clinical privilege workforce profile",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Update", "Revoke Workforce Clinical Privilege", Description = "Revoke clinical privilege workforce profile", AccessType = AccessTypes.Update, SortOrder = 8)]
         [AccessPermission("WorkforceClinicalPrivilege", "Update")]
         public async Task<IActionResult> RevokeClinicalPrivilege(
             Guid workforceProfileId,
             Guid id,
             [FromBody] RevokeWorkforceClinicalPrivilegeRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.RevokedReason))
+            return await ChangeLifecycleAsync(
+                workforceProfileId,
+                id,
+                ClinicalPrivilegeStatus.Revoked,
+                request.RevokedReason,
+                requiredReason: true,
+                actionName: "revoke");
+        }
+
+        [HttpGet("{id:guid}/preview")]
+        [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Workforce Clinical Privilege", Description = "Preview file clinical privilege workforce", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceClinicalPrivilege", "Read")]
+        public async Task<IActionResult> PreviewClinicalPrivilegeFile(Guid workforceProfileId, Guid id)
+        {
+            var fileValidation = await GetClinicalPrivilegeFileAsync(workforceProfileId, id);
+
+            if (!fileValidation.IsValid)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Alasan revoke wajib diisi."
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    fileValidation.ErrorMessage ?? "File clinical privilege workforce tidak ditemukan."
                 ));
             }
 
+            Response.Headers[HeaderNames.ContentDisposition] = new ContentDispositionHeaderValue("inline")
+            {
+                FileNameStar = fileValidation.FileName
+            }.ToString();
+
+            var stream = new FileStream(
+                fileValidation.PhysicalPath!,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read
+            );
+
+            return File(stream, fileValidation.ContentType!, enableRangeProcessing: true);
+        }
+
+        [HttpGet("{id:guid}/download")]
+        [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Workforce Clinical Privilege", Description = "Download file clinical privilege workforce", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceClinicalPrivilege", "Read")]
+        public async Task<IActionResult> DownloadClinicalPrivilegeFile(Guid workforceProfileId, Guid id)
+        {
+            var fileValidation = await GetClinicalPrivilegeFileAsync(workforceProfileId, id);
+
+            if (!fileValidation.IsValid)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    fileValidation.ErrorMessage ?? "File clinical privilege workforce tidak ditemukan."
+                ));
+            }
+
+            var stream = new FileStream(
+                fileValidation.PhysicalPath!,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read
+            );
+
+            return File(
+                stream,
+                fileValidation.ContentType!,
+                fileValidation.DownloadName,
+                enableRangeProcessing: true
+            );
+        }
+
+        [HttpDelete("{id:guid}/file")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Delete", "Delete Workforce Clinical Privilege File", Description = "Menghapus file clinical privilege workforce", AccessType = AccessTypes.Delete, SortOrder = 9)]
+        [AccessPermission("WorkforceClinicalPrivilege", "Delete")]
+        public async Task<IActionResult> DeleteClinicalPrivilegeFile(
+            Guid workforceProfileId,
+            Guid id,
+            [FromBody] DeleteWorkforceClinicalPrivilegeFileRequest? request = null)
+        {
             var entity = await _dbContext.Set<WfpClinicalPrivilege>()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == id &&
-                    x.WorkforceProfileId == workforceProfileId &&
-                    !x.IsDelete);
+                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
             if (entity == null)
             {
@@ -961,112 +752,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            if (entity.PrivilegeStatus == ClinicalPrivilegeStatus.Revoked)
+            if (request?.DeletePhysicalFile ?? true)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Clinical privilege sudah revoked."
-                ));
+                DeletePhysicalFileIfExists(entity.SupportingFilePath);
             }
 
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.PrivilegeStatus = ClinicalPrivilegeStatus.Revoked;
-            entity.IsActive = false;
-            entity.RevokedByUserId = actorUserId;
-            entity.RevokedAt = now;
-            entity.RevokedReason = request.RevokedReason.Trim();
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
+            entity.SupportingFilePath = null;
+            entity.SupportingFileContentType = null;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = GetCurrentUserId();
 
             await _dbContext.SaveChangesAsync();
 
-            var response = await BuildClinicalPrivilegeResponseAsync(entity.Id, workforceProfileId);
-
-            return Ok(ApiResponse<WorkforceClinicalPrivilegeResponse>.Ok(
-                response!,
-                "Clinical privilege workforce berhasil di-revoke."
-            ));
-        }
-
-        [HttpGet("{id:guid}/download")]
-        [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Workforce Clinical Privilege",
-            Description = "Download file clinical privilege workforce profile",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
-        [AccessPermission("WorkforceClinicalPrivilege", "Read")]
-        public async Task<IActionResult> DownloadClinicalPrivilegeFile(Guid workforceProfileId, Guid id)
-        {
-            var privilege = await _dbContext.Set<WfpClinicalPrivilege>()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == id &&
-                    x.WorkforceProfileId == workforceProfileId &&
-                    !x.IsDelete);
-
-            if (privilege == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Clinical privilege workforce tidak ditemukan."
-                ));
-            }
-
-            if (string.IsNullOrWhiteSpace(privilege.SupportingFilePath))
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Clinical privilege belum memiliki file pendukung."
-                ));
-            }
-
-            var relativePath = privilege.SupportingFilePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-            var rootPath = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
-            var physicalPath = Path.Combine(rootPath, relativePath);
-
-            if (!System.IO.File.Exists(physicalPath))
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "File clinical privilege tidak ditemukan di server."
-                ));
-            }
-
-            var provider = new FileExtensionContentTypeProvider();
-
-            if (!provider.TryGetContentType(physicalPath, out var contentType))
-            {
-                contentType = privilege.SupportingFileContentType ?? "application/octet-stream";
-            }
-
-            var fileName = Path.GetFileName(physicalPath);
-            var bytes = await System.IO.File.ReadAllBytesAsync(physicalPath);
-
-            return File(bytes, contentType, fileName);
+            return Ok(ApiResponse<object>.Ok(null, "File clinical privilege workforce berhasil dihapus."));
         }
 
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Delete",
-            "Delete Workforce Clinical Privilege",
-            Description = "Menghapus clinical privilege workforce profile",
-            AccessType = AccessTypes.Delete,
-            SortOrder = 4
-        )]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Delete", "Delete Workforce Clinical Privilege", Description = "Menghapus clinical privilege workforce profile", AccessType = AccessTypes.Delete, SortOrder = 10)]
         [AccessPermission("WorkforceClinicalPrivilege", "Delete")]
         public async Task<IActionResult> DeleteClinicalPrivilege(Guid workforceProfileId, Guid id)
         {
             var entity = await _dbContext.Set<WfpClinicalPrivilege>()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == id &&
-                    x.WorkforceProfileId == workforceProfileId &&
-                    !x.IsDelete);
+                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
             if (entity == null)
             {
@@ -1090,232 +799,242 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             entity.IsDelete = true;
             entity.DeleteDateTime = DateTime.UtcNow;
             entity.DeleteBy = GetCurrentUserId();
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = GetCurrentUserId();
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
-                "Clinical privilege workforce berhasil dihapus."
-            ));
+            return Ok(ApiResponse<object>.Ok(null, "Clinical privilege workforce berhasil dihapus."));
         }
 
-        private async Task<MstWorkforceProfile?> GetProfileAsync(Guid workforceProfileId)
+        private IQueryable<WfpClinicalPrivilege> BuildBaseQuery(Guid workforceProfileId)
         {
-            return await _dbContext.Set<MstWorkforceProfile>()
+            return _dbContext.Set<WfpClinicalPrivilege>()
                 .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == workforceProfileId && !x.IsDelete);
+                .Include(x => x.WorkforceProfile)
+                .Include(x => x.CredentialLicense)
+                .Include(x => x.Department)
+                .Include(x => x.Position)
+                .Include(x => x.SupervisorUser)
+                .Include(x => x.GrantedByUser)
+                .Include(x => x.RejectedByUser)
+                .Include(x => x.SuspendedByUser)
+                .Include(x => x.RevokedByUser)
+                .Where(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
         }
 
-        private async Task<WorkforceClinicalPrivilegeResponse?> BuildClinicalPrivilegeResponseAsync(
-            Guid id,
-            Guid workforceProfileId)
+        private static IQueryable<WfpClinicalPrivilege> ApplyDateFilter(
+            IQueryable<WfpClinicalPrivilege> query,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
         {
-            var today = DateTime.UtcNow.Date;
-
-            var item = await _dbContext.Set<WfpClinicalPrivilege>()
-                .AsNoTracking()
-                .Where(x =>
-                    x.Id == id &&
-                    x.WorkforceProfileId == workforceProfileId &&
-                    !x.IsDelete)
-                .Select(x => new
-                {
-                    x.Id,
-                    x.WorkforceProfileId,
-                    ProfileCode = x.WorkforceProfile != null ? x.WorkforceProfile.ProfileCode : string.Empty,
-                    DisplayName = x.WorkforceProfile != null ? x.WorkforceProfile.DisplayName : string.Empty,
-                    x.CredentialLicenseId,
-                    CredentialLicenseType = x.CredentialLicense != null ? x.CredentialLicense.LicenseType : null,
-                    CredentialLicenseNumber = x.CredentialLicense != null ? x.CredentialLicense.LicenseNumber : null,
-                    x.DepartmentId,
-                    DepartmentCode = x.Department != null ? x.Department.DepartmentCode : null,
-                    DepartmentName = x.Department != null ? x.Department.DepartmentName : null,
-                    x.PositionId,
-                    PositionCode = x.Position != null ? x.Position.PositionCode : null,
-                    PositionName = x.Position != null ? x.Position.PositionName : null,
-                    x.PrivilegeCode,
-                    x.PrivilegeName,
-                    x.PrivilegeType,
-                    x.ClinicalScope,
-                    x.SpecialtyName,
-                    x.SubSpecialtyName,
-                    x.ProcedureGroup,
-                    x.ProcedureName,
-                    x.PracticeLocation,
-                    x.EffectiveStartDate,
-                    x.EffectiveEndDate,
-                    x.PrivilegeStatus,
-                    x.IsTemporary,
-                    x.IsEmergencyPrivilege,
-                    x.IsSupervisionRequired,
-                    x.SupervisorUserId,
-                    SupervisorUserName = x.SupervisorUser != null ? x.SupervisorUser.DisplayName : null,
-                    x.GrantedByUserId,
-                    GrantedByUserName = x.GrantedByUser != null ? x.GrantedByUser.DisplayName : null,
-                    x.GrantedAt,
-                    x.GrantNote,
-                    x.RejectedByUserId,
-                    RejectedByUserName = x.RejectedByUser != null ? x.RejectedByUser.DisplayName : null,
-                    x.RejectedAt,
-                    x.RejectedReason,
-                    x.SuspendedByUserId,
-                    SuspendedByUserName = x.SuspendedByUser != null ? x.SuspendedByUser.DisplayName : null,
-                    x.SuspendedAt,
-                    x.SuspensionReason,
-                    x.RevokedByUserId,
-                    RevokedByUserName = x.RevokedByUser != null ? x.RevokedByUser.DisplayName : null,
-                    x.RevokedAt,
-                    x.RevokedReason,
-                    x.LastReviewDate,
-                    x.NextReviewDate,
-                    x.SupportingFilePath,
-                    x.SupportingFileContentType,
-                    x.IsActive,
-                    x.Description,
-                    x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
-
-            if (item == null)
+            if (startDate.HasValue)
             {
-                return null;
+                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime >= start);
             }
 
-            return new WorkforceClinicalPrivilegeResponse
+            if (endDate.HasValue)
             {
-                Id = item.Id,
-                WorkforceProfileId = item.WorkforceProfileId,
-                ProfileCode = item.ProfileCode,
-                DisplayName = item.DisplayName,
-                CredentialLicenseId = item.CredentialLicenseId,
-                CredentialLicenseType = item.CredentialLicenseType,
-                CredentialLicenseNumber = item.CredentialLicenseNumber,
-                DepartmentId = item.DepartmentId,
-                DepartmentCode = item.DepartmentCode,
-                DepartmentName = item.DepartmentName,
-                PositionId = item.PositionId,
-                PositionCode = item.PositionCode,
-                PositionName = item.PositionName,
-                PrivilegeCode = item.PrivilegeCode,
-                PrivilegeName = item.PrivilegeName,
-                PrivilegeType = item.PrivilegeType,
-                ClinicalScope = item.ClinicalScope,
-                SpecialtyName = item.SpecialtyName,
-                SubSpecialtyName = item.SubSpecialtyName,
-                ProcedureGroup = item.ProcedureGroup,
-                ProcedureName = item.ProcedureName,
-                PracticeLocation = item.PracticeLocation,
-                EffectiveStartDate = item.EffectiveStartDate,
-                EffectiveEndDate = item.EffectiveEndDate,
-                PrivilegeStatus = ResolveRuntimeStatus(item.PrivilegeStatus, item.EffectiveEndDate),
-                IsTemporary = item.IsTemporary,
-                IsEmergencyPrivilege = item.IsEmergencyPrivilege,
-                IsSupervisionRequired = item.IsSupervisionRequired,
-                SupervisorUserId = item.SupervisorUserId,
-                SupervisorUserName = item.SupervisorUserName,
-                GrantedByUserId = item.GrantedByUserId,
-                GrantedByUserName = item.GrantedByUserName,
-                GrantedAt = item.GrantedAt,
-                GrantNote = item.GrantNote,
-                RejectedByUserId = item.RejectedByUserId,
-                RejectedByUserName = item.RejectedByUserName,
-                RejectedAt = item.RejectedAt,
-                RejectedReason = item.RejectedReason,
-                SuspendedByUserId = item.SuspendedByUserId,
-                SuspendedByUserName = item.SuspendedByUserName,
-                SuspendedAt = item.SuspendedAt,
-                SuspensionReason = item.SuspensionReason,
-                RevokedByUserId = item.RevokedByUserId,
-                RevokedByUserName = item.RevokedByUserName,
-                RevokedAt = item.RevokedAt,
-                RevokedReason = item.RevokedReason,
-                LastReviewDate = item.LastReviewDate,
-                NextReviewDate = item.NextReviewDate,
-                SupportingFilePath = item.SupportingFilePath,
-                SupportingFileContentType = item.SupportingFileContentType,
-                HasSupportingFile = !string.IsNullOrWhiteSpace(item.SupportingFilePath),
-                IsExpired = item.EffectiveEndDate.HasValue && item.EffectiveEndDate.Value.Date < today,
-                IsCurrentlyValid = item.IsActive &&
-                    item.PrivilegeStatus == ClinicalPrivilegeStatus.Active &&
-                    (!item.EffectiveEndDate.HasValue || item.EffectiveEndDate.Value.Date >= today),
-                IsActive = item.IsActive,
-                Description = item.Description,
-                CreateDateTime = item.CreateDateTime
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime < end);
+            }
+
+            if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var now = DateTime.UtcNow;
+                var today = now.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x => x.CreateDateTime >= today && x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "last7days":
+                        query = query.Where(x => x.CreateDateTime >= today.AddDays(-6) && x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        query = query.Where(x => x.CreateDateTime >= thisMonthStart && x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        break;
+
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+                        query = query.Where(x => x.CreateDateTime >= lastMonthStart && x.CreateDateTime < currentMonthStart);
+                        break;
+                }
+            }
+
+            return query;
+        }
+
+        private static IQueryable<WfpClinicalPrivilege> ApplyStandardFilter(
+            IQueryable<WfpClinicalPrivilege> query,
+            ClinicalPrivilegeType? privilegeType,
+            ClinicalPrivilegeStatus? privilegeStatus,
+            Guid? credentialLicenseId,
+            Guid? departmentId,
+            bool? isActive,
+            string? search)
+        {
+            if (privilegeType.HasValue && privilegeType.Value != ClinicalPrivilegeType.Unknown)
+                query = query.Where(x => x.PrivilegeType == privilegeType.Value);
+
+            if (privilegeStatus.HasValue)
+                query = query.Where(x => x.PrivilegeStatus == privilegeStatus.Value);
+
+            if (credentialLicenseId.HasValue && credentialLicenseId.Value != Guid.Empty)
+                query = query.Where(x => x.CredentialLicenseId == credentialLicenseId.Value);
+
+            if (departmentId.HasValue && departmentId.Value != Guid.Empty)
+                query = query.Where(x => x.DepartmentId == departmentId.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.PrivilegeCode.ToLower().Contains(keyword) ||
+                    x.PrivilegeName.ToLower().Contains(keyword) ||
+                    (x.ClinicalScope != null && x.ClinicalScope.ToLower().Contains(keyword)) ||
+                    (x.SpecialtyName != null && x.SpecialtyName.ToLower().Contains(keyword)) ||
+                    (x.SubSpecialtyName != null && x.SubSpecialtyName.ToLower().Contains(keyword)) ||
+                    (x.ProcedureGroup != null && x.ProcedureGroup.ToLower().Contains(keyword)) ||
+                    (x.ProcedureName != null && x.ProcedureName.ToLower().Contains(keyword)) ||
+                    (x.PracticeLocation != null && x.PracticeLocation.ToLower().Contains(keyword)) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
+                    (x.CredentialLicense != null && x.CredentialLicense.LicenseNumber != null && x.CredentialLicense.LicenseNumber.ToLower().Contains(keyword)) ||
+                    (x.Department != null && x.Department.DepartmentName.ToLower().Contains(keyword)) ||
+                    (x.Position != null && x.Position.PositionName.ToLower().Contains(keyword)));
+            }
+
+            return query;
+        }
+
+        private static IOrderedQueryable<WfpClinicalPrivilege> ApplySorting(
+            IQueryable<WfpClinicalPrivilege> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+            return (sortBy ?? "createDateTime").Trim().ToLowerInvariant() switch
+            {
+                "privilegecode" => isDescending ? query.OrderByDescending(x => x.PrivilegeCode) : query.OrderBy(x => x.PrivilegeCode),
+                "privilegename" => isDescending ? query.OrderByDescending(x => x.PrivilegeName) : query.OrderBy(x => x.PrivilegeName),
+                "privilegetype" => isDescending ? query.OrderByDescending(x => x.PrivilegeType).ThenBy(x => x.PrivilegeName) : query.OrderBy(x => x.PrivilegeType).ThenBy(x => x.PrivilegeName),
+                "clinicalscope" => isDescending ? query.OrderByDescending(x => x.ClinicalScope).ThenBy(x => x.PrivilegeName) : query.OrderBy(x => x.ClinicalScope).ThenBy(x => x.PrivilegeName),
+                "departmentname" => isDescending
+                    ? query.OrderByDescending(x => x.Department != null ? x.Department.DepartmentName : string.Empty).ThenBy(x => x.PrivilegeName)
+                    : query.OrderBy(x => x.Department != null ? x.Department.DepartmentName : string.Empty).ThenBy(x => x.PrivilegeName),
+                "effectivestartdate" => isDescending ? query.OrderByDescending(x => x.EffectiveStartDate) : query.OrderBy(x => x.EffectiveStartDate),
+                "effectiveenddate" => isDescending ? query.OrderByDescending(x => x.EffectiveEndDate) : query.OrderBy(x => x.EffectiveEndDate),
+                "privilegestatus" => isDescending ? query.OrderByDescending(x => x.PrivilegeStatus).ThenBy(x => x.PrivilegeName) : query.OrderBy(x => x.PrivilegeStatus).ThenBy(x => x.PrivilegeName),
+                "istemporary" => isDescending ? query.OrderByDescending(x => x.IsTemporary).ThenBy(x => x.PrivilegeName) : query.OrderBy(x => x.IsTemporary).ThenBy(x => x.PrivilegeName),
+                "isemergencyprivilege" => isDescending ? query.OrderByDescending(x => x.IsEmergencyPrivilege).ThenBy(x => x.PrivilegeName) : query.OrderBy(x => x.IsEmergencyPrivilege).ThenBy(x => x.PrivilegeName),
+                "issupervisionrequired" => isDescending ? query.OrderByDescending(x => x.IsSupervisionRequired).ThenBy(x => x.PrivilegeName) : query.OrderBy(x => x.IsSupervisionRequired).ThenBy(x => x.PrivilegeName),
+                "isactive" => isDescending ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.PrivilegeName) : query.OrderBy(x => x.IsActive).ThenBy(x => x.PrivilegeName),
+                _ => isDescending ? query.OrderByDescending(x => x.CreateDateTime).ThenBy(x => x.PrivilegeName) : query.OrderBy(x => x.CreateDateTime).ThenBy(x => x.PrivilegeName)
             };
         }
 
-        private static (bool IsValid, string? ErrorMessage) ValidateClinicalPrivilegeRequest(
-            string privilegeCode,
-            string privilegeName,
-            ClinicalPrivilegeType privilegeType,
-            DateTime effectiveStartDate,
-            DateTime? effectiveEndDate,
-            bool isSupervisionRequired,
-            Guid? supervisorUserId,
-            IFormFile? file)
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
+            Guid workforceProfileId,
+            Guid? excludeId,
+            CreateWorkforceClinicalPrivilegeRequest request)
         {
-            if (string.IsNullOrWhiteSpace(privilegeCode))
-            {
-                return (false, "PrivilegeCode wajib diisi.");
-            }
-
-            if (string.IsNullOrWhiteSpace(privilegeName))
-            {
+            if (string.IsNullOrWhiteSpace(request.PrivilegeName))
                 return (false, "PrivilegeName wajib diisi.");
-            }
 
-            if (privilegeType == ClinicalPrivilegeType.Unknown)
-            {
+            if (request.PrivilegeType == ClinicalPrivilegeType.Unknown)
                 return (false, "PrivilegeType wajib dipilih.");
-            }
 
-            if (effectiveStartDate == default)
-            {
+            if (request.ClinicalScope.HasValue && request.ClinicalScope.Value == WorkforceClinicalScope.Unknown)
+                return (false, "ClinicalScope tidak valid. Gunakan Department, Service, Procedure, Specialty, Unit, Telemedicine, atau Other.");
+
+            if (request.EffectiveStartDate == default)
                 return (false, "EffectiveStartDate wajib diisi.");
-            }
 
-            if (effectiveEndDate.HasValue && effectiveStartDate.Date > effectiveEndDate.Value.Date)
-            {
+            if (request.EffectiveEndDate.HasValue && request.EffectiveStartDate.Date > request.EffectiveEndDate.Value.Date)
                 return (false, "EffectiveStartDate tidak boleh lebih besar dari EffectiveEndDate.");
-            }
 
-            if (isSupervisionRequired && (!supervisorUserId.HasValue || supervisorUserId.Value == Guid.Empty))
-            {
+            if (request.IsSupervisionRequired && (!request.SupervisorUserId.HasValue || request.SupervisorUserId.Value == Guid.Empty))
                 return (false, "SupervisorUserId wajib diisi jika IsSupervisionRequired = true.");
-            }
 
-            if (file != null)
+            if (request.SupportingFile != null)
             {
-                if (file.Length <= 0)
-                {
-                    return (false, "File clinical privilege kosong.");
-                }
+                var fileValidation = ValidateFile(request.SupportingFile);
 
-                if (file.Length > MaxFileSizeBytes)
-                {
-                    return (false, "Ukuran file clinical privilege maksimal 10 MB.");
-                }
-
-                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-                if (!AllowedExtensions.Contains(extension))
-                {
-                    return (false, "Format file tidak didukung. Gunakan PDF, JPG, JPEG, PNG, DOC, DOCX, XLS, atau XLSX.");
-                }
+                if (!fileValidation.IsValid)
+                    return fileValidation;
             }
+
+            var credentialValidation = await ValidateCredentialRequirementAsync(
+                workforceProfileId,
+                request.CredentialLicenseId,
+                request.IsEmergencyPrivilege);
+
+            if (!credentialValidation.IsValid)
+                return credentialValidation;
+
+            var departmentPositionValidation = await ValidateDepartmentAndPositionAsync(
+                request.DepartmentId,
+                request.PositionId);
+
+            if (!departmentPositionValidation.IsValid)
+                return departmentPositionValidation;
+
+            var supervisorValidation = await ValidateSupervisorAsync(
+                request.IsSupervisionRequired,
+                request.SupervisorUserId);
+
+            if (!supervisorValidation.IsValid)
+                return supervisorValidation;
+
+            return (true, null);
+        }
+
+        private static (bool IsValid, string? ErrorMessage) ValidateFile(IFormFile file)
+        {
+            if (file.Length <= 0)
+                return (false, "File clinical privilege kosong.");
+
+            if (file.Length > MaxFileSizeBytes)
+                return (false, "Ukuran file clinical privilege maksimal 10 MB.");
+
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            if (!AllowedExtensions.Contains(extension))
+                return (false, "Format file tidak didukung. Gunakan PDF, JPG, JPEG, PNG, DOC, DOCX, XLS, atau XLSX.");
 
             return (true, null);
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateCredentialRequirementAsync(
             Guid workforceProfileId,
-            Guid? credentialLicenseId)
+            Guid? credentialLicenseId,
+            bool isEmergencyPrivilege)
         {
+            if (!credentialLicenseId.HasValue || credentialLicenseId.Value == Guid.Empty)
+            {
+                return isEmergencyPrivilege
+                    ? (true, null)
+                    : (false, "CredentialLicenseId wajib dipilih untuk clinical privilege reguler. Kosong hanya diperbolehkan jika IsEmergencyPrivilege = true.");
+            }
+
             var today = DateTime.UtcNow.Date;
 
-            var query = _dbContext.Set<WfpCredentialLicense>()
+            var validSelectedLicense = await _dbContext.Set<WfpCredentialLicense>()
                 .AsNoTracking()
-                .Where(x =>
+                .AnyAsync(x =>
+                    x.Id == credentialLicenseId.Value &&
                     x.WorkforceProfileId == workforceProfileId &&
                     x.IsActive &&
                     x.IsVerified &&
@@ -1323,20 +1042,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                     x.ExpiredDate >= today &&
                     !x.IsDelete);
 
-            if (credentialLicenseId.HasValue && credentialLicenseId.Value != Guid.Empty)
-            {
-                var validSelectedLicense = await query.AnyAsync(x => x.Id == credentialLicenseId.Value);
-
-                return validSelectedLicense
-                    ? (true, null)
-                    : (false, "CredentialLicenseId tidak ditemukan, tidak verified, nonaktif, atau sudah expired.");
-            }
-
-            var hasAnyValidLicense = await query.AnyAsync();
-
-            return hasAnyValidLicense
+            return validSelectedLicense
                 ? (true, null)
-                : (false, "Minimal harus ada credential license yang verified, aktif, dan belum expired sebelum membuat clinical privilege.");
+                : (false, "CredentialLicenseId tidak ditemukan, tidak verified, nonaktif, atau sudah expired.");
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateDepartmentAndPositionAsync(
@@ -1347,24 +1055,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             {
                 var departmentExists = await _dbContext.Set<MstDepartment>()
                     .AsNoTracking()
-                    .AnyAsync(x => x.Id == departmentId.Value && !x.IsDelete);
+                    .AnyAsync(x => x.Id == departmentId.Value && x.IsActive && !x.IsDelete);
 
                 if (!departmentExists)
-                {
-                    return (false, "Department tidak ditemukan.");
-                }
+                    return (false, "Department tidak ditemukan atau tidak aktif.");
             }
 
             if (positionId.HasValue && positionId.Value != Guid.Empty)
             {
-                var positionExists = await _dbContext.Set<MstPosition>()
+                var position = await _dbContext.Set<MstPosition>()
                     .AsNoTracking()
-                    .AnyAsync(x => x.Id == positionId.Value && !x.IsDelete);
+                    .FirstOrDefaultAsync(x => x.Id == positionId.Value && x.IsActive && !x.IsDelete);
 
-                if (!positionExists)
-                {
-                    return (false, "Position tidak ditemukan.");
-                }
+                if (position == null)
+                    return (false, "Position tidak ditemukan atau tidak aktif.");
+
+                if (departmentId.HasValue && departmentId.Value != Guid.Empty && position.DepartmentId != departmentId.Value)
+                    return (false, "Position tidak berada pada department yang dipilih.");
             }
 
             return (true, null);
@@ -1390,42 +1097,467 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 : (false, "Supervisor user tidak ditemukan atau tidak aktif.");
         }
 
+        private async Task<IActionResult> ChangeLifecycleAsync(
+            Guid workforceProfileId,
+            Guid id,
+            ClinicalPrivilegeStatus targetStatus,
+            string? note,
+            bool requiredReason,
+            string actionName,
+            DateTime? nextReviewDate = null)
+        {
+            if (requiredReason && string.IsNullOrWhiteSpace(note))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    $"Alasan {actionName} wajib diisi."
+                ));
+            }
+
+            var profile = await GetProfileAsync(workforceProfileId);
+
+            if (profile == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Workforce profile tidak ditemukan."
+                ));
+            }
+
+            var entity = await _dbContext.Set<WfpClinicalPrivilege>()
+                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Clinical privilege workforce tidak ditemukan."
+                ));
+            }
+
+            if (entity.EffectiveEndDate.HasValue && entity.EffectiveEndDate.Value.Date < DateTime.UtcNow.Date && targetStatus == ClinicalPrivilegeStatus.Active)
+            {
+                entity.PrivilegeStatus = ClinicalPrivilegeStatus.Expired;
+                entity.IsActive = false;
+                entity.UpdateDateTime = DateTime.UtcNow;
+                entity.UpdateBy = GetCurrentUserId();
+                await _dbContext.SaveChangesAsync();
+
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Clinical privilege sudah expired dan tidak bisa di-grant."
+                ));
+            }
+
+            if (targetStatus == ClinicalPrivilegeStatus.Active)
+            {
+                if (entity.PrivilegeStatus == ClinicalPrivilegeStatus.Revoked || entity.PrivilegeStatus == ClinicalPrivilegeStatus.Rejected)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Clinical privilege rejected/revoked tidak bisa di-grant. Buat pengajuan baru."
+                    ));
+                }
+
+                var credentialValidation = await ValidateCredentialRequirementAsync(
+                    workforceProfileId,
+                    entity.CredentialLicenseId,
+                    entity.IsEmergencyPrivilege);
+
+                if (!credentialValidation.IsValid)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        credentialValidation.ErrorMessage ?? "Credential license belum valid."
+                    ));
+                }
+            }
+
+            if (targetStatus == ClinicalPrivilegeStatus.Suspended && entity.PrivilegeStatus != ClinicalPrivilegeStatus.Active)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Hanya clinical privilege active yang bisa di-suspend."
+                ));
+            }
+
+            if (targetStatus == ClinicalPrivilegeStatus.Rejected && entity.PrivilegeStatus == ClinicalPrivilegeStatus.Active)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Clinical privilege active tidak bisa di-reject. Gunakan suspend atau revoke."
+                ));
+            }
+
+            if (targetStatus == ClinicalPrivilegeStatus.Revoked && entity.PrivilegeStatus == ClinicalPrivilegeStatus.Revoked)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Clinical privilege sudah revoked."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+            var normalizedNote = NormalizeNullableText(note);
+
+            entity.PrivilegeStatus = targetStatus;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            switch (targetStatus)
+            {
+                case ClinicalPrivilegeStatus.Active:
+                    entity.IsActive = true;
+                    entity.GrantedByUserId = actorUserId;
+                    entity.GrantedAt = now;
+                    entity.GrantNote = normalizedNote;
+                    entity.RejectedByUserId = null;
+                    entity.RejectedAt = null;
+                    entity.RejectedReason = null;
+                    entity.SuspendedByUserId = null;
+                    entity.SuspendedAt = null;
+                    entity.SuspensionReason = null;
+                    entity.RevokedByUserId = null;
+                    entity.RevokedAt = null;
+                    entity.RevokedReason = null;
+                    if (nextReviewDate.HasValue)
+                        entity.NextReviewDate = nextReviewDate.Value.Date;
+                    break;
+
+                case ClinicalPrivilegeStatus.Rejected:
+                    entity.IsActive = false;
+                    entity.RejectedByUserId = actorUserId;
+                    entity.RejectedAt = now;
+                    entity.RejectedReason = normalizedNote;
+                    break;
+
+                case ClinicalPrivilegeStatus.Suspended:
+                    entity.IsActive = false;
+                    entity.SuspendedByUserId = actorUserId;
+                    entity.SuspendedAt = now;
+                    entity.SuspensionReason = normalizedNote;
+                    break;
+
+                case ClinicalPrivilegeStatus.Revoked:
+                    entity.IsActive = false;
+                    entity.RevokedByUserId = actorUserId;
+                    entity.RevokedAt = now;
+                    entity.RevokedReason = normalizedNote;
+                    break;
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>.Ok(
+                MapDetailResponse(entity, profile),
+                $"Clinical privilege workforce berhasil di-{actionName}."
+            ));
+        }
+
+        private async Task<string> GeneratePrivilegeCodeAsync()
+        {
+            var existingCodes = await _dbContext.Set<WfpClinicalPrivilege>()
+                .AsNoTracking()
+                .Where(x => x.PrivilegeCode.StartsWith(CodePrefix))
+                .Select(x => x.PrivilegeCode)
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(x => x.Replace(CodePrefix, string.Empty))
+                .Where(x => int.TryParse(x, out _))
+                .Select(int.Parse)
+                .Where(x => x > 0)
+                .ToHashSet();
+
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
+                nextNumber++;
+
+            return CodePrefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
+        }
+
         private async Task<(string FilePath, string? ContentType)> SaveSupportingFileAsync(
             Guid workforceProfileId,
             IFormFile file)
         {
-            var rootPath = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
-            var relativeFolder = Path.Combine("uploads", "workforce-clinical-privileges", workforceProfileId.ToString());
-            var physicalFolder = Path.Combine(rootPath, relativeFolder);
-
-            if (!Directory.Exists(physicalFolder))
-            {
-                Directory.CreateDirectory(physicalFolder);
-            }
-
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
             var fileName = $"{Guid.NewGuid():N}{extension}";
-            var physicalPath = Path.Combine(physicalFolder, fileName);
+            var storage = GetFileStoragePaths();
+            var relativeFolder = Path.Combine("workforce-clinical-privileges", workforceProfileId.ToString());
+            var absoluteFolder = Path.Combine(storage.RootPath, relativeFolder);
 
-            await using (var stream = new FileStream(physicalPath, FileMode.Create))
+            Directory.CreateDirectory(absoluteFolder);
+
+            var absolutePath = Path.Combine(absoluteFolder, fileName);
+
+            await using (var stream = new FileStream(absolutePath, FileMode.Create))
             {
                 await file.CopyToAsync(stream);
             }
 
-            var filePath = "/" + Path.Combine(relativeFolder, fileName).Replace(Path.DirectorySeparatorChar, '/');
+            var publicPath = CombineUrlPath(storage.PublicRequestPath, relativeFolder.Replace("\\", "/"), fileName);
 
-            return (filePath, file.ContentType);
+            return (publicPath, file.ContentType);
         }
 
-        private Guid GetCurrentUserId()
+        private async Task<FileResolveResult> GetClinicalPrivilegeFileAsync(Guid workforceProfileId, Guid id)
         {
-            var userIdText =
-                User.FindFirstValue("user_id") ??
-                User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var privilege = await _dbContext.Set<WfpClinicalPrivilege>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
-            return Guid.TryParse(userIdText, out var userId)
-                ? userId
-                : Guid.Empty;
+            if (privilege == null)
+                return FileResolveResult.Invalid("Clinical privilege workforce tidak ditemukan.");
+
+            if (string.IsNullOrWhiteSpace(privilege.SupportingFilePath))
+                return FileResolveResult.Invalid("File clinical privilege workforce belum tersedia.");
+
+            var physicalPath = ResolvePhysicalPath(privilege.SupportingFilePath);
+
+            if (!System.IO.File.Exists(physicalPath))
+                return FileResolveResult.Invalid("File fisik clinical privilege tidak ditemukan di server.");
+
+            var provider = new FileExtensionContentTypeProvider();
+
+            if (!provider.TryGetContentType(physicalPath, out var contentType))
+                contentType = privilege.SupportingFileContentType ?? "application/octet-stream";
+
+            var extension = Path.GetExtension(physicalPath);
+            var fileName = Path.GetFileName(physicalPath);
+            var safePrivilegeName = SanitizeFileName(privilege.PrivilegeName);
+            var downloadName = $"{privilege.PrivilegeCode}_{safePrivilegeName}{extension}";
+
+            return FileResolveResult.Valid(physicalPath, contentType, fileName, downloadName);
+        }
+
+        private void DeletePhysicalFileIfExists(string? filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+                return;
+
+            var physicalPath = ResolvePhysicalPath(filePath);
+
+            if (System.IO.File.Exists(physicalPath))
+                System.IO.File.Delete(physicalPath);
+        }
+
+        private string ResolvePhysicalPath(string filePath)
+        {
+            var storage = GetFileStoragePaths();
+            var normalizedFilePath = filePath.Replace("\\", "/").Trim();
+            var publicPrefix = storage.PublicRequestPath.TrimEnd('/');
+
+            string relativePath;
+
+            if (normalizedFilePath.StartsWith(publicPrefix + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                relativePath = normalizedFilePath[(publicPrefix.Length + 1)..];
+            }
+            else
+            {
+                relativePath = normalizedFilePath.TrimStart('/');
+            }
+
+            var fullPath = Path.GetFullPath(Path.Combine(storage.RootPath, relativePath.Replace("/", Path.DirectorySeparatorChar.ToString())));
+            var rootPath = Path.GetFullPath(storage.RootPath);
+
+            if (!fullPath.StartsWith(rootPath, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Path file tidak valid.");
+
+            return fullPath;
+        }
+
+        private (string RootPath, string PublicRequestPath) GetFileStoragePaths()
+        {
+            var publicRequestPath = _configuration["FileStorage:PublicRequestPath"] ?? "/uploads";
+
+            if (!publicRequestPath.StartsWith('/'))
+                publicRequestPath = "/" + publicRequestPath;
+
+            publicRequestPath = publicRequestPath.TrimEnd('/');
+
+            var configuredRoot = _configuration["FileStorage:UploadRootPath"];
+
+            if (!string.IsNullOrWhiteSpace(configuredRoot))
+            {
+                Directory.CreateDirectory(configuredRoot);
+                return (configuredRoot, publicRequestPath);
+            }
+
+            var webRootPath = _environment.WebRootPath;
+
+            if (string.IsNullOrWhiteSpace(webRootPath))
+                webRootPath = Path.Combine(_environment.ContentRootPath, "wwwroot");
+
+            var rootPath = Path.Combine(webRootPath, publicRequestPath.TrimStart('/'));
+            Directory.CreateDirectory(rootPath);
+
+            return (rootPath, publicRequestPath);
+        }
+
+        private WorkforceClinicalPrivilegeResponse MapResponse(WfpClinicalPrivilege entity, MstWorkforceProfile profile)
+        {
+            var today = DateTime.UtcNow.Date;
+            var hasFile = !string.IsNullOrWhiteSpace(entity.SupportingFilePath);
+            var runtimeStatus = ResolveRuntimeStatus(entity.PrivilegeStatus, entity.EffectiveEndDate);
+
+            return new WorkforceClinicalPrivilegeResponse
+            {
+                Id = entity.Id,
+                WorkforceProfileId = entity.WorkforceProfileId,
+                ProfileCode = profile.ProfileCode,
+                DisplayName = profile.DisplayName,
+                CredentialLicenseId = entity.CredentialLicenseId,
+                CredentialLicenseType = entity.CredentialLicense?.LicenseType,
+                CredentialLicenseNumber = entity.CredentialLicense?.LicenseNumber,
+                DepartmentId = entity.DepartmentId,
+                DepartmentCode = entity.Department?.DepartmentCode,
+                DepartmentName = entity.Department?.DepartmentName,
+                PositionId = entity.PositionId,
+                PositionCode = entity.Position?.PositionCode,
+                PositionName = entity.Position?.PositionName,
+                PrivilegeCode = entity.PrivilegeCode,
+                PrivilegeName = entity.PrivilegeName,
+                PrivilegeType = entity.PrivilegeType,
+                ClinicalScope = entity.ClinicalScope,
+                SpecialtyName = entity.SpecialtyName,
+                SubSpecialtyName = entity.SubSpecialtyName,
+                ProcedureGroup = entity.ProcedureGroup,
+                ProcedureName = entity.ProcedureName,
+                PracticeLocation = entity.PracticeLocation,
+                EffectiveStartDate = entity.EffectiveStartDate,
+                EffectiveEndDate = entity.EffectiveEndDate,
+                PrivilegeStatus = runtimeStatus,
+                IsTemporary = entity.IsTemporary,
+                IsEmergencyPrivilege = entity.IsEmergencyPrivilege,
+                IsSupervisionRequired = entity.IsSupervisionRequired,
+                SupervisorUserId = entity.SupervisorUserId,
+                SupervisorUserName = entity.SupervisorUser?.DisplayName,
+                GrantedByUserId = entity.GrantedByUserId,
+                GrantedByUserName = entity.GrantedByUser?.DisplayName,
+                GrantedAt = entity.GrantedAt,
+                GrantNote = entity.GrantNote,
+                RejectedByUserId = entity.RejectedByUserId,
+                RejectedByUserName = entity.RejectedByUser?.DisplayName,
+                RejectedAt = entity.RejectedAt,
+                RejectedReason = entity.RejectedReason,
+                SuspendedByUserId = entity.SuspendedByUserId,
+                SuspendedByUserName = entity.SuspendedByUser?.DisplayName,
+                SuspendedAt = entity.SuspendedAt,
+                SuspensionReason = entity.SuspensionReason,
+                RevokedByUserId = entity.RevokedByUserId,
+                RevokedByUserName = entity.RevokedByUser?.DisplayName,
+                RevokedAt = entity.RevokedAt,
+                RevokedReason = entity.RevokedReason,
+                LastReviewDate = entity.LastReviewDate,
+                NextReviewDate = entity.NextReviewDate,
+                HasSupportingFile = hasFile,
+                SupportingFilePath = entity.SupportingFilePath,
+                SupportingFileContentType = entity.SupportingFileContentType,
+                SupportingFileName = hasFile ? Path.GetFileName(entity.SupportingFilePath) : null,
+                SupportingFilePreviewUrl = hasFile ? BuildEndpointUrl(entity.WorkforceProfileId, entity.Id, "preview") : null,
+                SupportingFileDownloadUrl = hasFile ? BuildEndpointUrl(entity.WorkforceProfileId, entity.Id, "download") : null,
+                IsExpired = entity.EffectiveEndDate.HasValue && entity.EffectiveEndDate.Value.Date < today,
+                IsCurrentlyValid = entity.IsActive && runtimeStatus == ClinicalPrivilegeStatus.Active && (!entity.EffectiveEndDate.HasValue || entity.EffectiveEndDate.Value.Date >= today),
+                IsActive = entity.IsActive,
+                Description = entity.Description,
+                CreateDateTime = entity.CreateDateTime
+            };
+        }
+
+        private WorkforceClinicalPrivilegeDetailResponse MapDetailResponse(WfpClinicalPrivilege entity, MstWorkforceProfile profile)
+        {
+            var response = MapResponse(entity, profile);
+
+            return new WorkforceClinicalPrivilegeDetailResponse
+            {
+                Id = response.Id,
+                WorkforceProfileId = response.WorkforceProfileId,
+                ProfileCode = response.ProfileCode,
+                DisplayName = response.DisplayName,
+                CredentialLicenseId = response.CredentialLicenseId,
+                CredentialLicenseType = response.CredentialLicenseType,
+                CredentialLicenseNumber = response.CredentialLicenseNumber,
+                DepartmentId = response.DepartmentId,
+                DepartmentCode = response.DepartmentCode,
+                DepartmentName = response.DepartmentName,
+                PositionId = response.PositionId,
+                PositionCode = response.PositionCode,
+                PositionName = response.PositionName,
+                PrivilegeCode = response.PrivilegeCode,
+                PrivilegeName = response.PrivilegeName,
+                PrivilegeType = response.PrivilegeType,
+                ClinicalScope = response.ClinicalScope,
+                SpecialtyName = response.SpecialtyName,
+                SubSpecialtyName = response.SubSpecialtyName,
+                ProcedureGroup = response.ProcedureGroup,
+                ProcedureName = response.ProcedureName,
+                PracticeLocation = response.PracticeLocation,
+                EffectiveStartDate = response.EffectiveStartDate,
+                EffectiveEndDate = response.EffectiveEndDate,
+                PrivilegeStatus = response.PrivilegeStatus,
+                IsTemporary = response.IsTemporary,
+                IsEmergencyPrivilege = response.IsEmergencyPrivilege,
+                IsSupervisionRequired = response.IsSupervisionRequired,
+                SupervisorUserId = response.SupervisorUserId,
+                SupervisorUserName = response.SupervisorUserName,
+                GrantedByUserId = response.GrantedByUserId,
+                GrantedByUserName = response.GrantedByUserName,
+                GrantedAt = response.GrantedAt,
+                GrantNote = response.GrantNote,
+                RejectedByUserId = response.RejectedByUserId,
+                RejectedByUserName = response.RejectedByUserName,
+                RejectedAt = response.RejectedAt,
+                RejectedReason = response.RejectedReason,
+                SuspendedByUserId = response.SuspendedByUserId,
+                SuspendedByUserName = response.SuspendedByUserName,
+                SuspendedAt = response.SuspendedAt,
+                SuspensionReason = response.SuspensionReason,
+                RevokedByUserId = response.RevokedByUserId,
+                RevokedByUserName = response.RevokedByUserName,
+                RevokedAt = response.RevokedAt,
+                RevokedReason = response.RevokedReason,
+                LastReviewDate = response.LastReviewDate,
+                NextReviewDate = response.NextReviewDate,
+                HasSupportingFile = response.HasSupportingFile,
+                SupportingFilePath = response.SupportingFilePath,
+                SupportingFileContentType = response.SupportingFileContentType,
+                SupportingFileName = response.SupportingFileName,
+                SupportingFilePreviewUrl = response.SupportingFilePreviewUrl,
+                SupportingFileDownloadUrl = response.SupportingFileDownloadUrl,
+                IsExpired = response.IsExpired,
+                IsCurrentlyValid = response.IsCurrentlyValid,
+                IsActive = response.IsActive,
+                Description = response.Description,
+                CreateDateTime = response.CreateDateTime,
+                UpdateDateTime = entity.UpdateDateTime,
+                CreateBy = entity.CreateBy,
+                UpdateBy = entity.UpdateBy
+            };
+        }
+
+        private string BuildEndpointUrl(Guid workforceProfileId, Guid id, string action)
+        {
+            var pathBase = Request.PathBase.HasValue ? Request.PathBase.Value : string.Empty;
+            var path = $"{pathBase}/api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId}/clinical-privileges/{id}/{action}";
+
+            return $"{Request.Scheme}://{Request.Host}{path}";
+        }
+
+        private async Task<MstWorkforceProfile?> GetProfileAsync(Guid workforceProfileId)
+        {
+            return await _dbContext.Set<MstWorkforceProfile>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == workforceProfileId && !x.IsDelete);
+        }
+
+        private async Task<bool> ProfileExistsAsync(Guid workforceProfileId)
+        {
+            return await _dbContext.Set<MstWorkforceProfile>()
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == workforceProfileId && !x.IsDelete);
         }
 
         private static ClinicalPrivilegeStatus ResolveRuntimeStatus(
@@ -1447,19 +1579,41 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             return status;
         }
 
-        private static Guid? NormalizeNullableGuid(Guid? value)
+        private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {
-            if (!value.HasValue || value.Value == Guid.Empty)
-            {
-                return null;
-            }
+            if (pageNumber < 1)
+                pageNumber = 1;
 
-            return value.Value;
+            if (pageSize < 1)
+                pageSize = 25;
+
+            if (pageSize > 100)
+                pageSize = 100;
+
+            return (pageNumber, pageSize);
         }
 
-        private static string NormalizeCode(string value)
+        private Guid GetCurrentUserId()
         {
-            return value.Trim().ToUpperInvariant();
+            var userIdText =
+                User.FindFirstValue("user_id") ??
+                User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            return Guid.TryParse(userIdText, out var userId)
+                ? userId
+                : Guid.Empty;
+        }
+
+        private static Guid? NormalizeNullableGuid(Guid? value)
+        {
+            return value.HasValue && value.Value != Guid.Empty
+                ? value.Value
+                : null;
+        }
+
+        private static string NormalizeRequiredText(string value)
+        {
+            return value.Trim();
         }
 
         private static string? NormalizeNullableText(string? value)
@@ -1467,6 +1621,152 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private static string? NormalizeClinicalScope(WorkforceClinicalScope? value)
+        {
+            if (!value.HasValue || value.Value == WorkforceClinicalScope.Unknown)
+                return null;
+
+            return value.Value.ToString();
+        }
+
+        private static string SanitizeFileName(string value)
+        {
+            var invalidChars = Path.GetInvalidFileNameChars();
+            var cleaned = new string(value.Select(ch => invalidChars.Contains(ch) ? '-' : ch).ToArray());
+
+            return string.IsNullOrWhiteSpace(cleaned)
+                ? "clinical-privilege"
+                : cleaned.Trim();
+        }
+
+        private static string CombineUrlPath(params string[] parts)
+        {
+            return "/" + string.Join(
+                "/",
+                parts
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x.Trim('/'))
+            );
+        }
+
+        private static List<WorkforceClinicalPrivilegeEnumOptionResponse> BuildPrivilegeTypeOptions()
+        {
+            return Enum.GetValues<ClinicalPrivilegeType>()
+                .Where(x => x != ClinicalPrivilegeType.Unknown)
+                .Select(x => new WorkforceClinicalPrivilegeEnumOptionResponse
+                {
+                    Value = x.ToString(),
+                    NumericValue = Convert.ToInt32(x),
+                    Label = x.ToString(),
+                    Description = GetPrivilegeTypeDescription(x)
+                })
+                .ToList();
+        }
+
+        private static List<WorkforceClinicalPrivilegeEnumOptionResponse> BuildPrivilegeStatusOptions()
+        {
+            return Enum.GetValues<ClinicalPrivilegeStatus>()
+                .Select(x => new WorkforceClinicalPrivilegeEnumOptionResponse
+                {
+                    Value = x.ToString(),
+                    NumericValue = Convert.ToInt32(x),
+                    Label = x.ToString(),
+                    Description = GetPrivilegeStatusDescription(x)
+                })
+                .ToList();
+        }
+
+        private static List<WorkforceClinicalPrivilegeEnumOptionResponse> BuildClinicalScopeOptions()
+        {
+            return Enum.GetValues<WorkforceClinicalScope>()
+                .Where(x => x != WorkforceClinicalScope.Unknown)
+                .Select(x => new WorkforceClinicalPrivilegeEnumOptionResponse
+                {
+                    Value = x.ToString(),
+                    NumericValue = Convert.ToInt32(x),
+                    Label = x.ToString(),
+                    Description = GetClinicalScopeDescription(x)
+                })
+                .ToList();
+        }
+
+        private static string GetPrivilegeTypeDescription(ClinicalPrivilegeType value)
+        {
+            return value.ToString() switch
+            {
+                "CorePrivilege" => "Privilege inti yang umum melekat pada profesi/jabatan klinis.",
+                "SpecialPrivilege" => "Privilege tambahan untuk kompetensi atau layanan khusus.",
+                "ProcedurePrivilege" => "Privilege untuk tindakan/prosedur klinis tertentu.",
+                "TemporaryPrivilege" => "Privilege sementara dengan periode terbatas.",
+                "EmergencyPrivilege" => "Privilege untuk kondisi emergency sesuai kebijakan rumah sakit.",
+                _ => "Tipe clinical privilege."
+            };
+        }
+
+        private static string GetPrivilegeStatusDescription(ClinicalPrivilegeStatus value)
+        {
+            return value.ToString() switch
+            {
+                "PendingApproval" => "Menunggu persetujuan atau proses kredensial/komite medik.",
+                "Active" => "Privilege sudah diberikan dan dapat digunakan selama masih berlaku.",
+                "Rejected" => "Pengajuan privilege ditolak.",
+                "Suspended" => "Privilege sementara dibekukan.",
+                "Revoked" => "Privilege dicabut.",
+                "Expired" => "Privilege sudah melewati tanggal berlaku.",
+                _ => "Status clinical privilege."
+            };
+        }
+
+        private static string GetClinicalScopeDescription(WorkforceClinicalScope value)
+        {
+            return value switch
+            {
+                WorkforceClinicalScope.Department => "Privilege berlaku pada department tertentu.",
+                WorkforceClinicalScope.Service => "Privilege berlaku pada layanan klinis tertentu.",
+                WorkforceClinicalScope.Procedure => "Privilege berlaku pada tindakan/prosedur tertentu.",
+                WorkforceClinicalScope.Specialty => "Privilege berlaku pada bidang spesialisasi tertentu.",
+                WorkforceClinicalScope.Unit => "Privilege berlaku pada unit pelayanan tertentu.",
+                WorkforceClinicalScope.Telemedicine => "Privilege berlaku pada layanan telemedicine.",
+                WorkforceClinicalScope.Other => "Scope lainnya.",
+                _ => "Scope clinical privilege."
+            };
+        }
+
+        private sealed class FileResolveResult
+        {
+            public bool IsValid { get; private set; }
+            public string? ErrorMessage { get; private set; }
+            public string? PhysicalPath { get; private set; }
+            public string? ContentType { get; private set; }
+            public string? FileName { get; private set; }
+            public string? DownloadName { get; private set; }
+
+            public static FileResolveResult Valid(
+                string physicalPath,
+                string contentType,
+                string fileName,
+                string downloadName)
+            {
+                return new FileResolveResult
+                {
+                    IsValid = true,
+                    PhysicalPath = physicalPath,
+                    ContentType = contentType,
+                    FileName = fileName,
+                    DownloadName = downloadName
+                };
+            }
+
+            public static FileResolveResult Invalid(string errorMessage)
+            {
+                return new FileResolveResult
+                {
+                    IsValid = false,
+                    ErrorMessage = errorMessage
+                };
+            }
         }
     }
 }

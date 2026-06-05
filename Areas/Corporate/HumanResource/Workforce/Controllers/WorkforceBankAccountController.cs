@@ -11,6 +11,10 @@ using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 
+using ResponseWorkforceBankAccountPagedResult =
+    QuilvianSystemBackend.Responses.PagedResult<
+        QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs.WorkforceBankAccountResponse>;
+
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controllers
 {
     [ApiController]
@@ -30,6 +34,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
     {
         private const string LogCategory = "Corporate.HumanResource.Workforce.BankAccount";
 
+        private static readonly List<string> BankNameExamples = new()
+        {
+            "BCA",
+            "Mandiri",
+            "BRI",
+            "BNI",
+            "BTN",
+            "BSI",
+            "CIMB Niaga",
+            "Danamon",
+            "Permata",
+            "Panin",
+            "Maybank",
+            "OCBC",
+            "Bank DKI",
+            "Bank Jatim",
+            "Bank Jateng",
+            "Bank BJB",
+            "Bank Mega"
+        };
+
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
 
@@ -41,21 +66,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             _loggerService = loggerService;
         }
 
-        [HttpGet]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceBankAccountListResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Read",
-            "Read Workforce Bank Account",
-            Description = "Melihat rekening bank workforce profile",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1
-        )]
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceBankAccountFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Workforce Bank Account", Description = "Melihat metadata filter rekening bank workforce profile", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkforceBankAccount", "Read")]
-        public async Task<IActionResult> GetBankAccounts(Guid workforceProfileId)
+        public async Task<IActionResult> GetFilterMetadata(Guid workforceProfileId)
         {
-            var profile = await _dbContext.Set<MstWorkforceProfile>()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == workforceProfileId && !x.IsDelete);
+            var profile = await GetProfileAsync(workforceProfileId);
 
             if (profile == null)
             {
@@ -65,62 +82,159 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            var items = await _dbContext.Set<WfpBankAccount>()
-                .AsNoTracking()
-                .Where(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete)
-                .OrderByDescending(x => x.IsPrimary)
-                .ThenByDescending(x => x.IsActive)
-                .ThenBy(x => x.BankName)
-                .Select(x => new WorkforceBankAccountResponse
+            var result = new WorkforceBankAccountFilterMetadataResponse
+            {
+                DefaultFilter = new WorkforceBankAccountDefaultFilterResponse(),
+                CustomPeriods = new List<WorkforceBankAccountCustomPeriodOptionResponse>
                 {
-                    Id = x.Id,
-                    WorkforceProfileId = x.WorkforceProfileId,
-                    ProfileCode = profile.ProfileCode,
-                    DisplayName = profile.DisplayName,
-                    BankName = x.BankName,
-                    AccountNumber = x.AccountNumber,
-                    AccountHolderName = x.AccountHolderName,
-                    BankBranch = x.BankBranch,
-                    IsPrimary = x.IsPrimary,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .ToListAsync();
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "lastmonth", Label = "Bulan lalu" }
+                },
+                SortOptions = new List<WorkforceBankAccountSortOptionResponse>
+                {
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "bankName", Label = "Nama bank" },
+                    new() { Value = "accountNumber", Label = "Nomor rekening" },
+                    new() { Value = "accountHolderName", Label = "Nama pemilik rekening" },
+                    new() { Value = "bankBranch", Label = "Cabang bank" },
+                    new() { Value = "isPrimary", Label = "Primary" },
+                    new() { Value = "isActive", Label = "Status aktif" }
+                },
+                SortDirections = new List<string> { "asc", "desc" },
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                BankNameExamples = BankNameExamples
+                    .Select(x => new WorkforceBankAccountSimpleOptionResponse
+                    {
+                        Value = x,
+                        Label = x
+                    })
+                    .ToList()
+            };
 
-            var result = new WorkforceBankAccountListResponse
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "WorkforceBankAccount.GetFilterMetadata",
+                "Mengambil metadata filter rekening bank workforce.",
+                new { workforceProfileId, profile.ProfileCode }
+            );
+
+            return Ok(ApiResponse<WorkforceBankAccountFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter rekening bank workforce berhasil diambil."
+            ));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceBankAccountSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Workforce Bank Account", Description = "Melihat ringkasan rekening bank workforce profile", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceBankAccount", "Read")]
+        public async Task<IActionResult> GetSummary(Guid workforceProfileId)
+        {
+            var profile = await GetProfileAsync(workforceProfileId);
+
+            if (profile == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Workforce profile tidak ditemukan."
+                ));
+            }
+
+            var query = BuildBaseQuery(workforceProfileId);
+
+            var result = new WorkforceBankAccountSummaryResponse
             {
                 WorkforceProfileId = profile.Id,
                 ProfileCode = profile.ProfileCode,
                 DisplayName = profile.DisplayName,
-                TotalData = items.Count,
-                ActiveData = items.Count(x => x.IsActive),
-                PrimaryData = items.Count(x => x.IsPrimary && x.IsActive),
+                TotalBankAccount = await query.CountAsync(),
+                ActiveBankAccount = await query.CountAsync(x => x.IsActive),
+                InactiveBankAccount = await query.CountAsync(x => !x.IsActive),
+                PrimaryBankAccount = await query.CountAsync(x => x.IsPrimary && x.IsActive)
+            };
+
+            return Ok(ApiResponse<WorkforceBankAccountSummaryResponse>.Ok(
+                result,
+                "Ringkasan rekening bank workforce berhasil diambil."
+            ));
+        }
+
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiResponse<ResponseWorkforceBankAccountPagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Workforce Bank Account", Description = "Melihat rekening bank workforce profile", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceBankAccount", "Read")]
+        public async Task<IActionResult> GetBankAccounts(
+            Guid workforceProfileId,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] bool? isPrimary,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "createDateTime",
+            [FromQuery] string? sortDirection = "desc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var profile = await GetProfileAsync(workforceProfileId);
+
+            if (profile == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Workforce profile tidak ditemukan."
+                ));
+            }
+
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = BuildBaseQuery(workforceProfileId);
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyStandardFilter(query, isPrimary, isActive, search);
+
+            var totalData = await query.CountAsync();
+
+            var entities = await ApplySorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var items = entities
+                .Select(x => MapResponse(x, profile))
+                .ToList();
+
+            var result = new ResponseWorkforceBankAccountPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
                 Items = items
             };
 
-            return Ok(ApiResponse<WorkforceBankAccountListResponse>.Ok(
+            return Ok(ApiResponse<ResponseWorkforceBankAccountPagedResult>.Ok(
                 result,
                 "Data rekening bank workforce berhasil diambil."
             ));
         }
 
-        [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceBankAccountResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Create",
-            "Create Workforce Bank Account",
-            Description = "Menambah rekening bank workforce profile",
-            AccessType = AccessTypes.Create,
-            SortOrder = 2
-        )]
-        [AccessPermission("WorkforceBankAccount", "Create")]
-        public async Task<IActionResult> CreateBankAccount(
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceBankAccountOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Workforce Bank Account", Description = "Melihat pilihan rekening bank workforce profile", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceBankAccount", "Read")]
+        public async Task<IActionResult> GetOptions(
             Guid workforceProfileId,
-            [FromBody] CreateWorkforceBankAccountRequest request)
+            [FromQuery] bool? isPrimary,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
-            var profileExists = await _dbContext.Set<MstWorkforceProfile>()
-                .AsNoTracking()
-                .AnyAsync(x => x.Id == workforceProfileId && !x.IsDelete);
+            var profileExists = await ProfileExistsAsync(workforceProfileId);
 
             if (!profileExists)
             {
@@ -130,12 +244,108 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            var validation = await ValidateBankAccountRequestAsync(
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = BuildBaseQuery(workforceProfileId);
+            query = ApplyStandardFilter(query, isPrimary, onlyActive ? true : null, search);
+
+            var totalData = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(x => x.IsPrimary)
+                .ThenByDescending(x => x.IsActive)
+                .ThenBy(x => x.BankName)
+                .ThenBy(x => x.AccountHolderName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new WorkforceBankAccountOptionResponse
+                {
+                    Id = x.Id,
+                    BankName = x.BankName,
+                    AccountNumberMasked = MaskAccountNumber(x.AccountNumber),
+                    AccountHolderName = x.AccountHolderName,
+                    BankBranch = x.BankBranch,
+                    IsPrimary = x.IsPrimary,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync();
+
+            var result = new WorkforceBankAccountOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<WorkforceBankAccountOptionPagedResponse>.Ok(
+                result,
+                "Data pilihan rekening bank workforce berhasil diambil."
+            ));
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceBankAccountDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Workforce Bank Account", Description = "Melihat detail rekening bank workforce profile", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceBankAccount", "Read")]
+        public async Task<IActionResult> GetBankAccountById(Guid workforceProfileId, Guid id)
+        {
+            var profile = await GetProfileAsync(workforceProfileId);
+
+            if (profile == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Workforce profile tidak ditemukan."
+                ));
+            }
+
+            var entity = await BuildBaseQuery(workforceProfileId)
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Rekening bank workforce tidak ditemukan."
+                ));
+            }
+
+            return Ok(ApiResponse<WorkforceBankAccountDetailResponse>.Ok(
+                MapDetailResponse(entity, profile),
+                "Detail rekening bank workforce berhasil diambil."
+            ));
+        }
+
+        [HttpPost]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceBankAccountDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Create", "Create Workforce Bank Account", Description = "Menambah rekening bank workforce profile", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("WorkforceBankAccount", "Create")]
+        public async Task<IActionResult> CreateBankAccount(
+            Guid workforceProfileId,
+            [FromBody] CreateWorkforceBankAccountRequest request)
+        {
+            var profile = await GetProfileAsync(workforceProfileId);
+
+            if (profile == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Workforce profile tidak ditemukan."
+                ));
+            }
+
+            var validation = await ValidateRequestAsync(
                 workforceProfileId,
+                excludeId: null,
                 request.BankName,
                 request.AccountNumber,
-                request.AccountHolderName,
-                excludeBankAccountId: null);
+                request.AccountHolderName);
 
             if (!validation.IsValid)
             {
@@ -154,10 +364,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             }
 
             var hasAny = await _dbContext.Set<WfpBankAccount>()
+                .AsNoTracking()
                 .AnyAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
             var shouldBePrimary = request.IsPrimary || !hasAny;
-
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -169,9 +379,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 {
                     Id = Guid.NewGuid(),
                     WorkforceProfileId = workforceProfileId,
-                    BankName = request.BankName.Trim(),
+                    BankName = NormalizeRequiredText(request.BankName),
                     AccountNumber = NormalizeAccountNumber(request.AccountNumber),
-                    AccountHolderName = request.AccountHolderName.Trim(),
+                    AccountHolderName = NormalizeRequiredText(request.AccountHolderName),
                     BankBranch = NormalizeNullableText(request.BankBranch),
                     IsPrimary = false,
                     IsActive = request.IsActive,
@@ -191,24 +401,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                var response = await BuildBankAccountResponseAsync(entity.Id);
-
                 await _loggerService.InfoAsync(
                     LogCategory,
                     "WorkforceBankAccount.CreateBankAccount",
                     "Rekening bank workforce berhasil dibuat.",
-                    new
-                    {
-                        workforceProfileId,
-                        entity.Id,
-                        entity.BankName,
-                        entity.AccountNumber,
-                        entity.IsPrimary
-                    }
+                    new { workforceProfileId, entity.Id, entity.BankName, entity.IsPrimary }
                 );
 
-                return Ok(ApiResponse<WorkforceBankAccountResponse>.Ok(
-                    response!,
+                return Ok(ApiResponse<WorkforceBankAccountDetailResponse>.Ok(
+                    MapDetailResponse(entity, profile),
                     "Rekening bank workforce berhasil dibuat."
                 ));
             }
@@ -220,7 +421,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                     LogCategory,
                     "WorkforceBankAccount.CreateBankAccount",
                     "Gagal membuat rekening bank workforce.",
-                    ex
+                    ex,
+                    new { workforceProfileId }
                 );
 
                 return StatusCode(
@@ -234,25 +436,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         }
 
         [HttpPut("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceBankAccountResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Update",
-            "Update Workforce Bank Account",
-            Description = "Mengubah rekening bank workforce profile",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceBankAccountDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Workforce Bank Account", Description = "Mengubah rekening bank workforce profile", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("WorkforceBankAccount", "Update")]
         public async Task<IActionResult> UpdateBankAccount(
             Guid workforceProfileId,
             Guid id,
             [FromBody] UpdateWorkforceBankAccountRequest request)
         {
+            var profile = await GetProfileAsync(workforceProfileId);
+
+            if (profile == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Workforce profile tidak ditemukan."
+                ));
+            }
+
             var entity = await _dbContext.Set<WfpBankAccount>()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == id &&
-                    x.WorkforceProfileId == workforceProfileId &&
-                    !x.IsDelete);
+                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
             if (entity == null)
             {
@@ -278,12 +482,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            var validation = await ValidateBankAccountRequestAsync(
+            var validation = await ValidateRequestAsync(
                 workforceProfileId,
+                id,
                 request.BankName,
                 request.AccountNumber,
-                request.AccountHolderName,
-                excludeBankAccountId: id);
+                request.AccountHolderName);
 
             if (!validation.IsValid)
             {
@@ -300,9 +504,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             try
             {
-                entity.BankName = request.BankName.Trim();
+                entity.BankName = NormalizeRequiredText(request.BankName);
                 entity.AccountNumber = NormalizeAccountNumber(request.AccountNumber);
-                entity.AccountHolderName = request.AccountHolderName.Trim();
+                entity.AccountHolderName = NormalizeRequiredText(request.AccountHolderName);
                 entity.BankBranch = NormalizeNullableText(request.BankBranch);
                 entity.IsActive = request.IsActive;
                 entity.UpdateDateTime = now;
@@ -316,10 +520,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                var response = await BuildBankAccountResponseAsync(entity.Id);
-
-                return Ok(ApiResponse<WorkforceBankAccountResponse>.Ok(
-                    response!,
+                return Ok(ApiResponse<WorkforceBankAccountDetailResponse>.Ok(
+                    MapDetailResponse(entity, profile),
                     "Rekening bank workforce berhasil diperbarui."
                 ));
             }
@@ -331,7 +533,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                     LogCategory,
                     "WorkforceBankAccount.UpdateBankAccount",
                     "Gagal mengubah rekening bank workforce.",
-                    ex
+                    ex,
+                    new { workforceProfileId, id }
                 );
 
                 return StatusCode(
@@ -346,13 +549,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
         [HttpPatch("{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Update",
-            "Update Workforce Bank Account",
-            Description = "Mengubah status rekening bank workforce profile",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Workforce Bank Account", Description = "Mengubah status rekening bank workforce profile", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("WorkforceBankAccount", "Update")]
         public async Task<IActionResult> UpdateBankAccountStatus(
             Guid workforceProfileId,
@@ -360,10 +558,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             [FromBody] UpdateWorkforceBankAccountStatusRequest request)
         {
             var entity = await _dbContext.Set<WfpBankAccount>()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == id &&
-                    x.WorkforceProfileId == workforceProfileId &&
-                    !x.IsDelete);
+                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
             if (entity == null)
             {
@@ -377,7 +572,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    "Rekening primary tidak boleh dinonaktifkan."
+                    "Rekening primary tidak boleh dinonaktifkan. Jadikan rekening lain sebagai primary terlebih dahulu."
                 ));
             }
 
@@ -394,14 +589,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         }
 
         [HttpPatch("{id:guid}/primary")]
-        [ProducesResponseType(typeof(ApiResponse<WorkforceBankAccountResponse>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Update",
-            "Update Workforce Bank Account",
-            Description = "Menetapkan rekening bank primary workforce profile",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [ProducesResponseType(typeof(ApiResponse<WorkforceBankAccountDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Set Workforce Bank Account Primary", Description = "Menetapkan rekening bank primary workforce profile", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("WorkforceBankAccount", "Update")]
         public async Task<IActionResult> SetPrimaryBankAccount(
             Guid workforceProfileId,
@@ -416,11 +606,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
+            var profile = await GetProfileAsync(workforceProfileId);
+
+            if (profile == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Workforce profile tidak ditemukan."
+                ));
+            }
+
             var entity = await _dbContext.Set<WfpBankAccount>()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == id &&
-                    x.WorkforceProfileId == workforceProfileId &&
-                    !x.IsDelete);
+                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
             if (entity == null)
             {
@@ -446,14 +643,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             try
             {
                 await ApplyPrimaryBankAccountAsync(workforceProfileId, entity, now, actorUserId);
-
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                var response = await BuildBankAccountResponseAsync(entity.Id);
-
-                return Ok(ApiResponse<WorkforceBankAccountResponse>.Ok(
-                    response!,
+                return Ok(ApiResponse<WorkforceBankAccountDetailResponse>.Ok(
+                    MapDetailResponse(entity, profile),
                     "Rekening bank primary workforce berhasil diperbarui."
                 ));
             }
@@ -465,7 +659,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                     LogCategory,
                     "WorkforceBankAccount.SetPrimaryBankAccount",
                     "Gagal menetapkan rekening bank primary workforce.",
-                    ex
+                    ex,
+                    new { workforceProfileId, id }
                 );
 
                 return StatusCode(
@@ -480,21 +675,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [AccessAction(
-            "Delete",
-            "Delete Workforce Bank Account",
-            Description = "Menghapus rekening bank workforce profile",
-            AccessType = AccessTypes.Delete,
-            SortOrder = 4
-        )]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Delete", "Delete Workforce Bank Account", Description = "Menghapus rekening bank workforce profile", AccessType = AccessTypes.Delete, SortOrder = 6)]
         [AccessPermission("WorkforceBankAccount", "Delete")]
         public async Task<IActionResult> DeleteBankAccount(Guid workforceProfileId, Guid id)
         {
             var entity = await _dbContext.Set<WfpBankAccount>()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == id &&
-                    x.WorkforceProfileId == workforceProfileId &&
-                    !x.IsDelete);
+                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
             if (entity == null)
             {
@@ -512,10 +699,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsActive = false;
             entity.IsDelete = true;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
@@ -525,42 +717,143 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             ));
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateBankAccountRequestAsync(
+        private IQueryable<WfpBankAccount> BuildBaseQuery(Guid workforceProfileId)
+        {
+            return _dbContext.Set<WfpBankAccount>()
+                .AsNoTracking()
+                .Where(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
+        }
+
+        private static IQueryable<WfpBankAccount> ApplyDateFilter(
+            IQueryable<WfpBankAccount> query,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            if (startDate.HasValue)
+            {
+                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime >= start);
+            }
+
+            if (endDate.HasValue)
+            {
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime < end);
+            }
+
+            if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var today = DateTime.UtcNow.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x => x.CreateDateTime >= today && x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "last7days":
+                        query = query.Where(x => x.CreateDateTime >= today.AddDays(-6) && x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        query = query.Where(x => x.CreateDateTime >= thisMonthStart && x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        break;
+
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+                        query = query.Where(x => x.CreateDateTime >= lastMonthStart && x.CreateDateTime < currentMonthStart);
+                        break;
+                }
+            }
+
+            return query;
+        }
+
+        private static IQueryable<WfpBankAccount> ApplyStandardFilter(
+            IQueryable<WfpBankAccount> query,
+            bool? isPrimary,
+            bool? isActive,
+            string? search)
+        {
+            if (isPrimary.HasValue)
+                query = query.Where(x => x.IsPrimary == isPrimary.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                var accountKeyword = NormalizeAccountNumber(search);
+
+                query = query.Where(x =>
+                    x.BankName.ToLower().Contains(keyword) ||
+                    x.AccountHolderName.ToLower().Contains(keyword) ||
+                    (x.BankBranch != null && x.BankBranch.ToLower().Contains(keyword)) ||
+                    (!string.IsNullOrWhiteSpace(accountKeyword) && x.AccountNumber.Contains(accountKeyword)));
+            }
+
+            return query;
+        }
+
+        private static IOrderedQueryable<WfpBankAccount> ApplySorting(
+            IQueryable<WfpBankAccount> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+            return (sortBy ?? "createDateTime").Trim().ToLowerInvariant() switch
+            {
+                "bankname" => isDescending ? query.OrderByDescending(x => x.BankName) : query.OrderBy(x => x.BankName),
+                "accountnumber" => isDescending ? query.OrderByDescending(x => x.AccountNumber) : query.OrderBy(x => x.AccountNumber),
+                "accountholdername" => isDescending ? query.OrderByDescending(x => x.AccountHolderName) : query.OrderBy(x => x.AccountHolderName),
+                "bankbranch" => isDescending ? query.OrderByDescending(x => x.BankBranch) : query.OrderBy(x => x.BankBranch),
+                "isprimary" => isDescending ? query.OrderByDescending(x => x.IsPrimary).ThenBy(x => x.BankName) : query.OrderBy(x => x.IsPrimary).ThenBy(x => x.BankName),
+                "isactive" => isDescending ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.BankName) : query.OrderBy(x => x.IsActive).ThenBy(x => x.BankName),
+                _ => isDescending ? query.OrderByDescending(x => x.CreateDateTime).ThenByDescending(x => x.IsPrimary) : query.OrderBy(x => x.CreateDateTime).ThenByDescending(x => x.IsPrimary)
+            };
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             Guid workforceProfileId,
+            Guid? excludeId,
             string? bankName,
             string? accountNumber,
-            string? accountHolderName,
-            Guid? excludeBankAccountId)
+            string? accountHolderName)
         {
             if (string.IsNullOrWhiteSpace(bankName))
-            {
                 return (false, "Nama bank wajib diisi.");
-            }
 
             if (string.IsNullOrWhiteSpace(accountNumber))
-            {
                 return (false, "Nomor rekening wajib diisi.");
-            }
 
             if (string.IsNullOrWhiteSpace(accountHolderName))
-            {
                 return (false, "Nama pemilik rekening wajib diisi.");
-            }
 
             var normalizedAccountNumber = NormalizeAccountNumber(accountNumber);
 
-            var duplicateExists = await _dbContext.Set<WfpBankAccount>()
+            if (string.IsNullOrWhiteSpace(normalizedAccountNumber))
+                return (false, "Nomor rekening wajib berisi angka.");
+
+            if (normalizedAccountNumber.Length < 5)
+                return (false, "Nomor rekening minimal 5 digit.");
+
+            var duplicateQuery = _dbContext.Set<WfpBankAccount>()
                 .AsNoTracking()
-                .AnyAsync(x =>
+                .Where(x =>
                     x.WorkforceProfileId == workforceProfileId &&
-                    x.Id != excludeBankAccountId &&
                     x.AccountNumber == normalizedAccountNumber &&
                     !x.IsDelete);
 
-            if (duplicateExists)
-            {
+            if (excludeId.HasValue)
+                duplicateQuery = duplicateQuery.Where(x => x.Id != excludeId.Value);
+
+            if (await duplicateQuery.AnyAsync())
                 return (false, "Nomor rekening sudah terdaftar pada workforce profile ini.");
-            }
 
             return (true, null);
         }
@@ -592,26 +885,79 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             bankAccount.UpdateBy = actorUserId;
         }
 
-        private async Task<WorkforceBankAccountResponse?> BuildBankAccountResponseAsync(Guid id)
+        private WorkforceBankAccountResponse MapResponse(
+            WfpBankAccount entity,
+            MstWorkforceProfile profile)
         {
-            return await _dbContext.Set<WfpBankAccount>()
+            return new WorkforceBankAccountResponse
+            {
+                Id = entity.Id,
+                WorkforceProfileId = entity.WorkforceProfileId,
+                ProfileCode = profile.ProfileCode,
+                DisplayName = profile.DisplayName,
+                BankName = entity.BankName,
+                AccountNumber = entity.AccountNumber,
+                AccountNumberMasked = MaskAccountNumber(entity.AccountNumber),
+                AccountHolderName = entity.AccountHolderName,
+                BankBranch = entity.BankBranch,
+                IsPrimary = entity.IsPrimary,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime
+            };
+        }
+
+        private WorkforceBankAccountDetailResponse MapDetailResponse(
+            WfpBankAccount entity,
+            MstWorkforceProfile profile)
+        {
+            var response = MapResponse(entity, profile);
+
+            return new WorkforceBankAccountDetailResponse
+            {
+                Id = response.Id,
+                WorkforceProfileId = response.WorkforceProfileId,
+                ProfileCode = response.ProfileCode,
+                DisplayName = response.DisplayName,
+                BankName = response.BankName,
+                AccountNumber = response.AccountNumber,
+                AccountNumberMasked = response.AccountNumberMasked,
+                AccountHolderName = response.AccountHolderName,
+                BankBranch = response.BankBranch,
+                IsPrimary = response.IsPrimary,
+                IsActive = response.IsActive,
+                CreateDateTime = response.CreateDateTime,
+                UpdateDateTime = entity.UpdateDateTime,
+                CreateBy = entity.CreateBy,
+                UpdateBy = entity.UpdateBy
+            };
+        }
+
+        private async Task<MstWorkforceProfile?> GetProfileAsync(Guid workforceProfileId)
+        {
+            return await _dbContext.Set<MstWorkforceProfile>()
                 .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new WorkforceBankAccountResponse
-                {
-                    Id = x.Id,
-                    WorkforceProfileId = x.WorkforceProfileId,
-                    ProfileCode = x.WorkforceProfile != null ? x.WorkforceProfile.ProfileCode : string.Empty,
-                    DisplayName = x.WorkforceProfile != null ? x.WorkforceProfile.DisplayName : string.Empty,
-                    BankName = x.BankName,
-                    AccountNumber = x.AccountNumber,
-                    AccountHolderName = x.AccountHolderName,
-                    BankBranch = x.BankBranch,
-                    IsPrimary = x.IsPrimary,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(x => x.Id == workforceProfileId && !x.IsDelete);
+        }
+
+        private async Task<bool> ProfileExistsAsync(Guid workforceProfileId)
+        {
+            return await _dbContext.Set<MstWorkforceProfile>()
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == workforceProfileId && !x.IsDelete);
+        }
+
+        private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
+        {
+            if (pageNumber < 1)
+                pageNumber = 1;
+
+            if (pageSize < 1)
+                pageSize = 25;
+
+            if (pageSize > 100)
+                pageSize = 100;
+
+            return (pageNumber, pageSize);
         }
 
         private Guid GetCurrentUserId()
@@ -625,11 +971,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 : Guid.Empty;
         }
 
+        private static string NormalizeRequiredText(string value)
+        {
+            return value.Trim();
+        }
+
         private static string NormalizeAccountNumber(string? value)
         {
             return string.IsNullOrWhiteSpace(value)
                 ? string.Empty
                 : new string(value.Where(char.IsDigit).ToArray());
+        }
+
+        private static string MaskAccountNumber(string? value)
+        {
+            var normalized = NormalizeAccountNumber(value);
+
+            if (normalized.Length <= 4)
+                return normalized;
+
+            var suffix = normalized[^4..];
+            var maskedLength = normalized.Length - 4;
+
+            return new string('*', maskedLength) + suffix;
         }
 
         private static string? NormalizeNullableText(string? value)

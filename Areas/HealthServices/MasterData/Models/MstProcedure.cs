@@ -1,6 +1,6 @@
 ﻿using QuilvianSystemBackend.Models;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 {
@@ -23,11 +23,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         [MaxLength(100)]
         public string? ProcedureCategoryName { get; set; }
 
+        [Required]
         [MaxLength(50)]
         public string ProcedureType { get; set; } = "General";
         // General, Nursing, DoctorAction, Surgery, Laboratory, Radiology, Therapy, Other
-
-        public Guid? DefaultTariffId { get; set; }
 
         public bool IsDoctorAction { get; set; } = true;
 
@@ -70,7 +69,5 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public string? Description { get; set; }
 
         public bool IsActive { get; set; } = true;
-
-        public MstTariff? DefaultTariff { get; set; }
     }
 }

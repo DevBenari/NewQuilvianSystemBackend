@@ -19,7 +19,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int AvailableForOutpatientProcedure { get; set; }
         public int AvailableForInpatientProcedure { get; set; }
         public int AvailableForEmergencyProcedure { get; set; }
-        public int HasDefaultTariffProcedure { get; set; }
     }
 
     public class ProcedureResponse
@@ -30,12 +29,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? ProcedureGroupName { get; set; }
         public string? ProcedureCategoryName { get; set; }
         public string ProcedureType { get; set; } = string.Empty;
-
-        public Guid? DefaultTariffId { get; set; }
-        public string? DefaultTariffCode { get; set; }
-        public string? DefaultTariffName { get; set; }
-        public decimal? DefaultTariffNormalPrice { get; set; }
-
         public bool IsDoctorAction { get; set; }
         public bool IsNursingAction { get; set; }
         public bool IsSurgery { get; set; }
@@ -48,7 +41,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsAvailableForOutpatient { get; set; }
         public bool IsAvailableForInpatient { get; set; }
         public bool IsAvailableForEmergency { get; set; }
-
         public int EstimatedDurationMinutes { get; set; }
         public string? ExternalProcedureCode { get; set; }
         public string? IntegrationCode { get; set; }
@@ -71,9 +63,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? ProcedureGroupName { get; set; }
         public string? ProcedureCategoryName { get; set; }
         public string ProcedureType { get; set; } = string.Empty;
-        public Guid? DefaultTariffId { get; set; }
-        public string? DefaultTariffName { get; set; }
-        public decimal? DefaultTariffNormalPrice { get; set; }
         public bool IsDoctorAction { get; set; }
         public bool IsNursingAction { get; set; }
         public bool IsSurgery { get; set; }
@@ -119,7 +108,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string? CustomPeriod { get; set; }
-        public Guid? DefaultTariffId { get; set; }
         public bool? IsActive { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
@@ -180,8 +168,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         [MaxLength(50)]
         public string ProcedureType { get; set; } = "General";
 
-        public Guid? DefaultTariffId { get; set; }
-
         public bool IsDoctorAction { get; set; } = true;
         public bool IsNursingAction { get; set; } = false;
         public bool IsSurgery { get; set; } = false;
@@ -224,7 +210,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string ProcedureCode { get; set; } = string.Empty;
         public string ProcedureName { get; set; } = string.Empty;
         public string ProcedureType { get; set; } = string.Empty;
-        public Guid? DefaultTariffId { get; set; }
         public bool IsActive { get; set; }
     }
 

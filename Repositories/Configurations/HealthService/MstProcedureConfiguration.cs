@@ -31,9 +31,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasDefaultValue("General")
                 .IsRequired();
 
-            entity.Property(x => x.DefaultTariffId)
-                .IsRequired(false);
-
             entity.Property(x => x.IsDoctorAction)
                 .HasDefaultValue(true);
 
@@ -113,13 +110,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.IsCancel)
                 .HasDefaultValue(false);
 
-            entity.HasOne(x => x.DefaultTariff)
-                .WithMany()
-                .HasForeignKey(x => x.DefaultTariffId)
-                .OnDelete(DeleteBehavior.Restrict);
-
             entity.HasIndex(x => x.ProcedureCode)
-                .IsUnique();
+                .IsUnique()
+                .HasFilter("\"IsDelete\" = false");
 
             entity.HasIndex(x => x.ProcedureName);
 
@@ -128,8 +121,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.HasIndex(x => x.ProcedureCategoryName);
 
             entity.HasIndex(x => x.ProcedureType);
-
-            entity.HasIndex(x => x.DefaultTariffId);
 
             entity.HasIndex(x => x.ExternalProcedureCode)
                 .HasFilter("\"ExternalProcedureCode\" IS NOT NULL");
@@ -162,6 +153,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             {
                 x.IsCoveredByInsuranceDefault,
                 x.IsNeedApproval,
+                x.IsActive,
+                x.IsDelete
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.ProcedureType,
                 x.IsActive,
                 x.IsDelete
             });
