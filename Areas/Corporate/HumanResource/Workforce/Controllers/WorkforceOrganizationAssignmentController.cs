@@ -23,8 +23,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
     [Authorize]
     [Route("api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId:guid}/organization-assignments")]
     [AccessController(
-        moduleCode: "HUMAN_RESOURCE_MASTER_DATA",
-        moduleName: "Human Resource Master Data",
+        moduleCode: "HUMAN_RESOURCE_WORKFORCE",
+        moduleName: "Human Resource Workforce",
         displayName: "Workforce Organization Assignment",
         AreaName = "Corporate",
         ControllerName = "WorkforceOrganizationAssignment",

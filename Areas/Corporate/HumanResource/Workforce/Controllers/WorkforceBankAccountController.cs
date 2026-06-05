@@ -21,8 +21,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
     [Authorize]
     [Route("api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId:guid}/bank-accounts")]
     [AccessController(
-        moduleCode: "HUMAN_RESOURCE_MASTER_DATA",
-        moduleName: "Human Resource Master Data",
+        moduleCode: "HUMAN_RESOURCE_WORKFORCE",
+        moduleName: "Human Resource Workforce",
         displayName: "Workforce Bank Account",
         AreaName = "Corporate",
         ControllerName = "WorkforceBankAccount",

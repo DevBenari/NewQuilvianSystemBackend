@@ -318,16 +318,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.Setting.Controllers
 
         // Endpoint baru untuk fitur Salin dari Role Lain.
         [HttpPost("policies/copy")]
-        [AccessPermission(RoleAccessControllerName, "Update")]
-        [AccessAction(
-            "Update",
-            "Copy Role Access Policy",
-            Description = "Menyalin policy role access dari department dan position lain",
-            AccessType = AccessTypes.Update,
-            VisibleInRoleAccess = false,
-            IsSystemOnly = false,
-            SortOrder = 6
-        )]
+        [AccessPermission(RoleAccessControllerName, "Update")]       
         [ProducesResponseType(typeof(ApiResponse<CopyRoleAccessPolicyResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CopyPolicies([FromBody] CopyRoleAccessPolicyRequest request)
