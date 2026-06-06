@@ -1309,12 +1309,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
-    "Update",
-    "Update Doctor",
-    Description = "Mengubah pengaturan geolocation bypass akun doctor",
-    AccessType = AccessTypes.Update,
-    SortOrder = 3
-)]
+            "Update",
+            "Update Doctor",
+            Description = "Mengubah pengaturan geolocation bypass akun doctor",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
         [AccessPermission("Doctor", "Update")]
         public async Task<IActionResult> UpdateDoctorUserGeolocationBypass(
     Guid id,
@@ -1417,6 +1417,104 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 request.IsGeolocationBypassEnabled
                     ? "Geolocation bypass akun doctor berhasil diaktifkan."
                     : "Geolocation bypass akun doctor berhasil dinonaktifkan."
+            ));
+        }
+
+        [HttpPatch("{id:guid}/user-account/fingerprint-registration")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Update",
+            "Update Doctor",
+            Description = "Mengubah pengaturan fingerprint registration akun doctor",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
+        [AccessPermission("Doctor", "Update")]
+        public async Task<IActionResult> UpdateDoctorUserFingerprintRegistration(
+            Guid id, [FromBody] UpdateDoctorUserFingerprintRegistrationRequest request)
+        {
+            var doctorExists = await _dbContext.Set<MstDoctor>()
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == id && !x.IsDelete);
+
+            if (!doctorExists)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Doctor tidak ditemukan."
+                ));
+            }
+
+            var linkedUser = await _dbContext.Users.FirstOrDefaultAsync(x =>
+                x.DoctorId == id &&
+                (x.UserType == UserType.PermanentDoctor || x.UserType == UserType.GuestDoctor));
+
+            if (linkedUser == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Doctor belum memiliki akun login, sehingga fingerprint registration tidak dapat diubah."
+                ));
+            }
+
+            if (request.IsFingerprintRegistrationEnabled &&
+                string.IsNullOrWhiteSpace(request.FingerprintRegistrationReason))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan aktivasi fingerprint wajib diisi."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            linkedUser.IsFingerprintRegistrationEnabled =
+                request.IsFingerprintRegistrationEnabled;
+
+            linkedUser.FingerprintRegistrationReason =
+                request.IsFingerprintRegistrationEnabled
+                    ? NormalizeNullableText(request.FingerprintRegistrationReason)
+                    : null;
+
+            linkedUser.FingerprintRegistrationEnabledAt =
+                request.IsFingerprintRegistrationEnabled
+                    ? now
+                    : null;
+
+            linkedUser.FingerprintRegistrationEnabledByUserId =
+                request.IsFingerprintRegistrationEnabled
+                    ? actorUserId
+                    : null;
+
+            linkedUser.UpdateDateTime = now;
+
+            var updateResult = await _userManager.UpdateAsync(linkedUser);
+
+            if (!updateResult.Succeeded)
+            {
+                var errors = string.Join("; ", updateResult.Errors.Select(x => x.Description));
+
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    $"Pengaturan fingerprint registration gagal diperbarui: {errors}"
+                ));
+            }
+
+            return Ok(ApiResponse<object>.Ok(
+                new
+                {
+                    DoctorId = id,
+                    UserId = linkedUser.Id,
+                    linkedUser.IsFingerprintRegistrationEnabled,
+                    linkedUser.FingerprintRegistrationReason,
+                    linkedUser.FingerprintRegistrationEnabledAt
+                },
+                request.IsFingerprintRegistrationEnabled
+                    ? "Fingerprint registration akun doctor berhasil diaktifkan."
+                    : "Fingerprint registration akun doctor berhasil dinonaktifkan."
             ));
         }
 

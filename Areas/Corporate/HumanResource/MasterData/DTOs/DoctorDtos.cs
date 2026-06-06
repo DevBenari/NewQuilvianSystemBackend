@@ -536,6 +536,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public bool IsAvailableForAppointment { get; set; } = true;        
     }
 
+    public class UpdateDoctorUserFingerprintRegistrationRequest
+    {
+        public bool IsFingerprintRegistrationEnabled { get; set; }
+        public string? FingerprintRegistrationReason { get; set; }
+    }
+
     public class UpdateDoctorRequest
     {
         [Required]
