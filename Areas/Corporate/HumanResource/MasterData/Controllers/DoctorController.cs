@@ -1197,43 +1197,107 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 linkedUser.UpdateDateTime = now;
             }
 
-            await EnsureWorkforcePrimaryOrganizationAssignmentAsync(entity, now, actorUserId);
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            if (linkedUser != null &&
-                entity.PrimaryDepartmentId.HasValue &&
-                entity.PrimaryPositionId.HasValue)
+            try
             {
-                await SyncUserPrimaryOrganizationAsync(
-                    userId: linkedUser.Id,
-                    departmentId: entity.PrimaryDepartmentId.Value,
-                    positionId: entity.PrimaryPositionId.Value,
-                    effectiveStartDate: entity.JoinDate ?? now.Date,
-                    actorUserId: actorUserId
+                await ClearWorkforcePrimaryOrganizationAssignmentAsync(
+                    entity.WorkforceProfileId,
+                    now,
+                    actorUserId
+                );
+
+                if (linkedUser != null)
+                {
+                    await ClearUserPrimaryOrganizationAsync(
+                        linkedUser.Id,
+                        now,
+                        actorUserId
+                    );
+                }
+
+                await _dbContext.SaveChangesAsync();
+
+                await EnsureWorkforcePrimaryOrganizationAssignmentAsync(
+                    entity,
+                    now,
+                    actorUserId
+                );
+
+                if (linkedUser != null &&
+                    entity.PrimaryDepartmentId.HasValue &&
+                    entity.PrimaryPositionId.HasValue)
+                {
+                    await SyncUserPrimaryOrganizationAsync(
+                        userId: linkedUser.Id,
+                        departmentId: entity.PrimaryDepartmentId.Value,
+                        positionId: entity.PrimaryPositionId.Value,
+                        effectiveStartDate: entity.JoinDate ?? now.Date,
+                        actorUserId: actorUserId
+                    );
+                }
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "Doctor.UpdateDoctor",
+                    "Doctor berhasil diperbarui.",
+                    new
+                    {
+                        entity.Id,
+                        entity.WorkforceProfileId,
+                        entity.DoctorCode,
+                        entity.DoctorNumber,
+                        entity.FullName,
+                        entity.IsActive,
+                        entity.IsAvailableForAppointment,
+                        entity.PrimaryDepartmentId,
+                        entity.PrimaryPositionId
+                    }
+                );
+
+                return Ok(ApiResponse<object>.Ok(
+                    null,
+                    "Doctor berhasil diperbarui."
+                ));
+            }
+            catch (DbUpdateException ex)
+            {
+                await transaction.RollbackAsync();
+
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "Doctor.UpdateDoctor",
+                    "Gagal memperbarui primary organization doctor.",
+                    ex
+                );
+
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Gagal mengubah organisasi utama doctor. Periksa data primary assignment doctor."
+                ));
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "Doctor.UpdateDoctor",
+                    "Gagal memperbarui doctor.",
+                    ex
+                );
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat memperbarui doctor."
+                    )
                 );
             }
-
-            await _dbContext.SaveChangesAsync();
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Doctor.UpdateDoctor",
-                "Doctor berhasil diperbarui.",
-                new
-                {
-                    entity.Id,
-                    entity.WorkforceProfileId,
-                    entity.DoctorCode,
-                    entity.DoctorNumber,
-                    entity.FullName,
-                    entity.IsActive,
-                    entity.IsAvailableForAppointment
-                }
-            );
-
-            return Ok(ApiResponse<object>.Ok(
-                null,
-                "Doctor berhasil diperbarui."
-            ));
         }
 
         [HttpPatch("{id:guid}/status")]
@@ -1986,6 +2050,56 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 existing.CancelBy = Guid.Empty;
                 existing.UpdateDateTime = now;
                 existing.UpdateBy = actorUserId;
+            }
+        }
+
+        private async Task ClearWorkforcePrimaryOrganizationAssignmentAsync(
+            Guid workforceProfileId,
+            DateTime now,
+            Guid actorUserId)
+        {
+            if (workforceProfileId == Guid.Empty)
+            {
+                return;
+            }
+
+            var currentPrimaries = await _dbContext.Set<WfpOrganizationAssignment>()
+                .Where(x =>
+                    x.WorkforceProfileId == workforceProfileId &&
+                    x.IsPrimary &&
+                    !x.IsDelete)
+                .ToListAsync();
+
+            foreach (var item in currentPrimaries)
+            {
+                item.IsPrimary = false;
+                item.UpdateDateTime = now;
+                item.UpdateBy = actorUserId;
+            }
+        }
+
+        private async Task ClearUserPrimaryOrganizationAsync(
+            Guid userId,
+            DateTime now,
+            Guid actorUserId)
+        {
+            if (userId == Guid.Empty)
+            {
+                return;
+            }
+
+            var currentPrimaries = await _dbContext.ApplicationUserOrganizations
+                .Where(x =>
+                    x.UserId == userId &&
+                    x.IsPrimary &&
+                    !x.IsDelete)
+                .ToListAsync();
+
+            foreach (var item in currentPrimaries)
+            {
+                item.IsPrimary = false;
+                item.UpdateDateTime = now;
+                item.UpdateBy = actorUserId;
             }
         }
 
