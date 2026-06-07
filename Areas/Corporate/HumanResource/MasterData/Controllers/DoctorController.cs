@@ -509,7 +509,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                         u.DoctorId == x.Id &&
                         (u.UserType == UserType.PermanentDoctor || u.UserType == UserType.GuestDoctor)),
                     IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+                    CreateBy = x.CreateBy,
+                    CreateByName = _dbContext.Users
+                        .Where(u => u.Id == x.CreateBy)
+                        .Select(u =>
+                            u.DisplayName ??
+                            u.UserName ??
+                            u.Email ??
+                            u.UserCode)
+                        .FirstOrDefault()
                 })
                 .ToListAsync();
 
@@ -724,7 +733,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                         u.DoctorId == x.Id &&
                         (u.UserType == UserType.PermanentDoctor || u.UserType == UserType.GuestDoctor)),
                     IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+                    CreateBy = x.CreateBy,
+                    CreateByName = _dbContext.Users
+                    .Where(u => u.Id == x.CreateBy)
+                    .Select(u =>
+                        u.DisplayName ??
+                        u.UserName ??
+                        u.Email ??
+                        u.UserCode)
+                    .FirstOrDefault(),
+
+                                    UpdateDateTime = x.UpdateDateTime,
+                                    UpdateBy = x.UpdateBy,
+                                    UpdateByName = _dbContext.Users
+                    .Where(u => u.Id == x.UpdateBy)
+                    .Select(u =>
+                        u.DisplayName ??
+                        u.UserName ??
+                        u.Email ??
+                        u.UserCode)
+                    .FirstOrDefault()
                 })
                 .FirstOrDefaultAsync();
 
