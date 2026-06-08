@@ -146,6 +146,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public DateTime? ContractStartDate { get; set; }
 
         public string? ResignReason { get; set; }
+
         public DateTime? UpdateDateTime { get; set; }
 
         public Guid? UpdateBy { get; set; }

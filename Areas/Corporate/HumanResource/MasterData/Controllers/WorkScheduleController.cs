@@ -168,8 +168,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 .Take(pageSize)
                 .ToListAsync();
 
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .Select(x => x.CreateBy)
+                    .Where(x => x != Guid.Empty)
+            );
+
             var items = entities
-                .Select(MapResponse)
+                .Select(entity => MapResponse(entity, actorNames))
                 .ToList();
 
             var result = new ResponseWorkSchedulePagedResult
@@ -261,8 +267,34 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, actorNames);
+
+            if (data.UpdateDateTime.HasValue &&
+                data.UpdateDateTime.Value == DateTime.MinValue)
+            {
+                data.UpdateDateTime = null;
+            }
+
+            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
+            {
+                data.CreateBy = null;
+                data.CreateByName = null;
+            }
+
+            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
+            {
+                data.UpdateBy = null;
+                data.UpdateByName = null;
+            }
+
             return Ok(ApiResponse<WorkScheduleDetailResponse>.Ok(
-                MapDetailResponse(entity),
+                data,
                 "Detail work schedule berhasil diambil."
             ));
         }
@@ -874,7 +906,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                    TimeOnly.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out result);
         }
 
-        private static WorkScheduleResponse MapResponse(MstWorkSchedule entity)
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static WorkScheduleResponse MapResponse(
+            MstWorkSchedule entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             return new WorkScheduleResponse
             {
@@ -889,11 +950,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 CheckOutToleranceMinutes = entity.CheckOutToleranceMinutes,
                 IsDefault = entity.IsDefault,
                 IsActive = entity.IsActive,
-                CreateDateTime = entity.CreateDateTime
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = entity.CreateBy == Guid.Empty
+                    ? null
+                    : actorNames.GetValueOrDefault(entity.CreateBy)
             };
         }
 
-        private static WorkScheduleDetailResponse MapDetailResponse(MstWorkSchedule entity)
+        private static WorkScheduleDetailResponse MapDetailResponse(
+            MstWorkSchedule entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             return new WorkScheduleDetailResponse
             {
@@ -909,9 +976,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 IsDefault = entity.IsDefault,
                 IsActive = entity.IsActive,
                 CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = entity.CreateBy == Guid.Empty
+                    ? null
+                    : actorNames.GetValueOrDefault(entity.CreateBy),
+
                 UpdateDateTime = entity.UpdateDateTime,
-                CreateBy = entity.CreateBy,
-                UpdateBy = entity.UpdateBy
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = entity.UpdateBy == Guid.Empty
+                    ? null
+                    : actorNames.GetValueOrDefault(entity.UpdateBy)
             };
         }
 

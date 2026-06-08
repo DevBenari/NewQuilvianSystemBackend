@@ -19,19 +19,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
     public class CompetencyResponse
     {
         public Guid Id { get; set; }
+
         public string CompetencyCode { get; set; } = string.Empty;
+
         public string CompetencyName { get; set; } = string.Empty;
+
         public CompetencyCategory CompetencyCategory { get; set; }
+
         public string? Description { get; set; }
+
         public bool IsActive { get; set; }
+
         public int PositionRequirementCount { get; set; }
+
         public int ActivePositionRequirementCount { get; set; }
+
         public int AssessmentCount { get; set; }
+
         public DateTime CreateDateTime { get; set; }
+
+        public Guid? CreateBy { get; set; }
+
+        public string? CreateByName { get; set; }
     }
 
     public class CompetencyDetailResponse : CompetencyResponse
     {
+        public DateTime? UpdateDateTime { get; set; }
+
+        public Guid? UpdateBy { get; set; }
+
+        public string? UpdateByName { get; set; }
     }
 
     public class CompetencyOptionResponse
@@ -152,6 +170,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public bool IsTrainingRequired { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class PositionCompetencyRequirementListResponse

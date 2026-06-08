@@ -172,6 +172,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Description = x.Description,
                     IsActive = x.IsActive,
                     CreateDateTime = x.CreateDateTime,
+                    CreateBy = x.CreateBy == Guid.Empty ? null : (Guid?)x.CreateBy,
+                    CreateByName = x.CreateBy == Guid.Empty
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.CreateBy)
+                            .Select(u =>
+                                u.DisplayName ??
+                                u.UserName ??
+                                u.Email ??
+                                u.UserCode)
+                            .FirstOrDefault(),
                     PositionCount = x.Positions.Count(p => !p.IsDelete),
                     ActivePositionCount = x.Positions.Count(p => !p.IsDelete && p.IsActive),
                     Positions = includePositions
@@ -278,6 +289,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     Description = x.Description,
                     IsActive = x.IsActive,
                     CreateDateTime = x.CreateDateTime,
+                    CreateBy = x.CreateBy == Guid.Empty ? null : (Guid?)x.CreateBy,
+                    CreateByName = x.CreateBy == Guid.Empty
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.CreateBy)
+                            .Select(u =>
+                                u.DisplayName ??
+                                u.UserName ??
+                                u.Email ??
+                                u.UserCode)
+                            .FirstOrDefault(),
+
+                    UpdateDateTime = x.UpdateDateTime,
+                    UpdateBy = x.UpdateBy == Guid.Empty ? null : (Guid?)x.UpdateBy,
+                    UpdateByName = x.UpdateBy == Guid.Empty
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.UpdateBy)
+                            .Select(u =>
+                                u.DisplayName ??
+                                u.UserName ??
+                                u.Email ??
+                                u.UserCode)
+                            .FirstOrDefault(),
+
                     PositionCount = x.Positions.Count(p => !p.IsDelete),
                     ActivePositionCount = x.Positions.Count(p => !p.IsDelete && p.IsActive),
                     Positions = includePositions
@@ -587,7 +623,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     PositionName = x.PositionName,
                     Description = x.Description,
                     IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+                    CreateBy = x.CreateBy == Guid.Empty ? null : (Guid?)x.CreateBy,
+                    CreateByName = x.CreateBy == Guid.Empty
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.CreateBy)
+                            .Select(u =>
+                                u.DisplayName ??
+                                u.UserName ??
+                                u.Email ??
+                                u.UserCode)
+                            .FirstOrDefault()
                 })
                 .ToListAsync();
 
@@ -682,7 +729,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     PositionName = x.PositionName,
                     Description = x.Description,
                     IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+                    CreateBy = x.CreateBy == Guid.Empty ? null : (Guid?)x.CreateBy,
+                    CreateByName = x.CreateBy == Guid.Empty
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.CreateBy)
+                            .Select(u =>
+                                u.DisplayName ??
+                                u.UserName ??
+                                u.Email ??
+                                u.UserCode)
+                            .FirstOrDefault(),
+
+                    UpdateDateTime = x.UpdateDateTime,
+                    UpdateBy = x.UpdateBy == Guid.Empty ? null : (Guid?)x.UpdateBy,
+                    UpdateByName = x.UpdateBy == Guid.Empty
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.UpdateBy)
+                            .Select(u =>
+                                u.DisplayName ??
+                                u.UserName ??
+                                u.Email ??
+                                u.UserCode)
+                            .FirstOrDefault()
                 })
                 .FirstOrDefaultAsync();
 

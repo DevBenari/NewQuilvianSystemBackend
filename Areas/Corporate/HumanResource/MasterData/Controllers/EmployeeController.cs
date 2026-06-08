@@ -563,7 +563,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                                 t.WorkforceProfileId == x.WorkforceProfileId &&
                                 !t.IsDelete),
                     IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+                    CreateBy = x.CreateBy != Guid.Empty ? x.CreateBy : null,
+                    CreateByName = x.CreateBy != Guid.Empty
+                        ? _dbContext.Users
+                            .Where(u => u.Id == x.CreateBy)
+                            .Select(u =>
+                                u.DisplayName ??
+                                u.UserName ??
+                                u.Email ??
+                                u.UserCode)
+                            .FirstOrDefault()
+                        : null
                 })
                 .ToListAsync();
 
@@ -773,7 +784,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                         u.EmployeeId == x.Id &&
                         u.UserType == UserType.Employee),
                     IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+                    CreateBy = x.CreateBy != Guid.Empty ? x.CreateBy : null,
+                    CreateByName = x.CreateBy != Guid.Empty
+                        ? _dbContext.Users
+                            .Where(u => u.Id == x.CreateBy)
+                            .Select(u =>
+                                u.DisplayName ??
+                                u.UserName ??
+                                u.Email ??
+                                u.UserCode)
+                            .FirstOrDefault()
+                        : null,
+
+                                        UpdateDateTime = x.UpdateDateTime,
+                                        UpdateBy = x.UpdateBy != Guid.Empty ? x.UpdateBy : null,
+                                        UpdateByName = x.UpdateBy != Guid.Empty
+                        ? _dbContext.Users
+                            .Where(u => u.Id == x.UpdateBy)
+                            .Select(u =>
+                                u.DisplayName ??
+                                u.UserName ??
+                                u.Email ??
+                                u.UserCode)
+                            .FirstOrDefault()
+                        : null
                 })
                 .FirstOrDefaultAsync();
 
