@@ -40,13 +40,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
         public string? Description { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class WorkforceInsuranceDetailResponse : WorkforceInsuranceResponse
     {
         public DateTime? UpdateDateTime { get; set; }
-        public Guid CreateBy { get; set; }
-        public Guid UpdateBy { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class WorkforceInsuranceOptionResponse

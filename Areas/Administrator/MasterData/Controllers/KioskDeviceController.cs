@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -13,9 +14,9 @@ using System.Security.Claims;
 
 using ResponseKioskDevicePagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs.KioskDeviceResponse>;
+        QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs.KioskDeviceResponse>;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
+namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 {
     [ApiController]
     [Authorize]
@@ -151,20 +152,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 query = query.Where(x =>
                     x.DeviceCode.ToLower().Contains(keyword) ||
                     x.DeviceName.ToLower().Contains(keyword) ||
-                    (x.LocationName != null && x.LocationName.ToLower().Contains(keyword)) ||
-                    (x.FloorName != null && x.FloorName.ToLower().Contains(keyword)) ||
-                    (x.IpAddress != null && x.IpAddress.ToLower().Contains(keyword)) ||
-                    (x.MacAddress != null && x.MacAddress.ToLower().Contains(keyword)) ||
-                    (x.SerialNumber != null && x.SerialNumber.ToLower().Contains(keyword)) ||
-                    (x.DeviceModel != null && x.DeviceModel.ToLower().Contains(keyword)) ||
-                    (x.VendorName != null && x.VendorName.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
-                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitCode.ToLower().Contains(keyword)) ||
-                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
-                    (x.Clinic != null && x.Clinic.ClinicCode.ToLower().Contains(keyword)) ||
-                    (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)) ||
-                    (x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileCode.ToLower().Contains(keyword)) ||
-                    (x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileName.ToLower().Contains(keyword)));
+                    x.LocationName != null && x.LocationName.ToLower().Contains(keyword) ||
+                    x.FloorName != null && x.FloorName.ToLower().Contains(keyword) ||
+                    x.IpAddress != null && x.IpAddress.ToLower().Contains(keyword) ||
+                    x.MacAddress != null && x.MacAddress.ToLower().Contains(keyword) ||
+                    x.SerialNumber != null && x.SerialNumber.ToLower().Contains(keyword) ||
+                    x.DeviceModel != null && x.DeviceModel.ToLower().Contains(keyword) ||
+                    x.VendorName != null && x.VendorName.ToLower().Contains(keyword) ||
+                    x.Description != null && x.Description.ToLower().Contains(keyword) ||
+                    x.ServiceUnit != null && x.ServiceUnit.ServiceUnitCode.ToLower().Contains(keyword) ||
+                    x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword) ||
+                    x.Clinic != null && x.Clinic.ClinicCode.ToLower().Contains(keyword) ||
+                    x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword) ||
+                    x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileCode.ToLower().Contains(keyword) ||
+                    x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileName.ToLower().Contains(keyword));
             }
 
             if (isActive.HasValue)
@@ -280,11 +281,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 query = query.Where(x =>
                     x.DeviceCode.ToLower().Contains(keyword) ||
                     x.DeviceName.ToLower().Contains(keyword) ||
-                    (x.SerialNumber != null && x.SerialNumber.ToLower().Contains(keyword)) ||
-                    (x.LocationName != null && x.LocationName.ToLower().Contains(keyword)) ||
-                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
-                    (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)) ||
-                    (x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileName.ToLower().Contains(keyword)));
+                    x.SerialNumber != null && x.SerialNumber.ToLower().Contains(keyword) ||
+                    x.LocationName != null && x.LocationName.ToLower().Contains(keyword) ||
+                    x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword) ||
+                    x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword) ||
+                    x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileName.ToLower().Contains(keyword));
             }
 
             var totalData = await query.CountAsync();

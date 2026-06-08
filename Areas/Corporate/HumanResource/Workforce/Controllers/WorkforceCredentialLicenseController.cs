@@ -234,8 +234,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 .Include(x => x.RevokedByUser)
                 .ToListAsync();
 
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .Select(x => x.CreateBy)
+                    .Where(x => x != Guid.Empty)
+            );
+
             var items = entities
-                .Select(x => MapResponse(x, profile))
+                .Select(x => MapResponse(x, profile, actorNames))
                 .ToList();
 
             var result = new ResponseWorkforceCredentialLicensePagedResult
@@ -262,7 +268,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             [FromQuery] WorkforceCredentialLicenseType? licenseType,
             [FromQuery] CredentialVerificationStatus? verificationStatus,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] bool? isCurrentlyValid = null,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
@@ -294,13 +299,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             );
 
             var today = DateTime.UtcNow.Date;
-
-            if (isCurrentlyValid.HasValue)
-            {
-                query = isCurrentlyValid.Value
-                    ? query.Where(x => x.IsActive && x.IsVerified && x.VerificationStatus == CredentialVerificationStatus.Verified && x.ExpiredDate.Date >= today)
-                    : query.Where(x => !x.IsActive || !x.IsVerified || x.VerificationStatus != CredentialVerificationStatus.Verified || x.ExpiredDate.Date < today);
-            }
 
             var totalData = await query.CountAsync();
 
@@ -1453,7 +1451,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             return (rootPath, publicRequestPath);
         }
 
-        private WorkforceCredentialLicenseResponse MapResponse(WfpCredentialLicense entity, MstWorkforceProfile profile)
+        private WorkforceCredentialLicenseResponse MapResponse(
+            WfpCredentialLicense entity,
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             var today = DateTime.UtcNow.Date;
             var hasFile = !string.IsNullOrWhiteSpace(entity.FilePath);
@@ -1500,13 +1501,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                     entity.ExpiredDate.Date >= today,
                 IsActive = entity.IsActive,
                 Description = entity.Description,
-                CreateDateTime = entity.CreateDateTime
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
             };
         }
 
-        private WorkforceCredentialLicenseDetailResponse MapDetailResponse(WfpCredentialLicense entity, MstWorkforceProfile profile)
+        private WorkforceCredentialLicenseDetailResponse MapDetailResponse(
+            WfpCredentialLicense entity,
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var response = MapResponse(entity, profile);
+            var response = MapResponse(entity, profile, actorNames);
 
             return new WorkforceCredentialLicenseDetailResponse
             {
@@ -1547,9 +1553,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 IsActive = response.IsActive,
                 Description = response.Description,
                 CreateDateTime = response.CreateDateTime,
-                UpdateDateTime = entity.UpdateDateTime,
-                CreateBy = entity.CreateBy,
-                UpdateBy = entity.UpdateBy
+                CreateBy = response.CreateBy,
+                CreateByName = response.CreateByName,
+                UpdateDateTime = entity.UpdateDateTime.HasValue && entity.UpdateDateTime.Value == DateTime.MinValue
+                    ? null
+                    : entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
         }
 
@@ -1569,9 +1579,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 .Include(x => x.RevokedByUser)
                 .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
 
-            return entity == null
-                ? null
-                : MapDetailResponse(entity, profile);
+            if (entity == null)
+            {
+                return null;
+            }
+
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            return MapDetailResponse(entity, profile, actorNames);
         }
 
         private string BuildEndpointUrl(Guid workforceProfileId, Guid id, string action)
@@ -1594,6 +1613,47 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             return await _dbContext.Set<MstWorkforceProfile>()
                 .AsNoTracking()
                 .AnyAsync(x => x.Id == workforceProfileId && !x.IsDelete);
+        }
+
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
+        {
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
         }
 
         private async Task DeactivateOtherPrimaryAsync(

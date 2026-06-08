@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
 {
@@ -19,7 +20,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
         public Guid WorkforceProfileId { get; set; }
         public string ProfileCode { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
+
+        public Guid BankId { get; set; }
+        public string BankCode { get; set; } = string.Empty;
         public string BankName { get; set; } = string.Empty;
+        public string? BankShortName { get; set; }
+        public BankCategory BankCategory { get; set; } = BankCategory.Commercial;
+        public string BankCategoryName { get; set; } = string.Empty;
+
         public string AccountNumber { get; set; } = string.Empty;
         public string AccountNumberMasked { get; set; } = string.Empty;
         public string AccountHolderName { get; set; } = string.Empty;
@@ -27,19 +35,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
         public bool IsPrimary { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class WorkforceBankAccountDetailResponse : WorkforceBankAccountResponse
     {
         public DateTime? UpdateDateTime { get; set; }
-        public Guid CreateBy { get; set; }
-        public Guid UpdateBy { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class WorkforceBankAccountOptionResponse
     {
         public Guid Id { get; set; }
+        public Guid BankId { get; set; }
+        public string BankCode { get; set; } = string.Empty;
         public string BankName { get; set; } = string.Empty;
+        public string? BankShortName { get; set; }
         public string AccountNumberMasked { get; set; } = string.Empty;
         public string AccountHolderName { get; set; } = string.Empty;
         public string? BankBranch { get; set; }
@@ -65,7 +78,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
         public List<WorkforceBankAccountSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
-        public List<WorkforceBankAccountSimpleOptionResponse> BankNameExamples { get; set; } = new();
+        public string BankOptionsEndpoint { get; set; } = "/api/v1/administrator/master-data/banks/options";
         public WorkforceBankAccountFrontendGuideResponse FrontendGuide { get; set; } = new();
     }
 
@@ -74,6 +87,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string? CustomPeriod { get; set; }
+        public Guid? BankId { get; set; }
         public bool? IsPrimary { get; set; }
         public bool? IsActive { get; set; }
         public string? Search { get; set; }
@@ -95,16 +109,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
         public string Label { get; set; } = string.Empty;
     }
 
-    public class WorkforceBankAccountSimpleOptionResponse
-    {
-        public string Value { get; set; } = string.Empty;
-        public string Label { get; set; } = string.Empty;
-    }
-
     public class WorkforceBankAccountFrontendGuideResponse
     {
-        public string BankNameInstruction { get; set; } =
-            "BankName diisi nama bank, misalnya BCA, Mandiri, BRI, BNI, BSI. Field ini text agar tetap fleksibel jika ada bank baru.";
+        public string BankInstruction { get; set; } =
+            "Bank dipilih dari Master Data Bank menggunakan BankId. Frontend dapat mengambil opsi bank dari BankOptionsEndpoint.";
 
         public string AccountNumberInstruction { get; set; } =
             "AccountNumber diisi nomor rekening. Backend akan menormalisasi menjadi angka saja, contoh input 123-456 789 menjadi 123456789.";
@@ -119,8 +127,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
     public class CreateWorkforceBankAccountRequest
     {
         [Required]
-        [MaxLength(100)]
-        public string BankName { get; set; } = string.Empty;
+        public Guid BankId { get; set; }
 
         [Required]
         [MaxLength(100)]
@@ -142,8 +149,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
     public class UpdateWorkforceBankAccountRequest
     {
         [Required]
-        [MaxLength(100)]
-        public string BankName { get; set; } = string.Empty;
+        public Guid BankId { get; set; }
 
         [Required]
         [MaxLength(100)]

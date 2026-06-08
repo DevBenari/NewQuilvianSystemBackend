@@ -2,34 +2,34 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
+namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
 {
-    [Table("MstCompanyGuarantor", Schema = "public")]
-    public class MstCompanyGuarantor : IdentityModel
+    [Table("MstInsuranceProvider", Schema = "public")]
+    public class MstInsuranceProvider : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
         [MaxLength(50)]
-        public string CompanyGuarantorCode { get; set; } = string.Empty;
+        public string InsuranceProviderCode { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(200)]
-        public string CompanyGuarantorName { get; set; } = string.Empty;
+        public string InsuranceProviderName { get; set; } = string.Empty;
 
         [MaxLength(100)]
-        public string? CompanyGroupName { get; set; }
+        public string? InsuranceGroupName { get; set; }
 
         [MaxLength(50)]
-        public string GuarantorType { get; set; } = "Corporate";
-        // Corporate, Government, Foundation, School, Other
+        public string ProviderType { get; set; } = "PrivateInsurance";
+        // PrivateInsurance, TPA, GovernmentInsurance, CorporateInsurance, Other
 
         [MaxLength(50)]
-        public string BillingMethod { get; set; } = "Invoice";
-        // Invoice, Deposit, Mixed
+        public string ClaimMethod { get; set; } = "Cashless";
+        // Cashless, Reimbursement, GuaranteeLetter, Mixed
 
         [MaxLength(50)]
-        public string? ExternalCompanyCode { get; set; }
+        public string? ExternalProviderCode { get; set; }
 
         [MaxLength(50)]
         public string? IntegrationCode { get; set; }
@@ -41,27 +41,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 
         public DateTime? ContractEndDate { get; set; }
 
-        public bool IsUsingCompanyTariffBook { get; set; } = true;
+        public bool IsUsingInsuranceTariffBook { get; set; } = true;
 
         public bool IsUsingHospitalTariff { get; set; } = false;
 
+        public bool IsNeedEligibilityCheck { get; set; } = true;
+
         public bool IsNeedGuaranteeLetter { get; set; } = true;
 
-        public bool IsNeedEmployeeVerification { get; set; } = true;
+        public bool IsNeedReferralLetter { get; set; } = false;
 
         public bool IsNeedApprovalForProcedure { get; set; } = true;
 
         public bool IsNeedApprovalForDrug { get; set; } = false;
 
-        public bool IsCoverageLimitedByEmployeeGrade { get; set; } = true;
+        public bool IsCoverageLimitedByPlan { get; set; } = true;
 
         public bool IsAllowExcessPaymentByPatient { get; set; } = true;
-
-        public decimal? CreditLimitAmount { get; set; }
-
-        public decimal? CurrentOutstandingAmount { get; set; }
-
-        public int PaymentDueDays { get; set; } = 30;
 
         [MaxLength(100)]
         public string? PicName { get; set; }

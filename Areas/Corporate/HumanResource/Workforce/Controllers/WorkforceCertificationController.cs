@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Net.Http.Headers;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs;
@@ -12,7 +12,6 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
-using System.Globalization;
 using System.Security.Claims;
 
 using ResponseWorkforceCertificationPagedResult =
@@ -222,8 +221,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 .Take(pageSize)
                 .ToListAsync();
 
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .Select(x => x.CreateBy)
+                    .Where(x => x != Guid.Empty)
+            );
+
             var items = entities
-                .Select(x => MapResponse(x, profile))
+                .Select(x => MapResponse(x, profile, actorNames))
                 .ToList();
 
             var result = new ResponseWorkforceCertificationPagedResult
@@ -340,8 +345,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAuditResponse(data);
+
             return Ok(ApiResponse<WorkforceCertificationDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Detail certification workforce berhasil diambil."
             ));
         }
@@ -398,8 +412,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 CertificationName = NormalizeRequiredText(request.CertificationName),
                 Issuer = NormalizeNullableText(request.Issuer),
                 CertificateNumber = NormalizeNullableText(request.CertificateNumber),
-                IssueDate = request.IssueDate.Date,
-                ExpiredDate = request.IsLifetime ? null : request.ExpiredDate?.Date,
+                IssueDate = ToUtcDate(request.IssueDate),
+                ExpiredDate = request.IsLifetime ? null : ToNullableUtcDate(request.ExpiredDate),
                 IsLifetime = request.IsLifetime,
                 FilePath = filePath,
                 FileContentType = fileContentType,
@@ -415,6 +429,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             _dbContext.Set<WfpCertification>().Add(entity);
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[] { entity.CreateBy });
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAuditResponse(data);
+
             await _loggerService.InfoAsync(
                 LogCategory,
                 "WorkforceCertification.CreateCertification",
@@ -423,7 +441,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             );
 
             return Ok(ApiResponse<WorkforceCertificationDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Certification workforce berhasil dibuat."
             ));
         }
@@ -489,8 +507,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             entity.CertificationName = NormalizeRequiredText(request.CertificationName);
             entity.Issuer = NormalizeNullableText(request.Issuer);
             entity.CertificateNumber = NormalizeNullableText(request.CertificateNumber);
-            entity.IssueDate = request.IssueDate.Date;
-            entity.ExpiredDate = request.IsLifetime ? null : request.ExpiredDate?.Date;
+            entity.IssueDate = ToUtcDate(request.IssueDate);
+            entity.ExpiredDate = request.IsLifetime ? null : ToNullableUtcDate(request.ExpiredDate);
             entity.IsLifetime = request.IsLifetime;
             entity.IsVerified = request.IsVerified;
             entity.IsActive = request.IsActive;
@@ -500,8 +518,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAuditResponse(data);
+
             return Ok(ApiResponse<WorkforceCertificationDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Certification workforce berhasil diperbarui."
             ));
         }
@@ -695,12 +722,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsActive = false;
             entity.IsDelete = true;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
@@ -737,8 +767,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
             {
-                var now = DateTime.UtcNow;
-                var today = now.Date;
+                var today = DateTime.UtcNow.Date;
 
                 switch (customPeriod.Trim().ToLowerInvariant())
                 {
@@ -1035,7 +1064,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             return (rootPath, publicRequestPath);
         }
 
-        private WorkforceCertificationResponse MapResponse(WfpCertification entity, MstWorkforceProfile profile)
+        private WorkforceCertificationResponse MapResponse(
+            WfpCertification entity,
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             var today = DateTime.UtcNow.Date;
             var hasFile = !string.IsNullOrWhiteSpace(entity.FilePath);
@@ -1064,13 +1096,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 IsExpired = !entity.IsLifetime && entity.ExpiredDate.HasValue && entity.ExpiredDate.Value.Date < today,
                 IsActive = entity.IsActive,
                 Description = entity.Description,
-                CreateDateTime = entity.CreateDateTime
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
             };
         }
 
-        private WorkforceCertificationDetailResponse MapDetailResponse(WfpCertification entity, MstWorkforceProfile profile)
+        private WorkforceCertificationDetailResponse MapDetailResponse(
+            WfpCertification entity,
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var response = MapResponse(entity, profile);
+            var response = MapResponse(entity, profile, actorNames);
 
             return new WorkforceCertificationDetailResponse
             {
@@ -1097,9 +1134,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 IsActive = response.IsActive,
                 Description = response.Description,
                 CreateDateTime = response.CreateDateTime,
+                CreateBy = response.CreateBy,
+                CreateByName = response.CreateByName,
                 UpdateDateTime = entity.UpdateDateTime,
-                CreateBy = entity.CreateBy,
-                UpdateBy = entity.UpdateBy
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
         }
 
@@ -1123,6 +1162,68 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             return await _dbContext.Set<MstWorkforceProfile>()
                 .AsNoTracking()
                 .AnyAsync(x => x.Id == workforceProfileId && !x.IsDelete);
+        }
+
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static void NormalizeAuditResponse(WorkforceCertificationDetailResponse data)
+        {
+            if (data.UpdateDateTime.HasValue &&
+                data.UpdateDateTime.Value == DateTime.MinValue)
+            {
+                data.UpdateDateTime = null;
+            }
+
+            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
+            {
+                data.CreateBy = null;
+                data.CreateByName = null;
+            }
+
+            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
+            {
+                data.UpdateBy = null;
+                data.UpdateByName = null;
+            }
+        }
+
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
+        {
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
@@ -1160,6 +1261,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private static DateTime ToUtcDate(DateTime value)
+        {
+            return DateTime.SpecifyKind(value.Date, DateTimeKind.Utc);
+        }
+
+        private static DateTime? ToNullableUtcDate(DateTime? value)
+        {
+            return value.HasValue
+                ? DateTime.SpecifyKind(value.Value.Date, DateTimeKind.Utc)
+                : null;
         }
 
         private static string SanitizeFileName(string value)

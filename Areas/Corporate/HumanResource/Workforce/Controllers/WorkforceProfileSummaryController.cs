@@ -534,17 +534,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 x.IsActive);
 
             var primaryBank = await bankQuery
-                .Where(x => x.IsPrimary && x.IsActive)
-                .Select(x => new
-                {
-                    x.BankName,
-                    x.AccountNumber
-                })
-                .FirstOrDefaultAsync();
+             .Where(x => x.IsPrimary && x.IsActive)
+             .Select(x => new
+             {
+                 BankName = x.Bank != null ? x.Bank.BankName : string.Empty,
+                 BankShortName = x.Bank != null ? x.Bank.BankShortName : null,
+                 x.AccountNumber
+             })
+             .FirstOrDefaultAsync();
 
             if (primaryBank != null)
             {
-                result.BankInsurance.PrimaryBankName = primaryBank.BankName;
+                result.BankInsurance.PrimaryBankName =
+                    !string.IsNullOrWhiteSpace(primaryBank.BankShortName)
+                        ? primaryBank.BankShortName
+                        : primaryBank.BankName;
+
                 result.BankInsurance.PrimaryAccountNumberMasked = MaskNumber(primaryBank.AccountNumber);
             }
 

@@ -1,4 +1,5 @@
-﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
+﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -14,8 +15,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models
         public Guid WorkforceProfileId { get; set; }
 
         [Required]
-        [MaxLength(100)]
-        public string BankName { get; set; } = string.Empty;
+        public Guid BankId { get; set; }
 
         [Required]
         [MaxLength(100)]
@@ -33,5 +33,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models
         public bool IsActive { get; set; } = true;
 
         public MstWorkforceProfile? WorkforceProfile { get; set; }
+
+        public MstBank? Bank { get; set; }
     }
 }

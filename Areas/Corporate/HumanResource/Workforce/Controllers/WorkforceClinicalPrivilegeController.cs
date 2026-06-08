@@ -224,8 +224,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 .Take(pageSize)
                 .ToListAsync();
 
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .Select(x => x.CreateBy)
+                    .Where(x => x != Guid.Empty)
+            );
+
             var items = entities
-                .Select(x => MapResponse(x, profile))
+                .Select(x => MapResponse(x, profile, actorNames))
                 .ToList();
 
             var result = new ResponseWorkforceClinicalPrivilegePagedResult
@@ -345,8 +351,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAuditResponse(data);
+
             return Ok(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Detail clinical privilege workforce berhasil diambil."
             ));
         }
@@ -439,8 +454,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 new { workforceProfileId, entity.Id, entity.PrivilegeCode, entity.PrivilegeName, entity.PrivilegeStatus }
             );
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAuditResponse(data);
+
             return Ok(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Clinical privilege workforce berhasil dibuat."
             ));
         }
@@ -545,8 +569,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAuditResponse(data);
+
             return Ok(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Clinical privilege workforce berhasil diperbarui."
             ));
         }
@@ -1249,8 +1282,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAuditResponse(data);
+
             return Ok(ApiResponse<WorkforceClinicalPrivilegeDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 $"Clinical privilege workforce berhasil di-{actionName}."
             ));
         }
@@ -1397,7 +1439,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             return (rootPath, publicRequestPath);
         }
 
-        private WorkforceClinicalPrivilegeResponse MapResponse(WfpClinicalPrivilege entity, MstWorkforceProfile profile)
+        private WorkforceClinicalPrivilegeResponse MapResponse(
+            WfpClinicalPrivilege entity,
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             var today = DateTime.UtcNow.Date;
             var hasFile = !string.IsNullOrWhiteSpace(entity.SupportingFilePath);
@@ -1463,13 +1508,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 IsCurrentlyValid = entity.IsActive && runtimeStatus == ClinicalPrivilegeStatus.Active && (!entity.EffectiveEndDate.HasValue || entity.EffectiveEndDate.Value.Date >= today),
                 IsActive = entity.IsActive,
                 Description = entity.Description,
-                CreateDateTime = entity.CreateDateTime
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
             };
         }
 
-        private WorkforceClinicalPrivilegeDetailResponse MapDetailResponse(WfpClinicalPrivilege entity, MstWorkforceProfile profile)
+        private WorkforceClinicalPrivilegeDetailResponse MapDetailResponse(
+            WfpClinicalPrivilege entity,
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var response = MapResponse(entity, profile);
+            var response = MapResponse(entity, profile, actorNames);
 
             return new WorkforceClinicalPrivilegeDetailResponse
             {
@@ -1532,10 +1582,74 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 IsActive = response.IsActive,
                 Description = response.Description,
                 CreateDateTime = response.CreateDateTime,
+                CreateBy = response.CreateBy,
+                CreateByName = response.CreateByName,
                 UpdateDateTime = entity.UpdateDateTime,
-                CreateBy = entity.CreateBy,
-                UpdateBy = entity.UpdateBy
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
+        }
+
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static void NormalizeAuditResponse(WorkforceClinicalPrivilegeDetailResponse data)
+        {
+            if (data.UpdateDateTime.HasValue &&
+                data.UpdateDateTime.Value == DateTime.MinValue)
+            {
+                data.UpdateDateTime = null;
+            }
+
+            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
+            {
+                data.CreateBy = null;
+                data.CreateByName = null;
+            }
+
+            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
+            {
+                data.UpdateBy = null;
+                data.UpdateByName = null;
+            }
+        }
+
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
+        {
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
         }
 
         private string BuildEndpointUrl(Guid workforceProfileId, Guid id, string action)

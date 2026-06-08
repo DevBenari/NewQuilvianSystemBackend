@@ -1,4 +1,5 @@
-﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
+﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -25,8 +26,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models
 
         public bool IsPrivateInsuranceEnabled { get; set; } = false;
 
-        [MaxLength(100)]
-        public string? PrivateInsuranceProvider { get; set; }
+        public Guid? PrivateInsuranceProviderId { get; set; }
 
         [MaxLength(100)]
         public string? PrivateInsuranceNumber { get; set; }
@@ -41,5 +41,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models
         public bool IsActive { get; set; } = true;
 
         public MstWorkforceProfile? WorkforceProfile { get; set; }
+
+        public MstInsuranceProvider? PrivateInsuranceProvider { get; set; }
     }
 }

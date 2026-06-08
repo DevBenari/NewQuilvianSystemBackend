@@ -1,7 +1,7 @@
 ﻿using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models
 {

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
+namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
 {
     public class InsuranceProviderSummaryResponse
     {

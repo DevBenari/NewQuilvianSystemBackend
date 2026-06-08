@@ -1,9 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 
-namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
+namespace QuilvianSystemBackend.Repositories.Configurations.Global
 {
     public class MstIdentityScannerProfileConfiguration : IEntityTypeConfiguration<MstIdentityScannerProfile>
     {

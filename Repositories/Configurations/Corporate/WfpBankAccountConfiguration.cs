@@ -12,8 +12,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate
 
             entity.HasKey(x => x.Id);
 
-            entity.Property(x => x.BankName)
-                .HasMaxLength(100)
+            entity.Property(x => x.BankId)
                 .IsRequired();
 
             entity.Property(x => x.AccountNumber)
@@ -37,13 +36,29 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate
                 .HasColumnType("timestamp with time zone")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+            entity.Property(x => x.CreateBy)
+                .HasDefaultValue(Guid.Empty);
+
             entity.Property(x => x.UpdateDateTime)
                 .HasColumnType("timestamp with time zone")
                 .IsRequired(false);
 
+            entity.Property(x => x.UpdateBy)
+                .HasDefaultValue(Guid.Empty);
+
             entity.Property(x => x.DeleteDateTime)
                 .HasColumnType("timestamp with time zone")
                 .IsRequired(false);
+
+            entity.Property(x => x.DeleteBy)
+                .HasDefaultValue(Guid.Empty);
+
+            entity.Property(x => x.CancelDateTime)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired(false);
+
+            entity.Property(x => x.CancelBy)
+                .HasDefaultValue(Guid.Empty);
 
             entity.Property(x => x.IsDelete)
                 .HasDefaultValue(false);
@@ -56,7 +71,22 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate
                 .HasForeignKey(x => x.WorkforceProfileId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.Bank)
+                .WithMany()
+                .HasForeignKey(x => x.BankId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(x => x.WorkforceProfileId);
+
+            entity.HasIndex(x => x.BankId);
+
+            entity.HasIndex(x => new
+            {
+                x.WorkforceProfileId,
+                x.BankId,
+                x.AccountNumber,
+                x.IsDelete
+            });
 
             entity.HasIndex(x => new
             {
@@ -72,6 +102,21 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate
             })
             .HasFilter("\"IsPrimary\" = true AND \"IsActive\" = true AND \"IsDelete\" = false")
             .IsUnique();
+
+            entity.HasIndex(x => new
+            {
+                x.WorkforceProfileId,
+                x.IsActive,
+                x.IsDelete
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.WorkforceProfileId,
+                x.BankId,
+                x.IsActive,
+                x.IsDelete
+            });
         }
     }
 }

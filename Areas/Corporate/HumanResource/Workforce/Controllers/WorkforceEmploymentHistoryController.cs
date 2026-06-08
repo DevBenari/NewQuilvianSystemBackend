@@ -232,7 +232,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 .Take(pageSize)
                 .ToListAsync();
 
-            var items = entities.Select(x => MapResponse(x, profile)).ToList();
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .Select(x => x.CreateBy)
+                    .Where(x => x != Guid.Empty)
+            );
+
+            var items = entities
+                .Select(x => MapResponse(x, profile, actorNames))
+                .ToList();
 
             var result = new ResponseWorkforceEmploymentHistoryPagedResult
             {
@@ -345,8 +353,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAudit(data);
+
             return Ok(ApiResponse<WorkforceEmploymentHistoryDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Detail employment history workforce berhasil diambil."
             ));
         }
@@ -431,8 +448,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 new { entity.Id, entity.WorkforceProfileId, entity.HistoryType }
             );
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                responseEntity.CreateBy,
+                responseEntity.UpdateBy
+            });
+
+            var data = MapDetailResponse(responseEntity, profile, actorNames);
+            NormalizeAudit(data);
+
             return Ok(ApiResponse<WorkforceEmploymentHistoryDetailResponse>.Ok(
-                MapDetailResponse(responseEntity, profile),
+                data,
                 "Employment history workforce berhasil dibuat."
             ));
         }
@@ -523,8 +549,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             var responseEntity = await BuildBaseQuery(workforceProfileId)
                 .FirstAsync(x => x.Id == entity.Id);
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                responseEntity.CreateBy,
+                responseEntity.UpdateBy
+            });
+
+            var data = MapDetailResponse(responseEntity, profile, actorNames);
+            NormalizeAudit(data);
+
             return Ok(ApiResponse<WorkforceEmploymentHistoryDetailResponse>.Ok(
-                MapDetailResponse(responseEntity, profile),
+                data,
                 "Employment history workforce berhasil diperbarui."
             ));
         }
@@ -573,8 +608,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             var responseEntity = await BuildBaseQuery(workforceProfileId)
                 .FirstAsync(x => x.Id == entity.Id);
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                responseEntity.CreateBy,
+                responseEntity.UpdateBy
+            });
+
+            var data = MapDetailResponse(responseEntity, profile, actorNames);
+            NormalizeAudit(data);
+
             return Ok(ApiResponse<WorkforceEmploymentHistoryDetailResponse>.Ok(
-                MapDetailResponse(responseEntity, profile),
+                data,
                 "Status employment history workforce berhasil diperbarui."
             ));
         }
@@ -1156,9 +1200,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             return (rootPath, publicRequestPath);
         }
 
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
         private WorkforceEmploymentHistoryResponse MapResponse(
             WfpEmploymentHistory entity,
-            MstWorkforceProfile profile)
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             var hasFile = !string.IsNullOrWhiteSpace(entity.FilePath);
 
@@ -1198,15 +1270,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 HasFile = hasFile,
                 IsApproved = entity.ApprovedByUserId.HasValue || entity.ApprovedAt.HasValue,
                 IsActive = entity.IsActive,
-                CreateDateTime = entity.CreateDateTime
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
             };
         }
 
         private WorkforceEmploymentHistoryDetailResponse MapDetailResponse(
             WfpEmploymentHistory entity,
-            MstWorkforceProfile profile)
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var response = MapResponse(entity, profile);
+            var response = MapResponse(entity, profile, actorNames);
 
             return new WorkforceEmploymentHistoryDetailResponse
             {
@@ -1245,10 +1320,47 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 IsApproved = response.IsApproved,
                 IsActive = response.IsActive,
                 CreateDateTime = response.CreateDateTime,
+                CreateBy = response.CreateBy,
+                CreateByName = response.CreateByName,
                 UpdateDateTime = entity.UpdateDateTime,
-                CreateBy = entity.CreateBy,
-                UpdateBy = entity.UpdateBy
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
+        }
+
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
+        {
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
+        }
+
+        private static void NormalizeAudit(WorkforceEmploymentHistoryDetailResponse data)
+        {
+            if (data.UpdateDateTime.HasValue &&
+                data.UpdateDateTime.Value == DateTime.MinValue)
+            {
+                data.UpdateDateTime = null;
+            }
+
+            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
+            {
+                data.CreateBy = null;
+                data.CreateByName = null;
+            }
+
+            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
+            {
+                data.UpdateBy = null;
+                data.UpdateByName = null;
+            }
         }
 
         private string BuildEndpointUrl(Guid workforceProfileId, Guid id, string action)

@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 
-namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
+namespace QuilvianSystemBackend.Repositories.Configurations.Global
 {
     public class MstSupplierConfiguration : IEntityTypeConfiguration<MstSupplier>
     {

@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
@@ -33,27 +35,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
     public class WorkforceBankAccountController : ControllerBase
     {
         private const string LogCategory = "Corporate.HumanResource.Workforce.BankAccount";
-
-        private static readonly List<string> BankNameExamples = new()
-        {
-            "BCA",
-            "Mandiri",
-            "BRI",
-            "BNI",
-            "BTN",
-            "BSI",
-            "CIMB Niaga",
-            "Danamon",
-            "Permata",
-            "Panin",
-            "Maybank",
-            "OCBC",
-            "Bank DKI",
-            "Bank Jatim",
-            "Bank Jateng",
-            "Bank BJB",
-            "Bank Mega"
-        };
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -95,6 +76,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 SortOptions = new List<WorkforceBankAccountSortOptionResponse>
                 {
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "bankCode", Label = "Kode bank" },
                     new() { Value = "bankName", Label = "Nama bank" },
                     new() { Value = "accountNumber", Label = "Nomor rekening" },
                     new() { Value = "accountHolderName", Label = "Nama pemilik rekening" },
@@ -104,13 +86,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                BankNameExamples = BankNameExamples
-                    .Select(x => new WorkforceBankAccountSimpleOptionResponse
-                    {
-                        Value = x,
-                        Label = x
-                    })
-                    .ToList()
+                BankOptionsEndpoint = "/api/v1/administrator/master-data/banks/options"
             };
 
             await _loggerService.InfoAsync(
@@ -170,6 +146,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
+            [FromQuery] Guid? bankId,
             [FromQuery] bool? isPrimary,
             [FromQuery] bool? isActive,
             [FromQuery] string? search,
@@ -194,7 +171,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             var query = BuildBaseQuery(workforceProfileId);
             query = ApplyDateFilter(query, startDate, endDate, customPeriod);
-            query = ApplyStandardFilter(query, isPrimary, isActive, search);
+            query = ApplyStandardFilter(query, bankId, isPrimary, isActive, search);
 
             var totalData = await query.CountAsync();
 
@@ -203,8 +180,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 .Take(pageSize)
                 .ToListAsync();
 
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .SelectMany(x => new[] { x.CreateBy })
+                    .Where(x => x != Guid.Empty)
+            );
+
             var items = entities
-                .Select(x => MapResponse(x, profile))
+                .Select(x => MapResponse(x, profile, actorNames))
                 .ToList();
 
             var result = new ResponseWorkforceBankAccountPagedResult
@@ -228,6 +211,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         [AccessPermission("WorkforceBankAccount", "Read")]
         public async Task<IActionResult> GetOptions(
             Guid workforceProfileId,
+            [FromQuery] Guid? bankId,
             [FromQuery] bool? isPrimary,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null,
@@ -249,28 +233,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             pageSize = paging.PageSize;
 
             var query = BuildBaseQuery(workforceProfileId);
-            query = ApplyStandardFilter(query, isPrimary, onlyActive ? true : null, search);
+            query = ApplyStandardFilter(query, bankId, isPrimary, onlyActive ? true : null, search);
 
             var totalData = await query.CountAsync();
 
-            var items = await query
+            var entities = await query
                 .OrderByDescending(x => x.IsPrimary)
                 .ThenByDescending(x => x.IsActive)
-                .ThenBy(x => x.BankName)
+                .ThenBy(x => x.Bank != null ? x.Bank.BankName : string.Empty)
                 .ThenBy(x => x.AccountHolderName)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new WorkforceBankAccountOptionResponse
-                {
-                    Id = x.Id,
-                    BankName = x.BankName,
-                    AccountNumberMasked = MaskAccountNumber(x.AccountNumber),
-                    AccountHolderName = x.AccountHolderName,
-                    BankBranch = x.BankBranch,
-                    IsPrimary = x.IsPrimary,
-                    IsActive = x.IsActive
-                })
                 .ToListAsync();
+
+            var items = entities
+                .Select(MapOptionResponse)
+                .ToList();
 
             var result = new WorkforceBankAccountOptionPagedResponse
             {
@@ -315,8 +293,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAuditResponse(data);
+
             return Ok(ApiResponse<WorkforceBankAccountDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Detail rekening bank workforce berhasil diambil."
             ));
         }
@@ -343,7 +330,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             var validation = await ValidateRequestAsync(
                 workforceProfileId,
                 excludeId: null,
-                request.BankName,
+                request.BankId,
                 request.AccountNumber,
                 request.AccountHolderName);
 
@@ -379,7 +366,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 {
                     Id = Guid.NewGuid(),
                     WorkforceProfileId = workforceProfileId,
-                    BankName = NormalizeRequiredText(request.BankName),
+                    BankId = request.BankId,
                     AccountNumber = NormalizeAccountNumber(request.AccountNumber),
                     AccountHolderName = NormalizeRequiredText(request.AccountHolderName),
                     BankBranch = NormalizeNullableText(request.BankBranch),
@@ -395,21 +382,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
                 if (shouldBePrimary)
                 {
-                    await ApplyPrimaryBankAccountAsync(workforceProfileId, entity, now, actorUserId);
+                    await ApplyPrimaryBankAccountAsync(
+                        workforceProfileId,
+                        entity,
+                        now,
+                        actorUserId,
+                        updateTargetAudit: false
+                    );
                 }
 
                 await _dbContext.SaveChangesAsync();
+                await _dbContext.Entry(entity).Reference(x => x.Bank).LoadAsync();
                 await transaction.CommitAsync();
+
+                var actorNames = await GetActorNameMapAsync(new[] { entity.CreateBy });
+                var data = MapDetailResponse(entity, profile, actorNames);
+                NormalizeAuditResponse(data);
 
                 await _loggerService.InfoAsync(
                     LogCategory,
                     "WorkforceBankAccount.CreateBankAccount",
                     "Rekening bank workforce berhasil dibuat.",
-                    new { workforceProfileId, entity.Id, entity.BankName, entity.IsPrimary }
+                    new { workforceProfileId, entity.Id, entity.BankId, entity.IsPrimary }
                 );
 
                 return Ok(ApiResponse<WorkforceBankAccountDetailResponse>.Ok(
-                    MapDetailResponse(entity, profile),
+                    data,
                     "Rekening bank workforce berhasil dibuat."
                 ));
             }
@@ -456,7 +454,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             }
 
             var entity = await _dbContext.Set<WfpBankAccount>()
-                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
+                .Include(x => x.Bank)
+                .FirstOrDefaultAsync(x =>
+                    x.Id == id &&
+                    x.WorkforceProfileId == workforceProfileId &&
+                    !x.IsDelete);
 
             if (entity == null)
             {
@@ -485,7 +487,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             var validation = await ValidateRequestAsync(
                 workforceProfileId,
                 id,
-                request.BankName,
+                request.BankId,
                 request.AccountNumber,
                 request.AccountHolderName);
 
@@ -504,7 +506,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             try
             {
-                entity.BankName = NormalizeRequiredText(request.BankName);
+                entity.BankId = request.BankId;
                 entity.AccountNumber = NormalizeAccountNumber(request.AccountNumber);
                 entity.AccountHolderName = NormalizeRequiredText(request.AccountHolderName);
                 entity.BankBranch = NormalizeNullableText(request.BankBranch);
@@ -514,14 +516,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
                 if (request.IsPrimary)
                 {
-                    await ApplyPrimaryBankAccountAsync(workforceProfileId, entity, now, actorUserId);
+                    await ApplyPrimaryBankAccountAsync(
+                        workforceProfileId,
+                        entity,
+                        now,
+                        actorUserId,
+                        updateTargetAudit: true
+                    );
                 }
 
                 await _dbContext.SaveChangesAsync();
+                await _dbContext.Entry(entity).Reference(x => x.Bank).LoadAsync();
                 await transaction.CommitAsync();
 
+                var actorNames = await GetActorNameMapAsync(new[]
+                {
+                    entity.CreateBy,
+                    entity.UpdateBy
+                });
+
+                var data = MapDetailResponse(entity, profile, actorNames);
+                NormalizeAuditResponse(data);
+
                 return Ok(ApiResponse<WorkforceBankAccountDetailResponse>.Ok(
-                    MapDetailResponse(entity, profile),
+                    data,
                     "Rekening bank workforce berhasil diperbarui."
                 ));
             }
@@ -558,7 +576,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             [FromBody] UpdateWorkforceBankAccountStatusRequest request)
         {
             var entity = await _dbContext.Set<WfpBankAccount>()
-                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
+                .FirstOrDefaultAsync(x =>
+                    x.Id == id &&
+                    x.WorkforceProfileId == workforceProfileId &&
+                    !x.IsDelete);
 
             if (entity == null)
             {
@@ -617,7 +638,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             }
 
             var entity = await _dbContext.Set<WfpBankAccount>()
-                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
+                .Include(x => x.Bank)
+                .FirstOrDefaultAsync(x =>
+                    x.Id == id &&
+                    x.WorkforceProfileId == workforceProfileId &&
+                    !x.IsDelete);
 
             if (entity == null)
             {
@@ -642,12 +667,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             try
             {
-                await ApplyPrimaryBankAccountAsync(workforceProfileId, entity, now, actorUserId);
+                await ApplyPrimaryBankAccountAsync(
+                    workforceProfileId,
+                    entity,
+                    now,
+                    actorUserId,
+                    updateTargetAudit: true
+                );
+
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                var actorNames = await GetActorNameMapAsync(new[]
+                {
+                    entity.CreateBy,
+                    entity.UpdateBy
+                });
+
+                var data = MapDetailResponse(entity, profile, actorNames);
+                NormalizeAuditResponse(data);
+
                 return Ok(ApiResponse<WorkforceBankAccountDetailResponse>.Ok(
-                    MapDetailResponse(entity, profile),
+                    data,
                     "Rekening bank primary workforce berhasil diperbarui."
                 ));
             }
@@ -681,7 +722,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         public async Task<IActionResult> DeleteBankAccount(Guid workforceProfileId, Guid id)
         {
             var entity = await _dbContext.Set<WfpBankAccount>()
-                .FirstOrDefaultAsync(x => x.Id == id && x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
+                .FirstOrDefaultAsync(x =>
+                    x.Id == id &&
+                    x.WorkforceProfileId == workforceProfileId &&
+                    !x.IsDelete);
 
             if (entity == null)
             {
@@ -721,7 +765,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         {
             return _dbContext.Set<WfpBankAccount>()
                 .AsNoTracking()
-                .Where(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete);
+                .Include(x => x.Bank)
+                .Where(x =>
+                    x.WorkforceProfileId == workforceProfileId &&
+                    !x.IsDelete);
         }
 
         private static IQueryable<WfpBankAccount> ApplyDateFilter(
@@ -742,29 +789,58 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 query = query.Where(x => x.CreateDateTime < end);
             }
 
-            if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
+            if (!startDate.HasValue &&
+                !endDate.HasValue &&
+                !string.IsNullOrWhiteSpace(customPeriod))
             {
                 var today = DateTime.UtcNow.Date;
 
                 switch (customPeriod.Trim().ToLowerInvariant())
                 {
                     case "today":
-                        query = query.Where(x => x.CreateDateTime >= today && x.CreateDateTime < today.AddDays(1));
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today &&
+                            x.CreateDateTime < today.AddDays(1));
                         break;
 
                     case "last7days":
-                        query = query.Where(x => x.CreateDateTime >= today.AddDays(-6) && x.CreateDateTime < today.AddDays(1));
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today.AddDays(-6) &&
+                            x.CreateDateTime < today.AddDays(1));
                         break;
 
                     case "thismonth":
-                        var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-                        query = query.Where(x => x.CreateDateTime >= thisMonthStart && x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        var thisMonthStart = new DateTime(
+                            today.Year,
+                            today.Month,
+                            1,
+                            0,
+                            0,
+                            0,
+                            DateTimeKind.Utc
+                        );
+
+                        query = query.Where(x =>
+                            x.CreateDateTime >= thisMonthStart &&
+                            x.CreateDateTime < thisMonthStart.AddMonths(1));
                         break;
 
                     case "lastmonth":
-                        var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        var currentMonthStart = new DateTime(
+                            today.Year,
+                            today.Month,
+                            1,
+                            0,
+                            0,
+                            0,
+                            DateTimeKind.Utc
+                        );
+
                         var lastMonthStart = currentMonthStart.AddMonths(-1);
-                        query = query.Where(x => x.CreateDateTime >= lastMonthStart && x.CreateDateTime < currentMonthStart);
+
+                        query = query.Where(x =>
+                            x.CreateDateTime >= lastMonthStart &&
+                            x.CreateDateTime < currentMonthStart);
                         break;
                 }
             }
@@ -774,15 +850,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
         private static IQueryable<WfpBankAccount> ApplyStandardFilter(
             IQueryable<WfpBankAccount> query,
+            Guid? bankId,
             bool? isPrimary,
             bool? isActive,
             string? search)
         {
+            if (bankId.HasValue && bankId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.BankId == bankId.Value);
+            }
+
             if (isPrimary.HasValue)
+            {
                 query = query.Where(x => x.IsPrimary == isPrimary.Value);
+            }
 
             if (isActive.HasValue)
+            {
                 query = query.Where(x => x.IsActive == isActive.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -790,7 +876,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 var accountKeyword = NormalizeAccountNumber(search);
 
                 query = query.Where(x =>
-                    x.BankName.ToLower().Contains(keyword) ||
+                    (x.Bank != null && x.Bank.BankCode.ToLower().Contains(keyword)) ||
+                    (x.Bank != null && x.Bank.BankName.ToLower().Contains(keyword)) ||
+                    (x.Bank != null && x.Bank.BankShortName != null && x.Bank.BankShortName.ToLower().Contains(keyword)) ||
                     x.AccountHolderName.ToLower().Contains(keyword) ||
                     (x.BankBranch != null && x.BankBranch.ToLower().Contains(keyword)) ||
                     (!string.IsNullOrWhiteSpace(accountKeyword) && x.AccountNumber.Contains(accountKeyword)));
@@ -808,39 +896,85 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             return (sortBy ?? "createDateTime").Trim().ToLowerInvariant() switch
             {
-                "bankname" => isDescending ? query.OrderByDescending(x => x.BankName) : query.OrderBy(x => x.BankName),
-                "accountnumber" => isDescending ? query.OrderByDescending(x => x.AccountNumber) : query.OrderBy(x => x.AccountNumber),
-                "accountholdername" => isDescending ? query.OrderByDescending(x => x.AccountHolderName) : query.OrderBy(x => x.AccountHolderName),
-                "bankbranch" => isDescending ? query.OrderByDescending(x => x.BankBranch) : query.OrderBy(x => x.BankBranch),
-                "isprimary" => isDescending ? query.OrderByDescending(x => x.IsPrimary).ThenBy(x => x.BankName) : query.OrderBy(x => x.IsPrimary).ThenBy(x => x.BankName),
-                "isactive" => isDescending ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.BankName) : query.OrderBy(x => x.IsActive).ThenBy(x => x.BankName),
-                _ => isDescending ? query.OrderByDescending(x => x.CreateDateTime).ThenByDescending(x => x.IsPrimary) : query.OrderBy(x => x.CreateDateTime).ThenByDescending(x => x.IsPrimary)
+                "bankcode" => isDescending
+                    ? query.OrderByDescending(x => x.Bank != null ? x.Bank.BankCode : string.Empty)
+                    : query.OrderBy(x => x.Bank != null ? x.Bank.BankCode : string.Empty),
+
+                "bankname" => isDescending
+                    ? query.OrderByDescending(x => x.Bank != null ? x.Bank.BankName : string.Empty)
+                    : query.OrderBy(x => x.Bank != null ? x.Bank.BankName : string.Empty),
+
+                "accountnumber" => isDescending
+                    ? query.OrderByDescending(x => x.AccountNumber)
+                    : query.OrderBy(x => x.AccountNumber),
+
+                "accountholdername" => isDescending
+                    ? query.OrderByDescending(x => x.AccountHolderName)
+                    : query.OrderBy(x => x.AccountHolderName),
+
+                "bankbranch" => isDescending
+                    ? query.OrderByDescending(x => x.BankBranch)
+                    : query.OrderBy(x => x.BankBranch),
+
+                "isprimary" => isDescending
+                    ? query.OrderByDescending(x => x.IsPrimary).ThenBy(x => x.Bank != null ? x.Bank.BankName : string.Empty)
+                    : query.OrderBy(x => x.IsPrimary).ThenBy(x => x.Bank != null ? x.Bank.BankName : string.Empty),
+
+                "isactive" => isDescending
+                    ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.Bank != null ? x.Bank.BankName : string.Empty)
+                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.Bank != null ? x.Bank.BankName : string.Empty),
+
+                _ => isDescending
+                    ? query.OrderByDescending(x => x.CreateDateTime).ThenByDescending(x => x.IsPrimary)
+                    : query.OrderBy(x => x.CreateDateTime).ThenByDescending(x => x.IsPrimary)
             };
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             Guid workforceProfileId,
             Guid? excludeId,
-            string? bankName,
+            Guid bankId,
             string? accountNumber,
             string? accountHolderName)
         {
-            if (string.IsNullOrWhiteSpace(bankName))
-                return (false, "Nama bank wajib diisi.");
+            if (bankId == Guid.Empty)
+            {
+                return (false, "Bank wajib dipilih.");
+            }
+
+            var bankExists = await _dbContext.Set<MstBank>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.Id == bankId &&
+                    x.IsActive &&
+                    !x.IsDelete);
+
+            if (!bankExists)
+            {
+                return (false, "Bank tidak valid atau tidak aktif.");
+            }
 
             if (string.IsNullOrWhiteSpace(accountNumber))
+            {
                 return (false, "Nomor rekening wajib diisi.");
+            }
 
             if (string.IsNullOrWhiteSpace(accountHolderName))
+            {
                 return (false, "Nama pemilik rekening wajib diisi.");
+            }
 
             var normalizedAccountNumber = NormalizeAccountNumber(accountNumber);
 
             if (string.IsNullOrWhiteSpace(normalizedAccountNumber))
+            {
                 return (false, "Nomor rekening wajib berisi angka.");
+            }
 
             if (normalizedAccountNumber.Length < 5)
+            {
                 return (false, "Nomor rekening minimal 5 digit.");
+            }
 
             var duplicateQuery = _dbContext.Set<WfpBankAccount>()
                 .AsNoTracking()
@@ -850,10 +984,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                     !x.IsDelete);
 
             if (excludeId.HasValue)
+            {
                 duplicateQuery = duplicateQuery.Where(x => x.Id != excludeId.Value);
+            }
 
             if (await duplicateQuery.AnyAsync())
+            {
                 return (false, "Nomor rekening sudah terdaftar pada workforce profile ini.");
+            }
 
             return (true, null);
         }
@@ -862,7 +1000,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             Guid workforceProfileId,
             WfpBankAccount bankAccount,
             DateTime now,
-            Guid actorUserId)
+            Guid actorUserId,
+            bool updateTargetAudit)
         {
             var currentPrimaries = await _dbContext.Set<WfpBankAccount>()
                 .Where(x =>
@@ -881,13 +1020,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             bankAccount.IsPrimary = true;
             bankAccount.IsActive = true;
-            bankAccount.UpdateDateTime = now;
-            bankAccount.UpdateBy = actorUserId;
+
+            if (updateTargetAudit)
+            {
+                bankAccount.UpdateDateTime = now;
+                bankAccount.UpdateBy = actorUserId;
+            }
         }
 
         private WorkforceBankAccountResponse MapResponse(
             WfpBankAccount entity,
-            MstWorkforceProfile profile)
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             return new WorkforceBankAccountResponse
             {
@@ -895,22 +1039,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 WorkforceProfileId = entity.WorkforceProfileId,
                 ProfileCode = profile.ProfileCode,
                 DisplayName = profile.DisplayName,
-                BankName = entity.BankName,
+                BankId = entity.BankId,
+                BankCode = entity.Bank != null ? entity.Bank.BankCode : string.Empty,
+                BankName = entity.Bank != null ? entity.Bank.BankName : string.Empty,
+                BankShortName = entity.Bank?.BankShortName,
+                BankCategory = entity.Bank != null ? entity.Bank.BankCategory : BankCategory.Commercial,
+                BankCategoryName = entity.Bank != null ? BuildBankCategoryLabel(entity.Bank.BankCategory) : string.Empty,
                 AccountNumber = entity.AccountNumber,
                 AccountNumberMasked = MaskAccountNumber(entity.AccountNumber),
                 AccountHolderName = entity.AccountHolderName,
                 BankBranch = entity.BankBranch,
                 IsPrimary = entity.IsPrimary,
                 IsActive = entity.IsActive,
-                CreateDateTime = entity.CreateDateTime
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
             };
         }
 
         private WorkforceBankAccountDetailResponse MapDetailResponse(
             WfpBankAccount entity,
-            MstWorkforceProfile profile)
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var response = MapResponse(entity, profile);
+            var response = MapResponse(entity, profile, actorNames);
 
             return new WorkforceBankAccountDetailResponse
             {
@@ -918,7 +1070,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 WorkforceProfileId = response.WorkforceProfileId,
                 ProfileCode = response.ProfileCode,
                 DisplayName = response.DisplayName,
+                BankId = response.BankId,
+                BankCode = response.BankCode,
                 BankName = response.BankName,
+                BankShortName = response.BankShortName,
+                BankCategory = response.BankCategory,
+                BankCategoryName = response.BankCategoryName,
                 AccountNumber = response.AccountNumber,
                 AccountNumberMasked = response.AccountNumberMasked,
                 AccountHolderName = response.AccountHolderName,
@@ -926,9 +1083,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 IsPrimary = response.IsPrimary,
                 IsActive = response.IsActive,
                 CreateDateTime = response.CreateDateTime,
+                CreateBy = response.CreateBy,
+                CreateByName = response.CreateByName,
                 UpdateDateTime = entity.UpdateDateTime,
-                CreateBy = entity.CreateBy,
-                UpdateBy = entity.UpdateBy
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
+
+        private static WorkforceBankAccountOptionResponse MapOptionResponse(WfpBankAccount entity)
+        {
+            return new WorkforceBankAccountOptionResponse
+            {
+                Id = entity.Id,
+                BankId = entity.BankId,
+                BankCode = entity.Bank != null ? entity.Bank.BankCode : string.Empty,
+                BankName = entity.Bank != null ? entity.Bank.BankName : string.Empty,
+                BankShortName = entity.Bank?.BankShortName,
+                AccountNumberMasked = MaskAccountNumber(entity.AccountNumber),
+                AccountHolderName = entity.AccountHolderName,
+                BankBranch = entity.BankBranch,
+                IsPrimary = entity.IsPrimary,
+                IsActive = entity.IsActive
             };
         }
 
@@ -946,16 +1122,97 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 .AnyAsync(x => x.Id == workforceProfileId && !x.IsDelete);
         }
 
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static void NormalizeAuditResponse(WorkforceBankAccountDetailResponse data)
+        {
+            if (data.UpdateDateTime.HasValue &&
+                data.UpdateDateTime.Value == DateTime.MinValue)
+            {
+                data.UpdateDateTime = null;
+            }
+
+            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
+            {
+                data.CreateBy = null;
+                data.CreateByName = null;
+            }
+
+            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
+            {
+                data.UpdateBy = null;
+                data.UpdateByName = null;
+            }
+        }
+
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
+        {
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
+        }
+
+        private static string BuildBankCategoryLabel(BankCategory value)
+        {
+            return value switch
+            {
+                BankCategory.Commercial => "Commercial",
+                BankCategory.Syariah => "Syariah",
+                BankCategory.DigitalBank => "Digital Bank",
+                BankCategory.RuralBank => "Rural Bank",
+                BankCategory.Other => "Other",
+                _ => value.ToString()
+            };
+        }
+
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {
             if (pageNumber < 1)
+            {
                 pageNumber = 1;
+            }
 
             if (pageSize < 1)
+            {
                 pageSize = 25;
+            }
 
             if (pageSize > 100)
+            {
                 pageSize = 100;
+            }
 
             return (pageNumber, pageSize);
         }
@@ -988,7 +1245,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             var normalized = NormalizeAccountNumber(value);
 
             if (normalized.Length <= 4)
+            {
                 return normalized;
+            }
 
             var suffix = normalized[^4..];
             var maskedLength = normalized.Length - 4;

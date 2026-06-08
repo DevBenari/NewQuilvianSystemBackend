@@ -162,7 +162,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 InactiveDocument = await query.CountAsync(x => !x.IsActive),
                 VerifiedDocument = await query.CountAsync(x => x.IsVerified),
                 UnverifiedDocument = await query.CountAsync(x => !x.IsVerified),
-                ExpiredDocument = await query.CountAsync(x => x.ExpiredDate.HasValue && x.ExpiredDate.Value < today),
+                ExpiredDocument = await query.CountAsync(x => x.ExpiredDate.HasValue && x.ExpiredDate.Value.Date < today),
                 DocumentWithFile = await query.CountAsync(x => x.FilePath != null && x.FilePath != string.Empty),
                 DocumentWithoutFile = await query.CountAsync(x => x.FilePath == null || x.FilePath == string.Empty),
                 KtpDocument = await query.CountAsync(x => x.DocumentType == "KTP"),
@@ -221,8 +221,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 .Take(pageSize)
                 .ToListAsync();
 
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .Select(x => x.CreateBy)
+                    .Where(x => x != Guid.Empty)
+            );
+
             var items = entities
-                .Select(x => MapResponse(x, profile))
+                .Select(x => MapResponse(x, profile, actorNames))
                 .ToList();
 
             var result = new ResponseWorkforceDocumentPagedResult
@@ -249,7 +255,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             [FromQuery] WorkforceDocumentType? documentType,
             [FromQuery] bool? isVerified,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] bool? isExpired = null,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
@@ -269,7 +274,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             pageSize = paging.PageSize;
 
             var query = BuildBaseQuery(workforceProfileId);
-            query = ApplyStandardFilter(query, documentType, isVerified, onlyActive ? true : null, isExpired, search);
+            query = ApplyStandardFilter(
+                query,
+                documentType,
+                isVerified,
+                onlyActive ? true : null,
+                isExpired: null,
+                search
+            );
 
             var totalData = await query.CountAsync();
             var today = DateTime.UtcNow.Date;
@@ -291,7 +303,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                     ExpiredDate = x.ExpiredDate,
                     HasFile = x.FilePath != null && x.FilePath != string.Empty,
                     IsVerified = x.IsVerified,
-                    IsExpired = x.ExpiredDate.HasValue && x.ExpiredDate.Value < today
+                    IsExpired = x.ExpiredDate.HasValue && x.ExpiredDate.Value.Date < today
                 })
                 .ToListAsync();
 
@@ -338,8 +350,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAudit(data);
+
             return Ok(ApiResponse<WorkforceDocumentDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Detail dokumen workforce berhasil diambil."
             ));
         }
@@ -418,8 +439,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 new { workforceProfileId, entity.Id, entity.RequirementCode }
             );
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAudit(data);
+
             return Ok(ApiResponse<WorkforceDocumentDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Dokumen workforce berhasil dibuat."
             ));
         }
@@ -466,7 +496,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            if (request.File != null && request.ReplaceExistingFile)
+            if (request.ReplaceExistingFile && request.File == null)
+            {
+                DeletePhysicalFileIfExists(entity.FilePath);
+                entity.FilePath = null;
+                entity.FileContentType = null;
+            }
+            else if (request.File != null && request.ReplaceExistingFile)
             {
                 DeletePhysicalFileIfExists(entity.FilePath);
 
@@ -494,8 +530,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAudit(data);
+
             return Ok(ApiResponse<WorkforceDocumentDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Dokumen workforce berhasil diperbarui."
             ));
         }
@@ -787,8 +832,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             {
                 var today = DateTime.UtcNow.Date;
                 query = isExpired.Value
-                    ? query.Where(x => x.ExpiredDate.HasValue && x.ExpiredDate.Value < today)
-                    : query.Where(x => !x.ExpiredDate.HasValue || x.ExpiredDate.Value >= today);
+                    ? query.Where(x => x.ExpiredDate.HasValue && x.ExpiredDate.Value.Date < today)
+                    : query.Where(x => !x.ExpiredDate.HasValue || x.ExpiredDate.Value.Date >= today);
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -1078,7 +1123,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             return (rootPath, publicRequestPath);
         }
 
-        private WorkforceDocumentResponse MapResponse(WfpDocument entity, MstWorkforceProfile profile)
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private WorkforceDocumentResponse MapResponse(
+            WfpDocument entity,
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             var today = DateTime.UtcNow.Date;
             var hasFile = !string.IsNullOrWhiteSpace(entity.FilePath);
@@ -1105,13 +1180,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 IsExpired = entity.ExpiredDate.HasValue && entity.ExpiredDate.Value.Date < today,
                 IsActive = entity.IsActive,
                 Description = entity.Description,
-                CreateDateTime = entity.CreateDateTime
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
             };
         }
 
-        private WorkforceDocumentDetailResponse MapDetailResponse(WfpDocument entity, MstWorkforceProfile profile)
+        private WorkforceDocumentDetailResponse MapDetailResponse(
+            WfpDocument entity,
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var response = MapResponse(entity, profile);
+            var response = MapResponse(entity, profile, actorNames);
 
             return new WorkforceDocumentDetailResponse
             {
@@ -1136,10 +1216,47 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 IsActive = response.IsActive,
                 Description = response.Description,
                 CreateDateTime = response.CreateDateTime,
+                CreateBy = response.CreateBy,
+                CreateByName = response.CreateByName,
                 UpdateDateTime = entity.UpdateDateTime,
-                CreateBy = entity.CreateBy,
-                UpdateBy = entity.UpdateBy
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
+        }
+
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
+        {
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
+        }
+
+        private static void NormalizeAudit(WorkforceDocumentDetailResponse data)
+        {
+            if (data.UpdateDateTime.HasValue &&
+                data.UpdateDateTime.Value == DateTime.MinValue)
+            {
+                data.UpdateDateTime = null;
+            }
+
+            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
+            {
+                data.CreateBy = null;
+                data.CreateByName = null;
+            }
+
+            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
+            {
+                data.UpdateBy = null;
+                data.UpdateByName = null;
+            }
         }
 
         private string BuildEndpointUrl(Guid workforceProfileId, Guid id, string action)

@@ -1,39 +1,39 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 
-namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
+namespace QuilvianSystemBackend.Repositories.Configurations.Global
 {
-    public class MstCompanyGuarantorConfiguration : IEntityTypeConfiguration<MstCompanyGuarantor>
+    public class MstInsuranceProviderConfiguration : IEntityTypeConfiguration<MstInsuranceProvider>
     {
-        public void Configure(EntityTypeBuilder<MstCompanyGuarantor> entity)
+        public void Configure(EntityTypeBuilder<MstInsuranceProvider> entity)
         {
-            entity.ToTable("MstCompanyGuarantor", "public");
+            entity.ToTable("MstInsuranceProvider", "public");
 
             entity.HasKey(x => x.Id);
 
-            entity.Property(x => x.CompanyGuarantorCode)
+            entity.Property(x => x.InsuranceProviderCode)
                 .HasMaxLength(50)
                 .IsRequired();
 
-            entity.Property(x => x.CompanyGuarantorName)
+            entity.Property(x => x.InsuranceProviderName)
                 .HasMaxLength(200)
                 .IsRequired();
 
-            entity.Property(x => x.CompanyGroupName)
+            entity.Property(x => x.InsuranceGroupName)
                 .HasMaxLength(100);
 
-            entity.Property(x => x.GuarantorType)
+            entity.Property(x => x.ProviderType)
                 .HasMaxLength(50)
-                .HasDefaultValue("Corporate")
+                .HasDefaultValue("PrivateInsurance")
                 .IsRequired();
 
-            entity.Property(x => x.BillingMethod)
+            entity.Property(x => x.ClaimMethod)
                 .HasMaxLength(50)
-                .HasDefaultValue("Invoice")
+                .HasDefaultValue("Cashless")
                 .IsRequired();
 
-            entity.Property(x => x.ExternalCompanyCode)
+            entity.Property(x => x.ExternalProviderCode)
                 .HasMaxLength(50);
 
             entity.Property(x => x.IntegrationCode)
@@ -50,17 +50,20 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasColumnType("date")
                 .IsRequired(false);
 
-            entity.Property(x => x.IsUsingCompanyTariffBook)
+            entity.Property(x => x.IsUsingInsuranceTariffBook)
                 .HasDefaultValue(true);
 
             entity.Property(x => x.IsUsingHospitalTariff)
                 .HasDefaultValue(false);
 
+            entity.Property(x => x.IsNeedEligibilityCheck)
+                .HasDefaultValue(true);
+
             entity.Property(x => x.IsNeedGuaranteeLetter)
                 .HasDefaultValue(true);
 
-            entity.Property(x => x.IsNeedEmployeeVerification)
-                .HasDefaultValue(true);
+            entity.Property(x => x.IsNeedReferralLetter)
+                .HasDefaultValue(false);
 
             entity.Property(x => x.IsNeedApprovalForProcedure)
                 .HasDefaultValue(true);
@@ -68,22 +71,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.IsNeedApprovalForDrug)
                 .HasDefaultValue(false);
 
-            entity.Property(x => x.IsCoverageLimitedByEmployeeGrade)
+            entity.Property(x => x.IsCoverageLimitedByPlan)
                 .HasDefaultValue(true);
 
             entity.Property(x => x.IsAllowExcessPaymentByPatient)
                 .HasDefaultValue(true);
-
-            entity.Property(x => x.CreditLimitAmount)
-                .HasColumnType("numeric(18,2)")
-                .IsRequired(false);
-
-            entity.Property(x => x.CurrentOutstandingAmount)
-                .HasColumnType("numeric(18,2)")
-                .IsRequired(false);
-
-            entity.Property(x => x.PaymentDueDays)
-                .HasDefaultValue(30);
 
             entity.Property(x => x.PicName)
                 .HasMaxLength(100);
@@ -140,19 +132,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.IsCancel)
                 .HasDefaultValue(false);
 
-            entity.HasIndex(x => x.CompanyGuarantorCode)
+            entity.HasIndex(x => x.InsuranceProviderCode)
                 .IsUnique();
 
-            entity.HasIndex(x => x.CompanyGuarantorName);
+            entity.HasIndex(x => x.InsuranceProviderName);
 
-            entity.HasIndex(x => x.CompanyGroupName);
+            entity.HasIndex(x => x.ProviderType);
 
-            entity.HasIndex(x => x.GuarantorType);
+            entity.HasIndex(x => x.ClaimMethod);
 
-            entity.HasIndex(x => x.BillingMethod);
-
-            entity.HasIndex(x => x.ExternalCompanyCode)
-                .HasFilter("\"ExternalCompanyCode\" IS NOT NULL");
+            entity.HasIndex(x => x.ExternalProviderCode)
+                .HasFilter("\"ExternalProviderCode\" IS NOT NULL");
 
             entity.HasIndex(x => x.IntegrationCode)
                 .HasFilter("\"IntegrationCode\" IS NOT NULL");
@@ -165,16 +155,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 
             entity.HasIndex(x => new
             {
-                x.GuarantorType,
-                x.BillingMethod,
-                x.IsActive,
-                x.IsDelete
-            });
-
-            entity.HasIndex(x => new
-            {
-                x.ContractStartDate,
-                x.ContractEndDate,
+                x.ProviderType,
+                x.ClaimMethod,
                 x.IsActive,
                 x.IsDelete
             });

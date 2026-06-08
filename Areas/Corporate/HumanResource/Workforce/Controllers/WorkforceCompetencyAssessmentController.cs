@@ -242,7 +242,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 })
                 .ToListAsync();
 
-            var items = rows.Select(x => MapResponse(x, profile)).ToList();
+            var actorNames = await GetActorNameMapAsync(
+                rows
+                    .Select(x => x.CreateBy)
+                    .Where(x => x != Guid.Empty)
+            );
+
+            var items = rows
+                .Select(x => MapResponse(x, profile, actorNames))
+                .ToList();
 
             var result = new ResponseWorkforceCompetencyAssessmentPagedResult
             {
@@ -1057,7 +1065,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             if (row == null)
                 return null;
 
-            return MapDetailResponse(row, profile);
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                row.CreateBy,
+                row.UpdateBy
+            });
+
+            var response = MapDetailResponse(row, profile, actorNames);
+            NormalizeAuditResponse(response);
+
+            return response;
         }
 
         private async Task<(bool IsValid, string Message)> ValidateAssessmentRequestAsync(
@@ -1270,7 +1287,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             return (rootPath, publicRequestPath);
         }
 
-        private WorkforceCompetencyAssessmentResponse MapResponse(AssessmentProjection row, WorkforceProfileHeader profile)
+        private WorkforceCompetencyAssessmentResponse MapResponse(
+            AssessmentProjection row,
+            WorkforceProfileHeader profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             var today = DateTime.UtcNow.Date;
             var hasFile = !string.IsNullOrWhiteSpace(row.FilePath);
@@ -1302,13 +1322,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 Notes = row.Notes,
                 IsVerified = row.IsVerified,
                 IsActive = row.IsActive,
-                CreateDateTime = row.CreateDateTime
+                CreateDateTime = row.CreateDateTime,
+                CreateBy = row.CreateBy == Guid.Empty ? null : (Guid?)row.CreateBy,
+                CreateByName = GetActorName(actorNames, row.CreateBy)
             };
         }
 
-        private WorkforceCompetencyAssessmentDetailResponse MapDetailResponse(AssessmentProjection row, WorkforceProfileHeader profile)
+        private WorkforceCompetencyAssessmentDetailResponse MapDetailResponse(
+            AssessmentProjection row,
+            WorkforceProfileHeader profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var response = MapResponse(row, profile);
+            var response = MapResponse(row, profile, actorNames);
 
             return new WorkforceCompetencyAssessmentDetailResponse
             {
@@ -1338,10 +1363,74 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 IsVerified = response.IsVerified,
                 IsActive = response.IsActive,
                 CreateDateTime = response.CreateDateTime,
+                CreateBy = response.CreateBy,
+                CreateByName = response.CreateByName,
                 UpdateDateTime = row.UpdateDateTime,
-                CreateBy = row.CreateBy,
-                UpdateBy = row.UpdateBy
+                UpdateBy = row.UpdateBy == Guid.Empty ? null : (Guid?)row.UpdateBy,
+                UpdateByName = GetActorName(actorNames, row.UpdateBy)
             };
+        }
+
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
+        {
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
+        }
+
+        private static void NormalizeAuditResponse(WorkforceCompetencyAssessmentDetailResponse data)
+        {
+            if (data.UpdateDateTime.HasValue &&
+                data.UpdateDateTime.Value == DateTime.MinValue)
+            {
+                data.UpdateDateTime = null;
+            }
+
+            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
+            {
+                data.CreateBy = null;
+                data.CreateByName = null;
+            }
+
+            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
+            {
+                data.UpdateBy = null;
+                data.UpdateByName = null;
+            }
         }
 
         private async Task<WorkforceProfileHeader?> GetWorkforceProfileHeaderAsync(Guid workforceProfileId)

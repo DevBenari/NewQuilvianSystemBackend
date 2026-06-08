@@ -246,7 +246,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 .Take(pageSize)
                 .ToListAsync();
 
-            var items = entities.Select(x => MapResponse(x, profile)).ToList();
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .Select(x => x.CreateBy)
+                    .Where(x => x != Guid.Empty)
+            );
+
+            var items = entities
+                .Select(x => MapResponse(x, profile, actorNames))
+                .ToList();
 
             var result = new ResponseWorkforceHealthRecordPagedResult
             {
@@ -271,8 +279,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             Guid workforceProfileId,
             [FromQuery] HealthRecordType? healthRecordType,
             [FromQuery] HealthRecordResultStatus? resultStatus,
-            [FromQuery] bool? isFitToWork,
-            [FromQuery] bool? isVerified,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
@@ -293,7 +299,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             pageSize = paging.PageSize;
 
             var query = BuildBaseQuery(workforceProfileId);
-            query = ApplyStandardFilter(query, healthRecordType, resultStatus, isFitToWork, isVerified, onlyActive ? true : null, null, search);
+            query = ApplyStandardFilter(
+                query,
+                healthRecordType,
+                resultStatus,
+                null,
+                null,
+                onlyActive ? true : null,
+                null,
+                search
+            );
 
             var totalData = await query.CountAsync();
             var today = DateTime.UtcNow.Date;
@@ -364,8 +379,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAuditFields(data);
+
             return Ok(ApiResponse<WorkforceHealthRecordDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Detail health record workforce berhasil diambil."
             ));
         }
@@ -449,8 +473,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 new { workforceProfileId, entity.Id, entity.RequirementCode, entity.HealthRecordType }
             );
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAuditFields(data);
+
             return Ok(ApiResponse<WorkforceHealthRecordDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Health record workforce berhasil dibuat."
             ));
         }
@@ -541,8 +574,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAuditFields(data);
+
             return Ok(ApiResponse<WorkforceHealthRecordDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Health record workforce berhasil diperbarui."
             ));
         }
@@ -641,8 +683,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAuditFields(data);
+
             return Ok(ApiResponse<WorkforceHealthRecordDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Health record workforce berhasil diverifikasi."
             ));
         }
@@ -696,8 +747,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAuditFields(data);
+
             return Ok(ApiResponse<WorkforceHealthRecordDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Verifikasi health record workforce berhasil dibatalkan."
             ));
         }
@@ -822,10 +882,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsActive = false;
             entity.IsDelete = true;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
@@ -1202,7 +1267,72 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             return (rootPath, "/uploads");
         }
 
-        private WorkforceHealthRecordResponse MapResponse(WfpHealthRecord entity, MstWorkforceProfile profile)
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
+        {
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
+        }
+
+        private static void NormalizeAuditFields(WorkforceHealthRecordDetailResponse data)
+        {
+            if (data.UpdateDateTime.HasValue &&
+                data.UpdateDateTime.Value == DateTime.MinValue)
+            {
+                data.UpdateDateTime = null;
+            }
+
+            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
+            {
+                data.CreateBy = null;
+                data.CreateByName = null;
+            }
+
+            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
+            {
+                data.UpdateBy = null;
+                data.UpdateByName = null;
+            }
+        }
+
+        private WorkforceHealthRecordResponse MapResponse(
+            WfpHealthRecord entity,
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             var today = DateTime.UtcNow.Date;
             var hasFile = !string.IsNullOrWhiteSpace(entity.FilePath);
@@ -1240,13 +1370,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 IsCurrentlyValid = isCurrentlyValid,
                 IsCompliantForWork = isCompliantForWork,
                 IsActive = entity.IsActive,
-                CreateDateTime = entity.CreateDateTime
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
             };
         }
 
-        private WorkforceHealthRecordDetailResponse MapDetailResponse(WfpHealthRecord entity, MstWorkforceProfile profile)
+        private WorkforceHealthRecordDetailResponse MapDetailResponse(
+            WfpHealthRecord entity,
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var baseResponse = MapResponse(entity, profile);
+            var baseResponse = MapResponse(entity, profile, actorNames);
 
             return new WorkforceHealthRecordDetailResponse
             {
@@ -1279,9 +1414,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 IsCompliantForWork = baseResponse.IsCompliantForWork,
                 IsActive = baseResponse.IsActive,
                 CreateDateTime = baseResponse.CreateDateTime,
+                CreateBy = baseResponse.CreateBy,
+                CreateByName = baseResponse.CreateByName,
                 UpdateDateTime = entity.UpdateDateTime,
-                CreateBy = entity.CreateBy,
-                UpdateBy = entity.UpdateBy
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
         }
 

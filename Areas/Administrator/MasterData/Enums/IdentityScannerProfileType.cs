@@ -1,4 +1,4 @@
-﻿namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums
+﻿namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Enums
 {
     public enum IdentityScannerProfileType
     {

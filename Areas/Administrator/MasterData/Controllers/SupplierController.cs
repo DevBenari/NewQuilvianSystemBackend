@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -12,9 +13,9 @@ using System.Security.Claims;
 
 using ResponseSupplierPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs.SupplierResponse>;
+        QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs.SupplierResponse>;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
+namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 {
     [ApiController]
     [Authorize]
@@ -184,19 +185,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     x.SupplierCode.ToLower().Contains(keyword) ||
                     x.SupplierName.ToLower().Contains(keyword) ||
                     x.SupplierType.ToLower().Contains(keyword) ||
-                    (x.LegalName != null && x.LegalName.ToLower().Contains(keyword)) ||
-                    (x.SupplierGroupName != null && x.SupplierGroupName.ToLower().Contains(keyword)) ||
-                    (x.TaxNumber != null && x.TaxNumber.ToLower().Contains(keyword)) ||
-                    (x.BusinessLicenseNumber != null && x.BusinessLicenseNumber.ToLower().Contains(keyword)) ||
-                    (x.ContactPersonName != null && x.ContactPersonName.ToLower().Contains(keyword)) ||
-                    (x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(keyword)) ||
-                    (x.WhatsAppNumber != null && x.WhatsAppNumber.ToLower().Contains(keyword)) ||
-                    (x.Email != null && x.Email.ToLower().Contains(keyword)) ||
-                    (x.Website != null && x.Website.ToLower().Contains(keyword)) ||
-                    (x.CityName != null && x.CityName.ToLower().Contains(keyword)) ||
-                    (x.ProvinceName != null && x.ProvinceName.ToLower().Contains(keyword)) ||
-                    (x.CountryName != null && x.CountryName.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
+                    x.LegalName != null && x.LegalName.ToLower().Contains(keyword) ||
+                    x.SupplierGroupName != null && x.SupplierGroupName.ToLower().Contains(keyword) ||
+                    x.TaxNumber != null && x.TaxNumber.ToLower().Contains(keyword) ||
+                    x.BusinessLicenseNumber != null && x.BusinessLicenseNumber.ToLower().Contains(keyword) ||
+                    x.ContactPersonName != null && x.ContactPersonName.ToLower().Contains(keyword) ||
+                    x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(keyword) ||
+                    x.WhatsAppNumber != null && x.WhatsAppNumber.ToLower().Contains(keyword) ||
+                    x.Email != null && x.Email.ToLower().Contains(keyword) ||
+                    x.Website != null && x.Website.ToLower().Contains(keyword) ||
+                    x.CityName != null && x.CityName.ToLower().Contains(keyword) ||
+                    x.ProvinceName != null && x.ProvinceName.ToLower().Contains(keyword) ||
+                    x.CountryName != null && x.CountryName.ToLower().Contains(keyword) ||
+                    x.Description != null && x.Description.ToLower().Contains(keyword));
             }
 
             var totalData = await query.CountAsync();
@@ -251,12 +252,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     x.SupplierCode.ToLower().Contains(keyword) ||
                     x.SupplierName.ToLower().Contains(keyword) ||
                     x.SupplierType.ToLower().Contains(keyword) ||
-                    (x.LegalName != null && x.LegalName.ToLower().Contains(keyword)) ||
-                    (x.SupplierGroupName != null && x.SupplierGroupName.ToLower().Contains(keyword)) ||
-                    (x.ContactPersonName != null && x.ContactPersonName.ToLower().Contains(keyword)) ||
-                    (x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(keyword)) ||
-                    (x.WhatsAppNumber != null && x.WhatsAppNumber.ToLower().Contains(keyword)) ||
-                    (x.Email != null && x.Email.ToLower().Contains(keyword)));
+                    x.LegalName != null && x.LegalName.ToLower().Contains(keyword) ||
+                    x.SupplierGroupName != null && x.SupplierGroupName.ToLower().Contains(keyword) ||
+                    x.ContactPersonName != null && x.ContactPersonName.ToLower().Contains(keyword) ||
+                    x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(keyword) ||
+                    x.WhatsAppNumber != null && x.WhatsAppNumber.ToLower().Contains(keyword) ||
+                    x.Email != null && x.Email.ToLower().Contains(keyword));
             }
 
             var totalData = await query.CountAsync();

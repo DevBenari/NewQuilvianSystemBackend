@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Http;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
 {
@@ -60,13 +61,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs
         public bool IsActive { get; set; }
         public string? Description { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class WorkforceDocumentDetailResponse : WorkforceDocumentResponse
     {
         public DateTime? UpdateDateTime { get; set; }
-        public Guid CreateBy { get; set; }
-        public Guid UpdateBy { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class WorkforceDocumentOptionResponse

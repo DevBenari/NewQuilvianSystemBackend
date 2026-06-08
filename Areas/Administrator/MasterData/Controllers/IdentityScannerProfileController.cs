@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -13,9 +13,9 @@ using System.Security.Claims;
 
 using ResponseIdentityScannerProfilePagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs.IdentityScannerProfileResponse>;
+        QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs.IdentityScannerProfileResponse>;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
+namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 {
     [ApiController]
     [Authorize]
@@ -149,14 +149,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 query = query.Where(x =>
                     x.ProfileCode.ToLower().Contains(keyword) ||
                     x.ProfileName.ToLower().Contains(keyword) ||
-                    (x.ScannerVendorName != null && x.ScannerVendorName.ToLower().Contains(keyword)) ||
-                    (x.ScannerModel != null && x.ScannerModel.ToLower().Contains(keyword)) ||
-                    (x.InputFormat != null && x.InputFormat.ToLower().Contains(keyword)) ||
-                    (x.OutputFormat != null && x.OutputFormat.ToLower().Contains(keyword)) ||
-                    (x.IdentityNumberRegex != null && x.IdentityNumberRegex.ToLower().Contains(keyword)) ||
-                    (x.MemberNumberRegex != null && x.MemberNumberRegex.ToLower().Contains(keyword)) ||
-                    (x.CardNumberRegex != null && x.CardNumberRegex.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
+                    x.ScannerVendorName != null && x.ScannerVendorName.ToLower().Contains(keyword) ||
+                    x.ScannerModel != null && x.ScannerModel.ToLower().Contains(keyword) ||
+                    x.InputFormat != null && x.InputFormat.ToLower().Contains(keyword) ||
+                    x.OutputFormat != null && x.OutputFormat.ToLower().Contains(keyword) ||
+                    x.IdentityNumberRegex != null && x.IdentityNumberRegex.ToLower().Contains(keyword) ||
+                    x.MemberNumberRegex != null && x.MemberNumberRegex.ToLower().Contains(keyword) ||
+                    x.CardNumberRegex != null && x.CardNumberRegex.ToLower().Contains(keyword) ||
+                    x.Description != null && x.Description.ToLower().Contains(keyword));
             }
 
             if (isActive.HasValue)
@@ -279,8 +279,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 query = query.Where(x =>
                     x.ProfileCode.ToLower().Contains(keyword) ||
                     x.ProfileName.ToLower().Contains(keyword) ||
-                    (x.ScannerVendorName != null && x.ScannerVendorName.ToLower().Contains(keyword)) ||
-                    (x.ScannerModel != null && x.ScannerModel.ToLower().Contains(keyword)));
+                    x.ScannerVendorName != null && x.ScannerVendorName.ToLower().Contains(keyword) ||
+                    x.ScannerModel != null && x.ScannerModel.ToLower().Contains(keyword));
             }
 
             var totalData = await query.CountAsync();

@@ -2,50 +2,35 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
 
-namespace QuilvianSystemBackend.Repositories.Configurations.Corporate
+namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResource.Workforce
 {
-    public class WfpInsuranceConfiguration : IEntityTypeConfiguration<WfpInsurance>
+    public class WfpBankAccountConfiguration : IEntityTypeConfiguration<WfpBankAccount>
     {
-        public void Configure(EntityTypeBuilder<WfpInsurance> entity)
+        public void Configure(EntityTypeBuilder<WfpBankAccount> entity)
         {
-            entity.ToTable("WfpInsurance", "public");
+            entity.ToTable("WfpBankAccount", "public");
 
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.WorkforceProfileId)
                 .IsRequired();
 
-            entity.Property(x => x.IsBpjsKesehatanEnabled)
-                .HasDefaultValue(false);
+            entity.Property(x => x.BankId)
+                .IsRequired();
 
-            entity.Property(x => x.BpjsKesehatanNumber)
-                .HasMaxLength(50);
+            entity.Property(x => x.AccountNumber)
+                .HasMaxLength(100)
+                .IsRequired();
 
-            entity.Property(x => x.IsBpjsKetenagakerjaanEnabled)
-                .HasDefaultValue(false);
+            entity.Property(x => x.AccountHolderName)
+                .HasMaxLength(200)
+                .IsRequired();
 
-            entity.Property(x => x.BpjsKetenagakerjaanNumber)
-                .HasMaxLength(50);
-
-            entity.Property(x => x.IsPrivateInsuranceEnabled)
-                .HasDefaultValue(false);
-
-            entity.Property(x => x.PrivateInsuranceProviderId)
-                .IsRequired(false);
-
-            entity.Property(x => x.PrivateInsuranceNumber)
+            entity.Property(x => x.BankBranch)
                 .HasMaxLength(100);
 
-            entity.Property(x => x.EffectiveStartDate)
-                .HasColumnType("timestamp with time zone")
-                .IsRequired(false);
-
-            entity.Property(x => x.EffectiveEndDate)
-                .HasColumnType("timestamp with time zone")
-                .IsRequired(false);
-
-            entity.Property(x => x.Description)
-                .HasMaxLength(250);
+            entity.Property(x => x.IsPrimary)
+                .HasDefaultValue(false);
 
             entity.Property(x => x.IsActive)
                 .HasDefaultValue(true);
@@ -89,18 +74,19 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate
                 .HasForeignKey(x => x.WorkforceProfileId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(x => x.PrivateInsuranceProvider)
+            entity.HasOne(x => x.Bank)
                 .WithMany()
-                .HasForeignKey(x => x.PrivateInsuranceProviderId)
+                .HasForeignKey(x => x.BankId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => x.WorkforceProfileId);
 
-            entity.HasIndex(x => x.PrivateInsuranceProviderId);
+            entity.HasIndex(x => x.BankId);
 
             entity.HasIndex(x => new
             {
                 x.WorkforceProfileId,
+                x.BankId,
                 x.IsActive,
                 x.IsDelete
             });
@@ -108,16 +94,15 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate
             entity.HasIndex(x => new
             {
                 x.WorkforceProfileId,
-                x.IsPrivateInsuranceEnabled,
-                x.PrivateInsuranceProviderId,
+                x.AccountNumber,
                 x.IsDelete
             });
 
             entity.HasIndex(x => new
             {
                 x.WorkforceProfileId,
-                x.EffectiveStartDate,
-                x.EffectiveEndDate,
+                x.IsPrimary,
+                x.IsActive,
                 x.IsDelete
             });
         }
