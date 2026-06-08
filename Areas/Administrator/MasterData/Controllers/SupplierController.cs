@@ -19,20 +19,20 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/health-services/master-data/suppliers")]
+    [Route("api/v1/administrator/master-data/suppliers")]
     [AccessController(
-        moduleCode: "HEALTH_SERVICE_MASTER_DATA",
-        moduleName: "Health Service Master Data",
+        moduleCode: "ADMINISTRATOR_MASTER_DATA",
+        moduleName: "Administrator Master Data",
         displayName: "Supplier",
-        AreaName = "HealthServices",
+        AreaName = "Administrator",
         ControllerName = "Supplier",
-        Description = "Health service master data supplier",
+        Description = "Administrator master data supplier",
         SortOrder = 14
     )]
-    [Tags("Health Services / Master Data / Supplier")]
+    [Tags("Administrator / Master Data / Supplier")]
     public class SupplierController : ControllerBase
     {
-        private const string LogCategory = "HealthServices.MasterData";
+        private const string LogCategory = "Administrator.MasterData";
         private const string SupplierCodePrefix = "SUP-RSMMC-";
         private const int SupplierCodeDigitLength = 5;
 

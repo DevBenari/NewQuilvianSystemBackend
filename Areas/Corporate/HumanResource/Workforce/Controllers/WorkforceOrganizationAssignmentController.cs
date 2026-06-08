@@ -202,8 +202,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 .Take(pageSize)
                 .ToListAsync();
 
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .Select(x => x.CreateBy)
+                    .Where(x => x != Guid.Empty)
+            );
+
             var items = entities
-                .Select(x => MapResponse(x, profile))
+                .Select(x => MapResponse(x, profile, actorNames))
                 .ToList();
 
             var result = new ResponseWorkforceOrganizationAssignmentPagedResult
@@ -342,8 +348,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, profile, actorNames);
+            NormalizeAuditFields(data);
+
             return Ok(ApiResponse<WorkforceOrganizationAssignmentDetailResponse>.Ok(
-                MapDetailResponse(entity, profile),
+                data,
                 "Detail organization assignment workforce berhasil diambil."
             ));
         }
@@ -462,8 +477,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                     }
                 );
 
+                var createdEntity = await BuildBaseQuery(workforceProfileId)
+                    .FirstOrDefaultAsync(x => x.Id == entity.Id) ?? entity;
+
+                var actorNames = await GetActorNameMapAsync(new[]
+                {
+                    createdEntity.CreateBy,
+                    createdEntity.UpdateBy
+                });
+
+                var data = MapDetailResponse(createdEntity, profile, actorNames);
+                NormalizeAuditFields(data);
+
                 return Ok(ApiResponse<WorkforceOrganizationAssignmentDetailResponse>.Ok(
-                    MapDetailResponse(entity, profile),
+                    data,
                     "Organization assignment workforce berhasil dibuat."
                 ));
             }
@@ -596,16 +623,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                entity.Department = await _dbContext.Set<MstDepartment>()
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Id == entity.DepartmentId);
+                var updatedEntity = await BuildBaseQuery(workforceProfileId)
+                    .FirstOrDefaultAsync(x => x.Id == entity.Id) ?? entity;
 
-                entity.Position = await _dbContext.Set<MstPosition>()
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Id == entity.PositionId);
+                var actorNames = await GetActorNameMapAsync(new[]
+                {
+                    updatedEntity.CreateBy,
+                    updatedEntity.UpdateBy
+                });
+
+                var data = MapDetailResponse(updatedEntity, profile, actorNames);
+                NormalizeAuditFields(data);
 
                 return Ok(ApiResponse<WorkforceOrganizationAssignmentDetailResponse>.Ok(
-                    MapDetailResponse(entity, profile),
+                    data,
                     "Organization assignment workforce berhasil diperbarui."
                 ));
             }
@@ -776,8 +807,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                var actorNames = await GetActorNameMapAsync(new[]
+                {
+                    entity.CreateBy,
+                    entity.UpdateBy
+                });
+
+                var data = MapDetailResponse(entity, profile, actorNames);
+                NormalizeAuditFields(data);
+
                 return Ok(ApiResponse<WorkforceOrganizationAssignmentDetailResponse>.Ok(
-                    MapDetailResponse(entity, profile),
+                    data,
                     "Primary organization assignment workforce berhasil diperbarui."
                 ));
             }
@@ -928,16 +968,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             string? search)
         {
             if (departmentId.HasValue && departmentId.Value != Guid.Empty)
+            {
                 query = query.Where(x => x.DepartmentId == departmentId.Value);
+            }
 
             if (positionId.HasValue && positionId.Value != Guid.Empty)
+            {
                 query = query.Where(x => x.PositionId == positionId.Value);
+            }
 
             if (isPrimary.HasValue)
+            {
                 query = query.Where(x => x.IsPrimary == isPrimary.Value);
+            }
 
             if (isActive.HasValue)
+            {
                 query = query.Where(x => x.IsActive == isActive.Value);
+            }
 
             if (isExpired.HasValue)
             {
@@ -953,12 +1001,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 var keyword = search.Trim().ToLower();
 
                 query = query.Where(x =>
-                    (x.Department != null && (
-                        x.Department.DepartmentCode.ToLower().Contains(keyword) ||
-                        x.Department.DepartmentName.ToLower().Contains(keyword))) ||
-                    (x.Position != null && (
-                        x.Position.PositionCode.ToLower().Contains(keyword) ||
-                        x.Position.PositionName.ToLower().Contains(keyword))) ||
+                    (x.Department != null &&
+                        (x.Department.DepartmentCode.ToLower().Contains(keyword) ||
+                         x.Department.DepartmentName.ToLower().Contains(keyword))) ||
+                    (x.Position != null &&
+                        (x.Position.PositionCode.ToLower().Contains(keyword) ||
+                         x.Position.PositionName.ToLower().Contains(keyword))) ||
                     (x.Description != null && x.Description.ToLower().Contains(keyword)));
             }
 
@@ -974,23 +1022,34 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             return (sortBy ?? "effectiveStartDate").Trim().ToLowerInvariant() switch
             {
-                "effectivestartdate" => isDescending ? query.OrderByDescending(x => x.EffectiveStartDate) : query.OrderBy(x => x.EffectiveStartDate),
-                "effectiveenddate" => isDescending ? query.OrderByDescending(x => x.EffectiveEndDate) : query.OrderBy(x => x.EffectiveEndDate),
+                "effectivestartdate" => isDescending
+                    ? query.OrderByDescending(x => x.EffectiveStartDate)
+                    : query.OrderBy(x => x.EffectiveStartDate),
+
+                "effectiveenddate" => isDescending
+                    ? query.OrderByDescending(x => x.EffectiveEndDate)
+                    : query.OrderBy(x => x.EffectiveEndDate),
+
                 "departmentname" => isDescending
                     ? query.OrderByDescending(x => x.Department != null ? x.Department.DepartmentName : string.Empty)
                     : query.OrderBy(x => x.Department != null ? x.Department.DepartmentName : string.Empty),
+
                 "positionname" => isDescending
                     ? query.OrderByDescending(x => x.Position != null ? x.Position.PositionName : string.Empty)
                     : query.OrderBy(x => x.Position != null ? x.Position.PositionName : string.Empty),
+
                 "isprimary" => isDescending
                     ? query.OrderByDescending(x => x.IsPrimary).ThenByDescending(x => x.EffectiveStartDate)
                     : query.OrderBy(x => x.IsPrimary).ThenByDescending(x => x.EffectiveStartDate),
+
                 "isactive" => isDescending
                     ? query.OrderByDescending(x => x.IsActive).ThenByDescending(x => x.EffectiveStartDate)
                     : query.OrderBy(x => x.IsActive).ThenByDescending(x => x.EffectiveStartDate),
+
                 "createdatetime" => isDescending
                     ? query.OrderByDescending(x => x.CreateDateTime)
                     : query.OrderBy(x => x.CreateDateTime),
+
                 _ => isDescending
                     ? query.OrderByDescending(x => x.IsPrimary).ThenByDescending(x => x.EffectiveStartDate)
                     : query.OrderBy(x => x.IsPrimary).ThenByDescending(x => x.EffectiveStartDate)
@@ -1006,23 +1065,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             DateTime? effectiveEndDate)
         {
             if (departmentId == Guid.Empty)
+            {
                 return (false, "Department wajib dipilih.");
+            }
 
             if (positionId == Guid.Empty)
+            {
                 return (false, "Position wajib dipilih.");
+            }
 
             if (effectiveStartDate == default)
+            {
                 return (false, "EffectiveStartDate wajib diisi.");
+            }
 
             if (effectiveEndDate.HasValue && effectiveEndDate.Value.Date < effectiveStartDate.Date)
+            {
                 return (false, "EffectiveEndDate tidak boleh lebih kecil dari EffectiveStartDate.");
+            }
 
             var departmentExists = await _dbContext.Set<MstDepartment>()
                 .AsNoTracking()
                 .AnyAsync(x => x.Id == departmentId && x.IsActive && !x.IsDelete);
 
             if (!departmentExists)
+            {
                 return (false, "Department tidak valid atau tidak aktif.");
+            }
 
             var positionExists = await _dbContext.Set<MstPosition>()
                 .AsNoTracking()
@@ -1033,7 +1102,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                     !x.IsDelete);
 
             if (!positionExists)
+            {
                 return (false, "Position tidak valid, tidak aktif, atau tidak sesuai department.");
+            }
 
             var duplicateQuery = _dbContext.Set<WfpOrganizationAssignment>()
                 .AsNoTracking()
@@ -1045,10 +1116,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                     !x.IsDelete);
 
             if (excludeAssignmentId.HasValue)
+            {
                 duplicateQuery = duplicateQuery.Where(x => x.Id != excludeAssignmentId.Value);
+            }
 
             if (await duplicateQuery.AnyAsync())
+            {
                 return (false, "Workforce profile sudah memiliki assignment aktif pada department dan position tersebut.");
+            }
 
             return (true, null);
         }
@@ -1210,7 +1285,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
         private WorkforceOrganizationAssignmentResponse MapResponse(
             WfpOrganizationAssignment entity,
-            MstWorkforceProfile profile)
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             var today = DateTime.UtcNow.Date;
             var isExpired = entity.EffectiveEndDate.HasValue &&
@@ -1237,15 +1313,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                     entity.EffectiveStartDate.Date <= today &&
                     !isExpired,
                 Description = entity.Description,
-                CreateDateTime = entity.CreateDateTime
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
             };
         }
 
         private WorkforceOrganizationAssignmentDetailResponse MapDetailResponse(
             WfpOrganizationAssignment entity,
-            MstWorkforceProfile profile)
+            MstWorkforceProfile profile,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var response = MapResponse(entity, profile);
+            var response = MapResponse(entity, profile, actorNames);
 
             return new WorkforceOrganizationAssignmentDetailResponse
             {
@@ -1267,10 +1346,74 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 IsCurrentlyValid = response.IsCurrentlyValid,
                 Description = response.Description,
                 CreateDateTime = response.CreateDateTime,
+                CreateBy = response.CreateBy,
+                CreateByName = response.CreateByName,
                 UpdateDateTime = entity.UpdateDateTime,
-                CreateBy = entity.CreateBy,
-                UpdateBy = entity.UpdateBy
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
+        }
+
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
+        {
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
+        }
+
+        private static void NormalizeAuditFields(WorkforceOrganizationAssignmentDetailResponse data)
+        {
+            if (data.UpdateDateTime.HasValue &&
+                data.UpdateDateTime.Value == DateTime.MinValue)
+            {
+                data.UpdateDateTime = null;
+            }
+
+            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
+            {
+                data.CreateBy = null;
+                data.CreateByName = null;
+            }
+
+            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
+            {
+                data.UpdateBy = null;
+                data.UpdateByName = null;
+            }
         }
 
         private async Task<MstWorkforceProfile?> GetProfileAsync(Guid workforceProfileId)
@@ -1283,13 +1426,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {
             if (pageNumber < 1)
+            {
                 pageNumber = 1;
+            }
 
             if (pageSize < 1)
+            {
                 pageSize = 25;
+            }
 
             if (pageSize > 100)
+            {
                 pageSize = 100;
+            }
 
             return (pageNumber, pageSize);
         }

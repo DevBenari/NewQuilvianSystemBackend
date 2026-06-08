@@ -19,20 +19,20 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/health-services/master-data/identity-scanner-profiles")]
+    [Route("api/v1/administrator/master-data/identity-scanner-profiles")]
     [AccessController(
-        moduleCode: "HEALTH_SERVICE_MASTER_DATA",
-        moduleName: "Health Service Master Data",
+        moduleCode: "ADMINISTRATOR_MASTER_DATA",
+        moduleName: "Administrator Master Data",
         displayName: "Identity Scanner Profile",
-        AreaName = "HealthServices",
+        AreaName = "Administrator",
         ControllerName = "IdentityScannerProfile",
-        Description = "Health service master data identity scanner profile",
+        Description = "Administrator master data identity scanner profile",
         SortOrder = 7
     )]
-    [Tags("Health Services / Master Data / Identity Scanner Profile")]
+    [Tags("Administrator / Master Data / Identity Scanner Profile")]
     public class IdentityScannerProfileController : ControllerBase
     {
-        private const string LogCategory = "HealthServices.MasterData";
+        private const string LogCategory = "Administrator.MasterData";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;

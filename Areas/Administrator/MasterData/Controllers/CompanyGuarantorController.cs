@@ -18,20 +18,20 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/health-services/master-data/company-guarantors")]
+    [Route("api/v1/administrator/master-data/company-guarantors")]
     [AccessController(
-        moduleCode: "HEALTH_SERVICE_MASTER_DATA",
-        moduleName: "Health Service Master Data",
+        moduleCode: "ADMINISTRATOR_MASTER_DATA",
+        moduleName: "Administrator Master Data",
         displayName: "Company Guarantor",
-        AreaName = "HealthServices",
+        AreaName = "Administrator",
         ControllerName = "CompanyGuarantor",
-        Description = "Health service master data company guarantor",
+        Description = "Administrator master data company guarantor",
         SortOrder = 15
     )]
-    [Tags("Health Services / Master Data / Company Guarantor")]
+    [Tags("Administrator / Master Data / Company Guarantor")]
     public class CompanyGuarantorController : ControllerBase
     {
-        private const string LogCategory = "HealthServices.MasterData";
+        private const string LogCategory = "Administrator.MasterData";
         private const string CompanyGuarantorCodePrefix = "CG-RSMMC-";
         private const int CompanyGuarantorCodeDigitLength = 5;
 

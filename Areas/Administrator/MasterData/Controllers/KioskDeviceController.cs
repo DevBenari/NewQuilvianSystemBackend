@@ -20,20 +20,20 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/health-services/master-data/kiosk-devices")]
+    [Route("api/v1/administrator/master-data/kiosk-devices")]
     [AccessController(
-        moduleCode: "HEALTH_SERVICE_MASTER_DATA",
-        moduleName: "Health Service Master Data",
+        moduleCode: "ADMINISTRATOR_MASTER_DATA",
+        moduleName: "Administrator Master Data",
         displayName: "Kiosk Device",
-        AreaName = "HealthServices",
+        AreaName = "Administrator",
         ControllerName = "KioskDevice",
-        Description = "Health service master data kiosk device",
+        Description = "Administrator master data kiosk device",
         SortOrder = 6
     )]
-    [Tags("Health Services / Master Data / Kiosk Device")]
+    [Tags("Administrator / Master Data / Kiosk Device")]
     public class KioskDeviceController : ControllerBase
     {
-        private const string LogCategory = "HealthServices.MasterData";
+        private const string LogCategory = "Administrator.MasterData";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
