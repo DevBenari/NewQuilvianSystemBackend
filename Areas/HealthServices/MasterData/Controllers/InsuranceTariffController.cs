@@ -581,12 +581,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
-        [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<InsuranceTariffStatusResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Delete", "Delete Insurance Tariff", Description = "Menghapus data insurance tariff", AccessType = AccessTypes.Delete, SortOrder = 4)]
-        [AccessPermission("InsuranceTariff", "Delete")]
-        public async Task<IActionResult> DeleteInsuranceTariff(Guid id)
+        [AccessAction("Update", "Update Insurance Tariff", Description = "Mengubah status insurance tariff", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("InsuranceTariff", "Update")]
+        public async Task<IActionResult> UpdateInsuranceTariffStatus(Guid id, [FromBody] UpdateInsuranceTariffStatusRequest request)
         {
             var entity = await _dbContext.Set<MstInsuranceTariff>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -599,15 +600,80 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            entity.IsDelete = true;
-            entity.IsActive = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var result = new InsuranceTariffStatusResponse
+            {
+                Id = entity.Id,
+                InsuranceTariffCode = entity.InsuranceTariffCode,
+                InsuranceTariffName = entity.InsuranceTariffName,
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InsuranceTariff.UpdateInsuranceTariffStatus",
+                request.IsActive ? "Mengaktifkan insurance tariff." : "Menonaktifkan insurance tariff.",
+                result
+            );
+
+            return Ok(ApiResponse<InsuranceTariffStatusResponse>.Ok(
+                result,
+                request.IsActive ? "Insurance tariff berhasil diaktifkan." : "Insurance tariff berhasil dinonaktifkan."
+            ));
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Delete", "Delete Insurance Tariff", Description = "Menghapus data insurance tariff", AccessType = AccessTypes.Delete, SortOrder = 4)]
+        [AccessPermission("InsuranceTariff", "Delete")]
+        public async Task<IActionResult> DeleteInsuranceTariff(Guid id, [FromBody] DeleteInsuranceTariffRequest? request = null)
+        {
+            var entity = await _dbContext.Set<MstInsuranceTariff>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Insurance tariff tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsDelete = true;
+            entity.IsActive = false;
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+                entity.Description = NormalizeNullableString(request.DeleteReason);
+
+            await _dbContext.SaveChangesAsync();
+
+            var result = new InsuranceTariffDeleteResponse
+            {
+                Id = entity.Id,
+                InsuranceTariffCode = entity.InsuranceTariffCode,
+                InsuranceTariffName = entity.InsuranceTariffName,
+                DeleteDateTime = entity.DeleteDateTime
+            };
+
+            return Ok(ApiResponse<InsuranceTariffDeleteResponse>.Ok(
+                result,
                 "Insurance tariff berhasil dihapus."
             ));
         }

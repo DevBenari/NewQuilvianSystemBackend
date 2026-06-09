@@ -563,6 +563,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
+
             await _dbContext.SaveChangesAsync();
 
             var result = new InsuranceCoverageRuleUpdateResponse
@@ -585,6 +586,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 result,
                 "Insurance coverage rule berhasil diperbarui."
             ));
+        }
+
+
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<InsuranceCoverageRuleStatusResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Insurance Coverage Rule", Description = "Mengubah status insurance coverage rule", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("InsuranceCoverageRule", "Update")]
+        public async Task<IActionResult> UpdateInsuranceCoverageRuleStatus(Guid id, [FromBody] UpdateInsuranceCoverageRuleStatusRequest request)
+        {
+            return await UpdateStatusAsync(
+                id,
+                request.IsActive,
+                request.IsActive
+                    ? "Insurance coverage rule berhasil diaktifkan."
+                    : "Insurance coverage rule berhasil dinonaktifkan."
+            );
         }
 
         [HttpPatch("{id:guid}/activate")]
@@ -612,7 +630,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Insurance Coverage Rule", Description = "Menghapus data insurance coverage rule", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("InsuranceCoverageRule", "Delete")]
-        public async Task<IActionResult> DeleteInsuranceCoverageRule(Guid id)
+        public async Task<IActionResult> DeleteInsuranceCoverageRule(Guid id, [FromBody] DeleteInsuranceCoverageRuleRequest? deleteRequest = null)
         {
             var entity = await _dbContext.Set<MstInsuranceCoverageRule>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -634,6 +652,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.DeleteBy = actorUserId;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(deleteRequest?.DeleteReason))
+                entity.Description = NormalizeNullableString(deleteRequest.DeleteReason);
 
             await _dbContext.SaveChangesAsync();
 

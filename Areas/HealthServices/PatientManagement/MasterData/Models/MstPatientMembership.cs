@@ -1,8 +1,8 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
-using QuilvianSystemBackend.Models;
+﻿using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models
 {

@@ -154,11 +154,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => ToResponse(x))
                 .ToListAsync();
+
+            var items = entities
+                .Select(ToResponse)
+                .ToList();
 
             var result = new ResponseDoctorServiceRulePagedResult
             {
@@ -275,18 +278,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("DoctorServiceRule", "Read")]
         public async Task<IActionResult> GetDoctorServiceRuleById(Guid id)
         {
-            var data = await BuildBaseQuery()
-                .Where(x => x.Id == id)
-                .Select(x => ToDetailResponse(x))
-                .FirstOrDefaultAsync();
+            var entity = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (data == null)
+            if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Doctor service rule tidak ditemukan."
                 ));
             }
+
+            var data = ToDetailResponse(entity);
 
             return Ok(ApiResponse<DoctorServiceRuleDetailResponse>.Ok(
                 data,
@@ -488,12 +491,58 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+
+
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<DoctorServiceRuleUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Doctor Service Rule", Description = "Mengubah status doctor service rule", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("DoctorServiceRule", "Update")]
+        public async Task<IActionResult> UpdateDoctorServiceRuleStatus(Guid id, [FromBody] UpdateDoctorServiceRuleStatusRequest request)
+        {
+            var entity = await _dbContext.Set<MstDoctorServiceRule>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Doctor service rule tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            var response = new DoctorServiceRuleUpdateResponse
+            {
+                Id = entity.Id,
+                RuleCode = entity.RuleCode,
+                RuleName = entity.RuleName,
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime
+            };
+
+            return Ok(ApiResponse<DoctorServiceRuleUpdateResponse>.Ok(
+                response,
+                request.IsActive
+                    ? "Doctor service rule berhasil diaktifkan."
+                    : "Doctor service rule berhasil dinonaktifkan."
+            ));
+        }
+
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<DoctorServiceRuleDeleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Doctor Service Rule", Description = "Menghapus data doctor service rule", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("DoctorServiceRule", "Delete")]
-        public async Task<IActionResult> DeleteDoctorServiceRule(Guid id)
+        public async Task<IActionResult> DeleteDoctorServiceRule(Guid id, [FromBody] DeleteDoctorServiceRuleRequest? deleteRequest = null)
         {
             var entity = await _dbContext.Set<MstDoctorServiceRule>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -508,8 +557,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             entity.IsDelete = true;
             entity.IsActive = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(deleteRequest?.DeleteReason))
+                entity.Description = NormalizeNullableText(deleteRequest.DeleteReason);
 
             await _dbContext.SaveChangesAsync();
 
@@ -689,7 +746,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 EffectiveEndDate = x.EffectiveEndDate,
                 SortOrder = x.SortOrder,
                 IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
+                CreateDateTime = x.CreateDateTime,
+                CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
+                CreateByName = null
             };
         }
 
@@ -746,6 +805,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             response.SortOrder = baseResponse.SortOrder;
             response.IsActive = baseResponse.IsActive;
             response.CreateDateTime = baseResponse.CreateDateTime;
+            response.CreateBy = baseResponse.CreateBy;
+            response.CreateByName = baseResponse.CreateByName;
+            response.UpdateDateTime = x.UpdateDateTime;
+            response.UpdateBy = x.UpdateBy == Guid.Empty ? null : x.UpdateBy;
+            response.UpdateByName = null;
 
             return response;
         }

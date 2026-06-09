@@ -19,20 +19,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int RareDiseaseDiagnosis { get; set; }
         public int WithChapterDiagnosis { get; set; }
         public int WithParentDiagnosis { get; set; }
+        public int GroupOnlyDiagnosis { get; set; }
     }
 
     public class DiagnosisResponse
     {
         public Guid Id { get; set; }
-
         public Guid? DiagnosisChapterId { get; set; }
         public string? ChapterCode { get; set; }
         public string? ChapterName { get; set; }
-
         public Guid? ParentDiagnosisId { get; set; }
         public string? ParentDiagnosisCode { get; set; }
         public string? ParentDiagnosisName { get; set; }
-
         public string DiagnosisCode { get; set; } = string.Empty;
         public string DiagnosisName { get; set; } = string.Empty;
         public string? DiagnosisNameEnglish { get; set; }
@@ -40,8 +38,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? DiagnosisGroupName { get; set; }
         public string? DiagnosisCategoryName { get; set; }
         public string DiagnosisType { get; set; } = string.Empty;
+        public string DiagnosisTypeName { get; set; } = string.Empty;
         public string IcdVersion { get; set; } = string.Empty;
-
         public bool IsSelectableForClinicalUse { get; set; }
         public bool IsBillable { get; set; }
         public bool IsPrimaryDiagnosisAllowed { get; set; }
@@ -52,8 +50,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsPregnancyRelated { get; set; }
         public bool IsMentalHealthRelated { get; set; }
         public bool IsRareDisease { get; set; }
-
         public string? GenderRestriction { get; set; }
+        public string? GenderRestrictionName { get; set; }
         public int? MinimumAgeYear { get; set; }
         public int? MaximumAgeYear { get; set; }
         public string? ExternalDiagnosisCode { get; set; }
@@ -61,39 +59,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class DiagnosisDetailResponse : DiagnosisResponse
     {
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class DiagnosisOptionResponse
     {
         public Guid Id { get; set; }
-
         public Guid? DiagnosisChapterId { get; set; }
         public string? ChapterCode { get; set; }
         public string? ChapterName { get; set; }
-
         public Guid? ParentDiagnosisId { get; set; }
         public string? ParentDiagnosisCode { get; set; }
         public string? ParentDiagnosisName { get; set; }
-
         public string DiagnosisCode { get; set; } = string.Empty;
         public string DiagnosisName { get; set; } = string.Empty;
         public string? ShortName { get; set; }
         public string? DiagnosisGroupName { get; set; }
         public string? DiagnosisCategoryName { get; set; }
         public string DiagnosisType { get; set; } = string.Empty;
+        public string DiagnosisTypeName { get; set; } = string.Empty;
         public string IcdVersion { get; set; } = string.Empty;
         public bool IsSelectableForClinicalUse { get; set; }
         public bool IsBillable { get; set; }
         public bool IsPrimaryDiagnosisAllowed { get; set; }
         public bool IsSecondaryDiagnosisAllowed { get; set; }
         public string? GenderRestriction { get; set; }
+        public string? GenderRestrictionName { get; set; }
         public int? MinimumAgeYear { get; set; }
         public int? MaximumAgeYear { get; set; }
+        public bool IsActive { get; set; }
     }
 
     public class DiagnosisOptionPagedResponse
@@ -103,6 +106,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int TotalData { get; set; }
         public int TotalPage { get; set; }
         public List<DiagnosisOptionResponse> Items { get; set; } = new();
+    }
+
+    public class DiagnosisStringOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class DiagnosisFilterMetadataResponse
@@ -116,9 +125,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public List<DiagnosisSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
+        public List<DiagnosisStringOptionResponse> DiagnosisTypeOptions { get; set; } = new();
+        public List<DiagnosisStringOptionResponse> GenderRestrictionOptions { get; set; } = new();
+        public List<DiagnosisStringOptionResponse> IcdVersionOptions { get; set; } = new();
         public List<DiagnosisQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<DiagnosisFormFieldMetadataResponse> CreateFields { get; set; } = new();
         public List<DiagnosisFormFieldMetadataResponse> UpdateFields { get; set; } = new();
+        public string ResetButtonLabel { get; set; } = "Reset Filter";
     }
 
     public class DiagnosisDefaultFilterResponse
@@ -128,7 +141,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? CustomPeriod { get; set; }
         public Guid? DiagnosisChapterId { get; set; }
         public Guid? ParentDiagnosisId { get; set; }
+        public string? DiagnosisType { get; set; }
+        public string? IcdVersion { get; set; }
+        public string? GenderRestriction { get; set; }
         public bool? IsActive { get; set; }
+        public bool? IsSelectableForClinicalUse { get; set; }
+        public bool? IsBillable { get; set; }
+        public bool? IsPrimaryDiagnosisAllowed { get; set; }
+        public bool? IsSecondaryDiagnosisAllowed { get; set; }
+        public bool? IsChronicDisease { get; set; }
+        public bool? IsInfectiousDisease { get; set; }
+        public bool? IsExternalCause { get; set; }
+        public bool? IsPregnancyRelated { get; set; }
+        public bool? IsMentalHealthRelated { get; set; }
+        public bool? IsRareDisease { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
@@ -170,6 +196,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsReadonly { get; set; }
         public string? Placeholder { get; set; }
         public string? Description { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class CreateDiagnosisRequest
@@ -242,6 +269,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsActive { get; set; } = true;
     }
 
+    public class UpdateDiagnosisStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeleteDiagnosisRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
+    }
+
     public class DiagnosisCreateResponse
     {
         public Guid Id { get; set; }
@@ -254,9 +292,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsSelectableForClinicalUse { get; set; }
         public bool IsBillable { get; set; }
         public bool IsActive { get; set; }
+        public DateTime CreateDateTime { get; set; }
     }
 
     public class DiagnosisUpdateResponse : DiagnosisCreateResponse
     {
+        public DateTime? UpdateDateTime { get; set; }
+    }
+
+    public class DiagnosisDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string DiagnosisCode { get; set; } = string.Empty;
+        public string DiagnosisName { get; set; } = string.Empty;
+        public DateTime? DeleteDateTime { get; set; }
     }
 }

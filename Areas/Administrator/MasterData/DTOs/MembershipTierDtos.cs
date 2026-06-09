@@ -1,7 +1,7 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
+﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
 using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
+namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
 {
     public class MembershipTierSummaryResponse
     {
@@ -46,12 +46,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class MembershipTierDetailResponse : MembershipTierResponse
     {
         public string? BenefitDescription { get; set; }
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class MembershipTierOptionResponse
@@ -90,12 +95,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class MembershipTierFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
+        public string ResetButtonLabel { get; set; } = "Reset Filter";
         public MembershipTierDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<MembershipTierCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<MembershipTierSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
         public List<MembershipTierEnumOptionResponse> TierTypeOptions { get; set; } = new();
+        public List<MembershipTierQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+        public List<MembershipTierFormFieldMetadataResponse> CreateFields { get; set; } = new();
+        public List<MembershipTierFormFieldMetadataResponse> UpdateFields { get; set; } = new();
     }
 
     public class MembershipTierDefaultFilterResponse
@@ -103,6 +112,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string? CustomPeriod { get; set; }
+        public MembershipTierType? TierType { get; set; }
+        public bool? IsDefault { get; set; }
+        public bool? IsSelectableInKiosk { get; set; }
+        public bool? IsSelectableInAdmission { get; set; }
+        public bool? IsManagedByMarketingOnly { get; set; }
+        public bool? PriorityQueue { get; set; }
+        public bool? FreeAnnualCheckup { get; set; }
+        public bool? FreeParking { get; set; }
         public bool? IsActive { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
@@ -121,6 +138,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     {
         public string Value { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
+    }
+
+    public class MembershipTierQueryParameterInfoResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Required { get; set; } = "No";
+        public string Description { get; set; } = string.Empty;
+        public string? Example { get; set; }
+    }
+
+    public class MembershipTierFormFieldMetadataResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string DataType { get; set; } = string.Empty;
+        public string InputType { get; set; } = string.Empty;
+        public bool Required { get; set; }
+        public bool IsReadonly { get; set; }
+        public string? Placeholder { get; set; }
+        public string? Description { get; set; }
     }
 
     public class CreateMembershipTierRequest
@@ -190,6 +228,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsActive { get; set; } = true;
     }
 
+    public class UpdateMembershipTierStatusRequest
+    {
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class DeleteMembershipTierRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
+    }
+
     public class MembershipTierCreateResponse
     {
         public Guid Id { get; set; }
@@ -210,6 +259,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public MembershipTierType TierType { get; set; }
         public string TierTypeName { get; set; } = string.Empty;
         public bool IsDefault { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+    }
+
+    public class MembershipTierStatusResponse
+    {
+        public Guid Id { get; set; }
+        public string TierCode { get; set; } = string.Empty;
+        public string TierName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime? UpdateDateTime { get; set; }
     }

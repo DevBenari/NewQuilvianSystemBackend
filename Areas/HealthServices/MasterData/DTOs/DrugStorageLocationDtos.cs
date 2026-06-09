@@ -23,38 +23,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class DrugStorageLocationResponse
     {
         public Guid Id { get; set; }
-
         public Guid? ParentStorageLocationId { get; set; }
         public string? ParentStorageLocationCode { get; set; }
         public string? ParentStorageLocationName { get; set; }
-
         public Guid? ServiceUnitId { get; set; }
         public string? ServiceUnitCode { get; set; }
         public string? ServiceUnitName { get; set; }
-
         public Guid? ClinicId { get; set; }
         public string? ClinicCode { get; set; }
         public string? ClinicName { get; set; }
-
         public Guid? RoomId { get; set; }
         public string? RoomCode { get; set; }
         public string? MasterRoomName { get; set; }
-
         public string StorageLocationCode { get; set; } = string.Empty;
         public string StorageLocationName { get; set; } = string.Empty;
         public string StorageLocationType { get; set; } = string.Empty;
+        public string StorageLocationTypeName { get; set; } = string.Empty;
         public string? LocationGroupName { get; set; }
         public string? FloorName { get; set; }
         public string? RoomName { get; set; }
         public string? RackCode { get; set; }
         public string? ShelfCode { get; set; }
         public string? BinCode { get; set; }
-
         public decimal? MinimumTemperatureCelsius { get; set; }
         public decimal? MaximumTemperatureCelsius { get; set; }
         public decimal? MinimumHumidityPercent { get; set; }
         public decimal? MaximumHumidityPercent { get; set; }
-
         public bool IsDefault { get; set; }
         public bool IsMainWarehouse { get; set; }
         public bool IsPharmacyLocation { get; set; }
@@ -66,15 +60,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsAllowDispensing { get; set; }
         public bool IsAllowTransferIn { get; set; }
         public bool IsAllowTransferOut { get; set; }
-
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class DrugStorageLocationDetailResponse : DrugStorageLocationResponse
     {
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class DrugStorageLocationOptionResponse
@@ -84,9 +82,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? ParentStorageLocationName { get; set; }
         public Guid? ServiceUnitId { get; set; }
         public string? ServiceUnitName { get; set; }
+        public Guid? ClinicId { get; set; }
+        public string? ClinicName { get; set; }
+        public Guid? RoomId { get; set; }
+        public string? RoomName { get; set; }
         public string StorageLocationCode { get; set; } = string.Empty;
         public string StorageLocationName { get; set; } = string.Empty;
         public string StorageLocationType { get; set; } = string.Empty;
+        public string StorageLocationTypeName { get; set; } = string.Empty;
         public string? LocationGroupName { get; set; }
         public bool IsDefault { get; set; }
         public bool IsMainWarehouse { get; set; }
@@ -99,6 +102,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsAllowDispensing { get; set; }
         public bool IsAllowTransferIn { get; set; }
         public bool IsAllowTransferOut { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class DrugStorageLocationOptionPagedResponse
@@ -113,12 +117,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class DrugStorageLocationFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
+        public string CustomPeriodPriorityInfo { get; set; } = "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
+        public string ResetButtonLabel { get; set; } = "Reset Filter";
         public DrugStorageLocationDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<DrugStorageLocationCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<DrugStorageLocationSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
         public List<string> StorageLocationTypeOptions { get; set; } = new();
+        public List<DrugStorageLocationQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+        public List<DrugStorageLocationFormFieldMetadataResponse> CreateFields { get; set; } = new();
+        public List<DrugStorageLocationFormFieldMetadataResponse> UpdateFields { get; set; } = new();
     }
 
     public class DrugStorageLocationDefaultFilterResponse
@@ -128,6 +137,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? CustomPeriod { get; set; }
         public Guid? ParentStorageLocationId { get; set; }
         public Guid? ServiceUnitId { get; set; }
+        public Guid? ClinicId { get; set; }
+        public Guid? RoomId { get; set; }
+        public string? StorageLocationType { get; set; }
+        public bool? IsDefault { get; set; }
+        public bool? IsMainWarehouse { get; set; }
+        public bool? IsPharmacyLocation { get; set; }
+        public bool? IsColdChain { get; set; }
+        public bool? IsControlledDrugStorage { get; set; }
+        public bool? IsHighAlertStorage { get; set; }
+        public bool? IsQuarantineLocation { get; set; }
+        public bool? IsAllowReceiving { get; set; }
+        public bool? IsAllowDispensing { get; set; }
+        public bool? IsAllowTransferIn { get; set; }
+        public bool? IsAllowTransferOut { get; set; }
         public bool? IsActive { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
@@ -140,13 +163,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     {
         public string Value { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public bool UsesStartDate { get; set; }
+        public bool UsesEndDate { get; set; }
     }
 
-    public class DrugStorageLocationSortOptionResponse
-    {
-        public string Value { get; set; } = string.Empty;
-        public string Label { get; set; } = string.Empty;
-    }
+    public class DrugStorageLocationSortOptionResponse { public string Value { get; set; } = string.Empty; public string Label { get; set; } = string.Empty; }
+    public class DrugStorageLocationEnumOptionResponse { public string Value { get; set; } = string.Empty; public string Label { get; set; } = string.Empty; }
+    public class DrugStorageLocationQueryParameterInfoResponse { public string Name { get; set; } = string.Empty; public string Type { get; set; } = string.Empty; public string Required { get; set; } = "No"; public string Description { get; set; } = string.Empty; public string? Example { get; set; } }
+    public class DrugStorageLocationFormFieldMetadataResponse { public string Name { get; set; } = string.Empty; public string Label { get; set; } = string.Empty; public string DataType { get; set; } = string.Empty; public string InputType { get; set; } = string.Empty; public bool Required { get; set; } public bool IsReadonly { get; set; } public string? Placeholder { get; set; } public string? Description { get; set; } }
 
     public class CreateDrugStorageLocationRequest
     {
@@ -154,38 +179,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid? ServiceUnitId { get; set; }
         public Guid? ClinicId { get; set; }
         public Guid? RoomId { get; set; }
-
-        [Required]
-        [MaxLength(150)]
-        public string StorageLocationName { get; set; } = string.Empty;
-
-        [Required]
-        [MaxLength(50)]
-        public string StorageLocationType { get; set; } = "General";
-
-        [MaxLength(100)]
-        public string? LocationGroupName { get; set; }
-
-        [MaxLength(100)]
-        public string? FloorName { get; set; }
-
-        [MaxLength(100)]
-        public string? RoomName { get; set; }
-
-        [MaxLength(100)]
-        public string? RackCode { get; set; }
-
-        [MaxLength(100)]
-        public string? ShelfCode { get; set; }
-
-        [MaxLength(100)]
-        public string? BinCode { get; set; }
-
+        [Required, MaxLength(150)] public string StorageLocationName { get; set; } = string.Empty;
+        [Required, MaxLength(50)] public string StorageLocationType { get; set; } = "General";
+        [MaxLength(100)] public string? LocationGroupName { get; set; }
+        [MaxLength(100)] public string? FloorName { get; set; }
+        [MaxLength(100)] public string? RoomName { get; set; }
+        [MaxLength(100)] public string? RackCode { get; set; }
+        [MaxLength(100)] public string? ShelfCode { get; set; }
+        [MaxLength(100)] public string? BinCode { get; set; }
         public decimal? MinimumTemperatureCelsius { get; set; }
         public decimal? MaximumTemperatureCelsius { get; set; }
         public decimal? MinimumHumidityPercent { get; set; }
         public decimal? MaximumHumidityPercent { get; set; }
-
         public bool IsDefault { get; set; } = false;
         public bool IsMainWarehouse { get; set; } = false;
         public bool IsPharmacyLocation { get; set; } = true;
@@ -197,32 +202,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsAllowDispensing { get; set; } = true;
         public bool IsAllowTransferIn { get; set; } = true;
         public bool IsAllowTransferOut { get; set; } = true;
-
         public int SortOrder { get; set; } = 0;
-
-        [MaxLength(250)]
-        public string? Description { get; set; }
+        [MaxLength(250)] public string? Description { get; set; }
     }
 
-    public class UpdateDrugStorageLocationRequest : CreateDrugStorageLocationRequest
-    {
-        public bool IsActive { get; set; } = true;
-    }
-
-    public class DrugStorageLocationCreateResponse
-    {
-        public Guid Id { get; set; }
-        public string StorageLocationCode { get; set; } = string.Empty;
-        public string StorageLocationName { get; set; } = string.Empty;
-        public string StorageLocationType { get; set; } = string.Empty;
-        public bool IsDefault { get; set; }
-        public bool IsMainWarehouse { get; set; }
-        public bool IsPharmacyLocation { get; set; }
-        public bool IsActive { get; set; }
-    }
-
-    public class DrugStorageLocationUpdateResponse : DrugStorageLocationCreateResponse
-    {
-        public DateTime? UpdateDateTime { get; set; }
-    }
+    public class UpdateDrugStorageLocationRequest : CreateDrugStorageLocationRequest { public bool IsActive { get; set; } = true; }
+    public class UpdateDrugStorageLocationStatusRequest { public bool IsActive { get; set; } }
+    public class DeleteDrugStorageLocationRequest { [MaxLength(250)] public string? DeleteReason { get; set; } }
+    public class DrugStorageLocationCreateResponse { public Guid Id { get; set; } public string StorageLocationCode { get; set; } = string.Empty; public string StorageLocationName { get; set; } = string.Empty; public string StorageLocationType { get; set; } = string.Empty; public bool IsDefault { get; set; } public bool IsMainWarehouse { get; set; } public bool IsPharmacyLocation { get; set; } public bool IsActive { get; set; } }
+    public class DrugStorageLocationUpdateResponse : DrugStorageLocationCreateResponse { public DateTime? UpdateDateTime { get; set; } }
+    public class DrugStorageLocationDeleteResponse { public Guid Id { get; set; } public string StorageLocationCode { get; set; } = string.Empty; public string StorageLocationName { get; set; } = string.Empty; public bool IsDelete { get; set; } public DateTime? DeleteDateTime { get; set; } }
 }

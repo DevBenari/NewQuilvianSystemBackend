@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.Data;
 using System.Security.Claims;
 
 using ResponsePatientClassPagedResult =
@@ -49,7 +50,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<PatientClassFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Class", Description = "Melihat data patient class", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Patient Class", Description = "Melihat metadata filter patient class", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PatientClass", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
@@ -65,6 +66,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     new() { Value = "patientClassCode", Label = "Kode kelas pasien" },
                     new() { Value = "patientClassName", Label = "Nama kelas pasien" },
                     new() { Value = "patientClassType", Label = "Tipe kelas pasien" },
+                    new() { Value = "externalClassCode", Label = "Kode eksternal" },
+                    new() { Value = "classAlias", Label = "Alias kelas" },
+                    new() { Value = "isForOutpatient", Label = "Rawat jalan" },
+                    new() { Value = "isForInpatient", Label = "Rawat inap" },
+                    new() { Value = "isForEmergency", Label = "IGD" },
+                    new() { Value = "isForIntensiveCare", Label = "Intensive care" },
+                    new() { Value = "isForNewborn", Label = "Newborn" },
+                    new() { Value = "isForRoomCharge", Label = "Biaya kamar" },
+                    new() { Value = "isForTariffMapping", Label = "Mapping tarif" },
                     new() { Value = "isDefault", Label = "Default" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
@@ -73,7 +83,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 PatientClassTypeOptions = BuildEnumOptions<PatientClassType>(),
                 QueryParameters = BuildQueryParameterInfo(),
                 CreateFields = BuildCreateFieldMetadata(),
-                UpdateFields = BuildUpdateFieldMetadata()
+                UpdateFields = BuildUpdateFieldMetadata(),
+                ResetButtonLabel = "Reset"
             };
 
             await _loggerService.InfoAsync(
@@ -91,13 +102,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<PatientClassSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Class", Description = "Melihat data patient class", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Patient Class", Description = "Melihat ringkasan patient class", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PatientClass", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var query = _dbContext.Set<MstPatientClass>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
             var result = new PatientClassSummaryResponse
             {
@@ -130,6 +139,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] string? customPeriod,
             [FromQuery] string? search,
             [FromQuery] bool? isActive,
+            [FromQuery] PatientClassType? patientClassType,
+            [FromQuery] bool? isForOutpatient,
+            [FromQuery] bool? isForInpatient,
+            [FromQuery] bool? isForEmergency,
+            [FromQuery] bool? isForIntensiveCare,
+            [FromQuery] bool? isForNewborn,
+            [FromQuery] bool? isForRoomCharge,
+            [FromQuery] bool? isForTariffMapping,
+            [FromQuery] bool? isDefault,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -140,7 +158,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             pageSize = paging.PageSize;
 
             var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
-
             if (!dateRange.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
@@ -149,61 +166,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            var query = _dbContext.Set<MstPatientClass>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
-
-            if (dateRange.Start.HasValue)
-                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
-
-            if (dateRange.EndExclusive.HasValue)
-                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.PatientClassCode.ToLower().Contains(keyword) ||
-                    x.PatientClassName.ToLower().Contains(keyword) ||
-                    (x.ExternalClassCode != null && x.ExternalClassCode.ToLower().Contains(keyword)) ||
-                    (x.ClassAlias != null && x.ClassAlias.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
-            }
-
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
+            var query = BuildBaseQuery();
+            query = ApplyDateFilter(query, dateRange);
+            query = ApplyStandardFilter(
+                query,
+                search,
+                isActive,
+                patientClassType,
+                isForOutpatient,
+                isForInpatient,
+                isForEmergency,
+                isForIntensiveCare,
+                isForNewborn,
+                isForRoomCharge,
+                isForTariffMapping,
+                isDefault
+            );
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new PatientClassResponse
-                {
-                    Id = x.Id,
-                    PatientClassCode = x.PatientClassCode,
-                    PatientClassName = x.PatientClassName,
-                    PatientClassType = x.PatientClassType,
-                    ExternalClassCode = x.ExternalClassCode,
-                    ClassAlias = x.ClassAlias,
-                    ClassLevel = x.ClassLevel,
-                    IsForOutpatient = x.IsForOutpatient,
-                    IsForInpatient = x.IsForInpatient,
-                    IsForEmergency = x.IsForEmergency,
-                    IsForIntensiveCare = x.IsForIntensiveCare,
-                    IsForNewborn = x.IsForNewborn,
-                    IsForRoomCharge = x.IsForRoomCharge,
-                    IsForTariffMapping = x.IsForTariffMapping,
-                    IsDefault = x.IsDefault,
-                    DefaultDailyRoomRate = x.DefaultDailyRoomRate,
-                    DefaultRegistrationFee = x.DefaultRegistrationFee,
-                    DefaultConsultationFee = x.DefaultConsultationFee,
-                    SortOrder = x.SortOrder,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities.Select(x => x.CreateBy).Where(x => x != Guid.Empty)
+            );
+
+            var items = entities.Select(x => MapResponse(x, actorNames)).ToList();
 
             var result = new ResponsePatientClassPagedResult
             {
@@ -222,62 +213,56 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpGet("options")]
         [ProducesResponseType(typeof(ApiResponse<PatientClassOptionPagedResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Class", Description = "Melihat data patient class", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Patient Class", Description = "Melihat data pilihan patient class", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PatientClass", "Read")]
         public async Task<IActionResult> GetPatientClassOptions(
-    [FromQuery] bool onlyActive = true,
-    [FromQuery] string? search = null,
-    [FromQuery] int pageNumber = 1,
-    [FromQuery] int pageSize = 25)
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] bool? activeOnly = null,
+            [FromQuery] PatientClassType? patientClassType = null,
+            [FromQuery] bool? isForOutpatient = null,
+            [FromQuery] bool? isForInpatient = null,
+            [FromQuery] bool? isForEmergency = null,
+            [FromQuery] bool? isForIntensiveCare = null,
+            [FromQuery] bool? isForNewborn = null,
+            [FromQuery] bool? isForRoomCharge = null,
+            [FromQuery] bool? isForTariffMapping = null,
+            [FromQuery] bool? isDefault = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
             var paging = NormalizePaging(pageNumber, pageSize);
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.Set<MstPatientClass>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
-
-            if (onlyActive)
-                query = query.Where(x => x.IsActive);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.PatientClassCode.ToLower().Contains(keyword) ||
-                    x.PatientClassName.ToLower().Contains(keyword) ||
-                    (x.ClassAlias != null && x.ClassAlias.ToLower().Contains(keyword)) ||
-                    (x.ExternalClassCode != null && x.ExternalClassCode.ToLower().Contains(keyword)));
-            }
+            var query = BuildBaseQuery();
+            query = ApplyStandardFilter(
+                query,
+                search,
+                activeOnly ?? onlyActive,
+                patientClassType,
+                isForOutpatient,
+                isForInpatient,
+                isForEmergency,
+                isForIntensiveCare,
+                isForNewborn,
+                isForRoomCharge,
+                isForTariffMapping,
+                isDefault
+            );
 
             var totalData = await query.CountAsync();
 
-            var items = await query
-                .OrderBy(x => x.ClassLevel)
+            var entities = await query
+                .OrderByDescending(x => x.IsDefault)
+                .ThenBy(x => x.ClassLevel)
                 .ThenBy(x => x.SortOrder)
                 .ThenBy(x => x.PatientClassName)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new PatientClassOptionResponse
-                {
-                    Id = x.Id,
-                    PatientClassCode = x.PatientClassCode,
-                    PatientClassName = x.PatientClassName,
-                    PatientClassType = x.PatientClassType,
-                    ClassAlias = x.ClassAlias,
-                    ClassLevel = x.ClassLevel,
-                    IsForOutpatient = x.IsForOutpatient,
-                    IsForInpatient = x.IsForInpatient,
-                    IsForEmergency = x.IsForEmergency,
-                    IsForIntensiveCare = x.IsForIntensiveCare,
-                    IsForNewborn = x.IsForNewborn,
-                    IsForRoomCharge = x.IsForRoomCharge,
-                    IsForTariffMapping = x.IsForTariffMapping,
-                    IsDefault = x.IsDefault
-                })
                 .ToListAsync();
+
+            var items = entities.Select(MapOptionResponse).ToList();
 
             var result = new PatientClassOptionPagedResponse
             {
@@ -297,41 +282,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientClassDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Patient Class", Description = "Melihat data patient class", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Patient Class", Description = "Melihat detail patient class", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PatientClass", "Read")]
         public async Task<IActionResult> GetPatientClassById(Guid id)
         {
-            var data = await _dbContext.Set<MstPatientClass>()
-                .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new PatientClassDetailResponse
-                {
-                    Id = x.Id,
-                    PatientClassCode = x.PatientClassCode,
-                    PatientClassName = x.PatientClassName,
-                    PatientClassType = x.PatientClassType,
-                    ExternalClassCode = x.ExternalClassCode,
-                    ClassAlias = x.ClassAlias,
-                    ClassLevel = x.ClassLevel,
-                    IsForOutpatient = x.IsForOutpatient,
-                    IsForInpatient = x.IsForInpatient,
-                    IsForEmergency = x.IsForEmergency,
-                    IsForIntensiveCare = x.IsForIntensiveCare,
-                    IsForNewborn = x.IsForNewborn,
-                    IsForRoomCharge = x.IsForRoomCharge,
-                    IsForTariffMapping = x.IsForTariffMapping,
-                    IsDefault = x.IsDefault,
-                    DefaultDailyRoomRate = x.DefaultDailyRoomRate,
-                    DefaultRegistrationFee = x.DefaultRegistrationFee,
-                    DefaultConsultationFee = x.DefaultConsultationFee,
-                    SortOrder = x.SortOrder,
-                    Description = x.Description,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+            var entity = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (data == null)
+            if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
@@ -339,8 +297,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var result = MapDetailResponse(entity, actorNames);
+
             return Ok(ApiResponse<PatientClassDetailResponse>.Ok(
-                data,
+                result,
                 "Detail patient class berhasil diambil."
             ));
         }
@@ -352,8 +318,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("PatientClass", "Create")]
         public async Task<IActionResult> CreatePatientClass([FromBody] CreatePatientClassRequest request)
         {
-            var validation = await ValidateCreateRequestAsync(request);
-
+            var validation = await ValidateCreateUpdateRequestAsync(null, request, isActive: true);
             if (!validation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
@@ -365,7 +330,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
             if (request.IsDefault)
             {
@@ -405,17 +370,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             await _dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            var response = ToCreateUpdateResponse(entity);
+            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
+            var result = MapCreateResponse(entity, actorNames);
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "PatientClass.CreatePatientClass",
                 "Membuat data patient class.",
-                response
+                result
             );
 
             return Ok(ApiResponse<PatientClassCreateResponse>.Ok(
-                response,
+                result,
                 "Patient class berhasil dibuat."
             ));
         }
@@ -439,8 +405,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            var validation = await ValidateUpdateRequestAsync(id, request);
-
+            var validation = await ValidateCreateUpdateRequestAsync(id, request, request.IsActive);
             if (!validation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
@@ -452,11 +417,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
-            if (request.IsDefault && !entity.IsDefault)
+            if (request.IsDefault)
             {
-                await ResetDefaultPatientClassAsync(actorUserId, now);
+                await ResetDefaultPatientClassAsync(actorUserId, now, excludeId: entity.Id);
             }
 
             entity.PatientClassName = request.PatientClassName.Trim();
@@ -471,7 +436,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.IsForNewborn = request.IsForNewborn;
             entity.IsForRoomCharge = request.IsForRoomCharge;
             entity.IsForTariffMapping = request.IsForTariffMapping;
-            entity.IsDefault = request.IsDefault;
+            entity.IsDefault = request.IsActive && request.IsDefault;
             entity.DefaultDailyRoomRate = request.DefaultDailyRoomRate;
             entity.DefaultRegistrationFee = request.DefaultRegistrationFee;
             entity.DefaultConsultationFee = request.DefaultConsultationFee;
@@ -484,20 +449,70 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             await _dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            var response = ToUpdateResponse(entity);
+            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
+            var result = MapUpdateResponse(entity, actorNames);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientClass.UpdatePatientClass",
+                "Mengubah data patient class.",
+                result
+            );
 
             return Ok(ApiResponse<PatientClassUpdateResponse>.Ok(
-                response,
+                result,
                 "Patient class berhasil diperbarui."
             ));
         }
 
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<PatientClassUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Patient Class Status", Description = "Mengubah status patient class", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("PatientClass", "Update")]
+        public async Task<IActionResult> UpdatePatientClassStatus(Guid id, [FromBody] UpdatePatientClassStatusRequest request)
+        {
+            var entity = await _dbContext.Set<MstPatientClass>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Patient class tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = request.IsActive;
+            if (!request.IsActive)
+            {
+                entity.IsDefault = false;
+            }
+
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
+            var result = MapUpdateResponse(entity, actorNames);
+
+            return Ok(ApiResponse<PatientClassUpdateResponse>.Ok(
+                result,
+                "Status patient class berhasil diperbarui."
+            ));
+        }
+
         [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<PatientClassDeleteResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Patient Class", Description = "Menghapus data patient class", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("PatientClass", "Delete")]
-        public async Task<IActionResult> DeletePatientClass(Guid id)
+        public async Task<IActionResult> DeletePatientClass(Guid id, [FromBody] DeletePatientClassRequest? request = null)
         {
             var entity = await _dbContext.Set<MstPatientClass>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -532,96 +547,220 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsDelete = true;
             entity.IsActive = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.IsDefault = false;
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+            {
+                entity.Description = request.DeleteReason.Trim();
+            }
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
+            var result = new PatientClassDeleteResponse
+            {
+                Id = entity.Id,
+                PatientClassCode = entity.PatientClassCode,
+                PatientClassName = entity.PatientClassName,
+                DeleteDateTime = entity.DeleteDateTime,
+                DeleteBy = entity.DeleteBy == Guid.Empty ? null : (Guid?)entity.DeleteBy,
+                DeleteByName = GetActorName(actorNames, entity.DeleteBy)
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientClass.DeletePatientClass",
+                "Menghapus data patient class.",
+                result
+            );
+
+            return Ok(ApiResponse<PatientClassDeleteResponse>.Ok(
+                result,
                 "Patient class berhasil dihapus."
             ));
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(CreatePatientClassRequest request)
+        private IQueryable<MstPatientClass> BuildBaseQuery()
         {
-            return await ValidateCommonRequestAsync(
-                excludeId: null,
-                patientClassName: request.PatientClassName,
-                classLevel: request.ClassLevel,
-                isDefault: request.IsDefault,
-                isActive: true,
-                defaultDailyRoomRate: request.DefaultDailyRoomRate,
-                defaultRegistrationFee: request.DefaultRegistrationFee,
-                defaultConsultationFee: request.DefaultConsultationFee
-            );
+            return _dbContext.Set<MstPatientClass>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateUpdateRequestAsync(Guid id, UpdatePatientClassRequest request)
+        private static IQueryable<MstPatientClass> ApplyDateFilter(
+            IQueryable<MstPatientClass> query,
+            DateRangeResolveResult dateRange)
         {
-            return await ValidateCommonRequestAsync(
-                excludeId: id,
-                patientClassName: request.PatientClassName,
-                classLevel: request.ClassLevel,
-                isDefault: request.IsDefault,
-                isActive: request.IsActive,
-                defaultDailyRoomRate: request.DefaultDailyRoomRate,
-                defaultRegistrationFee: request.DefaultRegistrationFee,
-                defaultConsultationFee: request.DefaultConsultationFee
-            );
+            if (dateRange.Start.HasValue)
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
+
+            if (dateRange.EndExclusive.HasValue)
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
+
+            return query;
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCommonRequestAsync(
+        private static IQueryable<MstPatientClass> ApplyStandardFilter(
+            IQueryable<MstPatientClass> query,
+            string? search,
+            bool? isActive,
+            PatientClassType? patientClassType,
+            bool? isForOutpatient,
+            bool? isForInpatient,
+            bool? isForEmergency,
+            bool? isForIntensiveCare,
+            bool? isForNewborn,
+            bool? isForRoomCharge,
+            bool? isForTariffMapping,
+            bool? isDefault)
+        {
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.PatientClassCode.ToLower().Contains(keyword) ||
+                    x.PatientClassName.ToLower().Contains(keyword) ||
+                    (x.ExternalClassCode != null && x.ExternalClassCode.ToLower().Contains(keyword)) ||
+                    (x.ClassAlias != null && x.ClassAlias.ToLower().Contains(keyword)) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
+            }
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (patientClassType.HasValue)
+                query = query.Where(x => x.PatientClassType == patientClassType.Value);
+
+            if (isForOutpatient.HasValue)
+                query = query.Where(x => x.IsForOutpatient == isForOutpatient.Value);
+
+            if (isForInpatient.HasValue)
+                query = query.Where(x => x.IsForInpatient == isForInpatient.Value);
+
+            if (isForEmergency.HasValue)
+                query = query.Where(x => x.IsForEmergency == isForEmergency.Value);
+
+            if (isForIntensiveCare.HasValue)
+                query = query.Where(x => x.IsForIntensiveCare == isForIntensiveCare.Value);
+
+            if (isForNewborn.HasValue)
+                query = query.Where(x => x.IsForNewborn == isForNewborn.Value);
+
+            if (isForRoomCharge.HasValue)
+                query = query.Where(x => x.IsForRoomCharge == isForRoomCharge.Value);
+
+            if (isForTariffMapping.HasValue)
+                query = query.Where(x => x.IsForTariffMapping == isForTariffMapping.Value);
+
+            if (isDefault.HasValue)
+                query = query.Where(x => x.IsDefault == isDefault.Value);
+
+            return query;
+        }
+
+        private static IOrderedQueryable<MstPatientClass> ApplySorting(
+            IQueryable<MstPatientClass> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+            return (sortBy ?? "sortOrder").Trim().ToLowerInvariant() switch
+            {
+                "createdatetime" => isDesc ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime),
+                "patientclasscode" => isDesc ? query.OrderByDescending(x => x.PatientClassCode) : query.OrderBy(x => x.PatientClassCode),
+                "patientclassname" => isDesc ? query.OrderByDescending(x => x.PatientClassName) : query.OrderBy(x => x.PatientClassName),
+                "patientclasstype" => isDesc ? query.OrderByDescending(x => x.PatientClassType).ThenBy(x => x.PatientClassName) : query.OrderBy(x => x.PatientClassType).ThenBy(x => x.PatientClassName),
+                "externalclasscode" => isDesc ? query.OrderByDescending(x => x.ExternalClassCode).ThenBy(x => x.PatientClassName) : query.OrderBy(x => x.ExternalClassCode).ThenBy(x => x.PatientClassName),
+                "classalias" => isDesc ? query.OrderByDescending(x => x.ClassAlias).ThenBy(x => x.PatientClassName) : query.OrderBy(x => x.ClassAlias).ThenBy(x => x.PatientClassName),
+                "classlevel" => isDesc ? query.OrderByDescending(x => x.ClassLevel).ThenBy(x => x.PatientClassName) : query.OrderBy(x => x.ClassLevel).ThenBy(x => x.PatientClassName),
+                "isforoutpatient" => isDesc ? query.OrderByDescending(x => x.IsForOutpatient).ThenBy(x => x.PatientClassName) : query.OrderBy(x => x.IsForOutpatient).ThenBy(x => x.PatientClassName),
+                "isforinpatient" => isDesc ? query.OrderByDescending(x => x.IsForInpatient).ThenBy(x => x.PatientClassName) : query.OrderBy(x => x.IsForInpatient).ThenBy(x => x.PatientClassName),
+                "isforemergency" => isDesc ? query.OrderByDescending(x => x.IsForEmergency).ThenBy(x => x.PatientClassName) : query.OrderBy(x => x.IsForEmergency).ThenBy(x => x.PatientClassName),
+                "isforintensivecare" => isDesc ? query.OrderByDescending(x => x.IsForIntensiveCare).ThenBy(x => x.PatientClassName) : query.OrderBy(x => x.IsForIntensiveCare).ThenBy(x => x.PatientClassName),
+                "isfornewborn" => isDesc ? query.OrderByDescending(x => x.IsForNewborn).ThenBy(x => x.PatientClassName) : query.OrderBy(x => x.IsForNewborn).ThenBy(x => x.PatientClassName),
+                "isforroomcharge" => isDesc ? query.OrderByDescending(x => x.IsForRoomCharge).ThenBy(x => x.PatientClassName) : query.OrderBy(x => x.IsForRoomCharge).ThenBy(x => x.PatientClassName),
+                "isfortariffmapping" => isDesc ? query.OrderByDescending(x => x.IsForTariffMapping).ThenBy(x => x.PatientClassName) : query.OrderBy(x => x.IsForTariffMapping).ThenBy(x => x.PatientClassName),
+                "isdefault" => isDesc ? query.OrderByDescending(x => x.IsDefault).ThenBy(x => x.PatientClassName) : query.OrderBy(x => x.IsDefault).ThenBy(x => x.PatientClassName),
+                "isactive" => isDesc ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.PatientClassName) : query.OrderBy(x => x.IsActive).ThenBy(x => x.PatientClassName),
+                _ => isDesc ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.PatientClassName) : query.OrderBy(x => x.SortOrder).ThenBy(x => x.PatientClassName)
+            };
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateUpdateRequestAsync(
             Guid? excludeId,
-            string patientClassName,
-            int classLevel,
-            bool isDefault,
-            bool isActive,
-            decimal? defaultDailyRoomRate,
-            decimal? defaultRegistrationFee,
-            decimal? defaultConsultationFee)
+            CreatePatientClassRequest request,
+            bool isActive)
         {
-            if (string.IsNullOrWhiteSpace(patientClassName))
+            if (string.IsNullOrWhiteSpace(request.PatientClassName))
                 return (false, "Nama patient class wajib diisi.");
 
-            if (patientClassName.Trim().Length > 150)
-                return (false, "Nama patient class maksimal 150 karakter.");
-
-            if (classLevel < 0)
+            if (request.ClassLevel < 0)
                 return (false, "Level kelas tidak boleh kurang dari 0.");
 
-            if (isDefault && !isActive)
+            if (request.IsDefault && !isActive)
                 return (false, "Patient class default harus dalam status aktif.");
 
-            if (defaultDailyRoomRate.HasValue && defaultDailyRoomRate.Value < 0)
+            if (request.DefaultDailyRoomRate.HasValue && request.DefaultDailyRoomRate.Value < 0)
                 return (false, "Default daily room rate tidak boleh kurang dari 0.");
 
-            if (defaultRegistrationFee.HasValue && defaultRegistrationFee.Value < 0)
+            if (request.DefaultRegistrationFee.HasValue && request.DefaultRegistrationFee.Value < 0)
                 return (false, "Default registration fee tidak boleh kurang dari 0.");
 
-            if (defaultConsultationFee.HasValue && defaultConsultationFee.Value < 0)
+            if (request.DefaultConsultationFee.HasValue && request.DefaultConsultationFee.Value < 0)
                 return (false, "Default consultation fee tidak boleh kurang dari 0.");
 
-            var normalizedName = patientClassName.Trim().ToLower();
+            var normalizedName = request.PatientClassName.Trim().ToLower();
 
-            var duplicateName = await _dbContext.Set<MstPatientClass>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.PatientClassName.ToLower() == normalizedName &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
+            var duplicateNameQuery = _dbContext.Set<MstPatientClass>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.PatientClassName.ToLower() == normalizedName);
 
-            if (duplicateName)
+            if (excludeId.HasValue)
+                duplicateNameQuery = duplicateNameQuery.Where(x => x.Id != excludeId.Value);
+
+            if (await duplicateNameQuery.AnyAsync())
                 return (false, "Nama patient class sudah digunakan.");
+
+            var externalClassCode = NormalizeNullableText(request.ExternalClassCode);
+            if (!string.IsNullOrWhiteSpace(externalClassCode))
+            {
+                var normalizedExternalCode = externalClassCode.ToLower();
+
+                var duplicateExternalCodeQuery = _dbContext.Set<MstPatientClass>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        !x.IsDelete &&
+                        x.ExternalClassCode != null &&
+                        x.ExternalClassCode.ToLower() == normalizedExternalCode);
+
+                if (excludeId.HasValue)
+                    duplicateExternalCodeQuery = duplicateExternalCodeQuery.Where(x => x.Id != excludeId.Value);
+
+                if (await duplicateExternalCodeQuery.AnyAsync())
+                    return (false, "External class code sudah digunakan.");
+            }
 
             return (true, null);
         }
 
-        private async Task ResetDefaultPatientClassAsync(Guid actorUserId, DateTime now)
+        private async Task ResetDefaultPatientClassAsync(Guid actorUserId, DateTime now, Guid? excludeId = null)
         {
             var defaultClasses = await _dbContext.Set<MstPatientClass>()
-                .Where(x => x.IsDefault && !x.IsDelete)
+                .Where(x =>
+                    x.IsDefault &&
+                    !x.IsDelete &&
+                    (!excludeId.HasValue || x.Id != excludeId.Value))
                 .ToListAsync();
 
             foreach (var item in defaultClasses)
@@ -636,77 +775,151 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         {
             var existingCodes = await _dbContext.Set<MstPatientClass>()
                 .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.PatientClassCode.StartsWith(PatientClassCodePrefix))
+                .Where(x => !x.IsDelete && x.PatientClassCode.StartsWith(PatientClassCodePrefix))
                 .Select(x => x.PatientClassCode)
                 .ToListAsync();
 
-            var usedNumbers = new HashSet<int>();
-
-            foreach (var code in existingCodes)
-            {
-                if (code.Length <= PatientClassCodePrefix.Length)
-                    continue;
-
-                var numberText = code[PatientClassCodePrefix.Length..];
-
-                if (int.TryParse(numberText, out var number) && number > 0)
-                    usedNumbers.Add(number);
-            }
+            var usedNumbers = existingCodes
+                .Select(ExtractPatientClassCodeNumber)
+                .Where(x => x.HasValue && x.Value > 0)
+                .Select(x => x!.Value)
+                .ToHashSet();
 
             var nextNumber = 1;
-
             while (usedNumbers.Contains(nextNumber))
+            {
                 nextNumber++;
+            }
 
-            return PatientClassCodePrefix + nextNumber.ToString($"D{PatientClassCodeDigitLength}");
+            return PatientClassCodePrefix + nextNumber.ToString().PadLeft(PatientClassCodeDigitLength, '0');
         }
 
-        private static IQueryable<MstPatientClass> ApplySorting(
-            IQueryable<MstPatientClass> query,
-            string? sortBy,
-            string? sortDirection)
+        private static int? ExtractPatientClassCodeNumber(string patientClassCode)
         {
-            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(patientClassCode))
+                return null;
 
-            return (sortBy ?? "sortOrder").ToLowerInvariant() switch
+            if (!patientClassCode.StartsWith(PatientClassCodePrefix, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var numberText = patientClassCode[PatientClassCodePrefix.Length..];
+            return int.TryParse(numberText, out var number) ? number : null;
+        }
+
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
             {
-                "createdatetime" => isDesc
-                    ? query.OrderByDescending(x => x.CreateDateTime)
-                    : query.OrderBy(x => x.CreateDateTime),
+                return new Dictionary<Guid, string?>();
+            }
 
-                "patientclasscode" => isDesc
-                    ? query.OrderByDescending(x => x.PatientClassCode)
-                    : query.OrderBy(x => x.PatientClassCode),
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
 
-                "patientclassname" => isDesc
-                    ? query.OrderByDescending(x => x.PatientClassName)
-                    : query.OrderBy(x => x.PatientClassName),
-
-                "patientclasstype" => isDesc
-                    ? query.OrderByDescending(x => x.PatientClassType)
-                    : query.OrderBy(x => x.PatientClassType),
-
-                "classlevel" => isDesc
-                    ? query.OrderByDescending(x => x.ClassLevel)
-                    : query.OrderBy(x => x.ClassLevel),
-
-                "isdefault" => isDesc
-                    ? query.OrderByDescending(x => x.IsDefault)
-                    : query.OrderBy(x => x.IsDefault),
-
-                "isactive" => isDesc
-                    ? query.OrderByDescending(x => x.IsActive)
-                    : query.OrderBy(x => x.IsActive),
-
-                _ => isDesc
-                    ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.PatientClassName)
-                    : query.OrderBy(x => x.SortOrder).ThenBy(x => x.PatientClassName)
+        private static PatientClassResponse MapResponse(MstPatientClass entity, IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new PatientClassResponse
+            {
+                Id = entity.Id,
+                PatientClassCode = entity.PatientClassCode,
+                PatientClassName = entity.PatientClassName,
+                PatientClassType = entity.PatientClassType,
+                PatientClassTypeName = BuildEnumLabel(entity.PatientClassType),
+                ExternalClassCode = entity.ExternalClassCode,
+                ClassAlias = entity.ClassAlias,
+                ClassLevel = entity.ClassLevel,
+                IsForOutpatient = entity.IsForOutpatient,
+                IsForInpatient = entity.IsForInpatient,
+                IsForEmergency = entity.IsForEmergency,
+                IsForIntensiveCare = entity.IsForIntensiveCare,
+                IsForNewborn = entity.IsForNewborn,
+                IsForRoomCharge = entity.IsForRoomCharge,
+                IsForTariffMapping = entity.IsForTariffMapping,
+                IsDefault = entity.IsDefault,
+                DefaultDailyRoomRate = entity.DefaultDailyRoomRate,
+                DefaultRegistrationFee = entity.DefaultRegistrationFee,
+                DefaultConsultationFee = entity.DefaultConsultationFee,
+                SortOrder = entity.SortOrder,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
             };
         }
 
-        private static PatientClassCreateResponse ToCreateUpdateResponse(MstPatientClass entity)
+        private static PatientClassDetailResponse MapDetailResponse(MstPatientClass entity, IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new PatientClassDetailResponse
+            {
+                Id = entity.Id,
+                PatientClassCode = entity.PatientClassCode,
+                PatientClassName = entity.PatientClassName,
+                PatientClassType = entity.PatientClassType,
+                PatientClassTypeName = BuildEnumLabel(entity.PatientClassType),
+                ExternalClassCode = entity.ExternalClassCode,
+                ClassAlias = entity.ClassAlias,
+                ClassLevel = entity.ClassLevel,
+                IsForOutpatient = entity.IsForOutpatient,
+                IsForInpatient = entity.IsForInpatient,
+                IsForEmergency = entity.IsForEmergency,
+                IsForIntensiveCare = entity.IsForIntensiveCare,
+                IsForNewborn = entity.IsForNewborn,
+                IsForRoomCharge = entity.IsForRoomCharge,
+                IsForTariffMapping = entity.IsForTariffMapping,
+                IsDefault = entity.IsDefault,
+                DefaultDailyRoomRate = entity.DefaultDailyRoomRate,
+                DefaultRegistrationFee = entity.DefaultRegistrationFee,
+                DefaultConsultationFee = entity.DefaultConsultationFee,
+                SortOrder = entity.SortOrder,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                Description = entity.Description,
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
+
+        private static PatientClassOptionResponse MapOptionResponse(MstPatientClass entity)
+        {
+            return new PatientClassOptionResponse
+            {
+                Id = entity.Id,
+                PatientClassCode = entity.PatientClassCode,
+                PatientClassName = entity.PatientClassName,
+                PatientClassType = entity.PatientClassType,
+                PatientClassTypeName = BuildEnumLabel(entity.PatientClassType),
+                ExternalClassCode = entity.ExternalClassCode,
+                ClassAlias = entity.ClassAlias,
+                ClassLevel = entity.ClassLevel,
+                IsForOutpatient = entity.IsForOutpatient,
+                IsForInpatient = entity.IsForInpatient,
+                IsForEmergency = entity.IsForEmergency,
+                IsForIntensiveCare = entity.IsForIntensiveCare,
+                IsForNewborn = entity.IsForNewborn,
+                IsForRoomCharge = entity.IsForRoomCharge,
+                IsForTariffMapping = entity.IsForTariffMapping,
+                IsDefault = entity.IsDefault,
+                SortOrder = entity.SortOrder
+            };
+        }
+
+        private static PatientClassCreateResponse MapCreateResponse(MstPatientClass entity, IReadOnlyDictionary<Guid, string?> actorNames)
         {
             return new PatientClassCreateResponse
             {
@@ -714,12 +927,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 PatientClassCode = entity.PatientClassCode,
                 PatientClassName = entity.PatientClassName,
                 PatientClassType = entity.PatientClassType,
+                PatientClassTypeName = BuildEnumLabel(entity.PatientClassType),
                 IsDefault = entity.IsDefault,
-                IsActive = entity.IsActive
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
             };
         }
 
-        private static PatientClassUpdateResponse ToUpdateResponse(MstPatientClass entity)
+        private static PatientClassUpdateResponse MapUpdateResponse(MstPatientClass entity, IReadOnlyDictionary<Guid, string?> actorNames)
         {
             return new PatientClassUpdateResponse
             {
@@ -727,115 +944,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 PatientClassCode = entity.PatientClassCode,
                 PatientClassName = entity.PatientClassName,
                 PatientClassType = entity.PatientClassType,
+                PatientClassTypeName = BuildEnumLabel(entity.PatientClassType),
                 IsDefault = entity.IsDefault,
-                IsActive = entity.IsActive
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
         }
 
-        private static DateRangeResult ResolveDateRange(
-            DateTime? startDate,
-            DateTime? endDate,
-            string? customPeriod)
+        private static string? GetActorName(IReadOnlyDictionary<Guid, string?> actorNames, Guid actorId)
         {
-            var today = DateTime.UtcNow.Date;
-            var period = customPeriod?.Trim().ToLowerInvariant();
-
-            if (!string.IsNullOrWhiteSpace(period) && period != "custom")
+            if (actorId == Guid.Empty)
             {
-                return period switch
-                {
-                    "today" => DateRangeResult.Valid(today, today.AddDays(1)),
-                    "yesterday" => DateRangeResult.Valid(today.AddDays(-1), today),
-                    "last7days" => DateRangeResult.Valid(today.AddDays(-6), today.AddDays(1)),
-                    "last30days" => DateRangeResult.Valid(today.AddDays(-29), today.AddDays(1)),
-                    "thismonth" => DateRangeResult.Valid(new DateTime(today.Year, today.Month, 1), new DateTime(today.Year, today.Month, 1).AddMonths(1)),
-                    "lastmonth" => DateRangeResult.Valid(new DateTime(today.Year, today.Month, 1).AddMonths(-1), new DateTime(today.Year, today.Month, 1)),
-                    "thisyear" => DateRangeResult.Valid(new DateTime(today.Year, 1, 1), new DateTime(today.Year + 1, 1, 1)),
-                    _ => DateRangeResult.Invalid("Custom period tidak dikenali.")
-                };
+                return null;
             }
 
-            var start = startDate?.Date;
-            var endExclusive = endDate?.Date.AddDays(1);
-
-            if (start.HasValue && endExclusive.HasValue && start.Value >= endExclusive.Value)
-                return DateRangeResult.Invalid("StartDate tidak boleh lebih besar dari EndDate.");
-
-            return DateRangeResult.Valid(start, endExclusive);
-        }
-
-        private static List<PatientClassCustomPeriodOptionResponse> BuildCustomPeriodOptions()
-        {
-            return new List<PatientClassCustomPeriodOptionResponse>
-            {
-                new() { Value = "today", Label = "Hari ini", Description = "Data yang dibuat hari ini.", UsesStartDate = false, UsesEndDate = false },
-                new() { Value = "yesterday", Label = "Kemarin", Description = "Data yang dibuat kemarin.", UsesStartDate = false, UsesEndDate = false },
-                new() { Value = "last7days", Label = "7 hari terakhir", Description = "Data yang dibuat dalam 7 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
-                new() { Value = "last30days", Label = "30 hari terakhir", Description = "Data yang dibuat dalam 30 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
-                new() { Value = "thisMonth", Label = "Bulan ini", Description = "Data yang dibuat pada bulan berjalan.", UsesStartDate = false, UsesEndDate = false },
-                new() { Value = "lastMonth", Label = "Bulan lalu", Description = "Data yang dibuat pada bulan sebelumnya.", UsesStartDate = false, UsesEndDate = false },
-                new() { Value = "thisYear", Label = "Tahun ini", Description = "Data yang dibuat pada tahun berjalan.", UsesStartDate = false, UsesEndDate = false },
-                new() { Value = "custom", Label = "Custom", Description = "Gunakan startDate dan endDate.", UsesStartDate = true, UsesEndDate = true }
-            };
-        }
-
-        private static List<PatientClassQueryParameterInfoResponse> BuildQueryParameterInfo()
-        {
-            return new List<PatientClassQueryParameterInfoResponse>
-            {
-                new() { Name = "startDate", Type = "date", Description = "Tanggal awal filter berdasarkan CreateDateTime.", Example = "2026-06-01" },
-                new() { Name = "endDate", Type = "date", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-06-30" },
-                new() { Name = "customPeriod", Type = "string", Description = "Preset periode. Jika bukan custom, startDate dan endDate diabaikan.", Example = "thisMonth" },
-                new() { Name = "isActive", Type = "boolean", Description = "Filter status aktif." },
-                new() { Name = "search", Type = "string", Description = "Pencarian kode, nama, alias, kode eksternal, atau deskripsi." },
-                new() { Name = "sortBy", Type = "string", Description = "Kolom sorting." },
-                new() { Name = "sortDirection", Type = "string", Description = "asc atau desc.", Example = "asc" },
-                new() { Name = "pageNumber", Type = "integer", Description = "Nomor halaman.", Example = "1" },
-                new() { Name = "pageSize", Type = "integer", Description = "Jumlah data per halaman.", Example = "25" }
-            };
-        }
-
-        private static List<PatientClassFormFieldMetadataResponse> BuildCreateFieldMetadata()
-        {
-            return new List<PatientClassFormFieldMetadataResponse>
-            {
-                new() { Name = "patientClassCode", Label = "Kode kelas pasien", DataType = "string", InputType = "text", Required = false, IsReadonly = true, Placeholder = "Auto generated", Description = "Dibuat otomatis oleh sistem dengan format PC-RSMMC-00001." },
-                new() { Name = "patientClassName", Label = "Nama kelas pasien", DataType = "string", InputType = "text", Required = true, IsReadonly = false },
-                new() { Name = "patientClassType", Label = "Tipe kelas pasien", DataType = "enum", InputType = "select", Required = true, IsReadonly = false },
-                new() { Name = "externalClassCode", Label = "Kode kelas eksternal", DataType = "string", InputType = "text", Required = false, IsReadonly = false },
-                new() { Name = "classAlias", Label = "Alias kelas", DataType = "string", InputType = "text", Required = false, IsReadonly = false },
-                new() { Name = "classLevel", Label = "Level kelas", DataType = "integer", InputType = "number", Required = true, IsReadonly = false },
-                new() { Name = "isForOutpatient", Label = "Untuk rawat jalan", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "isForInpatient", Label = "Untuk rawat inap", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "isForEmergency", Label = "Untuk IGD", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "isForIntensiveCare", Label = "Untuk intensive care", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "isForNewborn", Label = "Untuk newborn", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "isForRoomCharge", Label = "Untuk biaya kamar", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "isForTariffMapping", Label = "Untuk mapping tarif", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "isDefault", Label = "Default", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "defaultDailyRoomRate", Label = "Default tarif kamar harian", DataType = "decimal", InputType = "number", Required = false, IsReadonly = false },
-                new() { Name = "defaultRegistrationFee", Label = "Default biaya registrasi", DataType = "decimal", InputType = "number", Required = false, IsReadonly = false },
-                new() { Name = "defaultConsultationFee", Label = "Default biaya konsultasi", DataType = "decimal", InputType = "number", Required = false, IsReadonly = false },
-                new() { Name = "sortOrder", Label = "Urutan", DataType = "integer", InputType = "number", Required = false, IsReadonly = false },
-                new() { Name = "description", Label = "Deskripsi", DataType = "string", InputType = "textarea", Required = false, IsReadonly = false }
-            };
-        }
-
-        private static List<PatientClassFormFieldMetadataResponse> BuildUpdateFieldMetadata()
-        {
-            var fields = BuildCreateFieldMetadata();
-
-            fields.Add(new PatientClassFormFieldMetadataResponse
-            {
-                Name = "isActive",
-                Label = "Status aktif",
-                DataType = "boolean",
-                InputType = "switch",
-                Required = false,
-                IsReadonly = false
-            });
-
-            return fields;
+            return actorNames.TryGetValue(actorId, out var actorName) ? actorName : null;
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
@@ -843,8 +968,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 1) pageSize = 25;
             if (pageSize > 100) pageSize = 100;
-
             return (pageNumber, pageSize);
+        }
+
+        private static DateRangeResolveResult ResolveDateRange(
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            var today = DateTime.UtcNow.Date;
+
+            if (!string.IsNullOrWhiteSpace(customPeriod) &&
+                !string.Equals(customPeriod, "custom", StringComparison.OrdinalIgnoreCase))
+            {
+                return customPeriod.Trim().ToLowerInvariant() switch
+                {
+                    "today" => DateRangeResolveResult.Valid(today, today.AddDays(1)),
+                    "yesterday" => DateRangeResolveResult.Valid(today.AddDays(-1), today),
+                    "last7days" => DateRangeResolveResult.Valid(today.AddDays(-6), today.AddDays(1)),
+                    "last30days" => DateRangeResolveResult.Valid(today.AddDays(-29), today.AddDays(1)),
+                    "thismonth" => DateRangeResolveResult.Valid(new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1)),
+                    "lastmonth" => ResolveLastMonth(today),
+                    "thisyear" => DateRangeResolveResult.Valid(new DateTime(today.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(today.Year + 1, 1, 1, 0, 0, 0, DateTimeKind.Utc)),
+                    _ => DateRangeResolveResult.Invalid("Custom period tidak valid.")
+                };
+            }
+
+            if (startDate.HasValue && endDate.HasValue && startDate.Value.Date > endDate.Value.Date)
+            {
+                return DateRangeResolveResult.Invalid("Start date tidak boleh lebih besar dari end date.");
+            }
+
+            return DateRangeResolveResult.Valid(startDate?.Date, endDate?.Date.AddDays(1));
+        }
+
+        private static DateRangeResolveResult ResolveLastMonth(DateTime today)
+        {
+            var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            return DateRangeResolveResult.Valid(thisMonthStart.AddMonths(-1), thisMonthStart);
+        }
+
+        private static List<PatientClassCustomPeriodOptionResponse> BuildCustomPeriodOptions()
+        {
+            return new List<PatientClassCustomPeriodOptionResponse>
+            {
+                new() { Value = "custom", Label = "Custom", Description = "Gunakan startDate dan endDate.", UsesStartDate = true, UsesEndDate = true },
+                new() { Value = "today", Label = "Hari ini", Description = "Data yang dibuat hari ini.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "yesterday", Label = "Kemarin", Description = "Data yang dibuat kemarin.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last7days", Label = "7 hari terakhir", Description = "Data yang dibuat dalam 7 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last30days", Label = "30 hari terakhir", Description = "Data yang dibuat dalam 30 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "thismonth", Label = "Bulan ini", Description = "Data yang dibuat pada bulan berjalan.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "lastmonth", Label = "Bulan lalu", Description = "Data yang dibuat pada bulan sebelumnya.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "thisyear", Label = "Tahun ini", Description = "Data yang dibuat pada tahun berjalan.", UsesStartDate = false, UsesEndDate = false }
+            };
         }
 
         private static List<PatientClassEnumOptionResponse> BuildEnumOptions<TEnum>() where TEnum : Enum
@@ -855,43 +1031,119 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 {
                     Value = Convert.ToInt32(x),
                     Name = x.ToString(),
-                    Label = SplitPascalCase(x.ToString())
+                    Label = BuildEnumLabel(x)
                 })
                 .ToList();
         }
 
+        private static string BuildEnumLabel<TEnum>(TEnum value) where TEnum : Enum
+        {
+            return SplitPascalCase(value.ToString());
+        }
+
         private static string SplitPascalCase(string value)
         {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+
             return string.Concat(value.Select((x, i) =>
                 i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
         }
 
+        private static List<PatientClassQueryParameterInfoResponse> BuildQueryParameterInfo()
+        {
+            return new List<PatientClassQueryParameterInfoResponse>
+            {
+                new() { Name = "startDate", Type = "date", Description = "Tanggal awal filter berdasarkan CreateDateTime.", Example = "2026-06-01" },
+                new() { Name = "endDate", Type = "date", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-06-30" },
+                new() { Name = "customPeriod", Type = "string", Description = "Preset periode. Pilihan: custom, today, yesterday, last7days, last30days, thismonth, lastmonth, thisyear.", Example = "thismonth" },
+                new() { Name = "patientClassType", Type = "enum", Description = "Filter berdasarkan tipe patient class.", Example = "1" },
+                new() { Name = "isActive", Type = "bool", Description = "Filter status aktif.", Example = "true" },
+                new() { Name = "isDefault", Type = "bool", Description = "Filter kelas default.", Example = "true" },
+                new() { Name = "search", Type = "string", Description = "Pencarian kode, nama, alias, kode eksternal, atau deskripsi.", Example = "VIP" },
+                new() { Name = "sortBy", Type = "string", Description = "Kolom sorting.", Example = "sortOrder" },
+                new() { Name = "sortDirection", Type = "string", Description = "asc atau desc.", Example = "asc" },
+                new() { Name = "pageNumber", Type = "int", Description = "Nomor halaman.", Example = "1" },
+                new() { Name = "pageSize", Type = "int", Description = "Jumlah data per halaman.", Example = "25" }
+            };
+        }
+
+        private static List<PatientClassFormFieldMetadataResponse> BuildCreateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: false);
+        }
+
+        private static List<PatientClassFormFieldMetadataResponse> BuildUpdateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: true);
+        }
+
+        private static List<PatientClassFormFieldMetadataResponse> BuildFieldMetadata(bool isUpdate)
+        {
+            var fields = new List<PatientClassFormFieldMetadataResponse>
+            {
+                new() { Name = "patientClassCode", Label = "Kode Kelas Pasien", Section = "Basic", InputType = "readonly", IsRequiredOnCreate = false, IsRequiredOnUpdate = false, RequiredType = "AutoGenerated", MaxLength = 50, Description = "Dibuat otomatis oleh sistem dengan format PC-RSMMC-00001.", Example = "PC-RSMMC-00001", SortOrder = 1 },
+                new() { Name = "patientClassName", Label = "Nama Kelas Pasien", Section = "Basic", InputType = "text", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", MaxLength = 150, Example = "VIP", SortOrder = 2 },
+                new() { Name = "patientClassType", Label = "Tipe Kelas Pasien", Section = "Basic", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "patientClassTypeOptions", SortOrder = 3 },
+                new() { Name = "externalClassCode", Label = "Kode Kelas Eksternal", Section = "Integration", InputType = "text", MaxLength = 50, Example = "VIP", SortOrder = 4 },
+                new() { Name = "classAlias", Label = "Alias Kelas", Section = "Basic", InputType = "text", MaxLength = 100, Example = "VIP A", SortOrder = 5 },
+                new() { Name = "classLevel", Label = "Level Kelas", Section = "Basic", InputType = "number", Description = "Semakin kecil biasanya semakin tinggi prioritas urut.", Example = "1", SortOrder = 6 },
+                new() { Name = "isForOutpatient", Label = "Untuk Rawat Jalan", Section = "Rule", InputType = "switch", SortOrder = 7 },
+                new() { Name = "isForInpatient", Label = "Untuk Rawat Inap", Section = "Rule", InputType = "switch", SortOrder = 8 },
+                new() { Name = "isForEmergency", Label = "Untuk IGD", Section = "Rule", InputType = "switch", SortOrder = 9 },
+                new() { Name = "isForIntensiveCare", Label = "Untuk Intensive Care", Section = "Rule", InputType = "switch", SortOrder = 10 },
+                new() { Name = "isForNewborn", Label = "Untuk Newborn", Section = "Rule", InputType = "switch", SortOrder = 11 },
+                new() { Name = "isForRoomCharge", Label = "Untuk Biaya Kamar", Section = "Rule", InputType = "switch", SortOrder = 12 },
+                new() { Name = "isForTariffMapping", Label = "Untuk Mapping Tarif", Section = "Rule", InputType = "switch", SortOrder = 13 },
+                new() { Name = "isDefault", Label = "Default", Section = "Rule", InputType = "switch", SortOrder = 14 },
+                new() { Name = "defaultDailyRoomRate", Label = "Default Tarif Kamar Harian", Section = "Default Tariff", InputType = "number", SortOrder = 15 },
+                new() { Name = "defaultRegistrationFee", Label = "Default Biaya Registrasi", Section = "Default Tariff", InputType = "number", SortOrder = 16 },
+                new() { Name = "defaultConsultationFee", Label = "Default Biaya Konsultasi", Section = "Default Tariff", InputType = "number", SortOrder = 17 },
+                new() { Name = "sortOrder", Label = "Urutan", Section = "Display", InputType = "number", SortOrder = 18 },
+                new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 19 }
+            };
+
+            if (isUpdate)
+            {
+                fields.Add(new PatientClassFormFieldMetadataResponse
+                {
+                    Name = "isActive",
+                    Label = "Status Aktif",
+                    Section = "Status",
+                    InputType = "switch",
+                    SortOrder = 99
+                });
+            }
+
+            return fields.OrderBy(x => x.SortOrder).ToList();
+        }
+
         private Guid GetCurrentUserId()
         {
-            var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userIdText =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("user_id");
 
-            return Guid.TryParse(userIdText, out var userId)
-                ? userId
-                : Guid.Empty;
+            return Guid.TryParse(userIdText, out var userId) ? userId : Guid.Empty;
         }
 
         private static string? NormalizeNullableText(string? value)
         {
-            return string.IsNullOrWhiteSpace(value)
-                ? null
-                : value.Trim();
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
-        private sealed class DateRangeResult
+        private sealed class DateRangeResolveResult
         {
             public bool IsValid { get; private set; }
+            public string? ErrorMessage { get; private set; }
             public DateTime? Start { get; private set; }
             public DateTime? EndExclusive { get; private set; }
-            public string? ErrorMessage { get; private set; }
 
-            public static DateRangeResult Valid(DateTime? start, DateTime? endExclusive)
+            public static DateRangeResolveResult Valid(DateTime? start, DateTime? endExclusive)
             {
-                return new DateRangeResult
+                return new DateRangeResolveResult
                 {
                     IsValid = true,
                     Start = start,
@@ -899,9 +1151,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 };
             }
 
-            public static DateRangeResult Invalid(string errorMessage)
+            public static DateRangeResolveResult Invalid(string errorMessage)
             {
-                return new DateRangeResult
+                return new DateRangeResolveResult
                 {
                     IsValid = false,
                     ErrorMessage = errorMessage

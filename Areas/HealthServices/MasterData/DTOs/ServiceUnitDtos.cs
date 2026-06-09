@@ -11,6 +11,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int RegistrationAvailableServiceUnit { get; set; }
         public int KioskAvailableServiceUnit { get; set; }
         public int AppointmentAvailableServiceUnit { get; set; }
+        public int QueueRequiredServiceUnit { get; set; }
         public int DoctorRequiredServiceUnit { get; set; }
         public int ScreeningRequiredServiceUnit { get; set; }
     }
@@ -21,6 +22,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string ServiceUnitCode { get; set; } = string.Empty;
         public string ServiceUnitName { get; set; } = string.Empty;
         public ServiceUnitType ServiceUnitType { get; set; }
+        public string ServiceUnitTypeName { get; set; } = string.Empty;
         public string? ShortName { get; set; }
         public string? LocationName { get; set; }
         public string? FloorName { get; set; }
@@ -33,11 +35,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class ServiceUnitDetailResponse : ServiceUnitResponse
     {
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class ServiceUnitOptionResponse
@@ -46,10 +53,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string ServiceUnitCode { get; set; } = string.Empty;
         public string ServiceUnitName { get; set; } = string.Empty;
         public ServiceUnitType ServiceUnitType { get; set; }
+        public string ServiceUnitTypeName { get; set; } = string.Empty;
         public string? ShortName { get; set; }
+        public string? LocationName { get; set; }
+        public string? FloorName { get; set; }
         public bool IsAvailableForRegistration { get; set; }
         public bool IsAvailableForKiosk { get; set; }
         public bool IsAvailableForAppointment { get; set; }
+        public bool IsQueueRequired { get; set; }
+        public bool IsDoctorRequired { get; set; }
+        public bool IsScreeningRequired { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class ServiceUnitOptionPagedResponse
@@ -73,6 +87,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public string CustomPeriodPriorityInfo { get; set; } =
             "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
+        public string ResetButtonLabel { get; set; } = "Reset";
 
         public ServiceUnitDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<ServiceUnitCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
@@ -96,6 +111,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool? IsAvailableForRegistration { get; set; }
         public bool? IsAvailableForKiosk { get; set; }
         public bool? IsAvailableForAppointment { get; set; }
+        public bool? IsQueueRequired { get; set; }
         public bool? IsDoctorRequired { get; set; }
         public bool? IsScreeningRequired { get; set; }
         public string SortBy { get; set; } = "sortOrder";
@@ -173,35 +189,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? Description { get; set; }
     }
 
-    public class UpdateServiceUnitRequest
+    public class UpdateServiceUnitRequest : CreateServiceUnitRequest
     {
-        [Required]
-        [MaxLength(150)]
-        public string ServiceUnitName { get; set; } = string.Empty;
-
-        public ServiceUnitType ServiceUnitType { get; set; } = ServiceUnitType.Unknown;
-
-        [MaxLength(50)]
-        public string? ShortName { get; set; }
-
-        [MaxLength(100)]
-        public string? LocationName { get; set; }
-
-        [MaxLength(50)]
-        public string? FloorName { get; set; }
-
-        public bool IsAvailableForRegistration { get; set; } = true;
-        public bool IsAvailableForKiosk { get; set; } = false;
-        public bool IsAvailableForAppointment { get; set; } = false;
-        public bool IsQueueRequired { get; set; } = true;
-        public bool IsDoctorRequired { get; set; } = false;
-        public bool IsScreeningRequired { get; set; } = false;
-        public int SortOrder { get; set; } = 0;
-
-        [MaxLength(250)]
-        public string? Description { get; set; }
-
         public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateServiceUnitStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeleteServiceUnitRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
     }
 
     public class ServiceUnitCreateResponse
@@ -210,6 +211,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string ServiceUnitCode { get; set; } = string.Empty;
         public string ServiceUnitName { get; set; } = string.Empty;
         public ServiceUnitType ServiceUnitType { get; set; }
+        public string ServiceUnitTypeName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+        public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
+    }
+
+    public class ServiceUnitUpdateResponse
+    {
+        public Guid Id { get; set; }
+        public string ServiceUnitCode { get; set; } = string.Empty;
+        public string ServiceUnitName { get; set; } = string.Empty;
+        public ServiceUnitType ServiceUnitType { get; set; }
+        public string ServiceUnitTypeName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
+    }
+
+    public class ServiceUnitDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string ServiceUnitCode { get; set; } = string.Empty;
+        public string ServiceUnitName { get; set; } = string.Empty;
+        public DateTime? DeleteDateTime { get; set; }
+        public Guid? DeleteBy { get; set; }
+        public string? DeleteByName { get; set; }
     }
 }

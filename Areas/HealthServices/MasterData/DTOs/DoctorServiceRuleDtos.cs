@@ -81,11 +81,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class DoctorServiceRuleDetailResponse : DoctorServiceRuleResponse
     {
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class DoctorServiceRuleOptionResponse
@@ -271,6 +276,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
     public class UpdateDoctorServiceRuleRequest : CreateDoctorServiceRuleRequest
     {
+    }
+
+    public class UpdateDoctorServiceRuleStatusRequest
+    {
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class DeleteDoctorServiceRuleRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
     }
 
     public class DoctorServiceRuleCreateResponse

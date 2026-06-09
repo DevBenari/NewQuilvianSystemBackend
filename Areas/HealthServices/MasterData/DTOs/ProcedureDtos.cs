@@ -29,6 +29,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? ProcedureGroupName { get; set; }
         public string? ProcedureCategoryName { get; set; }
         public string ProcedureType { get; set; } = string.Empty;
+        public string ProcedureTypeName { get; set; } = string.Empty;
         public bool IsDoctorAction { get; set; }
         public bool IsNursingAction { get; set; }
         public bool IsSurgery { get; set; }
@@ -47,12 +48,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class ProcedureDetailResponse : ProcedureResponse
     {
         public string? ClinicalNoteTemplate { get; set; }
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class ProcedureOptionResponse
@@ -63,6 +69,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? ProcedureGroupName { get; set; }
         public string? ProcedureCategoryName { get; set; }
         public string ProcedureType { get; set; } = string.Empty;
+        public string ProcedureTypeName { get; set; } = string.Empty;
         public bool IsDoctorAction { get; set; }
         public bool IsNursingAction { get; set; }
         public bool IsSurgery { get; set; }
@@ -75,6 +82,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsAvailableForOutpatient { get; set; }
         public bool IsAvailableForInpatient { get; set; }
         public bool IsAvailableForEmergency { get; set; }
+        public int EstimatedDurationMinutes { get; set; }
     }
 
     public class ProcedureOptionPagedResponse
@@ -97,10 +105,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public List<ProcedureSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
-        public List<string> ProcedureTypeOptions { get; set; } = new();
+        public List<ProcedureStringOptionResponse> ProcedureTypeOptions { get; set; } = new();
         public List<ProcedureQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<ProcedureFormFieldMetadataResponse> CreateFields { get; set; } = new();
         public List<ProcedureFormFieldMetadataResponse> UpdateFields { get; set; } = new();
+        public string ResetButtonLabel { get; set; } = "Reset";
     }
 
     public class ProcedureDefaultFilterResponse
@@ -109,6 +118,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public DateTime? EndDate { get; set; }
         public string? CustomPeriod { get; set; }
         public bool? IsActive { get; set; }
+        public string? ProcedureType { get; set; }
+        public bool? IsDoctorAction { get; set; }
+        public bool? IsNursingAction { get; set; }
+        public bool? IsSurgery { get; set; }
+        public bool? IsLaboratory { get; set; }
+        public bool? IsRadiology { get; set; }
+        public bool? IsTherapy { get; set; }
+        public bool? IsNeedDoctor { get; set; }
+        public bool? IsNeedApproval { get; set; }
+        public bool? IsCoveredByInsuranceDefault { get; set; }
+        public bool? IsAvailableForOutpatient { get; set; }
+        public bool? IsAvailableForInpatient { get; set; }
+        public bool? IsAvailableForEmergency { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
@@ -131,6 +153,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string Label { get; set; } = string.Empty;
     }
 
+    public class ProcedureStringOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+    }
+
     public class ProcedureQueryParameterInfoResponse
     {
         public string Name { get; set; } = string.Empty;
@@ -144,12 +172,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     {
         public string Name { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
-        public string DataType { get; set; } = string.Empty;
+        public string Section { get; set; } = string.Empty;
         public string InputType { get; set; } = string.Empty;
-        public bool Required { get; set; }
-        public bool IsReadonly { get; set; }
-        public string? Placeholder { get; set; }
+        public bool IsRequiredOnCreate { get; set; }
+        public bool IsRequiredOnUpdate { get; set; }
+        public string RequiredType { get; set; } = "Optional";
+        public int? MaxLength { get; set; }
+        public string? OptionsSource { get; set; }
         public string? Description { get; set; }
+        public string? Example { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class CreateProcedureRequest
@@ -204,6 +236,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsActive { get; set; } = true;
     }
 
+    public class UpdateProcedureStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeleteProcedureRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
+    }
+
     public class ProcedureCreateResponse
     {
         public Guid Id { get; set; }
@@ -211,9 +254,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string ProcedureName { get; set; } = string.Empty;
         public string ProcedureType { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+        public DateTime CreateDateTime { get; set; }
     }
 
     public class ProcedureUpdateResponse : ProcedureCreateResponse
     {
+        public DateTime? UpdateDateTime { get; set; }
+    }
+
+    public class ProcedureDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string ProcedureCode { get; set; } = string.Empty;
+        public string ProcedureName { get; set; } = string.Empty;
+        public DateTime? DeleteDateTime { get; set; }
     }
 }

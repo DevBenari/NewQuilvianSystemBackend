@@ -235,7 +235,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     EffectiveEndDate = x.EffectiveEndDate,
                     SortOrder = x.SortOrder,
                     IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+                    CreateBy = x.CreateBy == Guid.Empty ? null : (Guid?)x.CreateBy
                 })
                 .ToListAsync();
 
@@ -408,7 +409,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     SortOrder = x.SortOrder,
                     Description = x.Description,
                     IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+                    CreateBy = x.CreateBy == Guid.Empty ? null : (Guid?)x.CreateBy
                 })
                 .FirstOrDefaultAsync();
 
@@ -621,12 +623,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
-        [HttpDelete("{id:guid}")]
+
+        [HttpPatch("{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Delete", "Delete Drug Stock Policy", Description = "Menghapus data drug stock policy", AccessType = AccessTypes.Delete, SortOrder = 4)]
-        [AccessPermission("DrugStockPolicy", "Delete")]
-        public async Task<IActionResult> DeleteDrugStockPolicy(Guid id)
+        [AccessAction("Update", "Update Drug Stock Policy Status", Description = "Mengubah status drug stock policy", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("DrugStockPolicy", "Update")]
+        public async Task<IActionResult> UpdateDrugStockPolicyStatus(
+            Guid id,
+            [FromBody] UpdateDrugStockPolicyStatusRequest request)
         {
             var entity = await _dbContext.Set<MstDrugStockPolicy>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -639,10 +644,50 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = GetCurrentUserId();
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(ApiResponse<object>.Ok(
+                null,
+                "Status drug stock policy berhasil diperbarui."
+            ));
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Delete", "Delete Drug Stock Policy", Description = "Menghapus data drug stock policy", AccessType = AccessTypes.Delete, SortOrder = 4)]
+        [AccessPermission("DrugStockPolicy", "Delete")]
+        public async Task<IActionResult> DeleteDrugStockPolicy(Guid id, [FromBody] DeleteDrugStockPolicyRequest? request = null)
+        {
+            var entity = await _dbContext.Set<MstDrugStockPolicy>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Drug stock policy tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsDelete = true;
             entity.IsActive = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+            {
+                entity.Description = request.DeleteReason.Trim();
+            }
 
             await _dbContext.SaveChangesAsync();
 

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Data;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -10,6 +9,7 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.Data;
 using System.Security.Claims;
 
 using ResponseBedPagedResult =
@@ -50,7 +50,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<BedFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Bed", Description = "Melihat data bed", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Bed", Description = "Melihat metadata filter bed", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Bed", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
@@ -69,6 +69,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     new() { Value = "serviceUnitName", Label = "Nama service unit" },
                     new() { Value = "patientClassName", Label = "Kelas pasien" },
                     new() { Value = "bedStatus", Label = "Status bed" },
+                    new() { Value = "isForMale", Label = "Untuk laki-laki" },
+                    new() { Value = "isForFemale", Label = "Untuk perempuan" },
+                    new() { Value = "isForNewborn", Label = "Untuk bayi" },
+                    new() { Value = "isIsolationBed", Label = "Bed isolasi" },
+                    new() { Value = "isIntensiveCareBed", Label = "Intensive care" },
+                    new() { Value = "isOdcBed", Label = "ODC" },
                     new() { Value = "isReservable", Label = "Bisa reservasi" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
@@ -77,7 +83,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 BedStatusOptions = BuildEnumOptions<BedStatus>(),
                 QueryParameters = BuildQueryParameterInfo(),
                 CreateFields = BuildCreateFieldMetadata(),
-                UpdateFields = BuildUpdateFieldMetadata()
+                UpdateFields = BuildUpdateFieldMetadata(),
+                ResetButtonLabel = "Reset"
             };
 
             await _loggerService.InfoAsync(
@@ -95,25 +102,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<BedSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Bed", Description = "Melihat data bed", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Bed", Description = "Melihat ringkasan bed", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Bed", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var query = _dbContext.Set<MstBed>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var beds = await BuildBaseQuery().ToListAsync();
 
             var result = new BedSummaryResponse
             {
-                TotalBed = await query.CountAsync(),
-                ActiveBed = await query.CountAsync(x => x.IsActive),
-                InactiveBed = await query.CountAsync(x => !x.IsActive),
-                AvailableBed = await query.CountAsync(x => x.BedStatus == BedStatus.Available),
-                ReservableBed = await query.CountAsync(x => x.IsReservable),
-                IsolationBed = await query.CountAsync(x => x.IsIsolationBed),
-                IntensiveCareBed = await query.CountAsync(x => x.IsIntensiveCareBed),
-                OdcBed = await query.CountAsync(x => x.IsOdcBed),
-                NewbornBed = await query.CountAsync(x => x.IsForNewborn)
+                TotalBed = beds.Count,
+                ActiveBed = beds.Count(x => x.IsActive),
+                InactiveBed = beds.Count(x => !x.IsActive),
+                AvailableBed = beds.Count(x => x.BedStatus == BedStatus.Available),
+                OccupiedBed = beds.Count(x => string.Equals(x.BedStatus.ToString(), "Occupied", StringComparison.OrdinalIgnoreCase)),
+                MaintenanceBed = beds.Count(x => string.Equals(x.BedStatus.ToString(), "Maintenance", StringComparison.OrdinalIgnoreCase)),
+                ReservableBed = beds.Count(x => x.IsReservable),
+                IsolationBed = beds.Count(x => x.IsIsolationBed),
+                IntensiveCareBed = beds.Count(x => x.IsIntensiveCareBed),
+                OdcBed = beds.Count(x => x.IsOdcBed),
+                NewbornBed = beds.Count(x => x.IsForNewborn),
+                MaleBed = beds.Count(x => x.IsForMale),
+                FemaleBed = beds.Count(x => x.IsForFemale)
             };
 
             return Ok(ApiResponse<BedSummaryResponse>.Ok(
@@ -132,7 +141,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] string? customPeriod,
             [FromQuery] Guid? roomId,
             [FromQuery] Guid? serviceUnitId,
+            [FromQuery] Guid? patientClassId,
             [FromQuery] bool? isActive,
+            [FromQuery] BedStatus? bedStatus,
+            [FromQuery] bool? isForMale,
+            [FromQuery] bool? isForFemale,
+            [FromQuery] bool? isForNewborn,
+            [FromQuery] bool? isIsolationBed,
+            [FromQuery] bool? isIntensiveCareBed,
+            [FromQuery] bool? isOdcBed,
+            [FromQuery] bool? isReservable,
             [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
@@ -144,7 +162,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             pageSize = paging.PageSize;
 
             var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
-
             if (!dateRange.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(
@@ -153,79 +170,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            var query = _dbContext.Set<MstBed>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
-
-            if (dateRange.Start.HasValue)
-            {
-                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
-            }
-
-            if (dateRange.EndExclusive.HasValue)
-            {
-                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
-            }
-
-            if (roomId.HasValue && roomId.Value != Guid.Empty)
-                query = query.Where(x => x.RoomId == roomId.Value);
-
-            if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
-                query = query.Where(x => x.Room != null && x.Room.ServiceUnitId == serviceUnitId.Value);
-
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.BedCode.ToLower().Contains(keyword) ||
-                    x.BedName.ToLower().Contains(keyword) ||
-                    (x.BedNumber != null && x.BedNumber.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
-                    (x.Room != null && x.Room.RoomCode.ToLower().Contains(keyword)) ||
-                    (x.Room != null && x.Room.RoomName.ToLower().Contains(keyword)) ||
-                    (x.Room != null && x.Room.ServiceUnit != null && x.Room.ServiceUnit.ServiceUnitCode.ToLower().Contains(keyword)) ||
-                    (x.Room != null && x.Room.ServiceUnit != null && x.Room.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
-                    (x.Room != null && x.Room.PatientClass != null && x.Room.PatientClass.PatientClassCode.ToLower().Contains(keyword)) ||
-                    (x.Room != null && x.Room.PatientClass != null && x.Room.PatientClass.PatientClassName.ToLower().Contains(keyword)));
-            }
+            var query = BuildBaseQuery();
+            query = ApplyDateFilter(query, dateRange);
+            query = ApplyStandardFilter(
+                query,
+                roomId,
+                serviceUnitId,
+                patientClassId,
+                isActive,
+                bedStatus,
+                isForMale,
+                isForFemale,
+                isForNewborn,
+                isIsolationBed,
+                isIntensiveCareBed,
+                isOdcBed,
+                isReservable,
+                search
+            );
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new BedResponse
-                {
-                    Id = x.Id,
-                    RoomId = x.RoomId,
-                    RoomCode = x.Room != null ? x.Room.RoomCode : string.Empty,
-                    RoomName = x.Room != null ? x.Room.RoomName : string.Empty,
-                    ServiceUnitId = x.Room != null ? x.Room.ServiceUnitId : Guid.Empty,
-                    ServiceUnitCode = x.Room != null && x.Room.ServiceUnit != null ? x.Room.ServiceUnit.ServiceUnitCode : string.Empty,
-                    ServiceUnitName = x.Room != null && x.Room.ServiceUnit != null ? x.Room.ServiceUnit.ServiceUnitName : string.Empty,
-                    PatientClassId = x.Room != null ? x.Room.PatientClassId : null,
-                    PatientClassCode = x.Room != null && x.Room.PatientClass != null ? x.Room.PatientClass.PatientClassCode : null,
-                    PatientClassName = x.Room != null && x.Room.PatientClass != null ? x.Room.PatientClass.PatientClassName : null,
-                    BedCode = x.BedCode,
-                    BedName = x.BedName,
-                    BedNumber = x.BedNumber,
-                    BedStatus = x.BedStatus,
-                    IsForMale = x.IsForMale,
-                    IsForFemale = x.IsForFemale,
-                    IsForNewborn = x.IsForNewborn,
-                    IsIsolationBed = x.IsIsolationBed,
-                    IsIntensiveCareBed = x.IsIntensiveCareBed,
-                    IsOdcBed = x.IsOdcBed,
-                    IsReservable = x.IsReservable,
-                    SortOrder = x.SortOrder,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities.Select(x => x.CreateBy).Where(x => x != Guid.Empty)
+            );
+
+            var items = entities.Select(x => MapResponse(x, actorNames)).ToList();
 
             var result = new ResponseBedPagedResult
             {
@@ -247,77 +222,50 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Bed", Description = "Melihat data pilihan bed", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Bed", "Read")]
         public async Task<IActionResult> GetBedOptions(
-    [FromQuery] Guid? roomId,
-    [FromQuery] Guid? serviceUnitId,
-    [FromQuery] bool onlyActive = true,
-    [FromQuery] string? search = null,
-    [FromQuery] int pageNumber = 1,
-    [FromQuery] int pageSize = 25)
+            [FromQuery] Guid? roomId,
+            [FromQuery] Guid? serviceUnitId,
+            [FromQuery] Guid? patientClassId,
+            [FromQuery] BedStatus? bedStatus,
+            [FromQuery] bool? isReservable,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] bool? activeOnly = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
             var paging = NormalizePaging(pageNumber, pageSize);
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.Set<MstBed>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
-            if (onlyActive)
-                query = query.Where(x => x.IsActive);
-
-            if (roomId.HasValue && roomId.Value != Guid.Empty)
-                query = query.Where(x => x.RoomId == roomId.Value);
-
-            if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
-                query = query.Where(x => x.Room != null && x.Room.ServiceUnitId == serviceUnitId.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.BedCode.ToLower().Contains(keyword) ||
-                    x.BedName.ToLower().Contains(keyword) ||
-                    (x.BedNumber != null && x.BedNumber.ToLower().Contains(keyword)) ||
-                    (x.Room != null && x.Room.RoomName.ToLower().Contains(keyword)) ||
-                    (x.Room != null && x.Room.RoomCode.ToLower().Contains(keyword)) ||
-                    (x.Room != null && x.Room.ServiceUnit != null && x.Room.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
-                    (x.Room != null && x.Room.PatientClass != null && x.Room.PatientClass.PatientClassName.ToLower().Contains(keyword)));
-            }
+            query = ApplyStandardFilter(
+                query,
+                roomId,
+                serviceUnitId,
+                patientClassId,
+                activeOnly ?? onlyActive,
+                bedStatus,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                isReservable,
+                search
+            );
 
             var totalData = await query.CountAsync();
 
-            var items = await query
+            var entities = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.BedName)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new BedOptionResponse
-                {
-                    Id = x.Id,
-                    RoomId = x.RoomId,
-                    RoomName = x.Room != null ? x.Room.RoomName : string.Empty,
-
-                    ServiceUnitId = x.Room != null ? x.Room.ServiceUnitId : Guid.Empty,
-                    ServiceUnitName = x.Room != null && x.Room.ServiceUnit != null
-                        ? x.Room.ServiceUnit.ServiceUnitName
-                        : string.Empty,
-
-                    PatientClassId = x.Room != null ? x.Room.PatientClassId : null,
-                    PatientClassName = x.Room != null && x.Room.PatientClass != null
-                        ? x.Room.PatientClass.PatientClassName
-                        : null,
-
-                    BedCode = x.BedCode,
-                    BedName = x.BedName,
-                    BedNumber = x.BedNumber,
-                    BedStatus = x.BedStatus,
-                    IsForMale = x.IsForMale,
-                    IsForFemale = x.IsForFemale,
-                    IsForNewborn = x.IsForNewborn,
-                    IsReservable = x.IsReservable
-                })
                 .ToListAsync();
+
+            var items = entities.Select(MapOptionResponse).ToList();
 
             var result = new BedOptionPagedResponse
             {
@@ -341,40 +289,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("Bed", "Read")]
         public async Task<IActionResult> GetBedById(Guid id)
         {
-            var data = await _dbContext.Set<MstBed>()
-                .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new BedDetailResponse
-                {
-                    Id = x.Id,
-                    RoomId = x.RoomId,
-                    RoomCode = x.Room != null ? x.Room.RoomCode : string.Empty,
-                    RoomName = x.Room != null ? x.Room.RoomName : string.Empty,
-                    ServiceUnitId = x.Room != null ? x.Room.ServiceUnitId : Guid.Empty,
-                    ServiceUnitCode = x.Room != null && x.Room.ServiceUnit != null ? x.Room.ServiceUnit.ServiceUnitCode : string.Empty,
-                    ServiceUnitName = x.Room != null && x.Room.ServiceUnit != null ? x.Room.ServiceUnit.ServiceUnitName : string.Empty,
-                    PatientClassId = x.Room != null ? x.Room.PatientClassId : null,
-                    PatientClassCode = x.Room != null && x.Room.PatientClass != null ? x.Room.PatientClass.PatientClassCode : null,
-                    PatientClassName = x.Room != null && x.Room.PatientClass != null ? x.Room.PatientClass.PatientClassName : null,
-                    BedCode = x.BedCode,
-                    BedName = x.BedName,
-                    BedNumber = x.BedNumber,
-                    BedStatus = x.BedStatus,
-                    IsForMale = x.IsForMale,
-                    IsForFemale = x.IsForFemale,
-                    IsForNewborn = x.IsForNewborn,
-                    IsIsolationBed = x.IsIsolationBed,
-                    IsIntensiveCareBed = x.IsIntensiveCareBed,
-                    IsOdcBed = x.IsOdcBed,
-                    IsReservable = x.IsReservable,
-                    SortOrder = x.SortOrder,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime,
-                    Description = x.Description
-                })
-                .FirstOrDefaultAsync();
+            var entity = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (data == null)
+            if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
@@ -382,8 +300,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var result = MapDetailResponse(entity, actorNames);
+
             return Ok(ApiResponse<BedDetailResponse>.Ok(
-                data,
+                result,
                 "Detail bed berhasil diambil."
             ));
         }
@@ -399,7 +325,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 excludeId: null,
                 roomId: request.RoomId,
                 bedName: request.BedName,
-                bedNumber: request.BedNumber
+                bedNumber: request.BedNumber,
+                isForMale: request.IsForMale,
+                isForFemale: request.IsForFemale,
+                isForNewborn: request.IsForNewborn
             );
 
             if (!validation.IsValid)
@@ -454,27 +383,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             await _dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            var response = new BedCreateResponse
-            {
-                Id = entity.Id,
-                RoomId = entity.RoomId,
-                BedCode = entity.BedCode,
-                BedName = entity.BedName,
-                BedNumber = entity.BedNumber,
-                BedStatus = entity.BedStatus,
-                IsReservable = entity.IsReservable,
-                IsActive = entity.IsActive
-            };
+            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
+            var result = MapCreateResponse(entity, actorNames);
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "Bed.CreateBed",
                 "Membuat data bed.",
-                response
+                result
             );
 
             return Ok(ApiResponse<BedCreateResponse>.Ok(
-                response,
+                result,
                 "Bed berhasil dibuat."
             ));
         }
@@ -502,7 +422,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 excludeId: id,
                 roomId: request.RoomId,
                 bedName: request.BedName,
-                bedNumber: request.BedNumber
+                bedNumber: request.BedNumber,
+                isForMale: request.IsForMale,
+                isForFemale: request.IsForFemale,
+                isForNewborn: request.IsForNewborn
             );
 
             if (!validation.IsValid)
@@ -512,6 +435,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     validation.ErrorMessage ?? "Data bed tidak valid."
                 ));
             }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
 
             entity.RoomId = request.RoomId;
             entity.BedName = request.BedName.Trim();
@@ -527,36 +453,107 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.SortOrder = request.SortOrder;
             entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            var response = new BedUpdateResponse
-            {
-                Id = entity.Id,
-                RoomId = entity.RoomId,
-                BedCode = entity.BedCode,
-                BedName = entity.BedName,
-                BedNumber = entity.BedNumber,
-                BedStatus = entity.BedStatus,
-                IsReservable = entity.IsReservable,
-                IsActive = entity.IsActive
-            };
+            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
+            var result = MapUpdateResponse(entity, actorNames);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Bed.UpdateBed",
+                "Mengubah data bed.",
+                result
+            );
 
             return Ok(ApiResponse<BedUpdateResponse>.Ok(
-                response,
+                result,
                 "Bed berhasil diperbarui."
             ));
         }
 
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<BedUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Bed Status", Description = "Mengubah status aktif bed", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("Bed", "Update")]
+        public async Task<IActionResult> UpdateBedStatus(Guid id, [FromBody] UpdateBedStatusRequest request)
+        {
+            var entity = await _dbContext.Set<MstBed>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Bed tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
+            var result = MapUpdateResponse(entity, actorNames);
+
+            return Ok(ApiResponse<BedUpdateResponse>.Ok(
+                result,
+                "Status bed berhasil diperbarui."
+            ));
+        }
+
+        [HttpPatch("{id:guid}/availability")]
+        [ProducesResponseType(typeof(ApiResponse<BedUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Bed Availability", Description = "Mengubah status ketersediaan bed", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("Bed", "Update")]
+        public async Task<IActionResult> UpdateBedAvailability(Guid id, [FromBody] UpdateBedAvailabilityRequest request)
+        {
+            var entity = await _dbContext.Set<MstBed>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Bed tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.BedStatus = request.BedStatus;
+            entity.Description = NormalizeNullableText(request.Description) ?? entity.Description;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
+            var result = MapUpdateResponse(entity, actorNames);
+
+            return Ok(ApiResponse<BedUpdateResponse>.Ok(
+                result,
+                "Status ketersediaan bed berhasil diperbarui."
+            ));
+        }
+
         [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<BedDeleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Bed", Description = "Menghapus data bed", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("Bed", "Delete")]
-        public async Task<IActionResult> DeleteBed(Guid id)
+        public async Task<IActionResult> DeleteBed(Guid id, [FromBody] DeleteBedRequest? request = null)
         {
             var entity = await _dbContext.Set<MstBed>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -577,71 +574,193 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsDelete = true;
             entity.IsActive = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+            {
+                entity.Description = request.DeleteReason.Trim();
+            }
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
+            var result = new BedDeleteResponse
+            {
+                Id = entity.Id,
+                BedCode = entity.BedCode,
+                BedName = entity.BedName,
+                DeleteDateTime = entity.DeleteDateTime,
+                DeleteBy = entity.DeleteBy == Guid.Empty ? null : (Guid?)entity.DeleteBy,
+                DeleteByName = GetActorName(actorNames, entity.DeleteBy)
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Bed.DeleteBed",
+                "Menghapus data bed.",
+                result
+            );
+
+            return Ok(ApiResponse<BedDeleteResponse>.Ok(
+                result,
                 "Bed berhasil dihapus."
             ));
         }
 
-        private async Task<string> GenerateBedCodeAsync()
+        private IQueryable<MstBed> BuildBaseQuery()
         {
-            var existingCodes = await _dbContext.Set<MstBed>()
+            return _dbContext.Set<MstBed>()
                 .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.BedCode.StartsWith(BedCodePrefix))
-                .Select(x => x.BedCode)
-                .ToListAsync();
-
-            var usedNumbers = existingCodes
-                .Select(ExtractBedCodeNumber)
-                .Where(x => x.HasValue && x.Value > 0)
-                .Select(x => x!.Value)
-                .ToHashSet();
-
-            var nextNumber = 1;
-
-            while (usedNumbers.Contains(nextNumber))
-            {
-                nextNumber++;
-            }
-
-            return $"{BedCodePrefix}{nextNumber.ToString().PadLeft(BedCodeDigitLength, '0')}";
+                .Include(x => x.Room)
+                    .ThenInclude(x => x!.ServiceUnit)
+                .Include(x => x.Room)
+                    .ThenInclude(x => x!.PatientClass)
+                .Where(x => !x.IsDelete);
         }
 
-        private static int? ExtractBedCodeNumber(string bedCode)
+        private static IQueryable<MstBed> ApplyDateFilter(
+            IQueryable<MstBed> query,
+            DateRangeResolveResult dateRange)
         {
-            if (string.IsNullOrWhiteSpace(bedCode))
-                return null;
+            if (dateRange.Start.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
+            }
 
-            if (!bedCode.StartsWith(BedCodePrefix, StringComparison.OrdinalIgnoreCase))
-                return null;
+            if (dateRange.EndExclusive.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
+            }
 
-            var numberText = bedCode[BedCodePrefix.Length..];
+            return query;
+        }
 
-            return int.TryParse(numberText, out var number)
-                ? number
-                : null;
+        private static IQueryable<MstBed> ApplyStandardFilter(
+            IQueryable<MstBed> query,
+            Guid? roomId,
+            Guid? serviceUnitId,
+            Guid? patientClassId,
+            bool? isActive,
+            BedStatus? bedStatus,
+            bool? isForMale,
+            bool? isForFemale,
+            bool? isForNewborn,
+            bool? isIsolationBed,
+            bool? isIntensiveCareBed,
+            bool? isOdcBed,
+            bool? isReservable,
+            string? search)
+        {
+            if (roomId.HasValue && roomId.Value != Guid.Empty)
+                query = query.Where(x => x.RoomId == roomId.Value);
+
+            if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
+                query = query.Where(x => x.Room != null && x.Room.ServiceUnitId == serviceUnitId.Value);
+
+            if (patientClassId.HasValue && patientClassId.Value != Guid.Empty)
+                query = query.Where(x => x.Room != null && x.Room.PatientClassId == patientClassId.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (bedStatus.HasValue)
+                query = query.Where(x => x.BedStatus == bedStatus.Value);
+
+            if (isForMale.HasValue)
+                query = query.Where(x => x.IsForMale == isForMale.Value);
+
+            if (isForFemale.HasValue)
+                query = query.Where(x => x.IsForFemale == isForFemale.Value);
+
+            if (isForNewborn.HasValue)
+                query = query.Where(x => x.IsForNewborn == isForNewborn.Value);
+
+            if (isIsolationBed.HasValue)
+                query = query.Where(x => x.IsIsolationBed == isIsolationBed.Value);
+
+            if (isIntensiveCareBed.HasValue)
+                query = query.Where(x => x.IsIntensiveCareBed == isIntensiveCareBed.Value);
+
+            if (isOdcBed.HasValue)
+                query = query.Where(x => x.IsOdcBed == isOdcBed.Value);
+
+            if (isReservable.HasValue)
+                query = query.Where(x => x.IsReservable == isReservable.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.BedCode.ToLower().Contains(keyword) ||
+                    x.BedName.ToLower().Contains(keyword) ||
+                    (x.BedNumber != null && x.BedNumber.ToLower().Contains(keyword)) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.RoomCode.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.RoomName.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.ServiceUnit != null && x.Room.ServiceUnit.ServiceUnitCode.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.ServiceUnit != null && x.Room.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.PatientClass != null && x.Room.PatientClass.PatientClassCode.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.PatientClass != null && x.Room.PatientClass.PatientClassName.ToLower().Contains(keyword)));
+            }
+
+            return query;
+        }
+
+        private static IOrderedQueryable<MstBed> ApplySorting(
+            IQueryable<MstBed> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+            return (sortBy ?? "sortOrder").Trim().ToLowerInvariant() switch
+            {
+                "createdatetime" => isDesc ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime),
+                "bedcode" => isDesc ? query.OrderByDescending(x => x.BedCode) : query.OrderBy(x => x.BedCode),
+                "bedname" => isDesc ? query.OrderByDescending(x => x.BedName) : query.OrderBy(x => x.BedName),
+                "bednumber" => isDesc ? query.OrderByDescending(x => x.BedNumber) : query.OrderBy(x => x.BedNumber),
+                "roomname" => isDesc ? query.OrderByDescending(x => x.Room != null ? x.Room.RoomName : string.Empty) : query.OrderBy(x => x.Room != null ? x.Room.RoomName : string.Empty),
+                "serviceunitname" => isDesc ? query.OrderByDescending(x => x.Room != null && x.Room.ServiceUnit != null ? x.Room.ServiceUnit.ServiceUnitName : string.Empty) : query.OrderBy(x => x.Room != null && x.Room.ServiceUnit != null ? x.Room.ServiceUnit.ServiceUnitName : string.Empty),
+                "patientclassname" => isDesc ? query.OrderByDescending(x => x.Room != null && x.Room.PatientClass != null ? x.Room.PatientClass.PatientClassName : string.Empty) : query.OrderBy(x => x.Room != null && x.Room.PatientClass != null ? x.Room.PatientClass.PatientClassName : string.Empty),
+                "bedstatus" => isDesc ? query.OrderByDescending(x => x.BedStatus).ThenBy(x => x.BedName) : query.OrderBy(x => x.BedStatus).ThenBy(x => x.BedName),
+                "isformale" => isDesc ? query.OrderByDescending(x => x.IsForMale).ThenBy(x => x.BedName) : query.OrderBy(x => x.IsForMale).ThenBy(x => x.BedName),
+                "isforfemale" => isDesc ? query.OrderByDescending(x => x.IsForFemale).ThenBy(x => x.BedName) : query.OrderBy(x => x.IsForFemale).ThenBy(x => x.BedName),
+                "isfornewborn" => isDesc ? query.OrderByDescending(x => x.IsForNewborn).ThenBy(x => x.BedName) : query.OrderBy(x => x.IsForNewborn).ThenBy(x => x.BedName),
+                "isisolationbed" => isDesc ? query.OrderByDescending(x => x.IsIsolationBed).ThenBy(x => x.BedName) : query.OrderBy(x => x.IsIsolationBed).ThenBy(x => x.BedName),
+                "isintensivecarebed" => isDesc ? query.OrderByDescending(x => x.IsIntensiveCareBed).ThenBy(x => x.BedName) : query.OrderBy(x => x.IsIntensiveCareBed).ThenBy(x => x.BedName),
+                "isodcbed" => isDesc ? query.OrderByDescending(x => x.IsOdcBed).ThenBy(x => x.BedName) : query.OrderBy(x => x.IsOdcBed).ThenBy(x => x.BedName),
+                "isreservable" => isDesc ? query.OrderByDescending(x => x.IsReservable).ThenBy(x => x.BedName) : query.OrderBy(x => x.IsReservable).ThenBy(x => x.BedName),
+                "isactive" => isDesc ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.BedName) : query.OrderBy(x => x.IsActive).ThenBy(x => x.BedName),
+                _ => isDesc ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.BedName) : query.OrderBy(x => x.SortOrder).ThenBy(x => x.BedName)
+            };
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateUpdateRequestAsync(
             Guid? excludeId,
             Guid roomId,
             string bedName,
-            string? bedNumber)
+            string? bedNumber,
+            bool isForMale,
+            bool isForFemale,
+            bool isForNewborn)
         {
             if (roomId == Guid.Empty)
                 return (false, "Room wajib dipilih.");
 
             if (string.IsNullOrWhiteSpace(bedName))
                 return (false, "Nama bed wajib diisi.");
+
+            if (!isForMale && !isForFemale && !isForNewborn)
+                return (false, "Bed minimal harus bisa digunakan untuk laki-laki, perempuan, atau bayi baru lahir.");
 
             var roomExists = await _dbContext.Set<MstRoom>()
                 .AnyAsync(x => x.Id == roomId && x.IsActive && !x.IsDelete);
@@ -680,6 +799,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return (true, null);
         }
 
+        private async Task<string> GenerateBedCodeAsync()
+        {
+            var existingCodes = await _dbContext.Set<MstBed>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.BedCode.StartsWith(BedCodePrefix))
+                .Select(x => x.BedCode)
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(ExtractBedCodeNumber)
+                .Where(x => x.HasValue && x.Value > 0)
+                .Select(x => x!.Value)
+                .ToHashSet();
+
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
+            {
+                nextNumber++;
+            }
+
+            return BedCodePrefix + nextNumber.ToString().PadLeft(BedCodeDigitLength, '0');
+        }
+
+        private static int? ExtractBedCodeNumber(string bedCode)
+        {
+            if (string.IsNullOrWhiteSpace(bedCode))
+                return null;
+
+            if (!bedCode.StartsWith(BedCodePrefix, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var numberText = bedCode[BedCodePrefix.Length..];
+
+            return int.TryParse(numberText, out var number) ? number : null;
+        }
+
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateGeneratedBedCodeAsync(string bedCode)
         {
             if (string.IsNullOrWhiteSpace(bedCode))
@@ -688,9 +844,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var normalizedCode = bedCode.Trim().ToUpperInvariant();
 
             var duplicateCode = await _dbContext.Set<MstBed>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.BedCode.ToUpper() == normalizedCode);
+                .AnyAsync(x => !x.IsDelete && x.BedCode.ToUpper() == normalizedCode);
 
             if (duplicateCode)
                 return (false, "Kode bed otomatis sudah digunakan. Silakan ulangi proses create.");
@@ -698,59 +852,179 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return (true, null);
         }
 
-        private static IQueryable<MstBed> ApplySorting(
-            IQueryable<MstBed> query,
-            string? sortBy,
-            string? sortDirection)
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
         {
-            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
 
-            return (sortBy ?? "sortOrder").ToLowerInvariant() switch
+            if (!ids.Any())
             {
-                "createdatetime" => isDesc
-                    ? query.OrderByDescending(x => x.CreateDateTime)
-                    : query.OrderBy(x => x.CreateDateTime),
+                return new Dictionary<Guid, string?>();
+            }
 
-                "bedcode" => isDesc
-                    ? query.OrderByDescending(x => x.BedCode)
-                    : query.OrderBy(x => x.BedCode),
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
 
-                "bedname" => isDesc
-                    ? query.OrderByDescending(x => x.BedName)
-                    : query.OrderBy(x => x.BedName),
-
-                "bednumber" => isDesc
-                    ? query.OrderByDescending(x => x.BedNumber)
-                    : query.OrderBy(x => x.BedNumber),
-
-                "roomname" => isDesc
-                    ? query.OrderByDescending(x => x.Room != null ? x.Room.RoomName : "")
-                    : query.OrderBy(x => x.Room != null ? x.Room.RoomName : ""),
-
-                "serviceunitname" => isDesc
-                    ? query.OrderByDescending(x => x.Room != null && x.Room.ServiceUnit != null ? x.Room.ServiceUnit.ServiceUnitName : "")
-                    : query.OrderBy(x => x.Room != null && x.Room.ServiceUnit != null ? x.Room.ServiceUnit.ServiceUnitName : ""),
-
-                "patientclassname" => isDesc
-                    ? query.OrderByDescending(x => x.Room != null && x.Room.PatientClass != null ? x.Room.PatientClass.PatientClassName : "")
-                    : query.OrderBy(x => x.Room != null && x.Room.PatientClass != null ? x.Room.PatientClass.PatientClassName : ""),
-
-                "bedstatus" => isDesc
-                    ? query.OrderByDescending(x => x.BedStatus)
-                    : query.OrderBy(x => x.BedStatus),
-
-                "isreservable" => isDesc
-                    ? query.OrderByDescending(x => x.IsReservable)
-                    : query.OrderBy(x => x.IsReservable),
-
-                "isactive" => isDesc
-                    ? query.OrderByDescending(x => x.IsActive)
-                    : query.OrderBy(x => x.IsActive),
-
-                _ => isDesc
-                    ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.BedName)
-                    : query.OrderBy(x => x.SortOrder).ThenBy(x => x.BedName)
+        private static BedResponse MapResponse(MstBed entity, IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new BedResponse
+            {
+                Id = entity.Id,
+                RoomId = entity.RoomId,
+                RoomCode = entity.Room?.RoomCode ?? string.Empty,
+                RoomName = entity.Room?.RoomName ?? string.Empty,
+                ServiceUnitId = entity.Room?.ServiceUnitId ?? Guid.Empty,
+                ServiceUnitCode = entity.Room?.ServiceUnit?.ServiceUnitCode ?? string.Empty,
+                ServiceUnitName = entity.Room?.ServiceUnit?.ServiceUnitName ?? string.Empty,
+                PatientClassId = entity.Room?.PatientClassId,
+                PatientClassCode = entity.Room?.PatientClass?.PatientClassCode,
+                PatientClassName = entity.Room?.PatientClass?.PatientClassName,
+                BedCode = entity.BedCode,
+                BedName = entity.BedName,
+                BedNumber = entity.BedNumber,
+                BedStatus = entity.BedStatus,
+                BedStatusName = BuildEnumLabel(entity.BedStatus),
+                IsForMale = entity.IsForMale,
+                IsForFemale = entity.IsForFemale,
+                IsForNewborn = entity.IsForNewborn,
+                IsIsolationBed = entity.IsIsolationBed,
+                IsIntensiveCareBed = entity.IsIntensiveCareBed,
+                IsOdcBed = entity.IsOdcBed,
+                IsReservable = entity.IsReservable,
+                SortOrder = entity.SortOrder,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
             };
+        }
+
+        private static BedDetailResponse MapDetailResponse(MstBed entity, IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            var response = new BedDetailResponse
+            {
+                Id = entity.Id,
+                RoomId = entity.RoomId,
+                RoomCode = entity.Room?.RoomCode ?? string.Empty,
+                RoomName = entity.Room?.RoomName ?? string.Empty,
+                ServiceUnitId = entity.Room?.ServiceUnitId ?? Guid.Empty,
+                ServiceUnitCode = entity.Room?.ServiceUnit?.ServiceUnitCode ?? string.Empty,
+                ServiceUnitName = entity.Room?.ServiceUnit?.ServiceUnitName ?? string.Empty,
+                PatientClassId = entity.Room?.PatientClassId,
+                PatientClassCode = entity.Room?.PatientClass?.PatientClassCode,
+                PatientClassName = entity.Room?.PatientClass?.PatientClassName,
+                BedCode = entity.BedCode,
+                BedName = entity.BedName,
+                BedNumber = entity.BedNumber,
+                BedStatus = entity.BedStatus,
+                BedStatusName = BuildEnumLabel(entity.BedStatus),
+                IsForMale = entity.IsForMale,
+                IsForFemale = entity.IsForFemale,
+                IsForNewborn = entity.IsForNewborn,
+                IsIsolationBed = entity.IsIsolationBed,
+                IsIntensiveCareBed = entity.IsIntensiveCareBed,
+                IsOdcBed = entity.IsOdcBed,
+                IsReservable = entity.IsReservable,
+                SortOrder = entity.SortOrder,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                Description = entity.Description,
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+
+            return response;
+        }
+
+        private static BedOptionResponse MapOptionResponse(MstBed entity)
+        {
+            return new BedOptionResponse
+            {
+                Id = entity.Id,
+                RoomId = entity.RoomId,
+                RoomCode = entity.Room?.RoomCode ?? string.Empty,
+                RoomName = entity.Room?.RoomName ?? string.Empty,
+                ServiceUnitId = entity.Room?.ServiceUnitId ?? Guid.Empty,
+                ServiceUnitCode = entity.Room?.ServiceUnit?.ServiceUnitCode ?? string.Empty,
+                ServiceUnitName = entity.Room?.ServiceUnit?.ServiceUnitName ?? string.Empty,
+                PatientClassId = entity.Room?.PatientClassId,
+                PatientClassCode = entity.Room?.PatientClass?.PatientClassCode,
+                PatientClassName = entity.Room?.PatientClass?.PatientClassName,
+                BedCode = entity.BedCode,
+                BedName = entity.BedName,
+                BedNumber = entity.BedNumber,
+                BedStatus = entity.BedStatus,
+                BedStatusName = BuildEnumLabel(entity.BedStatus),
+                IsForMale = entity.IsForMale,
+                IsForFemale = entity.IsForFemale,
+                IsForNewborn = entity.IsForNewborn,
+                IsIsolationBed = entity.IsIsolationBed,
+                IsIntensiveCareBed = entity.IsIntensiveCareBed,
+                IsOdcBed = entity.IsOdcBed,
+                IsReservable = entity.IsReservable,
+                SortOrder = entity.SortOrder
+            };
+        }
+
+        private static BedCreateResponse MapCreateResponse(MstBed entity, IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new BedCreateResponse
+            {
+                Id = entity.Id,
+                RoomId = entity.RoomId,
+                BedCode = entity.BedCode,
+                BedName = entity.BedName,
+                BedNumber = entity.BedNumber,
+                BedStatus = entity.BedStatus,
+                BedStatusName = BuildEnumLabel(entity.BedStatus),
+                IsReservable = entity.IsReservable,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
+            };
+        }
+
+        private static BedUpdateResponse MapUpdateResponse(MstBed entity, IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new BedUpdateResponse
+            {
+                Id = entity.Id,
+                RoomId = entity.RoomId,
+                BedCode = entity.BedCode,
+                BedName = entity.BedName,
+                BedNumber = entity.BedNumber,
+                BedStatus = entity.BedStatus,
+                BedStatusName = BuildEnumLabel(entity.BedStatus),
+                IsReservable = entity.IsReservable,
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
+
+        private static string? GetActorName(IReadOnlyDictionary<Guid, string?> actorNames, Guid actorId)
+        {
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName) ? actorName : null;
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
@@ -758,39 +1032,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 1) pageSize = 25;
             if (pageSize > 100) pageSize = 100;
-
             return (pageNumber, pageSize);
         }
 
-        private static (bool IsValid, DateTime? Start, DateTime? EndExclusive, string? ErrorMessage)
-            ResolveDateRange(DateTime? startDate, DateTime? endDate, string? customPeriod)
+        private static DateRangeResolveResult ResolveDateRange(
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
         {
             var today = DateTime.UtcNow.Date;
 
             if (!string.IsNullOrWhiteSpace(customPeriod) &&
                 !string.Equals(customPeriod, "custom", StringComparison.OrdinalIgnoreCase))
             {
-                return customPeriod.ToLowerInvariant() switch
+                return customPeriod.Trim().ToLowerInvariant() switch
                 {
-                    "today" => (true, today, today.AddDays(1), null),
-                    "last7days" => (true, today.AddDays(-6), today.AddDays(1), null),
-                    "last30days" => (true, today.AddDays(-29), today.AddDays(1), null),
-                    "thismonth" => (true, new DateTime(today.Year, today.Month, 1), new DateTime(today.Year, today.Month, 1).AddMonths(1), null),
-                    _ => (false, null, null, "Custom period tidak valid.")
+                    "today" => DateRangeResolveResult.Valid(today, today.AddDays(1)),
+                    "last7days" => DateRangeResolveResult.Valid(today.AddDays(-6), today.AddDays(1)),
+                    "last30days" => DateRangeResolveResult.Valid(today.AddDays(-29), today.AddDays(1)),
+                    "thismonth" => DateRangeResolveResult.Valid(new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1)),
+                    "lastmonth" => ResolveLastMonth(today),
+                    _ => DateRangeResolveResult.Invalid("Custom period tidak valid.")
                 };
             }
 
             if (startDate.HasValue && endDate.HasValue && startDate.Value.Date > endDate.Value.Date)
             {
-                return (false, null, null, "Start date tidak boleh lebih besar dari end date.");
+                return DateRangeResolveResult.Invalid("Start date tidak boleh lebih besar dari end date.");
             }
 
-            return (
-                true,
-                startDate?.Date,
-                endDate?.Date.AddDays(1),
-                null
-            );
+            return DateRangeResolveResult.Valid(startDate?.Date, endDate?.Date.AddDays(1));
+        }
+
+        private static DateRangeResolveResult ResolveLastMonth(DateTime today)
+        {
+            var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            return DateRangeResolveResult.Valid(thisMonthStart.AddMonths(-1), thisMonthStart);
         }
 
         private static List<BedCustomPeriodOptionResponse> BuildCustomPeriodOptions()
@@ -801,7 +1078,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Value = "today", Label = "Hari ini", Description = "Data yang dibuat hari ini.", UsesStartDate = false, UsesEndDate = false },
                 new() { Value = "last7days", Label = "7 hari terakhir", Description = "Data yang dibuat dalam 7 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
                 new() { Value = "last30days", Label = "30 hari terakhir", Description = "Data yang dibuat dalam 30 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
-                new() { Value = "thismonth", Label = "Bulan ini", Description = "Data yang dibuat pada bulan berjalan.", UsesStartDate = false, UsesEndDate = false }
+                new() { Value = "thismonth", Label = "Bulan ini", Description = "Data yang dibuat pada bulan berjalan.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "lastmonth", Label = "Bulan lalu", Description = "Data yang dibuat pada bulan sebelumnya.", UsesStartDate = false, UsesEndDate = false }
             };
         }
 
@@ -813,13 +1091,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 {
                     Value = Convert.ToInt32(x),
                     Name = x.ToString(),
-                    Label = SplitPascalCase(x.ToString())
+                    Label = BuildEnumLabel(x)
                 })
                 .ToList();
         }
 
+        private static string BuildEnumLabel<TEnum>(TEnum value) where TEnum : Enum
+        {
+            return SplitPascalCase(value.ToString());
+        }
+
         private static string SplitPascalCase(string value)
         {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+
             return string.Concat(value.Select((x, i) =>
                 i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
         }
@@ -830,11 +1118,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             {
                 new() { Name = "startDate", Type = "date", Description = "Filter tanggal mulai berdasarkan CreateDateTime.", Example = "2026-06-01" },
                 new() { Name = "endDate", Type = "date", Description = "Filter tanggal akhir berdasarkan CreateDateTime.", Example = "2026-06-30" },
-                new() { Name = "customPeriod", Type = "string", Description = "Preset periode. Pilihan: custom, today, last7days, last30days, thismonth.", Example = "last7days" },
-                new() { Name = "roomId", Type = "guid", Description = "Relasi table 1. Filter bed berdasarkan room.", Example = "3fa85f64-5717-4562-b3fc-2c963f66afa6" },
-                new() { Name = "serviceUnitId", Type = "guid", Description = "Relasi table 2. Filter bed berdasarkan service unit dari room.", Example = "3fa85f64-5717-4562-b3fc-2c963f66afa6" },
+                new() { Name = "customPeriod", Type = "string", Description = "Preset periode. Pilihan: custom, today, last7days, last30days, thismonth, lastmonth.", Example = "last7days" },
+                new() { Name = "roomId", Type = "guid", Description = "Filter bed berdasarkan room.", Example = "3fa85f64-5717-4562-b3fc-2c963f66afa6" },
+                new() { Name = "serviceUnitId", Type = "guid", Description = "Filter bed berdasarkan service unit dari room.", Example = "3fa85f64-5717-4562-b3fc-2c963f66afa6" },
+                new() { Name = "patientClassId", Type = "guid", Description = "Filter bed berdasarkan patient class dari room.", Example = "3fa85f64-5717-4562-b3fc-2c963f66afa6" },
+                new() { Name = "bedStatus", Type = "enum", Description = "Filter berdasarkan status bed.", Example = "0" },
                 new() { Name = "isActive", Type = "bool", Description = "Filter status aktif.", Example = "true" },
-                new() { Name = "search", Type = "string", Description = "Cari berdasarkan kode bed, nama bed, nomor bed, room, service unit, atau patient class.", Example = "Bed 101" },
+                new() { Name = "search", Type = "string", Description = "Cari berdasarkan kode, nama, nomor bed, room, service unit, patient class, atau deskripsi.", Example = "Bed 101" },
                 new() { Name = "sortBy", Type = "string", Description = "Kolom sorting.", Example = "sortOrder" },
                 new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
                 new() { Name = "pageNumber", Type = "int", Description = "Nomor halaman.", Example = "1" },
@@ -856,7 +1146,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         {
             var fields = new List<BedFormFieldMetadataResponse>
             {
-                new() { Name = "bedCode", Label = "Kode Bed", Section = "Basic", InputType = "readonly", IsRequiredOnCreate = false, IsRequiredOnUpdate = false, RequiredType = "AutoGenerated", MaxLength = 50, Description = "Digenerate otomatis oleh sistem dengan format BD-RSMMC-00001. Nomor terkecil yang kosong dari data aktif akan dipakai kembali.", Example = "BD-RSMMC-00001", SortOrder = 1 },
+                new() { Name = "bedCode", Label = "Kode Bed", Section = "Basic", InputType = "readonly", IsRequiredOnCreate = false, IsRequiredOnUpdate = false, RequiredType = "AutoGenerated", MaxLength = 50, Description = "Digenerate otomatis oleh sistem dengan format BD-RSMMC-00001.", Example = "BD-RSMMC-00001", SortOrder = 1 },
                 new() { Name = "roomId", Label = "Room", Section = "Basic", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "/api/v1/health-services/master-data/rooms/options", SortOrder = 2 },
                 new() { Name = "bedName", Label = "Nama Bed", Section = "Basic", InputType = "text", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", MaxLength = 100, Example = "Bed 101-A", SortOrder = 3 },
                 new() { Name = "bedNumber", Label = "Nomor Bed", Section = "Basic", InputType = "text", MaxLength = 50, Example = "101-A", SortOrder = 4 },
@@ -889,18 +1179,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         private Guid GetCurrentUserId()
         {
-            var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userIdText =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("user_id");
 
-            return Guid.TryParse(userIdText, out var userId)
-                ? userId
-                : Guid.Empty;
+            return Guid.TryParse(userIdText, out var userId) ? userId : Guid.Empty;
         }
 
         private static string? NormalizeNullableText(string? value)
         {
-            return string.IsNullOrWhiteSpace(value)
-                ? null
-                : value.Trim();
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
+        private sealed class DateRangeResolveResult
+        {
+            public bool IsValid { get; private set; }
+            public string? ErrorMessage { get; private set; }
+            public DateTime? Start { get; private set; }
+            public DateTime? EndExclusive { get; private set; }
+
+            public static DateRangeResolveResult Valid(DateTime? start, DateTime? endExclusive)
+            {
+                return new DateRangeResolveResult
+                {
+                    IsValid = true,
+                    Start = start,
+                    EndExclusive = endExclusive
+                };
+            }
+
+            public static DateRangeResolveResult Invalid(string errorMessage)
+            {
+                return new DateRangeResolveResult
+                {
+                    IsValid = false,
+                    ErrorMessage = errorMessage
+                };
+            }
         }
     }
 }

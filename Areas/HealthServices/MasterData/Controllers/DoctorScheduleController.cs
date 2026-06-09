@@ -163,11 +163,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => ToResponse(x))
                 .ToListAsync();
+
+            var items = entities
+                .Select(ToResponse)
+                .ToList();
 
             var result = new ResponseDoctorSchedulePagedResult
             {
@@ -280,18 +283,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("DoctorSchedule", "Read")]
         public async Task<IActionResult> GetDoctorScheduleById(Guid id)
         {
-            var data = await BuildBaseQuery()
-                .Where(x => x.Id == id)
-                .Select(x => ToDetailResponse(x))
-                .FirstOrDefaultAsync();
+            var entity = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (data == null)
+            if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Doctor schedule tidak ditemukan."
                 ));
             }
+
+            var data = ToDetailResponse(entity);
 
             return Ok(ApiResponse<DoctorScheduleDetailResponse>.Ok(
                 data,
@@ -510,12 +513,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return await SetActiveStatusAsync(id, false, "Doctor schedule berhasil dinonaktifkan.");
         }
 
+
+
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<DoctorScheduleStatusResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Doctor Schedule", Description = "Mengubah status doctor schedule", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("DoctorSchedule", "Update")]
+        public async Task<IActionResult> UpdateDoctorScheduleStatus(Guid id, [FromBody] UpdateDoctorScheduleStatusRequest request)
+        {
+            return await SetActiveStatusAsync(
+                id,
+                request.IsActive,
+                request.IsActive
+                    ? "Doctor schedule berhasil diaktifkan."
+                    : "Doctor schedule berhasil dinonaktifkan."
+            );
+        }
+
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleDeleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Doctor Schedule", Description = "Menghapus data doctor schedule", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("DoctorSchedule", "Delete")]
-        public async Task<IActionResult> DeleteDoctorSchedule(Guid id)
+        public async Task<IActionResult> DeleteDoctorSchedule(Guid id, [FromBody] DeleteDoctorScheduleRequest? deleteRequest = null)
         {
             var entity = await _dbContext.Set<MstDoctorSchedule>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -537,6 +558,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.DeleteBy = actorUserId;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(deleteRequest?.DeleteReason))
+                entity.Description = NormalizeNullableText(deleteRequest.DeleteReason);
 
             await _dbContext.SaveChangesAsync();
 
@@ -828,7 +852,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 EffectiveEndDate = x.EffectiveEndDate,
                 SortOrder = x.SortOrder,
                 IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
+                CreateDateTime = x.CreateDateTime,
+                CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
+                CreateByName = null
             };
         }
 
@@ -885,6 +911,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             response.SortOrder = x.SortOrder;
             response.IsActive = x.IsActive;
             response.CreateDateTime = x.CreateDateTime;
+            response.CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy;
+            response.CreateByName = null;
+            response.UpdateDateTime = x.UpdateDateTime;
+            response.UpdateBy = x.UpdateBy == Guid.Empty ? null : x.UpdateBy;
+            response.UpdateByName = null;
 
             return response;
         }

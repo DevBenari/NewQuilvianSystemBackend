@@ -40,11 +40,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class TariffCategoryDetailResponse : TariffCategoryResponse
     {
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class TariffCategoryOptionResponse
@@ -64,6 +69,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsSurgery { get; set; }
         public bool IsPackage { get; set; }
         public bool IsCoveredByInsuranceDefault { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class TariffCategoryOptionPagedResponse
@@ -80,7 +86,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public string CustomPeriodPriorityInfo { get; set; } =
             "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
-
         public TariffCategoryDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<TariffCategoryCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<TariffCategorySortOptionResponse> SortOptions { get; set; } = new();
@@ -89,6 +94,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public List<TariffCategoryQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<TariffCategoryFormFieldMetadataResponse> CreateFields { get; set; } = new();
         public List<TariffCategoryFormFieldMetadataResponse> UpdateFields { get; set; } = new();
+        public string ResetButtonLabel { get; set; } = "Reset";
     }
 
     public class TariffCategoryDefaultFilterResponse
@@ -98,6 +104,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? CustomPeriod { get; set; }
         public string? Search { get; set; }
         public bool? IsActive { get; set; }
+        public bool? IsRegistrationFee { get; set; }
+        public bool? IsAdministrationFee { get; set; }
+        public bool? IsConsultationFee { get; set; }
+        public bool? IsRoomCharge { get; set; }
+        public bool? IsProcedure { get; set; }
+        public bool? IsLaboratory { get; set; }
+        public bool? IsRadiology { get; set; }
+        public bool? IsPharmacy { get; set; }
+        public bool? IsSurgery { get; set; }
+        public bool? IsPackage { get; set; }
+        public bool? IsCoveredByInsuranceDefault { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
@@ -132,12 +149,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     {
         public string Name { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
-        public string DataType { get; set; } = string.Empty;
+        public string Section { get; set; } = string.Empty;
         public string InputType { get; set; } = string.Empty;
-        public bool Required { get; set; }
-        public bool IsReadonly { get; set; }
-        public string? Placeholder { get; set; }
+        public bool IsRequiredOnCreate { get; set; }
+        public bool IsRequiredOnUpdate { get; set; }
+        public string RequiredType { get; set; } = "Optional";
+        public int? MaxLength { get; set; }
+        public string? OptionsSource { get; set; }
         public string? Description { get; set; }
+        public string? Example { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class CreateTariffCategoryRequest
@@ -160,7 +181,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsSurgery { get; set; } = false;
         public bool IsPackage { get; set; } = false;
         public bool IsCoveredByInsuranceDefault { get; set; } = true;
-
         public int SortOrder { get; set; } = 0;
 
         [MaxLength(250)]
@@ -170,6 +190,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class UpdateTariffCategoryRequest : CreateTariffCategoryRequest
     {
         public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateTariffCategoryStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeleteTariffCategoryRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
     }
 
     public class TariffCategoryCreateResponse
@@ -184,5 +215,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
     public class TariffCategoryUpdateResponse : TariffCategoryCreateResponse
     {
+    }
+
+    public class TariffCategoryDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string TariffCategoryCode { get; set; } = string.Empty;
+        public string TariffCategoryName { get; set; } = string.Empty;
+        public bool IsDelete { get; set; }
+        public DateTime? DeleteDateTime { get; set; }
     }
 }

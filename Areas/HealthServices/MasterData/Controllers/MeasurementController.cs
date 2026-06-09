@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.Data;
 using System.Security.Claims;
 
 using ResponseMeasurementPagedResult =
@@ -78,11 +79,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     new() { Value = "measurementType", Label = "Tipe satuan" },
                     new() { Value = "measurementGroupName", Label = "Group satuan" },
                     new() { Value = "isBaseUnit", Label = "Base unit" },
+                    new() { Value = "isDecimalAllowed", Label = "Boleh decimal" },
+                    new() { Value = "decimalPrecision", Label = "Precision decimal" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                MeasurementTypeOptions = AllowedMeasurementTypes.OrderBy(x => x).ToList(),
+                MeasurementTypeOptions = BuildMeasurementTypeOptions(),
                 QueryParameters = BuildQueryParameterInfo(),
                 CreateFields = BuildCreateFieldMetadata(),
                 UpdateFields = BuildUpdateFieldMetadata()
@@ -107,9 +110,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("Measurement", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var query = _dbContext.Set<MstMeasurement>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
             var result = new MeasurementSummaryResponse
             {
@@ -132,14 +133,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponseMeasurementPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Measurement", Description = "Melihat data measurement", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Measurement", "Read")]
         public async Task<IActionResult> GetMeasurements(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
-            [FromQuery] string? search,
+            [FromQuery] string? measurementType,
             [FromQuery] bool? isActive,
+            [FromQuery] bool? isBaseUnit,
+            [FromQuery] bool? isDecimalAllowed,
+            [FromQuery] bool? isForDrug,
+            [FromQuery] bool? isForLaboratory,
+            [FromQuery] bool? isForVitalSign,
+            [FromQuery] bool? isForGeneralUse,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -159,39 +168,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            var query = _dbContext.Set<MstMeasurement>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
-
-            if (dateRange.Start.HasValue)
-                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
-
-            if (dateRange.EndExclusive.HasValue)
-                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.MeasurementCode.ToLower().Contains(keyword) ||
-                    x.MeasurementName.ToLower().Contains(keyword) ||
-                    x.MeasurementType.ToLower().Contains(keyword) ||
-                    (x.MeasurementSymbol != null && x.MeasurementSymbol.ToLower().Contains(keyword)) ||
-                    (x.MeasurementGroupName != null && x.MeasurementGroupName.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
-            }
-
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
+            var query = BuildBaseQuery();
+            query = ApplyDateFilter(query, dateRange);
+            query = ApplyStandardFilter(
+                query,
+                measurementType,
+                isActive,
+                isBaseUnit,
+                isDecimalAllowed,
+                isForDrug,
+                isForLaboratory,
+                isForVitalSign,
+                isForGeneralUse,
+                search
+            );
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => ToResponse(x))
                 .ToListAsync();
+
+            var actorMap = await GetActorNameMapAsync(entities.Select(x => x.CreateBy));
+            var items = entities.Select(x => ToResponse(x, actorMap)).ToList();
 
             var result = new ResponseMeasurementPagedResult
             {
@@ -209,13 +209,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<MeasurementConversionOptionPagedResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Measurement Conversion", Description = "Melihat data pilihan measurement conversion", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("MeasurementConversion", "Read")]
-        public async Task<IActionResult> GetMeasurementConversionOptions(
-            [FromQuery] Guid? fromMeasurementId,
-            [FromQuery] Guid? toMeasurementId,
+        [ProducesResponseType(typeof(ApiResponse<MeasurementOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Measurement", Description = "Melihat data pilihan measurement", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Measurement", "Read")]
+        public async Task<IActionResult> GetMeasurementOptions(
+            [FromQuery] string? measurementType,
+            [FromQuery] bool? isBaseUnit,
+            [FromQuery] bool? isForDrug,
+            [FromQuery] bool? isForLaboratory,
+            [FromQuery] bool? isForVitalSign,
+            [FromQuery] bool? isForGeneralUse,
             [FromQuery] bool onlyActive = true,
+            [FromQuery] bool? activeOnly = null,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
@@ -224,73 +229,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.Set<MstMeasurementConversion>()
-                .AsNoTracking()
-                .Include(x => x.FromMeasurement)
-                .Include(x => x.ToMeasurement)
-                .Where(x => !x.IsDelete);
+            var isActive = activeOnly ?? (onlyActive ? true : null);
 
-            if (onlyActive)
-                query = query.Where(x => x.IsActive);
-
-            if (fromMeasurementId.HasValue && fromMeasurementId.Value != Guid.Empty)
-                query = query.Where(x => x.FromMeasurementId == fromMeasurementId.Value);
-
-            if (toMeasurementId.HasValue && toMeasurementId.Value != Guid.Empty)
-                query = query.Where(x => x.ToMeasurementId == toMeasurementId.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    (x.FromMeasurement != null && x.FromMeasurement.MeasurementCode.ToLower().Contains(keyword)) ||
-                    (x.FromMeasurement != null && x.FromMeasurement.MeasurementName.ToLower().Contains(keyword)) ||
-                    (x.FromMeasurement != null && x.FromMeasurement.MeasurementSymbol != null && x.FromMeasurement.MeasurementSymbol.ToLower().Contains(keyword)) ||
-                    (x.ToMeasurement != null && x.ToMeasurement.MeasurementCode.ToLower().Contains(keyword)) ||
-                    (x.ToMeasurement != null && x.ToMeasurement.MeasurementName.ToLower().Contains(keyword)) ||
-                    (x.ToMeasurement != null && x.ToMeasurement.MeasurementSymbol != null && x.ToMeasurement.MeasurementSymbol.ToLower().Contains(keyword)) ||
-                    (x.ConversionGroupName != null && x.ConversionGroupName.ToLower().Contains(keyword)) ||
-                    (x.FormulaNote != null && x.FormulaNote.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
-            }
+            var query = ApplyStandardFilter(
+                BuildBaseQuery(),
+                measurementType,
+                isActive,
+                isBaseUnit,
+                null,
+                isForDrug,
+                isForLaboratory,
+                isForVitalSign,
+                isForGeneralUse,
+                search
+            );
 
             var totalData = await query.CountAsync();
 
-            var items = await query
+            var entities = await query
                 .OrderBy(x => x.SortOrder)
-                .ThenBy(x => x.FromMeasurement != null ? x.FromMeasurement.MeasurementName : string.Empty)
-                .ThenBy(x => x.ToMeasurement != null ? x.ToMeasurement.MeasurementName : string.Empty)
+                .ThenBy(x => x.MeasurementName)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new MeasurementConversionOptionResponse
-                {
-                    Id = x.Id,
-
-                    FromMeasurementId = x.FromMeasurementId,
-                    FromMeasurementName = x.FromMeasurement != null
-                        ? x.FromMeasurement.MeasurementName
-                        : string.Empty,
-                    FromMeasurementSymbol = x.FromMeasurement != null
-                        ? x.FromMeasurement.MeasurementSymbol
-                        : null,
-
-                    ToMeasurementId = x.ToMeasurementId,
-                    ToMeasurementName = x.ToMeasurement != null
-                        ? x.ToMeasurement.MeasurementName
-                        : string.Empty,
-                    ToMeasurementSymbol = x.ToMeasurement != null
-                        ? x.ToMeasurement.MeasurementSymbol
-                        : null,
-
-                    ConversionFactor = x.ConversionFactor,
-                    IsBidirectional = x.IsBidirectional,
-                    IsStandardConversion = x.IsStandardConversion,
-                    ConversionGroupName = x.ConversionGroupName
-                })
                 .ToListAsync();
 
-            var result = new MeasurementConversionOptionPagedResponse
+            var items = entities.Select(ToOptionResponse).ToList();
+
+            var result = new MeasurementOptionPagedResponse
             {
                 PageNumber = pageNumber,
                 PageSize = pageSize,
@@ -299,51 +264,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 Items = items
             };
 
-            return Ok(ApiResponse<MeasurementConversionOptionPagedResponse>.Ok(
+            return Ok(ApiResponse<MeasurementOptionPagedResponse>.Ok(
                 result,
-                "Data pilihan measurement conversion berhasil diambil."
+                "Data pilihan measurement berhasil diambil."
             ));
         }
 
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<MeasurementDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Measurement", Description = "Melihat data measurement", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Measurement", Description = "Melihat detail measurement", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Measurement", "Read")]
         public async Task<IActionResult> GetMeasurementById(Guid id)
         {
-            var data = await _dbContext.Set<MstMeasurement>()
-                .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new MeasurementDetailResponse
-                {
-                    Id = x.Id,
-                    MeasurementCode = x.MeasurementCode,
-                    MeasurementName = x.MeasurementName,
-                    MeasurementSymbol = x.MeasurementSymbol,
-                    MeasurementType = x.MeasurementType,
-                    MeasurementGroupName = x.MeasurementGroupName,
-                    IsBaseUnit = x.IsBaseUnit,
-                    IsDecimalAllowed = x.IsDecimalAllowed,
-                    DecimalPrecision = x.DecimalPrecision,
-                    IsForDrug = x.IsForDrug,
-                    IsForLaboratory = x.IsForLaboratory,
-                    IsForVitalSign = x.IsForVitalSign,
-                    IsForGeneralUse = x.IsForGeneralUse,
-                    SortOrder = x.SortOrder,
-                    Description = x.Description,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+            var entity = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (data == null)
+            if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Measurement tidak ditemukan."
                 ));
             }
+
+            var actorMap = await GetActorNameMapAsync(new[] { entity.CreateBy, entity.UpdateBy });
+            var data = ToDetailResponse(entity, actorMap);
 
             return Ok(ApiResponse<MeasurementDetailResponse>.Ok(
                 data,
@@ -378,10 +324,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+            var generatedCode = await GenerateMeasurementCodeAsync();
+            var codeValidation = await ValidateGeneratedMeasurementCodeAsync(generatedCode);
+
+            if (!codeValidation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    codeValidation.ErrorMessage ?? "Kode measurement otomatis tidak valid."
+                ));
+            }
+
             var entity = new MstMeasurement
             {
                 Id = Guid.NewGuid(),
-                MeasurementCode = await GenerateMeasurementCodeAsync(),
+                MeasurementCode = generatedCode,
                 MeasurementName = request.MeasurementName.Trim(),
                 MeasurementSymbol = NormalizeNullableText(request.MeasurementSymbol),
                 MeasurementType = NormalizeMeasurementType(request.MeasurementType),
@@ -404,6 +363,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             _dbContext.Set<MstMeasurement>().Add(entity);
             await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
 
             var response = ToCreateUpdateResponse(entity);
 
@@ -480,18 +440,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var response = ToUpdateResponse(entity);
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Measurement.UpdateMeasurement",
+                "Mengubah data measurement.",
+                response
+            );
+
             return Ok(ApiResponse<MeasurementUpdateResponse>.Ok(
                 response,
                 "Measurement berhasil diperbarui."
             ));
         }
 
-        [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<MeasurementUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Delete", "Delete Measurement", Description = "Menghapus data measurement", AccessType = AccessTypes.Delete, SortOrder = 4)]
-        [AccessPermission("Measurement", "Delete")]
-        public async Task<IActionResult> DeleteMeasurement(Guid id)
+        [AccessAction("Update", "Update Measurement Status", Description = "Mengubah status aktif measurement", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("Measurement", "Update")]
+        public async Task<IActionResult> UpdateMeasurementStatus(Guid id, [FromBody] UpdateMeasurementStatusRequest request)
         {
             var entity = await _dbContext.Set<MstMeasurement>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -501,6 +468,65 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Measurement tidak ditemukan."
+                ));
+            }
+
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = GetCurrentUserId();
+
+            if (!string.IsNullOrWhiteSpace(request.Reason))
+                entity.Description = request.Reason.Trim();
+
+            await _dbContext.SaveChangesAsync();
+
+            var response = ToUpdateResponse(entity);
+
+            return Ok(ApiResponse<MeasurementUpdateResponse>.Ok(
+                response,
+                request.IsActive ? "Measurement berhasil diaktifkan." : "Measurement berhasil dinonaktifkan."
+            ));
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<MeasurementDeleteResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Delete", "Delete Measurement", Description = "Menghapus data measurement", AccessType = AccessTypes.Delete, SortOrder = 4)]
+        [AccessPermission("Measurement", "Delete")]
+        public async Task<IActionResult> DeleteMeasurement(Guid id, [FromBody] DeleteMeasurementRequest? request = null)
+        {
+            var entity = await _dbContext.Set<MstMeasurement>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Measurement tidak ditemukan."
+                ));
+            }
+
+            var usedByConversion = await _dbContext.Set<MstMeasurementConversion>()
+                .AsNoTracking()
+                .AnyAsync(x => !x.IsDelete && (x.FromMeasurementId == id || x.ToMeasurementId == id));
+
+            var usedByDrug = await _dbContext.Set<MstDrug>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    (x.StrengthMeasurementId == id ||
+                     x.BaseUnitMeasurementId == id ||
+                     x.DispenseUnitMeasurementId == id ||
+                     x.PurchaseUnitMeasurementId == id ||
+                     x.StockUnitMeasurementId == id ||
+                     x.DefaultDoseUnitMeasurementId == id));
+
+            if (usedByConversion || usedByDrug)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Measurement tidak dapat dihapus karena sudah digunakan oleh conversion atau drug. Nonaktifkan saja jika masih dibutuhkan untuk histori."
                 ));
             }
 
@@ -514,12 +540,98 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+                entity.Description = request.DeleteReason.Trim();
+
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var response = new MeasurementDeleteResponse
+            {
+                Id = entity.Id,
+                MeasurementCode = entity.MeasurementCode,
+                MeasurementName = entity.MeasurementName,
+                IsDelete = entity.IsDelete,
+                IsActive = entity.IsActive,
+                DeleteDateTime = entity.DeleteDateTime
+            };
+
+            return Ok(ApiResponse<MeasurementDeleteResponse>.Ok(
+                response,
                 "Measurement berhasil dihapus."
             ));
+        }
+
+        private IQueryable<MstMeasurement> BuildBaseQuery()
+        {
+            return _dbContext.Set<MstMeasurement>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+        }
+
+        private static IQueryable<MstMeasurement> ApplyDateFilter(IQueryable<MstMeasurement> query, DateRangeResult dateRange)
+        {
+            if (dateRange.Start.HasValue)
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
+
+            if (dateRange.EndExclusive.HasValue)
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
+
+            return query;
+        }
+
+        private static IQueryable<MstMeasurement> ApplyStandardFilter(
+            IQueryable<MstMeasurement> query,
+            string? measurementType,
+            bool? isActive,
+            bool? isBaseUnit,
+            bool? isDecimalAllowed,
+            bool? isForDrug,
+            bool? isForLaboratory,
+            bool? isForVitalSign,
+            bool? isForGeneralUse,
+            string? search)
+        {
+            if (!string.IsNullOrWhiteSpace(measurementType))
+            {
+                var normalizedType = NormalizeMeasurementType(measurementType);
+                query = query.Where(x => x.MeasurementType.ToLower() == normalizedType.ToLower());
+            }
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (isBaseUnit.HasValue)
+                query = query.Where(x => x.IsBaseUnit == isBaseUnit.Value);
+
+            if (isDecimalAllowed.HasValue)
+                query = query.Where(x => x.IsDecimalAllowed == isDecimalAllowed.Value);
+
+            if (isForDrug.HasValue)
+                query = query.Where(x => x.IsForDrug == isForDrug.Value);
+
+            if (isForLaboratory.HasValue)
+                query = query.Where(x => x.IsForLaboratory == isForLaboratory.Value);
+
+            if (isForVitalSign.HasValue)
+                query = query.Where(x => x.IsForVitalSign == isForVitalSign.Value);
+
+            if (isForGeneralUse.HasValue)
+                query = query.Where(x => x.IsForGeneralUse == isForGeneralUse.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.MeasurementCode.ToLower().Contains(keyword) ||
+                    x.MeasurementName.ToLower().Contains(keyword) ||
+                    x.MeasurementType.ToLower().Contains(keyword) ||
+                    (x.MeasurementSymbol != null && x.MeasurementSymbol.ToLower().Contains(keyword)) ||
+                    (x.MeasurementGroupName != null && x.MeasurementGroupName.ToLower().Contains(keyword)) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
+            }
+
+            return query;
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
@@ -532,6 +644,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         {
             if (string.IsNullOrWhiteSpace(measurementName))
                 return (false, "Nama measurement wajib diisi.");
+
+            if (measurementName.Trim().Length > 150)
+                return (false, "Nama measurement maksimal 150 karakter.");
 
             if (string.IsNullOrWhiteSpace(measurementType))
                 return (false, "Tipe measurement wajib diisi.");
@@ -587,18 +702,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 .Select(x => x.MeasurementCode)
                 .ToListAsync();
 
-            var usedNumbers = new HashSet<int>();
-
-            foreach (var code in existingCodes)
-            {
-                if (code.Length <= MeasurementCodePrefix.Length)
-                    continue;
-
-                var numberText = code[MeasurementCodePrefix.Length..];
-
-                if (int.TryParse(numberText, out var number) && number > 0)
-                    usedNumbers.Add(number);
-            }
+            var usedNumbers = existingCodes
+                .Select(ExtractMeasurementCodeNumber)
+                .Where(x => x.HasValue && x.Value > 0)
+                .Select(x => x!.Value)
+                .ToHashSet();
 
             var nextNumber = 1;
 
@@ -606,6 +714,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 nextNumber++;
 
             return MeasurementCodePrefix + nextNumber.ToString($"D{MeasurementCodeDigitLength}");
+        }
+
+        private static int? ExtractMeasurementCodeNumber(string measurementCode)
+        {
+            if (string.IsNullOrWhiteSpace(measurementCode))
+                return null;
+
+            if (!measurementCode.StartsWith(MeasurementCodePrefix, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var numberText = measurementCode[MeasurementCodePrefix.Length..];
+
+            return int.TryParse(numberText, out var number)
+                ? number
+                : null;
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateGeneratedMeasurementCodeAsync(string measurementCode)
+        {
+            if (string.IsNullOrWhiteSpace(measurementCode))
+                return (false, "Kode measurement otomatis gagal dibuat.");
+
+            var normalizedCode = measurementCode.Trim().ToUpperInvariant();
+
+            var duplicateCode = await _dbContext.Set<MstMeasurement>()
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    x.MeasurementCode.ToUpper() == normalizedCode);
+
+            if (duplicateCode)
+                return (false, "Kode measurement otomatis sudah digunakan. Silakan ulangi proses create.");
+
+            return (true, null);
         }
 
         private static IQueryable<MstMeasurement> ApplySorting(
@@ -617,45 +758,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             return (sortBy ?? "sortOrder").ToLowerInvariant() switch
             {
-                "createdatetime" => isDesc
-                    ? query.OrderByDescending(x => x.CreateDateTime)
-                    : query.OrderBy(x => x.CreateDateTime),
-
-                "measurementcode" => isDesc
-                    ? query.OrderByDescending(x => x.MeasurementCode)
-                    : query.OrderBy(x => x.MeasurementCode),
-
-                "measurementname" => isDesc
-                    ? query.OrderByDescending(x => x.MeasurementName)
-                    : query.OrderBy(x => x.MeasurementName),
-
-                "measurementsymbol" => isDesc
-                    ? query.OrderByDescending(x => x.MeasurementSymbol)
-                    : query.OrderBy(x => x.MeasurementSymbol),
-
-                "measurementtype" => isDesc
-                    ? query.OrderByDescending(x => x.MeasurementType)
-                    : query.OrderBy(x => x.MeasurementType),
-
-                "measurementgroupname" => isDesc
-                    ? query.OrderByDescending(x => x.MeasurementGroupName)
-                    : query.OrderBy(x => x.MeasurementGroupName),
-
-                "isbaseunit" => isDesc
-                    ? query.OrderByDescending(x => x.IsBaseUnit)
-                    : query.OrderBy(x => x.IsBaseUnit),
-
-                "isactive" => isDesc
-                    ? query.OrderByDescending(x => x.IsActive)
-                    : query.OrderBy(x => x.IsActive),
-
+                "createdatetime" => isDesc ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime),
+                "measurementcode" => isDesc ? query.OrderByDescending(x => x.MeasurementCode) : query.OrderBy(x => x.MeasurementCode),
+                "measurementname" => isDesc ? query.OrderByDescending(x => x.MeasurementName) : query.OrderBy(x => x.MeasurementName),
+                "measurementsymbol" => isDesc ? query.OrderByDescending(x => x.MeasurementSymbol) : query.OrderBy(x => x.MeasurementSymbol),
+                "measurementtype" => isDesc ? query.OrderByDescending(x => x.MeasurementType) : query.OrderBy(x => x.MeasurementType),
+                "measurementgroupname" => isDesc ? query.OrderByDescending(x => x.MeasurementGroupName) : query.OrderBy(x => x.MeasurementGroupName),
+                "isbaseunit" => isDesc ? query.OrderByDescending(x => x.IsBaseUnit) : query.OrderBy(x => x.IsBaseUnit),
+                "isdecimalallowed" => isDesc ? query.OrderByDescending(x => x.IsDecimalAllowed) : query.OrderBy(x => x.IsDecimalAllowed),
+                "decimalprecision" => isDesc ? query.OrderByDescending(x => x.DecimalPrecision) : query.OrderBy(x => x.DecimalPrecision),
+                "isactive" => isDesc ? query.OrderByDescending(x => x.IsActive) : query.OrderBy(x => x.IsActive),
                 _ => isDesc
                     ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.MeasurementName)
                     : query.OrderBy(x => x.SortOrder).ThenBy(x => x.MeasurementName)
             };
         }
 
-        private static MeasurementResponse ToResponse(MstMeasurement x)
+        private static MeasurementResponse ToResponse(MstMeasurement x, Dictionary<Guid, string?> actorMap)
         {
             return new MeasurementResponse
             {
@@ -664,6 +783,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 MeasurementName = x.MeasurementName,
                 MeasurementSymbol = x.MeasurementSymbol,
                 MeasurementType = x.MeasurementType,
+                MeasurementTypeName = SplitPascalCase(x.MeasurementType),
                 MeasurementGroupName = x.MeasurementGroupName,
                 IsBaseUnit = x.IsBaseUnit,
                 IsDecimalAllowed = x.IsDecimalAllowed,
@@ -674,7 +794,61 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsForGeneralUse = x.IsForGeneralUse,
                 SortOrder = x.SortOrder,
                 IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
+                CreateDateTime = x.CreateDateTime,
+                CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
+                CreateByName = x.CreateBy == Guid.Empty ? null : actorMap.GetValueOrDefault(x.CreateBy)
+            };
+        }
+
+        private static MeasurementDetailResponse ToDetailResponse(MstMeasurement x, Dictionary<Guid, string?> actorMap)
+        {
+            return new MeasurementDetailResponse
+            {
+                Id = x.Id,
+                MeasurementCode = x.MeasurementCode,
+                MeasurementName = x.MeasurementName,
+                MeasurementSymbol = x.MeasurementSymbol,
+                MeasurementType = x.MeasurementType,
+                MeasurementTypeName = SplitPascalCase(x.MeasurementType),
+                MeasurementGroupName = x.MeasurementGroupName,
+                IsBaseUnit = x.IsBaseUnit,
+                IsDecimalAllowed = x.IsDecimalAllowed,
+                DecimalPrecision = x.DecimalPrecision,
+                IsForDrug = x.IsForDrug,
+                IsForLaboratory = x.IsForLaboratory,
+                IsForVitalSign = x.IsForVitalSign,
+                IsForGeneralUse = x.IsForGeneralUse,
+                SortOrder = x.SortOrder,
+                Description = x.Description,
+                IsActive = x.IsActive,
+                CreateDateTime = x.CreateDateTime,
+                CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
+                CreateByName = x.CreateBy == Guid.Empty ? null : actorMap.GetValueOrDefault(x.CreateBy),
+                UpdateDateTime = x.UpdateDateTime,
+                UpdateBy = x.UpdateBy == Guid.Empty ? null : x.UpdateBy,
+                UpdateByName = x.UpdateBy == Guid.Empty ? null : actorMap.GetValueOrDefault(x.UpdateBy)
+            };
+        }
+
+        private static MeasurementOptionResponse ToOptionResponse(MstMeasurement x)
+        {
+            return new MeasurementOptionResponse
+            {
+                Id = x.Id,
+                MeasurementCode = x.MeasurementCode,
+                MeasurementName = x.MeasurementName,
+                MeasurementSymbol = x.MeasurementSymbol,
+                MeasurementType = x.MeasurementType,
+                MeasurementTypeName = SplitPascalCase(x.MeasurementType),
+                MeasurementGroupName = x.MeasurementGroupName,
+                IsBaseUnit = x.IsBaseUnit,
+                IsDecimalAllowed = x.IsDecimalAllowed,
+                DecimalPrecision = x.DecimalPrecision,
+                IsForDrug = x.IsForDrug,
+                IsForLaboratory = x.IsForLaboratory,
+                IsForVitalSign = x.IsForVitalSign,
+                IsForGeneralUse = x.IsForGeneralUse,
+                IsActive = x.IsActive
             };
         }
 
@@ -687,6 +861,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 MeasurementName = entity.MeasurementName,
                 MeasurementSymbol = entity.MeasurementSymbol,
                 MeasurementType = entity.MeasurementType,
+                MeasurementTypeName = SplitPascalCase(entity.MeasurementType),
                 IsActive = entity.IsActive
             };
         }
@@ -700,6 +875,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 MeasurementName = entity.MeasurementName,
                 MeasurementSymbol = entity.MeasurementSymbol,
                 MeasurementType = entity.MeasurementType,
+                MeasurementTypeName = SplitPascalCase(entity.MeasurementType),
                 IsActive = entity.IsActive
             };
         }
@@ -716,6 +892,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             {
                 return period switch
                 {
+                    "all" => DateRangeResult.Valid(null, null),
                     "today" => DateRangeResult.Valid(today, today.AddDays(1)),
                     "yesterday" => DateRangeResult.Valid(today.AddDays(-1), today),
                     "last7days" => DateRangeResult.Valid(today.AddDays(-6), today.AddDays(1)),
@@ -723,7 +900,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     "thismonth" => DateRangeResult.Valid(new DateTime(today.Year, today.Month, 1), new DateTime(today.Year, today.Month, 1).AddMonths(1)),
                     "lastmonth" => DateRangeResult.Valid(new DateTime(today.Year, today.Month, 1).AddMonths(-1), new DateTime(today.Year, today.Month, 1)),
                     "thisyear" => DateRangeResult.Valid(new DateTime(today.Year, 1, 1), new DateTime(today.Year + 1, 1, 1)),
-                    "all" => DateRangeResult.Valid(null, null),
                     _ => DateRangeResult.Invalid("Custom period tidak dikenali.")
                 };
             }
@@ -753,14 +929,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             };
         }
 
+        private static List<MeasurementStringOptionResponse> BuildMeasurementTypeOptions()
+        {
+            return AllowedMeasurementTypes
+                .OrderBy(x => x)
+                .Select(x => new MeasurementStringOptionResponse
+                {
+                    Value = x,
+                    Label = SplitPascalCase(x)
+                })
+                .ToList();
+        }
+
         private static List<MeasurementQueryParameterInfoResponse> BuildQueryParameterInfo()
         {
             return new List<MeasurementQueryParameterInfoResponse>
             {
                 new() { Name = "startDate", Type = "date", Description = "Tanggal awal filter berdasarkan CreateDateTime.", Example = "2026-06-01" },
                 new() { Name = "endDate", Type = "date", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-06-30" },
-                new() { Name = "customPeriod", Type = "string", Description = "Preset periode: all, today, yesterday, last7days, last30days, thismonth, lastmonth, thisyear, custom. Jika bukan custom, startDate dan endDate diabaikan.", Example = "thisMonth" },
+                new() { Name = "customPeriod", Type = "string", Description = "Preset periode: all, today, yesterday, last7days, last30days, thismonth, lastmonth, thisyear, custom.", Example = "thisMonth" },
+                new() { Name = "measurementType", Type = "string", Description = "Filter tipe measurement.", Example = "Weight" },
                 new() { Name = "isActive", Type = "boolean", Description = "Filter status aktif." },
+                new() { Name = "isBaseUnit", Type = "boolean", Description = "Filter base unit." },
+                new() { Name = "isDecimalAllowed", Type = "boolean", Description = "Filter satuan yang mengizinkan decimal." },
+                new() { Name = "isForDrug", Type = "boolean", Description = "Filter untuk penggunaan obat." },
+                new() { Name = "isForLaboratory", Type = "boolean", Description = "Filter untuk laboratorium." },
+                new() { Name = "isForVitalSign", Type = "boolean", Description = "Filter untuk vital sign." },
+                new() { Name = "isForGeneralUse", Type = "boolean", Description = "Filter penggunaan umum." },
                 new() { Name = "search", Type = "string", Description = "Pencarian kode, nama, simbol, tipe, group, atau deskripsi." },
                 new() { Name = "sortBy", Type = "string", Description = "Kolom sorting." },
                 new() { Name = "sortDirection", Type = "string", Description = "asc atau desc.", Example = "asc" },
@@ -773,20 +968,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         {
             return new List<MeasurementFormFieldMetadataResponse>
             {
-                new() { Name = "measurementCode", Label = "Kode measurement", DataType = "string", InputType = "text", Required = false, IsReadonly = true, Placeholder = "Auto generated", Description = "Dibuat otomatis oleh sistem dengan format MS-RSMMC-00001." },
-                new() { Name = "measurementName", Label = "Nama measurement", DataType = "string", InputType = "text", Required = true, IsReadonly = false },
-                new() { Name = "measurementSymbol", Label = "Simbol", DataType = "string", InputType = "text", Required = false, IsReadonly = false, Placeholder = "mg, ml, tablet" },
-                new() { Name = "measurementType", Label = "Tipe measurement", DataType = "string", InputType = "select", Required = true, IsReadonly = false, Description = "General, Weight, Volume, Length, Count, Time, Dose, Pharmacy." },
-                new() { Name = "measurementGroupName", Label = "Group measurement", DataType = "string", InputType = "text", Required = false, IsReadonly = false, Placeholder = "Weight, Volume, Tablet, Injection, Syrup" },
-                new() { Name = "isBaseUnit", Label = "Base unit", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "isDecimalAllowed", Label = "Boleh decimal", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "decimalPrecision", Label = "Decimal precision", DataType = "integer", InputType = "number", Required = false, IsReadonly = false },
-                new() { Name = "isForDrug", Label = "Untuk obat", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "isForLaboratory", Label = "Untuk laboratorium", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "isForVitalSign", Label = "Untuk vital sign", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "isForGeneralUse", Label = "Untuk umum", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "sortOrder", Label = "Urutan", DataType = "integer", InputType = "number", Required = false, IsReadonly = false },
-                new() { Name = "description", Label = "Deskripsi", DataType = "string", InputType = "textarea", Required = false, IsReadonly = false }
+                new() { Name = "measurementCode", Label = "Kode Measurement", Section = "Basic", DataType = "string", InputType = "readonly", Required = false, IsReadonly = true, RequiredType = "AutoGenerated", MaxLength = 50, Placeholder = "Auto generated", Description = "Dibuat otomatis oleh sistem dengan format MS-RSMMC-00001.", SortOrder = 1 },
+                new() { Name = "measurementName", Label = "Nama Measurement", Section = "Basic", DataType = "string", InputType = "text", Required = true, RequiredType = "Required", MaxLength = 150, SortOrder = 2 },
+                new() { Name = "measurementSymbol", Label = "Simbol", Section = "Basic", DataType = "string", InputType = "text", MaxLength = 50, Placeholder = "mg, ml, tablet", SortOrder = 3 },
+                new() { Name = "measurementType", Label = "Tipe Measurement", Section = "Basic", DataType = "string", InputType = "select", Required = true, RequiredType = "Required", OptionsSource = "measurementTypeOptions", Description = "General, Weight, Volume, Length, Count, Time, Dose, Pharmacy.", SortOrder = 4 },
+                new() { Name = "measurementGroupName", Label = "Group Measurement", Section = "Basic", DataType = "string", InputType = "text", MaxLength = 100, Placeholder = "Weight, Volume, Tablet, Injection, Syrup", SortOrder = 5 },
+                new() { Name = "isBaseUnit", Label = "Base Unit", Section = "Rule", DataType = "boolean", InputType = "switch", SortOrder = 6 },
+                new() { Name = "isDecimalAllowed", Label = "Boleh Decimal", Section = "Rule", DataType = "boolean", InputType = "switch", SortOrder = 7 },
+                new() { Name = "decimalPrecision", Label = "Decimal Precision", Section = "Rule", DataType = "integer", InputType = "number", Description = "Nilai 0 sampai 8. Jika decimal tidak diizinkan, sistem menyimpan 0.", SortOrder = 8 },
+                new() { Name = "isForDrug", Label = "Untuk Obat", Section = "Usage", DataType = "boolean", InputType = "switch", SortOrder = 9 },
+                new() { Name = "isForLaboratory", Label = "Untuk Laboratorium", Section = "Usage", DataType = "boolean", InputType = "switch", SortOrder = 10 },
+                new() { Name = "isForVitalSign", Label = "Untuk Vital Sign", Section = "Usage", DataType = "boolean", InputType = "switch", SortOrder = 11 },
+                new() { Name = "isForGeneralUse", Label = "Untuk Umum", Section = "Usage", DataType = "boolean", InputType = "switch", SortOrder = 12 },
+                new() { Name = "sortOrder", Label = "Urutan", Section = "Display", DataType = "integer", InputType = "number", SortOrder = 13 },
+                new() { Name = "description", Label = "Deskripsi", Section = "Additional", DataType = "string", InputType = "textarea", MaxLength = 250, SortOrder = 14 }
             };
         }
 
@@ -797,14 +992,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             fields.Add(new MeasurementFormFieldMetadataResponse
             {
                 Name = "isActive",
-                Label = "Status aktif",
+                Label = "Status Aktif",
+                Section = "Status",
                 DataType = "boolean",
                 InputType = "switch",
-                Required = false,
-                IsReadonly = false
+                SortOrder = 99
             });
 
-            return fields;
+            return fields.OrderBy(x => x.SortOrder).ToList();
+        }
+
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds.Where(x => x != Guid.Empty).Distinct().ToList();
+
+            if (!ids.Any())
+                return new Dictionary<Guid, string?>();
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
@@ -818,7 +1031,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         private static string NormalizeMeasurementType(string value)
         {
-            var trimmed = value.Trim();
+            var trimmed = string.IsNullOrWhiteSpace(value) ? "General" : value.Trim();
 
             var matched = AllowedMeasurementTypes
                 .FirstOrDefault(x => string.Equals(x, trimmed, StringComparison.OrdinalIgnoreCase));
@@ -828,7 +1041,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         private Guid GetCurrentUserId()
         {
-            var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                             User.FindFirstValue("user_id");
 
             return Guid.TryParse(userIdText, out var userId)
                 ? userId
@@ -842,12 +1056,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 : value.Trim();
         }
 
-        private class DateRangeResult
+        private static string SplitPascalCase(string? value)
         {
-            public bool IsValid { get; private set; }
-            public DateTime? Start { get; private set; }
-            public DateTime? EndExclusive { get; private set; }
-            public string? ErrorMessage { get; private set; }
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+
+            return string.Concat(value.Select((x, i) =>
+                i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
+        }
+
+        private sealed class DateRangeResult
+        {
+            public bool IsValid { get; private init; }
+            public DateTime? Start { get; private init; }
+            public DateTime? EndExclusive { get; private init; }
+            public string? ErrorMessage { get; private init; }
 
             public static DateRangeResult Valid(DateTime? start, DateTime? endExclusive)
             {

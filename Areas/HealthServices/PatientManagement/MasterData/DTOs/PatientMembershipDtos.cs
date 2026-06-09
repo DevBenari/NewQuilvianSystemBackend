@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
+﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs

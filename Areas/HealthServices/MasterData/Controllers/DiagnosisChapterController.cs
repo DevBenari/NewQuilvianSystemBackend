@@ -33,6 +33,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
     {
         private const string LogCategory = "HealthServices.MasterData";
 
+        private static readonly string[] IcdVersionOptions =
+        {
+            "ICD-10",
+            "ICD-11"
+        };
+
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
 
@@ -54,22 +60,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             {
                 DefaultFilter = new DiagnosisChapterDefaultFilterResponse(),
                 CustomPeriods = BuildCustomPeriodOptions(),
-                SortOptions = new List<DiagnosisChapterSortOptionResponse>
-                {
-                    new() { Value = "sortOrder", Label = "Urutan" },
-                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
-                    new() { Value = "chapterCode", Label = "Kode chapter" },
-                    new() { Value = "chapterName", Label = "Nama chapter" },
-                    new() { Value = "diagnosisCodeRangeStart", Label = "Awal range kode diagnosis" },
-                    new() { Value = "diagnosisCodeRangeEnd", Label = "Akhir range kode diagnosis" },
-                    new() { Value = "icdVersion", Label = "Versi ICD" },
-                    new() { Value = "isActive", Label = "Status aktif" }
-                },
+                SortOptions = BuildSortOptions(),
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                IcdVersionOptions = IcdVersionOptions
+                    .Select(x => new DiagnosisChapterStringOptionResponse { Value = x, Label = x })
+                    .ToList(),
                 QueryParameters = BuildQueryParameterInfo(),
                 CreateFields = BuildCreateFieldMetadata(),
-                UpdateFields = BuildUpdateFieldMetadata()
+                UpdateFields = BuildUpdateFieldMetadata(),
+                ResetButtonLabel = "Reset Filter"
             };
 
             await _loggerService.InfoAsync(
@@ -91,9 +91,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("DiagnosisChapter", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var query = _dbContext.Set<MstDiagnosisChapter>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
             var result = new DiagnosisChapterSummaryResponse
             {
@@ -103,7 +101,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 HasDiagnosisCodeRangeChapter = await query.CountAsync(x =>
                     x.DiagnosisCodeRangeStart != null || x.DiagnosisCodeRangeEnd != null),
                 WithoutDiagnosisCodeRangeChapter = await query.CountAsync(x =>
-                    x.DiagnosisCodeRangeStart == null && x.DiagnosisCodeRangeEnd == null)
+                    x.DiagnosisCodeRangeStart == null && x.DiagnosisCodeRangeEnd == null),
+                Icd10Chapter = await query.CountAsync(x => x.IcdVersion == "ICD-10"),
+                Icd11Chapter = await query.CountAsync(x => x.IcdVersion == "ICD-11")
             };
 
             return Ok(ApiResponse<DiagnosisChapterSummaryResponse>.Ok(
@@ -122,6 +122,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
             [FromQuery] bool? isActive,
+            [FromQuery] string? icdVersion,
+            [FromQuery] bool? hasDiagnosisCodeRange,
             [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
@@ -142,50 +144,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            var query = _dbContext.Set<MstDiagnosisChapter>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
-
-            if (dateRange.Start.HasValue)
-                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
-
-            if (dateRange.EndExclusive.HasValue)
-                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
-
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.ChapterCode.ToLower().Contains(keyword) ||
-                    x.ChapterName.ToLower().Contains(keyword) ||
-                    x.IcdVersion.ToLower().Contains(keyword) ||
-                    (x.DiagnosisCodeRangeStart != null && x.DiagnosisCodeRangeStart.ToLower().Contains(keyword)) ||
-                    (x.DiagnosisCodeRangeEnd != null && x.DiagnosisCodeRangeEnd.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
-            }
+            var query = BuildBaseQuery();
+            query = ApplyDateFilter(query, dateRange);
+            query = ApplyStandardFilter(query, isActive, icdVersion, hasDiagnosisCodeRange, search);
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new DiagnosisChapterResponse
-                {
-                    Id = x.Id,
-                    ChapterCode = x.ChapterCode,
-                    ChapterName = x.ChapterName,
-                    DiagnosisCodeRangeStart = x.DiagnosisCodeRangeStart,
-                    DiagnosisCodeRangeEnd = x.DiagnosisCodeRangeEnd,
-                    IcdVersion = x.IcdVersion,
-                    SortOrder = x.SortOrder,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .SelectMany(x => new[] { x.CreateBy, x.UpdateBy })
+                    .Where(x => x != Guid.Empty)
+            );
+
+            var items = entities
+                .Select(x => MapResponse(x, actorNames))
+                .ToList();
 
             var result = new ResponseDiagnosisChapterPagedResult
             {
@@ -208,6 +186,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("DiagnosisChapter", "Read")]
         public async Task<IActionResult> GetDiagnosisChapterOptions(
             [FromQuery] bool onlyActive = true,
+            [FromQuery] string? icdVersion = null,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
@@ -216,24 +195,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.Set<MstDiagnosisChapter>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
-
-            if (onlyActive)
-                query = query.Where(x => x.IsActive);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.ChapterCode.ToLower().Contains(keyword) ||
-                    x.ChapterName.ToLower().Contains(keyword) ||
-                    x.IcdVersion.ToLower().Contains(keyword) ||
-                    (x.DiagnosisCodeRangeStart != null && x.DiagnosisCodeRangeStart.ToLower().Contains(keyword)) ||
-                    (x.DiagnosisCodeRangeEnd != null && x.DiagnosisCodeRangeEnd.ToLower().Contains(keyword)));
-            }
+            var query = BuildBaseQuery();
+            query = ApplyStandardFilter(query, onlyActive ? true : null, icdVersion, null, search);
 
             var totalData = await query.CountAsync();
 
@@ -249,7 +212,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     ChapterName = x.ChapterName,
                     DiagnosisCodeRangeStart = x.DiagnosisCodeRangeStart,
                     DiagnosisCodeRangeEnd = x.DiagnosisCodeRangeEnd,
-                    IcdVersion = x.IcdVersion
+                    IcdVersion = x.IcdVersion,
+                    IsActive = x.IsActive
                 })
                 .ToListAsync();
 
@@ -271,35 +235,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<DiagnosisChapterDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Diagnosis Chapter", Description = "Melihat data diagnosis chapter", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Diagnosis Chapter", Description = "Melihat detail diagnosis chapter", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DiagnosisChapter", "Read")]
         public async Task<IActionResult> GetDiagnosisChapterById(Guid id)
         {
-            var data = await _dbContext.Set<MstDiagnosisChapter>()
-                .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new DiagnosisChapterDetailResponse
-                {
-                    Id = x.Id,
-                    ChapterCode = x.ChapterCode,
-                    ChapterName = x.ChapterName,
-                    DiagnosisCodeRangeStart = x.DiagnosisCodeRangeStart,
-                    DiagnosisCodeRangeEnd = x.DiagnosisCodeRangeEnd,
-                    IcdVersion = x.IcdVersion,
-                    SortOrder = x.SortOrder,
-                    Description = x.Description,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+            var entity = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (data == null)
+            if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Diagnosis chapter tidak ditemukan."
                 ));
             }
+
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, actorNames);
 
             return Ok(ApiResponse<DiagnosisChapterDetailResponse>.Ok(
                 data,
@@ -314,14 +271,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("DiagnosisChapter", "Create")]
         public async Task<IActionResult> CreateDiagnosisChapter([FromBody] CreateDiagnosisChapterRequest request)
         {
-            var validation = await ValidateRequestAsync(
-                excludeId: null,
-                chapterCode: request.ChapterCode,
-                chapterName: request.ChapterName,
-                icdVersion: request.IcdVersion,
-                diagnosisCodeRangeStart: request.DiagnosisCodeRangeStart,
-                diagnosisCodeRangeEnd: request.DiagnosisCodeRangeEnd
-            );
+            var validation = await ValidateRequestAsync(null, request);
 
             if (!validation.IsValid)
             {
@@ -339,8 +289,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 Id = Guid.NewGuid(),
                 ChapterCode = request.ChapterCode.Trim().ToUpperInvariant(),
                 ChapterName = request.ChapterName.Trim(),
-                DiagnosisCodeRangeStart = NormalizeNullableText(request.DiagnosisCodeRangeStart)?.ToUpperInvariant(),
-                DiagnosisCodeRangeEnd = NormalizeNullableText(request.DiagnosisCodeRangeEnd)?.ToUpperInvariant(),
+                DiagnosisCodeRangeStart = NormalizeNullableUpperText(request.DiagnosisCodeRangeStart),
+                DiagnosisCodeRangeEnd = NormalizeNullableUpperText(request.DiagnosisCodeRangeEnd),
                 IcdVersion = NormalizeIcdVersion(request.IcdVersion),
                 SortOrder = request.SortOrder,
                 Description = NormalizeNullableText(request.Description),
@@ -354,7 +304,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             _dbContext.Set<MstDiagnosisChapter>().Add(entity);
             await _dbContext.SaveChangesAsync();
 
-            var response = ToCreateUpdateResponse(entity);
+            var response = ToCreateResponse(entity);
 
             await _loggerService.InfoAsync(
                 LogCategory,
@@ -388,14 +338,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            var validation = await ValidateRequestAsync(
-                excludeId: id,
-                chapterCode: request.ChapterCode,
-                chapterName: request.ChapterName,
-                icdVersion: request.IcdVersion,
-                diagnosisCodeRangeStart: request.DiagnosisCodeRangeStart,
-                diagnosisCodeRangeEnd: request.DiagnosisCodeRangeEnd
-            );
+            var validation = await ValidateRequestAsync(id, request);
 
             if (!validation.IsValid)
             {
@@ -410,8 +353,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             entity.ChapterCode = request.ChapterCode.Trim().ToUpperInvariant();
             entity.ChapterName = request.ChapterName.Trim();
-            entity.DiagnosisCodeRangeStart = NormalizeNullableText(request.DiagnosisCodeRangeStart)?.ToUpperInvariant();
-            entity.DiagnosisCodeRangeEnd = NormalizeNullableText(request.DiagnosisCodeRangeEnd)?.ToUpperInvariant();
+            entity.DiagnosisCodeRangeStart = NormalizeNullableUpperText(request.DiagnosisCodeRangeStart);
+            entity.DiagnosisCodeRangeEnd = NormalizeNullableUpperText(request.DiagnosisCodeRangeEnd);
             entity.IcdVersion = NormalizeIcdVersion(request.IcdVersion);
             entity.SortOrder = request.SortOrder;
             entity.Description = NormalizeNullableText(request.Description);
@@ -421,16 +364,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
-            var response = new DiagnosisChapterUpdateResponse
-            {
-                Id = entity.Id,
-                ChapterCode = entity.ChapterCode,
-                ChapterName = entity.ChapterName,
-                DiagnosisCodeRangeStart = entity.DiagnosisCodeRangeStart,
-                DiagnosisCodeRangeEnd = entity.DiagnosisCodeRangeEnd,
-                IcdVersion = entity.IcdVersion,
-                IsActive = entity.IsActive
-            };
+            var response = ToUpdateResponse(entity);
 
             await _loggerService.InfoAsync(
                 LogCategory,
@@ -445,13 +379,52 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<DiagnosisChapterUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Diagnosis Chapter Status", Description = "Mengubah status diagnosis chapter", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("DiagnosisChapter", "Update")]
+        public async Task<IActionResult> UpdateDiagnosisChapterStatus(
+            Guid id,
+            [FromBody] UpdateDiagnosisChapterStatusRequest request)
+        {
+            var entity = await _dbContext.Set<MstDiagnosisChapter>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Diagnosis chapter tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            var response = ToUpdateResponse(entity);
+
+            return Ok(ApiResponse<DiagnosisChapterUpdateResponse>.Ok(
+                response,
+                "Status diagnosis chapter berhasil diperbarui."
+            ));
+        }
+
         [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DiagnosisChapterDeleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Diagnosis Chapter", Description = "Menghapus data diagnosis chapter", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("DiagnosisChapter", "Delete")]
-        public async Task<IActionResult> DeleteDiagnosisChapter(Guid id)
+        public async Task<IActionResult> DeleteDiagnosisChapter(
+            Guid id,
+            [FromBody] DeleteDiagnosisChapterRequest? request = null)
         {
             var entity = await _dbContext.Set<MstDiagnosisChapter>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -485,54 +458,147 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+            {
+                entity.Description = request.DeleteReason.Trim();
+            }
+
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var response = new DiagnosisChapterDeleteResponse
+            {
+                Id = entity.Id,
+                ChapterCode = entity.ChapterCode,
+                ChapterName = entity.ChapterName,
+                DeleteDateTime = entity.DeleteDateTime
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "DiagnosisChapter.DeleteDiagnosisChapter",
+                "Menghapus data diagnosis chapter.",
+                response
+            );
+
+            return Ok(ApiResponse<DiagnosisChapterDeleteResponse>.Ok(
+                response,
                 "Diagnosis chapter berhasil dihapus."
             ));
         }
 
+        private IQueryable<MstDiagnosisChapter> BuildBaseQuery()
+        {
+            return _dbContext.Set<MstDiagnosisChapter>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+        }
+
+        private static IQueryable<MstDiagnosisChapter> ApplyDateFilter(
+            IQueryable<MstDiagnosisChapter> query,
+            DateRangeResult dateRange)
+        {
+            if (dateRange.Start.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
+            }
+
+            if (dateRange.EndExclusive.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstDiagnosisChapter> ApplyStandardFilter(
+            IQueryable<MstDiagnosisChapter> query,
+            bool? isActive,
+            string? icdVersion,
+            bool? hasDiagnosisCodeRange,
+            string? search)
+        {
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(icdVersion))
+            {
+                var normalizedIcdVersion = NormalizeIcdVersion(icdVersion);
+                query = query.Where(x => x.IcdVersion == normalizedIcdVersion);
+            }
+
+            if (hasDiagnosisCodeRange.HasValue)
+            {
+                query = hasDiagnosisCodeRange.Value
+                    ? query.Where(x => x.DiagnosisCodeRangeStart != null || x.DiagnosisCodeRangeEnd != null)
+                    : query.Where(x => x.DiagnosisCodeRangeStart == null && x.DiagnosisCodeRangeEnd == null);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.ChapterCode.ToLower().Contains(keyword) ||
+                    x.ChapterName.ToLower().Contains(keyword) ||
+                    x.IcdVersion.ToLower().Contains(keyword) ||
+                    (x.DiagnosisCodeRangeStart != null && x.DiagnosisCodeRangeStart.ToLower().Contains(keyword)) ||
+                    (x.DiagnosisCodeRangeEnd != null && x.DiagnosisCodeRangeEnd.ToLower().Contains(keyword)) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
+            }
+
+            return query;
+        }
+
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
-            string chapterCode,
-            string chapterName,
-            string icdVersion,
-            string? diagnosisCodeRangeStart,
-            string? diagnosisCodeRangeEnd)
+            CreateDiagnosisChapterRequest request)
         {
-            if (string.IsNullOrWhiteSpace(chapterCode))
-                return (false, "Kode chapter wajib diisi.");
-
-            if (string.IsNullOrWhiteSpace(chapterName))
-                return (false, "Nama chapter wajib diisi.");
-
-            if (string.IsNullOrWhiteSpace(icdVersion))
-                return (false, "Versi ICD wajib diisi.");
-
-            var normalizedCode = chapterCode.Trim().ToUpperInvariant();
-            var normalizedName = chapterName.Trim().ToLower();
-            var normalizedIcdVersion = NormalizeIcdVersion(icdVersion);
-            var normalizedRangeStart = NormalizeNullableText(diagnosisCodeRangeStart)?.ToUpperInvariant();
-            var normalizedRangeEnd = NormalizeNullableText(diagnosisCodeRangeEnd)?.ToUpperInvariant();
-
-            if (!string.IsNullOrWhiteSpace(normalizedRangeStart) && !string.IsNullOrWhiteSpace(normalizedRangeEnd))
+            if (string.IsNullOrWhiteSpace(request.ChapterCode))
             {
-                var comparison = string.Compare(normalizedRangeStart, normalizedRangeEnd, StringComparison.OrdinalIgnoreCase);
+                return (false, "Kode chapter wajib diisi.");
+            }
 
-                if (comparison > 0)
-                    return (false, "Range awal kode diagnosis tidak boleh lebih besar dari range akhir.");
+            if (string.IsNullOrWhiteSpace(request.ChapterName))
+            {
+                return (false, "Nama chapter wajib diisi.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.IcdVersion))
+            {
+                return (false, "Versi ICD wajib diisi.");
+            }
+
+            var normalizedCode = request.ChapterCode.Trim().ToUpperInvariant();
+            var normalizedName = request.ChapterName.Trim().ToLower();
+            var normalizedIcdVersion = NormalizeIcdVersion(request.IcdVersion);
+            var rangeStart = NormalizeNullableUpperText(request.DiagnosisCodeRangeStart);
+            var rangeEnd = NormalizeNullableUpperText(request.DiagnosisCodeRangeEnd);
+
+            if (!string.IsNullOrWhiteSpace(rangeStart) &&
+                !string.IsNullOrWhiteSpace(rangeEnd) &&
+                string.Compare(rangeStart, rangeEnd, StringComparison.OrdinalIgnoreCase) > 0)
+            {
+                return (false, "Range awal kode diagnosis tidak boleh lebih besar dari range akhir.");
             }
 
             var duplicateCodeQuery = _dbContext.Set<MstDiagnosisChapter>()
                 .AsNoTracking()
-                .Where(x => x.ChapterCode.ToUpper() == normalizedCode);
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.ChapterCode.ToUpper() == normalizedCode &&
+                    x.IcdVersion.ToUpper() == normalizedIcdVersion.ToUpper());
 
             if (excludeId.HasValue)
+            {
                 duplicateCodeQuery = duplicateCodeQuery.Where(x => x.Id != excludeId.Value);
+            }
 
             if (await duplicateCodeQuery.AnyAsync())
-                return (false, "Kode chapter sudah digunakan.");
+            {
+                return (false, "Kode chapter pada versi ICD tersebut sudah digunakan.");
+            }
 
             var duplicateNameQuery = _dbContext.Set<MstDiagnosisChapter>()
                 .AsNoTracking()
@@ -542,15 +608,104 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     x.IcdVersion.ToUpper() == normalizedIcdVersion.ToUpper());
 
             if (excludeId.HasValue)
+            {
                 duplicateNameQuery = duplicateNameQuery.Where(x => x.Id != excludeId.Value);
+            }
 
             if (await duplicateNameQuery.AnyAsync())
+            {
                 return (false, "Nama chapter pada versi ICD tersebut sudah digunakan.");
+            }
 
             return (true, null);
         }
 
-        private static DiagnosisChapterCreateResponse ToCreateUpdateResponse(MstDiagnosisChapter entity)
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static DiagnosisChapterResponse MapResponse(
+            MstDiagnosisChapter entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new DiagnosisChapterResponse
+            {
+                Id = entity.Id,
+                ChapterCode = entity.ChapterCode,
+                ChapterName = entity.ChapterName,
+                DiagnosisCodeRangeStart = entity.DiagnosisCodeRangeStart,
+                DiagnosisCodeRangeEnd = entity.DiagnosisCodeRangeEnd,
+                IcdVersion = entity.IcdVersion,
+                SortOrder = entity.SortOrder,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
+            };
+        }
+
+        private static DiagnosisChapterDetailResponse MapDetailResponse(
+            MstDiagnosisChapter entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new DiagnosisChapterDetailResponse
+            {
+                Id = entity.Id,
+                ChapterCode = entity.ChapterCode,
+                ChapterName = entity.ChapterName,
+                DiagnosisCodeRangeStart = entity.DiagnosisCodeRangeStart,
+                DiagnosisCodeRangeEnd = entity.DiagnosisCodeRangeEnd,
+                IcdVersion = entity.IcdVersion,
+                SortOrder = entity.SortOrder,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                Description = entity.Description,
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
+
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
+        {
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
+        }
+
+        private static DiagnosisChapterCreateResponse ToCreateResponse(MstDiagnosisChapter entity)
         {
             return new DiagnosisChapterCreateResponse
             {
@@ -560,18 +715,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 DiagnosisCodeRangeStart = entity.DiagnosisCodeRangeStart,
                 DiagnosisCodeRangeEnd = entity.DiagnosisCodeRangeEnd,
                 IcdVersion = entity.IcdVersion,
-                IsActive = entity.IsActive
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime
             };
         }
 
-        private static IQueryable<MstDiagnosisChapter> ApplySorting(
+        private static DiagnosisChapterUpdateResponse ToUpdateResponse(MstDiagnosisChapter entity)
+        {
+            return new DiagnosisChapterUpdateResponse
+            {
+                Id = entity.Id,
+                ChapterCode = entity.ChapterCode,
+                ChapterName = entity.ChapterName,
+                DiagnosisCodeRangeStart = entity.DiagnosisCodeRangeStart,
+                DiagnosisCodeRangeEnd = entity.DiagnosisCodeRangeEnd,
+                IcdVersion = entity.IcdVersion,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                UpdateDateTime = entity.UpdateDateTime
+            };
+        }
+
+        private static IOrderedQueryable<MstDiagnosisChapter> ApplySorting(
             IQueryable<MstDiagnosisChapter> query,
             string? sortBy,
             string? sortDirection)
         {
             var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 
-            return (sortBy ?? "sortOrder").ToLowerInvariant() switch
+            return (sortBy ?? "sortOrder").Trim().ToLowerInvariant() switch
             {
                 "createdatetime" => isDesc
                     ? query.OrderByDescending(x => x.CreateDateTime)
@@ -635,7 +807,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var endExclusive = endDate?.Date.AddDays(1);
 
             if (start.HasValue && endExclusive.HasValue && start.Value >= endExclusive.Value)
+            {
                 return DateRangeResult.Invalid("StartDate tidak boleh lebih besar dari EndDate.");
+            }
 
             return DateRangeResult.Valid(start, endExclusive);
         }
@@ -655,6 +829,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             };
         }
 
+        private static List<DiagnosisChapterSortOptionResponse> BuildSortOptions()
+        {
+            return new List<DiagnosisChapterSortOptionResponse>
+            {
+                new() { Value = "sortOrder", Label = "Urutan" },
+                new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                new() { Value = "chapterCode", Label = "Kode chapter" },
+                new() { Value = "chapterName", Label = "Nama chapter" },
+                new() { Value = "diagnosisCodeRangeStart", Label = "Awal range kode diagnosis" },
+                new() { Value = "diagnosisCodeRangeEnd", Label = "Akhir range kode diagnosis" },
+                new() { Value = "icdVersion", Label = "Versi ICD" },
+                new() { Value = "isActive", Label = "Status aktif" }
+            };
+        }
+
         private static List<DiagnosisChapterQueryParameterInfoResponse> BuildQueryParameterInfo()
         {
             return new List<DiagnosisChapterQueryParameterInfoResponse>
@@ -663,6 +852,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "endDate", Type = "date", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-06-30" },
                 new() { Name = "customPeriod", Type = "string", Description = "Preset periode. Jika bukan custom, startDate dan endDate diabaikan.", Example = "thisMonth" },
                 new() { Name = "isActive", Type = "boolean", Description = "Filter status aktif." },
+                new() { Name = "icdVersion", Type = "string", Description = "Filter versi ICD.", Example = "ICD-10" },
+                new() { Name = "hasDiagnosisCodeRange", Type = "boolean", Description = "Filter chapter yang memiliki range kode diagnosis." },
                 new() { Name = "search", Type = "string", Description = "Pencarian kode chapter, nama chapter, range kode diagnosis, versi ICD, atau deskripsi." },
                 new() { Name = "sortBy", Type = "string", Description = "Kolom sorting." },
                 new() { Name = "sortDirection", Type = "string", Description = "asc atau desc.", Example = "asc" },
@@ -675,13 +866,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         {
             return new List<DiagnosisChapterFormFieldMetadataResponse>
             {
-                new() { Name = "chapterCode", Label = "Kode chapter", DataType = "string", InputType = "text", Required = true, IsReadonly = false, Placeholder = "I", Description = "Kode resmi chapter ICD, contoh: I, II, III." },
-                new() { Name = "chapterName", Label = "Nama chapter", DataType = "string", InputType = "text", Required = true, IsReadonly = false, Placeholder = "Certain infectious and parasitic diseases" },
-                new() { Name = "diagnosisCodeRangeStart", Label = "Range kode diagnosis awal", DataType = "string", InputType = "text", Required = false, IsReadonly = false, Placeholder = "A00" },
-                new() { Name = "diagnosisCodeRangeEnd", Label = "Range kode diagnosis akhir", DataType = "string", InputType = "text", Required = false, IsReadonly = false, Placeholder = "B99" },
-                new() { Name = "icdVersion", Label = "Versi ICD", DataType = "string", InputType = "text", Required = true, IsReadonly = false, Placeholder = "ICD-10" },
-                new() { Name = "sortOrder", Label = "Urutan", DataType = "integer", InputType = "number", Required = false, IsReadonly = false },
-                new() { Name = "description", Label = "Deskripsi", DataType = "string", InputType = "textarea", Required = false, IsReadonly = false }
+                new() { Name = "chapterCode", Label = "Kode chapter", DataType = "string", InputType = "text", Required = true, IsReadonly = false, Placeholder = "I", Description = "Kode resmi chapter ICD, contoh: I, II, III.", SortOrder = 1 },
+                new() { Name = "chapterName", Label = "Nama chapter", DataType = "string", InputType = "text", Required = true, IsReadonly = false, Placeholder = "Certain infectious and parasitic diseases", SortOrder = 2 },
+                new() { Name = "diagnosisCodeRangeStart", Label = "Range kode diagnosis awal", DataType = "string", InputType = "text", Required = false, IsReadonly = false, Placeholder = "A00", SortOrder = 3 },
+                new() { Name = "diagnosisCodeRangeEnd", Label = "Range kode diagnosis akhir", DataType = "string", InputType = "text", Required = false, IsReadonly = false, Placeholder = "B99", SortOrder = 4 },
+                new() { Name = "icdVersion", Label = "Versi ICD", DataType = "string", InputType = "select", Required = true, IsReadonly = false, Placeholder = "ICD-10", SortOrder = 5 },
+                new() { Name = "sortOrder", Label = "Urutan", DataType = "integer", InputType = "number", Required = false, IsReadonly = false, SortOrder = 6 },
+                new() { Name = "description", Label = "Deskripsi", DataType = "string", InputType = "textarea", Required = false, IsReadonly = false, SortOrder = 7 }
             };
         }
 
@@ -696,10 +887,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 DataType = "boolean",
                 InputType = "switch",
                 Required = false,
-                IsReadonly = false
+                IsReadonly = false,
+                SortOrder = 99
             });
 
-            return fields;
+            return fields.OrderBy(x => x.SortOrder).ToList();
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
@@ -725,11 +917,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 : value.Trim();
         }
 
+        private static string? NormalizeNullableUpperText(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value.Trim().ToUpperInvariant();
+        }
+
         private Guid GetCurrentUserId()
         {
-            var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userIdValue =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("user_id");
 
-            return Guid.TryParse(userIdText, out var userId)
+            return Guid.TryParse(userIdValue, out var userId)
                 ? userId
                 : Guid.Empty;
         }

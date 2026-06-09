@@ -23,39 +23,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class TariffResponse
     {
         public Guid Id { get; set; }
-
         public string TariffCode { get; set; } = string.Empty;
         public string TariffName { get; set; } = string.Empty;
-
         public Guid TariffCategoryId { get; set; }
         public string TariffCategoryCode { get; set; } = string.Empty;
         public string TariffCategoryName { get; set; } = string.Empty;
         public string? TariffGroupName { get; set; }
-
         public Guid? ServiceUnitId { get; set; }
         public string? ServiceUnitCode { get; set; }
         public string? ServiceUnitName { get; set; }
-
         public Guid? ClinicId { get; set; }
         public string? ClinicCode { get; set; }
         public string? ClinicName { get; set; }
-
         public Guid? PatientClassId { get; set; }
         public string? PatientClassCode { get; set; }
         public string? PatientClassName { get; set; }
-
         public Guid? ProcedureId { get; set; }
         public string? ProcedureCode { get; set; }
         public string? ProcedureName { get; set; }
-
         public Guid? DrugId { get; set; }
         public string? DrugCode { get; set; }
         public string? DrugName { get; set; }
-
         public string? ExternalServiceCode { get; set; }
         public string? ExternalClassCode { get; set; }
         public string? ProviderName { get; set; }
-
         public bool IsSurgeryRelated { get; set; }
         public bool IsRoomCharge { get; set; }
         public bool IsAdministrationFee { get; set; }
@@ -64,59 +55,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsPackageTariff { get; set; }
         public bool IsNeedDoctor { get; set; }
         public bool IsNeedApproval { get; set; }
-
         public decimal NormalPrice { get; set; }
         public decimal? MemberPrice { get; set; }
         public decimal? InsurancePrice { get; set; }
         public decimal? CompanyPrice { get; set; }
-
         public DateTime? EffectiveStartDate { get; set; }
         public DateTime? EffectiveEndDate { get; set; }
         public bool IsTaxable { get; set; }
-
+        public bool IsCurrentlyEffective { get; set; }
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class TariffDetailResponse : TariffResponse
     {
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class TariffOptionResponse
     {
         public Guid Id { get; set; }
-
         public string TariffCode { get; set; } = string.Empty;
         public string TariffName { get; set; } = string.Empty;
-
         public Guid TariffCategoryId { get; set; }
         public string TariffCategoryName { get; set; } = string.Empty;
-
         public Guid? ServiceUnitId { get; set; }
         public string? ServiceUnitName { get; set; }
-
         public Guid? ClinicId { get; set; }
         public string? ClinicName { get; set; }
-
         public Guid? PatientClassId { get; set; }
         public string? PatientClassName { get; set; }
-
         public Guid? ProcedureId { get; set; }
         public string? ProcedureName { get; set; }
-
         public Guid? DrugId { get; set; }
         public string? DrugName { get; set; }
-
         public decimal NormalPrice { get; set; }
         public decimal? MemberPrice { get; set; }
         public decimal? InsurancePrice { get; set; }
         public decimal? CompanyPrice { get; set; }
-
         public bool IsNeedDoctor { get; set; }
         public bool IsNeedApproval { get; set; }
         public bool IsTaxable { get; set; }
+        public bool IsCurrentlyEffective { get; set; }
     }
 
     public class TariffOptionPagedResponse
@@ -133,15 +119,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public string CustomPeriodPriorityInfo { get; set; } =
             "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
-
         public TariffDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<TariffCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<TariffSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
+        public List<string> EffectiveStatusOptions { get; set; } = new();
         public List<TariffQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<TariffFormFieldMetadataResponse> CreateFields { get; set; } = new();
         public List<TariffFormFieldMetadataResponse> UpdateFields { get; set; } = new();
+        public string ResetButtonLabel { get; set; } = "Reset";
     }
 
     public class TariffDefaultFilterResponse
@@ -151,7 +138,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? CustomPeriod { get; set; }
         public Guid? TariffCategoryId { get; set; }
         public Guid? ServiceUnitId { get; set; }
+        public Guid? ClinicId { get; set; }
+        public Guid? PatientClassId { get; set; }
+        public Guid? ProcedureId { get; set; }
+        public Guid? DrugId { get; set; }
         public bool? IsActive { get; set; }
+        public bool? IsSurgeryRelated { get; set; }
+        public bool? IsRoomCharge { get; set; }
+        public bool? IsAdministrationFee { get; set; }
+        public bool? IsRegistrationFee { get; set; }
+        public bool? IsConsultationFee { get; set; }
+        public bool? IsPackageTariff { get; set; }
+        public bool? IsNeedDoctor { get; set; }
+        public bool? IsNeedApproval { get; set; }
+        public bool? IsTaxable { get; set; }
+        public string? EffectiveStatus { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
@@ -187,12 +188,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     {
         public string Name { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
-        public string DataType { get; set; } = string.Empty;
+        public string Section { get; set; } = string.Empty;
         public string InputType { get; set; } = string.Empty;
-        public bool Required { get; set; }
-        public bool IsReadonly { get; set; }
-        public string? Placeholder { get; set; }
+        public bool IsRequiredOnCreate { get; set; }
+        public bool IsRequiredOnUpdate { get; set; }
+        public string RequiredType { get; set; } = "Optional";
+        public int? MaxLength { get; set; }
+        public string? OptionsSource { get; set; }
         public string? Description { get; set; }
+        public string? Example { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class CreateTariffRequest
@@ -228,14 +233,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsNeedDoctor { get; set; } = false;
         public bool IsNeedApproval { get; set; } = false;
 
+        [Range(typeof(decimal), "0", "999999999999")]
         public decimal NormalPrice { get; set; } = 0;
+
+        [Range(typeof(decimal), "0", "999999999999")]
         public decimal? MemberPrice { get; set; }
+
+        [Range(typeof(decimal), "0", "999999999999")]
         public decimal? InsurancePrice { get; set; }
+
+        [Range(typeof(decimal), "0", "999999999999")]
         public decimal? CompanyPrice { get; set; }
 
         public DateTime? EffectiveStartDate { get; set; }
         public DateTime? EffectiveEndDate { get; set; }
-
         public bool IsTaxable { get; set; } = false;
         public int SortOrder { get; set; } = 0;
 
@@ -246,6 +257,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class UpdateTariffRequest : CreateTariffRequest
     {
         public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateTariffStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeleteTariffRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
     }
 
     public class TariffCreateResponse
@@ -265,5 +287,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
     public class TariffUpdateResponse : TariffCreateResponse
     {
+    }
+
+    public class TariffDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string TariffCode { get; set; } = string.Empty;
+        public string TariffName { get; set; } = string.Empty;
+        public bool IsDelete { get; set; }
+        public DateTime? DeleteDateTime { get; set; }
     }
 }

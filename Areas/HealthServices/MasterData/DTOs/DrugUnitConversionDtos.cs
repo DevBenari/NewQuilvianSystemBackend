@@ -58,11 +58,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class DrugUnitConversionDetailResponse : DrugUnitConversionResponse
     {
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class DrugUnitConversionOptionResponse
@@ -109,12 +114,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class DrugUnitConversionFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
+        public string ResetButtonLabel { get; set; } = "Reset Filter";
         public DrugUnitConversionDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<DrugUnitConversionCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<DrugUnitConversionSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
         public List<string> ConversionTypeOptions { get; set; } = new();
+        public List<DrugUnitConversionQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+        public List<DrugUnitConversionFormFieldMetadataResponse> CreateFields { get; set; } = new();
+        public List<DrugUnitConversionFormFieldMetadataResponse> UpdateFields { get; set; } = new();
     }
 
     public class DrugUnitConversionDefaultFilterResponse
@@ -124,6 +133,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? CustomPeriod { get; set; }
         public Guid? DrugId { get; set; }
         public Guid? FromMeasurementId { get; set; }
+        public Guid? ToMeasurementId { get; set; }
+        public string? ConversionType { get; set; }
+        public bool? IsDefault { get; set; }
+        public bool? IsBidirectional { get; set; }
+        public bool? IsForPurchase { get; set; }
+        public bool? IsForStock { get; set; }
+        public bool? IsForDispensing { get; set; }
+        public bool? IsForPrescription { get; set; }
+        public bool? IsForCompound { get; set; }
+        public string EffectiveStatus { get; set; } = "all";
         public bool? IsActive { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
@@ -144,6 +163,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string Label { get; set; } = string.Empty;
     }
 
+    public class DrugUnitConversionQueryParameterInfoResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Required { get; set; } = "No";
+        public string Description { get; set; } = string.Empty;
+        public string? Example { get; set; }
+    }
+
+    public class DrugUnitConversionFormFieldMetadataResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string DataType { get; set; } = string.Empty;
+        public string InputType { get; set; } = string.Empty;
+        public bool Required { get; set; }
+        public bool IsReadonly { get; set; }
+        public string? Placeholder { get; set; }
+        public string? Description { get; set; }
+    }
+
     public class CreateDrugUnitConversionRequest
     {
         [Required]
@@ -159,8 +199,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         [Required]
         public Guid ToMeasurementId { get; set; }
 
+        [Range(typeof(decimal), "0.000001", "999999999999")]
         public decimal FromQuantity { get; set; } = 1;
+
+        [Range(typeof(decimal), "0.000001", "999999999999")]
         public decimal ToQuantity { get; set; } = 1;
+
+        [Range(typeof(decimal), "0.000001", "999999999999")]
         public decimal ConversionFactor { get; set; } = 1;
 
         [Required]
@@ -189,6 +234,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsActive { get; set; } = true;
     }
 
+    public class UpdateDrugUnitConversionStatusRequest
+    {
+        public bool IsActive { get; set; } = true;
+    }
+
+    public class DeleteDrugUnitConversionRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
+    }
+
     public class DrugUnitConversionCreateResponse
     {
         public Guid Id { get; set; }
@@ -204,5 +260,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string ConversionType { get; set; } = string.Empty;
         public bool IsDefault { get; set; }
         public bool IsActive { get; set; }
+    }
+
+    public class DrugUnitConversionStatusResponse
+    {
+        public Guid Id { get; set; }
+        public string ConversionCode { get; set; } = string.Empty;
+        public string ConversionName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+    }
+
+    public class DrugUnitConversionDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string ConversionCode { get; set; } = string.Empty;
+        public string ConversionName { get; set; } = string.Empty;
+        public DateTime? DeleteDateTime { get; set; }
     }
 }

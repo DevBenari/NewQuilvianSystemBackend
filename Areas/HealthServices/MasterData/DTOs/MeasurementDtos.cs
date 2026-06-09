@@ -22,6 +22,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string MeasurementName { get; set; } = string.Empty;
         public string? MeasurementSymbol { get; set; }
         public string MeasurementType { get; set; } = string.Empty;
+        public string MeasurementTypeName { get; set; } = string.Empty;
         public string? MeasurementGroupName { get; set; }
         public bool IsBaseUnit { get; set; }
         public bool IsDecimalAllowed { get; set; }
@@ -33,11 +34,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class MeasurementDetailResponse : MeasurementResponse
     {
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class MeasurementOptionResponse
@@ -47,6 +53,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string MeasurementName { get; set; } = string.Empty;
         public string? MeasurementSymbol { get; set; }
         public string MeasurementType { get; set; } = string.Empty;
+        public string MeasurementTypeName { get; set; } = string.Empty;
         public string? MeasurementGroupName { get; set; }
         public bool IsBaseUnit { get; set; }
         public bool IsDecimalAllowed { get; set; }
@@ -55,6 +62,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsForLaboratory { get; set; }
         public bool IsForVitalSign { get; set; }
         public bool IsForGeneralUse { get; set; }
+        public bool IsActive { get; set; }
     }
 
     public class MeasurementOptionPagedResponse
@@ -66,18 +74,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public List<MeasurementOptionResponse> Items { get; set; } = new();
     }
 
+    public class MeasurementStringOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+    }
+
     public class MeasurementFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public string CustomPeriodPriorityInfo { get; set; } =
             "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
+        public string ResetButtonLabel { get; set; } = "Reset Filter";
 
         public MeasurementDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<MeasurementCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<MeasurementSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
-        public List<string> MeasurementTypeOptions { get; set; } = new();
+        public List<MeasurementStringOptionResponse> MeasurementTypeOptions { get; set; } = new();
         public List<MeasurementQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<MeasurementFormFieldMetadataResponse> CreateFields { get; set; } = new();
         public List<MeasurementFormFieldMetadataResponse> UpdateFields { get; set; } = new();
@@ -88,8 +103,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string? CustomPeriod { get; set; }
-        public string? Search { get; set; }
+        public string? MeasurementType { get; set; }
         public bool? IsActive { get; set; }
+        public bool? IsBaseUnit { get; set; }
+        public bool? IsDecimalAllowed { get; set; }
+        public bool? IsForDrug { get; set; }
+        public bool? IsForLaboratory { get; set; }
+        public bool? IsForVitalSign { get; set; }
+        public bool? IsForGeneralUse { get; set; }
+        public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
@@ -124,12 +146,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     {
         public string Name { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
+        public string Section { get; set; } = string.Empty;
         public string DataType { get; set; } = string.Empty;
         public string InputType { get; set; } = string.Empty;
         public bool Required { get; set; }
         public bool IsReadonly { get; set; }
+        public string RequiredType { get; set; } = "Optional";
+        public int? MaxLength { get; set; }
+        public string? OptionsSource { get; set; }
         public string? Placeholder { get; set; }
         public string? Description { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class CreateMeasurementRequest
@@ -149,7 +176,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? MeasurementGroupName { get; set; }
 
         public bool IsBaseUnit { get; set; } = false;
-
         public bool IsDecimalAllowed { get; set; } = true;
 
         [Range(0, 8)]
@@ -171,6 +197,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsActive { get; set; } = true;
     }
 
+    public class UpdateMeasurementStatusRequest
+    {
+        [Required]
+        public bool IsActive { get; set; }
+
+        [MaxLength(250)]
+        public string? Reason { get; set; }
+    }
+
+    public class DeleteMeasurementRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
+    }
+
     public class MeasurementCreateResponse
     {
         public Guid Id { get; set; }
@@ -178,10 +219,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string MeasurementName { get; set; } = string.Empty;
         public string? MeasurementSymbol { get; set; }
         public string MeasurementType { get; set; } = string.Empty;
+        public string MeasurementTypeName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
     }
 
     public class MeasurementUpdateResponse : MeasurementCreateResponse
     {
+    }
+
+    public class MeasurementDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string MeasurementCode { get; set; } = string.Empty;
+        public string MeasurementName { get; set; } = string.Empty;
+        public bool IsDelete { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime? DeleteDateTime { get; set; }
     }
 }

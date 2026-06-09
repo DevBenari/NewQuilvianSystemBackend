@@ -24,6 +24,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string DrugCategoryName { get; set; } = string.Empty;
         public string? DrugGroupName { get; set; }
         public string DrugCategoryType { get; set; } = string.Empty;
+        public string DrugCategoryTypeName { get; set; } = string.Empty;
         public bool IsAntibiotic { get; set; }
         public bool IsNarcotic { get; set; }
         public bool IsPsychotropic { get; set; }
@@ -35,11 +36,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class DrugCategoryDetailResponse : DrugCategoryResponse
     {
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class DrugCategoryOptionResponse
@@ -49,6 +55,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string DrugCategoryName { get; set; } = string.Empty;
         public string? DrugGroupName { get; set; }
         public string DrugCategoryType { get; set; } = string.Empty;
+        public string DrugCategoryTypeName { get; set; } = string.Empty;
         public bool IsAntibiotic { get; set; }
         public bool IsNarcotic { get; set; }
         public bool IsPsychotropic { get; set; }
@@ -57,6 +64,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsVaccine { get; set; }
         public bool IsConsumable { get; set; }
         public bool IsCoveredByInsuranceDefault { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class DrugCategoryOptionPagedResponse
@@ -79,10 +87,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public List<DrugCategorySortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
-        public List<string> DrugCategoryTypeOptions { get; set; } = new();
+        public List<DrugCategoryTypeOptionResponse> DrugCategoryTypeOptions { get; set; } = new();
         public List<DrugCategoryQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<DrugCategoryFormFieldMetadataResponse> CreateFields { get; set; } = new();
         public List<DrugCategoryFormFieldMetadataResponse> UpdateFields { get; set; } = new();
+        public string ResetButtonLabel { get; set; } = "Reset";
     }
 
     public class DrugCategoryDefaultFilterResponse
@@ -92,6 +101,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? CustomPeriod { get; set; }
         public string? Search { get; set; }
         public bool? IsActive { get; set; }
+        public string? DrugCategoryType { get; set; }
+        public bool? IsAntibiotic { get; set; }
+        public bool? IsNarcotic { get; set; }
+        public bool? IsPsychotropic { get; set; }
+        public bool? IsHighAlert { get; set; }
+        public bool? IsChronicDiseaseDrug { get; set; }
+        public bool? IsVaccine { get; set; }
+        public bool? IsConsumable { get; set; }
+        public bool? IsCoveredByInsuranceDefault { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
@@ -108,6 +126,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     }
 
     public class DrugCategorySortOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+    }
+
+    public class DrugCategoryTypeOptionResponse
     {
         public string Value { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
@@ -167,6 +191,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsActive { get; set; } = true;
     }
 
+    public class UpdateDrugCategoryStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeleteDrugCategoryRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
+    }
+
     public class DrugCategoryCreateResponse
     {
         public Guid Id { get; set; }
@@ -174,10 +209,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string DrugCategoryName { get; set; } = string.Empty;
         public string? DrugGroupName { get; set; }
         public string DrugCategoryType { get; set; } = string.Empty;
+        public string DrugCategoryTypeName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
     }
 
     public class DrugCategoryUpdateResponse : DrugCategoryCreateResponse
     {
+    }
+
+    public class DrugCategoryDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string DrugCategoryCode { get; set; } = string.Empty;
+        public string DrugCategoryName { get; set; } = string.Empty;
+        public DateTime? DeleteDateTime { get; set; }
     }
 }

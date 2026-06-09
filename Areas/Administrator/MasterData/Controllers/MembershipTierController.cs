@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -14,26 +14,26 @@ using System.Security.Claims;
 
 using ResponseMembershipTierPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs.MembershipTierResponse>;
+        QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs.MembershipTierResponse>;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
+namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/health-services/master-data/membership-tiers")]
+    [Route("api/v1/administrator/master-data/membership-tiers")]
     [AccessController(
-        moduleCode: "HEALTH_SERVICE_MASTER_DATA",
-        moduleName: "Health Service Master Data",
+        moduleCode: "ADMINISTRATOR_MASTER_DATA",
+        moduleName: "Administrator Master Data",
         displayName: "Membership Tier",
-        AreaName = "HealthServices",
+        AreaName = "Administrator",
         ControllerName = "MembershipTier",
-        Description = "Health service master data membership tier",
+        Description = "Administrator master data membership tier",
         SortOrder = 5
     )]
-    [Tags("Health Services / Master Data / Membership Tier")]
+    [Tags("Administrator / Master Data / Membership Tier")]
     public class MembershipTierController : ControllerBase
     {
-        private const string LogCategory = "HealthServices.MasterData";
+        private const string LogCategory = "Administrator.MasterData";
         private const string TierCodePrefix = "MT-RSMMC-";
         private const int TierCodeDigitLength = 5;
 
@@ -160,7 +160,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 query = query.Where(x =>
                     x.TierCode.ToLower().Contains(keyword) ||
                     x.TierName.ToLower().Contains(keyword) ||
-                    x.TierType.ToString().ToLower().Contains(keyword) ||
                     (x.CardTitle != null && x.CardTitle.ToLower().Contains(keyword)) ||
                     (x.CardColor != null && x.CardColor.ToLower().Contains(keyword)) ||
                     (x.BenefitDescription != null && x.BenefitDescription.ToLower().Contains(keyword)) ||
@@ -169,11 +168,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => ToResponse(x))
                 .ToListAsync();
+
+            var items = entities
+                .Select(ToResponse)
+                .ToList();
 
             var result = new ResponseMembershipTierPagedResult
             {
@@ -218,7 +220,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 query = query.Where(x =>
                     x.TierCode.ToLower().Contains(keyword) ||
                     x.TierName.ToLower().Contains(keyword) ||
-                    x.TierType.ToString().ToLower().Contains(keyword) ||
                     (x.CardTitle != null && x.CardTitle.ToLower().Contains(keyword)) ||
                     (x.CardColor != null && x.CardColor.ToLower().Contains(keyword)));
             }
@@ -305,7 +306,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     BenefitDescription = x.BenefitDescription,
                     Description = x.Description,
                     IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+                    CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
+                    UpdateDateTime = x.UpdateDateTime,
+                    UpdateBy = x.UpdateBy == Guid.Empty ? null : x.UpdateBy
                 })
                 .FirstOrDefaultAsync();
 
@@ -529,12 +533,57 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<MembershipTierStatusResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Membership Tier", Description = "Mengubah status membership tier", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("MembershipTier", "Update")]
+        public async Task<IActionResult> UpdateMembershipTierStatus(Guid id, [FromBody] UpdateMembershipTierStatusRequest request)
+        {
+            var entity = await _dbContext.Set<MstMembershipTier>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Membership tier tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            var result = new MembershipTierStatusResponse
+            {
+                Id = entity.Id,
+                TierCode = entity.TierCode,
+                TierName = entity.TierName,
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime
+            };
+
+            return Ok(ApiResponse<MembershipTierStatusResponse>.Ok(
+                result,
+                request.IsActive
+                    ? "Membership tier berhasil diaktifkan."
+                    : "Membership tier berhasil dinonaktifkan."
+            ));
+        }
+
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<MembershipTierDeleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Membership Tier", Description = "Menghapus data membership tier", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("MembershipTier", "Delete")]
-        public async Task<IActionResult> DeleteMembershipTier(Guid id)
+        public async Task<IActionResult> DeleteMembershipTier(Guid id, [FromBody] DeleteMembershipTierRequest? request = null)
         {
             var entity = await _dbContext.Set<MstMembershipTier>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -580,6 +629,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.DeleteBy = actorUserId;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+                entity.Description = NormalizeNullableString(request.DeleteReason);
 
             await _dbContext.SaveChangesAsync();
 
@@ -790,7 +842,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 MinimumSpendAmount = x.MinimumSpendAmount,
                 SortOrder = x.SortOrder,
                 IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
+                CreateDateTime = x.CreateDateTime,
+                CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy
             };
         }
 

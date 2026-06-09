@@ -188,11 +188,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => ToResponse(x))
                 .ToListAsync();
+
+            var items = entities
+                .Select(ToResponse)
+                .ToList();
 
             var result = new ResponseDrugUnitConversionPagedResult
             {
@@ -345,7 +348,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     SortOrder = x.SortOrder,
                     Description = x.Description,
                     IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+                    CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
+                    UpdateDateTime = x.UpdateDateTime,
+                    UpdateBy = x.UpdateBy == Guid.Empty ? null : x.UpdateBy
                 })
                 .FirstOrDefaultAsync();
 
@@ -559,12 +565,57 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<DrugUnitConversionStatusResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Drug Unit Conversion", Description = "Mengubah status drug unit conversion", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("DrugUnitConversion", "Update")]
+        public async Task<IActionResult> UpdateDrugUnitConversionStatus(Guid id, [FromBody] UpdateDrugUnitConversionStatusRequest request)
+        {
+            var entity = await _dbContext.Set<MstDrugUnitConversion>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Drug unit conversion tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            var result = new DrugUnitConversionStatusResponse
+            {
+                Id = entity.Id,
+                ConversionCode = entity.ConversionCode,
+                ConversionName = entity.ConversionName,
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime
+            };
+
+            return Ok(ApiResponse<DrugUnitConversionStatusResponse>.Ok(
+                result,
+                request.IsActive
+                    ? "Drug unit conversion berhasil diaktifkan."
+                    : "Drug unit conversion berhasil dinonaktifkan."
+            ));
+        }
+
         [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DrugUnitConversionDeleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Drug Unit Conversion", Description = "Menghapus data drug unit conversion", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("DrugUnitConversion", "Delete")]
-        public async Task<IActionResult> DeleteDrugUnitConversion(Guid id)
+        public async Task<IActionResult> DeleteDrugUnitConversion(Guid id, [FromBody] DeleteDrugUnitConversionRequest? request = null)
         {
             var entity = await _dbContext.Set<MstDrugUnitConversion>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -587,10 +638,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+                entity.Description = NormalizeNullableText(request.DeleteReason);
+
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var result = new DrugUnitConversionDeleteResponse
+            {
+                Id = entity.Id,
+                ConversionCode = entity.ConversionCode,
+                ConversionName = entity.ConversionName,
+                DeleteDateTime = entity.DeleteDateTime
+            };
+
+            return Ok(ApiResponse<DrugUnitConversionDeleteResponse>.Ok(
+                result,
                 "Drug unit conversion berhasil dihapus."
             ));
         }
@@ -599,6 +661,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         {
             return _dbContext.Set<MstDrugUnitConversion>()
                 .AsNoTracking()
+                .Include(x => x.Drug)
+                .Include(x => x.FromMeasurement)
+                .Include(x => x.ToMeasurement)
                 .Where(x => !x.IsDelete);
         }
 
@@ -853,7 +918,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 EffectiveEndDate = x.EffectiveEndDate,
                 SortOrder = x.SortOrder,
                 IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
+                CreateDateTime = x.CreateDateTime,
+                CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy
             };
         }
 

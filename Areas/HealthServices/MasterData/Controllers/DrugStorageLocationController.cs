@@ -344,7 +344,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     SortOrder = x.SortOrder,
                     Description = x.Description,
                     IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+                    CreateBy = x.CreateBy == Guid.Empty ? null : (Guid?)x.CreateBy
                 })
                 .FirstOrDefaultAsync();
 
@@ -549,13 +550,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Drug Storage Location Status", Description = "Mengubah status drug storage location", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("DrugStorageLocation", "Update")]
+        public async Task<IActionResult> UpdateDrugStorageLocationStatus(
+            Guid id,
+            [FromBody] UpdateDrugStorageLocationStatusRequest request)
+        {
+            var entity = await _dbContext.Set<MstDrugStorageLocation>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Drug storage location tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = request.IsActive;
+            if (!request.IsActive)
+            {
+                entity.IsDefault = false;
+            }
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(ApiResponse<object>.Ok(
+                null,
+                "Status drug storage location berhasil diperbarui."
+            ));
+        }
+
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Drug Storage Location", Description = "Menghapus data drug storage location", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("DrugStorageLocation", "Delete")]
-        public async Task<IActionResult> DeleteDrugStorageLocation(Guid id)
+        public async Task<IActionResult> DeleteDrugStorageLocation(Guid id, [FromBody] DeleteDrugStorageLocationRequest? request = null)
         {
             var entity = await _dbContext.Set<MstDrugStorageLocation>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -579,10 +620,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsDelete = true;
             entity.IsActive = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.IsDefault = false;
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+            {
+                entity.Description = request.DeleteReason.Trim();
+            }
 
             await _dbContext.SaveChangesAsync();
 
@@ -919,7 +971,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsAllowTransferOut = x.IsAllowTransferOut,
                 SortOrder = x.SortOrder,
                 IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
+                CreateDateTime = x.CreateDateTime,
+                CreateBy = x.CreateBy == Guid.Empty ? null : (Guid?)x.CreateBy
             };
         }
 

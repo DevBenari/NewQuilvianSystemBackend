@@ -9,6 +9,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int InactiveDiagnosisChapter { get; set; }
         public int HasDiagnosisCodeRangeChapter { get; set; }
         public int WithoutDiagnosisCodeRangeChapter { get; set; }
+        public int Icd10Chapter { get; set; }
+        public int Icd11Chapter { get; set; }
     }
 
     public class DiagnosisChapterResponse
@@ -22,11 +24,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class DiagnosisChapterDetailResponse : DiagnosisChapterResponse
     {
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class DiagnosisChapterOptionResponse
@@ -37,6 +44,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? DiagnosisCodeRangeStart { get; set; }
         public string? DiagnosisCodeRangeEnd { get; set; }
         public string IcdVersion { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
     }
 
     public class DiagnosisChapterOptionPagedResponse
@@ -46,6 +54,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int TotalData { get; set; }
         public int TotalPage { get; set; }
         public List<DiagnosisChapterOptionResponse> Items { get; set; } = new();
+    }
+
+    public class DiagnosisChapterStringOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class DiagnosisChapterFilterMetadataResponse
@@ -59,9 +73,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public List<DiagnosisChapterSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
+        public List<DiagnosisChapterStringOptionResponse> IcdVersionOptions { get; set; } = new();
         public List<DiagnosisChapterQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<DiagnosisChapterFormFieldMetadataResponse> CreateFields { get; set; } = new();
         public List<DiagnosisChapterFormFieldMetadataResponse> UpdateFields { get; set; } = new();
+        public string ResetButtonLabel { get; set; } = "Reset Filter";
     }
 
     public class DiagnosisChapterDefaultFilterResponse
@@ -71,6 +87,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? CustomPeriod { get; set; }
         public string? Search { get; set; }
         public bool? IsActive { get; set; }
+        public string? IcdVersion { get; set; }
+        public bool? HasDiagnosisCodeRange { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
@@ -111,6 +129,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsReadonly { get; set; }
         public string? Placeholder { get; set; }
         public string? Description { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class CreateDiagnosisChapterRequest
@@ -144,6 +163,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsActive { get; set; } = true;
     }
 
+    public class UpdateDiagnosisChapterStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeleteDiagnosisChapterRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
+    }
+
     public class DiagnosisChapterCreateResponse
     {
         public Guid Id { get; set; }
@@ -153,9 +183,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? DiagnosisCodeRangeEnd { get; set; }
         public string IcdVersion { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+        public DateTime CreateDateTime { get; set; }
     }
 
     public class DiagnosisChapterUpdateResponse : DiagnosisChapterCreateResponse
     {
+        public DateTime? UpdateDateTime { get; set; }
+    }
+
+    public class DiagnosisChapterDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string ChapterCode { get; set; } = string.Empty;
+        public string ChapterName { get; set; } = string.Empty;
+        public DateTime? DeleteDateTime { get; set; }
     }
 }

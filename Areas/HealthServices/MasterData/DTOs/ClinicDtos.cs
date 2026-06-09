@@ -11,6 +11,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int RegistrationAvailableClinic { get; set; }
         public int KioskAvailableClinic { get; set; }
         public int AppointmentAvailableClinic { get; set; }
+        public int QueueRequiredClinic { get; set; }
         public int DoctorRequiredClinic { get; set; }
         public int ScreeningRequiredClinic { get; set; }
     }
@@ -24,6 +25,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string ClinicCode { get; set; } = string.Empty;
         public string ClinicName { get; set; } = string.Empty;
         public ClinicType ClinicType { get; set; }
+        public string ClinicTypeName { get; set; } = string.Empty;
         public string? ShortName { get; set; }
         public string? LocationName { get; set; }
         public string? FloorName { get; set; }
@@ -38,25 +40,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class ClinicDetailResponse : ClinicResponse
     {
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class ClinicOptionResponse
     {
         public Guid Id { get; set; }
         public Guid ServiceUnitId { get; set; }
+        public string ServiceUnitCode { get; set; } = string.Empty;
         public string ServiceUnitName { get; set; } = string.Empty;
         public string ClinicCode { get; set; } = string.Empty;
         public string ClinicName { get; set; } = string.Empty;
         public ClinicType ClinicType { get; set; }
+        public string ClinicTypeName { get; set; } = string.Empty;
         public string? ShortName { get; set; }
+        public string? LocationName { get; set; }
+        public string? FloorName { get; set; }
+        public string? RoomName { get; set; }
         public bool IsAvailableForRegistration { get; set; }
         public bool IsAvailableForKiosk { get; set; }
         public bool IsAvailableForAppointment { get; set; }
+        public bool IsDoctorRequired { get; set; }
+        public bool IsScreeningRequired { get; set; }
+        public bool IsQueueRequired { get; set; }
+        public int DefaultEstimatedServiceMinutes { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class ClinicOptionPagedResponse
@@ -80,6 +97,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public string CustomPeriodPriorityInfo { get; set; } =
             "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
+        public string ResetButtonLabel { get; set; } = "Reset";
 
         public ClinicDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<ClinicCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
@@ -99,6 +117,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? CustomPeriod { get; set; }
         public Guid? ServiceUnitId { get; set; }
         public bool? IsActive { get; set; }
+        public ClinicType? ClinicType { get; set; }
+        public bool? IsAvailableForRegistration { get; set; }
+        public bool? IsAvailableForKiosk { get; set; }
+        public bool? IsAvailableForAppointment { get; set; }
+        public bool? IsDoctorRequired { get; set; }
+        public bool? IsScreeningRequired { get; set; }
+        public bool? IsQueueRequired { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
@@ -182,42 +207,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? Description { get; set; }
     }
 
-    public class UpdateClinicRequest
+    public class UpdateClinicRequest : CreateClinicRequest
     {
-        [Required]
-        public Guid ServiceUnitId { get; set; }
-
-        [Required]
-        [MaxLength(150)]
-        public string ClinicName { get; set; } = string.Empty;
-
-        public ClinicType ClinicType { get; set; } = ClinicType.Unknown;
-
-        [MaxLength(50)]
-        public string? ShortName { get; set; }
-
-        [MaxLength(100)]
-        public string? LocationName { get; set; }
-
-        [MaxLength(50)]
-        public string? FloorName { get; set; }
-
-        [MaxLength(50)]
-        public string? RoomName { get; set; }
-
-        public bool IsAvailableForRegistration { get; set; } = true;
-        public bool IsAvailableForKiosk { get; set; } = true;
-        public bool IsAvailableForAppointment { get; set; } = true;
-        public bool IsDoctorRequired { get; set; } = true;
-        public bool IsScreeningRequired { get; set; } = true;
-        public bool IsQueueRequired { get; set; } = true;
-        public int DefaultEstimatedServiceMinutes { get; set; } = 15;
-        public int SortOrder { get; set; } = 0;
-
-        [MaxLength(250)]
-        public string? Description { get; set; }
-
         public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateClinicStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeleteClinicRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
     }
 
     public class ClinicCreateResponse
@@ -227,10 +230,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string ClinicCode { get; set; } = string.Empty;
         public string ClinicName { get; set; } = string.Empty;
         public ClinicType ClinicType { get; set; }
+        public string ClinicTypeName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+        public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
-    public class ClinicUpdateResponse : ClinicCreateResponse
+    public class ClinicUpdateResponse
     {
+        public Guid Id { get; set; }
+        public Guid ServiceUnitId { get; set; }
+        public string ClinicCode { get; set; } = string.Empty;
+        public string ClinicName { get; set; } = string.Empty;
+        public ClinicType ClinicType { get; set; }
+        public string ClinicTypeName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
+    }
+
+    public class ClinicDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string ClinicCode { get; set; } = string.Empty;
+        public string ClinicName { get; set; } = string.Empty;
+        public DateTime? DeleteDateTime { get; set; }
+        public Guid? DeleteBy { get; set; }
+        public string? DeleteByName { get; set; }
     }
 }

@@ -13,6 +13,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int IntensiveCareRoom { get; set; }
         public int OdcRoom { get; set; }
         public int NewbornRoom { get; set; }
+        public int MaleRoom { get; set; }
+        public int FemaleRoom { get; set; }
     }
 
     public class RoomResponse
@@ -27,6 +29,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string RoomCode { get; set; } = string.Empty;
         public string RoomName { get; set; } = string.Empty;
         public RoomType RoomType { get; set; }
+        public string RoomTypeName { get; set; } = string.Empty;
         public string? RoomNumber { get; set; }
         public string? LocationName { get; set; }
         public string? FloorName { get; set; }
@@ -41,26 +44,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class RoomDetailResponse : RoomResponse
     {
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class RoomOptionResponse
     {
         public Guid Id { get; set; }
         public Guid ServiceUnitId { get; set; }
+        public string ServiceUnitCode { get; set; } = string.Empty;
         public string ServiceUnitName { get; set; } = string.Empty;
         public Guid? PatientClassId { get; set; }
+        public string? PatientClassCode { get; set; }
         public string? PatientClassName { get; set; }
         public string RoomCode { get; set; } = string.Empty;
         public string RoomName { get; set; } = string.Empty;
         public RoomType RoomType { get; set; }
+        public string RoomTypeName { get; set; } = string.Empty;
         public string? RoomNumber { get; set; }
         public int Capacity { get; set; }
+        public bool IsForMale { get; set; }
+        public bool IsForFemale { get; set; }
+        public bool IsForNewborn { get; set; }
+        public bool IsIsolationRoom { get; set; }
+        public bool IsIntensiveCare { get; set; }
+        public bool IsOdcRoom { get; set; }
         public bool IsAvailableForAdmission { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class RoomOptionPagedResponse
@@ -84,6 +102,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public string CustomPeriodPriorityInfo { get; set; } =
             "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
+        public string ResetButtonLabel { get; set; } = "Reset";
 
         public RoomDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<RoomCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
@@ -104,6 +123,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid? ServiceUnitId { get; set; }
         public Guid? PatientClassId { get; set; }
         public bool? IsActive { get; set; }
+        public RoomType? RoomType { get; set; }
+        public bool? IsForMale { get; set; }
+        public bool? IsForFemale { get; set; }
+        public bool? IsForNewborn { get; set; }
+        public bool? IsIsolationRoom { get; set; }
+        public bool? IsIntensiveCare { get; set; }
+        public bool? IsOdcRoom { get; set; }
+        public bool? IsAvailableForAdmission { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
@@ -187,42 +214,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? Description { get; set; }
     }
 
-    public class UpdateRoomRequest
+    public class UpdateRoomRequest : CreateRoomRequest
     {
-        [Required]
-        public Guid ServiceUnitId { get; set; }
-
-        public Guid? PatientClassId { get; set; }
-
-        [Required]
-        [MaxLength(150)]
-        public string RoomName { get; set; } = string.Empty;
-
-        public RoomType RoomType { get; set; } = RoomType.Unknown;
-
-        [MaxLength(50)]
-        public string? RoomNumber { get; set; }
-
-        [MaxLength(100)]
-        public string? LocationName { get; set; }
-
-        [MaxLength(50)]
-        public string? FloorName { get; set; }
-
-        public int Capacity { get; set; } = 1;
-        public bool IsForMale { get; set; } = true;
-        public bool IsForFemale { get; set; } = true;
-        public bool IsForNewborn { get; set; } = false;
-        public bool IsIsolationRoom { get; set; } = false;
-        public bool IsIntensiveCare { get; set; } = false;
-        public bool IsOdcRoom { get; set; } = false;
-        public bool IsAvailableForAdmission { get; set; } = true;
-        public int SortOrder { get; set; } = 0;
-
-        [MaxLength(250)]
-        public string? Description { get; set; }
-
         public bool IsActive { get; set; } = true;
+    }
+
+    public class UpdateRoomStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeleteRoomRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
     }
 
     public class RoomCreateResponse
@@ -233,10 +238,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string RoomCode { get; set; } = string.Empty;
         public string RoomName { get; set; } = string.Empty;
         public RoomType RoomType { get; set; }
+        public string RoomTypeName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+        public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
-    public class RoomUpdateResponse : RoomCreateResponse
+    public class RoomUpdateResponse
     {
+        public Guid Id { get; set; }
+        public Guid ServiceUnitId { get; set; }
+        public Guid? PatientClassId { get; set; }
+        public string RoomCode { get; set; } = string.Empty;
+        public string RoomName { get; set; } = string.Empty;
+        public RoomType RoomType { get; set; }
+        public string RoomTypeName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
+    }
+
+    public class RoomDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string RoomCode { get; set; } = string.Empty;
+        public string RoomName { get; set; } = string.Empty;
+        public DateTime? DeleteDateTime { get; set; }
+        public Guid? DeleteBy { get; set; }
+        public string? DeleteByName { get; set; }
     }
 }
