@@ -23,6 +23,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string ProfileCode { get; set; } = string.Empty;
         public string ProfileName { get; set; } = string.Empty;
         public IdentityScannerProfileType ProfileType { get; set; }
+        public string ProfileTypeName { get; set; } = string.Empty;
 
         public string? ScannerVendorName { get; set; }
         public string? ScannerModel { get; set; }
@@ -42,7 +43,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
 
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
+
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class IdentityScannerProfileDetailResponse : IdentityScannerProfileResponse
@@ -59,6 +63,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
 
         public string? ConfigurationJson { get; set; }
         public string? Description { get; set; }
+
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class IdentityScannerProfileOptionResponse
@@ -67,6 +75,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string ProfileCode { get; set; } = string.Empty;
         public string ProfileName { get; set; } = string.Empty;
         public IdentityScannerProfileType ProfileType { get; set; }
+        public string ProfileTypeName { get; set; } = string.Empty;
         public bool IsForIdentityCard { get; set; }
         public bool IsForPatientCard { get; set; }
         public bool IsForMembershipCard { get; set; }
@@ -97,14 +106,19 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public IdentityScannerProfileDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<IdentityScannerProfileCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<IdentityScannerProfileSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
         public List<IdentityScannerProfileEnumOptionResponse> ProfileTypeOptions { get; set; } = new();
+        public string ResetButtonLabel { get; set; } = "Reset";
     }
 
     public class IdentityScannerProfileDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public string? Search { get; set; }
         public bool? IsActive { get; set; }
         public IdentityScannerProfileType? ProfileType { get; set; }
@@ -120,6 +134,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class IdentityScannerProfileCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class IdentityScannerProfileSortOptionResponse
@@ -201,12 +221,24 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsActive { get; set; } = true;
     }
 
+    public class UpdateIdentityScannerProfileStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeleteIdentityScannerProfileRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
+    }
+
     public class IdentityScannerProfileCreateResponse
     {
         public Guid Id { get; set; }
         public string ProfileCode { get; set; } = string.Empty;
         public string ProfileName { get; set; } = string.Empty;
         public IdentityScannerProfileType ProfileType { get; set; }
+        public string ProfileTypeName { get; set; } = string.Empty;
         public bool IsForIdentityCard { get; set; }
         public bool IsForPatientCard { get; set; }
         public bool IsForMembershipCard { get; set; }

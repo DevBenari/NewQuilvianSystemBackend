@@ -11,6 +11,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public int GovernmentGuarantor { get; set; }
         public int FoundationGuarantor { get; set; }
         public int SchoolGuarantor { get; set; }
+        public int OtherGuarantor { get; set; }
         public int InvoiceBillingGuarantor { get; set; }
         public int DepositBillingGuarantor { get; set; }
         public int MixedBillingGuarantor { get; set; }
@@ -59,6 +60,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class CompanyGuarantorDetailResponse : CompanyGuarantorResponse
@@ -66,6 +69,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string? BillingInstruction { get; set; }
         public string? ClaimInstruction { get; set; }
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class CompanyGuarantorOptionResponse
@@ -108,6 +114,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public List<int> PageSizeOptions { get; set; } = new();
         public List<CompanyGuarantorStringOptionResponse> GuarantorTypeOptions { get; set; } = new();
         public List<CompanyGuarantorStringOptionResponse> BillingMethodOptions { get; set; } = new();
+        public string ResetButtonLabel { get; set; } = "Reset";
     }
 
     public class CompanyGuarantorDefaultFilterResponse
@@ -168,14 +175,23 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string? ContractNumber { get; set; }
 
         public DateTime? ContractStartDate { get; set; }
+
         public DateTime? ContractEndDate { get; set; }
+
         public bool IsUsingCompanyTariffBook { get; set; } = true;
+
         public bool IsUsingHospitalTariff { get; set; } = false;
+
         public bool IsNeedGuaranteeLetter { get; set; } = true;
+
         public bool IsNeedEmployeeVerification { get; set; } = true;
+
         public bool IsNeedApprovalForProcedure { get; set; } = true;
+
         public bool IsNeedApprovalForDrug { get; set; } = false;
+
         public bool IsCoverageLimitedByEmployeeGrade { get; set; } = true;
+
         public bool IsAllowExcessPaymentByPatient { get; set; } = true;
 
         [Range(0, 999999999999)]
@@ -222,6 +238,17 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsActive { get; set; } = true;
     }
 
+    public class UpdateCompanyGuarantorStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeleteCompanyGuarantorRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
+    }
+
     public class CompanyGuarantorCreateResponse
     {
         public Guid Id { get; set; }
@@ -239,6 +266,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string CompanyGuarantorName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class CompanyGuarantorDeleteResponse

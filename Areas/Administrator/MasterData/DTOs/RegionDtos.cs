@@ -35,6 +35,15 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsDefault { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
+    }
+
+    public class CountryDetailResponse : CountryResponse
+    {
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class ProvinceResponse
@@ -47,6 +56,15 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string ProvinceName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
+    }
+
+    public class ProvinceDetailResponse : ProvinceResponse
+    {
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class CityResponse
@@ -63,6 +81,15 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string? CityType { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
+    }
+
+    public class CityDetailResponse : CityResponse
+    {
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class DistrictResponse
@@ -81,6 +108,15 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string DistrictName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
+    }
+
+    public class DistrictDetailResponse : DistrictResponse
+    {
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class PostalCodeResponse
@@ -95,10 +131,22 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public Guid ProvinceId { get; set; }
         public string ProvinceCode { get; set; } = string.Empty;
         public string ProvinceName { get; set; } = string.Empty;
+        public Guid CountryId { get; set; }
+        public string CountryCode { get; set; } = string.Empty;
+        public string CountryName { get; set; } = string.Empty;
         public string PostalCode { get; set; } = string.Empty;
         public string? VillageName { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
+    }
+
+    public class PostalCodeDetailResponse : PostalCodeResponse
+    {
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class RegionOptionResponse
@@ -107,9 +155,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string Code { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public Guid? ParentId { get; set; }
+        public string? ParentCode { get; set; }
         public string? ParentName { get; set; }
         public string? AdditionalInfo { get; set; }
         public bool IsDefault { get; set; }
+        public bool IsActive { get; set; }
     }
 
     public class RegionOptionPagedResponse
@@ -124,7 +174,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     public class RegionFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
-        public string ResetButtonLabel { get; set; } = "Reset Filter";
+        public string ResetButtonLabel { get; set; } = "Reset";
 
         public RegionDefaultFilterResponse CountryDefaultFilter { get; set; } = new();
         public RegionDefaultFilterResponse ProvinceDefaultFilter { get; set; } = new();
@@ -265,5 +315,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     public class UpdateRegionStatusRequest
     {
         public bool IsActive { get; set; }
+    }
+
+    public class DeleteRegionRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
     }
 }

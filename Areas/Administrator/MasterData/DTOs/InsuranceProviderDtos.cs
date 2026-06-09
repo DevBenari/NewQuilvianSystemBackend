@@ -33,7 +33,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string InsuranceProviderName { get; set; } = string.Empty;
         public string? InsuranceGroupName { get; set; }
         public string ProviderType { get; set; } = string.Empty;
+        public string ProviderTypeName { get; set; } = string.Empty;
         public string ClaimMethod { get; set; } = string.Empty;
+        public string ClaimMethodName { get; set; } = string.Empty;
         public string? ExternalProviderCode { get; set; }
         public string? IntegrationCode { get; set; }
         public string? ContractNumber { get; set; }
@@ -57,6 +59,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class InsuranceProviderDetailResponse : InsuranceProviderResponse
@@ -64,6 +68,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string? BillingInstruction { get; set; }
         public string? ClaimInstruction { get; set; }
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class InsuranceProviderOptionResponse
@@ -73,7 +80,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string InsuranceProviderName { get; set; } = string.Empty;
         public string? InsuranceGroupName { get; set; }
         public string ProviderType { get; set; } = string.Empty;
+        public string ProviderTypeName { get; set; } = string.Empty;
         public string ClaimMethod { get; set; } = string.Empty;
+        public string ClaimMethodName { get; set; } = string.Empty;
         public bool IsUsingInsuranceTariffBook { get; set; }
         public bool IsUsingHospitalTariff { get; set; }
         public bool IsNeedEligibilityCheck { get; set; }
@@ -104,6 +113,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public List<int> PageSizeOptions { get; set; } = new();
         public List<InsuranceProviderStringOptionResponse> ProviderTypeOptions { get; set; } = new();
         public List<InsuranceProviderStringOptionResponse> ClaimMethodOptions { get; set; } = new();
+        public string ResetButtonLabel { get; set; } = "Reset";
     }
 
     public class InsuranceProviderDefaultFilterResponse
@@ -112,6 +122,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public DateTime? EndDate { get; set; }
         public string? CustomPeriod { get; set; }
         public bool? IsActive { get; set; }
+        public string? ProviderType { get; set; }
+        public string? ClaimMethod { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
@@ -210,6 +222,17 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsActive { get; set; } = true;
     }
 
+    public class UpdateInsuranceProviderStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeleteInsuranceProviderRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
+    }
+
     public class InsuranceProviderCreateResponse
     {
         public Guid Id { get; set; }
@@ -218,5 +241,23 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string ProviderType { get; set; } = string.Empty;
         public string ClaimMethod { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+        public DateTime CreateDateTime { get; set; }
+    }
+
+    public class InsuranceProviderUpdateResponse
+    {
+        public Guid Id { get; set; }
+        public string InsuranceProviderCode { get; set; } = string.Empty;
+        public string InsuranceProviderName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+    }
+
+    public class InsuranceProviderDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string InsuranceProviderCode { get; set; } = string.Empty;
+        public string InsuranceProviderName { get; set; } = string.Empty;
+        public DateTime? DeleteDateTime { get; set; }
     }
 }

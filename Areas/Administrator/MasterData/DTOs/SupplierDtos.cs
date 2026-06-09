@@ -26,6 +26,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string SupplierName { get; set; } = string.Empty;
         public string? LegalName { get; set; }
         public string SupplierType { get; set; } = string.Empty;
+        public string SupplierTypeName { get; set; } = string.Empty;
         public string? SupplierGroupName { get; set; }
         public string? TaxNumber { get; set; }
         public string? BusinessLicenseNumber { get; set; }
@@ -36,6 +37,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string? Website { get; set; }
         public string? CityName { get; set; }
         public string? ProvinceName { get; set; }
+        public string? PostalCode { get; set; }
         public string? CountryName { get; set; }
         public int PaymentTermDays { get; set; }
         public int LeadTimeDays { get; set; }
@@ -55,17 +57,21 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class SupplierDetailResponse : SupplierResponse
     {
         public string? Address { get; set; }
-        public string? PostalCode { get; set; }
         public string? BankName { get; set; }
         public string? BankAccountNumber { get; set; }
         public string? BankAccountName { get; set; }
         public string? BlacklistReason { get; set; }
         public string? Description { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class SupplierOptionResponse
@@ -75,6 +81,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string SupplierName { get; set; } = string.Empty;
         public string? LegalName { get; set; }
         public string SupplierType { get; set; } = string.Empty;
+        public string SupplierTypeName { get; set; } = string.Empty;
         public string? SupplierGroupName { get; set; }
         public string? ContactPersonName { get; set; }
         public string? PhoneNumber { get; set; }
@@ -84,6 +91,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public int LeadTimeDays { get; set; }
         public bool IsTaxable { get; set; }
         public decimal? TaxPercent { get; set; }
+        public bool IsPrincipal { get; set; }
+        public bool IsDistributor { get; set; }
+        public bool IsManufacturer { get; set; }
+        public bool IsPharmacySupplier { get; set; }
+        public bool IsMedicalDeviceSupplier { get; set; }
+        public bool IsLaboratorySupplier { get; set; }
+        public bool IsConsumableSupplier { get; set; }
         public bool IsPreferredSupplier { get; set; }
         public bool IsBlacklisted { get; set; }
     }
@@ -106,6 +120,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
         public List<SupplierTypeOptionResponse> SupplierTypeOptions { get; set; } = new();
+        public string ResetButtonLabel { get; set; } = "Reset";
     }
 
     public class SupplierDefaultFilterResponse
@@ -114,6 +129,17 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public DateTime? EndDate { get; set; }
         public string? CustomPeriod { get; set; }
         public bool? IsActive { get; set; }
+        public string? SupplierType { get; set; }
+        public bool? IsPreferredSupplier { get; set; }
+        public bool? IsBlacklisted { get; set; }
+        public bool? IsTaxable { get; set; }
+        public bool? IsPrincipal { get; set; }
+        public bool? IsDistributor { get; set; }
+        public bool? IsManufacturer { get; set; }
+        public bool? IsPharmacySupplier { get; set; }
+        public bool? IsMedicalDeviceSupplier { get; set; }
+        public bool? IsLaboratorySupplier { get; set; }
+        public bool? IsConsumableSupplier { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
@@ -200,12 +226,23 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         [MaxLength(150)]
         public string? BankAccountName { get; set; }
 
+        [Range(0, 3650)]
         public int PaymentTermDays { get; set; } = 0;
+
+        [Range(0, 3650)]
         public int LeadTimeDays { get; set; } = 0;
+
+        [Range(0, 999999999999)]
         public decimal MinimumPurchaseAmount { get; set; } = 0;
+
+        [Range(0, 999999999999)]
         public decimal? CreditLimitAmount { get; set; }
+
         public bool IsTaxable { get; set; } = false;
+
+        [Range(0, 100)]
         public decimal? TaxPercent { get; set; }
+
         public bool IsPrincipal { get; set; } = false;
         public bool IsDistributor { get; set; } = false;
         public bool IsManufacturer { get; set; } = false;
@@ -230,14 +267,47 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsActive { get; set; } = true;
     }
 
+    public class UpdateSupplierStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeleteSupplierRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
+    }
+
     public class SupplierCreateResponse
     {
         public Guid Id { get; set; }
         public string SupplierCode { get; set; } = string.Empty;
         public string SupplierName { get; set; } = string.Empty;
         public string SupplierType { get; set; } = string.Empty;
+        public string SupplierTypeName { get; set; } = string.Empty;
         public bool IsPreferredSupplier { get; set; }
         public bool IsBlacklisted { get; set; }
         public bool IsActive { get; set; }
+    }
+
+    public class SupplierUpdateResponse
+    {
+        public Guid Id { get; set; }
+        public string SupplierCode { get; set; } = string.Empty;
+        public string SupplierName { get; set; } = string.Empty;
+        public string SupplierType { get; set; } = string.Empty;
+        public string SupplierTypeName { get; set; } = string.Empty;
+        public bool IsPreferredSupplier { get; set; }
+        public bool IsBlacklisted { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+    }
+
+    public class SupplierDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string SupplierCode { get; set; } = string.Empty;
+        public string SupplierName { get; set; } = string.Empty;
+        public DateTime? DeleteDateTime { get; set; }
     }
 }

@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 using ResponseInsuranceProviderPagedResult =
@@ -65,7 +66,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Insurance Provider", Description = "Melihat data insurance provider", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Insurance Provider",
+            Description = "Melihat metadata filter insurance provider",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("InsuranceProvider", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
@@ -75,9 +82,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 CustomPeriods = new List<InsuranceProviderCustomPeriodOptionResponse>
                 {
                     new() { Value = "today", Label = "Hari ini" },
-                    new() { Value = "last7Days", Label = "7 hari terakhir" },
-                    new() { Value = "thisMonth", Label = "Bulan ini" },
-                    new() { Value = "lastMonth", Label = "Bulan lalu" }
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "lastmonth", Label = "Bulan lalu" }
                 },
                 SortOptions = new List<InsuranceProviderSortOptionResponse>
                 {
@@ -99,7 +106,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     .Select(x => new InsuranceProviderStringOptionResponse
                     {
                         Value = x,
-                        Label = SplitPascalCase(x)
+                        Label = BuildProviderTypeLabel(x)
                     })
                     .ToList(),
                 ClaimMethodOptions = AllowedClaimMethods
@@ -107,9 +114,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     .Select(x => new InsuranceProviderStringOptionResponse
                     {
                         Value = x,
-                        Label = SplitPascalCase(x)
+                        Label = BuildClaimMethodLabel(x)
                     })
-                    .ToList()
+                    .ToList(),
+                ResetButtonLabel = "Reset"
             };
 
             await _loggerService.InfoAsync(
@@ -127,15 +135,18 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Insurance Provider", Description = "Melihat data insurance provider", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Insurance Provider",
+            Description = "Melihat ringkasan insurance provider",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("InsuranceProvider", "Read")]
         public async Task<IActionResult> GetSummary()
         {
             var today = DateTime.UtcNow.Date;
-
-            var query = _dbContext.Set<MstInsuranceProvider>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
             var result = new InsuranceProviderSummaryResponse
             {
@@ -172,13 +183,21 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponseInsuranceProviderPagedResult>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Insurance Provider", Description = "Melihat data insurance provider", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Insurance Provider",
+            Description = "Melihat data insurance provider",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("InsuranceProvider", "Read")]
         public async Task<IActionResult> GetInsuranceProviders(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
             [FromQuery] bool? isActive,
+            [FromQuery] string? providerType,
+            [FromQuery] string? claimMethod,
             [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
@@ -189,45 +208,27 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.Set<MstInsuranceProvider>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
             query = ApplyDateFilter(query, startDate, endDate, customPeriod);
-
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.InsuranceProviderCode.ToLower().Contains(keyword) ||
-                    x.InsuranceProviderName.ToLower().Contains(keyword) ||
-                    x.ProviderType.ToLower().Contains(keyword) ||
-                    x.ClaimMethod.ToLower().Contains(keyword) ||
-                    x.InsuranceGroupName != null && x.InsuranceGroupName.ToLower().Contains(keyword) ||
-                    x.ExternalProviderCode != null && x.ExternalProviderCode.ToLower().Contains(keyword) ||
-                    x.IntegrationCode != null && x.IntegrationCode.ToLower().Contains(keyword) ||
-                    x.ContractNumber != null && x.ContractNumber.ToLower().Contains(keyword) ||
-                    x.PicName != null && x.PicName.ToLower().Contains(keyword) ||
-                    x.PicPhoneNumber != null && x.PicPhoneNumber.ToLower().Contains(keyword) ||
-                    x.PicWhatsAppNumber != null && x.PicWhatsAppNumber.ToLower().Contains(keyword) ||
-                    x.PicEmail != null && x.PicEmail.ToLower().Contains(keyword) ||
-                    x.OfficeAddress != null && x.OfficeAddress.ToLower().Contains(keyword) ||
-                    x.BillingInstruction != null && x.BillingInstruction.ToLower().Contains(keyword) ||
-                    x.ClaimInstruction != null && x.ClaimInstruction.ToLower().Contains(keyword) ||
-                    x.Description != null && x.Description.ToLower().Contains(keyword));
-            }
+            query = ApplyStandardFilter(query, isActive, providerType, claimMethod, search);
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => ToResponse(x))
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .Select(x => x.CreateBy)
+                    .Where(x => x != Guid.Empty)
+            );
+
+            var items = entities
+                .Select(x => MapResponse(x, actorNames))
+                .ToList();
 
             var result = new ResponseInsuranceProviderPagedResult
             {
@@ -246,10 +247,18 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet("options")]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderOptionPagedResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Insurance Provider", Description = "Melihat data insurance provider", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Insurance Provider",
+            Description = "Melihat data pilihan insurance provider",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("InsuranceProvider", "Read")]
         public async Task<IActionResult> GetInsuranceProviderOptions(
             [FromQuery] bool onlyActive = true,
+            [FromQuery] string? providerType = null,
+            [FromQuery] string? claimMethod = null,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
@@ -258,26 +267,15 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.Set<MstInsuranceProvider>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
-            if (onlyActive)
-                query = query.Where(x => x.IsActive);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.InsuranceProviderCode.ToLower().Contains(keyword) ||
-                    x.InsuranceProviderName.ToLower().Contains(keyword) ||
-                    x.ProviderType.ToLower().Contains(keyword) ||
-                    x.ClaimMethod.ToLower().Contains(keyword) ||
-                    x.InsuranceGroupName != null && x.InsuranceGroupName.ToLower().Contains(keyword) ||
-                    x.ExternalProviderCode != null && x.ExternalProviderCode.ToLower().Contains(keyword) ||
-                    x.IntegrationCode != null && x.IntegrationCode.ToLower().Contains(keyword));
-            }
+            query = ApplyStandardFilter(
+                query,
+                onlyActive ? true : null,
+                providerType,
+                claimMethod,
+                search
+            );
 
             var totalData = await query.CountAsync();
 
@@ -293,7 +291,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     InsuranceProviderName = x.InsuranceProviderName,
                     InsuranceGroupName = x.InsuranceGroupName,
                     ProviderType = x.ProviderType,
+                    ProviderTypeName = BuildProviderTypeLabel(x.ProviderType),
                     ClaimMethod = x.ClaimMethod,
+                    ClaimMethodName = BuildClaimMethodLabel(x.ClaimMethod),
                     IsUsingInsuranceTariffBook = x.IsUsingInsuranceTariffBook,
                     IsUsingHospitalTariff = x.IsUsingHospitalTariff,
                     IsNeedEligibilityCheck = x.IsNeedEligibilityCheck,
@@ -324,57 +324,34 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Insurance Provider", Description = "Melihat detail insurance provider", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Insurance Provider",
+            Description = "Melihat detail insurance provider",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("InsuranceProvider", "Read")]
         public async Task<IActionResult> GetInsuranceProviderById(Guid id)
         {
-            var data = await _dbContext.Set<MstInsuranceProvider>()
-                .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new InsuranceProviderDetailResponse
-                {
-                    Id = x.Id,
-                    InsuranceProviderCode = x.InsuranceProviderCode,
-                    InsuranceProviderName = x.InsuranceProviderName,
-                    InsuranceGroupName = x.InsuranceGroupName,
-                    ProviderType = x.ProviderType,
-                    ClaimMethod = x.ClaimMethod,
-                    ExternalProviderCode = x.ExternalProviderCode,
-                    IntegrationCode = x.IntegrationCode,
-                    ContractNumber = x.ContractNumber,
-                    ContractStartDate = x.ContractStartDate,
-                    ContractEndDate = x.ContractEndDate,
-                    IsUsingInsuranceTariffBook = x.IsUsingInsuranceTariffBook,
-                    IsUsingHospitalTariff = x.IsUsingHospitalTariff,
-                    IsNeedEligibilityCheck = x.IsNeedEligibilityCheck,
-                    IsNeedGuaranteeLetter = x.IsNeedGuaranteeLetter,
-                    IsNeedReferralLetter = x.IsNeedReferralLetter,
-                    IsNeedApprovalForProcedure = x.IsNeedApprovalForProcedure,
-                    IsNeedApprovalForDrug = x.IsNeedApprovalForDrug,
-                    IsCoverageLimitedByPlan = x.IsCoverageLimitedByPlan,
-                    IsAllowExcessPaymentByPatient = x.IsAllowExcessPaymentByPatient,
-                    PicName = x.PicName,
-                    PicPhoneNumber = x.PicPhoneNumber,
-                    PicWhatsAppNumber = x.PicWhatsAppNumber,
-                    PicEmail = x.PicEmail,
-                    OfficeAddress = x.OfficeAddress,
-                    LogoPath = x.LogoPath,
-                    BillingInstruction = x.BillingInstruction,
-                    ClaimInstruction = x.ClaimInstruction,
-                    Description = x.Description,
-                    SortOrder = x.SortOrder,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+            var entity = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (data == null)
+            if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Insurance provider tidak ditemukan."
                 ));
             }
+
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, actorNames);
 
             return Ok(ApiResponse<InsuranceProviderDetailResponse>.Ok(
                 data,
@@ -385,21 +362,19 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [AccessAction("Create", "Create Insurance Provider", Description = "Membuat data insurance provider", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessAction(
+            "Create",
+            "Create Insurance Provider",
+            Description = "Membuat data insurance provider",
+            AccessType = AccessTypes.Create,
+            SortOrder = 2
+        )]
         [AccessPermission("InsuranceProvider", "Create")]
         public async Task<IActionResult> CreateInsuranceProvider([FromBody] CreateInsuranceProviderRequest request)
         {
             var validation = await ValidateRequestAsync(
                 excludeId: null,
-                insuranceProviderName: request.InsuranceProviderName,
-                providerType: request.ProviderType,
-                claimMethod: request.ClaimMethod,
-                externalProviderCode: request.ExternalProviderCode,
-                integrationCode: request.IntegrationCode,
-                contractNumber: request.ContractNumber,
-                contractStartDate: request.ContractStartDate,
-                contractEndDate: request.ContractEndDate,
-                picEmail: request.PicEmail
+                request: request
             );
 
             if (!validation.IsValid)
@@ -462,7 +437,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 InsuranceProviderName = entity.InsuranceProviderName,
                 ProviderType = entity.ProviderType,
                 ClaimMethod = entity.ClaimMethod,
-                IsActive = entity.IsActive
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime
             };
 
             await _loggerService.InfoAsync(
@@ -479,11 +455,20 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<InsuranceProviderUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Insurance Provider", Description = "Mengubah data insurance provider", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction(
+            "Update",
+            "Update Insurance Provider",
+            Description = "Mengubah data insurance provider",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
         [AccessPermission("InsuranceProvider", "Update")]
-        public async Task<IActionResult> UpdateInsuranceProvider(Guid id, [FromBody] UpdateInsuranceProviderRequest request)
+        public async Task<IActionResult> UpdateInsuranceProvider(
+            Guid id,
+            [FromBody] UpdateInsuranceProviderRequest request)
         {
             var entity = await _dbContext.Set<MstInsuranceProvider>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -498,15 +483,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             var validation = await ValidateRequestAsync(
                 excludeId: id,
-                insuranceProviderName: request.InsuranceProviderName,
-                providerType: request.ProviderType,
-                claimMethod: request.ClaimMethod,
-                externalProviderCode: request.ExternalProviderCode,
-                integrationCode: request.IntegrationCode,
-                contractNumber: request.ContractNumber,
-                contractStartDate: request.ContractStartDate,
-                contractEndDate: request.ContractEndDate,
-                picEmail: request.PicEmail
+                request: request
             );
 
             if (!validation.IsValid)
@@ -516,6 +493,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     validation.ErrorMessage ?? "Data insurance provider tidak valid."
                 ));
             }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
 
             entity.InsuranceProviderName = request.InsuranceProviderName.Trim();
             entity.InsuranceGroupName = NormalizeNullableString(request.InsuranceGroupName);
@@ -546,23 +526,47 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             entity.Description = NormalizeNullableString(request.Description);
             entity.SortOrder = request.SortOrder;
             entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var result = new InsuranceProviderUpdateResponse
+            {
+                Id = entity.Id,
+                InsuranceProviderCode = entity.InsuranceProviderCode,
+                InsuranceProviderName = entity.InsuranceProviderName,
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InsuranceProvider.UpdateInsuranceProvider",
+                "Mengubah data insurance provider.",
+                result
+            );
+
+            return Ok(ApiResponse<InsuranceProviderUpdateResponse>.Ok(
+                result,
                 "Insurance provider berhasil diperbarui."
             ));
         }
 
-        [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<InsuranceProviderUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Delete", "Delete Insurance Provider", Description = "Menghapus data insurance provider", AccessType = AccessTypes.Delete, SortOrder = 4)]
-        [AccessPermission("InsuranceProvider", "Delete")]
-        public async Task<IActionResult> DeleteInsuranceProvider(Guid id)
+        [AccessAction(
+            "Update",
+            "Update Insurance Provider Status",
+            Description = "Mengubah status insurance provider",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
+        [AccessPermission("InsuranceProvider", "Update")]
+        public async Task<IActionResult> UpdateInsuranceProviderStatus(
+            Guid id,
+            [FromBody] UpdateInsuranceProviderStatusRequest request)
         {
             var entity = await _dbContext.Set<MstInsuranceProvider>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -575,182 +579,99 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 ));
             }
 
-            entity.IsDelete = true;
-            entity.IsActive = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var result = new InsuranceProviderUpdateResponse
+            {
+                Id = entity.Id,
+                InsuranceProviderCode = entity.InsuranceProviderCode,
+                InsuranceProviderName = entity.InsuranceProviderName,
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime
+            };
+
+            return Ok(ApiResponse<InsuranceProviderUpdateResponse>.Ok(
+                result,
+                "Status insurance provider berhasil diperbarui."
+            ));
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<InsuranceProviderDeleteResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Delete",
+            "Delete Insurance Provider",
+            Description = "Menghapus data insurance provider",
+            AccessType = AccessTypes.Delete,
+            SortOrder = 4
+        )]
+        [AccessPermission("InsuranceProvider", "Delete")]
+        public async Task<IActionResult> DeleteInsuranceProvider(
+            Guid id,
+            [FromBody] DeleteInsuranceProviderRequest? request = null)
+        {
+            var entity = await _dbContext.Set<MstInsuranceProvider>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Insurance provider tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsDelete = true;
+            entity.IsActive = false;
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+            {
+                entity.Description = request.DeleteReason.Trim();
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            var result = new InsuranceProviderDeleteResponse
+            {
+                Id = entity.Id,
+                InsuranceProviderCode = entity.InsuranceProviderCode,
+                InsuranceProviderName = entity.InsuranceProviderName,
+                DeleteDateTime = entity.DeleteDateTime
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InsuranceProvider.DeleteInsuranceProvider",
+                "Menghapus data insurance provider.",
+                result
+            );
+
+            return Ok(ApiResponse<InsuranceProviderDeleteResponse>.Ok(
+                result,
                 "Insurance provider berhasil dihapus."
             ));
         }
 
-        private static InsuranceProviderResponse ToResponse(MstInsuranceProvider x)
+        private IQueryable<MstInsuranceProvider> BuildBaseQuery()
         {
-            return new InsuranceProviderResponse
-            {
-                Id = x.Id,
-                InsuranceProviderCode = x.InsuranceProviderCode,
-                InsuranceProviderName = x.InsuranceProviderName,
-                InsuranceGroupName = x.InsuranceGroupName,
-                ProviderType = x.ProviderType,
-                ClaimMethod = x.ClaimMethod,
-                ExternalProviderCode = x.ExternalProviderCode,
-                IntegrationCode = x.IntegrationCode,
-                ContractNumber = x.ContractNumber,
-                ContractStartDate = x.ContractStartDate,
-                ContractEndDate = x.ContractEndDate,
-                IsUsingInsuranceTariffBook = x.IsUsingInsuranceTariffBook,
-                IsUsingHospitalTariff = x.IsUsingHospitalTariff,
-                IsNeedEligibilityCheck = x.IsNeedEligibilityCheck,
-                IsNeedGuaranteeLetter = x.IsNeedGuaranteeLetter,
-                IsNeedReferralLetter = x.IsNeedReferralLetter,
-                IsNeedApprovalForProcedure = x.IsNeedApprovalForProcedure,
-                IsNeedApprovalForDrug = x.IsNeedApprovalForDrug,
-                IsCoverageLimitedByPlan = x.IsCoverageLimitedByPlan,
-                IsAllowExcessPaymentByPatient = x.IsAllowExcessPaymentByPatient,
-                PicName = x.PicName,
-                PicPhoneNumber = x.PicPhoneNumber,
-                PicWhatsAppNumber = x.PicWhatsAppNumber,
-                PicEmail = x.PicEmail,
-                OfficeAddress = x.OfficeAddress,
-                LogoPath = x.LogoPath,
-                SortOrder = x.SortOrder,
-                IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
-            };
-        }
-
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
-            Guid? excludeId,
-            string insuranceProviderName,
-            string providerType,
-            string claimMethod,
-            string? externalProviderCode,
-            string? integrationCode,
-            string? contractNumber,
-            DateTime? contractStartDate,
-            DateTime? contractEndDate,
-            string? picEmail)
-        {
-            if (string.IsNullOrWhiteSpace(insuranceProviderName))
-                return (false, "Nama insurance provider wajib diisi.");
-
-            if (string.IsNullOrWhiteSpace(providerType))
-                return (false, "Tipe provider wajib diisi.");
-
-            if (!AllowedProviderTypes.Contains(providerType.Trim()))
-                return (false, "Tipe provider tidak valid. Gunakan PrivateInsurance, TPA, GovernmentInsurance, CorporateInsurance, atau Other.");
-
-            if (string.IsNullOrWhiteSpace(claimMethod))
-                return (false, "Metode klaim wajib diisi.");
-
-            if (!AllowedClaimMethods.Contains(claimMethod.Trim()))
-                return (false, "Metode klaim tidak valid. Gunakan Cashless, Reimbursement, GuaranteeLetter, atau Mixed.");
-
-            if (contractStartDate.HasValue && contractEndDate.HasValue && contractEndDate.Value.Date < contractStartDate.Value.Date)
-                return (false, "Tanggal akhir kontrak tidak boleh lebih kecil dari tanggal mulai kontrak.");
-
-            if (!string.IsNullOrWhiteSpace(picEmail) && !picEmail.Contains('@'))
-                return (false, "Format email PIC tidak valid.");
-
-            var normalizedName = insuranceProviderName.Trim().ToLower();
-
-            var duplicateName = await _dbContext.Set<MstInsuranceProvider>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.InsuranceProviderName.ToLower() == normalizedName &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
-
-            if (duplicateName)
-                return (false, "Nama insurance provider sudah digunakan.");
-
-            if (!string.IsNullOrWhiteSpace(externalProviderCode))
-            {
-                var normalizedExternalProviderCode = externalProviderCode.Trim().ToLower();
-
-                var duplicateExternalProviderCode = await _dbContext.Set<MstInsuranceProvider>()
-                    .AnyAsync(x =>
-                        !x.IsDelete &&
-                        x.ExternalProviderCode != null &&
-                        x.ExternalProviderCode.ToLower() == normalizedExternalProviderCode &&
-                        (!excludeId.HasValue || x.Id != excludeId.Value));
-
-                if (duplicateExternalProviderCode)
-                    return (false, "External provider code sudah digunakan.");
-            }
-
-            if (!string.IsNullOrWhiteSpace(integrationCode))
-            {
-                var normalizedIntegrationCode = integrationCode.Trim().ToLower();
-
-                var duplicateIntegrationCode = await _dbContext.Set<MstInsuranceProvider>()
-                    .AnyAsync(x =>
-                        !x.IsDelete &&
-                        x.IntegrationCode != null &&
-                        x.IntegrationCode.ToLower() == normalizedIntegrationCode &&
-                        (!excludeId.HasValue || x.Id != excludeId.Value));
-
-                if (duplicateIntegrationCode)
-                    return (false, "Integration code sudah digunakan.");
-            }
-
-            if (!string.IsNullOrWhiteSpace(contractNumber))
-            {
-                var normalizedContractNumber = contractNumber.Trim().ToLower();
-
-                var duplicateContractNumber = await _dbContext.Set<MstInsuranceProvider>()
-                    .AnyAsync(x =>
-                        !x.IsDelete &&
-                        x.ContractNumber != null &&
-                        x.ContractNumber.ToLower() == normalizedContractNumber &&
-                        (!excludeId.HasValue || x.Id != excludeId.Value));
-
-                if (duplicateContractNumber)
-                    return (false, "Contract number sudah digunakan.");
-            }
-
-            return (true, null);
-        }
-
-        private async Task<string> GenerateInsuranceProviderCodeAsync()
-        {
-            var existingCodes = await _dbContext.Set<MstInsuranceProvider>()
+            return _dbContext.Set<MstInsuranceProvider>()
                 .AsNoTracking()
-                .Where(x => !x.IsDelete && x.InsuranceProviderCode.StartsWith(InsuranceProviderCodePrefix))
-                .Select(x => x.InsuranceProviderCode)
-                .ToListAsync();
-
-            var usedNumbers = existingCodes
-                .Select(TryExtractInsuranceProviderSequenceNumber)
-                .Where(x => x.HasValue)
-                .Select(x => x!.Value)
-                .ToHashSet();
-
-            var nextNumber = 1;
-
-            while (usedNumbers.Contains(nextNumber))
-                nextNumber++;
-
-            return $"{InsuranceProviderCodePrefix}{nextNumber.ToString().PadLeft(InsuranceProviderCodeDigitLength, '0')}";
-        }
-
-        private static int? TryExtractInsuranceProviderSequenceNumber(string insuranceProviderCode)
-        {
-            if (string.IsNullOrWhiteSpace(insuranceProviderCode))
-                return null;
-
-            if (!insuranceProviderCode.StartsWith(InsuranceProviderCodePrefix, StringComparison.OrdinalIgnoreCase))
-                return null;
-
-            var numberText = insuranceProviderCode[InsuranceProviderCodePrefix.Length..];
-
-            return int.TryParse(numberText, out var number)
-                ? number
-                : null;
+                .Where(x => !x.IsDelete);
         }
 
         private static IQueryable<MstInsuranceProvider> ApplyDateFilter(
@@ -759,108 +680,492 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             DateTime? endDate,
             string? customPeriod)
         {
-            var now = DateTime.UtcNow.Date;
-
-            if (!string.IsNullOrWhiteSpace(customPeriod))
-            {
-                switch (customPeriod.Trim().ToLowerInvariant())
-                {
-                    case "today":
-                        startDate = now;
-                        endDate = now;
-                        break;
-
-                    case "last7days":
-                        startDate = now.AddDays(-6);
-                        endDate = now;
-                        break;
-
-                    case "thismonth":
-                        startDate = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-                        endDate = startDate.Value.AddMonths(1).AddDays(-1);
-                        break;
-
-                    case "lastmonth":
-                        var firstDayThisMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-                        startDate = firstDayThisMonth.AddMonths(-1);
-                        endDate = firstDayThisMonth.AddDays(-1);
-                        break;
-                }
-            }
-
             if (startDate.HasValue)
             {
-                var start = startDate.Value.Date;
+                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
                 query = query.Where(x => x.CreateDateTime >= start);
             }
 
             if (endDate.HasValue)
             {
-                var end = endDate.Value.Date.AddDays(1).AddTicks(-1);
-                query = query.Where(x => x.CreateDateTime <= end);
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime < end);
+            }
+
+            if (!startDate.HasValue &&
+                !endDate.HasValue &&
+                !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var today = DateTime.UtcNow.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today &&
+                            x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "last7days":
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today.AddDays(-6) &&
+                            x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(
+                            today.Year,
+                            today.Month,
+                            1,
+                            0,
+                            0,
+                            0,
+                            DateTimeKind.Utc
+                        );
+
+                        query = query.Where(x =>
+                            x.CreateDateTime >= thisMonthStart &&
+                            x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        break;
+
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(
+                            today.Year,
+                            today.Month,
+                            1,
+                            0,
+                            0,
+                            0,
+                            DateTimeKind.Utc
+                        );
+
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+
+                        query = query.Where(x =>
+                            x.CreateDateTime >= lastMonthStart &&
+                            x.CreateDateTime < currentMonthStart);
+                        break;
+                }
             }
 
             return query;
         }
 
-        private static IQueryable<MstInsuranceProvider> ApplySorting(
+        private static IQueryable<MstInsuranceProvider> ApplyStandardFilter(
+            IQueryable<MstInsuranceProvider> query,
+            bool? isActive,
+            string? providerType,
+            string? claimMethod,
+            string? search)
+        {
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(providerType))
+            {
+                var normalizedProviderType = NormalizeProviderType(providerType);
+                query = query.Where(x => x.ProviderType == normalizedProviderType);
+            }
+
+            if (!string.IsNullOrWhiteSpace(claimMethod))
+            {
+                var normalizedClaimMethod = NormalizeClaimMethod(claimMethod);
+                query = query.Where(x => x.ClaimMethod == normalizedClaimMethod);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.InsuranceProviderCode.ToLower().Contains(keyword) ||
+                    x.InsuranceProviderName.ToLower().Contains(keyword) ||
+                    x.ProviderType.ToLower().Contains(keyword) ||
+                    x.ClaimMethod.ToLower().Contains(keyword) ||
+                    (x.InsuranceGroupName != null && x.InsuranceGroupName.ToLower().Contains(keyword)) ||
+                    (x.ExternalProviderCode != null && x.ExternalProviderCode.ToLower().Contains(keyword)) ||
+                    (x.IntegrationCode != null && x.IntegrationCode.ToLower().Contains(keyword)) ||
+                    (x.ContractNumber != null && x.ContractNumber.ToLower().Contains(keyword)) ||
+                    (x.PicName != null && x.PicName.ToLower().Contains(keyword)) ||
+                    (x.PicPhoneNumber != null && x.PicPhoneNumber.ToLower().Contains(keyword)) ||
+                    (x.PicWhatsAppNumber != null && x.PicWhatsAppNumber.ToLower().Contains(keyword)) ||
+                    (x.PicEmail != null && x.PicEmail.ToLower().Contains(keyword)) ||
+                    (x.OfficeAddress != null && x.OfficeAddress.ToLower().Contains(keyword)) ||
+                    (x.BillingInstruction != null && x.BillingInstruction.ToLower().Contains(keyword)) ||
+                    (x.ClaimInstruction != null && x.ClaimInstruction.ToLower().Contains(keyword)) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
+            }
+
+            return query;
+        }
+
+        private static IOrderedQueryable<MstInsuranceProvider> ApplySorting(
             IQueryable<MstInsuranceProvider> query,
             string? sortBy,
             string? sortDirection)
         {
-            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            var isDescending = string.Equals(
+                sortDirection,
+                "desc",
+                StringComparison.OrdinalIgnoreCase
+            );
 
-            return (sortBy ?? "sortOrder").ToLowerInvariant() switch
+            return (sortBy ?? "sortOrder").Trim().ToLowerInvariant() switch
             {
-                "createdatetime" => isDesc
+                "createdatetime" => isDescending
                     ? query.OrderByDescending(x => x.CreateDateTime)
                     : query.OrderBy(x => x.CreateDateTime),
 
-                "insuranceprovidercode" => isDesc
+                "insuranceprovidercode" => isDescending
                     ? query.OrderByDescending(x => x.InsuranceProviderCode)
                     : query.OrderBy(x => x.InsuranceProviderCode),
 
-                "insuranceprovidername" => isDesc
+                "insuranceprovidername" => isDescending
                     ? query.OrderByDescending(x => x.InsuranceProviderName)
                     : query.OrderBy(x => x.InsuranceProviderName),
 
-                "insurancegroupname" => isDesc
+                "insurancegroupname" => isDescending
                     ? query.OrderByDescending(x => x.InsuranceGroupName)
                     : query.OrderBy(x => x.InsuranceGroupName),
 
-                "providertype" => isDesc
-                    ? query.OrderByDescending(x => x.ProviderType)
-                    : query.OrderBy(x => x.ProviderType),
+                "providertype" => isDescending
+                    ? query.OrderByDescending(x => x.ProviderType).ThenBy(x => x.InsuranceProviderName)
+                    : query.OrderBy(x => x.ProviderType).ThenBy(x => x.InsuranceProviderName),
 
-                "claimmethod" => isDesc
-                    ? query.OrderByDescending(x => x.ClaimMethod)
-                    : query.OrderBy(x => x.ClaimMethod),
+                "claimmethod" => isDescending
+                    ? query.OrderByDescending(x => x.ClaimMethod).ThenBy(x => x.InsuranceProviderName)
+                    : query.OrderBy(x => x.ClaimMethod).ThenBy(x => x.InsuranceProviderName),
 
-                "contractstartdate" => isDesc
-                    ? query.OrderByDescending(x => x.ContractStartDate)
-                    : query.OrderBy(x => x.ContractStartDate),
+                "contractstartdate" => isDescending
+                    ? query.OrderByDescending(x => x.ContractStartDate).ThenBy(x => x.InsuranceProviderName)
+                    : query.OrderBy(x => x.ContractStartDate).ThenBy(x => x.InsuranceProviderName),
 
-                "contractenddate" => isDesc
-                    ? query.OrderByDescending(x => x.ContractEndDate)
-                    : query.OrderBy(x => x.ContractEndDate),
+                "contractenddate" => isDescending
+                    ? query.OrderByDescending(x => x.ContractEndDate).ThenBy(x => x.InsuranceProviderName)
+                    : query.OrderBy(x => x.ContractEndDate).ThenBy(x => x.InsuranceProviderName),
 
-                "isactive" => isDesc
-                    ? query.OrderByDescending(x => x.IsActive)
-                    : query.OrderBy(x => x.IsActive),
+                "isactive" => isDescending
+                    ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.InsuranceProviderName)
+                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.InsuranceProviderName),
 
-                _ => isDesc
+                _ => isDescending
                     ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.InsuranceProviderName)
                     : query.OrderBy(x => x.SortOrder).ThenBy(x => x.InsuranceProviderName)
             };
         }
 
-        private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
+            Guid? excludeId,
+            CreateInsuranceProviderRequest request)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 25;
-            if (pageSize > 100) pageSize = 100;
+            if (string.IsNullOrWhiteSpace(request.InsuranceProviderName))
+            {
+                return (false, "Nama insurance provider wajib diisi.");
+            }
 
-            return (pageNumber, pageSize);
+            if (string.IsNullOrWhiteSpace(request.ProviderType))
+            {
+                return (false, "Tipe provider wajib diisi.");
+            }
+
+            if (!AllowedProviderTypes.Contains(request.ProviderType.Trim()))
+            {
+                return (false, "Tipe provider tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ClaimMethod))
+            {
+                return (false, "Metode klaim wajib diisi.");
+            }
+
+            if (!AllowedClaimMethods.Contains(request.ClaimMethod.Trim()))
+            {
+                return (false, "Metode klaim tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (request.ContractStartDate.HasValue &&
+                request.ContractEndDate.HasValue &&
+                request.ContractEndDate.Value.Date < request.ContractStartDate.Value.Date)
+            {
+                return (false, "Tanggal akhir kontrak tidak boleh lebih kecil dari tanggal mulai kontrak.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.PicEmail) &&
+                !new EmailAddressAttribute().IsValid(request.PicEmail.Trim()))
+            {
+                return (false, "Format email PIC tidak valid.");
+            }
+
+            var normalizedName = request.InsuranceProviderName.Trim().ToLower();
+
+            var duplicateNameQuery = _dbContext.Set<MstInsuranceProvider>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.InsuranceProviderName.ToLower() == normalizedName);
+
+            if (excludeId.HasValue)
+            {
+                duplicateNameQuery = duplicateNameQuery.Where(x => x.Id != excludeId.Value);
+            }
+
+            if (await duplicateNameQuery.AnyAsync())
+            {
+                return (false, "Nama insurance provider sudah digunakan.");
+            }
+
+            var externalProviderCode = NormalizeNullableString(request.ExternalProviderCode);
+
+            if (!string.IsNullOrWhiteSpace(externalProviderCode))
+            {
+                var normalizedExternalProviderCode = externalProviderCode.ToLower();
+
+                var duplicateExternalProviderCodeQuery = _dbContext.Set<MstInsuranceProvider>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        !x.IsDelete &&
+                        x.ExternalProviderCode != null &&
+                        x.ExternalProviderCode.ToLower() == normalizedExternalProviderCode);
+
+                if (excludeId.HasValue)
+                {
+                    duplicateExternalProviderCodeQuery = duplicateExternalProviderCodeQuery.Where(x => x.Id != excludeId.Value);
+                }
+
+                if (await duplicateExternalProviderCodeQuery.AnyAsync())
+                {
+                    return (false, "External provider code sudah digunakan.");
+                }
+            }
+
+            var integrationCode = NormalizeNullableString(request.IntegrationCode);
+
+            if (!string.IsNullOrWhiteSpace(integrationCode))
+            {
+                var normalizedIntegrationCode = integrationCode.ToLower();
+
+                var duplicateIntegrationCodeQuery = _dbContext.Set<MstInsuranceProvider>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        !x.IsDelete &&
+                        x.IntegrationCode != null &&
+                        x.IntegrationCode.ToLower() == normalizedIntegrationCode);
+
+                if (excludeId.HasValue)
+                {
+                    duplicateIntegrationCodeQuery = duplicateIntegrationCodeQuery.Where(x => x.Id != excludeId.Value);
+                }
+
+                if (await duplicateIntegrationCodeQuery.AnyAsync())
+                {
+                    return (false, "Integration code sudah digunakan.");
+                }
+            }
+
+            var contractNumber = NormalizeNullableString(request.ContractNumber);
+
+            if (!string.IsNullOrWhiteSpace(contractNumber))
+            {
+                var normalizedContractNumber = contractNumber.ToLower();
+
+                var duplicateContractNumberQuery = _dbContext.Set<MstInsuranceProvider>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        !x.IsDelete &&
+                        x.ContractNumber != null &&
+                        x.ContractNumber.ToLower() == normalizedContractNumber);
+
+                if (excludeId.HasValue)
+                {
+                    duplicateContractNumberQuery = duplicateContractNumberQuery.Where(x => x.Id != excludeId.Value);
+                }
+
+                if (await duplicateContractNumberQuery.AnyAsync())
+                {
+                    return (false, "Contract number sudah digunakan.");
+                }
+            }
+
+            return (true, null);
+        }
+
+        private async Task<string> GenerateInsuranceProviderCodeAsync()
+        {
+            var existingCodes = await _dbContext.Set<MstInsuranceProvider>()
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(x => x.InsuranceProviderCode.StartsWith(InsuranceProviderCodePrefix))
+                .Select(x => x.InsuranceProviderCode)
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(TryExtractInsuranceProviderSequenceNumber)
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .Where(x => x > 0)
+                .ToHashSet();
+
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
+            {
+                nextNumber++;
+            }
+
+            return InsuranceProviderCodePrefix + nextNumber.ToString().PadLeft(InsuranceProviderCodeDigitLength, '0');
+        }
+
+        private static int? TryExtractInsuranceProviderSequenceNumber(string insuranceProviderCode)
+        {
+            if (string.IsNullOrWhiteSpace(insuranceProviderCode))
+            {
+                return null;
+            }
+
+            if (!insuranceProviderCode.StartsWith(InsuranceProviderCodePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var numberText = insuranceProviderCode[InsuranceProviderCodePrefix.Length..];
+
+            return int.TryParse(numberText, out var number)
+                ? number
+                : null;
+        }
+
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(
+            IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static InsuranceProviderResponse MapResponse(
+            MstInsuranceProvider entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new InsuranceProviderResponse
+            {
+                Id = entity.Id,
+                InsuranceProviderCode = entity.InsuranceProviderCode,
+                InsuranceProviderName = entity.InsuranceProviderName,
+                InsuranceGroupName = entity.InsuranceGroupName,
+                ProviderType = entity.ProviderType,
+                ProviderTypeName = BuildProviderTypeLabel(entity.ProviderType),
+                ClaimMethod = entity.ClaimMethod,
+                ClaimMethodName = BuildClaimMethodLabel(entity.ClaimMethod),
+                ExternalProviderCode = entity.ExternalProviderCode,
+                IntegrationCode = entity.IntegrationCode,
+                ContractNumber = entity.ContractNumber,
+                ContractStartDate = entity.ContractStartDate,
+                ContractEndDate = entity.ContractEndDate,
+                IsUsingInsuranceTariffBook = entity.IsUsingInsuranceTariffBook,
+                IsUsingHospitalTariff = entity.IsUsingHospitalTariff,
+                IsNeedEligibilityCheck = entity.IsNeedEligibilityCheck,
+                IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter,
+                IsNeedReferralLetter = entity.IsNeedReferralLetter,
+                IsNeedApprovalForProcedure = entity.IsNeedApprovalForProcedure,
+                IsNeedApprovalForDrug = entity.IsNeedApprovalForDrug,
+                IsCoverageLimitedByPlan = entity.IsCoverageLimitedByPlan,
+                IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
+                PicName = entity.PicName,
+                PicPhoneNumber = entity.PicPhoneNumber,
+                PicWhatsAppNumber = entity.PicWhatsAppNumber,
+                PicEmail = entity.PicEmail,
+                OfficeAddress = entity.OfficeAddress,
+                LogoPath = entity.LogoPath,
+                SortOrder = entity.SortOrder,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
+            };
+        }
+
+        private static InsuranceProviderDetailResponse MapDetailResponse(
+            MstInsuranceProvider entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new InsuranceProviderDetailResponse
+            {
+                Id = entity.Id,
+                InsuranceProviderCode = entity.InsuranceProviderCode,
+                InsuranceProviderName = entity.InsuranceProviderName,
+                InsuranceGroupName = entity.InsuranceGroupName,
+                ProviderType = entity.ProviderType,
+                ProviderTypeName = BuildProviderTypeLabel(entity.ProviderType),
+                ClaimMethod = entity.ClaimMethod,
+                ClaimMethodName = BuildClaimMethodLabel(entity.ClaimMethod),
+                ExternalProviderCode = entity.ExternalProviderCode,
+                IntegrationCode = entity.IntegrationCode,
+                ContractNumber = entity.ContractNumber,
+                ContractStartDate = entity.ContractStartDate,
+                ContractEndDate = entity.ContractEndDate,
+                IsUsingInsuranceTariffBook = entity.IsUsingInsuranceTariffBook,
+                IsUsingHospitalTariff = entity.IsUsingHospitalTariff,
+                IsNeedEligibilityCheck = entity.IsNeedEligibilityCheck,
+                IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter,
+                IsNeedReferralLetter = entity.IsNeedReferralLetter,
+                IsNeedApprovalForProcedure = entity.IsNeedApprovalForProcedure,
+                IsNeedApprovalForDrug = entity.IsNeedApprovalForDrug,
+                IsCoverageLimitedByPlan = entity.IsCoverageLimitedByPlan,
+                IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
+                PicName = entity.PicName,
+                PicPhoneNumber = entity.PicPhoneNumber,
+                PicWhatsAppNumber = entity.PicWhatsAppNumber,
+                PicEmail = entity.PicEmail,
+                OfficeAddress = entity.OfficeAddress,
+                LogoPath = entity.LogoPath,
+                SortOrder = entity.SortOrder,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                BillingInstruction = entity.BillingInstruction,
+                ClaimInstruction = entity.ClaimInstruction,
+                Description = entity.Description,
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
+
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
+        {
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
         }
 
         private static string NormalizeProviderType(string value)
@@ -883,22 +1188,62 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return matched ?? "Cashless";
         }
 
+        private static string BuildProviderTypeLabel(string value)
+        {
+            return value switch
+            {
+                "PrivateInsurance" => "Private Insurance",
+                "TPA" => "TPA",
+                "GovernmentInsurance" => "Government Insurance",
+                "CorporateInsurance" => "Corporate Insurance",
+                "Other" => "Other",
+                _ => SplitPascalCase(value)
+            };
+        }
+
+        private static string BuildClaimMethodLabel(string value)
+        {
+            return value switch
+            {
+                "Cashless" => "Cashless",
+                "Reimbursement" => "Reimbursement",
+                "GuaranteeLetter" => "Guarantee Letter",
+                "Mixed" => "Mixed",
+                _ => SplitPascalCase(value)
+            };
+        }
+
         private static string SplitPascalCase(string value)
         {
             if (string.IsNullOrWhiteSpace(value))
+            {
                 return value;
+            }
 
             return string.Concat(value.Select((x, i) =>
                 i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
         }
 
-        private Guid GetCurrentUserId()
+        private static (int PageNumber, int PageSize) NormalizePaging(
+            int pageNumber,
+            int pageSize)
         {
-            var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
 
-            return Guid.TryParse(userIdText, out var userId)
-                ? userId
-                : Guid.Empty;
+            if (pageSize < 1)
+            {
+                pageSize = 25;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
+
+            return (pageNumber, pageSize);
         }
 
         private static string? NormalizeNullableString(string? value)
@@ -906,6 +1251,17 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var userIdValue =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("user_id");
+
+            return Guid.TryParse(userIdValue, out var userId)
+                ? userId
+                : Guid.Empty;
         }
     }
 }

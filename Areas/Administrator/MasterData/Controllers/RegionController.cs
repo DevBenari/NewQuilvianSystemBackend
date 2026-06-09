@@ -74,41 +74,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         {
             var result = new RegionFilterMetadataResponse
             {
-                CountryDefaultFilter = new RegionDefaultFilterResponse
-                {
-                    SortBy = "createDateTime",
-                    SortDirection = "desc",
-                    PageNumber = 1,
-                    PageSize = 25
-                },
-                ProvinceDefaultFilter = new RegionDefaultFilterResponse
-                {
-                    SortBy = "createDateTime",
-                    SortDirection = "desc",
-                    PageNumber = 1,
-                    PageSize = 25
-                },
-                CityDefaultFilter = new RegionDefaultFilterResponse
-                {
-                    SortBy = "createDateTime",
-                    SortDirection = "desc",
-                    PageNumber = 1,
-                    PageSize = 25
-                },
-                DistrictDefaultFilter = new RegionDefaultFilterResponse
-                {
-                    SortBy = "createDateTime",
-                    SortDirection = "desc",
-                    PageNumber = 1,
-                    PageSize = 25
-                },
-                PostalCodeDefaultFilter = new RegionDefaultFilterResponse
-                {
-                    SortBy = "createDateTime",
-                    SortDirection = "desc",
-                    PageNumber = 1,
-                    PageSize = 25
-                },
+                CountryDefaultFilter = BuildDefaultFilter(),
+                ProvinceDefaultFilter = BuildDefaultFilter(),
+                CityDefaultFilter = BuildDefaultFilter(),
+                DistrictDefaultFilter = BuildDefaultFilter(),
+                PostalCodeDefaultFilter = BuildDefaultFilter(),
                 CustomPeriods = BuildCustomPeriodOptions(),
                 CountrySortOptions = new List<RegionSortOptionResponse>
                 {
@@ -144,6 +114,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     new() { Value = "districtName", Label = "Nama district" },
                     new() { Value = "cityName", Label = "Nama city" },
                     new() { Value = "provinceName", Label = "Nama province" },
+                    new() { Value = "countryName", Label = "Nama country" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 PostalCodeSortOptions = new List<RegionSortOptionResponse>
@@ -153,6 +124,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     new() { Value = "villageName", Label = "Kelurahan/Desa" },
                     new() { Value = "districtName", Label = "Nama district" },
                     new() { Value = "cityName", Label = "Nama city" },
+                    new() { Value = "provinceName", Label = "Nama province" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
@@ -220,6 +192,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet("countries")]
         [ProducesResponseType(typeof(ApiResponse<ResponseCountryPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data country", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetCountries(
@@ -240,9 +213,17 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
             if (!dateRange.IsValid)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, dateRange.ErrorMessage ?? "Filter tanggal tidak valid."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
 
-            var query = _dbContext.MstCountries.AsNoTracking().Where(x => !x.IsDelete);
+            var query = _dbContext.MstCountries
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
             query = ApplyDateFilter(query, dateRange);
 
             if (isDefault.HasValue)
@@ -254,6 +235,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
+
                 query = query.Where(x =>
                     x.CountryCode.ToLower().Contains(keyword) ||
                     x.CountryName.ToLower().Contains(keyword) ||
@@ -262,20 +244,14 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplyCountrySorting(query, sortBy, sortDirection)
+            var entities = await ApplyCountrySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new CountryResponse
-                {
-                    Id = x.Id,
-                    CountryCode = x.CountryCode,
-                    CountryName = x.CountryName,
-                    PhoneCode = x.PhoneCode,
-                    IsDefault = x.IsDefault,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities.Select(x => x.CreateBy)
+            );
 
             var result = new ResponseCountryPagedResult
             {
@@ -283,10 +259,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = items
+                Items = entities.Select(x => MapCountryResponse(x, actorNames)).ToList()
             };
 
-            return Ok(ApiResponse<ResponseCountryPagedResult>.Ok(result, "Data country berhasil diambil."));
+            return Ok(ApiResponse<ResponseCountryPagedResult>.Ok(
+                result,
+                "Data country berhasil diambil."
+            ));
         }
 
         [HttpGet("countries/options")]
@@ -303,7 +282,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.MstCountries.AsNoTracking().Where(x => !x.IsDelete);
+            var query = _dbContext.MstCountries
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
 
             if (onlyActive)
                 query = query.Where(x => x.IsActive);
@@ -311,7 +292,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
-                query = query.Where(x => x.CountryCode.ToLower().Contains(keyword) || x.CountryName.ToLower().Contains(keyword));
+
+                query = query.Where(x =>
+                    x.CountryCode.ToLower().Contains(keyword) ||
+                    x.CountryName.ToLower().Contains(keyword) ||
+                    (x.PhoneCode != null && x.PhoneCode.ToLower().Contains(keyword)));
             }
 
             var totalData = await query.CountAsync();
@@ -327,9 +312,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     Code = x.CountryCode,
                     Name = x.CountryName,
                     ParentId = null,
+                    ParentCode = null,
                     ParentName = null,
                     AdditionalInfo = x.PhoneCode,
-                    IsDefault = x.IsDefault
+                    IsDefault = x.IsDefault,
+                    IsActive = x.IsActive
                 })
                 .ToListAsync();
 
@@ -340,121 +327,225 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("countries/{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<CountryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<CountryDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Read", "Read Region", Description = "Melihat detail country", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetCountryById(Guid id)
         {
-            var data = await _dbContext.MstCountries
+            var entity = await _dbContext.MstCountries
                 .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new CountryResponse
-                {
-                    Id = x.Id,
-                    CountryCode = x.CountryCode,
-                    CountryName = x.CountryName,
-                    PhoneCode = x.PhoneCode,
-                    IsDefault = x.IsDefault,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
-            if (data == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Country tidak ditemukan."));
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Country tidak ditemukan."
+                ));
+            }
 
-            return Ok(ApiResponse<CountryResponse>.Ok(data, "Detail country berhasil diambil."));
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            return Ok(ApiResponse<CountryDetailResponse>.Ok(
+                MapCountryDetailResponse(entity, actorNames),
+                "Detail country berhasil diambil."
+            ));
         }
 
         [HttpPost("countries")]
-        [ProducesResponseType(typeof(ApiResponse<CountryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<CountryDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Region", Description = "Membuat data country", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("Region", "Create")]
         public async Task<IActionResult> CreateCountry([FromBody] CreateCountryRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.CountryName))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "CountryName wajib diisi."));
-
-            var name = request.CountryName.Trim();
-            var duplicate = await _dbContext.MstCountries.AnyAsync(x => x.CountryName.ToLower() == name.ToLower() && !x.IsDelete);
-            if (duplicate)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "CountryName sudah digunakan."));
-
-            if (request.IsDefault)
-                await ResetDefaultCountryAsync();
-
-            var entity = new MstCountry
+            var validation = await ValidateCountryRequestAsync(null, request.CountryName, request.PhoneCode);
+            if (!validation.IsValid)
             {
-                Id = Guid.NewGuid(),
-                CountryCode = await GenerateCountryCodeAsync(),
-                CountryName = name,
-                PhoneCode = NormalizeNullableText(request.PhoneCode),
-                IsDefault = request.IsDefault,
-                IsActive = true,
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = GetCurrentUserId(),
-                IsDelete = false,
-                IsCancel = false
-            };
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Data country tidak valid."
+                ));
+            }
 
-            _dbContext.MstCountries.Add(entity);
-            await _dbContext.SaveChangesAsync();
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
 
-            await _loggerService.InfoAsync(LogCategory, "Region.CreateCountry", "Country berhasil dibuat.", new { entity.Id, entity.CountryCode });
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            return await GetCountryById(entity.Id);
+            try
+            {
+                if (request.IsDefault)
+                {
+                    await ResetDefaultCountryAsync(null, now, actorUserId);
+                }
+
+                var entity = new MstCountry
+                {
+                    Id = Guid.NewGuid(),
+                    CountryCode = await GenerateCountryCodeAsync(),
+                    CountryName = request.CountryName.Trim(),
+                    PhoneCode = NormalizeNullableText(request.PhoneCode),
+                    IsDefault = request.IsDefault,
+                    IsActive = true,
+                    CreateDateTime = now,
+                    CreateBy = actorUserId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
+
+                _dbContext.MstCountries.Add(entity);
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "Region.CreateCountry",
+                    "Membuat data country.",
+                    new { entity.Id, entity.CountryCode, entity.CountryName }
+                );
+
+                return await GetCountryById(entity.Id);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "Region.CreateCountry",
+                    "Gagal membuat data country.",
+                    ex
+                );
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat membuat country."
+                    )
+                );
+            }
         }
 
         [HttpPut("countries/{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<CountryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<CountryDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Region", Description = "Mengubah data country", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("Region", "Update")]
         public async Task<IActionResult> UpdateCountry(Guid id, [FromBody] UpdateCountryRequest request)
         {
-            var entity = await _dbContext.MstCountries.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-            if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Country tidak ditemukan."));
+            var entity = await _dbContext.MstCountries
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
-            if (string.IsNullOrWhiteSpace(request.CountryName))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "CountryName wajib diisi."));
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Country tidak ditemukan."
+                ));
+            }
 
             if (request.IsDefault && !request.IsActive)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Country tidak aktif tidak bisa dijadikan default."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Country tidak aktif tidak bisa dijadikan default."
+                ));
+            }
 
-            var name = request.CountryName.Trim();
-            var duplicate = await _dbContext.MstCountries.AnyAsync(x => x.Id != id && x.CountryName.ToLower() == name.ToLower() && !x.IsDelete);
-            if (duplicate)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "CountryName sudah digunakan."));
+            var validation = await ValidateCountryRequestAsync(id, request.CountryName, request.PhoneCode);
+            if (!validation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Data country tidak valid."
+                ));
+            }
 
-            if (request.IsDefault)
-                await ResetDefaultCountryAsync(id);
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
 
-            entity.CountryName = name;
-            entity.PhoneCode = NormalizeNullableText(request.PhoneCode);
-            entity.IsDefault = request.IsActive && request.IsDefault;
-            entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                if (request.IsDefault)
+                {
+                    await ResetDefaultCountryAsync(id, now, actorUserId);
+                }
 
-            return await GetCountryById(entity.Id);
+                entity.CountryName = request.CountryName.Trim();
+                entity.PhoneCode = NormalizeNullableText(request.PhoneCode);
+                entity.IsDefault = request.IsActive && request.IsDefault;
+                entity.IsActive = request.IsActive;
+                entity.UpdateDateTime = now;
+                entity.UpdateBy = actorUserId;
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "Region.UpdateCountry",
+                    "Mengubah data country.",
+                    new { entity.Id, entity.CountryCode, entity.CountryName }
+                );
+
+                return await GetCountryById(entity.Id);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "Region.UpdateCountry",
+                    "Gagal mengubah data country.",
+                    ex
+                );
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat memperbarui country."
+                    )
+                );
+            }
         }
 
         [HttpPatch("countries/{id:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<CountryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<CountryDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Region Status", Description = "Mengubah status country", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("Region", "Update")]
         public async Task<IActionResult> UpdateCountryStatus(Guid id, [FromBody] UpdateRegionStatusRequest request)
         {
-            var entity = await _dbContext.MstCountries.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var entity = await _dbContext.MstCountries
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
             if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Country tidak ditemukan."));
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Country tidak ditemukan."
+                ));
+            }
 
             entity.IsActive = request.IsActive;
+
             if (!request.IsActive)
+            {
                 entity.IsDefault = false;
+            }
+
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
 
@@ -465,22 +556,46 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpDelete("countries/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Region", Description = "Menghapus data country", AccessType = AccessTypes.Delete, SortOrder = 5)]
         [AccessPermission("Region", "Delete")]
-        public async Task<IActionResult> DeleteCountry(Guid id)
+        public async Task<IActionResult> DeleteCountry(Guid id, [FromBody] DeleteRegionRequest? request = null)
         {
-            var entity = await _dbContext.MstCountries.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-            if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Country tidak ditemukan."));
+            var entity = await _dbContext.MstCountries
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
-            var hasChild = await _dbContext.MstProvinces.AnyAsync(x => x.CountryId == id && !x.IsDelete);
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Country tidak ditemukan."
+                ));
+            }
+
+            var hasChild = await _dbContext.MstProvinces
+                .AnyAsync(x => x.CountryId == id && !x.IsDelete);
+
             if (hasChild)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Country tidak dapat dihapus karena masih memiliki province."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Country tidak dapat dihapus karena masih memiliki province."
+                ));
+            }
 
             entity.IsActive = false;
             entity.IsDefault = false;
             ApplyDeleteAudit(entity);
+
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.DeleteCountry",
+                "Menghapus data country.",
+                new { entity.Id, entity.CountryCode, entity.CountryName, request?.DeleteReason }
+            );
 
             return Ok(ApiResponse<object>.Ok(null, "Country berhasil dihapus."));
         }
@@ -491,6 +606,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet("provinces")]
         [ProducesResponseType(typeof(ApiResponse<ResponseProvincePagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data province", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetProvinces(
@@ -511,9 +627,18 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
             if (!dateRange.IsValid)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, dateRange.ErrorMessage ?? "Filter tanggal tidak valid."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
 
-            var query = _dbContext.MstProvinces.AsNoTracking().Where(x => !x.IsDelete);
+            var query = _dbContext.MstProvinces
+                .Include(x => x.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
             query = ApplyDateFilter(query, dateRange);
 
             if (countryId.HasValue && countryId.Value != Guid.Empty)
@@ -525,30 +650,24 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
+
                 query = query.Where(x =>
                     x.ProvinceCode.ToLower().Contains(keyword) ||
                     x.ProvinceName.ToLower().Contains(keyword) ||
-                    (x.Country != null && x.Country.CountryName.ToLower().Contains(keyword)) ||
-                    (x.Country != null && x.Country.CountryCode.ToLower().Contains(keyword)));
+                    (x.Country != null && x.Country.CountryCode.ToLower().Contains(keyword)) ||
+                    (x.Country != null && x.Country.CountryName.ToLower().Contains(keyword)));
             }
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplyProvinceSorting(query, sortBy, sortDirection)
+            var entities = await ApplyProvinceSorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new ProvinceResponse
-                {
-                    Id = x.Id,
-                    CountryId = x.CountryId,
-                    CountryCode = x.Country != null ? x.Country.CountryCode : string.Empty,
-                    CountryName = x.Country != null ? x.Country.CountryName : string.Empty,
-                    ProvinceCode = x.ProvinceCode,
-                    ProvinceName = x.ProvinceName,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities.Select(x => x.CreateBy)
+            );
 
             var result = new ResponseProvincePagedResult
             {
@@ -556,10 +675,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = items
+                Items = entities.Select(x => MapProvinceResponse(x, actorNames)).ToList()
             };
 
-            return Ok(ApiResponse<ResponseProvincePagedResult>.Ok(result, "Data province berhasil diambil."));
+            return Ok(ApiResponse<ResponseProvincePagedResult>.Ok(
+                result,
+                "Data province berhasil diambil."
+            ));
         }
 
         [HttpGet("provinces/options")]
@@ -577,18 +699,25 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.MstProvinces.AsNoTracking().Where(x => !x.IsDelete);
+            var query = _dbContext.MstProvinces
+                .Include(x => x.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
 
             if (countryId.HasValue && countryId.Value != Guid.Empty)
                 query = query.Where(x => x.CountryId == countryId.Value);
 
             if (onlyActive)
-                query = query.Where(x => x.IsActive && x.Country != null && x.Country.IsActive);
+                query = query.Where(x => x.IsActive && x.Country != null && x.Country.IsActive && !x.Country.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
-                query = query.Where(x => x.ProvinceCode.ToLower().Contains(keyword) || x.ProvinceName.ToLower().Contains(keyword));
+
+                query = query.Where(x =>
+                    x.ProvinceCode.ToLower().Contains(keyword) ||
+                    x.ProvinceName.ToLower().Contains(keyword) ||
+                    (x.Country != null && x.Country.CountryName.ToLower().Contains(keyword)));
             }
 
             var totalData = await query.CountAsync();
@@ -603,7 +732,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     Code = x.ProvinceCode,
                     Name = x.ProvinceName,
                     ParentId = x.CountryId,
-                    ParentName = x.Country != null ? x.Country.CountryName : null
+                    ParentCode = x.Country != null ? x.Country.CountryCode : null,
+                    ParentName = x.Country != null ? x.Country.CountryName : null,
+                    AdditionalInfo = null,
+                    IsDefault = false,
+                    IsActive = x.IsActive
                 })
                 .ToListAsync();
 
@@ -614,57 +747,59 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("provinces/{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<ProvinceResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ProvinceDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Read", "Read Region", Description = "Melihat detail province", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetProvinceById(Guid id)
         {
-            var data = await _dbContext.MstProvinces
+            var entity = await _dbContext.MstProvinces
+                .Include(x => x.Country)
                 .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new ProvinceResponse
-                {
-                    Id = x.Id,
-                    CountryId = x.CountryId,
-                    CountryCode = x.Country != null ? x.Country.CountryCode : string.Empty,
-                    CountryName = x.Country != null ? x.Country.CountryName : string.Empty,
-                    ProvinceCode = x.ProvinceCode,
-                    ProvinceName = x.ProvinceName,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
-            if (data == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Province tidak ditemukan."));
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Province tidak ditemukan."
+                ));
+            }
 
-            return Ok(ApiResponse<ProvinceResponse>.Ok(data, "Detail province berhasil diambil."));
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            return Ok(ApiResponse<ProvinceDetailResponse>.Ok(
+                MapProvinceDetailResponse(entity, actorNames),
+                "Detail province berhasil diambil."
+            ));
         }
 
         [HttpPost("provinces")]
-        [ProducesResponseType(typeof(ApiResponse<ProvinceResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ProvinceDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Region", Description = "Membuat data province", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("Region", "Create")]
         public async Task<IActionResult> CreateProvince([FromBody] CreateProvinceRequest request)
         {
-            if (!await CountryExistsAsync(request.CountryId))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Country tidak valid atau tidak aktif."));
-
-            if (string.IsNullOrWhiteSpace(request.ProvinceName))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "ProvinceName wajib diisi."));
-
-            var name = request.ProvinceName.Trim();
-            var duplicate = await _dbContext.MstProvinces.AnyAsync(x => x.CountryId == request.CountryId && x.ProvinceName.ToLower() == name.ToLower() && !x.IsDelete);
-            if (duplicate)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "ProvinceName sudah digunakan pada country ini."));
+            var validation = await ValidateProvinceRequestAsync(null, request.CountryId, request.ProvinceName);
+            if (!validation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Data province tidak valid."
+                ));
+            }
 
             var entity = new MstProvince
             {
                 Id = Guid.NewGuid(),
                 CountryId = request.CountryId,
                 ProvinceCode = await GenerateProvinceCodeAsync(),
-                ProvinceName = name,
+                ProvinceName = request.ProvinceName.Trim(),
                 IsActive = true,
                 CreateDateTime = DateTime.UtcNow,
                 CreateBy = GetCurrentUserId(),
@@ -675,53 +810,88 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             _dbContext.MstProvinces.Add(entity);
             await _dbContext.SaveChangesAsync();
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.CreateProvince",
+                "Membuat data province.",
+                new { entity.Id, entity.ProvinceCode, entity.ProvinceName }
+            );
+
             return await GetProvinceById(entity.Id);
         }
 
         [HttpPut("provinces/{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<ProvinceResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ProvinceDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Region", Description = "Mengubah data province", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("Region", "Update")]
         public async Task<IActionResult> UpdateProvince(Guid id, [FromBody] UpdateProvinceRequest request)
         {
-            var entity = await _dbContext.MstProvinces.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var entity = await _dbContext.MstProvinces
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
             if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Province tidak ditemukan."));
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Province tidak ditemukan."
+                ));
+            }
 
-            if (!await CountryExistsAsync(request.CountryId))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Country tidak valid atau tidak aktif."));
-
-            if (string.IsNullOrWhiteSpace(request.ProvinceName))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "ProvinceName wajib diisi."));
-
-            var name = request.ProvinceName.Trim();
-            var duplicate = await _dbContext.MstProvinces.AnyAsync(x => x.Id != id && x.CountryId == request.CountryId && x.ProvinceName.ToLower() == name.ToLower() && !x.IsDelete);
-            if (duplicate)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "ProvinceName sudah digunakan pada country ini."));
+            var validation = await ValidateProvinceRequestAsync(id, request.CountryId, request.ProvinceName);
+            if (!validation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Data province tidak valid."
+                ));
+            }
 
             entity.CountryId = request.CountryId;
-            entity.ProvinceName = name;
+            entity.ProvinceName = request.ProvinceName.Trim();
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
 
             await _dbContext.SaveChangesAsync();
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.UpdateProvince",
+                "Mengubah data province.",
+                new { entity.Id, entity.ProvinceCode, entity.ProvinceName }
+            );
+
             return await GetProvinceById(entity.Id);
         }
 
         [HttpPatch("provinces/{id:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<ProvinceResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ProvinceDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Region Status", Description = "Mengubah status province", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("Region", "Update")]
         public async Task<IActionResult> UpdateProvinceStatus(Guid id, [FromBody] UpdateRegionStatusRequest request)
         {
-            var entity = await _dbContext.MstProvinces.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var entity = await _dbContext.MstProvinces
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
             if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Province tidak ditemukan."));
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Province tidak ditemukan."
+                ));
+            }
 
             if (request.IsActive && !await CountryExistsAsync(entity.CountryId))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Province tidak bisa aktif ketika country tidak aktif."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Province tidak bisa aktif ketika country tidak aktif."
+                ));
+            }
 
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = DateTime.UtcNow;
@@ -734,21 +904,45 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpDelete("provinces/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Region", Description = "Menghapus data province", AccessType = AccessTypes.Delete, SortOrder = 5)]
         [AccessPermission("Region", "Delete")]
-        public async Task<IActionResult> DeleteProvince(Guid id)
+        public async Task<IActionResult> DeleteProvince(Guid id, [FromBody] DeleteRegionRequest? request = null)
         {
-            var entity = await _dbContext.MstProvinces.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-            if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Province tidak ditemukan."));
+            var entity = await _dbContext.MstProvinces
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
-            var hasChild = await _dbContext.MstCities.AnyAsync(x => x.ProvinceId == id && !x.IsDelete);
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Province tidak ditemukan."
+                ));
+            }
+
+            var hasChild = await _dbContext.MstCities
+                .AnyAsync(x => x.ProvinceId == id && !x.IsDelete);
+
             if (hasChild)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Province tidak dapat dihapus karena masih memiliki city."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Province tidak dapat dihapus karena masih memiliki city."
+                ));
+            }
 
             entity.IsActive = false;
             ApplyDeleteAudit(entity);
+
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.DeleteProvince",
+                "Menghapus data province.",
+                new { entity.Id, entity.ProvinceCode, entity.ProvinceName, request?.DeleteReason }
+            );
 
             return Ok(ApiResponse<object>.Ok(null, "Province berhasil dihapus."));
         }
@@ -759,6 +953,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet("cities")]
         [ProducesResponseType(typeof(ApiResponse<ResponseCityPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data city", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetCities(
@@ -780,9 +975,19 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
             if (!dateRange.IsValid)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, dateRange.ErrorMessage ?? "Filter tanggal tidak valid."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
 
-            var query = _dbContext.MstCities.AsNoTracking().Where(x => !x.IsDelete);
+            var query = _dbContext.MstCities
+                .Include(x => x.Province)
+                    .ThenInclude(x => x!.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
             query = ApplyDateFilter(query, dateRange);
 
             if (countryId.HasValue && countryId.Value != Guid.Empty)
@@ -797,6 +1002,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
+
                 query = query.Where(x =>
                     x.CityCode.ToLower().Contains(keyword) ||
                     x.CityName.ToLower().Contains(keyword) ||
@@ -807,25 +1013,14 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplyCitySorting(query, sortBy, sortDirection)
+            var entities = await ApplyCitySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new CityResponse
-                {
-                    Id = x.Id,
-                    ProvinceId = x.ProvinceId,
-                    ProvinceCode = x.Province != null ? x.Province.ProvinceCode : string.Empty,
-                    ProvinceName = x.Province != null ? x.Province.ProvinceName : string.Empty,
-                    CountryId = x.Province != null ? x.Province.CountryId : Guid.Empty,
-                    CountryCode = x.Province != null && x.Province.Country != null ? x.Province.Country.CountryCode : string.Empty,
-                    CountryName = x.Province != null && x.Province.Country != null ? x.Province.Country.CountryName : string.Empty,
-                    CityCode = x.CityCode,
-                    CityName = x.CityName,
-                    CityType = x.CityType,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities.Select(x => x.CreateBy)
+            );
 
             var result = new ResponseCityPagedResult
             {
@@ -833,10 +1028,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = items
+                Items = entities.Select(x => MapCityResponse(x, actorNames)).ToList()
             };
 
-            return Ok(ApiResponse<ResponseCityPagedResult>.Ok(result, "Data city berhasil diambil."));
+            return Ok(ApiResponse<ResponseCityPagedResult>.Ok(
+                result,
+                "Data city berhasil diambil."
+            ));
         }
 
         [HttpGet("cities/options")]
@@ -855,7 +1053,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.MstCities.AsNoTracking().Where(x => !x.IsDelete);
+            var query = _dbContext.MstCities
+                .Include(x => x.Province)
+                    .ThenInclude(x => x!.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
 
             if (countryId.HasValue && countryId.Value != Guid.Empty)
                 query = query.Where(x => x.Province != null && x.Province.CountryId == countryId.Value);
@@ -864,15 +1066,17 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 query = query.Where(x => x.ProvinceId == provinceId.Value);
 
             if (onlyActive)
-                query = query.Where(x => x.IsActive && x.Province != null && x.Province.IsActive);
+                query = query.Where(x => x.IsActive && x.Province != null && x.Province.IsActive && !x.Province.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
+
                 query = query.Where(x =>
                     x.CityCode.ToLower().Contains(keyword) ||
                     x.CityName.ToLower().Contains(keyword) ||
-                    (x.CityType != null && x.CityType.ToLower().Contains(keyword)));
+                    (x.CityType != null && x.CityType.ToLower().Contains(keyword)) ||
+                    (x.Province != null && x.Province.ProvinceName.ToLower().Contains(keyword)));
             }
 
             var totalData = await query.CountAsync();
@@ -887,8 +1091,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     Code = x.CityCode,
                     Name = x.CityName,
                     ParentId = x.ProvinceId,
+                    ParentCode = x.Province != null ? x.Province.ProvinceCode : null,
                     ParentName = x.Province != null ? x.Province.ProvinceName : null,
-                    AdditionalInfo = x.CityType
+                    AdditionalInfo = x.CityType,
+                    IsDefault = false,
+                    IsActive = x.IsActive
                 })
                 .ToListAsync();
 
@@ -899,68 +1106,61 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("cities/{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<CityResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<CityDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Read", "Read Region", Description = "Melihat detail city", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetCityById(Guid id)
         {
-            var data = await _dbContext.MstCities
+            var entity = await _dbContext.MstCities
+                .Include(x => x.Province)
+                    .ThenInclude(x => x!.Country)
                 .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new CityResponse
-                {
-                    Id = x.Id,
-                    ProvinceId = x.ProvinceId,
-                    ProvinceCode = x.Province != null ? x.Province.ProvinceCode : string.Empty,
-                    ProvinceName = x.Province != null ? x.Province.ProvinceName : string.Empty,
-                    CountryId = x.Province != null ? x.Province.CountryId : Guid.Empty,
-                    CountryCode = x.Province != null && x.Province.Country != null ? x.Province.Country.CountryCode : string.Empty,
-                    CountryName = x.Province != null && x.Province.Country != null ? x.Province.Country.CountryName : string.Empty,
-                    CityCode = x.CityCode,
-                    CityName = x.CityName,
-                    CityType = x.CityType,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
-            if (data == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "City tidak ditemukan."));
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "City tidak ditemukan."
+                ));
+            }
 
-            return Ok(ApiResponse<CityResponse>.Ok(data, "Detail city berhasil diambil."));
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            return Ok(ApiResponse<CityDetailResponse>.Ok(
+                MapCityDetailResponse(entity, actorNames),
+                "Detail city berhasil diambil."
+            ));
         }
 
         [HttpPost("cities")]
-        [ProducesResponseType(typeof(ApiResponse<CityResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<CityDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Region", Description = "Membuat data city", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("Region", "Create")]
         public async Task<IActionResult> CreateCity([FromBody] CreateCityRequest request)
         {
-            if (!await ProvinceExistsAsync(request.ProvinceId))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Province tidak valid atau tidak aktif."));
-
-            if (string.IsNullOrWhiteSpace(request.CityName))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "CityName wajib diisi."));
-
-            var name = request.CityName.Trim();
-            var cityType = NormalizeNullableText(request.CityType);
-            var duplicate = await _dbContext.MstCities.AnyAsync(x =>
-                x.ProvinceId == request.ProvinceId &&
-                x.CityName.ToLower() == name.ToLower() &&
-                ((x.CityType ?? string.Empty).ToLower() == (cityType ?? string.Empty).ToLower()) &&
-                !x.IsDelete);
-
-            if (duplicate)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "CityName dan CityType sudah digunakan pada province ini."));
+            var validation = await ValidateCityRequestAsync(null, request.ProvinceId, request.CityName, request.CityType);
+            if (!validation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Data city tidak valid."
+                ));
+            }
 
             var entity = new MstCity
             {
                 Id = Guid.NewGuid(),
                 ProvinceId = request.ProvinceId,
                 CityCode = await GenerateCityCodeAsync(),
-                CityName = name,
-                CityType = cityType,
+                CityName = request.CityName.Trim(),
+                CityType = NormalizeNullableText(request.CityType),
                 IsActive = true,
                 CreateDateTime = DateTime.UtcNow,
                 CreateBy = GetCurrentUserId(),
@@ -971,61 +1171,89 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             _dbContext.MstCities.Add(entity);
             await _dbContext.SaveChangesAsync();
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.CreateCity",
+                "Membuat data city.",
+                new { entity.Id, entity.CityCode, entity.CityName }
+            );
+
             return await GetCityById(entity.Id);
         }
 
         [HttpPut("cities/{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<CityResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<CityDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Region", Description = "Mengubah data city", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("Region", "Update")]
         public async Task<IActionResult> UpdateCity(Guid id, [FromBody] UpdateCityRequest request)
         {
-            var entity = await _dbContext.MstCities.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var entity = await _dbContext.MstCities
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
             if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "City tidak ditemukan."));
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "City tidak ditemukan."
+                ));
+            }
 
-            if (!await ProvinceExistsAsync(request.ProvinceId))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Province tidak valid atau tidak aktif."));
-
-            if (string.IsNullOrWhiteSpace(request.CityName))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "CityName wajib diisi."));
-
-            var name = request.CityName.Trim();
-            var cityType = NormalizeNullableText(request.CityType);
-            var duplicate = await _dbContext.MstCities.AnyAsync(x =>
-                x.Id != id &&
-                x.ProvinceId == request.ProvinceId &&
-                x.CityName.ToLower() == name.ToLower() &&
-                ((x.CityType ?? string.Empty).ToLower() == (cityType ?? string.Empty).ToLower()) &&
-                !x.IsDelete);
-
-            if (duplicate)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "CityName dan CityType sudah digunakan pada province ini."));
+            var validation = await ValidateCityRequestAsync(id, request.ProvinceId, request.CityName, request.CityType);
+            if (!validation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Data city tidak valid."
+                ));
+            }
 
             entity.ProvinceId = request.ProvinceId;
-            entity.CityName = name;
-            entity.CityType = cityType;
+            entity.CityName = request.CityName.Trim();
+            entity.CityType = NormalizeNullableText(request.CityType);
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
 
             await _dbContext.SaveChangesAsync();
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.UpdateCity",
+                "Mengubah data city.",
+                new { entity.Id, entity.CityCode, entity.CityName }
+            );
+
             return await GetCityById(entity.Id);
         }
 
         [HttpPatch("cities/{id:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<CityResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<CityDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Region Status", Description = "Mengubah status city", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("Region", "Update")]
         public async Task<IActionResult> UpdateCityStatus(Guid id, [FromBody] UpdateRegionStatusRequest request)
         {
-            var entity = await _dbContext.MstCities.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var entity = await _dbContext.MstCities
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
             if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "City tidak ditemukan."));
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "City tidak ditemukan."
+                ));
+            }
 
             if (request.IsActive && !await ProvinceExistsAsync(entity.ProvinceId))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "City tidak bisa aktif ketika province tidak aktif."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "City tidak bisa aktif ketika province tidak aktif."
+                ));
+            }
 
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = DateTime.UtcNow;
@@ -1038,21 +1266,45 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpDelete("cities/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Region", Description = "Menghapus data city", AccessType = AccessTypes.Delete, SortOrder = 5)]
         [AccessPermission("Region", "Delete")]
-        public async Task<IActionResult> DeleteCity(Guid id)
+        public async Task<IActionResult> DeleteCity(Guid id, [FromBody] DeleteRegionRequest? request = null)
         {
-            var entity = await _dbContext.MstCities.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-            if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "City tidak ditemukan."));
+            var entity = await _dbContext.MstCities
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
-            var hasChild = await _dbContext.MstDistricts.AnyAsync(x => x.CityId == id && !x.IsDelete);
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "City tidak ditemukan."
+                ));
+            }
+
+            var hasChild = await _dbContext.MstDistricts
+                .AnyAsync(x => x.CityId == id && !x.IsDelete);
+
             if (hasChild)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "City tidak dapat dihapus karena masih memiliki district."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "City tidak dapat dihapus karena masih memiliki district."
+                ));
+            }
 
             entity.IsActive = false;
             ApplyDeleteAudit(entity);
+
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.DeleteCity",
+                "Menghapus data city.",
+                new { entity.Id, entity.CityCode, entity.CityName, request?.DeleteReason }
+            );
 
             return Ok(ApiResponse<object>.Ok(null, "City berhasil dihapus."));
         }
@@ -1063,12 +1315,14 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet("districts")]
         [ProducesResponseType(typeof(ApiResponse<ResponseDistrictPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data district", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetDistricts(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
+            [FromQuery] Guid? countryId,
             [FromQuery] Guid? provinceId,
             [FromQuery] Guid? cityId,
             [FromQuery] bool? isActive,
@@ -1084,10 +1338,24 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
             if (!dateRange.IsValid)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, dateRange.ErrorMessage ?? "Filter tanggal tidak valid."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
 
-            var query = _dbContext.MstDistricts.AsNoTracking().Where(x => !x.IsDelete);
+            var query = _dbContext.MstDistricts
+                .Include(x => x.City)
+                    .ThenInclude(x => x!.Province)
+                        .ThenInclude(x => x!.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
             query = ApplyDateFilter(query, dateRange);
+
+            if (countryId.HasValue && countryId.Value != Guid.Empty)
+                query = query.Where(x => x.City != null && x.City.Province != null && x.City.Province.CountryId == countryId.Value);
 
             if (provinceId.HasValue && provinceId.Value != Guid.Empty)
                 query = query.Where(x => x.City != null && x.City.ProvinceId == provinceId.Value);
@@ -1101,36 +1369,25 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
+
                 query = query.Where(x =>
                     x.DistrictCode.ToLower().Contains(keyword) ||
                     x.DistrictName.ToLower().Contains(keyword) ||
                     (x.City != null && x.City.CityName.ToLower().Contains(keyword)) ||
-                    (x.City != null && x.City.Province != null && x.City.Province.ProvinceName.ToLower().Contains(keyword)));
+                    (x.City != null && x.City.Province != null && x.City.Province.ProvinceName.ToLower().Contains(keyword)) ||
+                    (x.City != null && x.City.Province != null && x.City.Province.Country != null && x.City.Province.Country.CountryName.ToLower().Contains(keyword)));
             }
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplyDistrictSorting(query, sortBy, sortDirection)
+            var entities = await ApplyDistrictSorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new DistrictResponse
-                {
-                    Id = x.Id,
-                    CityId = x.CityId,
-                    CityCode = x.City != null ? x.City.CityCode : string.Empty,
-                    CityName = x.City != null ? x.City.CityName : string.Empty,
-                    ProvinceId = x.City != null ? x.City.ProvinceId : Guid.Empty,
-                    ProvinceCode = x.City != null && x.City.Province != null ? x.City.Province.ProvinceCode : string.Empty,
-                    ProvinceName = x.City != null && x.City.Province != null ? x.City.Province.ProvinceName : string.Empty,
-                    CountryId = x.City != null && x.City.Province != null ? x.City.Province.CountryId : Guid.Empty,
-                    CountryCode = x.City != null && x.City.Province != null && x.City.Province.Country != null ? x.City.Province.Country.CountryCode : string.Empty,
-                    CountryName = x.City != null && x.City.Province != null && x.City.Province.Country != null ? x.City.Province.Country.CountryName : string.Empty,
-                    DistrictCode = x.DistrictCode,
-                    DistrictName = x.DistrictName,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities.Select(x => x.CreateBy)
+            );
 
             var result = new ResponseDistrictPagedResult
             {
@@ -1138,10 +1395,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = items
+                Items = entities.Select(x => MapDistrictResponse(x, actorNames)).ToList()
             };
 
-            return Ok(ApiResponse<ResponseDistrictPagedResult>.Ok(result, "Data district berhasil diambil."));
+            return Ok(ApiResponse<ResponseDistrictPagedResult>.Ok(
+                result,
+                "Data district berhasil diambil."
+            ));
         }
 
         [HttpGet("districts/options")]
@@ -1149,6 +1409,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan district", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetDistrictOptions(
+            [FromQuery] Guid? countryId,
             [FromQuery] Guid? provinceId,
             [FromQuery] Guid? cityId,
             [FromQuery] bool onlyActive = true,
@@ -1160,7 +1421,15 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.MstDistricts.AsNoTracking().Where(x => !x.IsDelete);
+            var query = _dbContext.MstDistricts
+                .Include(x => x.City)
+                    .ThenInclude(x => x!.Province)
+                        .ThenInclude(x => x!.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (countryId.HasValue && countryId.Value != Guid.Empty)
+                query = query.Where(x => x.City != null && x.City.Province != null && x.City.Province.CountryId == countryId.Value);
 
             if (provinceId.HasValue && provinceId.Value != Guid.Empty)
                 query = query.Where(x => x.City != null && x.City.ProvinceId == provinceId.Value);
@@ -1169,12 +1438,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 query = query.Where(x => x.CityId == cityId.Value);
 
             if (onlyActive)
-                query = query.Where(x => x.IsActive && x.City != null && x.City.IsActive);
+                query = query.Where(x => x.IsActive && x.City != null && x.City.IsActive && !x.City.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
-                query = query.Where(x => x.DistrictCode.ToLower().Contains(keyword) || x.DistrictName.ToLower().Contains(keyword));
+
+                query = query.Where(x =>
+                    x.DistrictCode.ToLower().Contains(keyword) ||
+                    x.DistrictName.ToLower().Contains(keyword) ||
+                    (x.City != null && x.City.CityName.ToLower().Contains(keyword)));
             }
 
             var totalData = await query.CountAsync();
@@ -1189,7 +1462,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     Code = x.DistrictCode,
                     Name = x.DistrictName,
                     ParentId = x.CityId,
-                    ParentName = x.City != null ? x.City.CityName : null
+                    ParentCode = x.City != null ? x.City.CityCode : null,
+                    ParentName = x.City != null ? x.City.CityName : null,
+                    AdditionalInfo = null,
+                    IsDefault = false,
+                    IsActive = x.IsActive
                 })
                 .ToListAsync();
 
@@ -1200,63 +1477,61 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("districts/{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<DistrictResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DistrictDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Read", "Read Region", Description = "Melihat detail district", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetDistrictById(Guid id)
         {
-            var data = await _dbContext.MstDistricts
+            var entity = await _dbContext.MstDistricts
+                .Include(x => x.City)
+                    .ThenInclude(x => x!.Province)
+                        .ThenInclude(x => x!.Country)
                 .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new DistrictResponse
-                {
-                    Id = x.Id,
-                    CityId = x.CityId,
-                    CityCode = x.City != null ? x.City.CityCode : string.Empty,
-                    CityName = x.City != null ? x.City.CityName : string.Empty,
-                    ProvinceId = x.City != null ? x.City.ProvinceId : Guid.Empty,
-                    ProvinceCode = x.City != null && x.City.Province != null ? x.City.Province.ProvinceCode : string.Empty,
-                    ProvinceName = x.City != null && x.City.Province != null ? x.City.Province.ProvinceName : string.Empty,
-                    CountryId = x.City != null && x.City.Province != null ? x.City.Province.CountryId : Guid.Empty,
-                    CountryCode = x.City != null && x.City.Province != null && x.City.Province.Country != null ? x.City.Province.Country.CountryCode : string.Empty,
-                    CountryName = x.City != null && x.City.Province != null && x.City.Province.Country != null ? x.City.Province.Country.CountryName : string.Empty,
-                    DistrictCode = x.DistrictCode,
-                    DistrictName = x.DistrictName,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
-            if (data == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "District tidak ditemukan."));
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "District tidak ditemukan."
+                ));
+            }
 
-            return Ok(ApiResponse<DistrictResponse>.Ok(data, "Detail district berhasil diambil."));
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            return Ok(ApiResponse<DistrictDetailResponse>.Ok(
+                MapDistrictDetailResponse(entity, actorNames),
+                "Detail district berhasil diambil."
+            ));
         }
 
         [HttpPost("districts")]
-        [ProducesResponseType(typeof(ApiResponse<DistrictResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DistrictDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Region", Description = "Membuat data district", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("Region", "Create")]
         public async Task<IActionResult> CreateDistrict([FromBody] CreateDistrictRequest request)
         {
-            if (!await CityExistsAsync(request.CityId))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "City tidak valid atau tidak aktif."));
-
-            if (string.IsNullOrWhiteSpace(request.DistrictName))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "DistrictName wajib diisi."));
-
-            var name = request.DistrictName.Trim();
-            var duplicate = await _dbContext.MstDistricts.AnyAsync(x => x.CityId == request.CityId && x.DistrictName.ToLower() == name.ToLower() && !x.IsDelete);
-            if (duplicate)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "DistrictName sudah digunakan pada city ini."));
+            var validation = await ValidateDistrictRequestAsync(null, request.CityId, request.DistrictName);
+            if (!validation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Data district tidak valid."
+                ));
+            }
 
             var entity = new MstDistrict
             {
                 Id = Guid.NewGuid(),
                 CityId = request.CityId,
                 DistrictCode = await GenerateDistrictCodeAsync(),
-                DistrictName = name,
+                DistrictName = request.DistrictName.Trim(),
                 IsActive = true,
                 CreateDateTime = DateTime.UtcNow,
                 CreateBy = GetCurrentUserId(),
@@ -1267,53 +1542,88 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             _dbContext.MstDistricts.Add(entity);
             await _dbContext.SaveChangesAsync();
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.CreateDistrict",
+                "Membuat data district.",
+                new { entity.Id, entity.DistrictCode, entity.DistrictName }
+            );
+
             return await GetDistrictById(entity.Id);
         }
 
         [HttpPut("districts/{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<DistrictResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DistrictDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Region", Description = "Mengubah data district", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("Region", "Update")]
         public async Task<IActionResult> UpdateDistrict(Guid id, [FromBody] UpdateDistrictRequest request)
         {
-            var entity = await _dbContext.MstDistricts.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var entity = await _dbContext.MstDistricts
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
             if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "District tidak ditemukan."));
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "District tidak ditemukan."
+                ));
+            }
 
-            if (!await CityExistsAsync(request.CityId))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "City tidak valid atau tidak aktif."));
-
-            if (string.IsNullOrWhiteSpace(request.DistrictName))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "DistrictName wajib diisi."));
-
-            var name = request.DistrictName.Trim();
-            var duplicate = await _dbContext.MstDistricts.AnyAsync(x => x.Id != id && x.CityId == request.CityId && x.DistrictName.ToLower() == name.ToLower() && !x.IsDelete);
-            if (duplicate)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "DistrictName sudah digunakan pada city ini."));
+            var validation = await ValidateDistrictRequestAsync(id, request.CityId, request.DistrictName);
+            if (!validation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Data district tidak valid."
+                ));
+            }
 
             entity.CityId = request.CityId;
-            entity.DistrictName = name;
+            entity.DistrictName = request.DistrictName.Trim();
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
 
             await _dbContext.SaveChangesAsync();
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.UpdateDistrict",
+                "Mengubah data district.",
+                new { entity.Id, entity.DistrictCode, entity.DistrictName }
+            );
+
             return await GetDistrictById(entity.Id);
         }
 
         [HttpPatch("districts/{id:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<DistrictResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<DistrictDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Region Status", Description = "Mengubah status district", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("Region", "Update")]
         public async Task<IActionResult> UpdateDistrictStatus(Guid id, [FromBody] UpdateRegionStatusRequest request)
         {
-            var entity = await _dbContext.MstDistricts.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var entity = await _dbContext.MstDistricts
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
             if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "District tidak ditemukan."));
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "District tidak ditemukan."
+                ));
+            }
 
             if (request.IsActive && !await CityExistsAsync(entity.CityId))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "District tidak bisa aktif ketika city tidak aktif."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "District tidak bisa aktif ketika city tidak aktif."
+                ));
+            }
 
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = DateTime.UtcNow;
@@ -1326,21 +1636,45 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpDelete("districts/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Region", Description = "Menghapus data district", AccessType = AccessTypes.Delete, SortOrder = 5)]
         [AccessPermission("Region", "Delete")]
-        public async Task<IActionResult> DeleteDistrict(Guid id)
+        public async Task<IActionResult> DeleteDistrict(Guid id, [FromBody] DeleteRegionRequest? request = null)
         {
-            var entity = await _dbContext.MstDistricts.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-            if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "District tidak ditemukan."));
+            var entity = await _dbContext.MstDistricts
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
-            var hasChild = await _dbContext.MstPostalCodes.AnyAsync(x => x.DistrictId == id && !x.IsDelete);
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "District tidak ditemukan."
+                ));
+            }
+
+            var hasChild = await _dbContext.MstPostalCodes
+                .AnyAsync(x => x.DistrictId == id && !x.IsDelete);
+
             if (hasChild)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "District tidak dapat dihapus karena masih memiliki postal code."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "District tidak dapat dihapus karena masih memiliki postal code."
+                ));
+            }
 
             entity.IsActive = false;
             ApplyDeleteAudit(entity);
+
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.DeleteDistrict",
+                "Menghapus data district.",
+                new { entity.Id, entity.DistrictCode, entity.DistrictName, request?.DeleteReason }
+            );
 
             return Ok(ApiResponse<object>.Ok(null, "District berhasil dihapus."));
         }
@@ -1351,12 +1685,15 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet("postal-codes")]
         [ProducesResponseType(typeof(ApiResponse<ResponsePostalCodePagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data postal code", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetPostalCodes(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
+            [FromQuery] Guid? countryId,
+            [FromQuery] Guid? provinceId,
             [FromQuery] Guid? cityId,
             [FromQuery] Guid? districtId,
             [FromQuery] bool? isActive,
@@ -1372,10 +1709,28 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
             if (!dateRange.IsValid)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, dateRange.ErrorMessage ?? "Filter tanggal tidak valid."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
 
-            var query = _dbContext.MstPostalCodes.AsNoTracking().Where(x => !x.IsDelete);
+            var query = _dbContext.MstPostalCodes
+                .Include(x => x.District)
+                    .ThenInclude(x => x!.City)
+                        .ThenInclude(x => x!.Province)
+                            .ThenInclude(x => x!.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
             query = ApplyDateFilter(query, dateRange);
+
+            if (countryId.HasValue && countryId.Value != Guid.Empty)
+                query = query.Where(x => x.District != null && x.District.City != null && x.District.City.Province != null && x.District.City.Province.CountryId == countryId.Value);
+
+            if (provinceId.HasValue && provinceId.Value != Guid.Empty)
+                query = query.Where(x => x.District != null && x.District.City != null && x.District.City.ProvinceId == provinceId.Value);
 
             if (cityId.HasValue && cityId.Value != Guid.Empty)
                 query = query.Where(x => x.District != null && x.District.CityId == cityId.Value);
@@ -1389,36 +1744,25 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
+
                 query = query.Where(x =>
                     x.PostalCode.ToLower().Contains(keyword) ||
                     (x.VillageName != null && x.VillageName.ToLower().Contains(keyword)) ||
                     (x.District != null && x.District.DistrictName.ToLower().Contains(keyword)) ||
-                    (x.District != null && x.District.City != null && x.District.City.CityName.ToLower().Contains(keyword)));
+                    (x.District != null && x.District.City != null && x.District.City.CityName.ToLower().Contains(keyword)) ||
+                    (x.District != null && x.District.City != null && x.District.City.Province != null && x.District.City.Province.ProvinceName.ToLower().Contains(keyword)));
             }
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplyPostalCodeSorting(query, sortBy, sortDirection)
+            var entities = await ApplyPostalCodeSorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new PostalCodeResponse
-                {
-                    Id = x.Id,
-                    DistrictId = x.DistrictId,
-                    DistrictCode = x.District != null ? x.District.DistrictCode : string.Empty,
-                    DistrictName = x.District != null ? x.District.DistrictName : string.Empty,
-                    CityId = x.District != null ? x.District.CityId : Guid.Empty,
-                    CityCode = x.District != null && x.District.City != null ? x.District.City.CityCode : string.Empty,
-                    CityName = x.District != null && x.District.City != null ? x.District.City.CityName : string.Empty,
-                    ProvinceId = x.District != null && x.District.City != null ? x.District.City.ProvinceId : Guid.Empty,
-                    ProvinceCode = x.District != null && x.District.City != null && x.District.City.Province != null ? x.District.City.Province.ProvinceCode : string.Empty,
-                    ProvinceName = x.District != null && x.District.City != null && x.District.City.Province != null ? x.District.City.Province.ProvinceName : string.Empty,
-                    PostalCode = x.PostalCode,
-                    VillageName = x.VillageName,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities.Select(x => x.CreateBy)
+            );
 
             var result = new ResponsePostalCodePagedResult
             {
@@ -1426,10 +1770,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = items
+                Items = entities.Select(x => MapPostalCodeResponse(x, actorNames)).ToList()
             };
 
-            return Ok(ApiResponse<ResponsePostalCodePagedResult>.Ok(result, "Data postal code berhasil diambil."));
+            return Ok(ApiResponse<ResponsePostalCodePagedResult>.Ok(
+                result,
+                "Data postal code berhasil diambil."
+            ));
         }
 
         [HttpGet("postal-codes/options")]
@@ -1437,6 +1784,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan postal code", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetPostalCodeOptions(
+            [FromQuery] Guid? countryId,
+            [FromQuery] Guid? provinceId,
             [FromQuery] Guid? cityId,
             [FromQuery] Guid? districtId,
             [FromQuery] bool onlyActive = true,
@@ -1448,7 +1797,19 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.MstPostalCodes.AsNoTracking().Where(x => !x.IsDelete);
+            var query = _dbContext.MstPostalCodes
+                .Include(x => x.District)
+                    .ThenInclude(x => x!.City)
+                        .ThenInclude(x => x!.Province)
+                            .ThenInclude(x => x!.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (countryId.HasValue && countryId.Value != Guid.Empty)
+                query = query.Where(x => x.District != null && x.District.City != null && x.District.City.Province != null && x.District.City.Province.CountryId == countryId.Value);
+
+            if (provinceId.HasValue && provinceId.Value != Guid.Empty)
+                query = query.Where(x => x.District != null && x.District.City != null && x.District.City.ProvinceId == provinceId.Value);
 
             if (cityId.HasValue && cityId.Value != Guid.Empty)
                 query = query.Where(x => x.District != null && x.District.CityId == cityId.Value);
@@ -1457,12 +1818,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 query = query.Where(x => x.DistrictId == districtId.Value);
 
             if (onlyActive)
-                query = query.Where(x => x.IsActive && x.District != null && x.District.IsActive);
+                query = query.Where(x => x.IsActive && x.District != null && x.District.IsActive && !x.District.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
-                query = query.Where(x => x.PostalCode.ToLower().Contains(keyword) || (x.VillageName != null && x.VillageName.ToLower().Contains(keyword)));
+
+                query = query.Where(x =>
+                    x.PostalCode.ToLower().Contains(keyword) ||
+                    (x.VillageName != null && x.VillageName.ToLower().Contains(keyword)) ||
+                    (x.District != null && x.District.DistrictName.ToLower().Contains(keyword)));
             }
 
             var totalData = await query.CountAsync();
@@ -1478,8 +1843,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     Code = x.PostalCode,
                     Name = x.VillageName ?? x.PostalCode,
                     ParentId = x.DistrictId,
+                    ParentCode = x.District != null ? x.District.DistrictCode : null,
                     ParentName = x.District != null ? x.District.DistrictName : null,
-                    AdditionalInfo = x.PostalCode
+                    AdditionalInfo = x.PostalCode,
+                    IsDefault = false,
+                    IsActive = x.IsActive
                 })
                 .ToListAsync();
 
@@ -1490,69 +1858,62 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("postal-codes/{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<PostalCodeResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<PostalCodeDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Read", "Read Region", Description = "Melihat detail postal code", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetPostalCodeById(Guid id)
         {
-            var data = await _dbContext.MstPostalCodes
+            var entity = await _dbContext.MstPostalCodes
+                .Include(x => x.District)
+                    .ThenInclude(x => x!.City)
+                        .ThenInclude(x => x!.Province)
+                            .ThenInclude(x => x!.Country)
                 .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new PostalCodeResponse
-                {
-                    Id = x.Id,
-                    DistrictId = x.DistrictId,
-                    DistrictCode = x.District != null ? x.District.DistrictCode : string.Empty,
-                    DistrictName = x.District != null ? x.District.DistrictName : string.Empty,
-                    CityId = x.District != null ? x.District.CityId : Guid.Empty,
-                    CityCode = x.District != null && x.District.City != null ? x.District.City.CityCode : string.Empty,
-                    CityName = x.District != null && x.District.City != null ? x.District.City.CityName : string.Empty,
-                    ProvinceId = x.District != null && x.District.City != null ? x.District.City.ProvinceId : Guid.Empty,
-                    ProvinceCode = x.District != null && x.District.City != null && x.District.City.Province != null ? x.District.City.Province.ProvinceCode : string.Empty,
-                    ProvinceName = x.District != null && x.District.City != null && x.District.City.Province != null ? x.District.City.Province.ProvinceName : string.Empty,
-                    PostalCode = x.PostalCode,
-                    VillageName = x.VillageName,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
-            if (data == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Postal code tidak ditemukan."));
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Postal code tidak ditemukan."
+                ));
+            }
 
-            return Ok(ApiResponse<PostalCodeResponse>.Ok(data, "Detail postal code berhasil diambil."));
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            return Ok(ApiResponse<PostalCodeDetailResponse>.Ok(
+                MapPostalCodeDetailResponse(entity, actorNames),
+                "Detail postal code berhasil diambil."
+            ));
         }
 
         [HttpPost("postal-codes")]
-        [ProducesResponseType(typeof(ApiResponse<PostalCodeResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<PostalCodeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Region", Description = "Membuat data postal code", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("Region", "Create")]
         public async Task<IActionResult> CreatePostalCode([FromBody] CreatePostalCodeRequest request)
         {
-            if (!await DistrictExistsAsync(request.DistrictId))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "District tidak valid atau tidak aktif."));
-
-            if (string.IsNullOrWhiteSpace(request.PostalCode))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "PostalCode wajib diisi."));
-
-            var postalCode = request.PostalCode.Trim();
-            var villageName = NormalizeNullableText(request.VillageName);
-            var duplicate = await _dbContext.MstPostalCodes.AnyAsync(x =>
-                x.DistrictId == request.DistrictId &&
-                x.PostalCode == postalCode &&
-                x.VillageName == villageName &&
-                !x.IsDelete);
-
-            if (duplicate)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "PostalCode dan VillageName sudah digunakan pada district ini."));
+            var validation = await ValidatePostalCodeRequestAsync(null, request.DistrictId, request.PostalCode, request.VillageName);
+            if (!validation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Data postal code tidak valid."
+                ));
+            }
 
             var entity = new MstPostalCode
             {
                 Id = Guid.NewGuid(),
                 DistrictId = request.DistrictId,
-                PostalCode = postalCode,
-                VillageName = villageName,
+                PostalCode = request.PostalCode.Trim(),
+                VillageName = NormalizeNullableText(request.VillageName),
                 IsActive = true,
                 CreateDateTime = DateTime.UtcNow,
                 CreateBy = GetCurrentUserId(),
@@ -1563,61 +1924,89 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             _dbContext.MstPostalCodes.Add(entity);
             await _dbContext.SaveChangesAsync();
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.CreatePostalCode",
+                "Membuat data postal code.",
+                new { entity.Id, entity.PostalCode, entity.VillageName }
+            );
+
             return await GetPostalCodeById(entity.Id);
         }
 
         [HttpPut("postal-codes/{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<PostalCodeResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<PostalCodeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Region", Description = "Mengubah data postal code", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("Region", "Update")]
         public async Task<IActionResult> UpdatePostalCode(Guid id, [FromBody] UpdatePostalCodeRequest request)
         {
-            var entity = await _dbContext.MstPostalCodes.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var entity = await _dbContext.MstPostalCodes
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
             if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Postal code tidak ditemukan."));
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Postal code tidak ditemukan."
+                ));
+            }
 
-            if (!await DistrictExistsAsync(request.DistrictId))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "District tidak valid atau tidak aktif."));
-
-            if (string.IsNullOrWhiteSpace(request.PostalCode))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "PostalCode wajib diisi."));
-
-            var postalCode = request.PostalCode.Trim();
-            var villageName = NormalizeNullableText(request.VillageName);
-            var duplicate = await _dbContext.MstPostalCodes.AnyAsync(x =>
-                x.Id != id &&
-                x.DistrictId == request.DistrictId &&
-                x.PostalCode == postalCode &&
-                x.VillageName == villageName &&
-                !x.IsDelete);
-
-            if (duplicate)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "PostalCode dan VillageName sudah digunakan pada district ini."));
+            var validation = await ValidatePostalCodeRequestAsync(id, request.DistrictId, request.PostalCode, request.VillageName);
+            if (!validation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Data postal code tidak valid."
+                ));
+            }
 
             entity.DistrictId = request.DistrictId;
-            entity.PostalCode = postalCode;
-            entity.VillageName = villageName;
+            entity.PostalCode = request.PostalCode.Trim();
+            entity.VillageName = NormalizeNullableText(request.VillageName);
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
 
             await _dbContext.SaveChangesAsync();
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.UpdatePostalCode",
+                "Mengubah data postal code.",
+                new { entity.Id, entity.PostalCode, entity.VillageName }
+            );
+
             return await GetPostalCodeById(entity.Id);
         }
 
         [HttpPatch("postal-codes/{id:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<PostalCodeResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<PostalCodeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Region Status", Description = "Mengubah status postal code", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("Region", "Update")]
         public async Task<IActionResult> UpdatePostalCodeStatus(Guid id, [FromBody] UpdateRegionStatusRequest request)
         {
-            var entity = await _dbContext.MstPostalCodes.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var entity = await _dbContext.MstPostalCodes
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
             if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Postal code tidak ditemukan."));
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Postal code tidak ditemukan."
+                ));
+            }
 
             if (request.IsActive && !await DistrictExistsAsync(entity.DistrictId))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Postal code tidak bisa aktif ketika district tidak aktif."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Postal code tidak bisa aktif ketika district tidak aktif."
+                ));
+            }
 
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = DateTime.UtcNow;
@@ -1630,17 +2019,33 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpDelete("postal-codes/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Region", Description = "Menghapus data postal code", AccessType = AccessTypes.Delete, SortOrder = 5)]
         [AccessPermission("Region", "Delete")]
-        public async Task<IActionResult> DeletePostalCode(Guid id)
+        public async Task<IActionResult> DeletePostalCode(Guid id, [FromBody] DeleteRegionRequest? request = null)
         {
-            var entity = await _dbContext.MstPostalCodes.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var entity = await _dbContext.MstPostalCodes
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
             if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Postal code tidak ditemukan."));
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Postal code tidak ditemukan."
+                ));
+            }
 
             entity.IsActive = false;
             ApplyDeleteAudit(entity);
+
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.DeletePostalCode",
+                "Menghapus data postal code.",
+                new { entity.Id, entity.PostalCode, entity.VillageName, request?.DeleteReason }
+            );
 
             return Ok(ApiResponse<object>.Ok(null, "Postal code berhasil dihapus."));
         }
@@ -1649,7 +2054,18 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         // PRIVATE HELPERS
         // =========================================================
 
-        private IQueryable<T> ApplyDateFilter<T>(IQueryable<T> query, DateRangeResolveResult dateRange)
+        private static RegionDefaultFilterResponse BuildDefaultFilter()
+        {
+            return new RegionDefaultFilterResponse
+            {
+                SortBy = "createDateTime",
+                SortDirection = "desc",
+                PageNumber = 1,
+                PageSize = 25
+            };
+        }
+
+        private static IQueryable<T> ApplyDateFilter<T>(IQueryable<T> query, DateRangeResolveResult dateRange)
             where T : IdentityModel
         {
             if (dateRange.Start.HasValue)
@@ -1661,7 +2077,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return query;
         }
 
-        private async Task ResetDefaultCountryAsync(Guid? excludeId = null)
+        private async Task ResetDefaultCountryAsync(Guid? excludeId, DateTime now, Guid actorUserId)
         {
             var countries = await _dbContext.MstCountries
                 .Where(x =>
@@ -1669,9 +2085,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     !x.IsDelete &&
                     (!excludeId.HasValue || x.Id != excludeId.Value))
                 .ToListAsync();
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
 
             foreach (var country in countries)
             {
@@ -1691,22 +2104,204 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         private async Task<bool> ProvinceExistsAsync(Guid id)
         {
             return id != Guid.Empty && await _dbContext.MstProvinces
+                .Include(x => x.Country)
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == id && x.IsActive && !x.IsDelete);
+                .AnyAsync(x =>
+                    x.Id == id &&
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    x.Country != null &&
+                    x.Country.IsActive &&
+                    !x.Country.IsDelete);
         }
 
         private async Task<bool> CityExistsAsync(Guid id)
         {
             return id != Guid.Empty && await _dbContext.MstCities
+                .Include(x => x.Province)
+                    .ThenInclude(x => x!.Country)
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == id && x.IsActive && !x.IsDelete);
+                .AnyAsync(x =>
+                    x.Id == id &&
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    x.Province != null &&
+                    x.Province.IsActive &&
+                    !x.Province.IsDelete &&
+                    x.Province.Country != null &&
+                    x.Province.Country.IsActive &&
+                    !x.Province.Country.IsDelete);
         }
 
         private async Task<bool> DistrictExistsAsync(Guid id)
         {
             return id != Guid.Empty && await _dbContext.MstDistricts
+                .Include(x => x.City)
+                    .ThenInclude(x => x!.Province)
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == id && x.IsActive && !x.IsDelete);
+                .AnyAsync(x =>
+                    x.Id == id &&
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    x.City != null &&
+                    x.City.IsActive &&
+                    !x.City.IsDelete &&
+                    x.City.Province != null &&
+                    x.City.Province.IsActive &&
+                    !x.City.Province.IsDelete);
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCountryRequestAsync(
+            Guid? excludeId,
+            string countryName,
+            string? phoneCode)
+        {
+            if (string.IsNullOrWhiteSpace(countryName))
+                return (false, "CountryName wajib diisi.");
+
+            var normalizedName = countryName.Trim().ToLower();
+
+            var duplicateName = await _dbContext.MstCountries
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    x.CountryName.ToLower() == normalizedName &&
+                    (!excludeId.HasValue || x.Id != excludeId.Value));
+
+            if (duplicateName)
+                return (false, "CountryName sudah digunakan.");
+
+            if (!string.IsNullOrWhiteSpace(phoneCode))
+            {
+                var normalizedPhoneCode = phoneCode.Trim().ToLower();
+
+                var duplicatePhoneCode = await _dbContext.MstCountries
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        !x.IsDelete &&
+                        x.PhoneCode != null &&
+                        x.PhoneCode.ToLower() == normalizedPhoneCode &&
+                        (!excludeId.HasValue || x.Id != excludeId.Value));
+
+                if (duplicatePhoneCode)
+                    return (false, "PhoneCode sudah digunakan.");
+            }
+
+            return (true, null);
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateProvinceRequestAsync(
+            Guid? excludeId,
+            Guid countryId,
+            string provinceName)
+        {
+            if (!await CountryExistsAsync(countryId))
+                return (false, "Country tidak valid atau tidak aktif.");
+
+            if (string.IsNullOrWhiteSpace(provinceName))
+                return (false, "ProvinceName wajib diisi.");
+
+            var normalizedName = provinceName.Trim().ToLower();
+
+            var duplicate = await _dbContext.MstProvinces
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    x.CountryId == countryId &&
+                    x.ProvinceName.ToLower() == normalizedName &&
+                    (!excludeId.HasValue || x.Id != excludeId.Value));
+
+            if (duplicate)
+                return (false, "ProvinceName sudah digunakan pada country ini.");
+
+            return (true, null);
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCityRequestAsync(
+            Guid? excludeId,
+            Guid provinceId,
+            string cityName,
+            string? cityType)
+        {
+            if (!await ProvinceExistsAsync(provinceId))
+                return (false, "Province tidak valid atau tidak aktif.");
+
+            if (string.IsNullOrWhiteSpace(cityName))
+                return (false, "CityName wajib diisi.");
+
+            var normalizedName = cityName.Trim().ToLower();
+            var normalizedCityType = NormalizeNullableText(cityType)?.ToLower() ?? string.Empty;
+
+            var duplicate = await _dbContext.MstCities
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    x.ProvinceId == provinceId &&
+                    x.CityName.ToLower() == normalizedName &&
+                    ((x.CityType ?? string.Empty).ToLower() == normalizedCityType) &&
+                    (!excludeId.HasValue || x.Id != excludeId.Value));
+
+            if (duplicate)
+                return (false, "CityName dan CityType sudah digunakan pada province ini.");
+
+            return (true, null);
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateDistrictRequestAsync(
+            Guid? excludeId,
+            Guid cityId,
+            string districtName)
+        {
+            if (!await CityExistsAsync(cityId))
+                return (false, "City tidak valid atau tidak aktif.");
+
+            if (string.IsNullOrWhiteSpace(districtName))
+                return (false, "DistrictName wajib diisi.");
+
+            var normalizedName = districtName.Trim().ToLower();
+
+            var duplicate = await _dbContext.MstDistricts
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    x.CityId == cityId &&
+                    x.DistrictName.ToLower() == normalizedName &&
+                    (!excludeId.HasValue || x.Id != excludeId.Value));
+
+            if (duplicate)
+                return (false, "DistrictName sudah digunakan pada city ini.");
+
+            return (true, null);
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidatePostalCodeRequestAsync(
+            Guid? excludeId,
+            Guid districtId,
+            string postalCode,
+            string? villageName)
+        {
+            if (!await DistrictExistsAsync(districtId))
+                return (false, "District tidak valid atau tidak aktif.");
+
+            if (string.IsNullOrWhiteSpace(postalCode))
+                return (false, "PostalCode wajib diisi.");
+
+            var normalizedPostalCode = postalCode.Trim().ToLower();
+            var normalizedVillageName = NormalizeNullableText(villageName)?.ToLower() ?? string.Empty;
+
+            var duplicate = await _dbContext.MstPostalCodes
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    x.DistrictId == districtId &&
+                    x.PostalCode.ToLower() == normalizedPostalCode &&
+                    ((x.VillageName ?? string.Empty).ToLower() == normalizedVillageName) &&
+                    (!excludeId.HasValue || x.Id != excludeId.Value));
+
+            if (duplicate)
+                return (false, "PostalCode dan VillageName sudah digunakan pada district ini.");
+
+            return (true, null);
         }
 
         private static IOrderedQueryable<MstCountry> ApplyCountrySorting(
@@ -1780,6 +2375,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 "districtname" => desc ? query.OrderByDescending(x => x.DistrictName) : query.OrderBy(x => x.DistrictName),
                 "cityname" => desc ? query.OrderByDescending(x => x.City != null ? x.City.CityName : string.Empty).ThenBy(x => x.DistrictName) : query.OrderBy(x => x.City != null ? x.City.CityName : string.Empty).ThenBy(x => x.DistrictName),
                 "provincename" => desc ? query.OrderByDescending(x => x.City != null && x.City.Province != null ? x.City.Province.ProvinceName : string.Empty).ThenBy(x => x.DistrictName) : query.OrderBy(x => x.City != null && x.City.Province != null ? x.City.Province.ProvinceName : string.Empty).ThenBy(x => x.DistrictName),
+                "countryname" => desc ? query.OrderByDescending(x => x.City != null && x.City.Province != null && x.City.Province.Country != null ? x.City.Province.Country.CountryName : string.Empty).ThenBy(x => x.DistrictName) : query.OrderBy(x => x.City != null && x.City.Province != null && x.City.Province.Country != null ? x.City.Province.Country.CountryName : string.Empty).ThenBy(x => x.DistrictName),
                 "isactive" => desc ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.DistrictName) : query.OrderBy(x => x.IsActive).ThenBy(x => x.DistrictName),
                 _ => desc ? query.OrderByDescending(x => x.CreateDateTime).ThenBy(x => x.DistrictName) : query.OrderBy(x => x.CreateDateTime).ThenBy(x => x.DistrictName)
             };
@@ -1799,14 +2395,257 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 "villagename" => desc ? query.OrderByDescending(x => x.VillageName).ThenBy(x => x.PostalCode) : query.OrderBy(x => x.VillageName).ThenBy(x => x.PostalCode),
                 "districtname" => desc ? query.OrderByDescending(x => x.District != null ? x.District.DistrictName : string.Empty).ThenBy(x => x.PostalCode) : query.OrderBy(x => x.District != null ? x.District.DistrictName : string.Empty).ThenBy(x => x.PostalCode),
                 "cityname" => desc ? query.OrderByDescending(x => x.District != null && x.District.City != null ? x.District.City.CityName : string.Empty).ThenBy(x => x.PostalCode) : query.OrderBy(x => x.District != null && x.District.City != null ? x.District.City.CityName : string.Empty).ThenBy(x => x.PostalCode),
+                "provincename" => desc ? query.OrderByDescending(x => x.District != null && x.District.City != null && x.District.City.Province != null ? x.District.City.Province.ProvinceName : string.Empty).ThenBy(x => x.PostalCode) : query.OrderBy(x => x.District != null && x.District.City != null && x.District.City.Province != null ? x.District.City.Province.ProvinceName : string.Empty).ThenBy(x => x.PostalCode),
                 "isactive" => desc ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.PostalCode) : query.OrderBy(x => x.IsActive).ThenBy(x => x.PostalCode),
                 _ => desc ? query.OrderByDescending(x => x.CreateDateTime).ThenBy(x => x.PostalCode) : query.OrderBy(x => x.CreateDateTime).ThenBy(x => x.PostalCode)
+            };
+        }
+
+        private static CountryResponse MapCountryResponse(
+            MstCountry entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new CountryResponse
+            {
+                Id = entity.Id,
+                CountryCode = entity.CountryCode,
+                CountryName = entity.CountryName,
+                PhoneCode = entity.PhoneCode,
+                IsDefault = entity.IsDefault,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
+            };
+        }
+
+        private static CountryDetailResponse MapCountryDetailResponse(
+            MstCountry entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new CountryDetailResponse
+            {
+                Id = entity.Id,
+                CountryCode = entity.CountryCode,
+                CountryName = entity.CountryName,
+                PhoneCode = entity.PhoneCode,
+                IsDefault = entity.IsDefault,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
+
+        private static ProvinceResponse MapProvinceResponse(
+            MstProvince entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new ProvinceResponse
+            {
+                Id = entity.Id,
+                CountryId = entity.CountryId,
+                CountryCode = entity.Country?.CountryCode ?? string.Empty,
+                CountryName = entity.Country?.CountryName ?? string.Empty,
+                ProvinceCode = entity.ProvinceCode,
+                ProvinceName = entity.ProvinceName,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
+            };
+        }
+
+        private static ProvinceDetailResponse MapProvinceDetailResponse(
+            MstProvince entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new ProvinceDetailResponse
+            {
+                Id = entity.Id,
+                CountryId = entity.CountryId,
+                CountryCode = entity.Country?.CountryCode ?? string.Empty,
+                CountryName = entity.Country?.CountryName ?? string.Empty,
+                ProvinceCode = entity.ProvinceCode,
+                ProvinceName = entity.ProvinceName,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
+
+        private static CityResponse MapCityResponse(
+            MstCity entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new CityResponse
+            {
+                Id = entity.Id,
+                ProvinceId = entity.ProvinceId,
+                ProvinceCode = entity.Province?.ProvinceCode ?? string.Empty,
+                ProvinceName = entity.Province?.ProvinceName ?? string.Empty,
+                CountryId = entity.Province?.CountryId ?? Guid.Empty,
+                CountryCode = entity.Province?.Country?.CountryCode ?? string.Empty,
+                CountryName = entity.Province?.Country?.CountryName ?? string.Empty,
+                CityCode = entity.CityCode,
+                CityName = entity.CityName,
+                CityType = entity.CityType,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
+            };
+        }
+
+        private static CityDetailResponse MapCityDetailResponse(
+            MstCity entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new CityDetailResponse
+            {
+                Id = entity.Id,
+                ProvinceId = entity.ProvinceId,
+                ProvinceCode = entity.Province?.ProvinceCode ?? string.Empty,
+                ProvinceName = entity.Province?.ProvinceName ?? string.Empty,
+                CountryId = entity.Province?.CountryId ?? Guid.Empty,
+                CountryCode = entity.Province?.Country?.CountryCode ?? string.Empty,
+                CountryName = entity.Province?.Country?.CountryName ?? string.Empty,
+                CityCode = entity.CityCode,
+                CityName = entity.CityName,
+                CityType = entity.CityType,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
+
+        private static DistrictResponse MapDistrictResponse(
+            MstDistrict entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new DistrictResponse
+            {
+                Id = entity.Id,
+                CityId = entity.CityId,
+                CityCode = entity.City?.CityCode ?? string.Empty,
+                CityName = entity.City?.CityName ?? string.Empty,
+                ProvinceId = entity.City?.ProvinceId ?? Guid.Empty,
+                ProvinceCode = entity.City?.Province?.ProvinceCode ?? string.Empty,
+                ProvinceName = entity.City?.Province?.ProvinceName ?? string.Empty,
+                CountryId = entity.City?.Province?.CountryId ?? Guid.Empty,
+                CountryCode = entity.City?.Province?.Country?.CountryCode ?? string.Empty,
+                CountryName = entity.City?.Province?.Country?.CountryName ?? string.Empty,
+                DistrictCode = entity.DistrictCode,
+                DistrictName = entity.DistrictName,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
+            };
+        }
+
+        private static DistrictDetailResponse MapDistrictDetailResponse(
+            MstDistrict entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new DistrictDetailResponse
+            {
+                Id = entity.Id,
+                CityId = entity.CityId,
+                CityCode = entity.City?.CityCode ?? string.Empty,
+                CityName = entity.City?.CityName ?? string.Empty,
+                ProvinceId = entity.City?.ProvinceId ?? Guid.Empty,
+                ProvinceCode = entity.City?.Province?.ProvinceCode ?? string.Empty,
+                ProvinceName = entity.City?.Province?.ProvinceName ?? string.Empty,
+                CountryId = entity.City?.Province?.CountryId ?? Guid.Empty,
+                CountryCode = entity.City?.Province?.Country?.CountryCode ?? string.Empty,
+                CountryName = entity.City?.Province?.Country?.CountryName ?? string.Empty,
+                DistrictCode = entity.DistrictCode,
+                DistrictName = entity.DistrictName,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
+
+        private static PostalCodeResponse MapPostalCodeResponse(
+            MstPostalCode entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new PostalCodeResponse
+            {
+                Id = entity.Id,
+                DistrictId = entity.DistrictId,
+                DistrictCode = entity.District?.DistrictCode ?? string.Empty,
+                DistrictName = entity.District?.DistrictName ?? string.Empty,
+                CityId = entity.District?.CityId ?? Guid.Empty,
+                CityCode = entity.District?.City?.CityCode ?? string.Empty,
+                CityName = entity.District?.City?.CityName ?? string.Empty,
+                ProvinceId = entity.District?.City?.ProvinceId ?? Guid.Empty,
+                ProvinceCode = entity.District?.City?.Province?.ProvinceCode ?? string.Empty,
+                ProvinceName = entity.District?.City?.Province?.ProvinceName ?? string.Empty,
+                CountryId = entity.District?.City?.Province?.CountryId ?? Guid.Empty,
+                CountryCode = entity.District?.City?.Province?.Country?.CountryCode ?? string.Empty,
+                CountryName = entity.District?.City?.Province?.Country?.CountryName ?? string.Empty,
+                PostalCode = entity.PostalCode,
+                VillageName = entity.VillageName,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
+            };
+        }
+
+        private static PostalCodeDetailResponse MapPostalCodeDetailResponse(
+            MstPostalCode entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new PostalCodeDetailResponse
+            {
+                Id = entity.Id,
+                DistrictId = entity.DistrictId,
+                DistrictCode = entity.District?.DistrictCode ?? string.Empty,
+                DistrictName = entity.District?.DistrictName ?? string.Empty,
+                CityId = entity.District?.CityId ?? Guid.Empty,
+                CityCode = entity.District?.City?.CityCode ?? string.Empty,
+                CityName = entity.District?.City?.CityName ?? string.Empty,
+                ProvinceId = entity.District?.City?.ProvinceId ?? Guid.Empty,
+                ProvinceCode = entity.District?.City?.Province?.ProvinceCode ?? string.Empty,
+                ProvinceName = entity.District?.City?.Province?.ProvinceName ?? string.Empty,
+                CountryId = entity.District?.City?.Province?.CountryId ?? Guid.Empty,
+                CountryCode = entity.District?.City?.Province?.Country?.CountryCode ?? string.Empty,
+                CountryName = entity.District?.City?.Province?.Country?.CountryName ?? string.Empty,
+                PostalCode = entity.PostalCode,
+                VillageName = entity.VillageName,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
         }
 
         private async Task<string> GenerateCountryCodeAsync()
         {
             var existingCodes = await _dbContext.MstCountries
+                .IgnoreQueryFilters()
                 .AsNoTracking()
                 .Where(x => x.CountryCode.StartsWith(CountryCodePrefix))
                 .Select(x => x.CountryCode)
@@ -1818,6 +2657,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         private async Task<string> GenerateProvinceCodeAsync()
         {
             var existingCodes = await _dbContext.MstProvinces
+                .IgnoreQueryFilters()
                 .AsNoTracking()
                 .Where(x => x.ProvinceCode.StartsWith(ProvinceCodePrefix))
                 .Select(x => x.ProvinceCode)
@@ -1829,6 +2669,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         private async Task<string> GenerateCityCodeAsync()
         {
             var existingCodes = await _dbContext.MstCities
+                .IgnoreQueryFilters()
                 .AsNoTracking()
                 .Where(x => x.CityCode.StartsWith(CityCodePrefix))
                 .Select(x => x.CityCode)
@@ -1840,6 +2681,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         private async Task<string> GenerateDistrictCodeAsync()
         {
             var existingCodes = await _dbContext.MstDistricts
+                .IgnoreQueryFilters()
                 .AsNoTracking()
                 .Where(x => x.DistrictCode.StartsWith(DistrictCodePrefix))
                 .Select(x => x.DistrictCode)
@@ -1858,8 +2700,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 .ToHashSet();
 
             var nextNumber = 1;
+
             while (usedNumbers.Contains(nextNumber))
+            {
                 nextNumber++;
+            }
 
             return prefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
         }
@@ -1880,7 +2725,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             };
         }
 
-        private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
+        private static (int PageNumber, int PageSize) NormalizePaging(
+            int pageNumber,
+            int pageSize)
         {
             if (pageNumber < 1)
                 pageNumber = 1;
@@ -1894,7 +2741,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return (pageNumber, pageSize);
         }
 
-        private static DateRangeResolveResult ResolveDateRange(DateTime? startDate, DateTime? endDate, string? customPeriod)
+        private static DateRangeResolveResult ResolveDateRange(
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
         {
             var period = customPeriod?.Trim().ToLowerInvariant();
             var today = DateTime.UtcNow.Date;
@@ -1921,6 +2771,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     break;
 
                 case "last7days":
+                case "last7day":
                     start = today.AddDays(-6);
                     endExclusive = today.AddDays(1);
                     break;
@@ -1957,6 +2808,48 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             };
         }
 
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(
+            IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
+        {
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
+        }
+
         private static string NormalizeSortBy(string? sortBy)
         {
             return string.IsNullOrWhiteSpace(sortBy)
@@ -1989,9 +2882,14 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         private void ApplyDeleteAudit(IdentityModel entity)
         {
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsDelete = true;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
         }
 
         private sealed class DateRangeResolveResult

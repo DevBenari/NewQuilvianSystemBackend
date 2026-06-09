@@ -10,7 +10,9 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.Net;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 
 using ResponseKioskDevicePagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
@@ -28,7 +30,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         AreaName = "Administrator",
         ControllerName = "KioskDevice",
         Description = "Administrator master data kiosk device",
-        SortOrder = 6
+        SortOrder = 8
     )]
     [Tags("Administrator / Master Data / Kiosk Device")]
     public class KioskDeviceController : ControllerBase
@@ -48,13 +50,26 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<KioskDeviceFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Kiosk Device", Description = "Melihat data kiosk device", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Kiosk Device",
+            Description = "Melihat metadata filter kiosk device",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("KioskDevice", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new KioskDeviceFilterMetadataResponse
             {
                 DefaultFilter = new KioskDeviceDefaultFilterResponse(),
+                CustomPeriods = new List<KioskDeviceCustomPeriodOptionResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "lastmonth", Label = "Bulan lalu" }
+                },
                 SortOptions = new List<KioskDeviceSortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -67,12 +82,17 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     new() { Value = "clinicName", Label = "Nama clinic" },
                     new() { Value = "defaultScannerProfileName", Label = "Default scanner profile" },
                     new() { Value = "locationName", Label = "Lokasi" },
+                    new() { Value = "floorName", Label = "Lantai" },
+                    new() { Value = "ipAddress", Label = "IP address" },
+                    new() { Value = "serialNumber", Label = "Serial number" },
+                    new() { Value = "vendorName", Label = "Vendor" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
                 DeviceTypeOptions = BuildEnumOptions<KioskDeviceType>(),
-                DeviceStatusOptions = BuildEnumOptions<KioskDeviceStatus>()
+                DeviceStatusOptions = BuildEnumOptions<KioskDeviceStatus>(),
+                ResetButtonLabel = "Reset"
             };
 
             await _loggerService.InfoAsync(
@@ -90,13 +110,17 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<KioskDeviceSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Kiosk Device", Description = "Melihat data kiosk device", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Kiosk Device",
+            Description = "Melihat ringkasan kiosk device",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("KioskDevice", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var query = _dbContext.Set<MstKioskDevice>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
             var result = new KioskDeviceSummaryResponse
             {
@@ -108,7 +132,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 MaintenanceDevice = await query.CountAsync(x => x.DeviceStatus == KioskDeviceStatus.Maintenance),
                 RegistrationAvailableDevice = await query.CountAsync(x => x.IsAvailableForRegistration),
                 CheckInAvailableDevice = await query.CountAsync(x => x.IsAvailableForCheckIn),
-                PaymentAvailableDevice = await query.CountAsync(x => x.IsAvailableForPayment)
+                PaymentAvailableDevice = await query.CountAsync(x => x.IsAvailableForPayment),
+                WalkInAllowedDevice = await query.CountAsync(x => x.IsAllowWalkIn),
+                AppointmentAllowedDevice = await query.CountAsync(x => x.IsAllowAppointment),
+                InsuranceRegistrationAllowedDevice = await query.CountAsync(x => x.IsAllowInsuranceRegistration),
+                WithServiceUnitDevice = await query.CountAsync(x => x.ServiceUnitId.HasValue),
+                WithClinicDevice = await query.CountAsync(x => x.ClinicId.HasValue),
+                WithScannerProfileDevice = await query.CountAsync(x => x.DefaultScannerProfileId.HasValue)
             };
 
             return Ok(ApiResponse<KioskDeviceSummaryResponse>.Ok(
@@ -119,9 +149,18 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponseKioskDevicePagedResult>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Kiosk Device", Description = "Melihat data kiosk device", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Kiosk Device",
+            Description = "Melihat data kiosk device",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("KioskDevice", "Read")]
         public async Task<IActionResult> GetKioskDevices(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] string? search,
             [FromQuery] bool? isActive,
             [FromQuery] Guid? serviceUnitId,
@@ -132,6 +171,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             [FromQuery] bool? isAvailableForRegistration,
             [FromQuery] bool? isAvailableForCheckIn,
             [FromQuery] bool? isAvailableForPayment,
+            [FromQuery] bool? isAllowWalkIn,
+            [FromQuery] bool? isAllowAppointment,
+            [FromQuery] bool? isAllowInsuranceRegistration,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -141,74 +183,49 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.Set<MstKioskDevice>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyStandardFilter(
+                query,
+                isActive,
+                serviceUnitId,
+                clinicId,
+                defaultScannerProfileId,
+                deviceType,
+                deviceStatus,
+                isAvailableForRegistration,
+                isAvailableForCheckIn,
+                isAvailableForPayment,
+                isAllowWalkIn,
+                isAllowAppointment,
+                isAllowInsuranceRegistration,
+                search
+            );
 
-                query = query.Where(x =>
-                    x.DeviceCode.ToLower().Contains(keyword) ||
-                    x.DeviceName.ToLower().Contains(keyword) ||
-                    x.LocationName != null && x.LocationName.ToLower().Contains(keyword) ||
-                    x.FloorName != null && x.FloorName.ToLower().Contains(keyword) ||
-                    x.IpAddress != null && x.IpAddress.ToLower().Contains(keyword) ||
-                    x.MacAddress != null && x.MacAddress.ToLower().Contains(keyword) ||
-                    x.SerialNumber != null && x.SerialNumber.ToLower().Contains(keyword) ||
-                    x.DeviceModel != null && x.DeviceModel.ToLower().Contains(keyword) ||
-                    x.VendorName != null && x.VendorName.ToLower().Contains(keyword) ||
-                    x.Description != null && x.Description.ToLower().Contains(keyword) ||
-                    x.ServiceUnit != null && x.ServiceUnit.ServiceUnitCode.ToLower().Contains(keyword) ||
-                    x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword) ||
-                    x.Clinic != null && x.Clinic.ClinicCode.ToLower().Contains(keyword) ||
-                    x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword) ||
-                    x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileCode.ToLower().Contains(keyword) ||
-                    x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileName.ToLower().Contains(keyword));
-            }
+            var totalData = await query.CountAsync();
 
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
-
-            if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
-                query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
-
-            if (clinicId.HasValue && clinicId.Value != Guid.Empty)
-                query = query.Where(x => x.ClinicId == clinicId.Value);
-
-            if (defaultScannerProfileId.HasValue && defaultScannerProfileId.Value != Guid.Empty)
-                query = query.Where(x => x.DefaultScannerProfileId == defaultScannerProfileId.Value);
-
-            if (deviceType.HasValue)
-                query = query.Where(x => x.DeviceType == deviceType.Value);
-
-            if (deviceStatus.HasValue)
-                query = query.Where(x => x.DeviceStatus == deviceStatus.Value);
-
-            if (isAvailableForRegistration.HasValue)
-                query = query.Where(x => x.IsAvailableForRegistration == isAvailableForRegistration.Value);
-
-            if (isAvailableForCheckIn.HasValue)
-                query = query.Where(x => x.IsAvailableForCheckIn == isAvailableForCheckIn.Value);
-
-            if (isAvailableForPayment.HasValue)
-                query = query.Where(x => x.IsAvailableForPayment == isAvailableForPayment.Value);
-
-            var totalCount = await query.CountAsync();
-
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => ToResponse(x))
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .Select(x => x.CreateBy)
+                    .Where(x => x != Guid.Empty)
+            );
+
+            var items = entities
+                .Select(x => MapResponse(x, actorNames))
+                .ToList();
 
             var result = new ResponseKioskDevicePagedResult
             {
                 PageNumber = pageNumber,
                 PageSize = pageSize,
-                TotalData = totalCount,
-                TotalPage = (int)Math.Ceiling(totalCount / (double)pageSize),
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
                 Items = items
             };
 
@@ -220,9 +237,15 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet("options")]
         [ProducesResponseType(typeof(ApiResponse<KioskDeviceOptionPagedResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Kiosk Device", Description = "Melihat data pilihan kiosk device", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Kiosk Device",
+            Description = "Melihat data pilihan kiosk device",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("KioskDevice", "Read")]
-        public async Task<IActionResult> GetOptions(
+        public async Task<IActionResult> GetKioskDeviceOptions(
             [FromQuery] Guid? serviceUnitId,
             [FromQuery] Guid? clinicId,
             [FromQuery] Guid? defaultScannerProfileId,
@@ -231,6 +254,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             [FromQuery] bool? isAvailableForRegistration,
             [FromQuery] bool? isAvailableForCheckIn,
             [FromQuery] bool? isAvailableForPayment,
+            [FromQuery] bool? isAllowWalkIn,
+            [FromQuery] bool? isAllowAppointment,
+            [FromQuery] bool? isAllowInsuranceRegistration,
             [FromQuery] bool onlyActive = true,
             [FromQuery] bool? activeOnly = null,
             [FromQuery] string? search = null,
@@ -243,86 +269,37 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             var useOnlyActive = activeOnly ?? onlyActive;
 
-            var query = _dbContext.Set<MstKioskDevice>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
-            if (useOnlyActive)
-                query = query.Where(x => x.IsActive);
-
-            if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
-                query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
-
-            if (clinicId.HasValue && clinicId.Value != Guid.Empty)
-                query = query.Where(x => x.ClinicId == clinicId.Value);
-
-            if (defaultScannerProfileId.HasValue && defaultScannerProfileId.Value != Guid.Empty)
-                query = query.Where(x => x.DefaultScannerProfileId == defaultScannerProfileId.Value);
-
-            if (deviceType.HasValue)
-                query = query.Where(x => x.DeviceType == deviceType.Value);
-
-            if (deviceStatus.HasValue)
-                query = query.Where(x => x.DeviceStatus == deviceStatus.Value);
-
-            if (isAvailableForRegistration.HasValue)
-                query = query.Where(x => x.IsAvailableForRegistration == isAvailableForRegistration.Value);
-
-            if (isAvailableForCheckIn.HasValue)
-                query = query.Where(x => x.IsAvailableForCheckIn == isAvailableForCheckIn.Value);
-
-            if (isAvailableForPayment.HasValue)
-                query = query.Where(x => x.IsAvailableForPayment == isAvailableForPayment.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.DeviceCode.ToLower().Contains(keyword) ||
-                    x.DeviceName.ToLower().Contains(keyword) ||
-                    x.SerialNumber != null && x.SerialNumber.ToLower().Contains(keyword) ||
-                    x.LocationName != null && x.LocationName.ToLower().Contains(keyword) ||
-                    x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword) ||
-                    x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword) ||
-                    x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileName.ToLower().Contains(keyword));
-            }
+            query = ApplyStandardFilter(
+                query,
+                useOnlyActive ? true : null,
+                serviceUnitId,
+                clinicId,
+                defaultScannerProfileId,
+                deviceType,
+                deviceStatus,
+                isAvailableForRegistration,
+                isAvailableForCheckIn,
+                isAvailableForPayment,
+                isAllowWalkIn,
+                isAllowAppointment,
+                isAllowInsuranceRegistration,
+                search
+            );
 
             var totalData = await query.CountAsync();
 
-            var items = await query
+            var entities = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.DeviceName)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new KioskDeviceOptionResponse
-                {
-                    Id = x.Id,
-                    DeviceCode = x.DeviceCode,
-                    DeviceName = x.DeviceName,
-                    DeviceType = x.DeviceType,
-                    DeviceStatus = x.DeviceStatus,
-
-                    ServiceUnitId = x.ServiceUnitId,
-                    ServiceUnitName = x.ServiceUnit != null
-                        ? x.ServiceUnit.ServiceUnitName
-                        : null,
-
-                    ClinicId = x.ClinicId,
-                    ClinicName = x.Clinic != null
-                        ? x.Clinic.ClinicName
-                        : null,
-
-                    DefaultScannerProfileId = x.DefaultScannerProfileId,
-                    DefaultScannerProfileName = x.DefaultScannerProfile != null
-                        ? x.DefaultScannerProfile.ProfileName
-                        : null,
-
-                    IsAvailableForRegistration = x.IsAvailableForRegistration,
-                    IsAvailableForCheckIn = x.IsAvailableForCheckIn,
-                    IsAvailableForPayment = x.IsAvailableForPayment
-                })
                 .ToListAsync();
+
+            var items = entities
+                .Select(MapOptionResponse)
+                .ToList();
 
             var result = new KioskDeviceOptionPagedResponse
             {
@@ -342,53 +319,20 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<KioskDeviceDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Kiosk Device", Description = "Melihat detail kiosk device", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Kiosk Device",
+            Description = "Melihat detail kiosk device",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("KioskDevice", "Read")]
-        public async Task<IActionResult> GetById(Guid id)
+        public async Task<IActionResult> GetKioskDeviceById(Guid id)
         {
-            var result = await _dbContext.Set<MstKioskDevice>()
-                .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new KioskDeviceDetailResponse
-                {
-                    Id = x.Id,
-                    DeviceCode = x.DeviceCode,
-                    DeviceName = x.DeviceName,
-                    DeviceType = x.DeviceType,
-                    DeviceStatus = x.DeviceStatus,
-                    ServiceUnitId = x.ServiceUnitId,
-                    ServiceUnitCode = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitCode : null,
-                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
-                    ClinicId = x.ClinicId,
-                    ClinicCode = x.Clinic != null ? x.Clinic.ClinicCode : null,
-                    ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
-                    DefaultScannerProfileId = x.DefaultScannerProfileId,
-                    DefaultScannerProfileCode = x.DefaultScannerProfile != null ? x.DefaultScannerProfile.ProfileCode : null,
-                    DefaultScannerProfileName = x.DefaultScannerProfile != null ? x.DefaultScannerProfile.ProfileName : null,
-                    LocationName = x.LocationName,
-                    FloorName = x.FloorName,
-                    IpAddress = x.IpAddress,
-                    MacAddress = x.MacAddress,
-                    SerialNumber = x.SerialNumber,
-                    DeviceModel = x.DeviceModel,
-                    VendorName = x.VendorName,
-                    IsAvailableForRegistration = x.IsAvailableForRegistration,
-                    IsAvailableForCheckIn = x.IsAvailableForCheckIn,
-                    IsAvailableForPayment = x.IsAvailableForPayment,
-                    IsAllowWalkIn = x.IsAllowWalkIn,
-                    IsAllowAppointment = x.IsAllowAppointment,
-                    IsAllowInsuranceRegistration = x.IsAllowInsuranceRegistration,
-                    LastOnlineAt = x.LastOnlineAt,
-                    LastOfflineAt = x.LastOfflineAt,
-                    LastErrorMessage = x.LastErrorMessage,
-                    SortOrder = x.SortOrder,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime,
-                    Description = x.Description
-                })
-                .FirstOrDefaultAsync();
+            var entity = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (result == null)
+            if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
@@ -396,8 +340,28 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 ));
             }
 
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, actorNames);
+
+            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
+            {
+                data.CreateBy = null;
+                data.CreateByName = null;
+            }
+
+            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
+            {
+                data.UpdateBy = null;
+                data.UpdateByName = null;
+            }
+
             return Ok(ApiResponse<KioskDeviceDetailResponse>.Ok(
-                result,
+                data,
                 "Detail kiosk device berhasil diambil."
             ));
         }
@@ -405,20 +369,19 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<KioskDeviceCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [AccessAction("Create", "Create Kiosk Device", Description = "Membuat data kiosk device", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessAction(
+            "Create",
+            "Create Kiosk Device",
+            Description = "Membuat data kiosk device",
+            AccessType = AccessTypes.Create,
+            SortOrder = 2
+        )]
         [AccessPermission("KioskDevice", "Create")]
         public async Task<IActionResult> CreateKioskDevice([FromBody] CreateKioskDeviceRequest request)
         {
             var validation = await ValidateRequestAsync(
                 excludeId: null,
-                serviceUnitId: request.ServiceUnitId,
-                clinicId: request.ClinicId,
-                defaultScannerProfileId: request.DefaultScannerProfileId,
-                deviceCode: request.DeviceCode,
-                deviceName: request.DeviceName,
-                ipAddress: request.IpAddress,
-                macAddress: request.MacAddress,
-                serialNumber: request.SerialNumber
+                request: request
             );
 
             if (!validation.IsValid)
@@ -442,13 +405,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 ServiceUnitId = NormalizeNullableGuid(request.ServiceUnitId),
                 ClinicId = NormalizeNullableGuid(request.ClinicId),
                 DefaultScannerProfileId = NormalizeNullableGuid(request.DefaultScannerProfileId),
-                LocationName = NormalizeNullableText(request.LocationName),
-                FloorName = NormalizeNullableText(request.FloorName),
-                IpAddress = NormalizeNullableText(request.IpAddress),
-                MacAddress = NormalizeNullableText(request.MacAddress),
-                SerialNumber = NormalizeNullableText(request.SerialNumber),
-                DeviceModel = NormalizeNullableText(request.DeviceModel),
-                VendorName = NormalizeNullableText(request.VendorName),
+                LocationName = NormalizeNullableString(request.LocationName),
+                FloorName = NormalizeNullableString(request.FloorName),
+                IpAddress = NormalizeNullableString(request.IpAddress),
+                MacAddress = NormalizeMacAddress(request.MacAddress),
+                SerialNumber = NormalizeNullableUpperString(request.SerialNumber),
+                DeviceModel = NormalizeNullableString(request.DeviceModel),
+                VendorName = NormalizeNullableString(request.VendorName),
                 IsAvailableForRegistration = request.IsAvailableForRegistration,
                 IsAvailableForCheckIn = request.IsAvailableForCheckIn,
                 IsAvailableForPayment = request.IsAvailableForPayment,
@@ -456,7 +419,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 IsAllowAppointment = request.IsAllowAppointment,
                 IsAllowInsuranceRegistration = request.IsAllowInsuranceRegistration,
                 SortOrder = request.SortOrder,
-                Description = NormalizeNullableText(request.Description),
+                Description = NormalizeNullableString(request.Description),
                 IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
@@ -467,32 +430,52 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             _dbContext.Set<MstKioskDevice>().Add(entity);
             await _dbContext.SaveChangesAsync();
 
-            var response = new KioskDeviceCreateResponse
+            var result = new KioskDeviceCreateResponse
             {
                 Id = entity.Id,
                 DeviceCode = entity.DeviceCode,
                 DeviceName = entity.DeviceName,
                 DeviceType = entity.DeviceType,
+                DeviceTypeName = BuildEnumLabel(entity.DeviceType.ToString()),
                 DeviceStatus = entity.DeviceStatus,
+                DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
                 ServiceUnitId = entity.ServiceUnitId,
                 ClinicId = entity.ClinicId,
                 DefaultScannerProfileId = entity.DefaultScannerProfileId,
                 IsAvailableForRegistration = entity.IsAvailableForRegistration,
+                IsAvailableForCheckIn = entity.IsAvailableForCheckIn,
+                IsAvailableForPayment = entity.IsAvailableForPayment,
                 IsActive = entity.IsActive
             };
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "KioskDevice.CreateKioskDevice",
+                "Membuat data kiosk device.",
+                result
+            );
+
             return Ok(ApiResponse<KioskDeviceCreateResponse>.Ok(
-                response,
+                result,
                 "Kiosk device berhasil dibuat."
             ));
         }
 
         [HttpPut("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<KioskDeviceUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Kiosk Device", Description = "Mengubah data kiosk device", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction(
+            "Update",
+            "Update Kiosk Device",
+            Description = "Mengubah data kiosk device",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
         [AccessPermission("KioskDevice", "Update")]
-        public async Task<IActionResult> UpdateKioskDevice(Guid id, [FromBody] UpdateKioskDeviceRequest request)
+        public async Task<IActionResult> UpdateKioskDevice(
+            Guid id,
+            [FromBody] UpdateKioskDeviceRequest request)
         {
             var entity = await _dbContext.Set<MstKioskDevice>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -507,14 +490,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             var validation = await ValidateRequestAsync(
                 excludeId: id,
-                serviceUnitId: request.ServiceUnitId,
-                clinicId: request.ClinicId,
-                defaultScannerProfileId: request.DefaultScannerProfileId,
-                deviceCode: request.DeviceCode,
-                deviceName: request.DeviceName,
-                ipAddress: request.IpAddress,
-                macAddress: request.MacAddress,
-                serialNumber: request.SerialNumber
+                request: request
             );
 
             if (!validation.IsValid)
@@ -525,6 +501,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.DeviceCode = request.DeviceCode.Trim().ToUpperInvariant();
             entity.DeviceName = request.DeviceName.Trim();
             entity.DeviceType = request.DeviceType;
@@ -532,62 +511,68 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             entity.ServiceUnitId = NormalizeNullableGuid(request.ServiceUnitId);
             entity.ClinicId = NormalizeNullableGuid(request.ClinicId);
             entity.DefaultScannerProfileId = NormalizeNullableGuid(request.DefaultScannerProfileId);
-            entity.LocationName = NormalizeNullableText(request.LocationName);
-            entity.FloorName = NormalizeNullableText(request.FloorName);
-            entity.IpAddress = NormalizeNullableText(request.IpAddress);
-            entity.MacAddress = NormalizeNullableText(request.MacAddress);
-            entity.SerialNumber = NormalizeNullableText(request.SerialNumber);
-            entity.DeviceModel = NormalizeNullableText(request.DeviceModel);
-            entity.VendorName = NormalizeNullableText(request.VendorName);
+            entity.LocationName = NormalizeNullableString(request.LocationName);
+            entity.FloorName = NormalizeNullableString(request.FloorName);
+            entity.IpAddress = NormalizeNullableString(request.IpAddress);
+            entity.MacAddress = NormalizeMacAddress(request.MacAddress);
+            entity.SerialNumber = NormalizeNullableUpperString(request.SerialNumber);
+            entity.DeviceModel = NormalizeNullableString(request.DeviceModel);
+            entity.VendorName = NormalizeNullableString(request.VendorName);
             entity.IsAvailableForRegistration = request.IsAvailableForRegistration;
             entity.IsAvailableForCheckIn = request.IsAvailableForCheckIn;
             entity.IsAvailableForPayment = request.IsAvailableForPayment;
             entity.IsAllowWalkIn = request.IsAllowWalkIn;
             entity.IsAllowAppointment = request.IsAllowAppointment;
             entity.IsAllowInsuranceRegistration = request.IsAllowInsuranceRegistration;
-            entity.LastOnlineAt = request.LastOnlineAt;
-            entity.LastOfflineAt = request.LastOfflineAt;
-            entity.LastErrorMessage = NormalizeNullableText(request.LastErrorMessage);
+            entity.LastOnlineAt = NormalizeNullableUtcDateTime(request.LastOnlineAt);
+            entity.LastOfflineAt = NormalizeNullableUtcDateTime(request.LastOfflineAt);
+            entity.LastErrorMessage = NormalizeNullableString(request.LastErrorMessage);
             entity.SortOrder = request.SortOrder;
-            entity.Description = NormalizeNullableText(request.Description);
+            entity.Description = NormalizeNullableString(request.Description);
             entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var result = new KioskDeviceUpdateResponse
+            {
+                Id = entity.Id,
+                DeviceCode = entity.DeviceCode,
+                DeviceName = entity.DeviceName,
+                DeviceStatus = entity.DeviceStatus,
+                DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "KioskDevice.UpdateKioskDevice",
+                "Mengubah data kiosk device.",
+                result
+            );
+
+            return Ok(ApiResponse<KioskDeviceUpdateResponse>.Ok(
+                result,
                 "Kiosk device berhasil diperbarui."
             ));
         }
 
-        [HttpPatch("{id:guid}/activate")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<KioskDeviceUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Kiosk Device", Description = "Mengaktifkan data kiosk device", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction(
+            "Update",
+            "Update Kiosk Device Status",
+            Description = "Mengubah status aktif kiosk device",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
         [AccessPermission("KioskDevice", "Update")]
-        public async Task<IActionResult> ActivateKioskDevice(Guid id)
-        {
-            return await SetActiveStatusAsync(id, true, "Kiosk device berhasil diaktifkan.");
-        }
-
-        [HttpPatch("{id:guid}/deactivate")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Kiosk Device", Description = "Menonaktifkan data kiosk device", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("KioskDevice", "Update")]
-        public async Task<IActionResult> DeactivateKioskDevice(Guid id)
-        {
-            return await SetActiveStatusAsync(id, false, "Kiosk device berhasil dinonaktifkan.");
-        }
-
-        [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Delete", "Delete Kiosk Device", Description = "Menghapus data kiosk device", AccessType = AccessTypes.Delete, SortOrder = 4)]
-        [AccessPermission("KioskDevice", "Delete")]
-        public async Task<IActionResult> DeleteKioskDevice(Guid id)
+        public async Task<IActionResult> UpdateKioskDeviceStatus(
+            Guid id,
+            [FromBody] UpdateKioskDeviceStatusRequest request)
         {
             var entity = await _dbContext.Set<MstKioskDevice>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -600,263 +585,707 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 ));
             }
 
-            entity.IsDelete = true;
-            entity.IsActive = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var result = new KioskDeviceUpdateResponse
+            {
+                Id = entity.Id,
+                DeviceCode = entity.DeviceCode,
+                DeviceName = entity.DeviceName,
+                DeviceStatus = entity.DeviceStatus,
+                DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime
+            };
+
+            return Ok(ApiResponse<KioskDeviceUpdateResponse>.Ok(
+                result,
+                "Status kiosk device berhasil diperbarui."
+            ));
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<KioskDeviceDeleteResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Delete",
+            "Delete Kiosk Device",
+            Description = "Menghapus data kiosk device",
+            AccessType = AccessTypes.Delete,
+            SortOrder = 4
+        )]
+        [AccessPermission("KioskDevice", "Delete")]
+        public async Task<IActionResult> DeleteKioskDevice(
+            Guid id,
+            [FromBody] DeleteKioskDeviceRequest? request = null)
+        {
+            var entity = await _dbContext.Set<MstKioskDevice>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Kiosk device tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsDelete = true;
+            entity.IsActive = false;
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+            {
+                entity.Description = request.DeleteReason.Trim();
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            var result = new KioskDeviceDeleteResponse
+            {
+                Id = entity.Id,
+                DeviceCode = entity.DeviceCode,
+                DeviceName = entity.DeviceName,
+                DeleteDateTime = entity.DeleteDateTime
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "KioskDevice.DeleteKioskDevice",
+                "Menghapus data kiosk device.",
+                result
+            );
+
+            return Ok(ApiResponse<KioskDeviceDeleteResponse>.Ok(
+                result,
                 "Kiosk device berhasil dihapus."
             ));
         }
 
-        private async Task<IActionResult> SetActiveStatusAsync(Guid id, bool isActive, string successMessage)
+        private IQueryable<MstKioskDevice> BuildBaseQuery()
         {
-            var entity = await _dbContext.Set<MstKioskDevice>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Kiosk device tidak ditemukan."
-                ));
-            }
-
-            entity.IsActive = isActive;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
-
-            await _dbContext.SaveChangesAsync();
-
-            return Ok(ApiResponse<object>.Ok(
-                null,
-                successMessage
-            ));
+            return _dbContext.Set<MstKioskDevice>()
+                .AsNoTracking()
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.Clinic)
+                .Include(x => x.DefaultScannerProfile)
+                .Where(x => !x.IsDelete);
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
-            Guid? excludeId,
+        private static IQueryable<MstKioskDevice> ApplyDateFilter(
+            IQueryable<MstKioskDevice> query,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            if (startDate.HasValue)
+            {
+                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime >= start);
+            }
+
+            if (endDate.HasValue)
+            {
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime < end);
+            }
+
+            if (!startDate.HasValue &&
+                !endDate.HasValue &&
+                !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var today = DateTime.UtcNow.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today &&
+                            x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "last7days":
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today.AddDays(-6) &&
+                            x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(
+                            today.Year,
+                            today.Month,
+                            1,
+                            0,
+                            0,
+                            0,
+                            DateTimeKind.Utc
+                        );
+
+                        query = query.Where(x =>
+                            x.CreateDateTime >= thisMonthStart &&
+                            x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        break;
+
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(
+                            today.Year,
+                            today.Month,
+                            1,
+                            0,
+                            0,
+                            0,
+                            DateTimeKind.Utc
+                        );
+
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+
+                        query = query.Where(x =>
+                            x.CreateDateTime >= lastMonthStart &&
+                            x.CreateDateTime < currentMonthStart);
+                        break;
+                }
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstKioskDevice> ApplyStandardFilter(
+            IQueryable<MstKioskDevice> query,
+            bool? isActive,
             Guid? serviceUnitId,
             Guid? clinicId,
             Guid? defaultScannerProfileId,
-            string deviceCode,
-            string deviceName,
-            string? ipAddress,
-            string? macAddress,
-            string? serialNumber)
+            KioskDeviceType? deviceType,
+            KioskDeviceStatus? deviceStatus,
+            bool? isAvailableForRegistration,
+            bool? isAvailableForCheckIn,
+            bool? isAvailableForPayment,
+            bool? isAllowWalkIn,
+            bool? isAllowAppointment,
+            bool? isAllowInsuranceRegistration,
+            string? search)
         {
-            if (string.IsNullOrWhiteSpace(deviceCode))
-                return (false, "Kode kiosk device wajib diisi.");
-
-            if (string.IsNullOrWhiteSpace(deviceName))
-                return (false, "Nama kiosk device wajib diisi.");
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
 
             if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
             {
-                var serviceUnitExists = await _dbContext.Set<MstServiceUnit>()
-                    .AnyAsync(x => x.Id == serviceUnitId.Value && x.IsActive && !x.IsDelete);
-
-                if (!serviceUnitExists)
-                    return (false, "Service unit tidak valid atau tidak aktif.");
+                query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
             }
 
             if (clinicId.HasValue && clinicId.Value != Guid.Empty)
             {
-                var clinicExists = await _dbContext.Set<MstClinic>()
-                    .AnyAsync(x =>
-                        x.Id == clinicId.Value &&
-                        x.IsActive &&
-                        !x.IsDelete &&
-                        (!serviceUnitId.HasValue ||
-                         serviceUnitId.Value == Guid.Empty ||
-                         x.ServiceUnitId == serviceUnitId.Value));
-
-                if (!clinicExists)
-                    return (false, "Clinic tidak valid, tidak aktif, atau tidak sesuai dengan service unit.");
+                query = query.Where(x => x.ClinicId == clinicId.Value);
             }
 
             if (defaultScannerProfileId.HasValue && defaultScannerProfileId.Value != Guid.Empty)
             {
-                var profileExists = await _dbContext.Set<MstIdentityScannerProfile>()
-                    .AnyAsync(x => x.Id == defaultScannerProfileId.Value && x.IsActive && !x.IsDelete);
-
-                if (!profileExists)
-                    return (false, "Default scanner profile tidak valid atau tidak aktif.");
+                query = query.Where(x => x.DefaultScannerProfileId == defaultScannerProfileId.Value);
             }
 
-            var normalizedCode = deviceCode.Trim().ToUpperInvariant();
-            var normalizedName = deviceName.Trim().ToLower();
-
-            var duplicateCode = await _dbContext.Set<MstKioskDevice>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.DeviceCode.ToUpper() == normalizedCode &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
-
-            if (duplicateCode)
-                return (false, "Kode kiosk device sudah digunakan.");
-
-            var duplicateName = await _dbContext.Set<MstKioskDevice>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.DeviceName.ToLower() == normalizedName &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
-
-            if (duplicateName)
-                return (false, "Nama kiosk device sudah digunakan.");
-
-            if (!string.IsNullOrWhiteSpace(ipAddress))
+            if (deviceType.HasValue)
             {
-                var normalizedIpAddress = ipAddress.Trim().ToLower();
-
-                var duplicateIpAddress = await _dbContext.Set<MstKioskDevice>()
-                    .AnyAsync(x =>
-                        !x.IsDelete &&
-                        x.IpAddress != null &&
-                        x.IpAddress.ToLower() == normalizedIpAddress &&
-                        (!excludeId.HasValue || x.Id != excludeId.Value));
-
-                if (duplicateIpAddress)
-                    return (false, "IP address kiosk device sudah digunakan.");
+                query = query.Where(x => x.DeviceType == deviceType.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(macAddress))
+            if (deviceStatus.HasValue)
             {
-                var normalizedMacAddress = macAddress.Trim().ToLower();
-
-                var duplicateMacAddress = await _dbContext.Set<MstKioskDevice>()
-                    .AnyAsync(x =>
-                        !x.IsDelete &&
-                        x.MacAddress != null &&
-                        x.MacAddress.ToLower() == normalizedMacAddress &&
-                        (!excludeId.HasValue || x.Id != excludeId.Value));
-
-                if (duplicateMacAddress)
-                    return (false, "MAC address kiosk device sudah digunakan.");
+                query = query.Where(x => x.DeviceStatus == deviceStatus.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(serialNumber))
+            if (isAvailableForRegistration.HasValue)
             {
-                var normalizedSerialNumber = serialNumber.Trim().ToLower();
-
-                var duplicateSerialNumber = await _dbContext.Set<MstKioskDevice>()
-                    .AnyAsync(x =>
-                        !x.IsDelete &&
-                        x.SerialNumber != null &&
-                        x.SerialNumber.ToLower() == normalizedSerialNumber &&
-                        (!excludeId.HasValue || x.Id != excludeId.Value));
-
-                if (duplicateSerialNumber)
-                    return (false, "Serial number kiosk device sudah digunakan.");
+                query = query.Where(x => x.IsAvailableForRegistration == isAvailableForRegistration.Value);
             }
 
-            return (true, null);
+            if (isAvailableForCheckIn.HasValue)
+            {
+                query = query.Where(x => x.IsAvailableForCheckIn == isAvailableForCheckIn.Value);
+            }
+
+            if (isAvailableForPayment.HasValue)
+            {
+                query = query.Where(x => x.IsAvailableForPayment == isAvailableForPayment.Value);
+            }
+
+            if (isAllowWalkIn.HasValue)
+            {
+                query = query.Where(x => x.IsAllowWalkIn == isAllowWalkIn.Value);
+            }
+
+            if (isAllowAppointment.HasValue)
+            {
+                query = query.Where(x => x.IsAllowAppointment == isAllowAppointment.Value);
+            }
+
+            if (isAllowInsuranceRegistration.HasValue)
+            {
+                query = query.Where(x => x.IsAllowInsuranceRegistration == isAllowInsuranceRegistration.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.DeviceCode.ToLower().Contains(keyword) ||
+                    x.DeviceName.ToLower().Contains(keyword) ||
+                    (x.LocationName != null && x.LocationName.ToLower().Contains(keyword)) ||
+                    (x.FloorName != null && x.FloorName.ToLower().Contains(keyword)) ||
+                    (x.IpAddress != null && x.IpAddress.ToLower().Contains(keyword)) ||
+                    (x.MacAddress != null && x.MacAddress.ToLower().Contains(keyword)) ||
+                    (x.SerialNumber != null && x.SerialNumber.ToLower().Contains(keyword)) ||
+                    (x.DeviceModel != null && x.DeviceModel.ToLower().Contains(keyword)) ||
+                    (x.VendorName != null && x.VendorName.ToLower().Contains(keyword)) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
+                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitCode.ToLower().Contains(keyword)) ||
+                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
+                    (x.Clinic != null && x.Clinic.ClinicCode.ToLower().Contains(keyword)) ||
+                    (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)) ||
+                    (x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileCode.ToLower().Contains(keyword)) ||
+                    (x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileName.ToLower().Contains(keyword)));
+            }
+
+            return query;
         }
 
-        private static IQueryable<MstKioskDevice> ApplySorting(
+        private static IOrderedQueryable<MstKioskDevice> ApplySorting(
             IQueryable<MstKioskDevice> query,
             string? sortBy,
             string? sortDirection)
         {
-            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            var isDescending = string.Equals(
+                sortDirection,
+                "desc",
+                StringComparison.OrdinalIgnoreCase
+            );
 
-            return (sortBy ?? "sortOrder").ToLowerInvariant() switch
+            return (sortBy ?? "sortOrder").Trim().ToLowerInvariant() switch
             {
-                "createdatetime" => isDesc
+                "createdatetime" => isDescending
                     ? query.OrderByDescending(x => x.CreateDateTime)
                     : query.OrderBy(x => x.CreateDateTime),
 
-                "devicecode" => isDesc
+                "devicecode" => isDescending
                     ? query.OrderByDescending(x => x.DeviceCode)
                     : query.OrderBy(x => x.DeviceCode),
 
-                "devicename" => isDesc
+                "devicename" => isDescending
                     ? query.OrderByDescending(x => x.DeviceName)
                     : query.OrderBy(x => x.DeviceName),
 
-                "devicetype" => isDesc
-                    ? query.OrderByDescending(x => x.DeviceType)
-                    : query.OrderBy(x => x.DeviceType),
+                "devicetype" => isDescending
+                    ? query.OrderByDescending(x => x.DeviceType).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.DeviceType).ThenBy(x => x.DeviceName),
 
-                "devicestatus" => isDesc
-                    ? query.OrderByDescending(x => x.DeviceStatus)
-                    : query.OrderBy(x => x.DeviceStatus),
+                "devicestatus" => isDescending
+                    ? query.OrderByDescending(x => x.DeviceStatus).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.DeviceStatus).ThenBy(x => x.DeviceName),
 
-                "serviceunitname" => isDesc
-                    ? query.OrderByDescending(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : "")
-                    : query.OrderBy(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : ""),
+                "serviceunitname" => isDescending
+                    ? query.OrderByDescending(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty).ThenBy(x => x.DeviceName),
 
-                "clinicname" => isDesc
-                    ? query.OrderByDescending(x => x.Clinic != null ? x.Clinic.ClinicName : "")
-                    : query.OrderBy(x => x.Clinic != null ? x.Clinic.ClinicName : ""),
+                "clinicname" => isDescending
+                    ? query.OrderByDescending(x => x.Clinic != null ? x.Clinic.ClinicName : string.Empty).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.Clinic != null ? x.Clinic.ClinicName : string.Empty).ThenBy(x => x.DeviceName),
 
-                "defaultscannerprofilename" => isDesc
-                    ? query.OrderByDescending(x => x.DefaultScannerProfile != null ? x.DefaultScannerProfile.ProfileName : "")
-                    : query.OrderBy(x => x.DefaultScannerProfile != null ? x.DefaultScannerProfile.ProfileName : ""),
+                "defaultscannerprofilename" => isDescending
+                    ? query.OrderByDescending(x => x.DefaultScannerProfile != null ? x.DefaultScannerProfile.ProfileName : string.Empty).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.DefaultScannerProfile != null ? x.DefaultScannerProfile.ProfileName : string.Empty).ThenBy(x => x.DeviceName),
 
-                "locationname" => isDesc
-                    ? query.OrderByDescending(x => x.LocationName)
-                    : query.OrderBy(x => x.LocationName),
+                "locationname" => isDescending
+                    ? query.OrderByDescending(x => x.LocationName).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.LocationName).ThenBy(x => x.DeviceName),
 
-                "isactive" => isDesc
-                    ? query.OrderByDescending(x => x.IsActive)
-                    : query.OrderBy(x => x.IsActive),
+                "floorname" => isDescending
+                    ? query.OrderByDescending(x => x.FloorName).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.FloorName).ThenBy(x => x.DeviceName),
 
-                _ => isDesc
+                "ipaddress" => isDescending
+                    ? query.OrderByDescending(x => x.IpAddress).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.IpAddress).ThenBy(x => x.DeviceName),
+
+                "serialnumber" => isDescending
+                    ? query.OrderByDescending(x => x.SerialNumber).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.SerialNumber).ThenBy(x => x.DeviceName),
+
+                "vendorname" => isDescending
+                    ? query.OrderByDescending(x => x.VendorName).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.VendorName).ThenBy(x => x.DeviceName),
+
+                "isactive" => isDescending
+                    ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.DeviceName),
+
+                _ => isDescending
                     ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.DeviceName)
                     : query.OrderBy(x => x.SortOrder).ThenBy(x => x.DeviceName)
             };
         }
 
-        private static KioskDeviceResponse ToResponse(MstKioskDevice x)
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
+            Guid? excludeId,
+            CreateKioskDeviceRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.DeviceCode))
+            {
+                return (false, "Kode kiosk device wajib diisi.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.DeviceName))
+            {
+                return (false, "Nama kiosk device wajib diisi.");
+            }
+
+            if (!Enum.IsDefined(typeof(KioskDeviceType), request.DeviceType))
+            {
+                return (false, "Tipe kiosk device tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (!Enum.IsDefined(typeof(KioskDeviceStatus), request.DeviceStatus))
+            {
+                return (false, "Status kiosk device tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            var serviceUnitId = NormalizeNullableGuid(request.ServiceUnitId);
+            var clinicId = NormalizeNullableGuid(request.ClinicId);
+            var defaultScannerProfileId = NormalizeNullableGuid(request.DefaultScannerProfileId);
+
+            if (serviceUnitId.HasValue)
+            {
+                var serviceUnitExists = await _dbContext.Set<MstServiceUnit>()
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == serviceUnitId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
+
+                if (!serviceUnitExists)
+                {
+                    return (false, "Service unit tidak valid atau tidak aktif.");
+                }
+            }
+
+            if (clinicId.HasValue)
+            {
+                var clinicQuery = _dbContext.Set<MstClinic>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.Id == clinicId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
+
+                if (serviceUnitId.HasValue)
+                {
+                    clinicQuery = clinicQuery.Where(x => x.ServiceUnitId == serviceUnitId.Value);
+                }
+
+                var clinicExists = await clinicQuery.AnyAsync();
+
+                if (!clinicExists)
+                {
+                    return (false, "Clinic tidak valid, tidak aktif, atau tidak sesuai dengan service unit.");
+                }
+            }
+
+            if (defaultScannerProfileId.HasValue)
+            {
+                var scannerProfileExists = await _dbContext.Set<MstIdentityScannerProfile>()
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == defaultScannerProfileId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
+
+                if (!scannerProfileExists)
+                {
+                    return (false, "Default scanner profile tidak valid atau tidak aktif.");
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.IpAddress) &&
+                !IPAddress.TryParse(request.IpAddress.Trim(), out _))
+            {
+                return (false, "Format IP address tidak valid.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.MacAddress) &&
+                !IsValidMacAddress(request.MacAddress))
+            {
+                return (false, "Format MAC address tidak valid.");
+            }
+
+            var normalizedCode = request.DeviceCode.Trim().ToUpperInvariant();
+            var normalizedName = request.DeviceName.Trim().ToLower();
+
+            var duplicateCodeQuery = _dbContext.Set<MstKioskDevice>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.DeviceCode.ToUpper() == normalizedCode);
+
+            if (excludeId.HasValue)
+            {
+                duplicateCodeQuery = duplicateCodeQuery.Where(x => x.Id != excludeId.Value);
+            }
+
+            if (await duplicateCodeQuery.AnyAsync())
+            {
+                return (false, "Kode kiosk device sudah digunakan.");
+            }
+
+            var duplicateNameQuery = _dbContext.Set<MstKioskDevice>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.DeviceName.ToLower() == normalizedName);
+
+            if (excludeId.HasValue)
+            {
+                duplicateNameQuery = duplicateNameQuery.Where(x => x.Id != excludeId.Value);
+            }
+
+            if (await duplicateNameQuery.AnyAsync())
+            {
+                return (false, "Nama kiosk device sudah digunakan.");
+            }
+
+            var ipAddress = NormalizeNullableString(request.IpAddress);
+
+            if (!string.IsNullOrWhiteSpace(ipAddress))
+            {
+                var normalizedIpAddress = ipAddress.ToLower();
+
+                var duplicateIpAddressQuery = _dbContext.Set<MstKioskDevice>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        !x.IsDelete &&
+                        x.IpAddress != null &&
+                        x.IpAddress.ToLower() == normalizedIpAddress);
+
+                if (excludeId.HasValue)
+                {
+                    duplicateIpAddressQuery = duplicateIpAddressQuery.Where(x => x.Id != excludeId.Value);
+                }
+
+                if (await duplicateIpAddressQuery.AnyAsync())
+                {
+                    return (false, "IP address kiosk device sudah digunakan.");
+                }
+            }
+
+            var macAddress = NormalizeMacAddress(request.MacAddress);
+
+            if (!string.IsNullOrWhiteSpace(macAddress))
+            {
+                var duplicateMacAddressQuery = _dbContext.Set<MstKioskDevice>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        !x.IsDelete &&
+                        x.MacAddress != null &&
+                        x.MacAddress.ToUpper() == macAddress);
+
+                if (excludeId.HasValue)
+                {
+                    duplicateMacAddressQuery = duplicateMacAddressQuery.Where(x => x.Id != excludeId.Value);
+                }
+
+                if (await duplicateMacAddressQuery.AnyAsync())
+                {
+                    return (false, "MAC address kiosk device sudah digunakan.");
+                }
+            }
+
+            var serialNumber = NormalizeNullableUpperString(request.SerialNumber);
+
+            if (!string.IsNullOrWhiteSpace(serialNumber))
+            {
+                var duplicateSerialNumberQuery = _dbContext.Set<MstKioskDevice>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        !x.IsDelete &&
+                        x.SerialNumber != null &&
+                        x.SerialNumber.ToUpper() == serialNumber);
+
+                if (excludeId.HasValue)
+                {
+                    duplicateSerialNumberQuery = duplicateSerialNumberQuery.Where(x => x.Id != excludeId.Value);
+                }
+
+                if (await duplicateSerialNumberQuery.AnyAsync())
+                {
+                    return (false, "Serial number kiosk device sudah digunakan.");
+                }
+            }
+
+            return (true, null);
+        }
+
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(
+            IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static KioskDeviceResponse MapResponse(
+            MstKioskDevice entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             return new KioskDeviceResponse
             {
-                Id = x.Id,
-                DeviceCode = x.DeviceCode,
-                DeviceName = x.DeviceName,
-                DeviceType = x.DeviceType,
-                DeviceStatus = x.DeviceStatus,
-                ServiceUnitId = x.ServiceUnitId,
-                ServiceUnitCode = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitCode : null,
-                ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
-                ClinicId = x.ClinicId,
-                ClinicCode = x.Clinic != null ? x.Clinic.ClinicCode : null,
-                ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
-                DefaultScannerProfileId = x.DefaultScannerProfileId,
-                DefaultScannerProfileCode = x.DefaultScannerProfile != null ? x.DefaultScannerProfile.ProfileCode : null,
-                DefaultScannerProfileName = x.DefaultScannerProfile != null ? x.DefaultScannerProfile.ProfileName : null,
-                LocationName = x.LocationName,
-                FloorName = x.FloorName,
-                IpAddress = x.IpAddress,
-                SerialNumber = x.SerialNumber,
-                DeviceModel = x.DeviceModel,
-                VendorName = x.VendorName,
-                IsAvailableForRegistration = x.IsAvailableForRegistration,
-                IsAvailableForCheckIn = x.IsAvailableForCheckIn,
-                IsAvailableForPayment = x.IsAvailableForPayment,
-                IsAllowWalkIn = x.IsAllowWalkIn,
-                IsAllowAppointment = x.IsAllowAppointment,
-                IsAllowInsuranceRegistration = x.IsAllowInsuranceRegistration,
-                LastOnlineAt = x.LastOnlineAt,
-                LastOfflineAt = x.LastOfflineAt,
-                SortOrder = x.SortOrder,
-                IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
+                Id = entity.Id,
+                DeviceCode = entity.DeviceCode,
+                DeviceName = entity.DeviceName,
+                DeviceType = entity.DeviceType,
+                DeviceTypeName = BuildEnumLabel(entity.DeviceType.ToString()),
+                DeviceStatus = entity.DeviceStatus,
+                DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
+                ServiceUnitId = entity.ServiceUnitId,
+                ServiceUnitCode = entity.ServiceUnit?.ServiceUnitCode,
+                ServiceUnitName = entity.ServiceUnit?.ServiceUnitName,
+                ClinicId = entity.ClinicId,
+                ClinicCode = entity.Clinic?.ClinicCode,
+                ClinicName = entity.Clinic?.ClinicName,
+                DefaultScannerProfileId = entity.DefaultScannerProfileId,
+                DefaultScannerProfileCode = entity.DefaultScannerProfile?.ProfileCode,
+                DefaultScannerProfileName = entity.DefaultScannerProfile?.ProfileName,
+                LocationName = entity.LocationName,
+                FloorName = entity.FloorName,
+                IpAddress = entity.IpAddress,
+                SerialNumber = entity.SerialNumber,
+                DeviceModel = entity.DeviceModel,
+                VendorName = entity.VendorName,
+                IsAvailableForRegistration = entity.IsAvailableForRegistration,
+                IsAvailableForCheckIn = entity.IsAvailableForCheckIn,
+                IsAvailableForPayment = entity.IsAvailableForPayment,
+                IsAllowWalkIn = entity.IsAllowWalkIn,
+                IsAllowAppointment = entity.IsAllowAppointment,
+                IsAllowInsuranceRegistration = entity.IsAllowInsuranceRegistration,
+                LastOnlineAt = entity.LastOnlineAt,
+                LastOfflineAt = entity.LastOfflineAt,
+                SortOrder = entity.SortOrder,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
             };
         }
 
-        private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
+        private static KioskDeviceDetailResponse MapDetailResponse(
+            MstKioskDevice entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 25;
-            if (pageSize > 100) pageSize = 100;
+            return new KioskDeviceDetailResponse
+            {
+                Id = entity.Id,
+                DeviceCode = entity.DeviceCode,
+                DeviceName = entity.DeviceName,
+                DeviceType = entity.DeviceType,
+                DeviceTypeName = BuildEnumLabel(entity.DeviceType.ToString()),
+                DeviceStatus = entity.DeviceStatus,
+                DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
+                ServiceUnitId = entity.ServiceUnitId,
+                ServiceUnitCode = entity.ServiceUnit?.ServiceUnitCode,
+                ServiceUnitName = entity.ServiceUnit?.ServiceUnitName,
+                ClinicId = entity.ClinicId,
+                ClinicCode = entity.Clinic?.ClinicCode,
+                ClinicName = entity.Clinic?.ClinicName,
+                DefaultScannerProfileId = entity.DefaultScannerProfileId,
+                DefaultScannerProfileCode = entity.DefaultScannerProfile?.ProfileCode,
+                DefaultScannerProfileName = entity.DefaultScannerProfile?.ProfileName,
+                LocationName = entity.LocationName,
+                FloorName = entity.FloorName,
+                IpAddress = entity.IpAddress,
+                MacAddress = entity.MacAddress,
+                SerialNumber = entity.SerialNumber,
+                DeviceModel = entity.DeviceModel,
+                VendorName = entity.VendorName,
+                IsAvailableForRegistration = entity.IsAvailableForRegistration,
+                IsAvailableForCheckIn = entity.IsAvailableForCheckIn,
+                IsAvailableForPayment = entity.IsAvailableForPayment,
+                IsAllowWalkIn = entity.IsAllowWalkIn,
+                IsAllowAppointment = entity.IsAllowAppointment,
+                IsAllowInsuranceRegistration = entity.IsAllowInsuranceRegistration,
+                LastOnlineAt = entity.LastOnlineAt,
+                LastOfflineAt = entity.LastOfflineAt,
+                LastErrorMessage = entity.LastErrorMessage,
+                SortOrder = entity.SortOrder,
+                Description = entity.Description,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
 
-            return (pageNumber, pageSize);
+        private static KioskDeviceOptionResponse MapOptionResponse(MstKioskDevice entity)
+        {
+            return new KioskDeviceOptionResponse
+            {
+                Id = entity.Id,
+                DeviceCode = entity.DeviceCode,
+                DeviceName = entity.DeviceName,
+                DeviceType = entity.DeviceType,
+                DeviceTypeName = BuildEnumLabel(entity.DeviceType.ToString()),
+                DeviceStatus = entity.DeviceStatus,
+                DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
+                ServiceUnitId = entity.ServiceUnitId,
+                ServiceUnitCode = entity.ServiceUnit?.ServiceUnitCode,
+                ServiceUnitName = entity.ServiceUnit?.ServiceUnitName,
+                ClinicId = entity.ClinicId,
+                ClinicCode = entity.Clinic?.ClinicCode,
+                ClinicName = entity.Clinic?.ClinicName,
+                DefaultScannerProfileId = entity.DefaultScannerProfileId,
+                DefaultScannerProfileCode = entity.DefaultScannerProfile?.ProfileCode,
+                DefaultScannerProfileName = entity.DefaultScannerProfile?.ProfileName,
+                IsAvailableForRegistration = entity.IsAvailableForRegistration,
+                IsAvailableForCheckIn = entity.IsAvailableForCheckIn,
+                IsAvailableForPayment = entity.IsAvailableForPayment,
+                IsAllowWalkIn = entity.IsAllowWalkIn,
+                IsAllowAppointment = entity.IsAllowAppointment,
+                IsAllowInsuranceRegistration = entity.IsAllowInsuranceRegistration
+            };
         }
 
         private static List<KioskDeviceEnumOptionResponse> BuildEnumOptions<TEnum>() where TEnum : Enum
@@ -867,24 +1296,56 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 {
                     Value = Convert.ToInt32(x),
                     Name = x.ToString(),
-                    Label = SplitPascalCase(x.ToString())
+                    Label = BuildEnumLabel(x.ToString())
                 })
                 .ToList();
         }
 
-        private static string SplitPascalCase(string value)
+        private static string BuildEnumLabel(string value)
         {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+
             return string.Concat(value.Select((x, i) =>
                 i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
         }
 
-        private Guid GetCurrentUserId()
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
         {
-            var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
 
-            return Guid.TryParse(userIdText, out var userId)
-                ? userId
-                : Guid.Empty;
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
+        }
+
+        private static (int PageNumber, int PageSize) NormalizePaging(
+            int pageNumber,
+            int pageSize)
+        {
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 25;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
+
+            return (pageNumber, pageSize);
         }
 
         private static Guid? NormalizeNullableGuid(Guid? value)
@@ -894,11 +1355,78 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 : null;
         }
 
-        private static string? NormalizeNullableText(string? value)
+        private static DateTime? NormalizeNullableUtcDateTime(DateTime? value)
+        {
+            if (!value.HasValue)
+            {
+                return null;
+            }
+
+            return value.Value.Kind switch
+            {
+                DateTimeKind.Utc => value.Value,
+                DateTimeKind.Local => value.Value.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+            };
+        }
+
+        private static string? NormalizeNullableString(string? value)
         {
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private static string? NormalizeNullableUpperString(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value.Trim().ToUpperInvariant();
+        }
+
+        private static string? NormalizeMacAddress(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var cleaned = value
+                .Trim()
+                .Replace("-", string.Empty)
+                .Replace(":", string.Empty)
+                .ToUpperInvariant();
+
+            if (cleaned.Length != 12 || !cleaned.All(Uri.IsHexDigit))
+            {
+                return value.Trim().ToUpperInvariant();
+            }
+
+            return string.Join(":", Enumerable.Range(0, 6).Select(i => cleaned.Substring(i * 2, 2)));
+        }
+
+        private static bool IsValidMacAddress(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return true;
+            }
+
+            var trimmed = value.Trim();
+
+            return Regex.IsMatch(trimmed, "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$") ||
+                   Regex.IsMatch(trimmed, "^[0-9A-Fa-f]{12}$");
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var userIdValue =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("user_id");
+
+            return Guid.TryParse(userIdValue, out var userId)
+                ? userId
+                : Guid.Empty;
         }
     }
 }
