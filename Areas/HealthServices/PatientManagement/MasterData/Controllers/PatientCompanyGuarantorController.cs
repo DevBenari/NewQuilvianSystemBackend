@@ -34,11 +34,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
     {
         private const string LogCategory = "HealthServices.PatientManagement.MasterData";
 
-
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
 
-        public PatientCompanyGuarantorController(ApplicationDbContext dbContext, LoggerService loggerService)
+        public PatientCompanyGuarantorController(
+            ApplicationDbContext dbContext,
+            LoggerService loggerService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
@@ -46,49 +47,90 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Company Guarantor", Description = "Melihat data patient company guarantor", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Company Guarantor",
+            Description = "Melihat metadata filter patient company guarantor",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientCompanyGuarantor", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new PatientCompanyGuarantorFilterMetadataResponse
             {
                 DefaultFilter = new PatientCompanyGuarantorDefaultFilterResponse(),
+                CustomPeriods = new List<PatientCompanyGuarantorCustomPeriodOptionResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "lastmonth", Label = "Bulan lalu" }
+                },
+                RelationFilters = new List<PatientCompanyGuarantorRelationFilterResponse>
+                {
+                    new()
+                    {
+                        Value = "patientId",
+                        Label = "Patient",
+                        Endpoint = "/api/v1/health-services/patient-management/master-data/patients/options"
+                    },
+                    new()
+                    {
+                        Value = "companyGuarantorId",
+                        Label = "Company Guarantor",
+                        Endpoint = "/api/v1/health-services/master-data/company-guarantors/options"
+                    }
+                },
                 SortOptions = new List<PatientCompanyGuarantorSortOptionResponse>
                 {
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "updateDateTime", Label = "Tanggal diperbarui" },
                     new() { Value = "patientName", Label = "Nama pasien" },
-                    new() { Value = "medicalRecordNumber", Label = "No. rekam medis" },
+                    new() { Value = "medicalRecordNumber", Label = "Nomor rekam medis" },
                     new() { Value = "companyGuarantorName", Label = "Nama penjamin perusahaan" },
                     new() { Value = "employeeNumber", Label = "Nomor karyawan" },
-                    new() { Value = "benefitPlanName", Label = "Nama plan" },
+                    new() { Value = "employeeName", Label = "Nama karyawan" },
+                    new() { Value = "benefitPlanName", Label = "Nama benefit plan" },
                     new() { Value = "className", Label = "Kelas" },
                     new() { Value = "effectiveStartDate", Label = "Tanggal mulai berlaku" },
                     new() { Value = "effectiveEndDate", Label = "Tanggal akhir berlaku" },
-                    new() { Value = "lastEligibilityCheckAt", Label = "Tanggal cek eligibility" },
-                    new() { Value = "isPrimary", Label = "Status utama" },
-                    new() { Value = "isEligible", Label = "Status eligible" },
+                    new() { Value = "isPrimary", Label = "Primary" },
+                    new() { Value = "isEligible", Label = "Eligible" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                GradeLevels = new List<string> { "Staff", "Supervisor", "Manager", "Executive", "Director", "Other" }
+                ResetButtonLabel = "Reset"
             };
 
-            await _loggerService.InfoAsync(LogCategory, "PatientCompanyGuarantor.GetFilterMetadata", "Mengambil metadata filter patient company guarantor.", result);
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientCompanyGuarantor.GetFilterMetadata",
+                "Mengambil metadata filter patient company guarantor.",
+                result
+            );
 
-            return Ok(ApiResponse<PatientCompanyGuarantorFilterMetadataResponse>.Ok(result, "Metadata filter patient company guarantor berhasil diambil."));
+            return Ok(ApiResponse<PatientCompanyGuarantorFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter patient company guarantor berhasil diambil."
+            ));
         }
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Company Guarantor", Description = "Melihat data patient company guarantor", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Company Guarantor",
+            Description = "Melihat ringkasan patient company guarantor",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientCompanyGuarantor", "Read")]
         public async Task<IActionResult> GetSummary()
         {
             var today = DateTime.UtcNow.Date;
-            var recentEligibilityDate = DateTime.UtcNow.AddDays(-30);
-
-            var query = _dbContext.Set<MstPatientCompanyGuarantor>().AsNoTracking().Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
             var result = new PatientCompanyGuarantorSummaryResponse
             {
@@ -104,42 +146,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 EffectivePatientCompanyGuarantor = await query.CountAsync(x =>
                     (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= today) &&
                     (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today)),
-                ExpiredPatientCompanyGuarantor = await query.CountAsync(x => x.EffectiveEndDate.HasValue && x.EffectiveEndDate.Value.Date < today),
+                ExpiredPatientCompanyGuarantor = await query.CountAsync(x =>
+                    x.EffectiveEndDate.HasValue &&
+                    x.EffectiveEndDate.Value.Date < today),
                 WithAnnualLimitPatientCompanyGuarantor = await query.CountAsync(x => x.AnnualLimitAmount.HasValue),
                 WithRemainingLimitPatientCompanyGuarantor = await query.CountAsync(x => x.RemainingLimitAmount.HasValue),
-                WithCoPaymentPatientCompanyGuarantor = await query.CountAsync(x => x.CoPaymentPercent.HasValue || x.CoPaymentAmount.HasValue),
-                RecentlyEligibilityCheckedPatientCompanyGuarantor = await query.CountAsync(x => x.LastEligibilityCheckAt.HasValue && x.LastEligibilityCheckAt.Value >= recentEligibilityDate),
-                WithGuaranteeDocumentPatientCompanyGuarantor = await query.CountAsync(x => x.GuaranteeDocumentPath != null && x.GuaranteeDocumentPath != "")
+                WithCoPaymentPatientCompanyGuarantor = await query.CountAsync(x =>
+                    x.CoPaymentPercent.HasValue ||
+                    x.CoPaymentAmount.HasValue),
+                WithGuaranteeDocumentPatientCompanyGuarantor = await query.CountAsync(x =>
+                    x.GuaranteeDocumentPath != null &&
+                    x.GuaranteeDocumentPath != string.Empty)
             };
 
-            return Ok(ApiResponse<PatientCompanyGuarantorSummaryResponse>.Ok(result, "Ringkasan patient company guarantor berhasil diambil."));
+            return Ok(ApiResponse<PatientCompanyGuarantorSummaryResponse>.Ok(
+                result,
+                "Ringkasan patient company guarantor berhasil diambil."
+            ));
         }
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientCompanyGuarantorPagedResult>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Company Guarantor", Description = "Melihat data patient company guarantor", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Company Guarantor",
+            Description = "Melihat data patient company guarantor",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientCompanyGuarantor", "Read")]
         public async Task<IActionResult> GetPatientCompanyGuarantors(
-            [FromQuery] string? search,
-            [FromQuery] bool? isActive,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? patientId,
             [FromQuery] Guid? companyGuarantorId,
-            [FromQuery] string? benefitPlanName,
-            [FromQuery] string? className,
-            [FromQuery] string? benefitPlanCode,
-            [FromQuery] string? gradeLevel,
-            [FromQuery] bool? isPrimary,
-            [FromQuery] bool? isEligible,
-            [FromQuery] bool? isNeedGuaranteeLetter,
-            [FromQuery] bool? isNeedEmployeeVerification,
-            [FromQuery] bool? isAllowExcessPaymentByPatient,
-            [FromQuery] DateTime? effectiveDate,
-            [FromQuery] DateTime? lastEligibilityCheckFrom,
-            [FromQuery] DateTime? lastEligibilityCheckTo,
-            [FromQuery] decimal? minimumAnnualLimitAmount,
-            [FromQuery] decimal? maximumAnnualLimitAmount,
-            [FromQuery] decimal? minimumRemainingLimitAmount,
-            [FromQuery] decimal? maximumRemainingLimitAmount,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -151,18 +194,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             var query = BuildBaseQuery();
 
-            query = ApplyFilters(query, search, isActive, patientId, companyGuarantorId, benefitPlanName, className, benefitPlanCode,
-                gradeLevel, isPrimary, isEligible, isNeedGuaranteeLetter, isNeedEmployeeVerification,
-                isAllowExcessPaymentByPatient, effectiveDate, lastEligibilityCheckFrom, lastEligibilityCheckTo,
-                minimumAnnualLimitAmount, maximumAnnualLimitAmount, minimumRemainingLimitAmount, maximumRemainingLimitAmount);
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyRelationFilter(query, patientId, companyGuarantorId);
+            query = ApplyStandardFilter(query, isActive, search);
 
             var totalData = await query.CountAsync();
+
             var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            var items = entities.Select(ToResponse).ToList();
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .SelectMany(x => new[] { x.CreateBy, x.UpdateBy })
+                    .Where(x => x != Guid.Empty)
+            );
+
+            var items = entities
+                .Select(x => MapResponse(x, actorNames))
+                .ToList();
 
             var result = new ResponsePatientCompanyGuarantorPagedResult
             {
@@ -173,411 +224,615 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 Items = items
             };
 
-            return Ok(ApiResponse<ResponsePatientCompanyGuarantorPagedResult>.Ok(result, "Data patient company guarantor berhasil diambil."));
+            return Ok(ApiResponse<ResponsePatientCompanyGuarantorPagedResult>.Ok(
+                result,
+                "Data patient company guarantor berhasil diambil."
+            ));
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<PatientCompanyGuarantorOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Company Guarantor", Description = "Melihat data patient company guarantor", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction(
+            "Read",
+            "Read Patient Company Guarantor",
+            Description = "Melihat data pilihan patient company guarantor",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientCompanyGuarantor", "Read")]
         public async Task<IActionResult> GetPatientCompanyGuarantorOptions(
-            [FromQuery] Guid? patientId,
-            [FromQuery] Guid? companyGuarantorId,
-            [FromQuery] bool? isPrimary,
-            [FromQuery] bool? isEligible,
-            [FromQuery] DateTime? effectiveDate,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] Guid? patientId = null,
+            [FromQuery] Guid? companyGuarantorId = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
             var query = BuildBaseQuery();
 
-            if (onlyActive)
-                query = query.Where(x => x.IsActive);
-            if (patientId.HasValue && patientId.Value != Guid.Empty)
-                query = query.Where(x => x.PatientId == patientId.Value);
-            if (companyGuarantorId.HasValue && companyGuarantorId.Value != Guid.Empty)
-                query = query.Where(x => x.CompanyGuarantorId == companyGuarantorId.Value);
-            if (isPrimary.HasValue)
-                query = query.Where(x => x.IsPrimary == isPrimary.Value);
-            if (isEligible.HasValue)
-                query = query.Where(x => x.IsEligible == isEligible.Value);
-            if (effectiveDate.HasValue)
-            {
-                var selectedDate = effectiveDate.Value.Date;
-                query = query.Where(x =>
-                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= selectedDate) &&
-                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= selectedDate));
-            }
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-                query = query.Where(x =>
-                    x.EmployeeNumber.ToLower().Contains(keyword) ||
-                    (x.EmployeeName != null && x.EmployeeName.ToLower().Contains(keyword)) ||
-                    (x.DepartmentName != null && x.DepartmentName.ToLower().Contains(keyword)) ||
-                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
-                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
-                    (x.CompanyGuarantor != null && x.CompanyGuarantor.CompanyGuarantorName.ToLower().Contains(keyword)));
-            }
+            query = ApplyRelationFilter(query, patientId, companyGuarantorId);
+            query = ApplyStandardFilter(
+                query,
+                onlyActive ? true : null,
+                search
+            );
 
-            var data = await query
+            var totalData = await query.CountAsync();
+
+            var entities = await query
                 .OrderByDescending(x => x.IsPrimary)
                 .ThenBy(x => x.Patient != null ? x.Patient.FullName : string.Empty)
                 .ThenBy(x => x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorName : string.Empty)
-                .Select(x => new PatientCompanyGuarantorOptionResponse
-                {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                    CompanyGuarantorId = x.CompanyGuarantorId,
-                    CompanyGuarantorName = x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorName : string.Empty,
-                    EmployeeNumber = x.EmployeeNumber,
-                    EmployeeName = x.EmployeeName,
-                    DepartmentName = x.DepartmentName,
-                    PositionName = x.PositionName,
-                    GradeLevel = x.GradeLevel,
-                    BenefitPlanName = x.BenefitPlanName,
-                    ClassName = x.ClassName,
-                    BenefitPlanCode = x.BenefitPlanCode,
-                    EffectiveStartDate = x.EffectiveStartDate,
-                    EffectiveEndDate = x.EffectiveEndDate,
-                    IsPrimary = x.IsPrimary,
-                    IsEligible = x.IsEligible,
-                    IsNeedGuaranteeLetter = x.IsNeedGuaranteeLetter,
-                    IsNeedEmployeeVerification = x.IsNeedEmployeeVerification,
-                    IsAllowExcessPaymentByPatient = x.IsAllowExcessPaymentByPatient,
-                    AnnualLimitAmount = x.AnnualLimitAmount,
-                    RemainingLimitAmount = x.RemainingLimitAmount,
-                    CoPaymentPercent = x.CoPaymentPercent,
-                    CoPaymentAmount = x.CoPaymentAmount
-                })
+                .ThenBy(x => x.EmployeeNumber)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<PatientCompanyGuarantorOptionResponse>>.Ok(data, "Data pilihan patient company guarantor berhasil diambil."));
+            var items = entities
+                .Select(MapOptionResponse)
+                .ToList();
+
+            var result = new PatientCompanyGuarantorOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<PatientCompanyGuarantorOptionPagedResponse>.Ok(
+                result,
+                "Data pilihan patient company guarantor berhasil diambil."
+            ));
         }
 
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Patient Company Guarantor", Description = "Melihat data patient company guarantor", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Company Guarantor",
+            Description = "Melihat detail patient company guarantor",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientCompanyGuarantor", "Read")]
         public async Task<IActionResult> GetPatientCompanyGuarantorById(Guid id)
         {
-            var data = await BuildBaseQuery()
-                .Where(x => x.Id == id)
-                .Select(x => new PatientCompanyGuarantorDetailResponse
-                {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    PatientCode = x.Patient != null ? x.Patient.PatientCode : string.Empty,
-                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                    PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                    CompanyGuarantorId = x.CompanyGuarantorId,
-                    CompanyGuarantorCode = x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorCode : string.Empty,
-                    CompanyGuarantorName = x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorName : string.Empty,
-                    CompanyGroupName = x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGroupName : null,
-                    GuarantorType = x.CompanyGuarantor != null ? x.CompanyGuarantor.GuarantorType : null,
-                    BillingMethod = x.CompanyGuarantor != null ? x.CompanyGuarantor.BillingMethod : null,
-                    EmployeeNumber = x.EmployeeNumber,
-                    EmployeeName = x.EmployeeName,
-                    DepartmentName = x.DepartmentName,
-                    PositionName = x.PositionName,
-                    GradeLevel = x.GradeLevel,
-                    BenefitPlanName = x.BenefitPlanName,
-                    ClassName = x.ClassName,
-                    BenefitPlanCode = x.BenefitPlanCode,
-                    EffectiveStartDate = x.EffectiveStartDate,
-                    EffectiveEndDate = x.EffectiveEndDate,
-                    IsPrimary = x.IsPrimary,
-                    IsEligible = x.IsEligible,
-                    LastEligibilityCheckAt = x.LastEligibilityCheckAt,
-                    LastEligibilityReferenceNumber = x.LastEligibilityReferenceNumber,
-                    EligibilityNote = x.EligibilityNote,
-                    AnnualLimitAmount = x.AnnualLimitAmount,
-                    RemainingLimitAmount = x.RemainingLimitAmount,
-                    CoPaymentPercent = x.CoPaymentPercent,
-                    CoPaymentAmount = x.CoPaymentAmount,
-                    IsNeedGuaranteeLetter = x.IsNeedGuaranteeLetter,
-                    IsNeedEmployeeVerification = x.IsNeedEmployeeVerification,
-                    IsAllowExcessPaymentByPatient = x.IsAllowExcessPaymentByPatient,
-                    GuaranteeDocumentPath = x.GuaranteeDocumentPath,
-                    Notes = x.Notes,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+            var entity = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (data == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Patient company guarantor tidak ditemukan."));
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Patient company guarantor tidak ditemukan."
+                ));
+            }
 
-            return Ok(ApiResponse<PatientCompanyGuarantorDetailResponse>.Ok(data, "Detail patient company guarantor berhasil diambil."));
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, actorNames);
+
+            NormalizeActorInfo(data);
+
+            return Ok(ApiResponse<PatientCompanyGuarantorDetailResponse>.Ok(
+                data,
+                "Detail patient company guarantor berhasil diambil."
+            ));
         }
 
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorCreateResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Create", "Create Patient Company Guarantor", Description = "Membuat data patient company guarantor", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Create",
+            "Create Patient Company Guarantor",
+            Description = "Membuat data patient company guarantor",
+            AccessType = AccessTypes.Create,
+            SortOrder = 2
+        )]
         [AccessPermission("PatientCompanyGuarantor", "Create")]
-        public async Task<IActionResult> CreatePatientCompanyGuarantor([FromBody] CreatePatientCompanyGuarantorRequest request)
+        public async Task<IActionResult> CreatePatientCompanyGuarantor(
+            [FromBody] CreatePatientCompanyGuarantorRequest request)
         {
-            var validation = await ValidateRequestAsync(null, request.PatientId, request.CompanyGuarantorId, request.EmployeeNumber,
-                request.GradeLevel, request.EffectiveStartDate, request.EffectiveEndDate, request.AnnualLimitAmount,
-                request.RemainingLimitAmount, request.CoPaymentPercent, request.CoPaymentAmount);
+            var validation = await ValidateRequestAsync(
+                excludeId: null,
+                request: request
+            );
 
             if (!validation.IsValid)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validation.ErrorMessage ?? "Data patient company guarantor tidak valid."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Data patient company guarantor tidak valid."
+                ));
+            }
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            if (request.IsPrimary)
-                await ClearPrimaryCompanyGuarantorAsync(request.PatientId, null, now, actorUserId);
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            var entity = new MstPatientCompanyGuarantor
+            try
             {
-                Id = Guid.NewGuid(),
-                PatientId = request.PatientId,
-                CompanyGuarantorId = request.CompanyGuarantorId,
-                EmployeeNumber = request.EmployeeNumber.Trim(),
-                EmployeeName = NormalizeNullableText(request.EmployeeName),
-                DepartmentName = NormalizeNullableText(request.DepartmentName),
-                BenefitPlanName = NormalizeNullableText(request.BenefitPlanName),
-                ClassName = NormalizeNullableText(request.ClassName),
-                BenefitPlanCode = NormalizeNullableText(request.BenefitPlanCode),
-                PositionName = NormalizeNullableText(request.PositionName),
-                GradeLevel = NormalizeNullableText(request.GradeLevel),
-                EffectiveStartDate = request.EffectiveStartDate,
-                EffectiveEndDate = request.EffectiveEndDate,
-                IsPrimary = request.IsPrimary,
-                IsEligible = request.IsEligible,
-                LastEligibilityCheckAt = request.LastEligibilityCheckAt,
-                LastEligibilityReferenceNumber = NormalizeNullableText(request.LastEligibilityReferenceNumber),
-                EligibilityNote = NormalizeNullableText(request.EligibilityNote),
-                AnnualLimitAmount = request.AnnualLimitAmount,
-                RemainingLimitAmount = request.RemainingLimitAmount,
-                CoPaymentPercent = request.CoPaymentPercent,
-                CoPaymentAmount = request.CoPaymentAmount,
-                IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter,
-                IsNeedEmployeeVerification = request.IsNeedEmployeeVerification,
-                IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient,
-                GuaranteeDocumentPath = NormalizeNullableText(request.GuaranteeDocumentPath),
-                Notes = NormalizeNullableText(request.Notes),
-                IsActive = request.IsActive,
-                CreateDateTime = now,
-                CreateBy = actorUserId
-            };
+                if (request.IsPrimary)
+                {
+                    await UnsetOtherPrimaryAsync(
+                        patientId: request.PatientId,
+                        exceptId: null,
+                        now: now,
+                        actorUserId: actorUserId
+                    );
+                }
 
-            _dbContext.Set<MstPatientCompanyGuarantor>().Add(entity);
-            await _dbContext.SaveChangesAsync();
+                var entity = new MstPatientCompanyGuarantor
+                {
+                    Id = Guid.NewGuid(),
+                    PatientId = request.PatientId,
+                    CompanyGuarantorId = request.CompanyGuarantorId,
+                    EmployeeNumber = request.EmployeeNumber.Trim(),
+                    EmployeeName = NormalizeNullableString(request.EmployeeName),
+                    DepartmentName = NormalizeNullableString(request.DepartmentName),
+                    PositionName = NormalizeNullableString(request.PositionName),
+                    GradeLevel = NormalizeNullableString(request.GradeLevel),
+                    BenefitPlanCode = NormalizeNullableString(request.BenefitPlanCode),
+                    BenefitPlanName = NormalizeNullableString(request.BenefitPlanName),
+                    ClassName = NormalizeNullableString(request.ClassName),
+                    EffectiveStartDate = request.EffectiveStartDate,
+                    EffectiveEndDate = request.EffectiveEndDate,
+                    IsPrimary = request.IsPrimary,
+                    IsEligible = request.IsEligible,
+                    LastEligibilityCheckAt = request.LastEligibilityCheckAt,
+                    LastEligibilityReferenceNumber = NormalizeNullableString(request.LastEligibilityReferenceNumber),
+                    EligibilityNote = NormalizeNullableString(request.EligibilityNote),
+                    AnnualLimitAmount = request.AnnualLimitAmount,
+                    RemainingLimitAmount = request.RemainingLimitAmount,
+                    CoPaymentPercent = request.CoPaymentPercent,
+                    CoPaymentAmount = request.CoPaymentAmount,
+                    IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter,
+                    IsNeedEmployeeVerification = request.IsNeedEmployeeVerification,
+                    IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient,
+                    GuaranteeDocumentPath = NormalizeNullableString(request.GuaranteeDocumentPath),
+                    Notes = NormalizeNullableString(request.Notes),
+                    IsActive = true,
+                    CreateDateTime = now,
+                    CreateBy = actorUserId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
 
-            var response = await BuildCreateUpdateResponse(entity.Id, true);
-            return Ok(ApiResponse<PatientCompanyGuarantorCreateResponse>.Ok(response.Create!, "Patient company guarantor berhasil dibuat."));
+                _dbContext.Set<MstPatientCompanyGuarantor>().Add(entity);
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var result = await BuildCreateResponseAsync(entity.Id);
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "PatientCompanyGuarantor.CreatePatientCompanyGuarantor",
+                    "Membuat data patient company guarantor.",
+                    result
+                );
+
+                return Ok(ApiResponse<PatientCompanyGuarantorCreateResponse>.Ok(
+                    result,
+                    "Patient company guarantor berhasil dibuat."
+                ));
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "PatientCompanyGuarantor.CreatePatientCompanyGuarantor",
+                    "Gagal membuat data patient company guarantor.",
+                    ex
+                );
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat membuat patient company guarantor."
+                    )
+                );
+            }
         }
 
         [HttpPut("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Patient Company Guarantor", Description = "Mengubah data patient company guarantor", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Update",
+            "Update Patient Company Guarantor",
+            Description = "Mengubah data patient company guarantor",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
         [AccessPermission("PatientCompanyGuarantor", "Update")]
-        public async Task<IActionResult> UpdatePatientCompanyGuarantor(Guid id, [FromBody] UpdatePatientCompanyGuarantorRequest request)
+        public async Task<IActionResult> UpdatePatientCompanyGuarantor(
+            Guid id,
+            [FromBody] UpdatePatientCompanyGuarantorRequest request)
         {
-            var entity = await _dbContext.Set<MstPatientCompanyGuarantor>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-            if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Patient company guarantor tidak ditemukan."));
+            var entity = await _dbContext.Set<MstPatientCompanyGuarantor>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
-            var validation = await ValidateRequestAsync(id, request.PatientId, request.CompanyGuarantorId, request.EmployeeNumber,
-                request.GradeLevel, request.EffectiveStartDate, request.EffectiveEndDate, request.AnnualLimitAmount,
-                request.RemainingLimitAmount, request.CoPaymentPercent, request.CoPaymentAmount);
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Patient company guarantor tidak ditemukan."
+                ));
+            }
+
+            if (request.IsPrimary && !request.IsActive)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Patient company guarantor primary harus aktif."
+                ));
+            }
+
+            var validation = await ValidateRequestAsync(
+                excludeId: id,
+                request: request
+            );
 
             if (!validation.IsValid)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validation.ErrorMessage ?? "Data patient company guarantor tidak valid."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Data patient company guarantor tidak valid."
+                ));
+            }
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            if (request.IsPrimary)
-                await ClearPrimaryCompanyGuarantorAsync(request.PatientId, id, now, actorUserId);
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            entity.PatientId = request.PatientId;
-            entity.CompanyGuarantorId = request.CompanyGuarantorId;
-            entity.EmployeeNumber = request.EmployeeNumber.Trim();
-            entity.EmployeeName = NormalizeNullableText(request.EmployeeName);
-            entity.DepartmentName = NormalizeNullableText(request.DepartmentName);
-            entity.BenefitPlanName = NormalizeNullableText(request.BenefitPlanName);
-            entity.ClassName = NormalizeNullableText(request.ClassName);
-            entity.BenefitPlanCode = NormalizeNullableText(request.BenefitPlanCode);
-            entity.PositionName = NormalizeNullableText(request.PositionName);
-            entity.GradeLevel = NormalizeNullableText(request.GradeLevel);
-            entity.EffectiveStartDate = request.EffectiveStartDate;
-            entity.EffectiveEndDate = request.EffectiveEndDate;
-            entity.IsPrimary = request.IsPrimary;
-            entity.IsEligible = request.IsEligible;
-            entity.LastEligibilityCheckAt = request.LastEligibilityCheckAt;
-            entity.LastEligibilityReferenceNumber = NormalizeNullableText(request.LastEligibilityReferenceNumber);
-            entity.EligibilityNote = NormalizeNullableText(request.EligibilityNote);
-            entity.AnnualLimitAmount = request.AnnualLimitAmount;
-            entity.RemainingLimitAmount = request.RemainingLimitAmount;
-            entity.CoPaymentPercent = request.CoPaymentPercent;
-            entity.CoPaymentAmount = request.CoPaymentAmount;
-            entity.IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter;
-            entity.IsNeedEmployeeVerification = request.IsNeedEmployeeVerification;
-            entity.IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient;
-            entity.GuaranteeDocumentPath = NormalizeNullableText(request.GuaranteeDocumentPath);
-            entity.Notes = NormalizeNullableText(request.Notes);
-            entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
+            try
+            {
+                if (request.IsPrimary)
+                {
+                    await UnsetOtherPrimaryAsync(
+                        patientId: request.PatientId,
+                        exceptId: id,
+                        now: now,
+                        actorUserId: actorUserId
+                    );
+                }
 
-            await _dbContext.SaveChangesAsync();
+                entity.PatientId = request.PatientId;
+                entity.CompanyGuarantorId = request.CompanyGuarantorId;
+                entity.EmployeeNumber = request.EmployeeNumber.Trim();
+                entity.EmployeeName = NormalizeNullableString(request.EmployeeName);
+                entity.DepartmentName = NormalizeNullableString(request.DepartmentName);
+                entity.PositionName = NormalizeNullableString(request.PositionName);
+                entity.GradeLevel = NormalizeNullableString(request.GradeLevel);
+                entity.BenefitPlanCode = NormalizeNullableString(request.BenefitPlanCode);
+                entity.BenefitPlanName = NormalizeNullableString(request.BenefitPlanName);
+                entity.ClassName = NormalizeNullableString(request.ClassName);
+                entity.EffectiveStartDate = request.EffectiveStartDate;
+                entity.EffectiveEndDate = request.EffectiveEndDate;
+                entity.IsPrimary = request.IsActive ? request.IsPrimary : false;
+                entity.IsEligible = request.IsEligible;
+                entity.LastEligibilityCheckAt = request.LastEligibilityCheckAt;
+                entity.LastEligibilityReferenceNumber = NormalizeNullableString(request.LastEligibilityReferenceNumber);
+                entity.EligibilityNote = NormalizeNullableString(request.EligibilityNote);
+                entity.AnnualLimitAmount = request.AnnualLimitAmount;
+                entity.RemainingLimitAmount = request.RemainingLimitAmount;
+                entity.CoPaymentPercent = request.CoPaymentPercent;
+                entity.CoPaymentAmount = request.CoPaymentAmount;
+                entity.IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter;
+                entity.IsNeedEmployeeVerification = request.IsNeedEmployeeVerification;
+                entity.IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient;
+                entity.GuaranteeDocumentPath = NormalizeNullableString(request.GuaranteeDocumentPath);
+                entity.Notes = NormalizeNullableString(request.Notes);
+                entity.IsActive = request.IsActive;
+                entity.UpdateDateTime = now;
+                entity.UpdateBy = actorUserId;
 
-            var response = await BuildCreateUpdateResponse(entity.Id, false);
-            return Ok(ApiResponse<PatientCompanyGuarantorUpdateResponse>.Ok(response.Update!, "Patient company guarantor berhasil diperbarui."));
-        }
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
 
-        [HttpPatch("{id:guid}/primary")]
-        [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorPrimaryStatusResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Update", "Update Patient Company Guarantor", Description = "Mengubah primary patient company guarantor", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("PatientCompanyGuarantor", "Update")]
-        public async Task<IActionResult> SetPrimaryStatus(Guid id, [FromQuery] bool isPrimary = true)
-        {
-            var entity = await _dbContext.Set<MstPatientCompanyGuarantor>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-            if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Patient company guarantor tidak ditemukan."));
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "PatientCompanyGuarantor.UpdatePatientCompanyGuarantor",
+                    "Mengubah data patient company guarantor.",
+                    new
+                    {
+                        entity.Id,
+                        entity.PatientId,
+                        entity.CompanyGuarantorId,
+                        entity.EmployeeNumber,
+                        entity.IsActive
+                    }
+                );
 
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
+                return Ok(ApiResponse<object>.Ok(
+                    null,
+                    "Patient company guarantor berhasil diperbarui."
+                ));
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
 
-            if (isPrimary)
-                await ClearPrimaryCompanyGuarantorAsync(entity.PatientId, id, now, actorUserId);
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "PatientCompanyGuarantor.UpdatePatientCompanyGuarantor",
+                    "Gagal mengubah data patient company guarantor.",
+                    ex
+                );
 
-            entity.IsPrimary = isPrimary;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-            await _dbContext.SaveChangesAsync();
-
-            var response = await BuildPrimaryStatusResponse(entity.Id);
-            return Ok(ApiResponse<PatientCompanyGuarantorPrimaryStatusResponse>.Ok(response, "Status primary patient company guarantor berhasil diperbarui."));
-        }
-
-        [HttpPatch("{id:guid}/eligibility")]
-        [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorEligibilityResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Update", "Update Patient Company Guarantor", Description = "Mengubah eligibility patient company guarantor", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("PatientCompanyGuarantor", "Update")]
-        public async Task<IActionResult> UpdateEligibility(Guid id, [FromBody] PatientCompanyGuarantorEligibilityRequest request)
-        {
-            var entity = await _dbContext.Set<MstPatientCompanyGuarantor>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-            if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Patient company guarantor tidak ditemukan."));
-
-            if (request.RemainingLimitAmount.HasValue && request.RemainingLimitAmount.Value < 0)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Sisa limit tidak boleh kurang dari 0."));
-
-            entity.IsEligible = request.IsEligible;
-            entity.LastEligibilityCheckAt = DateTime.UtcNow;
-            entity.LastEligibilityReferenceNumber = NormalizeNullableText(request.LastEligibilityReferenceNumber);
-            entity.EligibilityNote = NormalizeNullableText(request.EligibilityNote);
-            entity.RemainingLimitAmount = request.RemainingLimitAmount;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
-            await _dbContext.SaveChangesAsync();
-
-            var response = await BuildEligibilityResponse(entity.Id);
-            return Ok(ApiResponse<PatientCompanyGuarantorEligibilityResponse>.Ok(response, "Eligibility patient company guarantor berhasil diperbarui."));
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat memperbarui patient company guarantor."
+                    )
+                );
+            }
         }
 
         [HttpPatch("{id:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorStatusResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Update", "Update Patient Company Guarantor", Description = "Mengubah status patient company guarantor", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Update",
+            "Update Patient Company Guarantor Status",
+            Description = "Mengubah status patient company guarantor",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
         [AccessPermission("PatientCompanyGuarantor", "Update")]
-        public async Task<IActionResult> UpdateStatus(Guid id, [FromQuery] bool isActive)
+        public async Task<IActionResult> UpdatePatientCompanyGuarantorStatus(
+            Guid id,
+            [FromBody] UpdatePatientCompanyGuarantorStatusRequest request)
         {
-            var entity = await _dbContext.Set<MstPatientCompanyGuarantor>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-            if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Patient company guarantor tidak ditemukan."));
+            var entity = await _dbContext.Set<MstPatientCompanyGuarantor>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
-            entity.IsActive = isActive;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Patient company guarantor tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = request.IsActive;
+
+            if (!request.IsActive)
+            {
+                entity.IsPrimary = false;
+            }
+
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
             await _dbContext.SaveChangesAsync();
 
-            var response = await BuildStatusResponse(entity.Id);
-            return Ok(ApiResponse<PatientCompanyGuarantorStatusResponse>.Ok(response, "Status patient company guarantor berhasil diperbarui."));
+            return Ok(ApiResponse<object>.Ok(
+                null,
+                "Status patient company guarantor berhasil diperbarui."
+            ));
         }
 
         [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorDeleteResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Delete", "Delete Patient Company Guarantor", Description = "Menghapus data patient company guarantor", AccessType = AccessTypes.Delete, SortOrder = 4)]
+        [AccessAction(
+            "Delete",
+            "Delete Patient Company Guarantor",
+            Description = "Menghapus data patient company guarantor",
+            AccessType = AccessTypes.Delete,
+            SortOrder = 4
+        )]
         [AccessPermission("PatientCompanyGuarantor", "Delete")]
-        public async Task<IActionResult> DeletePatientCompanyGuarantor(Guid id)
+        public async Task<IActionResult> DeletePatientCompanyGuarantor(
+            Guid id,
+            [FromBody] DeletePatientCompanyGuarantorRequest? request = null)
         {
-            var entity = await BuildBaseQuery().FirstOrDefaultAsync(x => x.Id == id);
+            var entity = await _dbContext.Set<MstPatientCompanyGuarantor>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
             if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Patient company guarantor tidak ditemukan."));
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Patient company guarantor tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
 
             entity.IsDelete = true;
             entity.IsActive = false;
             entity.IsPrimary = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+            {
+                entity.Notes = request.DeleteReason.Trim();
+            }
+
             await _dbContext.SaveChangesAsync();
 
-            var response = new PatientCompanyGuarantorDeleteResponse
-            {
-                Id = entity.Id,
-                PatientId = entity.PatientId,
-                PatientName = entity.Patient != null ? entity.Patient.FullName : string.Empty,
-                CompanyGuarantorId = entity.CompanyGuarantorId,
-                CompanyGuarantorName = entity.CompanyGuarantor != null ? entity.CompanyGuarantor.CompanyGuarantorName : string.Empty,
-                EmployeeNumber = entity.EmployeeNumber,
-                IsDelete = entity.IsDelete
-            };
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientCompanyGuarantor.DeletePatientCompanyGuarantor",
+                "Menghapus data patient company guarantor.",
+                new
+                {
+                    entity.Id,
+                    entity.PatientId,
+                    entity.CompanyGuarantorId,
+                    entity.EmployeeNumber,
+                    entity.DeleteDateTime
+                }
+            );
 
-            return Ok(ApiResponse<PatientCompanyGuarantorDeleteResponse>.Ok(response, "Patient company guarantor berhasil dihapus."));
+            return Ok(ApiResponse<object>.Ok(
+                null,
+                "Patient company guarantor berhasil dihapus."
+            ));
         }
 
         private IQueryable<MstPatientCompanyGuarantor> BuildBaseQuery()
         {
             return _dbContext.Set<MstPatientCompanyGuarantor>()
+                .AsNoTracking()
                 .Include(x => x.Patient)
                 .Include(x => x.CompanyGuarantor)
                 .Where(x => !x.IsDelete);
         }
 
-        private static IQueryable<MstPatientCompanyGuarantor> ApplyFilters(
+        private static IQueryable<MstPatientCompanyGuarantor> ApplyDateFilter(
             IQueryable<MstPatientCompanyGuarantor> query,
-            string? search,
-            bool? isActive,
-            Guid? patientId,
-            Guid? companyGuarantorId,
-            string? benefitPlanName,
-            string? className,
-            string? benefitPlanCode,
-            string? gradeLevel,
-            bool? isPrimary,
-            bool? isEligible,
-            bool? isNeedGuaranteeLetter,
-            bool? isNeedEmployeeVerification,
-            bool? isAllowExcessPaymentByPatient,
-            DateTime? effectiveDate,
-            DateTime? lastEligibilityCheckFrom,
-            DateTime? lastEligibilityCheckTo,
-            decimal? minimumAnnualLimitAmount,
-            decimal? maximumAnnualLimitAmount,
-            decimal? minimumRemainingLimitAmount,
-            decimal? maximumRemainingLimitAmount)
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
         {
+            if (startDate.HasValue)
+            {
+                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime >= start);
+            }
+
+            if (endDate.HasValue)
+            {
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime < end);
+            }
+
+            if (!startDate.HasValue &&
+                !endDate.HasValue &&
+                !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var today = DateTime.UtcNow.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today &&
+                            x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "last7days":
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today.AddDays(-6) &&
+                            x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(
+                            today.Year,
+                            today.Month,
+                            1,
+                            0,
+                            0,
+                            0,
+                            DateTimeKind.Utc
+                        );
+
+                        query = query.Where(x =>
+                            x.CreateDateTime >= thisMonthStart &&
+                            x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        break;
+
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(
+                            today.Year,
+                            today.Month,
+                            1,
+                            0,
+                            0,
+                            0,
+                            DateTimeKind.Utc
+                        );
+
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+
+                        query = query.Where(x =>
+                            x.CreateDateTime >= lastMonthStart &&
+                            x.CreateDateTime < currentMonthStart);
+                        break;
+                }
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstPatientCompanyGuarantor> ApplyRelationFilter(
+            IQueryable<MstPatientCompanyGuarantor> query,
+            Guid? patientId,
+            Guid? companyGuarantorId)
+        {
+            var normalizedPatientId = NormalizeNullableGuid(patientId);
+
+            if (normalizedPatientId.HasValue)
+            {
+                query = query.Where(x => x.PatientId == normalizedPatientId.Value);
+            }
+
+            var normalizedCompanyGuarantorId = NormalizeNullableGuid(companyGuarantorId);
+
+            if (normalizedCompanyGuarantorId.HasValue)
+            {
+                query = query.Where(x => x.CompanyGuarantorId == normalizedCompanyGuarantorId.Value);
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstPatientCompanyGuarantor> ApplyStandardFilter(
+            IQueryable<MstPatientCompanyGuarantor> query,
+            bool? isActive,
+            string? search)
+        {
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
+
                 query = query.Where(x =>
                     x.EmployeeNumber.ToLower().Contains(keyword) ||
                     (x.EmployeeName != null && x.EmployeeName.ToLower().Contains(keyword)) ||
                     (x.DepartmentName != null && x.DepartmentName.ToLower().Contains(keyword)) ||
+                    (x.PositionName != null && x.PositionName.ToLower().Contains(keyword)) ||
+                    (x.GradeLevel != null && x.GradeLevel.ToLower().Contains(keyword)) ||
+                    (x.BenefitPlanCode != null && x.BenefitPlanCode.ToLower().Contains(keyword)) ||
                     (x.BenefitPlanName != null && x.BenefitPlanName.ToLower().Contains(keyword)) ||
                     (x.ClassName != null && x.ClassName.ToLower().Contains(keyword)) ||
-                    (x.BenefitPlanCode != null && x.BenefitPlanCode.ToLower().Contains(keyword)) ||
-                    (x.PositionName != null && x.PositionName.ToLower().Contains(keyword)) ||
+                    (x.LastEligibilityReferenceNumber != null && x.LastEligibilityReferenceNumber.ToLower().Contains(keyword)) ||
+                    (x.EligibilityNote != null && x.EligibilityNote.ToLower().Contains(keyword)) ||
+                    (x.Notes != null && x.Notes.ToLower().Contains(keyword)) ||
                     (x.Patient != null && x.Patient.PatientCode.ToLower().Contains(keyword)) ||
                     (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
                     (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
@@ -585,266 +840,472 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     (x.CompanyGuarantor != null && x.CompanyGuarantor.CompanyGuarantorName.ToLower().Contains(keyword)));
             }
 
-            if (isActive.HasValue) query = query.Where(x => x.IsActive == isActive.Value);
-            if (patientId.HasValue && patientId.Value != Guid.Empty) query = query.Where(x => x.PatientId == patientId.Value);
-            if (companyGuarantorId.HasValue && companyGuarantorId.Value != Guid.Empty) query = query.Where(x => x.CompanyGuarantorId == companyGuarantorId.Value);
-            if (!string.IsNullOrWhiteSpace(benefitPlanName)) query = query.Where(x => x.BenefitPlanName != null && x.BenefitPlanName.ToLower().Contains(benefitPlanName.Trim().ToLower()));
-            if (!string.IsNullOrWhiteSpace(className)) query = query.Where(x => x.ClassName != null && x.ClassName.ToLower().Contains(className.Trim().ToLower()));
-            if (!string.IsNullOrWhiteSpace(benefitPlanCode)) query = query.Where(x => x.BenefitPlanCode != null && x.BenefitPlanCode.ToLower().Contains(benefitPlanCode.Trim().ToLower()));
-            if (!string.IsNullOrWhiteSpace(gradeLevel)) query = query.Where(x => x.GradeLevel != null && x.GradeLevel == gradeLevel.Trim());
-            if (isPrimary.HasValue) query = query.Where(x => x.IsPrimary == isPrimary.Value);
-            if (isEligible.HasValue) query = query.Where(x => x.IsEligible == isEligible.Value);
-            if (isNeedGuaranteeLetter.HasValue) query = query.Where(x => x.IsNeedGuaranteeLetter == isNeedGuaranteeLetter.Value);
-            if (isNeedEmployeeVerification.HasValue) query = query.Where(x => x.IsNeedEmployeeVerification == isNeedEmployeeVerification.Value);
-            if (isAllowExcessPaymentByPatient.HasValue) query = query.Where(x => x.IsAllowExcessPaymentByPatient == isAllowExcessPaymentByPatient.Value);
-
-            if (effectiveDate.HasValue)
-            {
-                var selectedDate = effectiveDate.Value.Date;
-                query = query.Where(x =>
-                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= selectedDate) &&
-                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= selectedDate));
-            }
-
-            if (lastEligibilityCheckFrom.HasValue) query = query.Where(x => x.LastEligibilityCheckAt.HasValue && x.LastEligibilityCheckAt.Value >= lastEligibilityCheckFrom.Value);
-            if (lastEligibilityCheckTo.HasValue) query = query.Where(x => x.LastEligibilityCheckAt.HasValue && x.LastEligibilityCheckAt.Value <= lastEligibilityCheckTo.Value);
-            if (minimumAnnualLimitAmount.HasValue) query = query.Where(x => x.AnnualLimitAmount.HasValue && x.AnnualLimitAmount.Value >= minimumAnnualLimitAmount.Value);
-            if (maximumAnnualLimitAmount.HasValue) query = query.Where(x => x.AnnualLimitAmount.HasValue && x.AnnualLimitAmount.Value <= maximumAnnualLimitAmount.Value);
-            if (minimumRemainingLimitAmount.HasValue) query = query.Where(x => x.RemainingLimitAmount.HasValue && x.RemainingLimitAmount.Value >= minimumRemainingLimitAmount.Value);
-            if (maximumRemainingLimitAmount.HasValue) query = query.Where(x => x.RemainingLimitAmount.HasValue && x.RemainingLimitAmount.Value <= maximumRemainingLimitAmount.Value);
-
             return query;
+        }
+
+        private static IOrderedQueryable<MstPatientCompanyGuarantor> ApplySorting(
+            IQueryable<MstPatientCompanyGuarantor> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var isDescending = string.Equals(
+                sortDirection,
+                "desc",
+                StringComparison.OrdinalIgnoreCase
+            );
+
+            return (sortBy ?? "createDateTime").Trim().ToLowerInvariant() switch
+            {
+                "updatedatetime" => isDescending
+                    ? query.OrderByDescending(x => x.UpdateDateTime).ThenByDescending(x => x.CreateDateTime)
+                    : query.OrderBy(x => x.UpdateDateTime).ThenBy(x => x.CreateDateTime),
+
+                "patientname" => isDescending
+                    ? query.OrderByDescending(x => x.Patient != null ? x.Patient.FullName : string.Empty)
+                    : query.OrderBy(x => x.Patient != null ? x.Patient.FullName : string.Empty),
+
+                "medicalrecordnumber" => isDescending
+                    ? query.OrderByDescending(x => x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty)
+                    : query.OrderBy(x => x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty),
+
+                "companyguarantorname" => isDescending
+                    ? query.OrderByDescending(x => x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorName : string.Empty)
+                    : query.OrderBy(x => x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorName : string.Empty),
+
+                "employeenumber" => isDescending
+                    ? query.OrderByDescending(x => x.EmployeeNumber)
+                    : query.OrderBy(x => x.EmployeeNumber),
+
+                "employeename" => isDescending
+                    ? query.OrderByDescending(x => x.EmployeeName)
+                    : query.OrderBy(x => x.EmployeeName),
+
+                "benefitplanname" => isDescending
+                    ? query.OrderByDescending(x => x.BenefitPlanName)
+                    : query.OrderBy(x => x.BenefitPlanName),
+
+                "classname" => isDescending
+                    ? query.OrderByDescending(x => x.ClassName)
+                    : query.OrderBy(x => x.ClassName),
+
+                "effectivestartdate" => isDescending
+                    ? query.OrderByDescending(x => x.EffectiveStartDate)
+                    : query.OrderBy(x => x.EffectiveStartDate),
+
+                "effectiveenddate" => isDescending
+                    ? query.OrderByDescending(x => x.EffectiveEndDate)
+                    : query.OrderBy(x => x.EffectiveEndDate),
+
+                "isprimary" => isDescending
+                    ? query.OrderByDescending(x => x.IsPrimary).ThenBy(x => x.EmployeeNumber)
+                    : query.OrderBy(x => x.IsPrimary).ThenBy(x => x.EmployeeNumber),
+
+                "iseligible" => isDescending
+                    ? query.OrderByDescending(x => x.IsEligible).ThenBy(x => x.EmployeeNumber)
+                    : query.OrderBy(x => x.IsEligible).ThenBy(x => x.EmployeeNumber),
+
+                "isactive" => isDescending
+                    ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.EmployeeNumber)
+                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.EmployeeNumber),
+
+                _ => isDescending
+                    ? query.OrderByDescending(x => x.CreateDateTime).ThenByDescending(x => x.EmployeeNumber)
+                    : query.OrderBy(x => x.CreateDateTime).ThenBy(x => x.EmployeeNumber)
+            };
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
-            Guid patientId,
-            Guid companyGuarantorId,
-            string employeeNumber,
-            string? gradeLevel,
-            DateTime? effectiveStartDate,
-            DateTime? effectiveEndDate,
-            decimal? annualLimitAmount,
-            decimal? remainingLimitAmount,
-            decimal? coPaymentPercent,
-            decimal? coPaymentAmount)
+            CreatePatientCompanyGuarantorRequest request)
         {
-            if (patientId == Guid.Empty) return (false, "Pasien wajib dipilih.");
-            if (companyGuarantorId == Guid.Empty) return (false, "Company guarantor wajib dipilih.");
-            if (string.IsNullOrWhiteSpace(employeeNumber)) return (false, "Nomor karyawan wajib diisi.");
+            if (request.PatientId == Guid.Empty)
+            {
+                return (false, "Patient wajib dipilih.");
+            }
 
-            if (effectiveStartDate.HasValue && effectiveEndDate.HasValue && effectiveEndDate.Value.Date < effectiveStartDate.Value.Date)
+            if (request.CompanyGuarantorId == Guid.Empty)
+            {
+                return (false, "Company guarantor wajib dipilih.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.EmployeeNumber))
+            {
+                return (false, "Nomor karyawan wajib diisi.");
+            }
+
+            if (request.EffectiveStartDate.HasValue &&
+                request.EffectiveEndDate.HasValue &&
+                request.EffectiveEndDate.Value.Date < request.EffectiveStartDate.Value.Date)
+            {
                 return (false, "Tanggal akhir berlaku tidak boleh lebih kecil dari tanggal mulai berlaku.");
+            }
 
-            if (annualLimitAmount.HasValue && annualLimitAmount.Value < 0) return (false, "Limit tahunan tidak boleh kurang dari 0.");
-            if (remainingLimitAmount.HasValue && remainingLimitAmount.Value < 0) return (false, "Sisa limit tidak boleh kurang dari 0.");
-            if (coPaymentPercent.HasValue && (coPaymentPercent.Value < 0 || coPaymentPercent.Value > 100)) return (false, "Co-payment percent harus di antara 0 sampai 100.");
-            if (coPaymentAmount.HasValue && coPaymentAmount.Value < 0) return (false, "Co-payment amount tidak boleh kurang dari 0.");
+            if (request.AnnualLimitAmount.HasValue && request.AnnualLimitAmount.Value < 0)
+            {
+                return (false, "Limit tahunan tidak boleh kurang dari 0.");
+            }
 
-            var patientExists = await _dbContext.Set<MstPatient>().AnyAsync(x => x.Id == patientId && !x.IsDelete);
-            if (!patientExists) return (false, "Pasien tidak ditemukan.");
+            if (request.RemainingLimitAmount.HasValue && request.RemainingLimitAmount.Value < 0)
+            {
+                return (false, "Sisa limit tidak boleh kurang dari 0.");
+            }
 
-            var companyGuarantorExists = await _dbContext.Set<MstCompanyGuarantor>().AnyAsync(x => x.Id == companyGuarantorId && !x.IsDelete);
-            if (!companyGuarantorExists) return (false, "Company guarantor tidak ditemukan.");
+            if (request.AnnualLimitAmount.HasValue &&
+                request.RemainingLimitAmount.HasValue &&
+                request.RemainingLimitAmount.Value > request.AnnualLimitAmount.Value)
+            {
+                return (false, "Sisa limit tidak boleh lebih besar dari limit tahunan.");
+            }
 
-            var normalizedEmployeeNumber = employeeNumber.Trim().ToLower();
-            var duplicateEmployee = await _dbContext.Set<MstPatientCompanyGuarantor>().AnyAsync(x =>
-                !x.IsDelete &&
-                x.PatientId == patientId &&
-                x.CompanyGuarantorId == companyGuarantorId &&
-                x.EmployeeNumber.ToLower() == normalizedEmployeeNumber &&
-                (!excludeId.HasValue || x.Id != excludeId.Value));
+            if (request.CoPaymentPercent.HasValue &&
+                (request.CoPaymentPercent.Value < 0 || request.CoPaymentPercent.Value > 100))
+            {
+                return (false, "Co-payment percent harus di antara 0 sampai 100.");
+            }
 
-            if (duplicateEmployee)
-                return (false, "Nomor karyawan untuk pasien dan company guarantor tersebut sudah digunakan.");
+            if (request.CoPaymentAmount.HasValue && request.CoPaymentAmount.Value < 0)
+            {
+                return (false, "Co-payment amount tidak boleh kurang dari 0.");
+            }
+
+            var patientExists = await _dbContext.Set<MstPatient>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.Id == request.PatientId &&
+                    x.IsActive &&
+                    !x.IsDelete);
+
+            if (!patientExists)
+            {
+                return (false, "Patient tidak valid atau tidak aktif.");
+            }
+
+            var companyGuarantorExists = await _dbContext.Set<MstCompanyGuarantor>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.Id == request.CompanyGuarantorId &&
+                    x.IsActive &&
+                    !x.IsDelete);
+
+            if (!companyGuarantorExists)
+            {
+                return (false, "Company guarantor tidak valid atau tidak aktif.");
+            }
+
+            var normalizedEmployeeNumber = request.EmployeeNumber.Trim().ToLower();
+
+            var duplicateEmployeeQuery = _dbContext.Set<MstPatientCompanyGuarantor>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.PatientId == request.PatientId &&
+                    x.CompanyGuarantorId == request.CompanyGuarantorId &&
+                    x.EmployeeNumber.ToLower() == normalizedEmployeeNumber);
+
+            if (excludeId.HasValue)
+            {
+                duplicateEmployeeQuery = duplicateEmployeeQuery.Where(x => x.Id != excludeId.Value);
+            }
+
+            if (await duplicateEmployeeQuery.AnyAsync())
+            {
+                return (false, "Nomor karyawan untuk patient dan company guarantor tersebut sudah digunakan.");
+            }
 
             return (true, null);
         }
 
-        private async Task ClearPrimaryCompanyGuarantorAsync(Guid patientId, Guid? excludeId, DateTime now, Guid actorUserId)
+        private async Task UnsetOtherPrimaryAsync(
+            Guid patientId,
+            Guid? exceptId,
+            DateTime now,
+            Guid actorUserId)
         {
-            var existingPrimaries = await _dbContext.Set<MstPatientCompanyGuarantor>()
-                .Where(x => !x.IsDelete && x.PatientId == patientId && x.IsPrimary && (!excludeId.HasValue || x.Id != excludeId.Value))
-                .ToListAsync();
+            var query = _dbContext.Set<MstPatientCompanyGuarantor>()
+                .Where(x =>
+                    x.PatientId == patientId &&
+                    x.IsPrimary &&
+                    !x.IsDelete);
 
-            foreach (var item in existingPrimaries)
+            if (exceptId.HasValue)
             {
-                item.IsPrimary = false;
-                item.UpdateDateTime = now;
-                item.UpdateBy = actorUserId;
+                query = query.Where(x => x.Id != exceptId.Value);
+            }
+
+            var entities = await query.ToListAsync();
+
+            foreach (var entity in entities)
+            {
+                entity.IsPrimary = false;
+                entity.UpdateDateTime = now;
+                entity.UpdateBy = actorUserId;
             }
         }
 
-        private async Task<(PatientCompanyGuarantorCreateResponse? Create, PatientCompanyGuarantorUpdateResponse? Update)> BuildCreateUpdateResponse(Guid id, bool isCreate)
+        private async Task<PatientCompanyGuarantorCreateResponse> BuildCreateResponseAsync(Guid id)
         {
-            var data = await BuildBaseQuery().AsNoTracking().FirstAsync(x => x.Id == id);
+            var entity = await BuildBaseQuery()
+                .FirstAsync(x => x.Id == id);
 
-            if (isCreate)
+            return new PatientCompanyGuarantorCreateResponse
             {
-                return (new PatientCompanyGuarantorCreateResponse
-                {
-                    Id = data.Id,
-                    PatientId = data.PatientId,
-                    PatientName = data.Patient != null ? data.Patient.FullName : string.Empty,
-                    CompanyGuarantorId = data.CompanyGuarantorId,
-                    CompanyGuarantorName = data.CompanyGuarantor != null ? data.CompanyGuarantor.CompanyGuarantorName : string.Empty,
-                    EmployeeNumber = data.EmployeeNumber,
-                    IsPrimary = data.IsPrimary,
-                    IsEligible = data.IsEligible,
-                    IsActive = data.IsActive
-                }, null);
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                CompanyGuarantorId = entity.CompanyGuarantorId,
+                CompanyGuarantorName = entity.CompanyGuarantor?.CompanyGuarantorName ?? string.Empty,
+                EmployeeNumber = entity.EmployeeNumber,
+                IsPrimary = entity.IsPrimary,
+                IsEligible = entity.IsEligible,
+                IsActive = entity.IsActive
+            };
+        }
+
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(
+            IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
             }
 
-            return (null, new PatientCompanyGuarantorUpdateResponse
-            {
-                Id = data.Id,
-                PatientId = data.PatientId,
-                PatientName = data.Patient != null ? data.Patient.FullName : string.Empty,
-                CompanyGuarantorId = data.CompanyGuarantorId,
-                CompanyGuarantorName = data.CompanyGuarantor != null ? data.CompanyGuarantor.CompanyGuarantorName : string.Empty,
-                EmployeeNumber = data.EmployeeNumber,
-                IsPrimary = data.IsPrimary,
-                IsEligible = data.IsEligible,
-                IsActive = data.IsActive
-            });
-        }
-
-        private async Task<PatientCompanyGuarantorStatusResponse> BuildStatusResponse(Guid id)
-        {
-            return await BuildBaseQuery().AsNoTracking()
-                .Where(x => x.Id == id)
-                .Select(x => new PatientCompanyGuarantorStatusResponse
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
                 {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                    CompanyGuarantorId = x.CompanyGuarantorId,
-                    CompanyGuarantorName = x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorName : string.Empty,
-                    EmployeeNumber = x.EmployeeNumber,
-                    IsActive = x.IsActive
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
                 })
-                .FirstAsync();
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
         }
 
-        private async Task<PatientCompanyGuarantorPrimaryStatusResponse> BuildPrimaryStatusResponse(Guid id)
-        {
-            return await BuildBaseQuery().AsNoTracking()
-                .Where(x => x.Id == id)
-                .Select(x => new PatientCompanyGuarantorPrimaryStatusResponse
-                {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                    CompanyGuarantorId = x.CompanyGuarantorId,
-                    CompanyGuarantorName = x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorName : string.Empty,
-                    EmployeeNumber = x.EmployeeNumber,
-                    IsPrimary = x.IsPrimary
-                })
-                .FirstAsync();
-        }
-
-        private async Task<PatientCompanyGuarantorEligibilityResponse> BuildEligibilityResponse(Guid id)
-        {
-            return await BuildBaseQuery().AsNoTracking()
-                .Where(x => x.Id == id)
-                .Select(x => new PatientCompanyGuarantorEligibilityResponse
-                {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                    CompanyGuarantorId = x.CompanyGuarantorId,
-                    CompanyGuarantorName = x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorName : string.Empty,
-                    EmployeeNumber = x.EmployeeNumber,
-                    IsEligible = x.IsEligible,
-                    LastEligibilityCheckAt = x.LastEligibilityCheckAt,
-                    LastEligibilityReferenceNumber = x.LastEligibilityReferenceNumber,
-                    EligibilityNote = x.EligibilityNote,
-                    RemainingLimitAmount = x.RemainingLimitAmount
-                })
-                .FirstAsync();
-        }
-
-        private static PatientCompanyGuarantorResponse ToResponse(MstPatientCompanyGuarantor x)
+        private static PatientCompanyGuarantorResponse MapResponse(
+            MstPatientCompanyGuarantor entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             return new PatientCompanyGuarantorResponse
             {
-                Id = x.Id,
-                PatientId = x.PatientId,
-                PatientCode = x.Patient != null ? x.Patient.PatientCode : string.Empty,
-                MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                CompanyGuarantorId = x.CompanyGuarantorId,
-                CompanyGuarantorCode = x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorCode : string.Empty,
-                CompanyGuarantorName = x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorName : string.Empty,
-                CompanyGroupName = x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGroupName : null,
-                GuarantorType = x.CompanyGuarantor != null ? x.CompanyGuarantor.GuarantorType : null,
-                BillingMethod = x.CompanyGuarantor != null ? x.CompanyGuarantor.BillingMethod : null,
-                EmployeeNumber = x.EmployeeNumber,
-                EmployeeName = x.EmployeeName,
-                DepartmentName = x.DepartmentName,
-                BenefitPlanName = x.BenefitPlanName,
-                ClassName = x.ClassName,
-                BenefitPlanCode = x.BenefitPlanCode,
-                PositionName = x.PositionName,
-                GradeLevel = x.GradeLevel,
-                EffectiveStartDate = x.EffectiveStartDate,
-                EffectiveEndDate = x.EffectiveEndDate,
-                IsPrimary = x.IsPrimary,
-                IsEligible = x.IsEligible,
-                LastEligibilityCheckAt = x.LastEligibilityCheckAt,
-                LastEligibilityReferenceNumber = x.LastEligibilityReferenceNumber,
-                AnnualLimitAmount = x.AnnualLimitAmount,
-                RemainingLimitAmount = x.RemainingLimitAmount,
-                CoPaymentPercent = x.CoPaymentPercent,
-                CoPaymentAmount = x.CoPaymentAmount,
-                IsNeedGuaranteeLetter = x.IsNeedGuaranteeLetter,
-                IsNeedEmployeeVerification = x.IsNeedEmployeeVerification,
-                IsAllowExcessPaymentByPatient = x.IsAllowExcessPaymentByPatient,
-                GuaranteeDocumentPath = x.GuaranteeDocumentPath,
-                IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientCode = entity.Patient?.PatientCode ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                CompanyGuarantorId = entity.CompanyGuarantorId,
+                CompanyGuarantorCode = entity.CompanyGuarantor?.CompanyGuarantorCode ?? string.Empty,
+                CompanyGuarantorName = entity.CompanyGuarantor?.CompanyGuarantorName ?? string.Empty,
+                CompanyGroupName = entity.CompanyGuarantor?.CompanyGroupName,
+                GuarantorType = entity.CompanyGuarantor?.GuarantorType,
+                BillingMethod = entity.CompanyGuarantor?.BillingMethod,
+                EmployeeNumber = entity.EmployeeNumber,
+                EmployeeName = entity.EmployeeName,
+                DepartmentName = entity.DepartmentName,
+                PositionName = entity.PositionName,
+                GradeLevel = entity.GradeLevel,
+                BenefitPlanCode = entity.BenefitPlanCode,
+                BenefitPlanName = entity.BenefitPlanName,
+                ClassName = entity.ClassName,
+                EffectiveStartDate = entity.EffectiveStartDate,
+                EffectiveEndDate = entity.EffectiveEndDate,
+                IsPrimary = entity.IsPrimary,
+                IsEligible = entity.IsEligible,
+                LastEligibilityCheckAt = entity.LastEligibilityCheckAt,
+                LastEligibilityReferenceNumber = entity.LastEligibilityReferenceNumber,
+                AnnualLimitAmount = entity.AnnualLimitAmount,
+                RemainingLimitAmount = entity.RemainingLimitAmount,
+                CoPaymentPercent = entity.CoPaymentPercent,
+                CoPaymentAmount = entity.CoPaymentAmount,
+                IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter,
+                IsNeedEmployeeVerification = entity.IsNeedEmployeeVerification,
+                IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
+                GuaranteeDocumentPath = entity.GuaranteeDocumentPath,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
         }
 
-        private static IQueryable<MstPatientCompanyGuarantor> ApplySorting(IQueryable<MstPatientCompanyGuarantor> query, string? sortBy, string? sortDirection)
+        private static PatientCompanyGuarantorDetailResponse MapDetailResponse(
+            MstPatientCompanyGuarantor entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-
-            return (sortBy ?? "createDateTime").ToLowerInvariant() switch
+            var response = new PatientCompanyGuarantorDetailResponse
             {
-                "patientname" => isDesc ? query.OrderByDescending(x => x.Patient != null ? x.Patient.FullName : string.Empty) : query.OrderBy(x => x.Patient != null ? x.Patient.FullName : string.Empty),
-                "medicalrecordnumber" => isDesc ? query.OrderByDescending(x => x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty) : query.OrderBy(x => x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty),
-                "companyguarantorname" => isDesc ? query.OrderByDescending(x => x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorName : string.Empty) : query.OrderBy(x => x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorName : string.Empty),
-                "employeenumber" => isDesc ? query.OrderByDescending(x => x.EmployeeNumber) : query.OrderBy(x => x.EmployeeNumber),
-                "benefitplanname" => isDesc ? query.OrderByDescending(x => x.BenefitPlanName) : query.OrderBy(x => x.BenefitPlanName),
-                "classname" => isDesc ? query.OrderByDescending(x => x.ClassName) : query.OrderBy(x => x.ClassName),
-                "effectivestartdate" => isDesc ? query.OrderByDescending(x => x.EffectiveStartDate) : query.OrderBy(x => x.EffectiveStartDate),
-                "effectiveenddate" => isDesc ? query.OrderByDescending(x => x.EffectiveEndDate) : query.OrderBy(x => x.EffectiveEndDate),
-                "lasteligibilitycheckat" => isDesc ? query.OrderByDescending(x => x.LastEligibilityCheckAt) : query.OrderBy(x => x.LastEligibilityCheckAt),
-                "isprimary" => isDesc ? query.OrderByDescending(x => x.IsPrimary) : query.OrderBy(x => x.IsPrimary),
-                "iseligible" => isDesc ? query.OrderByDescending(x => x.IsEligible) : query.OrderBy(x => x.IsEligible),
-                "isactive" => isDesc ? query.OrderByDescending(x => x.IsActive) : query.OrderBy(x => x.IsActive),
-                _ => isDesc ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime)
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientCode = entity.Patient?.PatientCode ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                CompanyGuarantorId = entity.CompanyGuarantorId,
+                CompanyGuarantorCode = entity.CompanyGuarantor?.CompanyGuarantorCode ?? string.Empty,
+                CompanyGuarantorName = entity.CompanyGuarantor?.CompanyGuarantorName ?? string.Empty,
+                CompanyGroupName = entity.CompanyGuarantor?.CompanyGroupName,
+                GuarantorType = entity.CompanyGuarantor?.GuarantorType,
+                BillingMethod = entity.CompanyGuarantor?.BillingMethod,
+                EmployeeNumber = entity.EmployeeNumber,
+                EmployeeName = entity.EmployeeName,
+                DepartmentName = entity.DepartmentName,
+                PositionName = entity.PositionName,
+                GradeLevel = entity.GradeLevel,
+                BenefitPlanCode = entity.BenefitPlanCode,
+                BenefitPlanName = entity.BenefitPlanName,
+                ClassName = entity.ClassName,
+                EffectiveStartDate = entity.EffectiveStartDate,
+                EffectiveEndDate = entity.EffectiveEndDate,
+                IsPrimary = entity.IsPrimary,
+                IsEligible = entity.IsEligible,
+                LastEligibilityCheckAt = entity.LastEligibilityCheckAt,
+                LastEligibilityReferenceNumber = entity.LastEligibilityReferenceNumber,
+                EligibilityNote = entity.EligibilityNote,
+                AnnualLimitAmount = entity.AnnualLimitAmount,
+                RemainingLimitAmount = entity.RemainingLimitAmount,
+                CoPaymentPercent = entity.CoPaymentPercent,
+                CoPaymentAmount = entity.CoPaymentAmount,
+                IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter,
+                IsNeedEmployeeVerification = entity.IsNeedEmployeeVerification,
+                IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
+                GuaranteeDocumentPath = entity.GuaranteeDocumentPath,
+                Notes = entity.Notes,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+
+            return response;
+        }
+
+        private static PatientCompanyGuarantorOptionResponse MapOptionResponse(
+            MstPatientCompanyGuarantor entity)
+        {
+            return new PatientCompanyGuarantorOptionResponse
+            {
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientCode = entity.Patient?.PatientCode ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                CompanyGuarantorId = entity.CompanyGuarantorId,
+                CompanyGuarantorCode = entity.CompanyGuarantor?.CompanyGuarantorCode ?? string.Empty,
+                CompanyGuarantorName = entity.CompanyGuarantor?.CompanyGuarantorName ?? string.Empty,
+                EmployeeNumber = entity.EmployeeNumber,
+                EmployeeName = entity.EmployeeName,
+                BenefitPlanCode = entity.BenefitPlanCode,
+                BenefitPlanName = entity.BenefitPlanName,
+                ClassName = entity.ClassName,
+                EffectiveStartDate = entity.EffectiveStartDate,
+                EffectiveEndDate = entity.EffectiveEndDate,
+                IsPrimary = entity.IsPrimary,
+                IsEligible = entity.IsEligible,
+                IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter,
+                IsNeedEmployeeVerification = entity.IsNeedEmployeeVerification,
+                IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
+                AnnualLimitAmount = entity.AnnualLimitAmount,
+                RemainingLimitAmount = entity.RemainingLimitAmount,
+                CoPaymentPercent = entity.CoPaymentPercent,
+                CoPaymentAmount = entity.CoPaymentAmount
             };
         }
 
-        private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 25;
-            if (pageSize > 100) pageSize = 100;
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
+        }
+
+        private static void NormalizeActorInfo(PatientCompanyGuarantorResponse data)
+        {
+            if (data.UpdateDateTime.HasValue &&
+                data.UpdateDateTime.Value == DateTime.MinValue)
+            {
+                data.UpdateDateTime = null;
+            }
+
+            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
+            {
+                data.CreateBy = null;
+                data.CreateByName = null;
+            }
+
+            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
+            {
+                data.UpdateBy = null;
+                data.UpdateByName = null;
+            }
+        }
+
+        private static (int PageNumber, int PageSize) NormalizePaging(
+            int pageNumber,
+            int pageSize)
+        {
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 25;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
+
             return (pageNumber, pageSize);
+        }
+
+        private static string? NormalizeNullableString(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value.Trim();
+        }
+
+        private static Guid? NormalizeNullableGuid(Guid? value)
+        {
+            if (!value.HasValue || value.Value == Guid.Empty)
+            {
+                return null;
+            }
+
+            return value.Value;
         }
 
         private Guid GetCurrentUserId()
         {
-            var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            return Guid.TryParse(userIdText, out var userId) ? userId : Guid.Empty;
-        }
+            var userIdValue =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("user_id");
 
-        private static string? NormalizeNullableText(string? value)
-        {
-            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            return Guid.TryParse(userIdValue, out var userId)
+                ? userId
+                : Guid.Empty;
         }
     }
 }

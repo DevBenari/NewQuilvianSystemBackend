@@ -39,6 +39,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public bool IsLegalGuardian { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class PatientRelationshipDetailResponse : PatientRelationshipResponse
@@ -63,6 +68,50 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public bool IsLegalGuardian { get; set; }
     }
 
+    public class PatientRelationshipOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<PatientRelationshipOptionResponse> Items { get; set; } = new();
+    }
+
+    public class PatientRelationshipFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+        public PatientRelationshipDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<PatientRelationshipCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
+        public List<PatientRelationshipSortOptionResponse> SortOptions { get; set; } = new();
+        public List<string> SortDirections { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new();
+        public List<PatientRelationshipRelationFilterResponse> RelationFilters { get; set; } = new();
+        public List<PatientRelationshipEnumOptionResponse> RelationshipTypeOptions { get; set; } = new();
+        public string ResetButtonLabel { get; set; } = "Reset";
+    }
+
+    public class PatientRelationshipDefaultFilterResponse
+    {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
+        public Guid? PatientId { get; set; }
+        public Guid? RelatedPatientId { get; set; }
+        public bool? IsActive { get; set; }
+        public string? Search { get; set; }
+        public string SortBy { get; set; } = "createDateTime";
+        public string SortDirection { get; set; } = "desc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class PatientRelationshipRelationFilterResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Endpoint { get; set; } = string.Empty;
+    }
+
     public class PatientRelationshipEnumOptionResponse
     {
         public int Value { get; set; }
@@ -70,31 +119,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string Label { get; set; } = string.Empty;
     }
 
-    public class PatientRelationshipFilterMetadataResponse
+    public class PatientRelationshipCustomPeriodOptionResponse
     {
-        public string DateFormat { get; set; } = "yyyy-MM-dd";
-        public PatientRelationshipDefaultFilterResponse DefaultFilter { get; set; } = new();
-        public List<PatientRelationshipSortOptionResponse> SortOptions { get; set; } = new();
-        public List<string> SortDirections { get; set; } = new();
-        public List<int> PageSizeOptions { get; set; } = new();
-        public List<PatientRelationshipEnumOptionResponse> RelationshipTypeOptions { get; set; } = new();
-    }
-
-    public class PatientRelationshipDefaultFilterResponse
-    {
-        public string? Search { get; set; }
-        public Guid? PatientId { get; set; }
-        public Guid? RelatedPatientId { get; set; }
-        public PatientRelationshipType? RelationshipType { get; set; }
-        public bool? IsPrimary { get; set; }
-        public bool? IsEmergencyContact { get; set; }
-        public bool? IsResponsiblePerson { get; set; }
-        public bool? IsLegalGuardian { get; set; }
-        public bool? IsActive { get; set; }
-        public string SortBy { get; set; } = "createDateTime";
-        public string SortDirection { get; set; } = "desc";
-        public int PageNumber { get; set; } = 1;
-        public int PageSize { get; set; } = 25;
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class PatientRelationshipSortOptionResponse
@@ -147,12 +175,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public bool IsActive { get; set; } = true;
     }
 
+    public class UpdatePatientRelationshipStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeletePatientRelationshipRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
+    }
+
     public class PatientRelationshipCreateResponse
     {
         public Guid Id { get; set; }
         public Guid PatientId { get; set; }
         public Guid? RelatedPatientId { get; set; }
         public PatientRelationshipType RelationshipType { get; set; }
+        public string RelationshipTypeName { get; set; } = string.Empty;
         public string? RelatedPersonName { get; set; }
         public bool IsPrimary { get; set; }
         public bool IsEmergencyContact { get; set; }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
@@ -36,6 +37,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
     public class PatientController : ControllerBase
     {
         private const string LogCategory = "HealthServices.PatientManagement.MasterData";
+        private const string CodePrefix = "PAT-RSMMC-";
+        private const int CodeNumberLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -50,16 +53,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<PatientFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient", Description = "Melihat data patient", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient",
+            Description = "Melihat metadata filter patient",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("Patient", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new PatientFilterMetadataResponse
             {
                 DefaultFilter = new PatientDefaultFilterResponse(),
+                CustomPeriods = new List<PatientCustomPeriodOptionResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "lastmonth", Label = "Bulan lalu" }
+                },
                 SortOptions = new List<PatientSortOptionResponse>
                 {
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "updateDateTime", Label = "Tanggal diperbarui" },
                     new() { Value = "patientCode", Label = "Kode pasien" },
                     new() { Value = "medicalRecordNumber", Label = "Nomor rekam medis" },
                     new() { Value = "fullName", Label = "Nama pasien" },
@@ -67,17 +84,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     new() { Value = "patientType", Label = "Tipe pasien" },
                     new() { Value = "patientStatus", Label = "Status pasien" },
                     new() { Value = "registrationSource", Label = "Sumber registrasi" },
+                    new() { Value = "isMember", Label = "Member" },
+                    new() { Value = "isNewborn", Label = "Newborn" },
+                    new() { Value = "isDeceased", Label = "Meninggal" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                RelationFilters = new List<PatientRelationFilterResponse>
+                {
+                    new()
+                    {
+                        Value = "defaultMembershipTierId",
+                        Label = "Membership Tier",
+                        Endpoint = "/api/v1/health-services/master-data/membership-tiers/options"
+                    }
+                },
                 PatientTypeOptions = BuildEnumOptions<PatientType>(),
                 PatientStatusOptions = BuildEnumOptions<PatientStatus>(),
                 RegistrationSourceOptions = BuildEnumOptions<PatientRegistrationSource>(),
                 GenderOptions = BuildEnumOptions<Gender>(),
                 ReligionOptions = BuildEnumOptions<Religion>(),
                 MaritalStatusOptions = BuildEnumOptions<MaritalStatus>(),
-                BloodTypeOptions = BuildEnumOptions<BloodType>()
+                BloodTypeOptions = BuildEnumOptions<BloodType>(),
+                ResetButtonLabel = "Reset"
             };
 
             await _loggerService.InfoAsync(
@@ -95,13 +125,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<PatientSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient", Description = "Melihat data patient", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient",
+            Description = "Melihat ringkasan patient",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("Patient", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var query = _dbContext.Set<MstPatient>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
             var result = new PatientSummaryResponse
             {
@@ -112,7 +146,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 NewbornPatient = await query.CountAsync(x => x.IsNewborn),
                 MemberPatient = await query.CountAsync(x => x.IsMember),
                 DeceasedPatient = await query.CountAsync(x => x.IsDeceased),
-                MergedPatient = await query.CountAsync(x => x.MergedToPatientId.HasValue)
+                MergedPatient = await query.CountAsync(x => x.MergedToPatientId.HasValue),
+                WithIdentityNumberPatient = await query.CountAsync(x =>
+                    x.IdentityNumber != null &&
+                    x.IdentityNumber != string.Empty)
             };
 
             return Ok(ApiResponse<PatientSummaryResponse>.Ok(
@@ -123,24 +160,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientPagedResult>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient", Description = "Melihat data patient", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient",
+            Description = "Melihat data patient",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("Patient", "Read")]
         public async Task<IActionResult> GetPatients(
-            [FromQuery] string? search,
-            [FromQuery] bool? isActive,
-            [FromQuery] PatientType? patientType,
-            [FromQuery] PatientStatus? patientStatus,
-            [FromQuery] PatientRegistrationSource? registrationSource,
-            [FromQuery] Gender? gender,
-            [FromQuery] bool? isMember,
-            [FromQuery] bool? isNewborn,
-            [FromQuery] bool? isDeceased,
-            [FromQuery] bool? isMerged,
-            [FromQuery] Guid? countryId,
-            [FromQuery] Guid? provinceId,
-            [FromQuery] Guid? cityId,
-            [FromQuery] Guid? districtId,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? defaultMembershipTierId,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -150,84 +184,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.Set<MstPatient>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
-            query = ApplyFilters(
-                query,
-                search,
-                isActive,
-                patientType,
-                patientStatus,
-                registrationSource,
-                gender,
-                isMember,
-                isNewborn,
-                isDeceased,
-                isMerged,
-                countryId,
-                provinceId,
-                cityId,
-                districtId,
-                defaultMembershipTierId
-            );
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyRelationFilter(query, defaultMembershipTierId);
+            query = ApplyStandardFilter(query, isActive, search);
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new PatientResponse
-                {
-                    Id = x.Id,
-                    PatientCode = x.PatientCode,
-                    MedicalRecordNumber = x.MedicalRecordNumber,
-                    PatientType = x.PatientType,
-                    PatientStatus = x.PatientStatus,
-                    RegistrationSource = x.RegistrationSource,
-                    FullName = x.FullName,
-                    NickName = x.NickName,
-                    BirthPlace = x.BirthPlace,
-                    BirthDate = x.BirthDate,
-                    Gender = x.Gender,
-                    Religion = x.Religion,
-                    MaritalStatus = x.MaritalStatus,
-                    BloodType = x.BloodType,
-                    IdentityType = x.IdentityType,
-                    IdentityNumber = x.IdentityNumber,
-                    PhoneNumber = x.PhoneNumber,
-                    WhatsAppNumber = x.WhatsAppNumber,
-                    Email = x.Email,
-                    CountryId = x.CountryId,
-                    CountryName = x.Country != null ? x.Country.CountryName : null,
-                    ProvinceId = x.ProvinceId,
-                    ProvinceName = x.Province != null ? x.Province.ProvinceName : null,
-                    CityId = x.CityId,
-                    CityName = x.City != null ? x.City.CityName : null,
-                    DistrictId = x.DistrictId,
-                    DistrictName = x.District != null ? x.District.DistrictName : null,
-                    PostalCodeId = x.PostalCodeId,
-                    PostalCode = x.PostalCode != null ? x.PostalCode.PostalCode : null,
-                    PhotoPath = x.PhotoPath,
-                    IsMember = x.IsMember,
-                    DefaultMembershipTierId = x.DefaultMembershipTierId,
-                    DefaultMembershipTierName = x.DefaultMembershipTier != null ? x.DefaultMembershipTier.TierName : null,
-                    ActivePatientMembershipId = x.ActivePatientMembershipId,
-                    IsNewborn = x.IsNewborn,
-                    MotherPatientId = x.MotherPatientId,
-                    MotherMedicalRecordNumber = x.MotherPatient != null ? x.MotherPatient.MedicalRecordNumber : null,
-                    MotherPatientName = x.MotherPatient != null ? x.MotherPatient.FullName : null,
-                    BirthOrder = x.BirthOrder,
-                    IsDeceased = x.IsDeceased,
-                    DeceasedDate = x.DeceasedDate,
-                    MergedToPatientId = x.MergedToPatientId,
-                    MergedToMedicalRecordNumber = x.MergedToPatient != null ? x.MergedToPatient.MedicalRecordNumber : null,
-                    MergedToPatientName = x.MergedToPatient != null ? x.MergedToPatient.FullName : null,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .SelectMany(x => new[] { x.CreateBy, x.UpdateBy })
+                    .Where(x => x != Guid.Empty)
+            );
+
+            var items = entities
+                .Select(x => MapResponse(x, actorNames))
+                .ToList();
 
             var result = new ResponsePatientPagedResult
             {
@@ -245,77 +223,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<PatientOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient", Description = "Melihat data patient", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<PatientOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction(
+            "Read",
+            "Read Patient",
+            Description = "Melihat data pilihan patient",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("Patient", "Read")]
         public async Task<IActionResult> GetPatientOptions(
-            [FromQuery] PatientType? patientType,
-            [FromQuery] PatientStatus? patientStatus,
-            [FromQuery] Gender? gender,
-            [FromQuery] bool? isMember,
-            [FromQuery] bool? isNewborn,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] Guid? defaultMembershipTierId = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
-            var query = _dbContext.Set<MstPatient>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
 
-            if (onlyActive)
-                query = query.Where(x => x.IsActive);
+            var query = BuildBaseQuery();
 
-            if (patientType.HasValue)
-                query = query.Where(x => x.PatientType == patientType.Value);
+            query = ApplyRelationFilter(query, defaultMembershipTierId);
+            query = ApplyStandardFilter(
+                query,
+                onlyActive ? true : null,
+                search
+            );
 
-            if (patientStatus.HasValue)
-                query = query.Where(x => x.PatientStatus == patientStatus.Value);
+            var totalData = await query.CountAsync();
 
-            if (gender.HasValue)
-                query = query.Where(x => x.Gender == gender.Value);
-
-            if (isMember.HasValue)
-                query = query.Where(x => x.IsMember == isMember.Value);
-
-            if (isNewborn.HasValue)
-                query = query.Where(x => x.IsNewborn == isNewborn.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.PatientCode.ToLower().Contains(keyword) ||
-                    x.MedicalRecordNumber.ToLower().Contains(keyword) ||
-                    x.FullName.ToLower().Contains(keyword) ||
-                    (x.IdentityNumber != null && x.IdentityNumber.ToLower().Contains(keyword)) ||
-                    (x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(keyword)) ||
-                    (x.WhatsAppNumber != null && x.WhatsAppNumber.ToLower().Contains(keyword)));
-            }
-
-            var data = await query
+            var entities = await query
                 .OrderBy(x => x.FullName)
                 .ThenBy(x => x.MedicalRecordNumber)
-                .Take(100)
-                .Select(x => new PatientOptionResponse
-                {
-                    Id = x.Id,
-                    PatientCode = x.PatientCode,
-                    MedicalRecordNumber = x.MedicalRecordNumber,
-                    FullName = x.FullName,
-                    BirthDate = x.BirthDate,
-                    Gender = x.Gender,
-                    IdentityType = x.IdentityType,
-                    IdentityNumber = x.IdentityNumber,
-                    PhoneNumber = x.PhoneNumber,
-                    PatientType = x.PatientType,
-                    PatientStatus = x.PatientStatus,
-                    IsNewborn = x.IsNewborn,
-                    IsMember = x.IsMember
-                })
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<PatientOptionResponse>>.Ok(
-                data,
+            var items = entities
+                .Select(MapOptionResponse)
+                .ToList();
+
+            var result = new PatientOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<PatientOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan patient berhasil diambil."
             ));
         }
@@ -323,78 +283,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Patient", Description = "Melihat data patient", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient",
+            Description = "Melihat detail patient",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("Patient", "Read")]
         public async Task<IActionResult> GetPatientById(Guid id)
         {
-            var data = await _dbContext.Set<MstPatient>()
-                .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new PatientDetailResponse
-                {
-                    Id = x.Id,
-                    PatientCode = x.PatientCode,
-                    MedicalRecordNumber = x.MedicalRecordNumber,
-                    PatientType = x.PatientType,
-                    PatientStatus = x.PatientStatus,
-                    RegistrationSource = x.RegistrationSource,
-                    FullName = x.FullName,
-                    NickName = x.NickName,
-                    BirthPlace = x.BirthPlace,
-                    BirthDate = x.BirthDate,
-                    Gender = x.Gender,
-                    Religion = x.Religion,
-                    MaritalStatus = x.MaritalStatus,
-                    BloodType = x.BloodType,
-                    IdentityType = x.IdentityType,
-                    IdentityNumber = x.IdentityNumber,
-                    PhoneNumber = x.PhoneNumber,
-                    WhatsAppNumber = x.WhatsAppNumber,
-                    Email = x.Email,
-                    Address = x.Address,
-                    CountryId = x.CountryId,
-                    CountryName = x.Country != null ? x.Country.CountryName : null,
-                    ProvinceId = x.ProvinceId,
-                    ProvinceName = x.Province != null ? x.Province.ProvinceName : null,
-                    CityId = x.CityId,
-                    CityName = x.City != null ? x.City.CityName : null,
-                    DistrictId = x.DistrictId,
-                    DistrictName = x.District != null ? x.District.DistrictName : null,
-                    PostalCodeId = x.PostalCodeId,
-                    PostalCode = x.PostalCode != null ? x.PostalCode.PostalCode : null,
-                    PhotoPath = x.PhotoPath,
-                    IsMember = x.IsMember,
-                    DefaultMembershipTierId = x.DefaultMembershipTierId,
-                    DefaultMembershipTierName = x.DefaultMembershipTier != null ? x.DefaultMembershipTier.TierName : null,
-                    ActivePatientMembershipId = x.ActivePatientMembershipId,
-                    IsNewborn = x.IsNewborn,
-                    MotherPatientId = x.MotherPatientId,
-                    MotherMedicalRecordNumber = x.MotherPatient != null ? x.MotherPatient.MedicalRecordNumber : null,
-                    MotherPatientName = x.MotherPatient != null ? x.MotherPatient.FullName : null,
-                    BirthOrder = x.BirthOrder,
-                    BirthWeightGram = x.BirthWeightGram,
-                    BirthLengthCm = x.BirthLengthCm,
-                    BirthTime = x.BirthTime,
-                    DeliveryMethod = x.DeliveryMethod,
-                    IsDeceased = x.IsDeceased,
-                    DeceasedDate = x.DeceasedDate,
-                    MergedToPatientId = x.MergedToPatientId,
-                    MergedToMedicalRecordNumber = x.MergedToPatient != null ? x.MergedToPatient.MedicalRecordNumber : null,
-                    MergedToPatientName = x.MergedToPatient != null ? x.MergedToPatient.FullName : null,
-                    MergeReason = x.MergeReason,
-                    Notes = x.Notes,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+            var entity = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (data == null)
+            if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Patient tidak ditemukan."
                 ));
             }
+
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, actorNames);
+
+            NormalizeActorInfo(data);
 
             return Ok(ApiResponse<PatientDetailResponse>.Ok(
                 data,
@@ -404,28 +322,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<PatientCreateResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Create", "Create Patient", Description = "Membuat data patient", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Create",
+            "Create Patient",
+            Description = "Membuat data patient",
+            AccessType = AccessTypes.Create,
+            SortOrder = 2
+        )]
         [AccessPermission("Patient", "Create")]
         public async Task<IActionResult> CreatePatient([FromBody] CreatePatientRequest request)
         {
             var validation = await ValidateRequestAsync(
                 excludeId: null,
-                request.PatientCode,
-                request.MedicalRecordNumber,
-                request.FullName,
-                request.IdentityNumber,
-                request.CountryId,
-                request.ProvinceId,
-                request.CityId,
-                request.DistrictId,
-                request.PostalCodeId,
-                request.DefaultMembershipTierId,
-                request.ActivePatientMembershipId,
-                request.IsNewborn,
-                request.MotherPatientId,
+                request: request,
                 mergedToPatientId: null,
-                request.IsDeceased,
-                request.DeceasedDate
+                mergeReason: null
             );
 
             if (!validation.IsValid)
@@ -439,82 +351,128 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            var entity = new MstPatient
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+            try
             {
-                Id = Guid.NewGuid(),
-                PatientCode = request.PatientCode.Trim().ToUpperInvariant(),
-                MedicalRecordNumber = request.MedicalRecordNumber.Trim().ToUpperInvariant(),
-                PatientType = request.PatientType,
-                PatientStatus = request.PatientStatus,
-                RegistrationSource = request.RegistrationSource,
-                FullName = request.FullName.Trim(),
-                NickName = NormalizeNullableText(request.NickName),
-                BirthPlace = NormalizeNullableText(request.BirthPlace),
-                BirthDate = request.BirthDate,
-                Gender = request.Gender,
-                Religion = request.Religion,
-                MaritalStatus = request.MaritalStatus,
-                BloodType = request.BloodType,
-                IdentityType = NormalizeNullableText(request.IdentityType),
-                IdentityNumber = NormalizeNullableText(request.IdentityNumber),
-                PhoneNumber = NormalizeNullableText(request.PhoneNumber),
-                WhatsAppNumber = NormalizeNullableText(request.WhatsAppNumber),
-                Email = NormalizeNullableText(request.Email),
-                Address = NormalizeNullableText(request.Address),
-                CountryId = NormalizeNullableGuid(request.CountryId),
-                ProvinceId = NormalizeNullableGuid(request.ProvinceId),
-                CityId = NormalizeNullableGuid(request.CityId),
-                DistrictId = NormalizeNullableGuid(request.DistrictId),
-                PostalCodeId = NormalizeNullableGuid(request.PostalCodeId),
-                PhotoPath = NormalizeNullableText(request.PhotoPath),
-                IsMember = request.IsMember,
-                DefaultMembershipTierId = NormalizeNullableGuid(request.DefaultMembershipTierId),
-                ActivePatientMembershipId = NormalizeNullableGuid(request.ActivePatientMembershipId),
-                IsNewborn = request.IsNewborn,
-                MotherPatientId = NormalizeNullableGuid(request.MotherPatientId),
-                BirthOrder = request.BirthOrder,
-                BirthWeightGram = request.BirthWeightGram,
-                BirthLengthCm = request.BirthLengthCm,
-                BirthTime = request.BirthTime,
-                DeliveryMethod = NormalizeNullableText(request.DeliveryMethod),
-                IsDeceased = request.IsDeceased,
-                DeceasedDate = request.DeceasedDate,
-                Notes = NormalizeNullableText(request.Notes),
-                IsActive = true,
-                CreateDateTime = now,
-                CreateBy = actorUserId,
-                IsDelete = false,
-                IsCancel = false
-            };
+                var patientCode = await GeneratePatientCodeAsync();
+                var medicalRecordNumber = await GenerateMedicalRecordNumberAsync();
 
-            _dbContext.Set<MstPatient>().Add(entity);
-            await _dbContext.SaveChangesAsync();
+                var entity = new MstPatient
+                {
+                    Id = Guid.NewGuid(),
+                    PatientCode = patientCode,
+                    MedicalRecordNumber = medicalRecordNumber,
+                    PatientType = request.PatientType,
+                    PatientStatus = request.PatientStatus,
+                    RegistrationSource = request.RegistrationSource,
+                    FullName = request.FullName.Trim(),
+                    NickName = NormalizeNullableString(request.NickName),
+                    BirthPlace = NormalizeNullableString(request.BirthPlace),
+                    BirthDate = request.BirthDate,
+                    Gender = request.Gender,
+                    Religion = request.Religion,
+                    MaritalStatus = request.MaritalStatus,
+                    BloodType = request.BloodType,
+                    IdentityType = NormalizeNullableString(request.IdentityType),
+                    IdentityNumber = NormalizeNullableString(request.IdentityNumber),
+                    PhoneNumber = NormalizeNullableString(request.PhoneNumber),
+                    WhatsAppNumber = NormalizeNullableString(request.WhatsAppNumber),
+                    Email = NormalizeLowerNullableString(request.Email),
+                    Address = NormalizeNullableString(request.Address),
+                    CountryId = NormalizeNullableGuid(request.CountryId),
+                    ProvinceId = NormalizeNullableGuid(request.ProvinceId),
+                    CityId = NormalizeNullableGuid(request.CityId),
+                    DistrictId = NormalizeNullableGuid(request.DistrictId),
+                    PostalCodeId = NormalizeNullableGuid(request.PostalCodeId),
+                    PhotoPath = NormalizeNullableString(request.PhotoPath),
+                    IsMember = request.IsMember,
+                    DefaultMembershipTierId = NormalizeNullableGuid(request.DefaultMembershipTierId),
+                    ActivePatientMembershipId = NormalizeNullableGuid(request.ActivePatientMembershipId),
+                    IsNewborn = request.IsNewborn,
+                    MotherPatientId = NormalizeNullableGuid(request.MotherPatientId),
+                    BirthOrder = request.BirthOrder,
+                    BirthWeightGram = request.BirthWeightGram,
+                    BirthLengthCm = request.BirthLengthCm,
+                    BirthTime = request.BirthTime,
+                    DeliveryMethod = NormalizeNullableString(request.DeliveryMethod),
+                    IsDeceased = request.IsDeceased,
+                    DeceasedDate = request.DeceasedDate,
+                    Notes = NormalizeNullableString(request.Notes),
+                    IsActive = true,
+                    CreateDateTime = now,
+                    CreateBy = actorUserId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
 
-            var response = new PatientCreateResponse
+                _dbContext.Set<MstPatient>().Add(entity);
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var result = new PatientCreateResponse
+                {
+                    Id = entity.Id,
+                    PatientCode = entity.PatientCode,
+                    MedicalRecordNumber = entity.MedicalRecordNumber,
+                    FullName = entity.FullName,
+                    PatientType = entity.PatientType,
+                    PatientTypeName = BuildEnumLabel(entity.PatientType),
+                    PatientStatus = entity.PatientStatus,
+                    PatientStatusName = BuildEnumLabel(entity.PatientStatus),
+                    IsNewborn = entity.IsNewborn,
+                    IsMember = entity.IsMember,
+                    IsActive = entity.IsActive
+                };
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "Patient.CreatePatient",
+                    "Membuat data patient.",
+                    result
+                );
+
+                return Ok(ApiResponse<PatientCreateResponse>.Ok(
+                    result,
+                    "Patient berhasil dibuat."
+                ));
+            }
+            catch (Exception ex)
             {
-                Id = entity.Id,
-                PatientCode = entity.PatientCode,
-                MedicalRecordNumber = entity.MedicalRecordNumber,
-                FullName = entity.FullName,
-                PatientType = entity.PatientType,
-                PatientStatus = entity.PatientStatus,
-                IsNewborn = entity.IsNewborn,
-                IsMember = entity.IsMember,
-                IsActive = entity.IsActive
-            };
+                await transaction.RollbackAsync();
 
-            return Ok(ApiResponse<PatientCreateResponse>.Ok(
-                response,
-                "Patient berhasil dibuat."
-            ));
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "Patient.CreatePatient",
+                    "Gagal membuat data patient.",
+                    ex
+                );
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat membuat patient."
+                    )
+                );
+            }
         }
 
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Patient", Description = "Mengubah data patient", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Update",
+            "Update Patient",
+            Description = "Mengubah data patient",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
         [AccessPermission("Patient", "Update")]
-        public async Task<IActionResult> UpdatePatient(Guid id, [FromBody] UpdatePatientRequest request)
+        public async Task<IActionResult> UpdatePatient(
+            Guid id,
+            [FromBody] UpdatePatientRequest request)
         {
             var entity = await _dbContext.Set<MstPatient>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -529,22 +487,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             var validation = await ValidateRequestAsync(
                 excludeId: id,
-                request.PatientCode,
-                request.MedicalRecordNumber,
-                request.FullName,
-                request.IdentityNumber,
-                request.CountryId,
-                request.ProvinceId,
-                request.CityId,
-                request.DistrictId,
-                request.PostalCodeId,
-                request.DefaultMembershipTierId,
-                request.ActivePatientMembershipId,
-                request.IsNewborn,
-                request.MotherPatientId,
-                request.MergedToPatientId,
-                request.IsDeceased,
-                request.DeceasedDate
+                request: request,
+                mergedToPatientId: request.MergedToPatientId,
+                mergeReason: request.MergeReason
             );
 
             if (!validation.IsValid)
@@ -555,31 +500,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 ));
             }
 
-            entity.PatientCode = request.PatientCode.Trim().ToUpperInvariant();
-            entity.MedicalRecordNumber = request.MedicalRecordNumber.Trim().ToUpperInvariant();
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.PatientType = request.PatientType;
             entity.PatientStatus = request.PatientStatus;
             entity.RegistrationSource = request.RegistrationSource;
             entity.FullName = request.FullName.Trim();
-            entity.NickName = NormalizeNullableText(request.NickName);
-            entity.BirthPlace = NormalizeNullableText(request.BirthPlace);
+            entity.NickName = NormalizeNullableString(request.NickName);
+            entity.BirthPlace = NormalizeNullableString(request.BirthPlace);
             entity.BirthDate = request.BirthDate;
             entity.Gender = request.Gender;
             entity.Religion = request.Religion;
             entity.MaritalStatus = request.MaritalStatus;
             entity.BloodType = request.BloodType;
-            entity.IdentityType = NormalizeNullableText(request.IdentityType);
-            entity.IdentityNumber = NormalizeNullableText(request.IdentityNumber);
-            entity.PhoneNumber = NormalizeNullableText(request.PhoneNumber);
-            entity.WhatsAppNumber = NormalizeNullableText(request.WhatsAppNumber);
-            entity.Email = NormalizeNullableText(request.Email);
-            entity.Address = NormalizeNullableText(request.Address);
+            entity.IdentityType = NormalizeNullableString(request.IdentityType);
+            entity.IdentityNumber = NormalizeNullableString(request.IdentityNumber);
+            entity.PhoneNumber = NormalizeNullableString(request.PhoneNumber);
+            entity.WhatsAppNumber = NormalizeNullableString(request.WhatsAppNumber);
+            entity.Email = NormalizeLowerNullableString(request.Email);
+            entity.Address = NormalizeNullableString(request.Address);
             entity.CountryId = NormalizeNullableGuid(request.CountryId);
             entity.ProvinceId = NormalizeNullableGuid(request.ProvinceId);
             entity.CityId = NormalizeNullableGuid(request.CityId);
             entity.DistrictId = NormalizeNullableGuid(request.DistrictId);
             entity.PostalCodeId = NormalizeNullableGuid(request.PostalCodeId);
-            entity.PhotoPath = NormalizeNullableText(request.PhotoPath);
+            entity.PhotoPath = NormalizeNullableString(request.PhotoPath);
             entity.IsMember = request.IsMember;
             entity.DefaultMembershipTierId = NormalizeNullableGuid(request.DefaultMembershipTierId);
             entity.ActivePatientMembershipId = NormalizeNullableGuid(request.ActivePatientMembershipId);
@@ -589,17 +535,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             entity.BirthWeightGram = request.BirthWeightGram;
             entity.BirthLengthCm = request.BirthLengthCm;
             entity.BirthTime = request.BirthTime;
-            entity.DeliveryMethod = NormalizeNullableText(request.DeliveryMethod);
+            entity.DeliveryMethod = NormalizeNullableString(request.DeliveryMethod);
             entity.IsDeceased = request.IsDeceased;
             entity.DeceasedDate = request.DeceasedDate;
             entity.MergedToPatientId = NormalizeNullableGuid(request.MergedToPatientId);
-            entity.MergeReason = NormalizeNullableText(request.MergeReason);
-            entity.Notes = NormalizeNullableText(request.Notes);
+            entity.MergeReason = NormalizeNullableString(request.MergeReason);
+            entity.Notes = NormalizeNullableString(request.Notes);
             entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Patient.UpdatePatient",
+                "Mengubah data patient.",
+                new
+                {
+                    entity.Id,
+                    entity.PatientCode,
+                    entity.MedicalRecordNumber,
+                    entity.FullName,
+                    entity.IsActive
+                }
+            );
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -607,12 +567,62 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Update",
+            "Update Patient Status",
+            Description = "Mengubah status patient",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
+        [AccessPermission("Patient", "Update")]
+        public async Task<IActionResult> UpdatePatientStatus(
+            Guid id,
+            [FromBody] UpdatePatientStatusRequest request)
+        {
+            var entity = await _dbContext.Set<MstPatient>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Patient tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(ApiResponse<object>.Ok(
+                null,
+                "Status patient berhasil diperbarui."
+            ));
+        }
+
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Delete", "Delete Patient", Description = "Menghapus data patient", AccessType = AccessTypes.Delete, SortOrder = 4)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Delete",
+            "Delete Patient",
+            Description = "Menghapus data patient",
+            AccessType = AccessTypes.Delete,
+            SortOrder = 4
+        )]
         [AccessPermission("Patient", "Delete")]
-        public async Task<IActionResult> DeletePatient(Guid id)
+        public async Task<IActionResult> DeletePatient(
+            Guid id,
+            [FromBody] DeletePatientRequest? request = null)
         {
             var entity = await _dbContext.Set<MstPatient>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -629,7 +639,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 .AnyAsync(x => x.PatientId == id && !x.IsDelete);
 
             var isUsedByRelationship = await _dbContext.Set<MstPatientRelationship>()
-                .AnyAsync(x => (x.PatientId == id || x.RelatedPatientId == id) && !x.IsDelete);
+                .AnyAsync(x =>
+                    (x.PatientId == id || x.RelatedPatientId == id) &&
+                    !x.IsDelete);
 
             var isUsedByEmergencyContact = await _dbContext.Set<MstPatientEmergencyContact>()
                 .AnyAsync(x => x.PatientId == id && !x.IsDelete);
@@ -638,9 +650,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 .AnyAsync(x => x.PatientId == id && !x.IsDelete);
 
             var isUsedAsReference = await _dbContext.Set<MstPatient>()
-                .AnyAsync(x => !x.IsDelete && (x.MotherPatientId == id || x.MergedToPatientId == id));
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    (x.MotherPatientId == id || x.MergedToPatientId == id));
 
-            if (isUsedByIdentityDocument || isUsedByRelationship || isUsedByEmergencyContact || isUsedByMembership || isUsedAsReference)
+            if (isUsedByIdentityDocument ||
+                isUsedByRelationship ||
+                isUsedByEmergencyContact ||
+                isUsedByMembership ||
+                isUsedAsReference)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
@@ -648,12 +666,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsDelete = true;
             entity.IsActive = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+            {
+                entity.Notes = request.DeleteReason.Trim();
+            }
 
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Patient.DeletePatient",
+                "Menghapus data patient.",
+                new
+                {
+                    entity.Id,
+                    entity.PatientCode,
+                    entity.MedicalRecordNumber,
+                    entity.FullName,
+                    entity.DeleteDateTime
+                }
+            );
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -661,216 +703,358 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
-        private static IQueryable<MstPatient> ApplyFilters(
+        private IQueryable<MstPatient> BuildBaseQuery()
+        {
+            return _dbContext.Set<MstPatient>()
+                .AsNoTracking()
+                .Include(x => x.Country)
+                .Include(x => x.Province)
+                .Include(x => x.City)
+                .Include(x => x.District)
+                .Include(x => x.PostalCode)
+                .Include(x => x.DefaultMembershipTier)
+                .Include(x => x.MotherPatient)
+                .Include(x => x.MergedToPatient)
+                .Where(x => !x.IsDelete);
+        }
+
+        private static IQueryable<MstPatient> ApplyDateFilter(
             IQueryable<MstPatient> query,
-            string? search,
-            bool? isActive,
-            PatientType? patientType,
-            PatientStatus? patientStatus,
-            PatientRegistrationSource? registrationSource,
-            Gender? gender,
-            bool? isMember,
-            bool? isNewborn,
-            bool? isDeceased,
-            bool? isMerged,
-            Guid? countryId,
-            Guid? provinceId,
-            Guid? cityId,
-            Guid? districtId,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            if (startDate.HasValue)
+            {
+                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime >= start);
+            }
+
+            if (endDate.HasValue)
+            {
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime < end);
+            }
+
+            if (!startDate.HasValue &&
+                !endDate.HasValue &&
+                !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var today = DateTime.UtcNow.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today &&
+                            x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "last7days":
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today.AddDays(-6) &&
+                            x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(
+                            today.Year,
+                            today.Month,
+                            1,
+                            0,
+                            0,
+                            0,
+                            DateTimeKind.Utc
+                        );
+
+                        query = query.Where(x =>
+                            x.CreateDateTime >= thisMonthStart &&
+                            x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        break;
+
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(
+                            today.Year,
+                            today.Month,
+                            1,
+                            0,
+                            0,
+                            0,
+                            DateTimeKind.Utc
+                        );
+
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+
+                        query = query.Where(x =>
+                            x.CreateDateTime >= lastMonthStart &&
+                            x.CreateDateTime < currentMonthStart);
+                        break;
+                }
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstPatient> ApplyRelationFilter(
+            IQueryable<MstPatient> query,
             Guid? defaultMembershipTierId)
         {
+            var normalizedDefaultMembershipTierId = NormalizeNullableGuid(defaultMembershipTierId);
+
+            if (normalizedDefaultMembershipTierId.HasValue)
+            {
+                query = query.Where(x => x.DefaultMembershipTierId == normalizedDefaultMembershipTierId.Value);
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstPatient> ApplyStandardFilter(
+            IQueryable<MstPatient> query,
+            bool? isActive,
+            string? search)
+        {
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
+
+                var matchedPatientTypes = Enum.GetValues<PatientType>()
+                    .Where(x =>
+                        x.ToString().ToLower().Contains(keyword) ||
+                        BuildEnumLabel(x).ToLower().Contains(keyword))
+                    .ToList();
+
+                var matchedPatientStatuses = Enum.GetValues<PatientStatus>()
+                    .Where(x =>
+                        x.ToString().ToLower().Contains(keyword) ||
+                        BuildEnumLabel(x).ToLower().Contains(keyword))
+                    .ToList();
+
+                var matchedRegistrationSources = Enum.GetValues<PatientRegistrationSource>()
+                    .Where(x =>
+                        x.ToString().ToLower().Contains(keyword) ||
+                        BuildEnumLabel(x).ToLower().Contains(keyword))
+                    .ToList();
 
                 query = query.Where(x =>
                     x.PatientCode.ToLower().Contains(keyword) ||
                     x.MedicalRecordNumber.ToLower().Contains(keyword) ||
                     x.FullName.ToLower().Contains(keyword) ||
                     (x.NickName != null && x.NickName.ToLower().Contains(keyword)) ||
+                    (x.IdentityType != null && x.IdentityType.ToLower().Contains(keyword)) ||
                     (x.IdentityNumber != null && x.IdentityNumber.ToLower().Contains(keyword)) ||
                     (x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(keyword)) ||
                     (x.WhatsAppNumber != null && x.WhatsAppNumber.ToLower().Contains(keyword)) ||
-                    (x.Email != null && x.Email.ToLower().Contains(keyword)));
+                    (x.Email != null && x.Email.ToLower().Contains(keyword)) ||
+                    (x.Country != null && x.Country.CountryName.ToLower().Contains(keyword)) ||
+                    (x.Province != null && x.Province.ProvinceName.ToLower().Contains(keyword)) ||
+                    (x.City != null && x.City.CityName.ToLower().Contains(keyword)) ||
+                    (x.District != null && x.District.DistrictName.ToLower().Contains(keyword)) ||
+                    (x.DefaultMembershipTier != null && x.DefaultMembershipTier.TierName.ToLower().Contains(keyword)) ||
+                    matchedPatientTypes.Contains(x.PatientType) ||
+                    matchedPatientStatuses.Contains(x.PatientStatus) ||
+                    matchedRegistrationSources.Contains(x.RegistrationSource));
             }
-
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
-
-            if (patientType.HasValue)
-                query = query.Where(x => x.PatientType == patientType.Value);
-
-            if (patientStatus.HasValue)
-                query = query.Where(x => x.PatientStatus == patientStatus.Value);
-
-            if (registrationSource.HasValue)
-                query = query.Where(x => x.RegistrationSource == registrationSource.Value);
-
-            if (gender.HasValue)
-                query = query.Where(x => x.Gender == gender.Value);
-
-            if (isMember.HasValue)
-                query = query.Where(x => x.IsMember == isMember.Value);
-
-            if (isNewborn.HasValue)
-                query = query.Where(x => x.IsNewborn == isNewborn.Value);
-
-            if (isDeceased.HasValue)
-                query = query.Where(x => x.IsDeceased == isDeceased.Value);
-
-            if (isMerged.HasValue)
-                query = isMerged.Value
-                    ? query.Where(x => x.MergedToPatientId.HasValue)
-                    : query.Where(x => !x.MergedToPatientId.HasValue);
-
-            if (countryId.HasValue && countryId.Value != Guid.Empty)
-                query = query.Where(x => x.CountryId == countryId.Value);
-
-            if (provinceId.HasValue && provinceId.Value != Guid.Empty)
-                query = query.Where(x => x.ProvinceId == provinceId.Value);
-
-            if (cityId.HasValue && cityId.Value != Guid.Empty)
-                query = query.Where(x => x.CityId == cityId.Value);
-
-            if (districtId.HasValue && districtId.Value != Guid.Empty)
-                query = query.Where(x => x.DistrictId == districtId.Value);
-
-            if (defaultMembershipTierId.HasValue && defaultMembershipTierId.Value != Guid.Empty)
-                query = query.Where(x => x.DefaultMembershipTierId == defaultMembershipTierId.Value);
 
             return query;
         }
 
+        private static IOrderedQueryable<MstPatient> ApplySorting(
+            IQueryable<MstPatient> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var isDescending = string.Equals(
+                sortDirection,
+                "desc",
+                StringComparison.OrdinalIgnoreCase
+            );
+
+            return (sortBy ?? "createDateTime").Trim().ToLowerInvariant() switch
+            {
+                "updatedatetime" => isDescending
+                    ? query.OrderByDescending(x => x.UpdateDateTime).ThenByDescending(x => x.CreateDateTime)
+                    : query.OrderBy(x => x.UpdateDateTime).ThenBy(x => x.CreateDateTime),
+
+                "patientcode" => isDescending
+                    ? query.OrderByDescending(x => x.PatientCode)
+                    : query.OrderBy(x => x.PatientCode),
+
+                "medicalrecordnumber" => isDescending
+                    ? query.OrderByDescending(x => x.MedicalRecordNumber)
+                    : query.OrderBy(x => x.MedicalRecordNumber),
+
+                "fullname" => isDescending
+                    ? query.OrderByDescending(x => x.FullName)
+                    : query.OrderBy(x => x.FullName),
+
+                "birthdate" => isDescending
+                    ? query.OrderByDescending(x => x.BirthDate).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.BirthDate).ThenBy(x => x.FullName),
+
+                "patienttype" => isDescending
+                    ? query.OrderByDescending(x => x.PatientType).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.PatientType).ThenBy(x => x.FullName),
+
+                "patientstatus" => isDescending
+                    ? query.OrderByDescending(x => x.PatientStatus).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.PatientStatus).ThenBy(x => x.FullName),
+
+                "registrationsource" => isDescending
+                    ? query.OrderByDescending(x => x.RegistrationSource).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.RegistrationSource).ThenBy(x => x.FullName),
+
+                "ismember" => isDescending
+                    ? query.OrderByDescending(x => x.IsMember).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.IsMember).ThenBy(x => x.FullName),
+
+                "isnewborn" => isDescending
+                    ? query.OrderByDescending(x => x.IsNewborn).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.IsNewborn).ThenBy(x => x.FullName),
+
+                "isdeceased" => isDescending
+                    ? query.OrderByDescending(x => x.IsDeceased).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.IsDeceased).ThenBy(x => x.FullName),
+
+                "isactive" => isDescending
+                    ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.FullName)
+                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.FullName),
+
+                _ => isDescending
+                    ? query.OrderByDescending(x => x.CreateDateTime).ThenByDescending(x => x.FullName)
+                    : query.OrderBy(x => x.CreateDateTime).ThenBy(x => x.FullName)
+            };
+        }
+
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
-            string patientCode,
-            string medicalRecordNumber,
-            string fullName,
-            string? identityNumber,
-            Guid? countryId,
-            Guid? provinceId,
-            Guid? cityId,
-            Guid? districtId,
-            Guid? postalCodeId,
-            Guid? defaultMembershipTierId,
-            Guid? activePatientMembershipId,
-            bool isNewborn,
-            Guid? motherPatientId,
+            CreatePatientRequest request,
             Guid? mergedToPatientId,
-            bool isDeceased,
-            DateTime? deceasedDate)
+            string? mergeReason)
         {
-            if (string.IsNullOrWhiteSpace(patientCode))
-                return (false, "Kode patient wajib diisi.");
-
-            if (string.IsNullOrWhiteSpace(medicalRecordNumber))
-                return (false, "Nomor rekam medis wajib diisi.");
-
-            if (string.IsNullOrWhiteSpace(fullName))
+            if (string.IsNullOrWhiteSpace(request.FullName))
+            {
                 return (false, "Nama patient wajib diisi.");
+            }
 
-            if (isDeceased && !deceasedDate.HasValue)
+            if (!Enum.IsDefined(typeof(PatientType), request.PatientType))
+            {
+                return (false, "Tipe patient tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (!Enum.IsDefined(typeof(PatientStatus), request.PatientStatus))
+            {
+                return (false, "Status patient tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (!Enum.IsDefined(typeof(PatientRegistrationSource), request.RegistrationSource))
+            {
+                return (false, "Sumber registrasi patient tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (request.Gender.HasValue && !Enum.IsDefined(typeof(Gender), request.Gender.Value))
+            {
+                return (false, "Gender tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (!Enum.IsDefined(typeof(Religion), request.Religion))
+            {
+                return (false, "Agama tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (!Enum.IsDefined(typeof(MaritalStatus), request.MaritalStatus))
+            {
+                return (false, "Status pernikahan tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (!Enum.IsDefined(typeof(BloodType), request.BloodType))
+            {
+                return (false, "Golongan darah tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (request.IsDeceased && !request.DeceasedDate.HasValue)
+            {
                 return (false, "Tanggal meninggal wajib diisi jika patient ditandai meninggal.");
+            }
 
-            var normalizedCode = patientCode.Trim().ToUpperInvariant();
-            var normalizedMrn = medicalRecordNumber.Trim().ToUpperInvariant();
+            if (!request.IsDeceased && request.DeceasedDate.HasValue)
+            {
+                return (false, "Tanggal meninggal hanya boleh diisi jika patient ditandai meninggal.");
+            }
 
-            var duplicateCode = await _dbContext.Set<MstPatient>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.PatientCode.ToUpper() == normalizedCode &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
-
-            if (duplicateCode)
-                return (false, "Kode patient sudah digunakan.");
-
-            var duplicateMedicalRecordNumber = await _dbContext.Set<MstPatient>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.MedicalRecordNumber.ToUpper() == normalizedMrn &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
-
-            if (duplicateMedicalRecordNumber)
-                return (false, "Nomor rekam medis sudah digunakan.");
+            var identityNumber = NormalizeNullableString(request.IdentityNumber);
 
             if (!string.IsNullOrWhiteSpace(identityNumber))
             {
-                var normalizedIdentityNumber = identityNumber.Trim().ToLower();
+                var normalizedIdentityNumber = identityNumber.ToLower();
 
-                var duplicateIdentityNumber = await _dbContext.Set<MstPatient>()
-                    .AnyAsync(x =>
+                var duplicateIdentityQuery = _dbContext.Set<MstPatient>()
+                    .AsNoTracking()
+                    .Where(x =>
                         !x.IsDelete &&
                         x.IdentityNumber != null &&
-                        x.IdentityNumber.ToLower() == normalizedIdentityNumber &&
-                        (!excludeId.HasValue || x.Id != excludeId.Value));
+                        x.IdentityNumber.ToLower() == normalizedIdentityNumber);
 
-                if (duplicateIdentityNumber)
+                if (excludeId.HasValue)
+                {
+                    duplicateIdentityQuery = duplicateIdentityQuery.Where(x => x.Id != excludeId.Value);
+                }
+
+                if (await duplicateIdentityQuery.AnyAsync())
+                {
                     return (false, "Nomor identitas sudah digunakan oleh patient lain.");
+                }
             }
 
-            var regionValidation = await ValidateRegionReferencesAsync(countryId, provinceId, cityId, districtId, postalCodeId);
+            var regionValidation = await ValidateRegionReferencesAsync(
+                request.CountryId,
+                request.ProvinceId,
+                request.CityId,
+                request.DistrictId,
+                request.PostalCodeId
+            );
 
             if (!regionValidation.IsValid)
+            {
                 return regionValidation;
-
-            var normalizedDefaultMembershipTierId = NormalizeNullableGuid(defaultMembershipTierId);
-
-            if (normalizedDefaultMembershipTierId.HasValue)
-            {
-                var membershipTierExists = await _dbContext.Set<MstMembershipTier>()
-                    .AnyAsync(x => x.Id == normalizedDefaultMembershipTierId.Value && x.IsActive && !x.IsDelete);
-
-                if (!membershipTierExists)
-                    return (false, "Membership tier tidak valid atau tidak aktif.");
             }
 
-            var normalizedActivePatientMembershipId = NormalizeNullableGuid(activePatientMembershipId);
+            var membershipValidation = await ValidateMembershipReferencesAsync(
+                excludeId,
+                request.DefaultMembershipTierId,
+                request.ActivePatientMembershipId
+            );
 
-            if (normalizedActivePatientMembershipId.HasValue)
+            if (!membershipValidation.IsValid)
             {
-                var activeMembershipExists = await _dbContext.Set<MstPatientMembership>()
-                    .AnyAsync(x =>
-                        x.Id == normalizedActivePatientMembershipId.Value &&
-                        (!excludeId.HasValue || x.PatientId == excludeId.Value) &&
-                        x.IsActive &&
-                        !x.IsDelete);
-
-                if (!activeMembershipExists)
-                    return (false, "Active patient membership tidak valid, tidak aktif, atau tidak sesuai patient.");
+                return membershipValidation;
             }
 
-            var normalizedMotherPatientId = NormalizeNullableGuid(motherPatientId);
+            var newbornValidation = await ValidateNewbornReferencesAsync(
+                excludeId,
+                request.IsNewborn,
+                request.MotherPatientId
+            );
 
-            if (isNewborn && !normalizedMotherPatientId.HasValue)
-                return (false, "Mother patient wajib dipilih untuk patient newborn.");
-
-            if (normalizedMotherPatientId.HasValue)
+            if (!newbornValidation.IsValid)
             {
-                if (excludeId.HasValue && normalizedMotherPatientId.Value == excludeId.Value)
-                    return (false, "Mother patient tidak boleh sama dengan patient yang sedang diubah.");
-
-                var motherExists = await _dbContext.Set<MstPatient>()
-                    .AnyAsync(x => x.Id == normalizedMotherPatientId.Value && x.IsActive && !x.IsDelete);
-
-                if (!motherExists)
-                    return (false, "Mother patient tidak valid atau tidak aktif.");
+                return newbornValidation;
             }
 
-            var normalizedMergedToPatientId = NormalizeNullableGuid(mergedToPatientId);
+            var mergedValidation = await ValidateMergedPatientReferenceAsync(
+                excludeId,
+                mergedToPatientId,
+                mergeReason
+            );
 
-            if (normalizedMergedToPatientId.HasValue)
+            if (!mergedValidation.IsValid)
             {
-                if (!excludeId.HasValue)
-                    return (false, "Merged patient hanya dapat diatur saat update patient.");
-
-                if (normalizedMergedToPatientId.Value == excludeId.Value)
-                    return (false, "Merged to patient tidak boleh sama dengan patient yang sedang diubah.");
-
-                var mergedToPatientExists = await _dbContext.Set<MstPatient>()
-                    .AnyAsync(x => x.Id == normalizedMergedToPatientId.Value && x.IsActive && !x.IsDelete);
-
-                if (!mergedToPatientExists)
-                    return (false, "Merged to patient tidak valid atau tidak aktif.");
+                return mergedValidation;
             }
 
             return (true, null);
@@ -892,15 +1076,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             if (normalizedCountryId.HasValue)
             {
                 var exists = await _dbContext.MstCountries
-                    .AnyAsync(x => x.Id == normalizedCountryId.Value && x.IsActive && !x.IsDelete);
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == normalizedCountryId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
 
                 if (!exists)
+                {
                     return (false, "Country tidak valid atau tidak aktif.");
+                }
             }
 
             if (normalizedProvinceId.HasValue)
             {
                 var exists = await _dbContext.MstProvinces
+                    .AsNoTracking()
                     .AnyAsync(x =>
                         x.Id == normalizedProvinceId.Value &&
                         (!normalizedCountryId.HasValue || x.CountryId == normalizedCountryId.Value) &&
@@ -908,12 +1099,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         !x.IsDelete);
 
                 if (!exists)
+                {
                     return (false, "Province tidak valid, tidak aktif, atau tidak sesuai country.");
+                }
             }
 
             if (normalizedCityId.HasValue)
             {
                 var exists = await _dbContext.MstCities
+                    .AsNoTracking()
                     .AnyAsync(x =>
                         x.Id == normalizedCityId.Value &&
                         (!normalizedProvinceId.HasValue || x.ProvinceId == normalizedProvinceId.Value) &&
@@ -921,12 +1115,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         !x.IsDelete);
 
                 if (!exists)
+                {
                     return (false, "City tidak valid, tidak aktif, atau tidak sesuai province.");
+                }
             }
 
             if (normalizedDistrictId.HasValue)
             {
                 var exists = await _dbContext.MstDistricts
+                    .AsNoTracking()
                     .AnyAsync(x =>
                         x.Id == normalizedDistrictId.Value &&
                         (!normalizedCityId.HasValue || x.CityId == normalizedCityId.Value) &&
@@ -934,12 +1131,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         !x.IsDelete);
 
                 if (!exists)
+                {
                     return (false, "District tidak valid, tidak aktif, atau tidak sesuai city.");
+                }
             }
 
             if (normalizedPostalCodeId.HasValue)
             {
                 var exists = await _dbContext.MstPostalCodes
+                    .AsNoTracking()
                     .AnyAsync(x =>
                         x.Id == normalizedPostalCodeId.Value &&
                         (!normalizedDistrictId.HasValue || x.DistrictId == normalizedDistrictId.Value) &&
@@ -947,45 +1147,431 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         !x.IsDelete);
 
                 if (!exists)
+                {
                     return (false, "Postal code tidak valid, tidak aktif, atau tidak sesuai district.");
+                }
             }
 
             return (true, null);
         }
 
-        private static IQueryable<MstPatient> ApplySorting(
-            IQueryable<MstPatient> query,
-            string? sortBy,
-            string? sortDirection)
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateMembershipReferencesAsync(
+            Guid? patientId,
+            Guid? defaultMembershipTierId,
+            Guid? activePatientMembershipId)
         {
-            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            var normalizedDefaultMembershipTierId = NormalizeNullableGuid(defaultMembershipTierId);
 
-            return (sortBy ?? "createDateTime").ToLowerInvariant() switch
+            if (normalizedDefaultMembershipTierId.HasValue)
             {
-                "patientcode" => isDesc ? query.OrderByDescending(x => x.PatientCode) : query.OrderBy(x => x.PatientCode),
-                "medicalrecordnumber" => isDesc ? query.OrderByDescending(x => x.MedicalRecordNumber) : query.OrderBy(x => x.MedicalRecordNumber),
-                "fullname" => isDesc ? query.OrderByDescending(x => x.FullName) : query.OrderBy(x => x.FullName),
-                "birthdate" => isDesc ? query.OrderByDescending(x => x.BirthDate) : query.OrderBy(x => x.BirthDate),
-                "patienttype" => isDesc ? query.OrderByDescending(x => x.PatientType) : query.OrderBy(x => x.PatientType),
-                "patientstatus" => isDesc ? query.OrderByDescending(x => x.PatientStatus) : query.OrderBy(x => x.PatientStatus),
-                "registrationsource" => isDesc ? query.OrderByDescending(x => x.RegistrationSource) : query.OrderBy(x => x.RegistrationSource),
-                "isactive" => isDesc ? query.OrderByDescending(x => x.IsActive) : query.OrderBy(x => x.IsActive),
-                _ => isDesc
-                    ? query.OrderByDescending(x => x.CreateDateTime).ThenByDescending(x => x.FullName)
-                    : query.OrderBy(x => x.CreateDateTime).ThenBy(x => x.FullName)
+                var exists = await _dbContext.Set<MstMembershipTier>()
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == normalizedDefaultMembershipTierId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
+
+                if (!exists)
+                {
+                    return (false, "Membership tier tidak valid atau tidak aktif.");
+                }
+            }
+
+            var normalizedActivePatientMembershipId = NormalizeNullableGuid(activePatientMembershipId);
+
+            if (normalizedActivePatientMembershipId.HasValue)
+            {
+                if (!patientId.HasValue)
+                {
+                    return (false, "Active patient membership hanya dapat dipilih setelah patient dibuat.");
+                }
+
+                var exists = await _dbContext.Set<MstPatientMembership>()
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == normalizedActivePatientMembershipId.Value &&
+                        x.PatientId == patientId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
+
+                if (!exists)
+                {
+                    return (false, "Active patient membership tidak valid, tidak aktif, atau tidak sesuai patient.");
+                }
+            }
+
+            return (true, null);
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateNewbornReferencesAsync(
+            Guid? patientId,
+            bool isNewborn,
+            Guid? motherPatientId)
+        {
+            var normalizedMotherPatientId = NormalizeNullableGuid(motherPatientId);
+
+            if (isNewborn && !normalizedMotherPatientId.HasValue)
+            {
+                return (false, "Mother patient wajib dipilih untuk patient newborn.");
+            }
+
+            if (!isNewborn && normalizedMotherPatientId.HasValue)
+            {
+                return (false, "Mother patient hanya boleh diisi jika patient ditandai newborn.");
+            }
+
+            if (normalizedMotherPatientId.HasValue)
+            {
+                if (patientId.HasValue && normalizedMotherPatientId.Value == patientId.Value)
+                {
+                    return (false, "Mother patient tidak boleh sama dengan patient yang sedang diubah.");
+                }
+
+                var exists = await _dbContext.Set<MstPatient>()
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == normalizedMotherPatientId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
+
+                if (!exists)
+                {
+                    return (false, "Mother patient tidak valid atau tidak aktif.");
+                }
+            }
+
+            return (true, null);
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateMergedPatientReferenceAsync(
+            Guid? patientId,
+            Guid? mergedToPatientId,
+            string? mergeReason)
+        {
+            var normalizedMergedToPatientId = NormalizeNullableGuid(mergedToPatientId);
+
+            if (normalizedMergedToPatientId.HasValue)
+            {
+                if (!patientId.HasValue)
+                {
+                    return (false, "Merged patient hanya dapat diatur saat update patient.");
+                }
+
+                if (normalizedMergedToPatientId.Value == patientId.Value)
+                {
+                    return (false, "Merged to patient tidak boleh sama dengan patient yang sedang diubah.");
+                }
+
+                if (string.IsNullOrWhiteSpace(mergeReason))
+                {
+                    return (false, "Alasan merge wajib diisi jika patient digabung ke patient lain.");
+                }
+
+                var exists = await _dbContext.Set<MstPatient>()
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == normalizedMergedToPatientId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
+
+                if (!exists)
+                {
+                    return (false, "Merged to patient tidak valid atau tidak aktif.");
+                }
+            }
+
+            return (true, null);
+        }
+
+        private async Task<string> GeneratePatientCodeAsync()
+        {
+            return await GenerateRunningCodeAsync(
+                selector: x => x.PatientCode,
+                prefix: CodePrefix
+            );
+        }
+
+        private async Task<string> GenerateMedicalRecordNumberAsync()
+        {
+            var existingNumbers = await _dbContext.Set<MstPatient>()
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(x => x.MedicalRecordNumber != null && x.MedicalRecordNumber != string.Empty)
+                .Select(x => x.MedicalRecordNumber)
+                .ToListAsync();
+
+            var usedNumbers = existingNumbers
+                .Select(NormalizeMedicalRecordNumberToRawDigits)
+                .Where(x => x != null)
+                .Select(x => int.Parse(x!))
+                .Where(x => x > 0)
+                .ToHashSet();
+
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
+            {
+                nextNumber++;
+            }
+
+            if (nextNumber > 99999999)
+            {
+                throw new InvalidOperationException("Nomor rekam medis sudah mencapai batas maksimum 99-99-99-99.");
+            }
+
+            var rawNumber = nextNumber.ToString().PadLeft(8, '0');
+
+            return FormatMedicalRecordNumber(rawNumber);
+        }
+
+        private static string? NormalizeMedicalRecordNumberToRawDigits(string? medicalRecordNumber)
+        {
+            if (string.IsNullOrWhiteSpace(medicalRecordNumber))
+            {
+                return null;
+            }
+
+            var rawNumber = medicalRecordNumber.Replace("-", string.Empty).Trim();
+
+            if (rawNumber.Length != 8 || !rawNumber.All(char.IsDigit))
+            {
+                return null;
+            }
+
+            return rawNumber;
+        }
+
+        private static string FormatMedicalRecordNumber(string rawNumber)
+        {
+            return $"{rawNumber[..2]}-{rawNumber.Substring(2, 2)}-{rawNumber.Substring(4, 2)}-{rawNumber.Substring(6, 2)}";
+        }
+
+        private async Task<string> GenerateRunningCodeAsync(
+            System.Linq.Expressions.Expression<Func<MstPatient, string>> selector,
+            string prefix)
+        {
+            var existingCodes = await _dbContext.Set<MstPatient>()
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Select(selector)
+                .Where(x => x.StartsWith(prefix))
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(x => x.Replace(prefix, string.Empty))
+                .Where(x => int.TryParse(x, out _))
+                .Select(int.Parse)
+                .Where(x => x > 0)
+                .ToHashSet();
+
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
+            {
+                nextNumber++;
+            }
+
+            return prefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
+        }
+
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(
+            IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static PatientResponse MapResponse(
+            MstPatient entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new PatientResponse
+            {
+                Id = entity.Id,
+                PatientCode = entity.PatientCode,
+                MedicalRecordNumber = entity.MedicalRecordNumber,
+                PatientType = entity.PatientType,
+                PatientTypeName = BuildEnumLabel(entity.PatientType),
+                PatientStatus = entity.PatientStatus,
+                PatientStatusName = BuildEnumLabel(entity.PatientStatus),
+                RegistrationSource = entity.RegistrationSource,
+                RegistrationSourceName = BuildEnumLabel(entity.RegistrationSource),
+                FullName = entity.FullName,
+                NickName = entity.NickName,
+                BirthPlace = entity.BirthPlace,
+                BirthDate = entity.BirthDate,
+                Gender = entity.Gender,
+                GenderName = entity.Gender.HasValue ? BuildEnumLabel(entity.Gender.Value) : null,
+                Religion = entity.Religion,
+                ReligionName = BuildEnumLabel(entity.Religion),
+                MaritalStatus = entity.MaritalStatus,
+                MaritalStatusName = BuildEnumLabel(entity.MaritalStatus),
+                BloodType = entity.BloodType,
+                BloodTypeName = BuildEnumLabel(entity.BloodType),
+                IdentityType = entity.IdentityType,
+                IdentityNumber = entity.IdentityNumber,
+                PhoneNumber = entity.PhoneNumber,
+                WhatsAppNumber = entity.WhatsAppNumber,
+                Email = entity.Email,
+                CountryId = entity.CountryId,
+                CountryName = entity.Country?.CountryName,
+                ProvinceId = entity.ProvinceId,
+                ProvinceName = entity.Province?.ProvinceName,
+                CityId = entity.CityId,
+                CityName = entity.City?.CityName,
+                DistrictId = entity.DistrictId,
+                DistrictName = entity.District?.DistrictName,
+                PostalCodeId = entity.PostalCodeId,
+                PostalCode = entity.PostalCode?.PostalCode,
+                PhotoPath = entity.PhotoPath,
+                IsMember = entity.IsMember,
+                DefaultMembershipTierId = entity.DefaultMembershipTierId,
+                DefaultMembershipTierName = entity.DefaultMembershipTier?.TierName,
+                ActivePatientMembershipId = entity.ActivePatientMembershipId,
+                IsNewborn = entity.IsNewborn,
+                MotherPatientId = entity.MotherPatientId,
+                MotherMedicalRecordNumber = entity.MotherPatient?.MedicalRecordNumber,
+                MotherPatientName = entity.MotherPatient?.FullName,
+                BirthOrder = entity.BirthOrder,
+                IsDeceased = entity.IsDeceased,
+                DeceasedDate = entity.DeceasedDate,
+                MergedToPatientId = entity.MergedToPatientId,
+                MergedToMedicalRecordNumber = entity.MergedToPatient?.MedicalRecordNumber,
+                MergedToPatientName = entity.MergedToPatient?.FullName,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
         }
 
-        private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
+        private static PatientDetailResponse MapDetailResponse(
+            MstPatient entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 25;
-            if (pageSize > 100) pageSize = 100;
+            var response = new PatientDetailResponse
+            {
+                Id = entity.Id,
+                PatientCode = entity.PatientCode,
+                MedicalRecordNumber = entity.MedicalRecordNumber,
+                PatientType = entity.PatientType,
+                PatientTypeName = BuildEnumLabel(entity.PatientType),
+                PatientStatus = entity.PatientStatus,
+                PatientStatusName = BuildEnumLabel(entity.PatientStatus),
+                RegistrationSource = entity.RegistrationSource,
+                RegistrationSourceName = BuildEnumLabel(entity.RegistrationSource),
+                FullName = entity.FullName,
+                NickName = entity.NickName,
+                BirthPlace = entity.BirthPlace,
+                BirthDate = entity.BirthDate,
+                Gender = entity.Gender,
+                GenderName = entity.Gender.HasValue ? BuildEnumLabel(entity.Gender.Value) : null,
+                Religion = entity.Religion,
+                ReligionName = BuildEnumLabel(entity.Religion),
+                MaritalStatus = entity.MaritalStatus,
+                MaritalStatusName = BuildEnumLabel(entity.MaritalStatus),
+                BloodType = entity.BloodType,
+                BloodTypeName = BuildEnumLabel(entity.BloodType),
+                IdentityType = entity.IdentityType,
+                IdentityNumber = entity.IdentityNumber,
+                PhoneNumber = entity.PhoneNumber,
+                WhatsAppNumber = entity.WhatsAppNumber,
+                Email = entity.Email,
+                Address = entity.Address,
+                CountryId = entity.CountryId,
+                CountryName = entity.Country?.CountryName,
+                ProvinceId = entity.ProvinceId,
+                ProvinceName = entity.Province?.ProvinceName,
+                CityId = entity.CityId,
+                CityName = entity.City?.CityName,
+                DistrictId = entity.DistrictId,
+                DistrictName = entity.District?.DistrictName,
+                PostalCodeId = entity.PostalCodeId,
+                PostalCode = entity.PostalCode?.PostalCode,
+                PhotoPath = entity.PhotoPath,
+                IsMember = entity.IsMember,
+                DefaultMembershipTierId = entity.DefaultMembershipTierId,
+                DefaultMembershipTierName = entity.DefaultMembershipTier?.TierName,
+                ActivePatientMembershipId = entity.ActivePatientMembershipId,
+                IsNewborn = entity.IsNewborn,
+                MotherPatientId = entity.MotherPatientId,
+                MotherMedicalRecordNumber = entity.MotherPatient?.MedicalRecordNumber,
+                MotherPatientName = entity.MotherPatient?.FullName,
+                BirthOrder = entity.BirthOrder,
+                BirthWeightGram = entity.BirthWeightGram,
+                BirthLengthCm = entity.BirthLengthCm,
+                BirthTime = entity.BirthTime,
+                DeliveryMethod = entity.DeliveryMethod,
+                IsDeceased = entity.IsDeceased,
+                DeceasedDate = entity.DeceasedDate,
+                MergedToPatientId = entity.MergedToPatientId,
+                MergedToMedicalRecordNumber = entity.MergedToPatient?.MedicalRecordNumber,
+                MergedToPatientName = entity.MergedToPatient?.FullName,
+                MergeReason = entity.MergeReason,
+                Notes = entity.Notes,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
 
-            return (pageNumber, pageSize);
+            return response;
         }
 
-        private static List<PatientEnumOptionResponse> BuildEnumOptions<TEnum>() where TEnum : Enum
+        private static PatientOptionResponse MapOptionResponse(MstPatient entity)
+        {
+            return new PatientOptionResponse
+            {
+                Id = entity.Id,
+                PatientCode = entity.PatientCode,
+                MedicalRecordNumber = entity.MedicalRecordNumber,
+                FullName = entity.FullName,
+                BirthDate = entity.BirthDate,
+                Gender = entity.Gender,
+                GenderName = entity.Gender.HasValue ? BuildEnumLabel(entity.Gender.Value) : null,
+                IdentityType = entity.IdentityType,
+                IdentityNumber = entity.IdentityNumber,
+                PhoneNumber = entity.PhoneNumber,
+                PatientType = entity.PatientType,
+                PatientTypeName = BuildEnumLabel(entity.PatientType),
+                PatientStatus = entity.PatientStatus,
+                PatientStatusName = BuildEnumLabel(entity.PatientStatus),
+                DefaultMembershipTierId = entity.DefaultMembershipTierId,
+                DefaultMembershipTierName = entity.DefaultMembershipTier?.TierName,
+                IsNewborn = entity.IsNewborn,
+                IsMember = entity.IsMember
+            };
+        }
+
+        private static List<PatientEnumOptionResponse> BuildEnumOptions<TEnum>()
+            where TEnum : Enum
         {
             return Enum.GetValues(typeof(TEnum))
                 .Cast<TEnum>()
@@ -993,9 +1579,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 {
                     Value = Convert.ToInt32(x),
                     Name = x.ToString(),
-                    Label = SplitPascalCase(x.ToString())
+                    Label = BuildEnumLabel(x)
                 })
                 .ToList();
+        }
+
+        private static string BuildEnumLabel<TEnum>(TEnum value)
+            where TEnum : Enum
+        {
+            return SplitPascalCase(value.ToString());
         }
 
         private static string SplitPascalCase(string value)
@@ -1004,28 +1596,96 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
         }
 
-        private Guid GetCurrentUserId()
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
         {
-            var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
 
-            return Guid.TryParse(userIdText, out var userId)
-                ? userId
-                : Guid.Empty;
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
         }
 
-        private static string? NormalizeNullableText(string? value)
+        private static void NormalizeActorInfo(PatientResponse data)
+        {
+            if (data.UpdateDateTime.HasValue &&
+                data.UpdateDateTime.Value == DateTime.MinValue)
+            {
+                data.UpdateDateTime = null;
+            }
+
+            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
+            {
+                data.CreateBy = null;
+                data.CreateByName = null;
+            }
+
+            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
+            {
+                data.UpdateBy = null;
+                data.UpdateByName = null;
+            }
+        }
+
+        private static (int PageNumber, int PageSize) NormalizePaging(
+            int pageNumber,
+            int pageSize)
+        {
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 25;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
+
+            return (pageNumber, pageSize);
+        }
+
+        private static string? NormalizeNullableString(string? value)
         {
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
         }
 
+        private static string? NormalizeLowerNullableString(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value.Trim().ToLowerInvariant();
+        }
+
         private static Guid? NormalizeNullableGuid(Guid? value)
         {
             if (!value.HasValue || value.Value == Guid.Empty)
+            {
                 return null;
+            }
 
             return value.Value;
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var userIdValue =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("user_id");
+
+            return Guid.TryParse(userIdValue, out var userId)
+                ? userId
+                : Guid.Empty;
         }
     }
 }

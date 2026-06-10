@@ -14,6 +14,7 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.Linq.Expressions;
 using System.Security.Claims;
 
 using ResponsePatientEncounterPagedResult =
@@ -24,251 +25,136 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/health-services/registration/patient-encounters")]
+    [Route("api/v1/health-services/registration-management/patient-encounters")]
     [AccessController(
-        moduleCode: "HEALTH_SERVICE_REGISTRATION",
-        moduleName: "Health Service Registration",
+        moduleCode: "HEALTH_SERVICE_REGISTRATION_MANAGEMENT",
+        moduleName: "Health Service Registration Management",
         displayName: "Patient Encounter",
         AreaName = "HealthServices",
         ControllerName = "PatientEncounter",
         Description = "Transaksi kunjungan pasien rawat jalan dan penjamin kunjungan",
         SortOrder = 2
     )]
-    [Tags("Health Services / Registration / Patient Encounter")]
+    [Tags("Health Services / Registration Management / Patient Encounter")]
     public class PatientEncounterController : ControllerBase
     {
-        private const string LogCategory = "HealthServices.Registration";
+        private const string LogCategory = "HealthServices.RegistrationManagement";
+        private const string EncounterCodePrefix = "ENC-RSMMC-";
+        private const string EncounterGuarantorCodePrefix = "EGT-RSMMC-";
+        private const int CodeNumberLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
 
-        public PatientEncounterController(
-            ApplicationDbContext dbContext,
-            LoggerService loggerService)
+        public PatientEncounterController(ApplicationDbContext dbContext, LoggerService loggerService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
         }
 
-        // =========================================================
-        // ENCOUNTER
-        // =========================================================
-
-        [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse<PatientEncounterCreateResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien beserta penjamin", AccessType = AccessTypes.Create, SortOrder = 1)]
-        [AccessPermission("PatientEncounter", "Create")]
-        public async Task<IActionResult> CreateEncounter([FromBody] PatientEncounterCreateRequest request)
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<PatientEncounterFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat metadata filter patient encounter", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientEncounter", "Read")]
+        public async Task<IActionResult> GetFilterMetadata()
         {
-            var validation = await ValidateCreateRequestAsync(request);
-
-            if (!validation.IsValid)
+            var result = new PatientEncounterFilterMetadataResponse
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data kunjungan pasien tidak valid."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            var serviceUnit = await _dbContext.Set<MstServiceUnit>()
-                .AsNoTracking()
-                .FirstAsync(x => x.Id == request.ServiceUnitId);
-
-            MstClinic? clinic = null;
-
-            if (request.ClinicId.HasValue && request.ClinicId.Value != Guid.Empty)
-            {
-                clinic = await _dbContext.Set<MstClinic>()
-                    .AsNoTracking()
-                    .FirstAsync(x => x.Id == request.ClinicId.Value);
-            }
-
-            var isScreeningRequired = clinic?.IsScreeningRequired ?? serviceUnit.IsScreeningRequired;
-            var isQueueRequired = clinic?.IsQueueRequired ?? serviceUnit.IsQueueRequired;
-            var isDoctorRequired = clinic?.IsDoctorRequired ?? serviceUnit.IsDoctorRequired;
-
-            var normalizedGuarantorRequests = BuildDefaultGuarantorsIfEmpty(request);
-            var paymentSummary = BuildPaymentSummary(request.PaymentType, normalizedGuarantorRequests);
-
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
-
-            var encounter = new TrxPatientEncounter
-            {
-                Id = Guid.NewGuid(),
-                EncounterNumber = await GenerateEncounterNumberAsync(now),
-                PatientId = request.PatientId,
-                ServiceUnitId = request.ServiceUnitId,
-                ClinicId = NormalizeNullableGuid(request.ClinicId),
-                DoctorId = NormalizeNullableGuid(request.DoctorId),
-                DoctorScheduleId = NormalizeNullableGuid(request.DoctorScheduleId),
-                DoctorServiceRuleId = NormalizeNullableGuid(request.DoctorServiceRuleId),
-                PatientClassId = NormalizeNullableGuid(request.PatientClassId),
-                PaymentMethodId = NormalizeNullableGuid(request.PaymentMethodId),
-                KioskScanSessionId = NormalizeNullableGuid(request.KioskScanSessionId),
-
-                EncounterDate = now,
-                EncounterType = request.EncounterType,
-                VisitType = request.VisitType,
-                RegistrationSource = request.RegistrationSource,
-                PaymentType = request.PaymentType,
-                EncounterStatus = isQueueRequired
-                    ? EncounterStatus.Queued
-                    : EncounterStatus.Registered,
-
-                ChiefComplaint = NormalizeNullableText(request.ChiefComplaint),
-
-                IsInsurancePatient = paymentSummary.IsInsurancePatient,
-                IsCompanyPatient = paymentSummary.IsCompanyPatient,
-                IsMembershipPatient = paymentSummary.IsMembershipPatient,
-                IsMixedPayment = paymentSummary.IsMixedPayment,
-                PrimaryGuarantorNameSnapshot = NormalizeNullableText(paymentSummary.PrimaryGuarantorNameSnapshot),
-                PrimaryGuarantorTypeSnapshot = NormalizeNullableText(paymentSummary.PrimaryGuarantorTypeSnapshot),
-                EligibilityReferenceNumber = NormalizeNullableText(request.EligibilityReferenceNumber),
-                EligibilityCheckedAt = request.EligibilityCheckedAt,
-                IsEligibilityRequired = request.IsEligibilityRequired || paymentSummary.IsEligibilityRequired,
-                IsEligibilityCompleted = request.IsEligibilityCompleted || paymentSummary.IsEligibilityCompleted,
-
-                IsReferral = request.IsReferral,
-                ReferralNumber = NormalizeNullableText(request.ReferralNumber),
-                IsReferralRequired = request.IsReferralRequired,
-                IsReferralVerified = request.IsReferralVerified,
-
-                IsNewPatient = request.IsNewPatient,
-                IsFromKiosk = request.IsFromKiosk,
-                IsWalkIn = request.IsWalkIn,
-                IsAppointment = request.IsAppointment,
-                IsScreeningRequired = isScreeningRequired,
-                IsQueueRequired = isQueueRequired,
-                IsDoctorRequired = isDoctorRequired,
-                RegisteredAt = now,
-                RegisteredByUserId = actorUserId,
-                Notes = NormalizeNullableText(request.Notes),
-                IsActive = true,
-                CreateDateTime = now,
-                CreateBy = actorUserId,
-                IsDelete = false,
-                IsCancel = false
+                DefaultFilter = new PatientEncounterDefaultFilterResponse(),
+                CustomPeriods = new List<PatientEncounterCustomPeriodOptionResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "lastmonth", Label = "Bulan lalu" }
+                },
+                RelationFilters = new List<PatientEncounterRelationFilterResponse>
+                {
+                    new() { Value = "patientId", Label = "Patient", Endpoint = "/api/v1/health-services/patient-management/master-data/patients/options" },
+                    new() { Value = "serviceUnitId", Label = "Service Unit", Endpoint = "/api/v1/health-services/master-data/service-units/options" }
+                },
+                SortOptions = new List<PatientEncounterSortOptionResponse>
+                {
+                    new() { Value = "registeredAt", Label = "Waktu registrasi" },
+                    new() { Value = "encounterDate", Label = "Tanggal encounter" },
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "updateDateTime", Label = "Tanggal diperbarui" },
+                    new() { Value = "encounterNumber", Label = "Nomor encounter" },
+                    new() { Value = "patientName", Label = "Nama pasien" },
+                    new() { Value = "medicalRecordNumber", Label = "Nomor rekam medis" },
+                    new() { Value = "serviceUnitName", Label = "Service unit" },
+                    new() { Value = "clinicName", Label = "Clinic" },
+                    new() { Value = "doctorName", Label = "Dokter" },
+                    new() { Value = "encounterStatus", Label = "Status encounter" },
+                    new() { Value = "paymentType", Label = "Tipe pembayaran" }
+                },
+                SortDirections = new List<string> { "asc", "desc" },
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                EncounterTypeOptions = BuildEnumOptions<EncounterType>(),
+                VisitTypeOptions = BuildEnumOptions<VisitType>(),
+                RegistrationSourceOptions = BuildEnumOptions<EncounterRegistrationSource>(),
+                EncounterStatusOptions = BuildEnumOptions<EncounterStatus>(),
+                PaymentTypeOptions = BuildEnumOptions<EncounterPaymentType>(),
+                GuarantorTypeOptions = BuildEnumOptions<PatientEncounterGuarantorType>(),
+                GuarantorStatusOptions = BuildEnumOptions<PatientEncounterGuarantorStatus>(),
+                GuarantorRoleOptions = BuildEnumOptions<PatientEncounterGuarantorRole>(),
+                ResetButtonLabel = "Reset"
             };
 
-            _dbContext.Set<TrxPatientEncounter>().Add(encounter);
+            await _loggerService.InfoAsync(LogCategory, "PatientEncounter.GetFilterMetadata", "Mengambil metadata filter patient encounter.", result);
+            return Ok(ApiResponse<PatientEncounterFilterMetadataResponse>.Ok(result, "Metadata filter patient encounter berhasil diambil."));
+        }
 
-            var guarantorEntities = new List<TrxPatientEncounterGuarantor>();
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<PatientEncounterSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat ringkasan patient encounter", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientEncounter", "Read")]
+        public async Task<IActionResult> GetSummary(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] Guid? patientId,
+            [FromQuery] Guid? serviceUnitId,
+            [FromQuery] EncounterStatus? encounterStatus,
+            [FromQuery] EncounterType? encounterType,
+            [FromQuery] EncounterPaymentType? paymentType,
+            [FromQuery] bool? isActive)
+        {
+            var query = BuildBaseQuery();
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyRelationFilter(query, patientId, serviceUnitId);
+            query = ApplyStandardFilter(query, encounterStatus, encounterType, paymentType, null, null, null, null, null, isActive, null);
 
-            foreach (var guarantorRequest in normalizedGuarantorRequests.OrderBy(x => x.CoveragePriority))
+            var result = new PatientEncounterSummaryResponse
             {
-                var guarantor = await BuildGuarantorEntityAsync(
-                    encounter.Id,
-                    request.PatientId,
-                    guarantorRequest,
-                    now,
-                    actorUserId
-                );
-
-                guarantorEntities.Add(guarantor);
-                _dbContext.Set<TrxPatientEncounterGuarantor>().Add(guarantor);
-            }
-
-            TrxQueue? queue = null;
-
-            if (isQueueRequired)
-            {
-                var queueNumber = await GenerateQueueNumberAsync(
-                    now,
-                    request.ServiceUnitId,
-                    request.ClinicId,
-                    request.DoctorId
-                );
-
-                queue = new TrxQueue
-                {
-                    Id = Guid.NewGuid(),
-                    EncounterId = encounter.Id,
-                    PatientId = request.PatientId,
-                    ServiceUnitId = request.ServiceUnitId,
-                    ClinicId = NormalizeNullableGuid(request.ClinicId),
-                    DoctorId = NormalizeNullableGuid(request.DoctorId),
-                    DoctorScheduleId = NormalizeNullableGuid(request.DoctorScheduleId),
-                    QueueDate = now.Date,
-                    QueueNumber = queueNumber,
-                    QueueCode = GenerateQueueCode(now, clinic, queueNumber),
-                    QueueStatus = isScreeningRequired
-                        ? QueueStatus.WaitingForNurse
-                        : QueueStatus.WaitingForDoctor,
-                    IsFromKiosk = request.IsFromKiosk,
-                    IsWalkIn = request.IsWalkIn,
-                    IsAppointment = request.IsAppointment,
-                    IsScreeningRequired = isScreeningRequired,
-                    IsDoctorRequired = isDoctorRequired,
-                    IsActive = true,
-                    CreateDateTime = now,
-                    CreateBy = actorUserId,
-                    IsDelete = false,
-                    IsCancel = false
-                };
-
-                _dbContext.Set<TrxQueue>().Add(queue);
-
-                encounter.EncounterStatus = isScreeningRequired
-                    ? EncounterStatus.WaitingForNurse
-                    : EncounterStatus.WaitingForDoctor;
-            }
-
-            if (request.KioskScanSessionId.HasValue && request.KioskScanSessionId.Value != Guid.Empty)
-            {
-                var scanSession = await _dbContext.Set<TrxKioskScanSession>()
-                    .FirstOrDefaultAsync(x => x.Id == request.KioskScanSessionId.Value && !x.IsDelete);
-
-                if (scanSession != null)
-                {
-                    scanSession.IsUsedForRegistration = true;
-                    scanSession.UpdateDateTime = now;
-                    scanSession.UpdateBy = actorUserId;
-                }
-            }
-
-            await _dbContext.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            var response = new PatientEncounterCreateResponse
-            {
-                EncounterId = encounter.Id,
-                EncounterNumber = encounter.EncounterNumber,
-                EncounterStatus = encounter.EncounterStatus,
-                QueueId = queue?.Id,
-                QueueCode = queue?.QueueCode,
-                QueueNumber = queue?.QueueNumber,
-                QueueStatus = queue?.QueueStatus,
-                IsQueueCreated = queue != null,
-                IsScreeningRequired = isScreeningRequired,
-                IsDoctorRequired = isDoctorRequired,
-                IsQueueRequired = isQueueRequired,
-                GuarantorCount = guarantorEntities.Count,
-                Guarantors = guarantorEntities.Select(ToGuarantorCreateResponse).ToList()
+                TotalEncounter = await query.CountAsync(),
+                RegisteredEncounter = await query.CountAsync(x => x.EncounterStatus == EncounterStatus.Registered),
+                WaitingForNurseEncounter = await query.CountAsync(x => x.EncounterStatus == EncounterStatus.WaitingForNurse),
+                WaitingForDoctorEncounter = await query.CountAsync(x => x.EncounterStatus == EncounterStatus.WaitingForDoctor),
+                CompletedEncounter = await query.CountAsync(x => x.CompletedAt.HasValue),
+                CancelledEncounter = await query.CountAsync(x => x.CancelledAt.HasValue || x.IsCancel),
+                NoShowEncounter = await query.CountAsync(x => x.NoShowAt.HasValue),
+                InsuranceEncounter = await query.CountAsync(x => x.IsInsurancePatient),
+                CompanyEncounter = await query.CountAsync(x => x.IsCompanyPatient),
+                MembershipEncounter = await query.CountAsync(x => x.IsMembershipPatient),
+                MixedPaymentEncounter = await query.CountAsync(x => x.IsMixedPayment),
+                ReferralEncounter = await query.CountAsync(x => x.IsReferral),
+                EligibilityRequiredEncounter = await query.CountAsync(x => x.IsEligibilityRequired),
+                EligibilityCompletedEncounter = await query.CountAsync(x => x.IsEligibilityCompleted),
+                FromKioskEncounter = await query.CountAsync(x => x.IsFromKiosk)
             };
 
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "PatientEncounter.CreateEncounter",
-                "Membuat transaksi kunjungan pasien beserta penjamin.",
-                response
-            );
-
-            return Ok(ApiResponse<PatientEncounterCreateResponse>.Ok(
-                response,
-                "Transaksi kunjungan pasien berhasil dibuat."
-            ));
+            return Ok(ApiResponse<PatientEncounterSummaryResponse>.Ok(result, "Ringkasan patient encounter berhasil diambil."));
         }
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientEncounterPagedResult>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat data kunjungan pasien", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat data kunjungan pasien", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PatientEncounter", "Read")]
         public async Task<IActionResult> GetEncounters(
-            [FromQuery] string? search,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? patientId,
             [FromQuery] Guid? serviceUnitId,
             [FromQuery] Guid? clinicId,
@@ -280,8 +166,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             [FromQuery] bool? isCompanyPatient,
             [FromQuery] bool? isEligibilityRequired,
             [FromQuery] bool? isEligibilityCompleted,
-            [FromQuery] DateTime? startDate,
-            [FromQuery] DateTime? endDate,
+            [FromQuery] bool? isReferral,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "registeredAt",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -291,34 +178,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = BuildEncounterBaseQuery().AsNoTracking();
+            var query = BuildBaseQuery();
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyRelationFilter(query, patientId, serviceUnitId);
+            query = ApplyStandardFilter(query, encounterStatus, encounterType, paymentType, isInsurancePatient, isCompanyPatient, isEligibilityRequired, isEligibilityCompleted, isReferral, isActive, search);
 
-            query = ApplyEncounterFilters(
-                query,
-                search,
-                patientId,
-                serviceUnitId,
-                clinicId,
-                doctorId,
-                encounterStatus,
-                encounterType,
-                paymentType,
-                isInsurancePatient,
-                isCompanyPatient,
-                isEligibilityRequired,
-                isEligibilityCompleted,
-                startDate,
-                endDate
-            );
+            if (clinicId.HasValue && clinicId.Value != Guid.Empty) query = query.Where(x => x.ClinicId == clinicId.Value);
+            if (doctorId.HasValue && doctorId.Value != Guid.Empty) query = query.Where(x => x.DoctorId == doctorId.Value);
 
             var totalData = await query.CountAsync();
-
-            var entities = await ApplyEncounterSorting(query, sortBy, sortDirection)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var items = entities.Select(ToEncounterResponse).ToList();
+            var entities = await ApplySorting(query, sortBy, sortDirection).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+            var actorNames = await GetActorNameMapAsync(entities.SelectMany(x => new[] { x.CreateBy, x.UpdateBy, x.RegisteredByUserId, x.CancelledByUserId ?? Guid.Empty, x.NoShowByUserId ?? Guid.Empty }));
+            var items = entities.Select(x => MapResponse(x, actorNames)).ToList();
 
             var result = new ResponsePatientEncounterPagedResult
             {
@@ -329,20 +200,67 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 Items = items
             };
 
-            return Ok(ApiResponse<ResponsePatientEncounterPagedResult>.Ok(
-                result,
-                "Data kunjungan pasien berhasil diambil."
-            ));
+            return Ok(ApiResponse<ResponsePatientEncounterPagedResult>.Ok(result, "Data kunjungan pasien berhasil diambil."));
+        }
+
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<PatientEncounterOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat data pilihan patient encounter", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientEncounter", "Read")]
+        public async Task<IActionResult> GetEncounterOptions(
+            [FromQuery] Guid? patientId = null,
+            [FromQuery] Guid? serviceUnitId = null,
+            [FromQuery] EncounterStatus? encounterStatus = null,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = BuildBaseQuery();
+            query = ApplyRelationFilter(query, patientId, serviceUnitId);
+
+            if (encounterStatus.HasValue) query = query.Where(x => x.EncounterStatus == encounterStatus.Value);
+            if (onlyActive) query = query.Where(x => x.IsActive);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(x =>
+                    x.EncounterNumber.ToLower().Contains(keyword) ||
+                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
+                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
+                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
+                    (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)) ||
+                    (x.Doctor != null && x.Doctor.FullName.ToLower().Contains(keyword)));
+            }
+
+            var totalData = await query.CountAsync();
+            var entities = await query.OrderByDescending(x => x.RegisteredAt).ThenByDescending(x => x.EncounterNumber).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            var result = new PatientEncounterOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = entities.Select(MapOptionResponse).ToList()
+            };
+
+            return Ok(ApiResponse<PatientEncounterOptionPagedResponse>.Ok(result, "Data pilihan patient encounter berhasil diambil."));
         }
 
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat detail kunjungan pasien", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat detail kunjungan pasien", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PatientEncounter", "Read")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var entity = await BuildEncounterBaseQuery()
+            var entity = await BuildBaseQuery()
                 .Include(x => x.EncounterGuarantors.Where(g => !g.IsDelete))
                     .ThenInclude(x => x.PaymentMethod)
                 .Include(x => x.EncounterGuarantors.Where(g => !g.IsDelete))
@@ -354,341 +272,345 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             if (entity == null)
             {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Kunjungan pasien tidak ditemukan."
-                ));
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Kunjungan pasien tidak ditemukan."));
             }
 
-            return Ok(ApiResponse<PatientEncounterDetailResponse>.Ok(
-                ToEncounterDetailResponse(entity),
-                "Detail kunjungan pasien berhasil diambil."
-            ));
+            var actorNames = await GetActorNameMapAsync(new[] { entity.CreateBy, entity.UpdateBy, entity.RegisteredByUserId, entity.CancelledByUserId ?? Guid.Empty, entity.NoShowByUserId ?? Guid.Empty });
+
+            return Ok(ApiResponse<PatientEncounterDetailResponse>.Ok(MapDetailResponse(entity, actorNames), "Detail kunjungan pasien berhasil diambil."));
         }
 
-        // =========================================================
-        // GUARANTOR CHILD ENDPOINTS
-        // =========================================================
-
-        [HttpGet("{encounterId:guid}/guarantors")]
-        [ProducesResponseType(typeof(ApiResponse<List<PatientEncounterGuarantorResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Encounter Guarantor", Description = "Melihat penjamin kunjungan pasien", AccessType = AccessTypes.Read, SortOrder = 3)]
-        [AccessPermission("PatientEncounter", "Read")]
-        public async Task<IActionResult> GetGuarantors(Guid encounterId)
-        {
-            var encounterExists = await _dbContext.Set<TrxPatientEncounter>()
-                .AsNoTracking()
-                .AnyAsync(x => x.Id == encounterId && !x.IsDelete);
-
-            if (!encounterExists)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Kunjungan pasien tidak ditemukan."
-                ));
-            }
-
-            var entities = await BuildGuarantorBaseQuery()
-                .AsNoTracking()
-                .Where(x => x.EncounterId == encounterId && !x.IsDelete)
-                .OrderBy(x => x.CoveragePriority)
-                .ThenByDescending(x => x.IsPrimary)
-                .ToListAsync();
-
-            var data = entities.Select(ToGuarantorResponse).ToList();
-
-            return Ok(ApiResponse<List<PatientEncounterGuarantorResponse>>.Ok(
-                data,
-                "Data penjamin kunjungan pasien berhasil diambil."
-            ));
-        }
-
-        [HttpGet("{encounterId:guid}/guarantors/{guarantorId:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<PatientEncounterGuarantorDetailResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Patient Encounter Guarantor", Description = "Melihat detail penjamin kunjungan pasien", AccessType = AccessTypes.Read, SortOrder = 3)]
-        [AccessPermission("PatientEncounter", "Read")]
-        public async Task<IActionResult> GetGuarantorById(Guid encounterId, Guid guarantorId)
-        {
-            var entity = await BuildGuarantorBaseQuery()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == guarantorId && x.EncounterId == encounterId && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Penjamin kunjungan pasien tidak ditemukan."
-                ));
-            }
-
-            return Ok(ApiResponse<PatientEncounterGuarantorDetailResponse>.Ok(
-                ToGuarantorDetailResponse(entity),
-                "Detail penjamin kunjungan pasien berhasil diambil."
-            ));
-        }
-
-        [HttpPost("{encounterId:guid}/guarantors")]
-        [ProducesResponseType(typeof(ApiResponse<PatientEncounterGuarantorCreateResponse>), StatusCodes.Status200OK)]
+        [HttpPost]
+        [ProducesResponseType(typeof(ApiResponse<PatientEncounterCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [AccessAction("Create", "Create Patient Encounter Guarantor", Description = "Menambah penjamin kunjungan pasien", AccessType = AccessTypes.Create, SortOrder = 4)]
+        [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien beserta penjamin", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("PatientEncounter", "Create")]
-        public async Task<IActionResult> CreateGuarantor(Guid encounterId, [FromBody] PatientEncounterGuarantorRequest request)
+        public async Task<IActionResult> CreateEncounter([FromBody] PatientEncounterCreateRequest request)
         {
-            var encounter = await _dbContext.Set<TrxPatientEncounter>()
-                .FirstOrDefaultAsync(x => x.Id == encounterId && !x.IsDelete);
-
-            if (encounter == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Kunjungan pasien tidak ditemukan."
-                ));
-            }
-
-            var validation = await ValidateGuarantorRequestAsync(encounter.PatientId, encounterId, request, null);
+            var validation = await ValidateCreateRequestAsync(request);
 
             if (!validation.IsValid)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data penjamin kunjungan pasien tidak valid."
-                ));
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validation.ErrorMessage ?? "Data kunjungan pasien tidak valid."));
             }
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+
+            var serviceUnit = await _dbContext.Set<MstServiceUnit>().AsNoTracking().FirstAsync(x => x.Id == request.ServiceUnitId);
+            MstClinic? clinic = null;
+
+            if (request.ClinicId.HasValue && request.ClinicId.Value != Guid.Empty)
+            {
+                clinic = await _dbContext.Set<MstClinic>().AsNoTracking().FirstAsync(x => x.Id == request.ClinicId.Value);
+            }
+
+            var isScreeningRequired = clinic?.IsScreeningRequired ?? serviceUnit.IsScreeningRequired;
+            var isQueueRequired = clinic?.IsQueueRequired ?? serviceUnit.IsQueueRequired;
+            var isDoctorRequired = clinic?.IsDoctorRequired ?? serviceUnit.IsDoctorRequired;
+            var guarantorRequests = BuildDefaultGuarantorsIfEmpty(request);
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            var entity = await BuildGuarantorEntityAsync(encounterId, encounter.PatientId, request, now, actorUserId);
+            try
+            {
+                var encounter = new TrxPatientEncounter
+                {
+                    Id = Guid.NewGuid(),
+                    EncounterNumber = await GenerateEncounterNumberAsync(),
+                    PatientId = request.PatientId,
+                    ServiceUnitId = request.ServiceUnitId,
+                    ClinicId = NormalizeNullableGuid(request.ClinicId),
+                    DoctorId = NormalizeNullableGuid(request.DoctorId),
+                    DoctorScheduleId = NormalizeNullableGuid(request.DoctorScheduleId),
+                    DoctorServiceRuleId = NormalizeNullableGuid(request.DoctorServiceRuleId),
+                    PatientClassId = NormalizeNullableGuid(request.PatientClassId),
+                    PaymentMethodId = NormalizeNullableGuid(request.PaymentMethodId),
+                    KioskScanSessionId = NormalizeNullableGuid(request.KioskScanSessionId),
+                    EncounterDate = now,
+                    EncounterType = request.EncounterType,
+                    VisitType = request.VisitType,
+                    RegistrationSource = request.RegistrationSource,
+                    PaymentType = request.PaymentType,
+                    EncounterStatus = isQueueRequired ? EncounterStatus.Queued : EncounterStatus.Registered,
+                    ChiefComplaint = NormalizeNullableText(request.ChiefComplaint),
+                    EligibilityReferenceNumber = NormalizeNullableText(request.EligibilityReferenceNumber),
+                    EligibilityCheckedAt = request.EligibilityCheckedAt,
+                    IsEligibilityRequired = request.IsEligibilityRequired,
+                    IsEligibilityCompleted = request.IsEligibilityCompleted,
+                    IsReferral = request.IsReferral,
+                    ReferralNumber = NormalizeNullableText(request.ReferralNumber),
+                    IsReferralRequired = request.IsReferralRequired,
+                    IsReferralVerified = request.IsReferralVerified,
+                    IsNewPatient = request.IsNewPatient,
+                    IsFromKiosk = request.IsFromKiosk || request.KioskScanSessionId.HasValue,
+                    IsWalkIn = request.IsWalkIn,
+                    IsAppointment = request.IsAppointment,
+                    IsScreeningRequired = isScreeningRequired,
+                    IsQueueRequired = isQueueRequired,
+                    IsDoctorRequired = isDoctorRequired,
+                    RegisteredAt = now,
+                    RegisteredByUserId = actorUserId,
+                    Notes = NormalizeNullableText(request.Notes),
+                    IsActive = true,
+                    CreateDateTime = now,
+                    CreateBy = actorUserId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
 
-            _dbContext.Set<TrxPatientEncounterGuarantor>().Add(entity);
+                _dbContext.Set<TrxPatientEncounter>().Add(encounter);
 
-            await RebuildEncounterPaymentSummaryAsync(encounter, entity, now, actorUserId);
+                var guarantors = new List<TrxPatientEncounterGuarantor>();
 
-            await _dbContext.SaveChangesAsync();
-            await transaction.CommitAsync();
+                foreach (var guarantorRequest in guarantorRequests.OrderBy(x => x.CoveragePriority))
+                {
+                    var guarantor = await BuildGuarantorEntityAsync(encounter.Id, request.PatientId, guarantorRequest, now, actorUserId);
+                    guarantors.Add(guarantor);
+                    _dbContext.Set<TrxPatientEncounterGuarantor>().Add(guarantor);
+                }
 
-            return Ok(ApiResponse<PatientEncounterGuarantorCreateResponse>.Ok(
-                ToGuarantorCreateResponse(entity),
-                "Penjamin kunjungan pasien berhasil dibuat."
-            ));
+                ApplyEncounterPaymentSummary(encounter, guarantors, now, actorUserId);
+
+                TrxQueue? queue = null;
+
+                if (isQueueRequired)
+                {
+                    var queueNumber = await GenerateQueueNumberAsync(now, request.ServiceUnitId, request.ClinicId, request.DoctorId);
+
+                    queue = new TrxQueue
+                    {
+                        Id = Guid.NewGuid(),
+                        EncounterId = encounter.Id,
+                        PatientId = request.PatientId,
+                        ServiceUnitId = request.ServiceUnitId,
+                        ClinicId = NormalizeNullableGuid(request.ClinicId),
+                        DoctorId = NormalizeNullableGuid(request.DoctorId),
+                        DoctorScheduleId = NormalizeNullableGuid(request.DoctorScheduleId),
+                        QueueDate = now.Date,
+                        QueueNumber = queueNumber,
+                        QueueCode = GenerateQueueCode(now, clinic, queueNumber),
+                        QueueStatus = isScreeningRequired ? QueueStatus.WaitingForNurse : QueueStatus.WaitingForDoctor,
+                        IsFromKiosk = encounter.IsFromKiosk,
+                        IsWalkIn = request.IsWalkIn,
+                        IsAppointment = request.IsAppointment,
+                        IsScreeningRequired = isScreeningRequired,
+                        IsDoctorRequired = isDoctorRequired,
+                        IsActive = true,
+                        CreateDateTime = now,
+                        CreateBy = actorUserId,
+                        IsDelete = false,
+                        IsCancel = false
+                    };
+
+                    _dbContext.Set<TrxQueue>().Add(queue);
+                    encounter.EncounterStatus = isScreeningRequired ? EncounterStatus.WaitingForNurse : EncounterStatus.WaitingForDoctor;
+                }
+
+                if (request.KioskScanSessionId.HasValue && request.KioskScanSessionId.Value != Guid.Empty)
+                {
+                    var scanSession = await _dbContext.Set<TrxKioskScanSession>().FirstOrDefaultAsync(x => x.Id == request.KioskScanSessionId.Value && !x.IsDelete);
+
+                    if (scanSession != null)
+                    {
+                        scanSession.IsUsedForRegistration = true;
+                        scanSession.UpdateDateTime = now;
+                        scanSession.UpdateBy = actorUserId;
+                    }
+                }
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var response = new PatientEncounterCreateResponse
+                {
+                    EncounterId = encounter.Id,
+                    EncounterNumber = encounter.EncounterNumber,
+                    EncounterStatus = encounter.EncounterStatus,
+                    EncounterStatusName = BuildEnumLabel(encounter.EncounterStatus),
+                    QueueId = queue?.Id,
+                    QueueCode = queue?.QueueCode,
+                    QueueNumber = queue?.QueueNumber,
+                    QueueStatus = queue?.QueueStatus,
+                    QueueStatusName = queue?.QueueStatus != null ? BuildEnumLabel(queue.QueueStatus) : null,
+                    IsQueueCreated = queue != null,
+                    IsScreeningRequired = isScreeningRequired,
+                    IsDoctorRequired = isDoctorRequired,
+                    IsQueueRequired = isQueueRequired,
+                    GuarantorCount = guarantors.Count,
+                    Guarantors = guarantors.Select(MapGuarantorCreateResponse).ToList()
+                };
+
+                await _loggerService.InfoAsync(LogCategory, "PatientEncounter.CreateEncounter", "Membuat transaksi kunjungan pasien beserta penjamin.", response);
+
+                return Ok(ApiResponse<PatientEncounterCreateResponse>.Ok(response, "Transaksi kunjungan pasien berhasil dibuat."));
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                await _loggerService.ErrorAsync(LogCategory, "PatientEncounter.CreateEncounter", "Gagal membuat transaksi kunjungan pasien.", ex);
+
+                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail(StatusCodes.Status500InternalServerError, "Terjadi kesalahan saat membuat transaksi kunjungan pasien."));
+            }
         }
 
-        [HttpPut("{encounterId:guid}/guarantors/{guarantorId:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<PatientEncounterGuarantorUpdateResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Patient Encounter Guarantor", Description = "Mengubah penjamin kunjungan pasien", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("PatientEncounter", "Update")]
-        public async Task<IActionResult> UpdateGuarantor(Guid encounterId, Guid guarantorId, [FromBody] PatientEncounterGuarantorRequest request)
-        {
-            var entity = await _dbContext.Set<TrxPatientEncounterGuarantor>()
-                .Include(x => x.Encounter)
-                .FirstOrDefaultAsync(x => x.Id == guarantorId && x.EncounterId == encounterId && !x.IsDelete);
-
-            if (entity == null || entity.Encounter == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Penjamin kunjungan pasien tidak ditemukan."
-                ));
-            }
-
-            if (entity.GuarantorStatus == PatientEncounterGuarantorStatus.Cancelled)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Penjamin yang sudah cancelled tidak dapat diubah."
-                ));
-            }
-
-            var validation = await ValidateGuarantorRequestAsync(entity.PatientId, encounterId, request, guarantorId);
-
-            if (!validation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data penjamin kunjungan pasien tidak valid."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            MapGuarantorRequestToEntity(entity, request, now, actorUserId);
-
-            await RebuildEncounterPaymentSummaryAsync(entity.Encounter, null, now, actorUserId);
-
-            await _dbContext.SaveChangesAsync();
-
-            return Ok(ApiResponse<PatientEncounterGuarantorUpdateResponse>.Ok(
-                ToGuarantorUpdateResponse(entity),
-                "Penjamin kunjungan pasien berhasil diubah."
-            ));
-        }
-
-        [HttpPatch("{encounterId:guid}/guarantors/{guarantorId:guid}/verify")]
+        [HttpPatch("{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Verify Patient Encounter Guarantor", Description = "Verifikasi penjamin kunjungan pasien", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessAction("Update", "Update Patient Encounter Status", Description = "Mengubah status patient encounter", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("PatientEncounter", "Update")]
-        public async Task<IActionResult> VerifyGuarantor(Guid encounterId, Guid guarantorId, [FromBody] VerifyPatientEncounterGuarantorRequest request)
+        public async Task<IActionResult> UpdateEncounterStatus(Guid id, [FromBody] PatientEncounterStatusRequest request)
         {
-            var entity = await _dbContext.Set<TrxPatientEncounterGuarantor>()
-                .Include(x => x.Encounter)
-                .FirstOrDefaultAsync(x => x.Id == guarantorId && x.EncounterId == encounterId && !x.IsDelete);
-
-            if (entity == null || entity.Encounter == null)
+            if (!Enum.IsDefined(typeof(EncounterStatus), request.EncounterStatus))
             {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Penjamin kunjungan pasien tidak ditemukan."
-                ));
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Status encounter tidak valid. Gunakan nilai dari endpoint filters/metadata."));
             }
 
-            if (entity.GuarantorStatus == PatientEncounterGuarantorStatus.Cancelled)
+            var entity = await _dbContext.Set<TrxPatientEncounter>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Penjamin yang sudah cancelled tidak dapat diverifikasi."
-                ));
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Kunjungan pasien tidak ditemukan."));
             }
 
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.GuarantorStatus = request.GuarantorStatus;
-            entity.CheckMethod = request.CheckMethod;
-            entity.IsEligible = request.IsEligible;
-            entity.IsVerified = true;
-            entity.VerifiedAt = now;
-            entity.VerifiedByUserId = actorUserId;
-            entity.IsPolicyActive = request.IsPolicyActive;
-            entity.IsPremiumPaid = request.IsPremiumPaid;
-            entity.IsCardActive = request.IsCardActive;
-            entity.EligibilityReferenceNumber = NormalizeNullableText(request.EligibilityReferenceNumber);
-            entity.EligibilityCheckedAt = now;
-            entity.VerificationReferenceNumber = NormalizeNullableText(request.VerificationReferenceNumber);
-            entity.VerificationOfficerName = NormalizeNullableText(request.VerificationOfficerName);
-            entity.VerificationNote = NormalizeNullableText(request.VerificationNote);
-            entity.RemainingLimitAmount = request.RemainingLimitAmount;
-            entity.UsedLimitAmount = request.UsedLimitAmount;
-            entity.IsInWaitingPeriod = request.IsInWaitingPeriod;
-            entity.WaitingPeriodUntilDate = request.WaitingPeriodUntilDate;
-            entity.HasSpecialExclusion = request.HasSpecialExclusion;
-            entity.SpecialExclusionNote = NormalizeNullableText(request.SpecialExclusionNote);
-            entity.IsNeedApproval = request.IsNeedApproval;
-            entity.IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter;
-            entity.IsNeedReferralLetter = request.IsNeedReferralLetter;
-            entity.ManualCheckResultJson = NormalizeNullableText(request.ManualCheckResultJson);
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            if (entity.IsPrimary)
+            if (entity.IsCancel || entity.CancelledAt.HasValue || entity.CompletedAt.HasValue)
             {
-                entity.Encounter.EligibilityReferenceNumber = entity.EligibilityReferenceNumber;
-                entity.Encounter.EligibilityCheckedAt = entity.EligibilityCheckedAt;
-                entity.Encounter.IsEligibilityCompleted = entity.IsEligible && entity.IsVerified;
-                entity.Encounter.UpdateDateTime = now;
-                entity.Encounter.UpdateBy = actorUserId;
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Kunjungan yang sudah batal atau selesai tidak dapat diubah statusnya."));
+            }
+
+            entity.EncounterStatus = request.EncounterStatus;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = GetCurrentUserId();
+
+            if (!string.IsNullOrWhiteSpace(request.Reason))
+            {
+                entity.Notes = request.Reason.Trim();
             }
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(null, "Penjamin kunjungan pasien berhasil diverifikasi."));
+            return Ok(ApiResponse<object>.Ok(null, "Status patient encounter berhasil diperbarui."));
         }
 
-        [HttpPatch("{encounterId:guid}/guarantors/{guarantorId:guid}/cancel")]
+        [HttpPatch("{id:guid}/check-in")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Cancel Patient Encounter Guarantor", Description = "Membatalkan penjamin kunjungan pasien", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessAction("Update", "Check In Patient Encounter", Description = "Check-in patient encounter", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("PatientEncounter", "Update")]
-        public async Task<IActionResult> CancelGuarantor(Guid encounterId, Guid guarantorId, [FromBody] CancelPatientEncounterGuarantorRequest request)
+        public async Task<IActionResult> CheckInEncounter(Guid id)
         {
-            var entity = await _dbContext.Set<TrxPatientEncounterGuarantor>()
-                .Include(x => x.Encounter)
-                .FirstOrDefaultAsync(x => x.Id == guarantorId && x.EncounterId == encounterId && !x.IsDelete);
+            var entity = await _dbContext.Set<TrxPatientEncounter>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
-            if (entity == null || entity.Encounter == null)
+            if (entity == null)
             {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Penjamin kunjungan pasien tidak ditemukan."
-                ));
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Kunjungan pasien tidak ditemukan."));
             }
 
-            if (entity.GuarantorStatus == PatientEncounterGuarantorStatus.Cancelled)
+            if (entity.CancelledAt.HasValue || entity.NoShowAt.HasValue || entity.CompletedAt.HasValue)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Penjamin kunjungan pasien sudah cancelled."
-                ));
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Kunjungan yang sudah selesai, no-show, atau batal tidak dapat check-in."));
+            }
+
+            entity.CheckedInAt = DateTime.UtcNow;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = GetCurrentUserId();
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(ApiResponse<object>.Ok(null, "Patient encounter berhasil check-in."));
+        }
+
+        [HttpPatch("{id:guid}/cancel")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Cancel Patient Encounter", Description = "Membatalkan patient encounter", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("PatientEncounter", "Update")]
+        public async Task<IActionResult> CancelEncounter(Guid id, [FromBody] PatientEncounterCancelRequest request)
+        {
+            var entity = await _dbContext.Set<TrxPatientEncounter>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Kunjungan pasien tidak ditemukan."));
+            }
+
+            if (entity.CompletedAt.HasValue)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Kunjungan yang sudah selesai tidak dapat dibatalkan."));
             }
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            entity.GuarantorStatus = PatientEncounterGuarantorStatus.Cancelled;
-            entity.IsActive = false;
             entity.CancelledAt = now;
             entity.CancelledByUserId = actorUserId;
             entity.CancelReason = request.CancelReason.Trim();
             entity.IsCancel = true;
             entity.CancelDateTime = now;
             entity.CancelBy = actorUserId;
+            entity.IsActive = false;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
-            await RebuildEncounterPaymentSummaryAsync(entity.Encounter, null, now, actorUserId);
-
+            await CancelQueuesByEncounterAsync(entity.Id, now, actorUserId, request.CancelReason.Trim());
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(null, "Penjamin kunjungan pasien berhasil dibatalkan."));
+            return Ok(ApiResponse<object>.Ok(null, "Patient encounter berhasil dibatalkan."));
         }
 
-        [HttpDelete("{encounterId:guid}/guarantors/{guarantorId:guid}")]
+        [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Delete", "Delete Patient Encounter Guarantor", Description = "Menghapus penjamin kunjungan pasien", AccessType = AccessTypes.Delete, SortOrder = 8)]
+        [AccessAction("Delete", "Delete Patient Encounter", Description = "Menghapus patient encounter", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("PatientEncounter", "Delete")]
-        public async Task<IActionResult> DeleteGuarantor(Guid encounterId, Guid guarantorId)
+        public async Task<IActionResult> DeleteEncounter(Guid id, [FromBody] DeletePatientEncounterRequest? request = null)
         {
-            var entity = await _dbContext.Set<TrxPatientEncounterGuarantor>()
-                .Include(x => x.Encounter)
-                .FirstOrDefaultAsync(x => x.Id == guarantorId && x.EncounterId == encounterId && !x.IsDelete);
+            var entity = await _dbContext.Set<TrxPatientEncounter>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
-            if (entity == null || entity.Encounter == null)
+            if (entity == null)
             {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Penjamin kunjungan pasien tidak ditemukan."
-                ));
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Kunjungan pasien tidak ditemukan."));
+            }
+
+            if (entity.CompletedAt.HasValue)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Kunjungan yang sudah selesai tidak dapat dihapus. Gunakan pembatalan atau koreksi data."));
             }
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
             entity.IsDelete = true;
+            entity.IsActive = false;
             entity.DeleteDateTime = now;
             entity.DeleteBy = actorUserId;
-            entity.IsActive = false;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
-            await RebuildEncounterPaymentSummaryAsync(entity.Encounter, null, now, actorUserId);
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+            {
+                entity.Notes = request.DeleteReason.Trim();
+            }
 
+            var guarantors = await _dbContext.Set<TrxPatientEncounterGuarantor>().Where(x => x.EncounterId == id && !x.IsDelete).ToListAsync();
+
+            foreach (var guarantor in guarantors)
+            {
+                guarantor.IsDelete = true;
+                guarantor.IsActive = false;
+                guarantor.DeleteDateTime = now;
+                guarantor.DeleteBy = actorUserId;
+                guarantor.UpdateDateTime = now;
+                guarantor.UpdateBy = actorUserId;
+            }
+
+            await CancelQueuesByEncounterAsync(entity.Id, now, actorUserId, request?.DeleteReason ?? "Encounter deleted.");
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(null, "Penjamin kunjungan pasien berhasil dihapus."));
+            return Ok(ApiResponse<object>.Ok(null, "Patient encounter berhasil dihapus."));
         }
 
-        // =========================================================
-        // QUERY HELPERS
-        // =========================================================
-
-        private IQueryable<TrxPatientEncounter> BuildEncounterBaseQuery()
+        private IQueryable<TrxPatientEncounter> BuildBaseQuery()
         {
             return _dbContext.Set<TrxPatientEncounter>()
                 .Include(x => x.Patient)
@@ -697,29 +619,64 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .Include(x => x.Doctor)
                 .Include(x => x.PatientClass)
                 .Include(x => x.PaymentMethod)
-                .Where(x => !x.IsDelete);
-        }
-
-        private IQueryable<TrxPatientEncounterGuarantor> BuildGuarantorBaseQuery()
-        {
-            return _dbContext.Set<TrxPatientEncounterGuarantor>()
-                .Include(x => x.Encounter)
-                .Include(x => x.Patient)
-                .Include(x => x.PaymentMethod)
-                .Include(x => x.InsuranceProvider)
-                .Include(x => x.CompanyGuarantor)
-                .Include(x => x.VerifiedByUser)
+                .Include(x => x.RegisteredByUser)
                 .Include(x => x.CancelledByUser)
+                .Include(x => x.NoShowByUser)
                 .Where(x => !x.IsDelete);
         }
 
-        private static IQueryable<TrxPatientEncounter> ApplyEncounterFilters(
+        private static IQueryable<TrxPatientEncounter> ApplyDateFilter(IQueryable<TrxPatientEncounter> query, DateTime? startDate, DateTime? endDate, string? customPeriod)
+        {
+            if (startDate.HasValue)
+            {
+                query = query.Where(x => x.EncounterDate >= DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc));
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(x => x.EncounterDate < DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc));
+            }
+
+            if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var today = DateTime.UtcNow.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x => x.EncounterDate >= today && x.EncounterDate < today.AddDays(1));
+                        break;
+                    case "last7days":
+                        query = query.Where(x => x.EncounterDate >= today.AddDays(-6) && x.EncounterDate < today.AddDays(1));
+                        break;
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        query = query.Where(x => x.EncounterDate >= thisMonthStart && x.EncounterDate < thisMonthStart.AddMonths(1));
+                        break;
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+                        query = query.Where(x => x.EncounterDate >= lastMonthStart && x.EncounterDate < currentMonthStart);
+                        break;
+                }
+            }
+
+            return query;
+        }
+
+        private static IQueryable<TrxPatientEncounter> ApplyRelationFilter(IQueryable<TrxPatientEncounter> query, Guid? patientId, Guid? serviceUnitId)
+        {
+            var normalizedPatientId = NormalizeNullableGuid(patientId);
+            if (normalizedPatientId.HasValue) query = query.Where(x => x.PatientId == normalizedPatientId.Value);
+
+            var normalizedServiceUnitId = NormalizeNullableGuid(serviceUnitId);
+            if (normalizedServiceUnitId.HasValue) query = query.Where(x => x.ServiceUnitId == normalizedServiceUnitId.Value);
+
+            return query;
+        }
+
+        private static IQueryable<TrxPatientEncounter> ApplyStandardFilter(
             IQueryable<TrxPatientEncounter> query,
-            string? search,
-            Guid? patientId,
-            Guid? serviceUnitId,
-            Guid? clinicId,
-            Guid? doctorId,
             EncounterStatus? encounterStatus,
             EncounterType? encounterType,
             EncounterPaymentType? paymentType,
@@ -727,876 +684,772 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             bool? isCompanyPatient,
             bool? isEligibilityRequired,
             bool? isEligibilityCompleted,
-            DateTime? startDate,
-            DateTime? endDate)
+            bool? isReferral,
+            bool? isActive,
+            string? search)
         {
+            if (encounterStatus.HasValue) query = query.Where(x => x.EncounterStatus == encounterStatus.Value);
+            if (encounterType.HasValue) query = query.Where(x => x.EncounterType == encounterType.Value);
+            if (paymentType.HasValue) query = query.Where(x => x.PaymentType == paymentType.Value);
+            if (isInsurancePatient.HasValue) query = query.Where(x => x.IsInsurancePatient == isInsurancePatient.Value);
+            if (isCompanyPatient.HasValue) query = query.Where(x => x.IsCompanyPatient == isCompanyPatient.Value);
+            if (isEligibilityRequired.HasValue) query = query.Where(x => x.IsEligibilityRequired == isEligibilityRequired.Value);
+            if (isEligibilityCompleted.HasValue) query = query.Where(x => x.IsEligibilityCompleted == isEligibilityCompleted.Value);
+            if (isReferral.HasValue) query = query.Where(x => x.IsReferral == isReferral.Value);
+            if (isActive.HasValue) query = query.Where(x => x.IsActive == isActive.Value);
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
 
                 query = query.Where(x =>
                     x.EncounterNumber.ToLower().Contains(keyword) ||
+                    (x.Patient != null && x.Patient.PatientCode.ToLower().Contains(keyword)) ||
                     (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
                     (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
+                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
                     (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)) ||
                     (x.Doctor != null && x.Doctor.FullName.ToLower().Contains(keyword)) ||
-                    (x.PrimaryGuarantorNameSnapshot != null && x.PrimaryGuarantorNameSnapshot.ToLower().Contains(keyword)));
+                    (x.PaymentMethod != null && x.PaymentMethod.PaymentMethodName.ToLower().Contains(keyword)) ||
+                    (x.PrimaryGuarantorNameSnapshot != null && x.PrimaryGuarantorNameSnapshot.ToLower().Contains(keyword)) ||
+                    (x.ReferralNumber != null && x.ReferralNumber.ToLower().Contains(keyword)) ||
+                    (x.EligibilityReferenceNumber != null && x.EligibilityReferenceNumber.ToLower().Contains(keyword)));
             }
-
-            if (patientId.HasValue && patientId.Value != Guid.Empty)
-                query = query.Where(x => x.PatientId == patientId.Value);
-
-            if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
-                query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
-
-            if (clinicId.HasValue && clinicId.Value != Guid.Empty)
-                query = query.Where(x => x.ClinicId == clinicId.Value);
-
-            if (doctorId.HasValue && doctorId.Value != Guid.Empty)
-                query = query.Where(x => x.DoctorId == doctorId.Value);
-
-            if (encounterStatus.HasValue)
-                query = query.Where(x => x.EncounterStatus == encounterStatus.Value);
-
-            if (encounterType.HasValue)
-                query = query.Where(x => x.EncounterType == encounterType.Value);
-
-            if (paymentType.HasValue)
-                query = query.Where(x => x.PaymentType == paymentType.Value);
-
-            if (isInsurancePatient.HasValue)
-                query = query.Where(x => x.IsInsurancePatient == isInsurancePatient.Value);
-
-            if (isCompanyPatient.HasValue)
-                query = query.Where(x => x.IsCompanyPatient == isCompanyPatient.Value);
-
-            if (isEligibilityRequired.HasValue)
-                query = query.Where(x => x.IsEligibilityRequired == isEligibilityRequired.Value);
-
-            if (isEligibilityCompleted.HasValue)
-                query = query.Where(x => x.IsEligibilityCompleted == isEligibilityCompleted.Value);
-
-            if (startDate.HasValue)
-                query = query.Where(x => x.EncounterDate >= startDate.Value.Date);
-
-            if (endDate.HasValue)
-                query = query.Where(x => x.EncounterDate < endDate.Value.Date.AddDays(1));
 
             return query;
         }
 
-        private static IQueryable<TrxPatientEncounter> ApplyEncounterSorting(
-            IQueryable<TrxPatientEncounter> query,
-            string? sortBy,
-            string? sortDirection)
-        {
-            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-
-            return (sortBy ?? "registeredAt").ToLowerInvariant() switch
-            {
-                "encounternumber" => isDesc ? query.OrderByDescending(x => x.EncounterNumber) : query.OrderBy(x => x.EncounterNumber),
-                "encounterdate" => isDesc ? query.OrderByDescending(x => x.EncounterDate) : query.OrderBy(x => x.EncounterDate),
-                "encounterstatus" => isDesc ? query.OrderByDescending(x => x.EncounterStatus) : query.OrderBy(x => x.EncounterStatus),
-                "paymenttype" => isDesc ? query.OrderByDescending(x => x.PaymentType) : query.OrderBy(x => x.PaymentType),
-                "primaryguarantor" => isDesc ? query.OrderByDescending(x => x.PrimaryGuarantorNameSnapshot) : query.OrderBy(x => x.PrimaryGuarantorNameSnapshot),
-                "createdatetime" => isDesc ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime),
-                _ => isDesc ? query.OrderByDescending(x => x.RegisteredAt) : query.OrderBy(x => x.RegisteredAt)
-            };
-        }
-
-        // =========================================================
-        // VALIDATION
-        // =========================================================
-
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(PatientEncounterCreateRequest request)
         {
-            var patientExists = await _dbContext.Set<MstPatient>()
-                .AnyAsync(x => x.Id == request.PatientId && x.IsActive && !x.IsDelete);
+            if (request.PatientId == Guid.Empty) return (false, "Pasien wajib dipilih.");
+            if (request.ServiceUnitId == Guid.Empty) return (false, "Service unit wajib dipilih.");
 
-            if (!patientExists)
-                return (false, "Pasien tidak valid atau tidak aktif.");
+            if (!Enum.IsDefined(typeof(EncounterType), request.EncounterType)) return (false, "Tipe encounter tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            if (!Enum.IsDefined(typeof(VisitType), request.VisitType)) return (false, "Tipe visit tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            if (!Enum.IsDefined(typeof(EncounterRegistrationSource), request.RegistrationSource)) return (false, "Sumber registrasi tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            if (!Enum.IsDefined(typeof(EncounterPaymentType), request.PaymentType)) return (false, "Tipe pembayaran tidak valid. Gunakan nilai dari endpoint filters/metadata.");
 
-            var serviceUnitExists = await _dbContext.Set<MstServiceUnit>()
-                .AnyAsync(x => x.Id == request.ServiceUnitId && x.IsActive && !x.IsDelete && x.IsAvailableForRegistration);
+            var patientExists = await _dbContext.Set<MstPatient>().AsNoTracking().AnyAsync(x => x.Id == request.PatientId && x.IsActive && !x.IsDelete);
+            if (!patientExists) return (false, "Pasien tidak valid atau tidak aktif.");
 
-            if (!serviceUnitExists)
-                return (false, "Service unit tidak valid, tidak aktif, atau tidak tersedia untuk registrasi.");
+            var serviceUnitExists = await _dbContext.Set<MstServiceUnit>().AsNoTracking().AnyAsync(x => x.Id == request.ServiceUnitId && x.IsActive && !x.IsDelete && x.IsAvailableForRegistration);
+            if (!serviceUnitExists) return (false, "Service unit tidak valid, tidak aktif, atau tidak tersedia untuk registrasi.");
 
             if (request.ClinicId.HasValue && request.ClinicId.Value != Guid.Empty)
             {
-                var clinicExists = await _dbContext.Set<MstClinic>()
-                    .AnyAsync(x =>
-                        x.Id == request.ClinicId.Value &&
-                        x.ServiceUnitId == request.ServiceUnitId &&
-                        x.IsActive &&
-                        !x.IsDelete &&
-                        x.IsAvailableForRegistration);
-
-                if (!clinicExists)
-                    return (false, "Clinic tidak valid, tidak aktif, atau tidak tersedia untuk registrasi.");
+                var clinicExists = await _dbContext.Set<MstClinic>().AsNoTracking().AnyAsync(x => x.Id == request.ClinicId.Value && x.ServiceUnitId == request.ServiceUnitId && x.IsActive && !x.IsDelete && x.IsAvailableForRegistration);
+                if (!clinicExists) return (false, "Clinic tidak valid, tidak aktif, atau tidak tersedia untuk registrasi.");
             }
 
             if (request.DoctorId.HasValue && request.DoctorId.Value != Guid.Empty)
             {
-                var doctorExists = await _dbContext.Set<MstDoctor>()
-                    .AnyAsync(x => x.Id == request.DoctorId.Value && x.IsActive && !x.IsDelete);
-
-                if (!doctorExists)
-                    return (false, "Dokter tidak valid atau tidak aktif.");
+                var doctorExists = await _dbContext.Set<MstDoctor>().AsNoTracking().AnyAsync(x => x.Id == request.DoctorId.Value && x.IsActive && !x.IsDelete);
+                if (!doctorExists) return (false, "Dokter tidak valid atau tidak aktif.");
             }
 
             if (request.DoctorScheduleId.HasValue && request.DoctorScheduleId.Value != Guid.Empty)
             {
-                var scheduleExists = await _dbContext.Set<MstDoctorSchedule>()
-                    .AnyAsync(x => x.Id == request.DoctorScheduleId.Value && x.IsActive && !x.IsDelete);
+                var scheduleExists = await _dbContext.Set<MstDoctorSchedule>().AsNoTracking().AnyAsync(x =>
+                    x.Id == request.DoctorScheduleId.Value &&
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    (!request.DoctorId.HasValue || x.DoctorId == request.DoctorId.Value) &&
+                    x.ServiceUnitId == request.ServiceUnitId &&
+                    (!request.ClinicId.HasValue || x.ClinicId == request.ClinicId.Value));
 
-                if (!scheduleExists)
-                    return (false, "Jadwal dokter tidak valid atau tidak aktif.");
+                if (!scheduleExists) return (false, "Jadwal dokter tidak valid, tidak aktif, atau tidak sesuai dokter/service unit/clinic.");
+            }
+
+            if (request.DoctorServiceRuleId.HasValue && request.DoctorServiceRuleId.Value != Guid.Empty)
+            {
+                var ruleExists = await _dbContext.Set<MstDoctorServiceRule>().AsNoTracking().AnyAsync(x =>
+                    x.Id == request.DoctorServiceRuleId.Value &&
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    (!request.DoctorId.HasValue || x.DoctorId == request.DoctorId.Value) &&
+                    x.ServiceUnitId == request.ServiceUnitId);
+
+                if (!ruleExists) return (false, "Doctor service rule tidak valid, tidak aktif, atau tidak sesuai dokter/service unit.");
+            }
+
+            if (request.PatientClassId.HasValue && request.PatientClassId.Value != Guid.Empty)
+            {
+                var patientClassExists = await _dbContext.Set<MstPatientClass>().AsNoTracking().AnyAsync(x => x.Id == request.PatientClassId.Value && x.IsActive && !x.IsDelete);
+                if (!patientClassExists) return (false, "Patient class tidak valid atau tidak aktif.");
             }
 
             if (request.PaymentMethodId.HasValue && request.PaymentMethodId.Value != Guid.Empty)
             {
-                var paymentMethodExists = await _dbContext.Set<MstPaymentMethod>()
-                    .AnyAsync(x => x.Id == request.PaymentMethodId.Value && x.IsActive && !x.IsDelete && x.IsAvailableForRegistration);
-
-                if (!paymentMethodExists)
-                    return (false, "Metode pembayaran tidak valid atau tidak tersedia untuk registrasi.");
+                var paymentMethodExists = await _dbContext.Set<MstPaymentMethod>().AsNoTracking().AnyAsync(x => x.Id == request.PaymentMethodId.Value && x.IsActive && !x.IsDelete && x.IsAvailableForRegistration);
+                if (!paymentMethodExists) return (false, "Metode pembayaran tidak valid atau tidak tersedia untuk registrasi.");
             }
 
             if (request.KioskScanSessionId.HasValue && request.KioskScanSessionId.Value != Guid.Empty)
             {
-                var scanSessionExists = await _dbContext.Set<TrxKioskScanSession>()
-                    .AnyAsync(x => x.Id == request.KioskScanSessionId.Value && !x.IsDelete && !x.IsUsedForRegistration);
-
-                if (!scanSessionExists)
-                    return (false, "Kiosk scan session tidak valid atau sudah digunakan.");
+                var scanSession = await _dbContext.Set<TrxKioskScanSession>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.KioskScanSessionId.Value && !x.IsDelete && !x.IsUsedForRegistration);
+                if (scanSession == null) return (false, "Kiosk scan session tidak valid atau sudah digunakan.");
+                if (scanSession.PatientId.HasValue && scanSession.PatientId.Value != request.PatientId) return (false, "Kiosk scan session tidak sesuai dengan pasien yang dipilih.");
             }
 
+            if (request.IsReferralRequired && !request.IsReferral) return (false, "Referral wajib ditandai aktif jika rujukan diperlukan.");
+            if (request.IsReferral && request.IsReferralVerified && string.IsNullOrWhiteSpace(request.ReferralNumber)) return (false, "Nomor referral wajib diisi jika referral sudah diverifikasi.");
+
             var guarantors = BuildDefaultGuarantorsIfEmpty(request);
-
-            if (!guarantors.Any())
-                return (false, "Minimal satu penjamin kunjungan wajib diisi.");
-
-            if (guarantors.Count(x => x.IsPrimary) != 1)
-                return (false, "Harus ada tepat satu penjamin utama.");
-
-            var duplicatePriority = guarantors
-                .GroupBy(x => x.CoveragePriority)
-                .Any(x => x.Count() > 1);
-
-            if (duplicatePriority)
-                return (false, "Coverage priority penjamin tidak boleh duplikat.");
+            if (!guarantors.Any()) return (false, "Minimal satu penjamin kunjungan wajib diisi.");
+            if (guarantors.Count(x => x.IsPrimary) != 1) return (false, "Harus ada tepat satu penjamin utama.");
+            if (guarantors.GroupBy(x => x.CoveragePriority).Any(x => x.Count() > 1)) return (false, "Coverage priority penjamin tidak boleh duplikat.");
 
             foreach (var guarantor in guarantors)
             {
-                var guarantorValidation = await ValidateGuarantorRequestAsync(request.PatientId, null, guarantor, null);
-
-                if (!guarantorValidation.IsValid)
-                    return guarantorValidation;
+                var guarantorValidation = await ValidateGuarantorRequestAsync(request.PatientId, guarantor);
+                if (!guarantorValidation.IsValid) return guarantorValidation;
             }
 
             return (true, null);
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateGuarantorRequestAsync(
-            Guid patientId,
-            Guid? encounterId,
-            PatientEncounterGuarantorRequest request,
-            Guid? excludeGuarantorId)
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateGuarantorRequestAsync(Guid patientId, PatientEncounterGuarantorRequest request)
         {
-            if (request.CoveragePriority <= 0)
-                return (false, "Coverage priority harus lebih besar dari 0.");
+            if (!Enum.IsDefined(typeof(PatientEncounterGuarantorType), request.GuarantorType)) return (false, "Tipe penjamin tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            if (!Enum.IsDefined(typeof(PatientEncounterGuarantorRole), request.GuarantorRole)) return (false, "Role penjamin tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            if (!Enum.IsDefined(typeof(PatientEncounterGuarantorStatus), request.GuarantorStatus)) return (false, "Status penjamin tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            if (request.CoveragePriority <= 0) return (false, "Coverage priority harus lebih besar dari 0.");
+            if (request.CoveragePercent.HasValue && (request.CoveragePercent.Value < 0 || request.CoveragePercent.Value > 100)) return (false, "Coverage percent harus di antara 0 sampai 100.");
+            if (request.CoPaymentPercent.HasValue && (request.CoPaymentPercent.Value < 0 || request.CoPaymentPercent.Value > 100)) return (false, "Co-payment percent harus di antara 0 sampai 100.");
+
+            var amounts = new[] { request.AnnualLimitAmount, request.RemainingLimitAmount, request.UsedLimitAmount, request.RoomLimitPerDayAmount, request.DeductibleAmount, request.CoPaymentAmount, request.EstimatedCoveredAmount, request.EstimatedPatientPayAmount };
+            if (amounts.Any(x => x.HasValue && x.Value < 0)) return (false, "Nilai amount penjamin tidak boleh kurang dari 0.");
 
             if (request.PaymentMethodId.HasValue && request.PaymentMethodId.Value != Guid.Empty)
             {
-                var paymentMethodExists = await _dbContext.Set<MstPaymentMethod>()
-                    .AnyAsync(x => x.Id == request.PaymentMethodId.Value && x.IsActive && !x.IsDelete);
-
-                if (!paymentMethodExists)
-                    return (false, "Metode pembayaran penjamin tidak valid.");
+                var exists = await _dbContext.Set<MstPaymentMethod>().AsNoTracking().AnyAsync(x => x.Id == request.PaymentMethodId.Value && x.IsActive && !x.IsDelete);
+                if (!exists) return (false, "Metode pembayaran penjamin tidak valid.");
             }
 
             if (request.PatientInsuranceId.HasValue && request.PatientInsuranceId.Value != Guid.Empty)
             {
-                var patientInsuranceExists = await _dbContext.Set<MstPatientInsurance>()
-                    .AnyAsync(x => x.Id == request.PatientInsuranceId.Value && x.PatientId == patientId && x.IsActive && !x.IsDelete);
-
-                if (!patientInsuranceExists)
-                    return (false, "Asuransi pasien tidak valid atau tidak aktif.");
+                var exists = await _dbContext.Set<MstPatientInsurance>().AsNoTracking().AnyAsync(x => x.Id == request.PatientInsuranceId.Value && x.PatientId == patientId && x.IsActive && !x.IsDelete);
+                if (!exists) return (false, "Asuransi pasien tidak valid atau tidak aktif.");
             }
 
             if (request.InsuranceProviderId.HasValue && request.InsuranceProviderId.Value != Guid.Empty)
             {
-                var insuranceProviderExists = await _dbContext.Set<MstInsuranceProvider>()
-                    .AnyAsync(x => x.Id == request.InsuranceProviderId.Value && x.IsActive && !x.IsDelete);
-
-                if (!insuranceProviderExists)
-                    return (false, "Provider asuransi tidak valid atau tidak aktif.");
+                var exists = await _dbContext.Set<MstInsuranceProvider>().AsNoTracking().AnyAsync(x => x.Id == request.InsuranceProviderId.Value && x.IsActive && !x.IsDelete);
+                if (!exists) return (false, "Provider asuransi tidak valid atau tidak aktif.");
             }
 
             if (request.PatientCompanyGuarantorId.HasValue && request.PatientCompanyGuarantorId.Value != Guid.Empty)
             {
-                var patientCompanyGuarantorExists = await _dbContext.Set<MstPatientCompanyGuarantor>()
-                    .AnyAsync(x => x.Id == request.PatientCompanyGuarantorId.Value && x.PatientId == patientId && x.IsActive && !x.IsDelete);
-
-                if (!patientCompanyGuarantorExists)
-                    return (false, "Company guarantor pasien tidak valid atau tidak aktif.");
+                var exists = await _dbContext.Set<MstPatientCompanyGuarantor>().AsNoTracking().AnyAsync(x => x.Id == request.PatientCompanyGuarantorId.Value && x.PatientId == patientId && x.IsActive && !x.IsDelete);
+                if (!exists) return (false, "Company guarantor pasien tidak valid atau tidak aktif.");
             }
 
             if (request.CompanyGuarantorId.HasValue && request.CompanyGuarantorId.Value != Guid.Empty)
             {
-                var companyGuarantorExists = await _dbContext.Set<MstCompanyGuarantor>()
-                    .AnyAsync(x => x.Id == request.CompanyGuarantorId.Value && x.IsActive && !x.IsDelete);
-
-                if (!companyGuarantorExists)
-                    return (false, "Company guarantor tidak valid atau tidak aktif.");
+                var exists = await _dbContext.Set<MstCompanyGuarantor>().AsNoTracking().AnyAsync(x => x.Id == request.CompanyGuarantorId.Value && x.IsActive && !x.IsDelete);
+                if (!exists) return (false, "Company guarantor tidak valid atau tidak aktif.");
             }
 
             if (request.PatientMembershipId.HasValue && request.PatientMembershipId.Value != Guid.Empty)
             {
-                var membershipExists = await _dbContext.Set<MstPatientMembership>()
-                    .AnyAsync(x => x.Id == request.PatientMembershipId.Value && x.PatientId == patientId && x.IsActive && !x.IsDelete);
-
-                if (!membershipExists)
-                    return (false, "Membership pasien tidak valid atau tidak aktif.");
+                var exists = await _dbContext.Set<MstPatientMembership>().AsNoTracking().AnyAsync(x => x.Id == request.PatientMembershipId.Value && x.PatientId == patientId && x.IsActive && !x.IsDelete);
+                if (!exists) return (false, "Membership pasien tidak valid atau tidak aktif.");
             }
 
-            if (request.GuarantorType == PatientEncounterGuarantorType.Insurance &&
-                !request.PatientInsuranceId.HasValue &&
-                !request.InsuranceProviderId.HasValue)
+            if (request.GuarantorType == PatientEncounterGuarantorType.Insurance && !request.PatientInsuranceId.HasValue && !request.InsuranceProviderId.HasValue)
             {
                 return (false, "Penjamin asuransi wajib memiliki PatientInsuranceId atau InsuranceProviderId.");
             }
 
-            if (request.GuarantorType == PatientEncounterGuarantorType.Company &&
-                !request.PatientCompanyGuarantorId.HasValue &&
-                !request.CompanyGuarantorId.HasValue)
+            if (request.GuarantorType == PatientEncounterGuarantorType.Company && !request.PatientCompanyGuarantorId.HasValue && !request.CompanyGuarantorId.HasValue)
             {
                 return (false, "Penjamin company wajib memiliki PatientCompanyGuarantorId atau CompanyGuarantorId.");
-            }
-
-            if (encounterId.HasValue && encounterId.Value != Guid.Empty)
-            {
-                if (request.IsPrimary)
-                {
-                    var primaryExists = await _dbContext.Set<TrxPatientEncounterGuarantor>()
-                        .AnyAsync(x =>
-                            x.EncounterId == encounterId.Value &&
-                            x.IsPrimary &&
-                            !x.IsDelete &&
-                            (!excludeGuarantorId.HasValue || x.Id != excludeGuarantorId.Value));
-
-                    if (primaryExists)
-                        return (false, "Penjamin utama untuk encounter ini sudah ada.");
-                }
-
-                var priorityExists = await _dbContext.Set<TrxPatientEncounterGuarantor>()
-                    .AnyAsync(x =>
-                        x.EncounterId == encounterId.Value &&
-                        x.CoveragePriority == request.CoveragePriority &&
-                        !x.IsDelete &&
-                        (!excludeGuarantorId.HasValue || x.Id != excludeGuarantorId.Value));
-
-                if (priorityExists)
-                    return (false, "Coverage priority penjamin sudah digunakan pada encounter ini.");
             }
 
             return (true, null);
         }
 
-        // =========================================================
-        // BUILD / MAP HELPERS
-        // =========================================================
-
         private List<PatientEncounterGuarantorRequest> BuildDefaultGuarantorsIfEmpty(PatientEncounterCreateRequest request)
         {
-            if (request.Guarantors.Any())
-                return request.Guarantors;
+            if (request.Guarantors.Any()) return request.Guarantors;
+            if (request.PaymentType != EncounterPaymentType.Cash) return new List<PatientEncounterGuarantorRequest>();
 
             return new List<PatientEncounterGuarantorRequest>
             {
                 new()
                 {
-                    GuarantorType = request.PaymentType switch
-                    {
-                        EncounterPaymentType.Insurance => PatientEncounterGuarantorType.Insurance,
-                        EncounterPaymentType.Company => PatientEncounterGuarantorType.Company,
-                        _ => PatientEncounterGuarantorType.PatientCash
-                    },
+                    GuarantorType = PatientEncounterGuarantorType.PatientCash,
                     GuarantorRole = PatientEncounterGuarantorRole.Primary,
-                    GuarantorStatus = request.PaymentType == EncounterPaymentType.Cash
-                        ? PatientEncounterGuarantorStatus.Eligible
-                        : PatientEncounterGuarantorStatus.PendingVerification,
+                    GuarantorStatus = PatientEncounterGuarantorStatus.Eligible,
                     CheckMethod = PatientEncounterGuarantorCheckMethod.None,
                     CoveragePriority = 1,
                     IsPrimary = true,
                     PaymentMethodId = request.PaymentMethodId,
-                    IsEligibilityRequired = request.PaymentType != EncounterPaymentType.Cash,
-                    IsEligible = request.PaymentType == EncounterPaymentType.Cash,
-                    IsPolicyActive = request.PaymentType == EncounterPaymentType.Cash,
+                    IsEligibilityRequired = false,
+                    IsEligible = true,
+                    IsPolicyActive = true,
                     IsAllowExcessPaymentByPatient = true,
-                    EligibilityReferenceNumber = request.EligibilityReferenceNumber,
-                    EligibilityCheckedAt = request.EligibilityCheckedAt,
-                    GuarantorNameSnapshot = request.PaymentType == EncounterPaymentType.Cash ? "Patient Cash" : null
+                    GuarantorNameSnapshot = "Patient Cash"
                 }
             };
         }
 
-        private async Task<TrxPatientEncounterGuarantor> BuildGuarantorEntityAsync(
-            Guid encounterId,
-            Guid patientId,
-            PatientEncounterGuarantorRequest request,
-            DateTime now,
-            Guid actorUserId)
+        private async Task<TrxPatientEncounterGuarantor> BuildGuarantorEntityAsync(Guid encounterId, Guid patientId, PatientEncounterGuarantorRequest request, DateTime now, Guid actorUserId)
         {
             var entity = new TrxPatientEncounterGuarantor
             {
                 Id = Guid.NewGuid(),
-                EncounterGuarantorNumber = await GenerateEncounterGuarantorNumberAsync(now),
+                EncounterGuarantorNumber = await GenerateEncounterGuarantorNumberAsync(),
                 EncounterId = encounterId,
                 PatientId = patientId,
+                GuarantorType = request.GuarantorType,
+                GuarantorRole = request.GuarantorRole,
+                GuarantorStatus = request.GuarantorStatus,
+                CheckMethod = request.CheckMethod,
+                CoveragePriority = request.CoveragePriority,
+                IsPrimary = request.IsPrimary,
+                IsActive = true,
+                PaymentMethodId = NormalizeNullableGuid(request.PaymentMethodId),
+                PatientInsuranceId = NormalizeNullableGuid(request.PatientInsuranceId),
+                InsuranceProviderId = NormalizeNullableGuid(request.InsuranceProviderId),
+                CompanyGuarantorId = NormalizeNullableGuid(request.CompanyGuarantorId),
+                PatientCompanyGuarantorId = NormalizeNullableGuid(request.PatientCompanyGuarantorId),
+                PatientMembershipId = NormalizeNullableGuid(request.PatientMembershipId),
+                GuarantorNameSnapshot = NormalizeNullableText(request.GuarantorNameSnapshot),
+                PolicyNumberSnapshot = NormalizeNullableText(request.PolicyNumberSnapshot),
+                CardNumberSnapshot = NormalizeNullableText(request.CardNumberSnapshot),
+                MemberNumberSnapshot = NormalizeNullableText(request.MemberNumberSnapshot),
+                PlanNameSnapshot = NormalizeNullableText(request.PlanNameSnapshot),
+                ClassNameSnapshot = NormalizeNullableText(request.ClassNameSnapshot),
+                BenefitPlanCodeSnapshot = NormalizeNullableText(request.BenefitPlanCodeSnapshot),
+                EffectiveStartDateSnapshot = request.EffectiveStartDateSnapshot,
+                EffectiveEndDateSnapshot = request.EffectiveEndDateSnapshot,
+                IsEligibilityRequired = request.IsEligibilityRequired,
+                IsEligible = request.IsEligible,
+                EligibilityReferenceNumber = NormalizeNullableText(request.EligibilityReferenceNumber),
+                EligibilityCheckedAt = request.EligibilityCheckedAt,
+                VerificationReferenceNumber = NormalizeNullableText(request.VerificationReferenceNumber),
+                VerificationOfficerName = NormalizeNullableText(request.VerificationOfficerName),
+                VerificationNote = NormalizeNullableText(request.VerificationNote),
+                IsNeedApproval = request.IsNeedApproval,
+                IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter,
+                IsNeedReferralLetter = request.IsNeedReferralLetter,
+                IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient,
+                CoveragePercent = request.CoveragePercent,
+                AnnualLimitAmount = request.AnnualLimitAmount,
+                RemainingLimitAmount = request.RemainingLimitAmount,
+                UsedLimitAmount = request.UsedLimitAmount,
+                RoomLimitPerDayAmount = request.RoomLimitPerDayAmount,
+                DeductibleAmount = request.DeductibleAmount,
+                CoPaymentPercent = request.CoPaymentPercent,
+                CoPaymentAmount = request.CoPaymentAmount,
+                EstimatedCoveredAmount = request.EstimatedCoveredAmount,
+                EstimatedPatientPayAmount = request.EstimatedPatientPayAmount,
+                IsPolicyActive = request.IsPolicyActive,
+                IsPremiumPaid = request.IsPremiumPaid,
+                IsCardActive = request.IsCardActive,
+                IsInWaitingPeriod = request.IsInWaitingPeriod,
+                WaitingPeriodUntilDate = request.WaitingPeriodUntilDate,
+                HasSpecialExclusion = request.HasSpecialExclusion,
+                SpecialExclusionNote = NormalizeNullableText(request.SpecialExclusionNote),
+                HasPreviousClaim = request.HasPreviousClaim,
+                PreviousClaimNote = NormalizeNullableText(request.PreviousClaimNote),
+                BenefitSnapshotJson = NormalizeNullableText(request.BenefitSnapshotJson),
+                ManualCheckResultJson = NormalizeNullableText(request.ManualCheckResultJson),
+                Notes = NormalizeNullableText(request.Notes),
                 CreateDateTime = now,
                 CreateBy = actorUserId,
                 IsDelete = false,
                 IsCancel = false
             };
 
-            MapGuarantorRequestToEntity(entity, request, now, actorUserId, isCreate: true);
-            await FillGuarantorNameSnapshotAsync(entity);
-
+            await FillGuarantorSnapshotAsync(entity);
             return entity;
         }
 
-        private void MapGuarantorRequestToEntity(
-            TrxPatientEncounterGuarantor entity,
-            PatientEncounterGuarantorRequest request,
-            DateTime now,
-            Guid actorUserId,
-            bool isCreate = false)
+        private async Task FillGuarantorSnapshotAsync(TrxPatientEncounterGuarantor entity)
         {
-            entity.GuarantorType = request.GuarantorType;
-            entity.GuarantorRole = request.GuarantorRole;
-            entity.GuarantorStatus = request.GuarantorStatus;
-            entity.CheckMethod = request.CheckMethod;
-            entity.CoveragePriority = request.CoveragePriority;
-            entity.IsPrimary = request.IsPrimary;
-            entity.PaymentMethodId = NormalizeNullableGuid(request.PaymentMethodId);
-            entity.PatientInsuranceId = NormalizeNullableGuid(request.PatientInsuranceId);
-            entity.InsuranceProviderId = NormalizeNullableGuid(request.InsuranceProviderId);
-            entity.CompanyGuarantorId = NormalizeNullableGuid(request.CompanyGuarantorId);
-            entity.PatientCompanyGuarantorId = NormalizeNullableGuid(request.PatientCompanyGuarantorId);
-            entity.PatientMembershipId = NormalizeNullableGuid(request.PatientMembershipId);
-
-            entity.GuarantorNameSnapshot = NormalizeNullableText(request.GuarantorNameSnapshot);
-            entity.PolicyNumberSnapshot = NormalizeNullableText(request.PolicyNumberSnapshot);
-            entity.CardNumberSnapshot = NormalizeNullableText(request.CardNumberSnapshot);
-            entity.MemberNumberSnapshot = NormalizeNullableText(request.MemberNumberSnapshot);
-            entity.PlanNameSnapshot = NormalizeNullableText(request.PlanNameSnapshot);
-            entity.ClassNameSnapshot = NormalizeNullableText(request.ClassNameSnapshot);
-            entity.BenefitPlanCodeSnapshot = NormalizeNullableText(request.BenefitPlanCodeSnapshot);
-            entity.EffectiveStartDateSnapshot = request.EffectiveStartDateSnapshot;
-            entity.EffectiveEndDateSnapshot = request.EffectiveEndDateSnapshot;
-
-            entity.IsEligibilityRequired = request.IsEligibilityRequired;
-            entity.IsEligible = request.IsEligible;
-            entity.EligibilityReferenceNumber = NormalizeNullableText(request.EligibilityReferenceNumber);
-            entity.EligibilityCheckedAt = request.EligibilityCheckedAt;
-            entity.VerificationReferenceNumber = NormalizeNullableText(request.VerificationReferenceNumber);
-            entity.VerificationOfficerName = NormalizeNullableText(request.VerificationOfficerName);
-            entity.VerificationNote = NormalizeNullableText(request.VerificationNote);
-            entity.IsNeedApproval = request.IsNeedApproval;
-            entity.IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter;
-            entity.IsNeedReferralLetter = request.IsNeedReferralLetter;
-            entity.IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient;
-
-            entity.CoveragePercent = request.CoveragePercent;
-            entity.AnnualLimitAmount = request.AnnualLimitAmount;
-            entity.RemainingLimitAmount = request.RemainingLimitAmount;
-            entity.UsedLimitAmount = request.UsedLimitAmount;
-            entity.RoomLimitPerDayAmount = request.RoomLimitPerDayAmount;
-            entity.DeductibleAmount = request.DeductibleAmount;
-            entity.CoPaymentPercent = request.CoPaymentPercent;
-            entity.CoPaymentAmount = request.CoPaymentAmount;
-            entity.EstimatedCoveredAmount = request.EstimatedCoveredAmount;
-            entity.EstimatedPatientPayAmount = request.EstimatedPatientPayAmount;
-
-            entity.IsPolicyActive = request.IsPolicyActive;
-            entity.IsPremiumPaid = request.IsPremiumPaid;
-            entity.IsCardActive = request.IsCardActive;
-            entity.IsInWaitingPeriod = request.IsInWaitingPeriod;
-            entity.WaitingPeriodUntilDate = request.WaitingPeriodUntilDate;
-            entity.HasSpecialExclusion = request.HasSpecialExclusion;
-            entity.SpecialExclusionNote = NormalizeNullableText(request.SpecialExclusionNote);
-            entity.HasPreviousClaim = request.HasPreviousClaim;
-            entity.PreviousClaimNote = NormalizeNullableText(request.PreviousClaimNote);
-            entity.BenefitSnapshotJson = NormalizeNullableText(request.BenefitSnapshotJson);
-            entity.ManualCheckResultJson = NormalizeNullableText(request.ManualCheckResultJson);
-            entity.Notes = NormalizeNullableText(request.Notes);
-            entity.IsActive = true;
-
-            if (!isCreate)
-            {
-                entity.UpdateDateTime = now;
-                entity.UpdateBy = actorUserId;
-            }
-        }
-
-        private async Task FillGuarantorNameSnapshotAsync(TrxPatientEncounterGuarantor entity)
-        {
-            if (!string.IsNullOrWhiteSpace(entity.GuarantorNameSnapshot))
-                return;
-
             if (entity.GuarantorType == PatientEncounterGuarantorType.PatientCash)
             {
-                entity.GuarantorNameSnapshot = "Patient Cash";
+                entity.GuarantorNameSnapshot ??= "Patient Cash";
                 return;
             }
 
-            if (entity.InsuranceProviderId.HasValue)
+            if (entity.PatientInsuranceId.HasValue)
             {
-                entity.GuarantorNameSnapshot = await _dbContext.Set<MstInsuranceProvider>()
-                    .Where(x => x.Id == entity.InsuranceProviderId.Value)
-                    .Select(x => x.InsuranceProviderName)
-                    .FirstOrDefaultAsync();
+                var data = await _dbContext.Set<MstPatientInsurance>().Include(x => x.InsuranceProvider).AsNoTracking().FirstOrDefaultAsync(x => x.Id == entity.PatientInsuranceId.Value);
+                if (data != null)
+                {
+                    entity.InsuranceProviderId ??= data.InsuranceProviderId;
+                    entity.GuarantorNameSnapshot ??= data.InsuranceProvider?.InsuranceProviderName;
+                    entity.PolicyNumberSnapshot ??= data.PolicyNumber;
+                    entity.CardNumberSnapshot ??= data.CardNumber;
+                    entity.MemberNumberSnapshot ??= data.MemberNumber;
+                    entity.PlanNameSnapshot ??= data.PlanName;
+                    entity.ClassNameSnapshot ??= data.ClassName;
+                    entity.BenefitPlanCodeSnapshot ??= data.BenefitPlanCode;
+                    entity.EffectiveStartDateSnapshot ??= data.EffectiveStartDate;
+                    entity.EffectiveEndDateSnapshot ??= data.EffectiveEndDate;
+                    entity.AnnualLimitAmount ??= data.AnnualLimitAmount;
+                    entity.RemainingLimitAmount ??= data.RemainingLimitAmount;
+                    entity.CoPaymentPercent ??= data.CoPaymentPercent;
+                    entity.CoPaymentAmount ??= data.CoPaymentAmount;
+                    entity.IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter || data.IsNeedGuaranteeLetter;
+                    entity.IsNeedReferralLetter = entity.IsNeedReferralLetter || data.IsNeedReferralLetter;
+                    entity.IsAllowExcessPaymentByPatient = data.IsAllowExcessPaymentByPatient;
+                }
+            }
+
+            if (entity.PatientCompanyGuarantorId.HasValue)
+            {
+                var data = await _dbContext.Set<MstPatientCompanyGuarantor>().Include(x => x.CompanyGuarantor).AsNoTracking().FirstOrDefaultAsync(x => x.Id == entity.PatientCompanyGuarantorId.Value);
+                if (data != null)
+                {
+                    entity.CompanyGuarantorId ??= data.CompanyGuarantorId;
+                    entity.GuarantorNameSnapshot ??= data.CompanyGuarantor?.CompanyGuarantorName;
+                    entity.MemberNumberSnapshot ??= data.EmployeeNumber;
+                    entity.PlanNameSnapshot ??= data.BenefitPlanName;
+                    entity.ClassNameSnapshot ??= data.ClassName;
+                    entity.BenefitPlanCodeSnapshot ??= data.BenefitPlanCode;
+                    entity.EffectiveStartDateSnapshot ??= data.EffectiveStartDate;
+                    entity.EffectiveEndDateSnapshot ??= data.EffectiveEndDate;
+                    entity.AnnualLimitAmount ??= data.AnnualLimitAmount;
+                    entity.RemainingLimitAmount ??= data.RemainingLimitAmount;
+                    entity.CoPaymentPercent ??= data.CoPaymentPercent;
+                    entity.CoPaymentAmount ??= data.CoPaymentAmount;
+                    entity.IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter || data.IsNeedGuaranteeLetter;
+                    entity.IsAllowExcessPaymentByPatient = data.IsAllowExcessPaymentByPatient;
+                }
+            }
+
+            if (entity.PatientMembershipId.HasValue)
+            {
+                var data = await _dbContext.Set<MstPatientMembership>().Include(x => x.MembershipTier).AsNoTracking().FirstOrDefaultAsync(x => x.Id == entity.PatientMembershipId.Value);
+                if (data != null)
+                {
+                    entity.GuarantorNameSnapshot ??= data.MembershipTier?.TierName;
+                    entity.MemberNumberSnapshot ??= data.MemberNumber;
+                    entity.PlanNameSnapshot ??= data.MembershipTier?.TierName;
+                    entity.EffectiveStartDateSnapshot ??= data.JoinDate;
+                    entity.EffectiveEndDateSnapshot ??= data.ExpiredDate;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(entity.GuarantorNameSnapshot) && entity.InsuranceProviderId.HasValue)
+            {
+                entity.GuarantorNameSnapshot = await _dbContext.Set<MstInsuranceProvider>().Where(x => x.Id == entity.InsuranceProviderId.Value).Select(x => x.InsuranceProviderName).FirstOrDefaultAsync();
             }
 
             if (string.IsNullOrWhiteSpace(entity.GuarantorNameSnapshot) && entity.CompanyGuarantorId.HasValue)
             {
-                entity.GuarantorNameSnapshot = await _dbContext.Set<MstCompanyGuarantor>()
-                    .Where(x => x.Id == entity.CompanyGuarantorId.Value)
-                    .Select(x => x.CompanyGuarantorName)
-                    .FirstOrDefaultAsync();
+                entity.GuarantorNameSnapshot = await _dbContext.Set<MstCompanyGuarantor>().Where(x => x.Id == entity.CompanyGuarantorId.Value).Select(x => x.CompanyGuarantorName).FirstOrDefaultAsync();
             }
 
             if (string.IsNullOrWhiteSpace(entity.GuarantorNameSnapshot) && entity.PaymentMethodId.HasValue)
             {
-                entity.GuarantorNameSnapshot = await _dbContext.Set<MstPaymentMethod>()
-                    .Where(x => x.Id == entity.PaymentMethodId.Value)
-                    .Select(x => x.PaymentMethodName)
-                    .FirstOrDefaultAsync();
+                entity.GuarantorNameSnapshot = await _dbContext.Set<MstPaymentMethod>().Where(x => x.Id == entity.PaymentMethodId.Value).Select(x => x.PaymentMethodName).FirstOrDefaultAsync();
             }
         }
 
-        private static (
-            bool IsInsurancePatient,
-            bool IsCompanyPatient,
-            bool IsMembershipPatient,
-            bool IsMixedPayment,
-            bool IsEligibilityRequired,
-            bool IsEligibilityCompleted,
-            string? PrimaryGuarantorNameSnapshot,
-            string? PrimaryGuarantorTypeSnapshot) BuildPaymentSummary(
-                EncounterPaymentType paymentType,
-                List<PatientEncounterGuarantorRequest> guarantors)
+        private static void ApplyEncounterPaymentSummary(TrxPatientEncounter encounter, IEnumerable<TrxPatientEncounterGuarantor> guarantors, DateTime now, Guid actorUserId)
         {
-            var activeGuarantors = guarantors.Where(x => x.GuarantorStatus != PatientEncounterGuarantorStatus.Cancelled).ToList();
+            var activeGuarantors = guarantors.Where(x => x.IsActive && !x.IsDelete && x.GuarantorStatus != PatientEncounterGuarantorStatus.Cancelled).ToList();
             var primary = activeGuarantors.FirstOrDefault(x => x.IsPrimary) ?? activeGuarantors.OrderBy(x => x.CoveragePriority).FirstOrDefault();
 
-            return (
-                IsInsurancePatient: activeGuarantors.Any(x => x.GuarantorType == PatientEncounterGuarantorType.Insurance || x.GuarantorType == PatientEncounterGuarantorType.BPJS),
-                IsCompanyPatient: activeGuarantors.Any(x => x.GuarantorType == PatientEncounterGuarantorType.Company),
-                IsMembershipPatient: activeGuarantors.Any(x => x.GuarantorType == PatientEncounterGuarantorType.Membership),
-                IsMixedPayment: activeGuarantors.Select(x => x.GuarantorType).Distinct().Count() > 1,
-                IsEligibilityRequired: activeGuarantors.Any(x => x.IsEligibilityRequired),
-                IsEligibilityCompleted: activeGuarantors.Where(x => x.IsEligibilityRequired).All(x => x.IsEligible) && activeGuarantors.Any(x => x.IsEligibilityRequired),
-                PrimaryGuarantorNameSnapshot: primary?.GuarantorNameSnapshot,
-                PrimaryGuarantorTypeSnapshot: primary?.GuarantorType.ToString()
-            );
-        }
-
-        private async Task RebuildEncounterPaymentSummaryAsync(
-            TrxPatientEncounter encounter,
-            TrxPatientEncounterGuarantor? newlyAddedGuarantor,
-            DateTime now,
-            Guid actorUserId)
-        {
-            var guarantors = await _dbContext.Set<TrxPatientEncounterGuarantor>()
-                .Where(x => x.EncounterId == encounter.Id && !x.IsDelete && x.IsActive && x.GuarantorStatus != PatientEncounterGuarantorStatus.Cancelled)
-                .ToListAsync();
-
-            if (newlyAddedGuarantor != null && !guarantors.Any(x => x.Id == newlyAddedGuarantor.Id))
-                guarantors.Add(newlyAddedGuarantor);
-
-            var primary = guarantors.FirstOrDefault(x => x.IsPrimary) ?? guarantors.OrderBy(x => x.CoveragePriority).FirstOrDefault();
-
-            encounter.IsInsurancePatient = guarantors.Any(x => x.GuarantorType == PatientEncounterGuarantorType.Insurance || x.GuarantorType == PatientEncounterGuarantorType.BPJS);
-            encounter.IsCompanyPatient = guarantors.Any(x => x.GuarantorType == PatientEncounterGuarantorType.Company);
-            encounter.IsMembershipPatient = guarantors.Any(x => x.GuarantorType == PatientEncounterGuarantorType.Membership);
-            encounter.IsMixedPayment = guarantors.Select(x => x.GuarantorType).Distinct().Count() > 1;
+            encounter.IsInsurancePatient = activeGuarantors.Any(x => x.GuarantorType == PatientEncounterGuarantorType.Insurance || x.GuarantorType == PatientEncounterGuarantorType.BPJS);
+            encounter.IsCompanyPatient = activeGuarantors.Any(x => x.GuarantorType == PatientEncounterGuarantorType.Company);
+            encounter.IsMembershipPatient = activeGuarantors.Any(x => x.GuarantorType == PatientEncounterGuarantorType.Membership);
+            encounter.IsMixedPayment = activeGuarantors.Select(x => x.GuarantorType).Distinct().Count() > 1;
             encounter.PrimaryGuarantorNameSnapshot = primary?.GuarantorNameSnapshot;
             encounter.PrimaryGuarantorTypeSnapshot = primary?.GuarantorType.ToString();
-            encounter.IsEligibilityRequired = guarantors.Any(x => x.IsEligibilityRequired);
-            encounter.IsEligibilityCompleted = guarantors.Where(x => x.IsEligibilityRequired).All(x => x.IsEligible) && guarantors.Any(x => x.IsEligibilityRequired);
+            encounter.IsEligibilityRequired = activeGuarantors.Any(x => x.IsEligibilityRequired) || encounter.IsEligibilityRequired;
+            encounter.IsEligibilityCompleted = activeGuarantors.Any(x => x.IsEligibilityRequired) && activeGuarantors.Where(x => x.IsEligibilityRequired).All(x => x.IsEligible && x.IsVerified);
+            encounter.EligibilityReferenceNumber = primary?.EligibilityReferenceNumber ?? encounter.EligibilityReferenceNumber;
+            encounter.EligibilityCheckedAt = primary?.EligibilityCheckedAt ?? encounter.EligibilityCheckedAt;
             encounter.UpdateDateTime = now;
             encounter.UpdateBy = actorUserId;
         }
 
-        // =========================================================
-        // RESPONSE MAPPING
-        // =========================================================
-
-        private static PatientEncounterResponse ToEncounterResponse(TrxPatientEncounter x)
+        private async Task CancelQueuesByEncounterAsync(Guid encounterId, DateTime now, Guid actorUserId, string reason)
         {
-            return new PatientEncounterResponse
+            var queues = await _dbContext.Set<TrxQueue>().Where(x => x.EncounterId == encounterId && !x.IsDelete && !x.CompletedAt.HasValue && !x.CancelledAt.HasValue).ToListAsync();
+
+            foreach (var queue in queues)
             {
-                Id = x.Id,
-                EncounterNumber = x.EncounterNumber,
-                PatientId = x.PatientId,
-                PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                ServiceUnitId = x.ServiceUnitId,
-                ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
-                ClinicId = x.ClinicId,
-                ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
-                DoctorId = x.DoctorId,
-                DoctorName = x.Doctor != null ? x.Doctor.FullName : null,
-                DoctorScheduleId = x.DoctorScheduleId,
-                DoctorServiceRuleId = x.DoctorServiceRuleId,
-                PatientClassId = x.PatientClassId,
-                PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : null,
-                PaymentMethodId = x.PaymentMethodId,
-                PaymentMethodName = x.PaymentMethod != null ? x.PaymentMethod.PaymentMethodName : null,
-                EncounterType = x.EncounterType,
-                VisitType = x.VisitType,
-                RegistrationSource = x.RegistrationSource,
-                PaymentType = x.PaymentType,
-                EncounterStatus = x.EncounterStatus,
-                EncounterDate = x.EncounterDate,
-                RegisteredAt = x.RegisteredAt,
-                IsInsurancePatient = x.IsInsurancePatient,
-                IsCompanyPatient = x.IsCompanyPatient,
-                IsMembershipPatient = x.IsMembershipPatient,
-                IsMixedPayment = x.IsMixedPayment,
-                PrimaryGuarantorNameSnapshot = x.PrimaryGuarantorNameSnapshot,
-                PrimaryGuarantorTypeSnapshot = x.PrimaryGuarantorTypeSnapshot,
-                IsEligibilityRequired = x.IsEligibilityRequired,
-                IsEligibilityCompleted = x.IsEligibilityCompleted,
-                IsReferral = x.IsReferral,
-                IsScreeningRequired = x.IsScreeningRequired,
-                IsQueueRequired = x.IsQueueRequired,
-                IsDoctorRequired = x.IsDoctorRequired,
-                IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
-            };
+                queue.CancelledAt = now;
+                queue.CancelledByUserId = actorUserId;
+                queue.CancelReason = reason;
+                queue.IsCancel = true;
+                queue.CancelDateTime = now;
+                queue.CancelBy = actorUserId;
+                queue.IsActive = false;
+                queue.UpdateDateTime = now;
+                queue.UpdateBy = actorUserId;
+            }
         }
 
-        private static PatientEncounterDetailResponse ToEncounterDetailResponse(TrxPatientEncounter x)
+        private async Task<string> GenerateEncounterNumberAsync()
         {
-            var response = new PatientEncounterDetailResponse
-            {
-                Id = x.Id,
-                EncounterNumber = x.EncounterNumber,
-                PatientId = x.PatientId,
-                PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                ServiceUnitId = x.ServiceUnitId,
-                ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
-                ClinicId = x.ClinicId,
-                ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
-                DoctorId = x.DoctorId,
-                DoctorName = x.Doctor != null ? x.Doctor.FullName : null,
-                DoctorScheduleId = x.DoctorScheduleId,
-                DoctorServiceRuleId = x.DoctorServiceRuleId,
-                PatientClassId = x.PatientClassId,
-                PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : null,
-                PaymentMethodId = x.PaymentMethodId,
-                PaymentMethodName = x.PaymentMethod != null ? x.PaymentMethod.PaymentMethodName : null,
-                KioskScanSessionId = x.KioskScanSessionId,
-                EncounterType = x.EncounterType,
-                VisitType = x.VisitType,
-                RegistrationSource = x.RegistrationSource,
-                PaymentType = x.PaymentType,
-                EncounterStatus = x.EncounterStatus,
-                EncounterDate = x.EncounterDate,
-                RegisteredAt = x.RegisteredAt,
-                ChiefComplaint = x.ChiefComplaint,
-                IsInsurancePatient = x.IsInsurancePatient,
-                IsCompanyPatient = x.IsCompanyPatient,
-                IsMembershipPatient = x.IsMembershipPatient,
-                IsMixedPayment = x.IsMixedPayment,
-                PrimaryGuarantorNameSnapshot = x.PrimaryGuarantorNameSnapshot,
-                PrimaryGuarantorTypeSnapshot = x.PrimaryGuarantorTypeSnapshot,
-                EligibilityReferenceNumber = x.EligibilityReferenceNumber,
-                EligibilityCheckedAt = x.EligibilityCheckedAt,
-                IsEligibilityRequired = x.IsEligibilityRequired,
-                IsEligibilityCompleted = x.IsEligibilityCompleted,
-                IsReferral = x.IsReferral,
-                ReferralNumber = x.ReferralNumber,
-                IsReferralRequired = x.IsReferralRequired,
-                IsReferralVerified = x.IsReferralVerified,
-                CheckedInAt = x.CheckedInAt,
-                CompletedAt = x.CompletedAt,
-                NoShowAt = x.NoShowAt,
-                NoShowReason = x.NoShowReason,
-                CancelledAt = x.CancelledAt,
-                CancelReason = x.CancelReason,
-                Notes = x.Notes,
-                IsScreeningRequired = x.IsScreeningRequired,
-                IsQueueRequired = x.IsQueueRequired,
-                IsDoctorRequired = x.IsDoctorRequired,
-                IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime,
-                Guarantors = x.EncounterGuarantors
-                    .Where(g => !g.IsDelete)
-                    .OrderBy(g => g.CoveragePriority)
-                    .Select(ToGuarantorResponse)
-                    .ToList()
-            };
-
-            return response;
+            return await GenerateRunningCodeAsync<TrxPatientEncounter>(selector: x => x.EncounterNumber, prefix: EncounterCodePrefix);
         }
 
-        private static PatientEncounterGuarantorResponse ToGuarantorResponse(TrxPatientEncounterGuarantor x)
+        private async Task<string> GenerateEncounterGuarantorNumberAsync()
         {
-            return new PatientEncounterGuarantorResponse
-            {
-                Id = x.Id,
-                EncounterGuarantorNumber = x.EncounterGuarantorNumber,
-                EncounterId = x.EncounterId,
-                EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : string.Empty,
-                PatientId = x.PatientId,
-                PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                GuarantorType = x.GuarantorType,
-                GuarantorRole = x.GuarantorRole,
-                GuarantorStatus = x.GuarantorStatus,
-                CheckMethod = x.CheckMethod,
-                CoveragePriority = x.CoveragePriority,
-                IsPrimary = x.IsPrimary,
-                PaymentMethodId = x.PaymentMethodId,
-                PaymentMethodName = x.PaymentMethod != null ? x.PaymentMethod.PaymentMethodName : null,
-                PatientInsuranceId = x.PatientInsuranceId,
-                InsuranceProviderId = x.InsuranceProviderId,
-                InsuranceProviderName = x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderName : null,
-                CompanyGuarantorId = x.CompanyGuarantorId,
-                CompanyGuarantorName = x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorName : null,
-                PatientCompanyGuarantorId = x.PatientCompanyGuarantorId,
-                PatientMembershipId = x.PatientMembershipId,
-                GuarantorNameSnapshot = x.GuarantorNameSnapshot,
-                PolicyNumberSnapshot = x.PolicyNumberSnapshot,
-                CardNumberSnapshot = x.CardNumberSnapshot,
-                MemberNumberSnapshot = x.MemberNumberSnapshot,
-                PlanNameSnapshot = x.PlanNameSnapshot,
-                ClassNameSnapshot = x.ClassNameSnapshot,
-                BenefitPlanCodeSnapshot = x.BenefitPlanCodeSnapshot,
-                IsEligibilityRequired = x.IsEligibilityRequired,
-                IsEligible = x.IsEligible,
-                IsVerified = x.IsVerified,
-                VerifiedAt = x.VerifiedAt,
-                EligibilityReferenceNumber = x.EligibilityReferenceNumber,
-                EligibilityCheckedAt = x.EligibilityCheckedAt,
-                IsNeedApproval = x.IsNeedApproval,
-                IsNeedGuaranteeLetter = x.IsNeedGuaranteeLetter,
-                IsNeedReferralLetter = x.IsNeedReferralLetter,
-                IsAllowExcessPaymentByPatient = x.IsAllowExcessPaymentByPatient,
-                CoveragePercent = x.CoveragePercent,
-                AnnualLimitAmount = x.AnnualLimitAmount,
-                RemainingLimitAmount = x.RemainingLimitAmount,
-                EstimatedCoveredAmount = x.EstimatedCoveredAmount,
-                EstimatedPatientPayAmount = x.EstimatedPatientPayAmount,
-                IsPolicyActive = x.IsPolicyActive,
-                IsPremiumPaid = x.IsPremiumPaid,
-                IsCardActive = x.IsCardActive,
-                IsInWaitingPeriod = x.IsInWaitingPeriod,
-                IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
-            };
+            return await GenerateRunningCodeAsync<TrxPatientEncounterGuarantor>(selector: x => x.EncounterGuarantorNumber, prefix: EncounterGuarantorCodePrefix);
         }
 
-        private static PatientEncounterGuarantorDetailResponse ToGuarantorDetailResponse(TrxPatientEncounterGuarantor x)
+        private async Task<string> GenerateRunningCodeAsync<TEntity>(Expression<Func<TEntity, string>> selector, string prefix) where TEntity : class
         {
-            var response = new PatientEncounterGuarantorDetailResponse
-            {
-                Id = x.Id,
-                EncounterGuarantorNumber = x.EncounterGuarantorNumber,
-                EncounterId = x.EncounterId,
-                EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : string.Empty,
-                PatientId = x.PatientId,
-                PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                GuarantorType = x.GuarantorType,
-                GuarantorRole = x.GuarantorRole,
-                GuarantorStatus = x.GuarantorStatus,
-                CheckMethod = x.CheckMethod,
-                CoveragePriority = x.CoveragePriority,
-                IsPrimary = x.IsPrimary,
-                PaymentMethodId = x.PaymentMethodId,
-                PaymentMethodName = x.PaymentMethod != null ? x.PaymentMethod.PaymentMethodName : null,
-                PatientInsuranceId = x.PatientInsuranceId,
-                InsuranceProviderId = x.InsuranceProviderId,
-                InsuranceProviderName = x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderName : null,
-                CompanyGuarantorId = x.CompanyGuarantorId,
-                CompanyGuarantorName = x.CompanyGuarantor != null ? x.CompanyGuarantor.CompanyGuarantorName : null,
-                PatientCompanyGuarantorId = x.PatientCompanyGuarantorId,
-                PatientMembershipId = x.PatientMembershipId,
-                GuarantorNameSnapshot = x.GuarantorNameSnapshot,
-                PolicyNumberSnapshot = x.PolicyNumberSnapshot,
-                CardNumberSnapshot = x.CardNumberSnapshot,
-                MemberNumberSnapshot = x.MemberNumberSnapshot,
-                PlanNameSnapshot = x.PlanNameSnapshot,
-                ClassNameSnapshot = x.ClassNameSnapshot,
-                BenefitPlanCodeSnapshot = x.BenefitPlanCodeSnapshot,
-                EffectiveStartDateSnapshot = x.EffectiveStartDateSnapshot,
-                EffectiveEndDateSnapshot = x.EffectiveEndDateSnapshot,
-                IsEligibilityRequired = x.IsEligibilityRequired,
-                IsEligible = x.IsEligible,
-                IsVerified = x.IsVerified,
-                VerifiedAt = x.VerifiedAt,
-                VerifiedByUserId = x.VerifiedByUserId,
-                VerifiedByUserName = x.VerifiedByUser != null ? x.VerifiedByUser.DisplayName : null,
-                EligibilityReferenceNumber = x.EligibilityReferenceNumber,
-                EligibilityCheckedAt = x.EligibilityCheckedAt,
-                VerificationReferenceNumber = x.VerificationReferenceNumber,
-                VerificationOfficerName = x.VerificationOfficerName,
-                VerificationNote = x.VerificationNote,
-                IsNeedApproval = x.IsNeedApproval,
-                IsNeedGuaranteeLetter = x.IsNeedGuaranteeLetter,
-                IsNeedReferralLetter = x.IsNeedReferralLetter,
-                IsAllowExcessPaymentByPatient = x.IsAllowExcessPaymentByPatient,
-                CoveragePercent = x.CoveragePercent,
-                AnnualLimitAmount = x.AnnualLimitAmount,
-                RemainingLimitAmount = x.RemainingLimitAmount,
-                UsedLimitAmount = x.UsedLimitAmount,
-                RoomLimitPerDayAmount = x.RoomLimitPerDayAmount,
-                DeductibleAmount = x.DeductibleAmount,
-                CoPaymentPercent = x.CoPaymentPercent,
-                CoPaymentAmount = x.CoPaymentAmount,
-                EstimatedCoveredAmount = x.EstimatedCoveredAmount,
-                EstimatedPatientPayAmount = x.EstimatedPatientPayAmount,
-                IsPolicyActive = x.IsPolicyActive,
-                IsPremiumPaid = x.IsPremiumPaid,
-                IsCardActive = x.IsCardActive,
-                IsInWaitingPeriod = x.IsInWaitingPeriod,
-                WaitingPeriodUntilDate = x.WaitingPeriodUntilDate,
-                HasSpecialExclusion = x.HasSpecialExclusion,
-                SpecialExclusionNote = x.SpecialExclusionNote,
-                HasPreviousClaim = x.HasPreviousClaim,
-                PreviousClaimNote = x.PreviousClaimNote,
-                BenefitSnapshotJson = x.BenefitSnapshotJson,
-                ManualCheckResultJson = x.ManualCheckResultJson,
-                CancelledAt = x.CancelledAt,
-                CancelledByUserId = x.CancelledByUserId,
-                CancelledByUserName = x.CancelledByUser != null ? x.CancelledByUser.DisplayName : null,
-                CancelReason = x.CancelReason,
-                Notes = x.Notes,
-                IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
-            };
+            var existingCodes = await _dbContext.Set<TEntity>().IgnoreQueryFilters().AsNoTracking().Select(selector).Where(x => x.StartsWith(prefix)).ToListAsync();
+            var usedNumbers = existingCodes.Select(x => x.Replace(prefix, string.Empty)).Where(x => int.TryParse(x, out _)).Select(int.Parse).Where(x => x > 0).ToHashSet();
+            var nextNumber = 1;
 
-            return response;
+            while (usedNumbers.Contains(nextNumber)) nextNumber++;
+
+            return prefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
         }
 
-        private static PatientEncounterGuarantorCreateResponse ToGuarantorCreateResponse(TrxPatientEncounterGuarantor x)
+        private async Task<int> GenerateQueueNumberAsync(DateTime now, Guid serviceUnitId, Guid? clinicId, Guid? doctorId)
         {
-            return new PatientEncounterGuarantorCreateResponse
-            {
-                Id = x.Id,
-                EncounterGuarantorNumber = x.EncounterGuarantorNumber,
-                EncounterId = x.EncounterId,
-                GuarantorType = x.GuarantorType,
-                GuarantorStatus = x.GuarantorStatus,
-                CoveragePriority = x.CoveragePriority,
-                IsPrimary = x.IsPrimary,
-                GuarantorNameSnapshot = x.GuarantorNameSnapshot
-            };
-        }
+            var normalizedClinicId = NormalizeNullableGuid(clinicId);
+            var normalizedDoctorId = NormalizeNullableGuid(doctorId);
 
-        private static PatientEncounterGuarantorUpdateResponse ToGuarantorUpdateResponse(TrxPatientEncounterGuarantor x)
-        {
-            return new PatientEncounterGuarantorUpdateResponse
-            {
-                Id = x.Id,
-                EncounterGuarantorNumber = x.EncounterGuarantorNumber,
-                EncounterId = x.EncounterId,
-                GuarantorType = x.GuarantorType,
-                GuarantorStatus = x.GuarantorStatus,
-                CoveragePriority = x.CoveragePriority,
-                IsPrimary = x.IsPrimary,
-                GuarantorNameSnapshot = x.GuarantorNameSnapshot,
-                IsEligible = x.IsEligible,
-                IsVerified = x.IsVerified,
-                IsActive = x.IsActive
-            };
-        }
-
-        // =========================================================
-        // NUMBERING / UTILITIES
-        // =========================================================
-
-        private async Task<string> GenerateEncounterNumberAsync(DateTime now)
-        {
-            var prefix = $"ENC-{now:yyyyMMdd}";
-            var countToday = await _dbContext.Set<TrxPatientEncounter>()
-                .CountAsync(x => x.EncounterNumber.StartsWith(prefix));
-
-            return $"{prefix}-{countToday + 1:D5}";
-        }
-
-        private async Task<string> GenerateEncounterGuarantorNumberAsync(DateTime now)
-        {
-            var prefix = $"EGT-{now:yyyyMMdd}";
-            var countToday = await _dbContext.Set<TrxPatientEncounterGuarantor>()
-                .CountAsync(x => x.EncounterGuarantorNumber.StartsWith(prefix));
-
-            return $"{prefix}-{countToday + 1:D5}";
-        }
-
-        private async Task<int> GenerateQueueNumberAsync(
-            DateTime now,
-            Guid serviceUnitId,
-            Guid? clinicId,
-            Guid? doctorId)
-        {
-            return await _dbContext.Set<TrxQueue>()
-                .CountAsync(x =>
-                    x.QueueDate == now.Date &&
-                    x.ServiceUnitId == serviceUnitId &&
-                    x.ClinicId == NormalizeNullableGuid(clinicId) &&
-                    x.DoctorId == NormalizeNullableGuid(doctorId) &&
-                    !x.IsDelete) + 1;
+            return await _dbContext.Set<TrxQueue>().CountAsync(x => x.QueueDate == now.Date && x.ServiceUnitId == serviceUnitId && x.ClinicId == normalizedClinicId && x.DoctorId == normalizedDoctorId && !x.IsDelete) + 1;
         }
 
         private static string GenerateQueueCode(DateTime now, MstClinic? clinic, int queueNumber)
         {
-            var prefix = !string.IsNullOrWhiteSpace(clinic?.ShortName)
-                ? clinic.ShortName.Trim().ToUpperInvariant()
-                : "Q";
-
+            var prefix = !string.IsNullOrWhiteSpace(clinic?.ShortName) ? clinic.ShortName.Trim().ToUpperInvariant() : "Q";
             return $"{prefix}-{now:yyyyMMdd}-{queueNumber:D3}";
+        }
+
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
+        {
+            var ids = actorIds.Where(x => x != Guid.Empty).Distinct().ToList();
+            if (!ids.Any()) return new Dictionary<Guid, string?>();
+
+            return await _dbContext.Users.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => new { x.Id, Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode }).ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static PatientEncounterResponse MapResponse(TrxPatientEncounter entity, IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new PatientEncounterResponse
+            {
+                Id = entity.Id,
+                EncounterNumber = entity.EncounterNumber,
+                PatientId = entity.PatientId,
+                PatientCode = entity.Patient?.PatientCode ?? string.Empty,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                ServiceUnitId = entity.ServiceUnitId,
+                ServiceUnitName = entity.ServiceUnit?.ServiceUnitName ?? string.Empty,
+                ClinicId = entity.ClinicId,
+                ClinicName = entity.Clinic?.ClinicName,
+                DoctorId = entity.DoctorId,
+                DoctorName = entity.Doctor?.FullName,
+                DoctorScheduleId = entity.DoctorScheduleId,
+                DoctorServiceRuleId = entity.DoctorServiceRuleId,
+                PatientClassId = entity.PatientClassId,
+                PatientClassName = entity.PatientClass?.PatientClassName,
+                PaymentMethodId = entity.PaymentMethodId,
+                PaymentMethodName = entity.PaymentMethod?.PaymentMethodName,
+                EncounterDate = entity.EncounterDate,
+                EncounterType = entity.EncounterType,
+                EncounterTypeName = BuildEnumLabel(entity.EncounterType),
+                VisitType = entity.VisitType,
+                VisitTypeName = BuildEnumLabel(entity.VisitType),
+                RegistrationSource = entity.RegistrationSource,
+                RegistrationSourceName = BuildEnumLabel(entity.RegistrationSource),
+                EncounterStatus = entity.EncounterStatus,
+                EncounterStatusName = BuildEnumLabel(entity.EncounterStatus),
+                PaymentType = entity.PaymentType,
+                PaymentTypeName = BuildEnumLabel(entity.PaymentType),
+                IsInsurancePatient = entity.IsInsurancePatient,
+                IsCompanyPatient = entity.IsCompanyPatient,
+                IsMembershipPatient = entity.IsMembershipPatient,
+                IsMixedPayment = entity.IsMixedPayment,
+                PrimaryGuarantorNameSnapshot = entity.PrimaryGuarantorNameSnapshot,
+                PrimaryGuarantorTypeSnapshot = entity.PrimaryGuarantorTypeSnapshot,
+                IsEligibilityRequired = entity.IsEligibilityRequired,
+                IsEligibilityCompleted = entity.IsEligibilityCompleted,
+                IsReferral = entity.IsReferral,
+                IsReferralRequired = entity.IsReferralRequired,
+                IsReferralVerified = entity.IsReferralVerified,
+                IsNewPatient = entity.IsNewPatient,
+                IsFromKiosk = entity.IsFromKiosk,
+                IsWalkIn = entity.IsWalkIn,
+                IsAppointment = entity.IsAppointment,
+                IsScreeningRequired = entity.IsScreeningRequired,
+                IsQueueRequired = entity.IsQueueRequired,
+                IsDoctorRequired = entity.IsDoctorRequired,
+                RegisteredAt = entity.RegisteredAt,
+                RegisteredByUserId = entity.RegisteredByUserId,
+                RegisteredByUserName = GetActorName(actorNames, entity.RegisteredByUserId),
+                CheckedInAt = entity.CheckedInAt,
+                CompletedAt = entity.CompletedAt,
+                CancelledAt = entity.CancelledAt,
+                NoShowAt = entity.NoShowAt,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
+
+        private static PatientEncounterDetailResponse MapDetailResponse(TrxPatientEncounter entity, IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            var response = new PatientEncounterDetailResponse
+            {
+                Id = entity.Id,
+                EncounterNumber = entity.EncounterNumber,
+                PatientId = entity.PatientId,
+                PatientCode = entity.Patient?.PatientCode ?? string.Empty,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                ServiceUnitId = entity.ServiceUnitId,
+                ServiceUnitName = entity.ServiceUnit?.ServiceUnitName ?? string.Empty,
+                ClinicId = entity.ClinicId,
+                ClinicName = entity.Clinic?.ClinicName,
+                DoctorId = entity.DoctorId,
+                DoctorName = entity.Doctor?.FullName,
+                DoctorScheduleId = entity.DoctorScheduleId,
+                DoctorServiceRuleId = entity.DoctorServiceRuleId,
+                PatientClassId = entity.PatientClassId,
+                PatientClassName = entity.PatientClass?.PatientClassName,
+                PaymentMethodId = entity.PaymentMethodId,
+                PaymentMethodName = entity.PaymentMethod?.PaymentMethodName,
+                KioskScanSessionId = entity.KioskScanSessionId,
+                EncounterDate = entity.EncounterDate,
+                EncounterType = entity.EncounterType,
+                EncounterTypeName = BuildEnumLabel(entity.EncounterType),
+                VisitType = entity.VisitType,
+                VisitTypeName = BuildEnumLabel(entity.VisitType),
+                RegistrationSource = entity.RegistrationSource,
+                RegistrationSourceName = BuildEnumLabel(entity.RegistrationSource),
+                EncounterStatus = entity.EncounterStatus,
+                EncounterStatusName = BuildEnumLabel(entity.EncounterStatus),
+                PaymentType = entity.PaymentType,
+                PaymentTypeName = BuildEnumLabel(entity.PaymentType),
+                ChiefComplaint = entity.ChiefComplaint,
+                IsInsurancePatient = entity.IsInsurancePatient,
+                IsCompanyPatient = entity.IsCompanyPatient,
+                IsMembershipPatient = entity.IsMembershipPatient,
+                IsMixedPayment = entity.IsMixedPayment,
+                PrimaryGuarantorNameSnapshot = entity.PrimaryGuarantorNameSnapshot,
+                PrimaryGuarantorTypeSnapshot = entity.PrimaryGuarantorTypeSnapshot,
+                EligibilityReferenceNumber = entity.EligibilityReferenceNumber,
+                EligibilityCheckedAt = entity.EligibilityCheckedAt,
+                IsEligibilityRequired = entity.IsEligibilityRequired,
+                IsEligibilityCompleted = entity.IsEligibilityCompleted,
+                IsReferral = entity.IsReferral,
+                ReferralNumber = entity.ReferralNumber,
+                IsReferralRequired = entity.IsReferralRequired,
+                IsReferralVerified = entity.IsReferralVerified,
+                IsNewPatient = entity.IsNewPatient,
+                IsFromKiosk = entity.IsFromKiosk,
+                IsWalkIn = entity.IsWalkIn,
+                IsAppointment = entity.IsAppointment,
+                IsScreeningRequired = entity.IsScreeningRequired,
+                IsQueueRequired = entity.IsQueueRequired,
+                IsDoctorRequired = entity.IsDoctorRequired,
+                RegisteredAt = entity.RegisteredAt,
+                RegisteredByUserId = entity.RegisteredByUserId,
+                RegisteredByUserName = GetActorName(actorNames, entity.RegisteredByUserId),
+                CheckedInAt = entity.CheckedInAt,
+                CompletedAt = entity.CompletedAt,
+                CancelledAt = entity.CancelledAt,
+                CancelledByUserId = entity.CancelledByUserId,
+                CancelledByUserName = entity.CancelledByUserId.HasValue ? GetActorName(actorNames, entity.CancelledByUserId.Value) : null,
+                CancelReason = entity.CancelReason,
+                NoShowAt = entity.NoShowAt,
+                NoShowByUserId = entity.NoShowByUserId,
+                NoShowByUserName = entity.NoShowByUserId.HasValue ? GetActorName(actorNames, entity.NoShowByUserId.Value) : null,
+                NoShowReason = entity.NoShowReason,
+                Notes = entity.Notes,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy),
+                Guarantors = entity.EncounterGuarantors.Where(g => !g.IsDelete).OrderBy(g => g.CoveragePriority).Select(MapGuarantorResponse).ToList()
+            };
+
+            return response;
+        }
+
+        private static PatientEncounterOptionResponse MapOptionResponse(TrxPatientEncounter entity)
+        {
+            return new PatientEncounterOptionResponse
+            {
+                Id = entity.Id,
+                EncounterNumber = entity.EncounterNumber,
+                PatientId = entity.PatientId,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                ServiceUnitId = entity.ServiceUnitId,
+                ServiceUnitName = entity.ServiceUnit?.ServiceUnitName ?? string.Empty,
+                ClinicId = entity.ClinicId,
+                ClinicName = entity.Clinic?.ClinicName,
+                DoctorId = entity.DoctorId,
+                DoctorName = entity.Doctor?.FullName,
+                EncounterStatus = entity.EncounterStatus,
+                EncounterStatusName = BuildEnumLabel(entity.EncounterStatus),
+                EncounterDate = entity.EncounterDate,
+                RegisteredAt = entity.RegisteredAt
+            };
+        }
+
+        private static PatientEncounterGuarantorResponse MapGuarantorResponse(TrxPatientEncounterGuarantor entity)
+        {
+            return new PatientEncounterGuarantorResponse
+            {
+                Id = entity.Id,
+                EncounterGuarantorNumber = entity.EncounterGuarantorNumber,
+                EncounterId = entity.EncounterId,
+                EncounterNumber = entity.Encounter?.EncounterNumber ?? string.Empty,
+                PatientId = entity.PatientId,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                GuarantorType = entity.GuarantorType,
+                GuarantorTypeName = BuildEnumLabel(entity.GuarantorType),
+                GuarantorRole = entity.GuarantorRole,
+                GuarantorRoleName = BuildEnumLabel(entity.GuarantorRole),
+                GuarantorStatus = entity.GuarantorStatus,
+                GuarantorStatusName = BuildEnumLabel(entity.GuarantorStatus),
+                CheckMethod = entity.CheckMethod,
+                CheckMethodName = BuildEnumLabel(entity.CheckMethod),
+                CoveragePriority = entity.CoveragePriority,
+                IsPrimary = entity.IsPrimary,
+                PaymentMethodId = entity.PaymentMethodId,
+                PaymentMethodName = entity.PaymentMethod?.PaymentMethodName,
+                PatientInsuranceId = entity.PatientInsuranceId,
+                InsuranceProviderId = entity.InsuranceProviderId,
+                InsuranceProviderName = entity.InsuranceProvider?.InsuranceProviderName,
+                CompanyGuarantorId = entity.CompanyGuarantorId,
+                CompanyGuarantorName = entity.CompanyGuarantor?.CompanyGuarantorName,
+                PatientCompanyGuarantorId = entity.PatientCompanyGuarantorId,
+                PatientMembershipId = entity.PatientMembershipId,
+                GuarantorNameSnapshot = entity.GuarantorNameSnapshot,
+                PolicyNumberSnapshot = entity.PolicyNumberSnapshot,
+                CardNumberSnapshot = entity.CardNumberSnapshot,
+                MemberNumberSnapshot = entity.MemberNumberSnapshot,
+                PlanNameSnapshot = entity.PlanNameSnapshot,
+                ClassNameSnapshot = entity.ClassNameSnapshot,
+                BenefitPlanCodeSnapshot = entity.BenefitPlanCodeSnapshot,
+                IsEligibilityRequired = entity.IsEligibilityRequired,
+                IsEligible = entity.IsEligible,
+                IsVerified = entity.IsVerified,
+                VerifiedAt = entity.VerifiedAt,
+                EligibilityReferenceNumber = entity.EligibilityReferenceNumber,
+                EligibilityCheckedAt = entity.EligibilityCheckedAt,
+                IsNeedApproval = entity.IsNeedApproval,
+                IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter,
+                IsNeedReferralLetter = entity.IsNeedReferralLetter,
+                IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
+                CoveragePercent = entity.CoveragePercent,
+                AnnualLimitAmount = entity.AnnualLimitAmount,
+                RemainingLimitAmount = entity.RemainingLimitAmount,
+                EstimatedCoveredAmount = entity.EstimatedCoveredAmount,
+                EstimatedPatientPayAmount = entity.EstimatedPatientPayAmount,
+                IsPolicyActive = entity.IsPolicyActive,
+                IsPremiumPaid = entity.IsPremiumPaid,
+                IsCardActive = entity.IsCardActive,
+                IsInWaitingPeriod = entity.IsInWaitingPeriod,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy
+            };
+        }
+
+        private static PatientEncounterGuarantorCreateResponse MapGuarantorCreateResponse(TrxPatientEncounterGuarantor entity)
+        {
+            return new PatientEncounterGuarantorCreateResponse
+            {
+                Id = entity.Id,
+                EncounterGuarantorNumber = entity.EncounterGuarantorNumber,
+                EncounterId = entity.EncounterId,
+                GuarantorType = entity.GuarantorType,
+                GuarantorTypeName = BuildEnumLabel(entity.GuarantorType),
+                GuarantorStatus = entity.GuarantorStatus,
+                GuarantorStatusName = BuildEnumLabel(entity.GuarantorStatus),
+                CoveragePriority = entity.CoveragePriority,
+                IsPrimary = entity.IsPrimary,
+                GuarantorNameSnapshot = entity.GuarantorNameSnapshot
+            };
+        }
+
+        private static IQueryable<TrxPatientEncounter> ApplySorting(IQueryable<TrxPatientEncounter> query, string? sortBy, string? sortDirection)
+        {
+            var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+            return (sortBy ?? "registeredAt").Trim().ToLowerInvariant() switch
+            {
+                "encounternumber" => isDescending ? query.OrderByDescending(x => x.EncounterNumber) : query.OrderBy(x => x.EncounterNumber),
+                "encounterdate" => isDescending ? query.OrderByDescending(x => x.EncounterDate) : query.OrderBy(x => x.EncounterDate),
+                "patientname" => isDescending ? query.OrderByDescending(x => x.Patient != null ? x.Patient.FullName : string.Empty) : query.OrderBy(x => x.Patient != null ? x.Patient.FullName : string.Empty),
+                "medicalrecordnumber" => isDescending ? query.OrderByDescending(x => x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty) : query.OrderBy(x => x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty),
+                "serviceunitname" => isDescending ? query.OrderByDescending(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty) : query.OrderBy(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty),
+                "clinicname" => isDescending ? query.OrderByDescending(x => x.Clinic != null ? x.Clinic.ClinicName : string.Empty) : query.OrderBy(x => x.Clinic != null ? x.Clinic.ClinicName : string.Empty),
+                "doctorname" => isDescending ? query.OrderByDescending(x => x.Doctor != null ? x.Doctor.FullName : string.Empty) : query.OrderBy(x => x.Doctor != null ? x.Doctor.FullName : string.Empty),
+                "encounterstatus" => isDescending ? query.OrderByDescending(x => x.EncounterStatus).ThenByDescending(x => x.RegisteredAt) : query.OrderBy(x => x.EncounterStatus).ThenBy(x => x.RegisteredAt),
+                "paymenttype" => isDescending ? query.OrderByDescending(x => x.PaymentType).ThenByDescending(x => x.RegisteredAt) : query.OrderBy(x => x.PaymentType).ThenBy(x => x.RegisteredAt),
+                "createdatetime" => isDescending ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime),
+                "updatedatetime" => isDescending ? query.OrderByDescending(x => x.UpdateDateTime).ThenByDescending(x => x.RegisteredAt) : query.OrderBy(x => x.UpdateDateTime).ThenBy(x => x.RegisteredAt),
+                _ => isDescending ? query.OrderByDescending(x => x.RegisteredAt).ThenByDescending(x => x.EncounterNumber) : query.OrderBy(x => x.RegisteredAt).ThenBy(x => x.EncounterNumber)
+            };
+        }
+
+        private static List<PatientEncounterEnumOptionResponse> BuildEnumOptions<TEnum>() where TEnum : Enum
+        {
+            return Enum.GetValues(typeof(TEnum)).Cast<TEnum>().Select(x => new PatientEncounterEnumOptionResponse { Value = Convert.ToInt32(x), Name = x.ToString(), Label = BuildEnumLabel(x) }).ToList();
+        }
+
+        private static string BuildEnumLabel<TEnum>(TEnum value) where TEnum : Enum
+        {
+            return SplitPascalCase(value.ToString());
+        }
+
+        private static string SplitPascalCase(string value)
+        {
+            return string.Concat(value.Select((x, i) => i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
+        }
+
+        private static string? GetActorName(IReadOnlyDictionary<Guid, string?> actorNames, Guid actorId)
+        {
+            if (actorId == Guid.Empty) return null;
+            return actorNames.TryGetValue(actorId, out var actorName) ? actorName : null;
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {
-            if (pageNumber <= 0) pageNumber = 1;
-            if (pageSize <= 0) pageSize = 25;
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 25;
             if (pageSize > 100) pageSize = 100;
-
             return (pageNumber, pageSize);
         }
 
         private static Guid? NormalizeNullableGuid(Guid? value)
         {
-            if (!value.HasValue || value.Value == Guid.Empty)
-                return null;
-
+            if (!value.HasValue || value.Value == Guid.Empty) return null;
             return value.Value;
         }
 
         private static string? NormalizeNullableText(string? value)
         {
-            if (string.IsNullOrWhiteSpace(value))
-                return null;
-
-            return value.Trim();
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
         private Guid GetCurrentUserId()
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            return Guid.TryParse(userId, out var id)
-                ? id
-                : Guid.Empty;
+            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("user_id");
+            return Guid.TryParse(userIdValue, out var userId) ? userId : Guid.Empty;
         }
     }
 }

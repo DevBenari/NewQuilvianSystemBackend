@@ -29,9 +29,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string TierCode { get; set; } = string.Empty;
         public string TierName { get; set; } = string.Empty;
         public MembershipTierType TierType { get; set; }
+        public string TierTypeName { get; set; } = string.Empty;
 
         public string MemberNumber { get; set; } = string.Empty;
         public MembershipStatus MembershipStatus { get; set; }
+        public string MembershipStatusName { get; set; } = string.Empty;
         public DateTime JoinDate { get; set; }
         public DateTime? ExpiredDate { get; set; }
 
@@ -48,7 +50,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public DateTime? LastDowngradeDate { get; set; }
 
         public bool IsActive { get; set; }
+
         public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class PatientMembershipDetailResponse : PatientMembershipResponse
@@ -67,9 +75,55 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string TierName { get; set; } = string.Empty;
         public string MemberNumber { get; set; } = string.Empty;
         public MembershipStatus MembershipStatus { get; set; }
+        public string MembershipStatusName { get; set; } = string.Empty;
         public bool IsPrimary { get; set; }
         public DateTime JoinDate { get; set; }
         public DateTime? ExpiredDate { get; set; }
+    }
+
+    public class PatientMembershipOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<PatientMembershipOptionResponse> Items { get; set; } = new();
+    }
+
+    public class PatientMembershipFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+        public PatientMembershipDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<PatientMembershipCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
+        public List<PatientMembershipSortOptionResponse> SortOptions { get; set; } = new();
+        public List<string> SortDirections { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new();
+        public List<PatientMembershipRelationFilterResponse> RelationFilters { get; set; } = new();
+        public List<PatientMembershipEnumOptionResponse> MembershipStatusOptions { get; set; } = new();
+        public List<PatientMembershipEnumOptionResponse> MembershipTierTypeOptions { get; set; } = new();
+        public string ResetButtonLabel { get; set; } = "Reset";
+    }
+
+    public class PatientMembershipDefaultFilterResponse
+    {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
+        public Guid? PatientId { get; set; }
+        public Guid? MembershipTierId { get; set; }
+        public bool? IsActive { get; set; }
+        public string? Search { get; set; }
+        public string SortBy { get; set; } = "createDateTime";
+        public string SortDirection { get; set; } = "desc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class PatientMembershipRelationFilterResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Endpoint { get; set; } = string.Empty;
     }
 
     public class PatientMembershipEnumOptionResponse
@@ -79,39 +133,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string Label { get; set; } = string.Empty;
     }
 
-    public class PatientMembershipFilterMetadataResponse
+    public class PatientMembershipCustomPeriodOptionResponse
     {
-        public string DateFormat { get; set; } = "yyyy-MM-dd";
-        public PatientMembershipDefaultFilterResponse DefaultFilter { get; set; } = new();
-        public List<PatientMembershipSortOptionResponse> SortOptions { get; set; } = new();
-        public List<string> SortDirections { get; set; } = new();
-        public List<int> PageSizeOptions { get; set; } = new();
-        public List<PatientMembershipEnumOptionResponse> MembershipStatusOptions { get; set; } = new();
-        public List<PatientMembershipEnumOptionResponse> MembershipTierTypeOptions { get; set; } = new();
-    }
-
-    public class PatientMembershipDefaultFilterResponse
-    {
-        public string? Search { get; set; }
-        public bool? IsActive { get; set; }
-        public Guid? PatientId { get; set; }
-        public Guid? MembershipTierId { get; set; }
-        public MembershipStatus? MembershipStatus { get; set; }
-        public MembershipTierType? TierType { get; set; }
-        public bool? IsPrimary { get; set; }
-        public bool? IsAutoCreated { get; set; }
-        public bool? IsCreatedFromKiosk { get; set; }
-        public bool? IsCreatedFromAdmission { get; set; }
-        public bool? IsCreatedByMarketing { get; set; }
-        public bool? IsExpired { get; set; }
-        public DateTime? JoinDateFrom { get; set; }
-        public DateTime? JoinDateTo { get; set; }
-        public DateTime? ExpiredDateFrom { get; set; }
-        public DateTime? ExpiredDateTo { get; set; }
-        public string SortBy { get; set; } = "joinDate";
-        public string SortDirection { get; set; } = "desc";
-        public int PageNumber { get; set; } = 1;
-        public int PageSize { get; set; } = 25;
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class PatientMembershipSortOptionResponse
@@ -168,13 +193,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public bool IsActive { get; set; } = true;
     }
 
+    public class UpdatePatientMembershipStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    public class DeletePatientMembershipRequest
+    {
+        [MaxLength(250)]
+        public string? DeleteReason { get; set; }
+    }
+
     public class PatientMembershipCreateResponse
     {
         public Guid Id { get; set; }
         public Guid PatientId { get; set; }
+        public string PatientFullName { get; set; } = string.Empty;
         public Guid MembershipTierId { get; set; }
+        public string TierName { get; set; } = string.Empty;
         public string MemberNumber { get; set; } = string.Empty;
         public MembershipStatus MembershipStatus { get; set; }
+        public string MembershipStatusName { get; set; } = string.Empty;
         public bool IsPrimary { get; set; }
         public bool IsActive { get; set; }
     }

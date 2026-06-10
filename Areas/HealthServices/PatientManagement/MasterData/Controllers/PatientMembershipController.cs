@@ -22,18 +22,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
     [Authorize]
     [Route("api/v1/health-services/patient-management/master-data/patient-memberships")]
     [AccessController(
-        moduleCode: "HEALTH_SERVICE_PATIENT_MANAGEMENT",
-        moduleName: "Health Service Patient Management",
+        moduleCode: "HEALTH_SERVICE_PATIENT_MANAGEMENT_MASTER_DATA",
+        moduleName: "Health Service Patient Management Master Data",
         displayName: "Patient Membership",
         AreaName = "HealthServices",
         ControllerName = "PatientMembership",
         Description = "Health service patient management master data patient membership",
-        SortOrder = 6
+        SortOrder = 18
     )]
-    [Tags("Health Services / Patient Management / Patient Membership")]
+    [Tags("Health Services / Patient Management / Master Data / Patient Membership")]
     public class PatientMembershipController : ControllerBase
     {
-        private const string LogCategory = "HealthServices.PatientManagement";
+        private const string LogCategory = "HealthServices.PatientManagement.MasterData";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -48,17 +48,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<PatientMembershipFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Membership", Description = "Melihat data patient membership", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Membership",
+            Description = "Melihat metadata filter patient membership",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientMembership", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new PatientMembershipFilterMetadataResponse
             {
                 DefaultFilter = new PatientMembershipDefaultFilterResponse(),
+                CustomPeriods = new List<PatientMembershipCustomPeriodOptionResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "lastmonth", Label = "Bulan lalu" }
+                },
                 SortOptions = new List<PatientMembershipSortOptionResponse>
                 {
-                    new() { Value = "joinDate", Label = "Tanggal bergabung" },
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "updateDateTime", Label = "Tanggal diperbarui" },
+                    new() { Value = "joinDate", Label = "Tanggal bergabung" },
                     new() { Value = "memberNumber", Label = "Nomor member" },
                     new() { Value = "patientFullName", Label = "Nama pasien" },
                     new() { Value = "medicalRecordNumber", Label = "Nomor rekam medis" },
@@ -72,8 +86,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                RelationFilters = new List<PatientMembershipRelationFilterResponse>
+                {
+                    new()
+                    {
+                        Value = "patientId",
+                        Label = "Patient",
+                        Endpoint = "/api/v1/health-services/patient-management/master-data/patients/options"
+                    },
+                    new()
+                    {
+                        Value = "membershipTierId",
+                        Label = "Membership Tier",
+                        Endpoint = "/api/v1/health-services/master-data/membership-tiers/options"
+                    }
+                },
                 MembershipStatusOptions = BuildEnumOptions<MembershipStatus>(),
-                MembershipTierTypeOptions = BuildEnumOptions<MembershipTierType>()
+                MembershipTierTypeOptions = BuildEnumOptions<MembershipTierType>(),
+                ResetButtonLabel = "Reset"
             };
 
             await _loggerService.InfoAsync(
@@ -91,12 +121,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<PatientMembershipSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Membership", Description = "Melihat data patient membership", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Membership",
+            Description = "Melihat ringkasan patient membership",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientMembership", "Read")]
         public async Task<IActionResult> GetSummary()
         {
             var now = DateTime.UtcNow;
-
             var query = _dbContext.Set<MstPatientMembership>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
@@ -122,26 +157,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientMembershipPagedResult>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Membership", Description = "Melihat data patient membership", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Membership",
+            Description = "Melihat data patient membership",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientMembership", "Read")]
         public async Task<IActionResult> GetPatientMemberships(
-            [FromQuery] string? search,
-            [FromQuery] bool? isActive,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? patientId,
             [FromQuery] Guid? membershipTierId,
-            [FromQuery] MembershipStatus? membershipStatus,
-            [FromQuery] MembershipTierType? tierType,
-            [FromQuery] bool? isPrimary,
-            [FromQuery] bool? isAutoCreated,
-            [FromQuery] bool? isCreatedFromKiosk,
-            [FromQuery] bool? isCreatedFromAdmission,
-            [FromQuery] bool? isCreatedByMarketing,
-            [FromQuery] bool? isExpired,
-            [FromQuery] DateTime? joinDateFrom,
-            [FromQuery] DateTime? joinDateTo,
-            [FromQuery] DateTime? expiredDateFrom,
-            [FromQuery] DateTime? expiredDateTo,
-            [FromQuery] string? sortBy = "joinDate",
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
@@ -150,115 +182,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var now = DateTime.UtcNow;
+            var query = BuildBaseQuery();
 
-            var query = _dbContext.Set<MstPatientMembership>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.MemberNumber.ToLower().Contains(keyword) ||
-                    (x.Patient != null && x.Patient.PatientCode.ToLower().Contains(keyword)) ||
-                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
-                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
-                    (x.MembershipTier != null && x.MembershipTier.TierCode.ToLower().Contains(keyword)) ||
-                    (x.MembershipTier != null && x.MembershipTier.TierName.ToLower().Contains(keyword)) ||
-                    (x.UpgradeDowngradeReason != null && x.UpgradeDowngradeReason.ToLower().Contains(keyword)) ||
-                    (x.Notes != null && x.Notes.ToLower().Contains(keyword)));
-            }
-
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
-
-            if (patientId.HasValue && patientId.Value != Guid.Empty)
-                query = query.Where(x => x.PatientId == patientId.Value);
-
-            if (membershipTierId.HasValue && membershipTierId.Value != Guid.Empty)
-                query = query.Where(x => x.MembershipTierId == membershipTierId.Value);
-
-            if (membershipStatus.HasValue)
-                query = query.Where(x => x.MembershipStatus == membershipStatus.Value);
-
-            if (tierType.HasValue)
-                query = query.Where(x => x.MembershipTier != null && x.MembershipTier.TierType == tierType.Value);
-
-            if (isPrimary.HasValue)
-                query = query.Where(x => x.IsPrimary == isPrimary.Value);
-
-            if (isAutoCreated.HasValue)
-                query = query.Where(x => x.IsAutoCreated == isAutoCreated.Value);
-
-            if (isCreatedFromKiosk.HasValue)
-                query = query.Where(x => x.IsCreatedFromKiosk == isCreatedFromKiosk.Value);
-
-            if (isCreatedFromAdmission.HasValue)
-                query = query.Where(x => x.IsCreatedFromAdmission == isCreatedFromAdmission.Value);
-
-            if (isCreatedByMarketing.HasValue)
-                query = query.Where(x => x.IsCreatedByMarketing == isCreatedByMarketing.Value);
-
-            if (isExpired.HasValue)
-            {
-                query = isExpired.Value
-                    ? query.Where(x => x.ExpiredDate.HasValue && x.ExpiredDate.Value < now)
-                    : query.Where(x => !x.ExpiredDate.HasValue || x.ExpiredDate.Value >= now);
-            }
-
-            if (joinDateFrom.HasValue)
-                query = query.Where(x => x.JoinDate >= joinDateFrom.Value.Date);
-
-            if (joinDateTo.HasValue)
-            {
-                var dateTo = joinDateTo.Value.Date.AddDays(1);
-                query = query.Where(x => x.JoinDate < dateTo);
-            }
-
-            if (expiredDateFrom.HasValue)
-                query = query.Where(x => x.ExpiredDate.HasValue && x.ExpiredDate.Value >= expiredDateFrom.Value.Date);
-
-            if (expiredDateTo.HasValue)
-            {
-                var dateTo = expiredDateTo.Value.Date.AddDays(1);
-                query = query.Where(x => x.ExpiredDate.HasValue && x.ExpiredDate.Value < dateTo);
-            }
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyRelationFilter(query, patientId, membershipTierId);
+            query = ApplyStandardFilter(query, isActive, search);
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new PatientMembershipResponse
-                {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    PatientCode = x.Patient != null ? x.Patient.PatientCode : string.Empty,
-                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                    PatientFullName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                    MembershipTierId = x.MembershipTierId,
-                    TierCode = x.MembershipTier != null ? x.MembershipTier.TierCode : string.Empty,
-                    TierName = x.MembershipTier != null ? x.MembershipTier.TierName : string.Empty,
-                    TierType = x.MembershipTier != null ? x.MembershipTier.TierType : MembershipTierType.Regular,
-                    MemberNumber = x.MemberNumber,
-                    MembershipStatus = x.MembershipStatus,
-                    JoinDate = x.JoinDate,
-                    ExpiredDate = x.ExpiredDate,
-                    IsPrimary = x.IsPrimary,
-                    IsAutoCreated = x.IsAutoCreated,
-                    IsCreatedFromKiosk = x.IsCreatedFromKiosk,
-                    IsCreatedFromAdmission = x.IsCreatedFromAdmission,
-                    IsCreatedByMarketing = x.IsCreatedByMarketing,
-                    PointBalance = x.PointBalance,
-                    TotalSpendAmount = x.TotalSpendAmount,
-                    LastUpgradeDate = x.LastUpgradeDate,
-                    LastDowngradeDate = x.LastDowngradeDate,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .SelectMany(x => new[] { x.CreateBy, x.UpdateBy })
+                    .Where(x => x != Guid.Empty)
+            );
+
+            var items = entities
+                .Select(x => MapResponse(x, actorNames))
+                .ToList();
 
             var result = new ResponsePatientMembershipPagedResult
             {
@@ -276,69 +221,57 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<PatientMembershipOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Membership", Description = "Melihat data patient membership", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<PatientMembershipOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction(
+            "Read",
+            "Read Patient Membership",
+            Description = "Melihat data pilihan patient membership",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientMembership", "Read")]
         public async Task<IActionResult> GetPatientMembershipOptions(
-            [FromQuery] Guid? patientId,
-            [FromQuery] Guid? membershipTierId,
-            [FromQuery] MembershipStatus? membershipStatus,
-            [FromQuery] bool? isPrimary,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] Guid? patientId = null,
+            [FromQuery] Guid? membershipTierId = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
-            var query = _dbContext.Set<MstPatientMembership>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
 
-            if (onlyActive)
-                query = query.Where(x => x.IsActive);
+            var query = BuildBaseQuery();
 
-            if (patientId.HasValue && patientId.Value != Guid.Empty)
-                query = query.Where(x => x.PatientId == patientId.Value);
+            query = ApplyRelationFilter(query, patientId, membershipTierId);
+            query = ApplyStandardFilter(query, onlyActive ? true : null, search);
 
-            if (membershipTierId.HasValue && membershipTierId.Value != Guid.Empty)
-                query = query.Where(x => x.MembershipTierId == membershipTierId.Value);
+            var totalData = await query.CountAsync();
 
-            if (membershipStatus.HasValue)
-                query = query.Where(x => x.MembershipStatus == membershipStatus.Value);
-
-            if (isPrimary.HasValue)
-                query = query.Where(x => x.IsPrimary == isPrimary.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.MemberNumber.ToLower().Contains(keyword) ||
-                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
-                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
-                    (x.MembershipTier != null && x.MembershipTier.TierName.ToLower().Contains(keyword)));
-            }
-
-            var data = await query
+            var entities = await query
                 .OrderByDescending(x => x.IsPrimary)
                 .ThenByDescending(x => x.JoinDate)
                 .ThenBy(x => x.MemberNumber)
-                .Select(x => new PatientMembershipOptionResponse
-                {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    PatientFullName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                    MembershipTierId = x.MembershipTierId,
-                    TierName = x.MembershipTier != null ? x.MembershipTier.TierName : string.Empty,
-                    MemberNumber = x.MemberNumber,
-                    MembershipStatus = x.MembershipStatus,
-                    IsPrimary = x.IsPrimary,
-                    JoinDate = x.JoinDate,
-                    ExpiredDate = x.ExpiredDate
-                })
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<PatientMembershipOptionResponse>>.Ok(
-                data,
+            var items = entities
+                .Select(MapOptionResponse)
+                .ToList();
+
+            var result = new PatientMembershipOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<PatientMembershipOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan patient membership berhasil diambil."
             ));
         }
@@ -346,51 +279,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientMembershipDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Patient Membership", Description = "Melihat data patient membership", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Membership",
+            Description = "Melihat detail patient membership",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientMembership", "Read")]
         public async Task<IActionResult> GetPatientMembershipById(Guid id)
         {
-            var data = await _dbContext.Set<MstPatientMembership>()
-                .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new PatientMembershipDetailResponse
-                {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    PatientCode = x.Patient != null ? x.Patient.PatientCode : string.Empty,
-                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                    PatientFullName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                    MembershipTierId = x.MembershipTierId,
-                    TierCode = x.MembershipTier != null ? x.MembershipTier.TierCode : string.Empty,
-                    TierName = x.MembershipTier != null ? x.MembershipTier.TierName : string.Empty,
-                    TierType = x.MembershipTier != null ? x.MembershipTier.TierType : MembershipTierType.Regular,
-                    MemberNumber = x.MemberNumber,
-                    MembershipStatus = x.MembershipStatus,
-                    JoinDate = x.JoinDate,
-                    ExpiredDate = x.ExpiredDate,
-                    IsPrimary = x.IsPrimary,
-                    IsAutoCreated = x.IsAutoCreated,
-                    IsCreatedFromKiosk = x.IsCreatedFromKiosk,
-                    IsCreatedFromAdmission = x.IsCreatedFromAdmission,
-                    IsCreatedByMarketing = x.IsCreatedByMarketing,
-                    PointBalance = x.PointBalance,
-                    TotalSpendAmount = x.TotalSpendAmount,
-                    LastUpgradeDate = x.LastUpgradeDate,
-                    LastDowngradeDate = x.LastDowngradeDate,
-                    UpgradeDowngradeReason = x.UpgradeDowngradeReason,
-                    Notes = x.Notes,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+            var entity = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (data == null)
+            if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Patient membership tidak ditemukan."
                 ));
             }
+
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, actorNames);
 
             return Ok(ApiResponse<PatientMembershipDetailResponse>.Ok(
                 data,
@@ -400,7 +316,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<PatientMembershipCreateResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Create", "Create Patient Membership", Description = "Membuat data patient membership", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Create",
+            "Create Patient Membership",
+            Description = "Membuat data patient membership",
+            AccessType = AccessTypes.Create,
+            SortOrder = 2
+        )]
         [AccessPermission("PatientMembership", "Create")]
         public async Task<IActionResult> CreatePatientMembership([FromBody] CreatePatientMembershipRequest request)
         {
@@ -409,6 +332,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 patientId: request.PatientId,
                 membershipTierId: request.MembershipTierId,
                 memberNumber: request.MemberNumber,
+                membershipStatus: request.MembershipStatus,
                 joinDate: request.JoinDate,
                 expiredDate: request.ExpiredDate,
                 pointBalance: request.PointBalance,
@@ -428,67 +352,102 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            if (request.IsPrimary)
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+            try
             {
-                await ClearOtherPrimaryMembershipsAsync(request.PatientId, null, now, actorUserId);
+                if (request.IsPrimary)
+                {
+                    await ClearOtherPrimaryMembershipsAsync(request.PatientId, null, now, actorUserId);
+                }
+
+                var entity = new MstPatientMembership
+                {
+                    Id = Guid.NewGuid(),
+                    PatientId = request.PatientId,
+                    MembershipTierId = request.MembershipTierId,
+                    MemberNumber = request.MemberNumber.Trim().ToUpperInvariant(),
+                    MembershipStatus = request.MembershipStatus,
+                    JoinDate = NormalizeDateTime(request.JoinDate),
+                    ExpiredDate = NormalizeNullableDateTime(request.ExpiredDate),
+                    IsPrimary = request.IsPrimary,
+                    IsAutoCreated = request.IsAutoCreated,
+                    IsCreatedFromKiosk = request.IsCreatedFromKiosk,
+                    IsCreatedFromAdmission = request.IsCreatedFromAdmission,
+                    IsCreatedByMarketing = request.IsCreatedByMarketing,
+                    PointBalance = request.PointBalance,
+                    TotalSpendAmount = request.TotalSpendAmount,
+                    LastUpgradeDate = NormalizeNullableDateTime(request.LastUpgradeDate),
+                    LastDowngradeDate = NormalizeNullableDateTime(request.LastDowngradeDate),
+                    UpgradeDowngradeReason = NormalizeNullableString(request.UpgradeDowngradeReason),
+                    Notes = NormalizeNullableString(request.Notes),
+                    IsActive = true,
+                    CreateDateTime = now,
+                    CreateBy = actorUserId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
+
+                _dbContext.Set<MstPatientMembership>().Add(entity);
+
+                if (entity.IsPrimary && entity.IsActive)
+                {
+                    await SyncPatientMembershipReferenceAsync(entity.PatientId, entity.Id, entity.MembershipTierId, now, actorUserId);
+                }
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var response = await BuildCreateResponseAsync(entity.Id);
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "PatientMembership.CreatePatientMembership",
+                    "Membuat data patient membership.",
+                    response
+                );
+
+                return Ok(ApiResponse<PatientMembershipCreateResponse>.Ok(
+                    response,
+                    "Patient membership berhasil dibuat."
+                ));
             }
-
-            var entity = new MstPatientMembership
+            catch (Exception ex)
             {
-                Id = Guid.NewGuid(),
-                PatientId = request.PatientId,
-                MembershipTierId = request.MembershipTierId,
-                MemberNumber = request.MemberNumber.Trim().ToUpperInvariant(),
-                MembershipStatus = request.MembershipStatus,
-                JoinDate = NormalizeDateTime(request.JoinDate),
-                ExpiredDate = NormalizeNullableDateTime(request.ExpiredDate),
-                IsPrimary = request.IsPrimary,
-                IsAutoCreated = request.IsAutoCreated,
-                IsCreatedFromKiosk = request.IsCreatedFromKiosk,
-                IsCreatedFromAdmission = request.IsCreatedFromAdmission,
-                IsCreatedByMarketing = request.IsCreatedByMarketing,
-                PointBalance = request.PointBalance,
-                TotalSpendAmount = request.TotalSpendAmount,
-                LastUpgradeDate = NormalizeNullableDateTime(request.LastUpgradeDate),
-                LastDowngradeDate = NormalizeNullableDateTime(request.LastDowngradeDate),
-                UpgradeDowngradeReason = NormalizeNullableText(request.UpgradeDowngradeReason),
-                Notes = NormalizeNullableText(request.Notes),
-                IsActive = true,
-                CreateDateTime = now,
-                CreateBy = actorUserId,
-                IsDelete = false,
-                IsCancel = false
-            };
+                await transaction.RollbackAsync();
 
-            _dbContext.Set<MstPatientMembership>().Add(entity);
-            await _dbContext.SaveChangesAsync();
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "PatientMembership.CreatePatientMembership",
+                    "Gagal membuat data patient membership.",
+                    ex
+                );
 
-            await SyncPatientMembershipReferenceAsync(entity.PatientId, entity.Id, entity.MembershipTierId, entity.IsPrimary, now, actorUserId);
-            await _dbContext.SaveChangesAsync();
-
-            var response = new PatientMembershipCreateResponse
-            {
-                Id = entity.Id,
-                PatientId = entity.PatientId,
-                MembershipTierId = entity.MembershipTierId,
-                MemberNumber = entity.MemberNumber,
-                MembershipStatus = entity.MembershipStatus,
-                IsPrimary = entity.IsPrimary,
-                IsActive = entity.IsActive
-            };
-
-            return Ok(ApiResponse<PatientMembershipCreateResponse>.Ok(
-                response,
-                "Patient membership berhasil dibuat."
-            ));
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat membuat patient membership."
+                    )
+                );
+            }
         }
 
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Patient Membership", Description = "Mengubah data patient membership", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction(
+            "Update",
+            "Update Patient Membership",
+            Description = "Mengubah data patient membership",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
         [AccessPermission("PatientMembership", "Update")]
-        public async Task<IActionResult> UpdatePatientMembership(Guid id, [FromBody] UpdatePatientMembershipRequest request)
+        public async Task<IActionResult> UpdatePatientMembership(
+            Guid id,
+            [FromBody] UpdatePatientMembershipRequest request)
         {
             var entity = await _dbContext.Set<MstPatientMembership>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -506,6 +465,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 patientId: request.PatientId,
                 membershipTierId: request.MembershipTierId,
                 memberNumber: request.MemberNumber,
+                membershipStatus: request.MembershipStatus,
                 joinDate: request.JoinDate,
                 expiredDate: request.ExpiredDate,
                 pointBalance: request.PointBalance,
@@ -526,53 +486,109 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            if (request.IsPrimary)
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+            try
             {
-                await ClearOtherPrimaryMembershipsAsync(request.PatientId, id, now, actorUserId);
+                if (request.IsPrimary)
+                {
+                    await ClearOtherPrimaryMembershipsAsync(request.PatientId, id, now, actorUserId);
+                }
+
+                entity.PatientId = request.PatientId;
+                entity.MembershipTierId = request.MembershipTierId;
+                entity.MemberNumber = request.MemberNumber.Trim().ToUpperInvariant();
+                entity.MembershipStatus = request.MembershipStatus;
+                entity.JoinDate = NormalizeDateTime(request.JoinDate);
+                entity.ExpiredDate = NormalizeNullableDateTime(request.ExpiredDate);
+                entity.IsPrimary = request.IsPrimary;
+                entity.IsAutoCreated = request.IsAutoCreated;
+                entity.IsCreatedFromKiosk = request.IsCreatedFromKiosk;
+                entity.IsCreatedFromAdmission = request.IsCreatedFromAdmission;
+                entity.IsCreatedByMarketing = request.IsCreatedByMarketing;
+                entity.PointBalance = request.PointBalance;
+                entity.TotalSpendAmount = request.TotalSpendAmount;
+                entity.LastUpgradeDate = NormalizeNullableDateTime(request.LastUpgradeDate);
+                entity.LastDowngradeDate = NormalizeNullableDateTime(request.LastDowngradeDate);
+                entity.UpgradeDowngradeReason = NormalizeNullableString(request.UpgradeDowngradeReason);
+                entity.Notes = NormalizeNullableString(request.Notes);
+                entity.IsActive = request.IsActive;
+                entity.UpdateDateTime = now;
+                entity.UpdateBy = actorUserId;
+
+                await _dbContext.SaveChangesAsync();
+
+                if (entity.IsPrimary && entity.IsActive)
+                {
+                    await SyncPatientMembershipReferenceAsync(entity.PatientId, entity.Id, entity.MembershipTierId, now, actorUserId);
+                }
+                else
+                {
+                    await RecalculatePatientMembershipReferenceAsync(entity.PatientId, now, actorUserId);
+                }
+
+                if (oldPatientId != entity.PatientId)
+                {
+                    await RecalculatePatientMembershipReferenceAsync(oldPatientId, now, actorUserId);
+                }
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "PatientMembership.UpdatePatientMembership",
+                    "Mengubah data patient membership.",
+                    new
+                    {
+                        entity.Id,
+                        entity.PatientId,
+                        entity.MembershipTierId,
+                        entity.MemberNumber,
+                        entity.IsActive
+                    }
+                );
+
+                return Ok(ApiResponse<object>.Ok(
+                    null,
+                    "Patient membership berhasil diperbarui."
+                ));
             }
-
-            entity.PatientId = request.PatientId;
-            entity.MembershipTierId = request.MembershipTierId;
-            entity.MemberNumber = request.MemberNumber.Trim().ToUpperInvariant();
-            entity.MembershipStatus = request.MembershipStatus;
-            entity.JoinDate = NormalizeDateTime(request.JoinDate);
-            entity.ExpiredDate = NormalizeNullableDateTime(request.ExpiredDate);
-            entity.IsPrimary = request.IsPrimary;
-            entity.IsAutoCreated = request.IsAutoCreated;
-            entity.IsCreatedFromKiosk = request.IsCreatedFromKiosk;
-            entity.IsCreatedFromAdmission = request.IsCreatedFromAdmission;
-            entity.IsCreatedByMarketing = request.IsCreatedByMarketing;
-            entity.PointBalance = request.PointBalance;
-            entity.TotalSpendAmount = request.TotalSpendAmount;
-            entity.LastUpgradeDate = NormalizeNullableDateTime(request.LastUpgradeDate);
-            entity.LastDowngradeDate = NormalizeNullableDateTime(request.LastDowngradeDate);
-            entity.UpgradeDowngradeReason = NormalizeNullableText(request.UpgradeDowngradeReason);
-            entity.Notes = NormalizeNullableText(request.Notes);
-            entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await SyncPatientMembershipReferenceAsync(entity.PatientId, entity.Id, entity.MembershipTierId, entity.IsPrimary, now, actorUserId);
-
-            if (oldPatientId != entity.PatientId)
+            catch (Exception ex)
             {
-                await RecalculatePatientMembershipReferenceAsync(oldPatientId, now, actorUserId);
+                await transaction.RollbackAsync();
+
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "PatientMembership.UpdatePatientMembership",
+                    "Gagal mengubah data patient membership.",
+                    ex
+                );
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat mengubah patient membership."
+                    )
+                );
             }
-
-            await _dbContext.SaveChangesAsync();
-
-            return Ok(ApiResponse<object>.Ok(
-                null,
-                "Patient membership berhasil diperbarui."
-            ));
         }
 
-        [HttpDelete("{id:guid}")]
+        [HttpPatch("{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Delete", "Delete Patient Membership", Description = "Menghapus data patient membership", AccessType = AccessTypes.Delete, SortOrder = 4)]
-        [AccessPermission("PatientMembership", "Delete")]
-        public async Task<IActionResult> DeletePatientMembership(Guid id)
+        [AccessAction(
+            "Update",
+            "Update Patient Membership Status",
+            Description = "Mengubah status patient membership",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
+        [AccessPermission("PatientMembership", "Update")]
+        public async Task<IActionResult> UpdatePatientMembershipStatus(
+            Guid id,
+            [FromBody] UpdatePatientMembershipStatusRequest request)
         {
             var entity = await _dbContext.Set<MstPatientMembership>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -585,17 +601,68 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 ));
             }
 
-            var patientId = entity.PatientId;
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+            await RecalculatePatientMembershipReferenceAsync(entity.PatientId, now, actorUserId);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(ApiResponse<object>.Ok(
+                null,
+                "Status patient membership berhasil diperbarui."
+            ));
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Delete",
+            "Delete Patient Membership",
+            Description = "Menghapus data patient membership",
+            AccessType = AccessTypes.Delete,
+            SortOrder = 4
+        )]
+        [AccessPermission("PatientMembership", "Delete")]
+        public async Task<IActionResult> DeletePatientMembership(
+            Guid id,
+            [FromBody] DeletePatientMembershipRequest? request = null)
+        {
+            var entity = await _dbContext.Set<MstPatientMembership>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Patient membership tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+            var patientId = entity.PatientId;
+
             entity.IsDelete = true;
             entity.IsActive = false;
+            entity.IsPrimary = false;
             entity.DeleteDateTime = now;
             entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+            {
+                entity.Notes = request.DeleteReason.Trim();
+            }
+
+            await _dbContext.SaveChangesAsync();
             await RecalculatePatientMembershipReferenceAsync(patientId, now, actorUserId);
-
             await _dbContext.SaveChangesAsync();
 
             return Ok(ApiResponse<object>.Ok(
@@ -604,11 +671,208 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
+        private IQueryable<MstPatientMembership> BuildBaseQuery()
+        {
+            return _dbContext.Set<MstPatientMembership>()
+                .AsNoTracking()
+                .Include(x => x.Patient)
+                .Include(x => x.MembershipTier)
+                .Where(x => !x.IsDelete);
+        }
+
+        private static IQueryable<MstPatientMembership> ApplyDateFilter(
+            IQueryable<MstPatientMembership> query,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            if (startDate.HasValue)
+            {
+                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime >= start);
+            }
+
+            if (endDate.HasValue)
+            {
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime < end);
+            }
+
+            if (!startDate.HasValue &&
+                !endDate.HasValue &&
+                !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var today = DateTime.UtcNow.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today &&
+                            x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "last7days":
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today.AddDays(-6) &&
+                            x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        query = query.Where(x =>
+                            x.CreateDateTime >= thisMonthStart &&
+                            x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        break;
+
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+                        query = query.Where(x =>
+                            x.CreateDateTime >= lastMonthStart &&
+                            x.CreateDateTime < currentMonthStart);
+                        break;
+                }
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstPatientMembership> ApplyRelationFilter(
+            IQueryable<MstPatientMembership> query,
+            Guid? patientId,
+            Guid? membershipTierId)
+        {
+            var normalizedPatientId = NormalizeNullableGuid(patientId);
+            if (normalizedPatientId.HasValue)
+            {
+                query = query.Where(x => x.PatientId == normalizedPatientId.Value);
+            }
+
+            var normalizedMembershipTierId = NormalizeNullableGuid(membershipTierId);
+            if (normalizedMembershipTierId.HasValue)
+            {
+                query = query.Where(x => x.MembershipTierId == normalizedMembershipTierId.Value);
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstPatientMembership> ApplyStandardFilter(
+            IQueryable<MstPatientMembership> query,
+            bool? isActive,
+            string? search)
+        {
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                var matchedMembershipStatuses = Enum.GetValues<MembershipStatus>()
+                    .Where(x =>
+                        x.ToString().ToLower().Contains(keyword) ||
+                        BuildEnumLabel(x).ToLower().Contains(keyword))
+                    .ToList();
+
+                var matchedTierTypes = Enum.GetValues<MembershipTierType>()
+                    .Where(x =>
+                        x.ToString().ToLower().Contains(keyword) ||
+                        BuildEnumLabel(x).ToLower().Contains(keyword))
+                    .ToList();
+
+                query = query.Where(x =>
+                    x.MemberNumber.ToLower().Contains(keyword) ||
+                    (x.Patient != null && x.Patient.PatientCode.ToLower().Contains(keyword)) ||
+                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
+                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
+                    (x.MembershipTier != null && x.MembershipTier.TierCode.ToLower().Contains(keyword)) ||
+                    (x.MembershipTier != null && x.MembershipTier.TierName.ToLower().Contains(keyword)) ||
+                    (x.UpgradeDowngradeReason != null && x.UpgradeDowngradeReason.ToLower().Contains(keyword)) ||
+                    (x.Notes != null && x.Notes.ToLower().Contains(keyword)) ||
+                    matchedMembershipStatuses.Contains(x.MembershipStatus) ||
+                    (x.MembershipTier != null && matchedTierTypes.Contains(x.MembershipTier.TierType)));
+            }
+
+            return query;
+        }
+
+        private static IOrderedQueryable<MstPatientMembership> ApplySorting(
+            IQueryable<MstPatientMembership> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var isDescending = string.Equals(
+                sortDirection,
+                "desc",
+                StringComparison.OrdinalIgnoreCase
+            );
+
+            return (sortBy ?? "createDateTime").Trim().ToLowerInvariant() switch
+            {
+                "updatedatetime" => isDescending
+                    ? query.OrderByDescending(x => x.UpdateDateTime).ThenByDescending(x => x.CreateDateTime)
+                    : query.OrderBy(x => x.UpdateDateTime).ThenBy(x => x.CreateDateTime),
+
+                "joindate" => isDescending
+                    ? query.OrderByDescending(x => x.JoinDate).ThenByDescending(x => x.MemberNumber)
+                    : query.OrderBy(x => x.JoinDate).ThenBy(x => x.MemberNumber),
+
+                "membernumber" => isDescending
+                    ? query.OrderByDescending(x => x.MemberNumber)
+                    : query.OrderBy(x => x.MemberNumber),
+
+                "patientfullname" => isDescending
+                    ? query.OrderByDescending(x => x.Patient != null ? x.Patient.FullName : string.Empty)
+                    : query.OrderBy(x => x.Patient != null ? x.Patient.FullName : string.Empty),
+
+                "medicalrecordnumber" => isDescending
+                    ? query.OrderByDescending(x => x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty)
+                    : query.OrderBy(x => x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty),
+
+                "tiername" => isDescending
+                    ? query.OrderByDescending(x => x.MembershipTier != null ? x.MembershipTier.TierName : string.Empty)
+                    : query.OrderBy(x => x.MembershipTier != null ? x.MembershipTier.TierName : string.Empty),
+
+                "membershipstatus" => isDescending
+                    ? query.OrderByDescending(x => x.MembershipStatus).ThenBy(x => x.MemberNumber)
+                    : query.OrderBy(x => x.MembershipStatus).ThenBy(x => x.MemberNumber),
+
+                "expireddate" => isDescending
+                    ? query.OrderByDescending(x => x.ExpiredDate).ThenBy(x => x.MemberNumber)
+                    : query.OrderBy(x => x.ExpiredDate).ThenBy(x => x.MemberNumber),
+
+                "pointbalance" => isDescending
+                    ? query.OrderByDescending(x => x.PointBalance).ThenBy(x => x.MemberNumber)
+                    : query.OrderBy(x => x.PointBalance).ThenBy(x => x.MemberNumber),
+
+                "totalspendamount" => isDescending
+                    ? query.OrderByDescending(x => x.TotalSpendAmount).ThenBy(x => x.MemberNumber)
+                    : query.OrderBy(x => x.TotalSpendAmount).ThenBy(x => x.MemberNumber),
+
+                "isprimary" => isDescending
+                    ? query.OrderByDescending(x => x.IsPrimary).ThenBy(x => x.MemberNumber)
+                    : query.OrderBy(x => x.IsPrimary).ThenBy(x => x.MemberNumber),
+
+                "isactive" => isDescending
+                    ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.MemberNumber)
+                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.MemberNumber),
+
+                _ => isDescending
+                    ? query.OrderByDescending(x => x.CreateDateTime).ThenByDescending(x => x.MemberNumber)
+                    : query.OrderBy(x => x.CreateDateTime).ThenBy(x => x.MemberNumber)
+            };
+        }
+
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
             Guid patientId,
             Guid membershipTierId,
             string memberNumber,
+            MembershipStatus membershipStatus,
             DateTime joinDate,
             DateTime? expiredDate,
             int pointBalance,
@@ -617,19 +881,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             DateTime? lastDowngradeDate)
         {
             if (patientId == Guid.Empty)
+            {
                 return (false, "Pasien wajib dipilih.");
+            }
 
             if (membershipTierId == Guid.Empty)
+            {
                 return (false, "Membership tier wajib dipilih.");
+            }
 
             if (string.IsNullOrWhiteSpace(memberNumber))
+            {
                 return (false, "Nomor member wajib diisi.");
+            }
+
+            if (!Enum.IsDefined(typeof(MembershipStatus), membershipStatus))
+            {
+                return (false, "Status membership tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
 
             if (pointBalance < 0)
+            {
                 return (false, "Point balance tidak boleh kurang dari 0.");
+            }
 
             if (totalSpendAmount < 0)
+            {
                 return (false, "Total spend amount tidak boleh kurang dari 0.");
+            }
 
             var normalizedJoinDate = NormalizeDateTime(joinDate);
             var normalizedExpiredDate = NormalizeNullableDateTime(expiredDate);
@@ -637,38 +916,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             var normalizedLastDowngradeDate = NormalizeNullableDateTime(lastDowngradeDate);
 
             if (normalizedExpiredDate.HasValue && normalizedExpiredDate.Value < normalizedJoinDate)
+            {
                 return (false, "Tanggal expired tidak boleh lebih kecil dari tanggal join.");
+            }
 
             if (normalizedLastUpgradeDate.HasValue && normalizedLastUpgradeDate.Value < normalizedJoinDate)
+            {
                 return (false, "Tanggal upgrade terakhir tidak boleh lebih kecil dari tanggal join.");
+            }
 
             if (normalizedLastDowngradeDate.HasValue && normalizedLastDowngradeDate.Value < normalizedJoinDate)
+            {
                 return (false, "Tanggal downgrade terakhir tidak boleh lebih kecil dari tanggal join.");
+            }
 
             var patientExists = await _dbContext.Set<MstPatient>()
+                .AsNoTracking()
                 .AnyAsync(x => x.Id == patientId && x.IsActive && !x.IsDelete);
 
             if (!patientExists)
+            {
                 return (false, "Pasien tidak valid atau tidak aktif.");
+            }
 
             var tierExists = await _dbContext.Set<MstMembershipTier>()
+                .AsNoTracking()
                 .AnyAsync(x => x.Id == membershipTierId && x.IsActive && !x.IsDelete);
 
             if (!tierExists)
+            {
                 return (false, "Membership tier tidak valid atau tidak aktif.");
+            }
 
             var normalizedMemberNumber = memberNumber.Trim().ToUpperInvariant();
 
             var duplicateMemberNumber = await _dbContext.Set<MstPatientMembership>()
+                .AsNoTracking()
                 .AnyAsync(x =>
                     !x.IsDelete &&
                     x.MemberNumber.ToUpper() == normalizedMemberNumber &&
                     (!excludeId.HasValue || x.Id != excludeId.Value));
 
             if (duplicateMemberNumber)
+            {
                 return (false, "Nomor member sudah digunakan.");
+            }
 
             var duplicateTierForPatient = await _dbContext.Set<MstPatientMembership>()
+                .AsNoTracking()
                 .AnyAsync(x =>
                     !x.IsDelete &&
                     x.PatientId == patientId &&
@@ -676,18 +971,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     (!excludeId.HasValue || x.Id != excludeId.Value));
 
             if (duplicateTierForPatient)
+            {
                 return (false, "Pasien sudah memiliki membership tier tersebut.");
+            }
 
             return (true, null);
         }
 
-        private async Task ClearOtherPrimaryMembershipsAsync(Guid patientId, Guid? excludeId, DateTime now, Guid actorUserId)
+        private async Task ClearOtherPrimaryMembershipsAsync(
+            Guid patientId,
+            Guid? excludeId,
+            DateTime now,
+            Guid actorUserId)
         {
             var query = _dbContext.Set<MstPatientMembership>()
                 .Where(x => !x.IsDelete && x.PatientId == patientId && x.IsPrimary);
 
             if (excludeId.HasValue)
+            {
                 query = query.Where(x => x.Id != excludeId.Value);
+            }
 
             var otherMemberships = await query.ToListAsync();
 
@@ -703,18 +1006,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             Guid patientId,
             Guid membershipId,
             Guid membershipTierId,
-            bool isPrimary,
             DateTime now,
             Guid actorUserId)
         {
-            if (!isPrimary)
-                return;
-
             var patient = await _dbContext.Set<MstPatient>()
                 .FirstOrDefaultAsync(x => x.Id == patientId && !x.IsDelete);
 
             if (patient == null)
+            {
                 return;
+            }
 
             patient.IsMember = true;
             patient.DefaultMembershipTierId = membershipTierId;
@@ -723,13 +1024,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             patient.UpdateBy = actorUserId;
         }
 
-        private async Task RecalculatePatientMembershipReferenceAsync(Guid patientId, DateTime now, Guid actorUserId)
+        private async Task RecalculatePatientMembershipReferenceAsync(
+            Guid patientId,
+            DateTime now,
+            Guid actorUserId)
         {
             var patient = await _dbContext.Set<MstPatient>()
                 .FirstOrDefaultAsync(x => x.Id == patientId && !x.IsDelete);
 
             if (patient == null)
+            {
                 return;
+            }
 
             var activePrimaryMembership = await _dbContext.Set<MstPatientMembership>()
                 .Where(x =>
@@ -757,75 +1063,159 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             patient.UpdateBy = actorUserId;
         }
 
-        private static IQueryable<MstPatientMembership> ApplySorting(
-            IQueryable<MstPatientMembership> query,
-            string? sortBy,
-            string? sortDirection)
+        private async Task<PatientMembershipCreateResponse> BuildCreateResponseAsync(Guid id)
         {
-            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            var entity = await BuildBaseQuery()
+                .FirstAsync(x => x.Id == id);
 
-            return (sortBy ?? "joinDate").ToLowerInvariant() switch
+            return new PatientMembershipCreateResponse
             {
-                "createdatetime" => isDesc
-                    ? query.OrderByDescending(x => x.CreateDateTime)
-                    : query.OrderBy(x => x.CreateDateTime),
-
-                "membernumber" => isDesc
-                    ? query.OrderByDescending(x => x.MemberNumber)
-                    : query.OrderBy(x => x.MemberNumber),
-
-                "patientfullname" => isDesc
-                    ? query.OrderByDescending(x => x.Patient != null ? x.Patient.FullName : "")
-                    : query.OrderBy(x => x.Patient != null ? x.Patient.FullName : ""),
-
-                "medicalrecordnumber" => isDesc
-                    ? query.OrderByDescending(x => x.Patient != null ? x.Patient.MedicalRecordNumber : "")
-                    : query.OrderBy(x => x.Patient != null ? x.Patient.MedicalRecordNumber : ""),
-
-                "tiername" => isDesc
-                    ? query.OrderByDescending(x => x.MembershipTier != null ? x.MembershipTier.TierName : "")
-                    : query.OrderBy(x => x.MembershipTier != null ? x.MembershipTier.TierName : ""),
-
-                "membershipstatus" => isDesc
-                    ? query.OrderByDescending(x => x.MembershipStatus)
-                    : query.OrderBy(x => x.MembershipStatus),
-
-                "expireddate" => isDesc
-                    ? query.OrderByDescending(x => x.ExpiredDate)
-                    : query.OrderBy(x => x.ExpiredDate),
-
-                "pointbalance" => isDesc
-                    ? query.OrderByDescending(x => x.PointBalance)
-                    : query.OrderBy(x => x.PointBalance),
-
-                "totalspendamount" => isDesc
-                    ? query.OrderByDescending(x => x.TotalSpendAmount)
-                    : query.OrderBy(x => x.TotalSpendAmount),
-
-                "isprimary" => isDesc
-                    ? query.OrderByDescending(x => x.IsPrimary)
-                    : query.OrderBy(x => x.IsPrimary),
-
-                "isactive" => isDesc
-                    ? query.OrderByDescending(x => x.IsActive)
-                    : query.OrderBy(x => x.IsActive),
-
-                _ => isDesc
-                    ? query.OrderByDescending(x => x.JoinDate).ThenByDescending(x => x.MemberNumber)
-                    : query.OrderBy(x => x.JoinDate).ThenBy(x => x.MemberNumber)
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientFullName = entity.Patient?.FullName ?? string.Empty,
+                MembershipTierId = entity.MembershipTierId,
+                TierName = entity.MembershipTier?.TierName ?? string.Empty,
+                MemberNumber = entity.MemberNumber,
+                MembershipStatus = entity.MembershipStatus,
+                MembershipStatusName = BuildEnumLabel(entity.MembershipStatus),
+                IsPrimary = entity.IsPrimary,
+                IsActive = entity.IsActive
             };
         }
 
-        private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(
+            IEnumerable<Guid> actorIds)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 25;
-            if (pageSize > 100) pageSize = 100;
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
 
-            return (pageNumber, pageSize);
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
         }
 
-        private static List<PatientMembershipEnumOptionResponse> BuildEnumOptions<TEnum>() where TEnum : Enum
+        private static PatientMembershipResponse MapResponse(
+            MstPatientMembership entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new PatientMembershipResponse
+            {
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientCode = entity.Patient?.PatientCode ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                PatientFullName = entity.Patient?.FullName ?? string.Empty,
+                MembershipTierId = entity.MembershipTierId,
+                TierCode = entity.MembershipTier?.TierCode ?? string.Empty,
+                TierName = entity.MembershipTier?.TierName ?? string.Empty,
+                TierType = entity.MembershipTier?.TierType ?? MembershipTierType.Regular,
+                TierTypeName = entity.MembershipTier != null ? BuildEnumLabel(entity.MembershipTier.TierType) : string.Empty,
+                MemberNumber = entity.MemberNumber,
+                MembershipStatus = entity.MembershipStatus,
+                MembershipStatusName = BuildEnumLabel(entity.MembershipStatus),
+                JoinDate = entity.JoinDate,
+                ExpiredDate = entity.ExpiredDate,
+                IsPrimary = entity.IsPrimary,
+                IsAutoCreated = entity.IsAutoCreated,
+                IsCreatedFromKiosk = entity.IsCreatedFromKiosk,
+                IsCreatedFromAdmission = entity.IsCreatedFromAdmission,
+                IsCreatedByMarketing = entity.IsCreatedByMarketing,
+                PointBalance = entity.PointBalance,
+                TotalSpendAmount = entity.TotalSpendAmount,
+                LastUpgradeDate = entity.LastUpgradeDate,
+                LastDowngradeDate = entity.LastDowngradeDate,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
+
+        private static PatientMembershipDetailResponse MapDetailResponse(
+            MstPatientMembership entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            var response = new PatientMembershipDetailResponse
+            {
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientCode = entity.Patient?.PatientCode ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                PatientFullName = entity.Patient?.FullName ?? string.Empty,
+                MembershipTierId = entity.MembershipTierId,
+                TierCode = entity.MembershipTier?.TierCode ?? string.Empty,
+                TierName = entity.MembershipTier?.TierName ?? string.Empty,
+                TierType = entity.MembershipTier?.TierType ?? MembershipTierType.Regular,
+                TierTypeName = entity.MembershipTier != null ? BuildEnumLabel(entity.MembershipTier.TierType) : string.Empty,
+                MemberNumber = entity.MemberNumber,
+                MembershipStatus = entity.MembershipStatus,
+                MembershipStatusName = BuildEnumLabel(entity.MembershipStatus),
+                JoinDate = entity.JoinDate,
+                ExpiredDate = entity.ExpiredDate,
+                IsPrimary = entity.IsPrimary,
+                IsAutoCreated = entity.IsAutoCreated,
+                IsCreatedFromKiosk = entity.IsCreatedFromKiosk,
+                IsCreatedFromAdmission = entity.IsCreatedFromAdmission,
+                IsCreatedByMarketing = entity.IsCreatedByMarketing,
+                PointBalance = entity.PointBalance,
+                TotalSpendAmount = entity.TotalSpendAmount,
+                LastUpgradeDate = entity.LastUpgradeDate,
+                LastDowngradeDate = entity.LastDowngradeDate,
+                UpgradeDowngradeReason = entity.UpgradeDowngradeReason,
+                Notes = entity.Notes,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+
+            return response;
+        }
+
+        private static PatientMembershipOptionResponse MapOptionResponse(MstPatientMembership entity)
+        {
+            return new PatientMembershipOptionResponse
+            {
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientFullName = entity.Patient?.FullName ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                MembershipTierId = entity.MembershipTierId,
+                TierName = entity.MembershipTier?.TierName ?? string.Empty,
+                MemberNumber = entity.MemberNumber,
+                MembershipStatus = entity.MembershipStatus,
+                MembershipStatusName = BuildEnumLabel(entity.MembershipStatus),
+                IsPrimary = entity.IsPrimary,
+                JoinDate = entity.JoinDate,
+                ExpiredDate = entity.ExpiredDate
+            };
+        }
+
+        private static List<PatientMembershipEnumOptionResponse> BuildEnumOptions<TEnum>()
+            where TEnum : Enum
         {
             return Enum.GetValues(typeof(TEnum))
                 .Cast<TEnum>()
@@ -833,9 +1223,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 {
                     Value = Convert.ToInt32(x),
                     Name = x.ToString(),
-                    Label = SplitPascalCase(x.ToString())
+                    Label = BuildEnumLabel(x)
                 })
                 .ToList();
+        }
+
+        private static string BuildEnumLabel<TEnum>(TEnum value)
+            where TEnum : Enum
+        {
+            return SplitPascalCase(value.ToString());
         }
 
         private static string SplitPascalCase(string value)
@@ -844,20 +1240,57 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
         }
 
-        private Guid GetCurrentUserId()
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
         {
-            var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
 
-            return Guid.TryParse(userIdText, out var userId)
-                ? userId
-                : Guid.Empty;
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
         }
 
-        private static string? NormalizeNullableText(string? value)
+        private static (int PageNumber, int PageSize) NormalizePaging(
+            int pageNumber,
+            int pageSize)
+        {
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 25;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
+
+            return (pageNumber, pageSize);
+        }
+
+        private static string? NormalizeNullableString(string? value)
         {
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private static Guid? NormalizeNullableGuid(Guid? value)
+        {
+            if (!value.HasValue || value.Value == Guid.Empty)
+            {
+                return null;
+            }
+
+            return value.Value;
         }
 
         private static DateTime NormalizeDateTime(DateTime value)
@@ -870,9 +1303,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private static DateTime? NormalizeNullableDateTime(DateTime? value)
         {
             if (!value.HasValue)
+            {
                 return null;
+            }
 
             return NormalizeDateTime(value.Value);
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var userIdValue =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("user_id");
+
+            return Guid.TryParse(userIdValue, out var userId)
+                ? userId
+                : Guid.Empty;
         }
     }
 }

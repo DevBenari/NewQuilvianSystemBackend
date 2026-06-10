@@ -21,18 +21,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
     [Authorize]
     [Route("api/v1/health-services/patient-management/master-data/patient-relationships")]
     [AccessController(
-        moduleCode: "HEALTH_SERVICE_PATIENT_MANAGEMENT",
-        moduleName: "Health Service Patient Management",
+        moduleCode: "HEALTH_SERVICE_PATIENT_MANAGEMENT_MASTER_DATA",
+        moduleName: "Health Service Patient Management Master Data",
         displayName: "Patient Relationship",
         AreaName = "HealthServices",
         ControllerName = "PatientRelationship",
         Description = "Health service patient management master data patient relationship",
-        SortOrder = 3
+        SortOrder = 19
     )]
-    [Tags("Health Services / Patient Management / Patient Relationship")]
+    [Tags("Health Services / Patient Management / Master Data / Patient Relationship")]
     public class PatientRelationshipController : ControllerBase
     {
-        private const string LogCategory = "HealthServices.PatientManagement";
+        private const string LogCategory = "HealthServices.PatientManagement.MasterData";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -47,21 +47,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<PatientRelationshipFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Relationship", Description = "Melihat data patient relationship", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Relationship",
+            Description = "Melihat metadata filter patient relationship",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientRelationship", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new PatientRelationshipFilterMetadataResponse
             {
                 DefaultFilter = new PatientRelationshipDefaultFilterResponse(),
+                CustomPeriods = new List<PatientRelationshipCustomPeriodOptionResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "lastmonth", Label = "Bulan lalu" }
+                },
                 SortOptions = new List<PatientRelationshipSortOptionResponse>
                 {
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "updateDateTime", Label = "Tanggal diperbarui" },
                     new() { Value = "patientName", Label = "Nama pasien" },
                     new() { Value = "medicalRecordNumber", Label = "Nomor rekam medis" },
                     new() { Value = "relatedPatientName", Label = "Nama pasien terkait" },
                     new() { Value = "relationshipType", Label = "Tipe relasi" },
-                    new() { Value = "relatedPersonName", Label = "Nama keluarga/relasi" },
+                    new() { Value = "relatedPersonName", Label = "Nama keluarga atau relasi" },
                     new() { Value = "isPrimary", Label = "Relasi utama" },
                     new() { Value = "isEmergencyContact", Label = "Kontak darurat" },
                     new() { Value = "isResponsiblePerson", Label = "Penanggung jawab" },
@@ -70,7 +84,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                RelationshipTypeOptions = BuildEnumOptions<PatientRelationshipType>()
+                RelationFilters = new List<PatientRelationshipRelationFilterResponse>
+                {
+                    new()
+                    {
+                        Value = "patientId",
+                        Label = "Patient",
+                        Endpoint = "/api/v1/health-services/patient-management/master-data/patients/options"
+                    },
+                    new()
+                    {
+                        Value = "relatedPatientId",
+                        Label = "Related Patient",
+                        Endpoint = "/api/v1/health-services/patient-management/master-data/patients/options"
+                    }
+                },
+                RelationshipTypeOptions = BuildEnumOptions<PatientRelationshipType>(),
+                ResetButtonLabel = "Reset"
             };
 
             await _loggerService.InfoAsync(
@@ -88,16 +118,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<PatientRelationshipSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Relationship", Description = "Melihat data patient relationship", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Relationship",
+            Description = "Melihat ringkasan patient relationship",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientRelationship", "Read")]
-        public async Task<IActionResult> GetSummary([FromQuery] Guid? patientId)
+        public async Task<IActionResult> GetSummary()
         {
             var query = _dbContext.Set<MstPatientRelationship>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
-
-            if (patientId.HasValue && patientId.Value != Guid.Empty)
-                query = query.Where(x => x.PatientId == patientId.Value);
 
             var result = new PatientRelationshipSummaryResponse
             {
@@ -118,18 +151,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientRelationshipPagedResult>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Relationship", Description = "Melihat data patient relationship", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Relationship",
+            Description = "Melihat data patient relationship",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientRelationship", "Read")]
         public async Task<IActionResult> GetPatientRelationships(
-            [FromQuery] string? search,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? patientId,
             [FromQuery] Guid? relatedPatientId,
-            [FromQuery] PatientRelationshipType? relationshipType,
-            [FromQuery] bool? isPrimary,
-            [FromQuery] bool? isEmergencyContact,
-            [FromQuery] bool? isResponsiblePerson,
-            [FromQuery] bool? isLegalGuardian,
             [FromQuery] bool? isActive,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -139,55 +176,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.Set<MstPatientRelationship>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
-            query = ApplyFilters(
-                query,
-                search,
-                patientId,
-                relatedPatientId,
-                relationshipType,
-                isPrimary,
-                isEmergencyContact,
-                isResponsiblePerson,
-                isLegalGuardian,
-                isActive
-            );
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyRelationFilter(query, patientId, relatedPatientId);
+            query = ApplyStandardFilter(query, isActive, search);
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new PatientRelationshipResponse
-                {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    PatientCode = x.Patient != null ? x.Patient.PatientCode : string.Empty,
-                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                    PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                    RelatedPatientId = x.RelatedPatientId,
-                    RelatedPatientCode = x.RelatedPatient != null ? x.RelatedPatient.PatientCode : null,
-                    RelatedPatientMedicalRecordNumber = x.RelatedPatient != null ? x.RelatedPatient.MedicalRecordNumber : null,
-                    RelatedPatientName = x.RelatedPatient != null ? x.RelatedPatient.FullName : null,
-                    RelationshipType = x.RelationshipType,
-                    RelationshipTypeName = x.RelationshipType.ToString(),
-                    RelatedPersonName = x.RelatedPersonName,
-                    RelatedPersonIdentityType = x.RelatedPersonIdentityType,
-                    RelatedPersonIdentityNumber = x.RelatedPersonIdentityNumber,
-                    RelatedPersonPhoneNumber = x.RelatedPersonPhoneNumber,
-                    RelatedPersonWhatsAppNumber = x.RelatedPersonWhatsAppNumber,
-                    RelatedPersonEmail = x.RelatedPersonEmail,
-                    IsPrimary = x.IsPrimary,
-                    IsEmergencyContact = x.IsEmergencyContact,
-                    IsResponsiblePerson = x.IsResponsiblePerson,
-                    IsLegalGuardian = x.IsLegalGuardian,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .SelectMany(x => new[] { x.CreateBy, x.UpdateBy })
+                    .Where(x => x != Guid.Empty)
+            );
+
+            var items = entities
+                .Select(x => MapResponse(x, actorNames))
+                .ToList();
 
             var result = new ResponsePatientRelationshipPagedResult
             {
@@ -205,82 +215,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<PatientRelationshipOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Relationship", Description = "Melihat data patient relationship", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<PatientRelationshipOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction(
+            "Read",
+            "Read Patient Relationship",
+            Description = "Melihat data pilihan patient relationship",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientRelationship", "Read")]
         public async Task<IActionResult> GetPatientRelationshipOptions(
-            [FromQuery] Guid? patientId,
-            [FromQuery] PatientRelationshipType? relationshipType,
-            [FromQuery] bool? isEmergencyContact,
-            [FromQuery] bool? isResponsiblePerson,
-            [FromQuery] bool? isLegalGuardian,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] Guid? patientId = null,
+            [FromQuery] Guid? relatedPatientId = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
-            var query = _dbContext.Set<MstPatientRelationship>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
 
-            if (onlyActive)
-                query = query.Where(x => x.IsActive);
+            var query = BuildBaseQuery();
 
-            if (patientId.HasValue && patientId.Value != Guid.Empty)
-                query = query.Where(x => x.PatientId == patientId.Value);
+            query = ApplyRelationFilter(query, patientId, relatedPatientId);
+            query = ApplyStandardFilter(query, onlyActive ? true : null, search);
 
-            if (relationshipType.HasValue)
-                query = query.Where(x => x.RelationshipType == relationshipType.Value);
+            var totalData = await query.CountAsync();
 
-            if (isEmergencyContact.HasValue)
-                query = query.Where(x => x.IsEmergencyContact == isEmergencyContact.Value);
-
-            if (isResponsiblePerson.HasValue)
-                query = query.Where(x => x.IsResponsiblePerson == isResponsiblePerson.Value);
-
-            if (isLegalGuardian.HasValue)
-                query = query.Where(x => x.IsLegalGuardian == isLegalGuardian.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    (x.RelatedPersonName != null && x.RelatedPersonName.ToLower().Contains(keyword)) ||
-                    (x.RelatedPersonIdentityNumber != null && x.RelatedPersonIdentityNumber.ToLower().Contains(keyword)) ||
-                    (x.RelatedPersonPhoneNumber != null && x.RelatedPersonPhoneNumber.ToLower().Contains(keyword)) ||
-                    (x.RelatedPersonWhatsAppNumber != null && x.RelatedPersonWhatsAppNumber.ToLower().Contains(keyword)) ||
-                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
-                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
-                    (x.RelatedPatient != null && x.RelatedPatient.FullName.ToLower().Contains(keyword)) ||
-                    (x.RelatedPatient != null && x.RelatedPatient.MedicalRecordNumber.ToLower().Contains(keyword)));
-            }
-
-            var data = await query
+            var entities = await query
                 .OrderByDescending(x => x.IsPrimary)
                 .ThenByDescending(x => x.IsResponsiblePerson)
                 .ThenByDescending(x => x.IsEmergencyContact)
                 .ThenBy(x => x.RelationshipType)
                 .ThenBy(x => x.RelatedPersonName ?? (x.RelatedPatient != null ? x.RelatedPatient.FullName : string.Empty))
-                .Select(x => new PatientRelationshipOptionResponse
-                {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                    RelatedPatientId = x.RelatedPatientId,
-                    RelatedPatientName = x.RelatedPatient != null ? x.RelatedPatient.FullName : null,
-                    RelationshipType = x.RelationshipType,
-                    RelationshipTypeName = x.RelationshipType.ToString(),
-                    DisplayName = x.RelatedPatient != null
-                        ? x.RelatedPatient.FullName
-                        : (x.RelatedPersonName ?? string.Empty),
-                    IsPrimary = x.IsPrimary,
-                    IsEmergencyContact = x.IsEmergencyContact,
-                    IsResponsiblePerson = x.IsResponsiblePerson,
-                    IsLegalGuardian = x.IsLegalGuardian
-                })
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<PatientRelationshipOptionResponse>>.Ok(
-                data,
+            var items = entities
+                .Select(MapOptionResponse)
+                .ToList();
+
+            var result = new PatientRelationshipOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<PatientRelationshipOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan patient relationship berhasil diambil."
             ));
         }
@@ -288,50 +275,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientRelationshipDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Patient Relationship", Description = "Melihat data patient relationship", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Relationship",
+            Description = "Melihat detail patient relationship",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientRelationship", "Read")]
         public async Task<IActionResult> GetPatientRelationshipById(Guid id)
         {
-            var data = await _dbContext.Set<MstPatientRelationship>()
-                .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new PatientRelationshipDetailResponse
-                {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    PatientCode = x.Patient != null ? x.Patient.PatientCode : string.Empty,
-                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                    PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                    RelatedPatientId = x.RelatedPatientId,
-                    RelatedPatientCode = x.RelatedPatient != null ? x.RelatedPatient.PatientCode : null,
-                    RelatedPatientMedicalRecordNumber = x.RelatedPatient != null ? x.RelatedPatient.MedicalRecordNumber : null,
-                    RelatedPatientName = x.RelatedPatient != null ? x.RelatedPatient.FullName : null,
-                    RelationshipType = x.RelationshipType,
-                    RelationshipTypeName = x.RelationshipType.ToString(),
-                    RelatedPersonName = x.RelatedPersonName,
-                    RelatedPersonIdentityType = x.RelatedPersonIdentityType,
-                    RelatedPersonIdentityNumber = x.RelatedPersonIdentityNumber,
-                    RelatedPersonPhoneNumber = x.RelatedPersonPhoneNumber,
-                    RelatedPersonWhatsAppNumber = x.RelatedPersonWhatsAppNumber,
-                    RelatedPersonEmail = x.RelatedPersonEmail,
-                    RelatedPersonAddress = x.RelatedPersonAddress,
-                    IsPrimary = x.IsPrimary,
-                    IsEmergencyContact = x.IsEmergencyContact,
-                    IsResponsiblePerson = x.IsResponsiblePerson,
-                    IsLegalGuardian = x.IsLegalGuardian,
-                    Notes = x.Notes,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+            var entity = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (data == null)
+            if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Patient relationship tidak ditemukan."
                 ));
             }
+
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            });
+
+            var data = MapDetailResponse(entity, actorNames);
 
             return Ok(ApiResponse<PatientRelationshipDetailResponse>.Ok(
                 data,
@@ -342,7 +313,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<PatientRelationshipCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [AccessAction("Create", "Create Patient Relationship", Description = "Membuat data patient relationship", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessAction(
+            "Create",
+            "Create Patient Relationship",
+            Description = "Membuat data patient relationship",
+            AccessType = AccessTypes.Create,
+            SortOrder = 2
+        )]
         [AccessPermission("PatientRelationship", "Create")]
         public async Task<IActionResult> CreatePatientRelationship([FromBody] CreatePatientRelationshipRequest request)
         {
@@ -355,6 +332,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 relatedPersonIdentityNumber: request.RelatedPersonIdentityNumber,
                 relatedPersonPhoneNumber: request.RelatedPersonPhoneNumber,
                 relatedPersonWhatsAppNumber: request.RelatedPersonWhatsAppNumber,
+                relatedPersonEmail: request.RelatedPersonEmail,
                 isPrimary: request.IsPrimary,
                 isEmergencyContact: request.IsEmergencyContact,
                 isResponsiblePerson: request.IsResponsiblePerson,
@@ -374,7 +352,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             var normalizedRelatedPatientId = NormalizeNullableGuid(request.RelatedPatientId);
 
             if (request.IsPrimary)
+            {
                 await ResetPrimaryAsync(request.PatientId, null, actorUserId, now);
+            }
 
             var entity = new MstPatientRelationship
             {
@@ -382,18 +362,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 PatientId = request.PatientId,
                 RelatedPatientId = normalizedRelatedPatientId,
                 RelationshipType = request.RelationshipType,
-                RelatedPersonName = NormalizeNullableText(request.RelatedPersonName),
-                RelatedPersonIdentityType = NormalizeNullableText(request.RelatedPersonIdentityType),
-                RelatedPersonIdentityNumber = NormalizeNullableText(request.RelatedPersonIdentityNumber),
-                RelatedPersonPhoneNumber = NormalizeNullableText(request.RelatedPersonPhoneNumber),
-                RelatedPersonWhatsAppNumber = NormalizeNullableText(request.RelatedPersonWhatsAppNumber),
-                RelatedPersonEmail = NormalizeNullableText(request.RelatedPersonEmail),
-                RelatedPersonAddress = NormalizeNullableText(request.RelatedPersonAddress),
+                RelatedPersonName = NormalizeNullableString(request.RelatedPersonName),
+                RelatedPersonIdentityType = NormalizeNullableString(request.RelatedPersonIdentityType),
+                RelatedPersonIdentityNumber = NormalizeNullableString(request.RelatedPersonIdentityNumber),
+                RelatedPersonPhoneNumber = NormalizeNullableString(request.RelatedPersonPhoneNumber),
+                RelatedPersonWhatsAppNumber = NormalizeNullableString(request.RelatedPersonWhatsAppNumber),
+                RelatedPersonEmail = NormalizeLowerNullableString(request.RelatedPersonEmail),
+                RelatedPersonAddress = NormalizeNullableString(request.RelatedPersonAddress),
                 IsPrimary = request.IsPrimary,
                 IsEmergencyContact = request.IsEmergencyContact,
                 IsResponsiblePerson = request.IsResponsiblePerson,
                 IsLegalGuardian = request.IsLegalGuardian,
-                Notes = NormalizeNullableText(request.Notes),
+                Notes = NormalizeNullableString(request.Notes),
                 IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
@@ -410,6 +390,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 PatientId = entity.PatientId,
                 RelatedPatientId = entity.RelatedPatientId,
                 RelationshipType = entity.RelationshipType,
+                RelationshipTypeName = BuildEnumLabel(entity.RelationshipType),
                 RelatedPersonName = entity.RelatedPersonName,
                 IsPrimary = entity.IsPrimary,
                 IsEmergencyContact = entity.IsEmergencyContact,
@@ -417,6 +398,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 IsLegalGuardian = entity.IsLegalGuardian,
                 IsActive = entity.IsActive
             };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientRelationship.CreatePatientRelationship",
+                "Membuat data patient relationship.",
+                response
+            );
 
             return Ok(ApiResponse<PatientRelationshipCreateResponse>.Ok(
                 response,
@@ -428,9 +416,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Patient Relationship", Description = "Mengubah data patient relationship", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction(
+            "Update",
+            "Update Patient Relationship",
+            Description = "Mengubah data patient relationship",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
         [AccessPermission("PatientRelationship", "Update")]
-        public async Task<IActionResult> UpdatePatientRelationship(Guid id, [FromBody] UpdatePatientRelationshipRequest request)
+        public async Task<IActionResult> UpdatePatientRelationship(
+            Guid id,
+            [FromBody] UpdatePatientRelationshipRequest request)
         {
             var entity = await _dbContext.Set<MstPatientRelationship>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -452,6 +448,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 relatedPersonIdentityNumber: request.RelatedPersonIdentityNumber,
                 relatedPersonPhoneNumber: request.RelatedPersonPhoneNumber,
                 relatedPersonWhatsAppNumber: request.RelatedPersonWhatsAppNumber,
+                relatedPersonEmail: request.RelatedPersonEmail,
                 isPrimary: request.IsPrimary,
                 isEmergencyContact: request.IsEmergencyContact,
                 isResponsiblePerson: request.IsResponsiblePerson,
@@ -470,28 +467,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             var actorUserId = GetCurrentUserId();
 
             if (request.IsPrimary)
+            {
                 await ResetPrimaryAsync(request.PatientId, id, actorUserId, now);
+            }
 
             entity.PatientId = request.PatientId;
             entity.RelatedPatientId = NormalizeNullableGuid(request.RelatedPatientId);
             entity.RelationshipType = request.RelationshipType;
-            entity.RelatedPersonName = NormalizeNullableText(request.RelatedPersonName);
-            entity.RelatedPersonIdentityType = NormalizeNullableText(request.RelatedPersonIdentityType);
-            entity.RelatedPersonIdentityNumber = NormalizeNullableText(request.RelatedPersonIdentityNumber);
-            entity.RelatedPersonPhoneNumber = NormalizeNullableText(request.RelatedPersonPhoneNumber);
-            entity.RelatedPersonWhatsAppNumber = NormalizeNullableText(request.RelatedPersonWhatsAppNumber);
-            entity.RelatedPersonEmail = NormalizeNullableText(request.RelatedPersonEmail);
-            entity.RelatedPersonAddress = NormalizeNullableText(request.RelatedPersonAddress);
+            entity.RelatedPersonName = NormalizeNullableString(request.RelatedPersonName);
+            entity.RelatedPersonIdentityType = NormalizeNullableString(request.RelatedPersonIdentityType);
+            entity.RelatedPersonIdentityNumber = NormalizeNullableString(request.RelatedPersonIdentityNumber);
+            entity.RelatedPersonPhoneNumber = NormalizeNullableString(request.RelatedPersonPhoneNumber);
+            entity.RelatedPersonWhatsAppNumber = NormalizeNullableString(request.RelatedPersonWhatsAppNumber);
+            entity.RelatedPersonEmail = NormalizeLowerNullableString(request.RelatedPersonEmail);
+            entity.RelatedPersonAddress = NormalizeNullableString(request.RelatedPersonAddress);
             entity.IsPrimary = request.IsPrimary;
             entity.IsEmergencyContact = request.IsEmergencyContact;
             entity.IsResponsiblePerson = request.IsResponsiblePerson;
             entity.IsLegalGuardian = request.IsLegalGuardian;
-            entity.Notes = NormalizeNullableText(request.Notes);
+            entity.Notes = NormalizeNullableString(request.Notes);
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientRelationship.UpdatePatientRelationship",
+                "Mengubah data patient relationship.",
+                new
+                {
+                    entity.Id,
+                    entity.PatientId,
+                    entity.RelatedPatientId,
+                    entity.RelationshipType,
+                    entity.IsActive
+                }
+            );
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -499,12 +512,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
-        [HttpDelete("{id:guid}")]
+        [HttpPatch("{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Delete", "Delete Patient Relationship", Description = "Menghapus data patient relationship", AccessType = AccessTypes.Delete, SortOrder = 4)]
-        [AccessPermission("PatientRelationship", "Delete")]
-        public async Task<IActionResult> DeletePatientRelationship(Guid id)
+        [AccessAction(
+            "Update",
+            "Update Patient Relationship Status",
+            Description = "Mengubah status patient relationship",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
+        [AccessPermission("PatientRelationship", "Update")]
+        public async Task<IActionResult> UpdatePatientRelationshipStatus(
+            Guid id,
+            [FromBody] UpdatePatientRelationshipStatusRequest request)
         {
             var entity = await _dbContext.Set<MstPatientRelationship>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -517,10 +538,62 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(ApiResponse<object>.Ok(
+                null,
+                "Status patient relationship berhasil diperbarui."
+            ));
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Delete",
+            "Delete Patient Relationship",
+            Description = "Menghapus data patient relationship",
+            AccessType = AccessTypes.Delete,
+            SortOrder = 4
+        )]
+        [AccessPermission("PatientRelationship", "Delete")]
+        public async Task<IActionResult> DeletePatientRelationship(
+            Guid id,
+            [FromBody] DeletePatientRelationshipRequest? request = null)
+        {
+            var entity = await _dbContext.Set<MstPatientRelationship>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Patient relationship tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsDelete = true;
             entity.IsActive = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.IsPrimary = false;
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+            {
+                entity.Notes = request.DeleteReason.Trim();
+            }
 
             await _dbContext.SaveChangesAsync();
 
@@ -530,21 +603,112 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
-        private static IQueryable<MstPatientRelationship> ApplyFilters(
-            IQueryable<MstPatientRelationship> query,
-            string? search,
-            Guid? patientId,
-            Guid? relatedPatientId,
-            PatientRelationshipType? relationshipType,
-            bool? isPrimary,
-            bool? isEmergencyContact,
-            bool? isResponsiblePerson,
-            bool? isLegalGuardian,
-            bool? isActive)
+        private IQueryable<MstPatientRelationship> BuildBaseQuery()
         {
+            return _dbContext.Set<MstPatientRelationship>()
+                .AsNoTracking()
+                .Include(x => x.Patient)
+                .Include(x => x.RelatedPatient)
+                .Where(x => !x.IsDelete);
+        }
+
+        private static IQueryable<MstPatientRelationship> ApplyDateFilter(
+            IQueryable<MstPatientRelationship> query,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            if (startDate.HasValue)
+            {
+                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime >= start);
+            }
+
+            if (endDate.HasValue)
+            {
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime < end);
+            }
+
+            if (!startDate.HasValue &&
+                !endDate.HasValue &&
+                !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var today = DateTime.UtcNow.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today &&
+                            x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "last7days":
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today.AddDays(-6) &&
+                            x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        query = query.Where(x =>
+                            x.CreateDateTime >= thisMonthStart &&
+                            x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        break;
+
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+                        query = query.Where(x =>
+                            x.CreateDateTime >= lastMonthStart &&
+                            x.CreateDateTime < currentMonthStart);
+                        break;
+                }
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstPatientRelationship> ApplyRelationFilter(
+            IQueryable<MstPatientRelationship> query,
+            Guid? patientId,
+            Guid? relatedPatientId)
+        {
+            var normalizedPatientId = NormalizeNullableGuid(patientId);
+            if (normalizedPatientId.HasValue)
+            {
+                query = query.Where(x => x.PatientId == normalizedPatientId.Value);
+            }
+
+            var normalizedRelatedPatientId = NormalizeNullableGuid(relatedPatientId);
+            if (normalizedRelatedPatientId.HasValue)
+            {
+                query = query.Where(x => x.RelatedPatientId == normalizedRelatedPatientId.Value);
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstPatientRelationship> ApplyStandardFilter(
+            IQueryable<MstPatientRelationship> query,
+            bool? isActive,
+            string? search)
+        {
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
+
+                var matchedRelationshipTypes = Enum.GetValues<PatientRelationshipType>()
+                    .Where(x =>
+                        x.ToString().ToLower().Contains(keyword) ||
+                        BuildEnumLabel(x).ToLower().Contains(keyword))
+                    .ToList();
 
                 query = query.Where(x =>
                     (x.RelatedPersonName != null && x.RelatedPersonName.ToLower().Contains(keyword)) ||
@@ -558,34 +722,74 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
                     (x.RelatedPatient != null && x.RelatedPatient.PatientCode.ToLower().Contains(keyword)) ||
                     (x.RelatedPatient != null && x.RelatedPatient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
-                    (x.RelatedPatient != null && x.RelatedPatient.FullName.ToLower().Contains(keyword)));
+                    (x.RelatedPatient != null && x.RelatedPatient.FullName.ToLower().Contains(keyword)) ||
+                    matchedRelationshipTypes.Contains(x.RelationshipType));
             }
 
-            if (patientId.HasValue && patientId.Value != Guid.Empty)
-                query = query.Where(x => x.PatientId == patientId.Value);
-
-            if (relatedPatientId.HasValue && relatedPatientId.Value != Guid.Empty)
-                query = query.Where(x => x.RelatedPatientId == relatedPatientId.Value);
-
-            if (relationshipType.HasValue)
-                query = query.Where(x => x.RelationshipType == relationshipType.Value);
-
-            if (isPrimary.HasValue)
-                query = query.Where(x => x.IsPrimary == isPrimary.Value);
-
-            if (isEmergencyContact.HasValue)
-                query = query.Where(x => x.IsEmergencyContact == isEmergencyContact.Value);
-
-            if (isResponsiblePerson.HasValue)
-                query = query.Where(x => x.IsResponsiblePerson == isResponsiblePerson.Value);
-
-            if (isLegalGuardian.HasValue)
-                query = query.Where(x => x.IsLegalGuardian == isLegalGuardian.Value);
-
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
-
             return query;
+        }
+
+        private static IOrderedQueryable<MstPatientRelationship> ApplySorting(
+            IQueryable<MstPatientRelationship> query,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var isDescending = string.Equals(
+                sortDirection,
+                "desc",
+                StringComparison.OrdinalIgnoreCase
+            );
+
+            return (sortBy ?? "createDateTime").Trim().ToLowerInvariant() switch
+            {
+                "updatedatetime" => isDescending
+                    ? query.OrderByDescending(x => x.UpdateDateTime).ThenByDescending(x => x.CreateDateTime)
+                    : query.OrderBy(x => x.UpdateDateTime).ThenBy(x => x.CreateDateTime),
+
+                "patientname" => isDescending
+                    ? query.OrderByDescending(x => x.Patient != null ? x.Patient.FullName : string.Empty)
+                    : query.OrderBy(x => x.Patient != null ? x.Patient.FullName : string.Empty),
+
+                "medicalrecordnumber" => isDescending
+                    ? query.OrderByDescending(x => x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty)
+                    : query.OrderBy(x => x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty),
+
+                "relatedpatientname" => isDescending
+                    ? query.OrderByDescending(x => x.RelatedPatient != null ? x.RelatedPatient.FullName : string.Empty)
+                    : query.OrderBy(x => x.RelatedPatient != null ? x.RelatedPatient.FullName : string.Empty),
+
+                "relationshiptype" => isDescending
+                    ? query.OrderByDescending(x => x.RelationshipType).ThenBy(x => x.RelatedPersonName)
+                    : query.OrderBy(x => x.RelationshipType).ThenBy(x => x.RelatedPersonName),
+
+                "relatedpersonname" => isDescending
+                    ? query.OrderByDescending(x => x.RelatedPersonName)
+                    : query.OrderBy(x => x.RelatedPersonName),
+
+                "isprimary" => isDescending
+                    ? query.OrderByDescending(x => x.IsPrimary).ThenBy(x => x.RelatedPersonName)
+                    : query.OrderBy(x => x.IsPrimary).ThenBy(x => x.RelatedPersonName),
+
+                "isemergencycontact" => isDescending
+                    ? query.OrderByDescending(x => x.IsEmergencyContact).ThenBy(x => x.RelatedPersonName)
+                    : query.OrderBy(x => x.IsEmergencyContact).ThenBy(x => x.RelatedPersonName),
+
+                "isresponsibleperson" => isDescending
+                    ? query.OrderByDescending(x => x.IsResponsiblePerson).ThenBy(x => x.RelatedPersonName)
+                    : query.OrderBy(x => x.IsResponsiblePerson).ThenBy(x => x.RelatedPersonName),
+
+                "islegalguardian" => isDescending
+                    ? query.OrderByDescending(x => x.IsLegalGuardian).ThenBy(x => x.RelatedPersonName)
+                    : query.OrderBy(x => x.IsLegalGuardian).ThenBy(x => x.RelatedPersonName),
+
+                "isactive" => isDescending
+                    ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.RelatedPersonName)
+                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.RelatedPersonName),
+
+                _ => isDescending
+                    ? query.OrderByDescending(x => x.CreateDateTime).ThenByDescending(x => x.RelatedPersonName)
+                    : query.OrderBy(x => x.CreateDateTime).ThenBy(x => x.RelatedPersonName)
+            };
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
@@ -597,32 +801,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             string? relatedPersonIdentityNumber,
             string? relatedPersonPhoneNumber,
             string? relatedPersonWhatsAppNumber,
+            string? relatedPersonEmail,
             bool isPrimary,
             bool isEmergencyContact,
             bool isResponsiblePerson,
             bool isLegalGuardian)
         {
             if (patientId == Guid.Empty)
+            {
                 return (false, "Pasien wajib dipilih.");
+            }
+
+            if (!Enum.IsDefined(typeof(PatientRelationshipType), relationshipType))
+            {
+                return (false, "Tipe relasi pasien tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (relationshipType == PatientRelationshipType.Unknown)
+            {
+                return (false, "Tipe relasi pasien wajib dipilih.");
+            }
 
             var patientExists = await _dbContext.Set<MstPatient>()
+                .AsNoTracking()
                 .AnyAsync(x => x.Id == patientId && x.IsActive && !x.IsDelete);
 
             if (!patientExists)
+            {
                 return (false, "Pasien tidak valid atau tidak aktif.");
+            }
 
             var normalizedRelatedPatientId = NormalizeNullableGuid(relatedPatientId);
 
             if (normalizedRelatedPatientId.HasValue)
             {
                 if (normalizedRelatedPatientId.Value == patientId)
+                {
                     return (false, "Pasien terkait tidak boleh sama dengan pasien utama.");
+                }
 
                 var relatedPatientExists = await _dbContext.Set<MstPatient>()
+                    .AsNoTracking()
                     .AnyAsync(x => x.Id == normalizedRelatedPatientId.Value && x.IsActive && !x.IsDelete);
 
                 if (!relatedPatientExists)
+                {
                     return (false, "Pasien terkait tidak valid atau tidak aktif.");
+                }
             }
 
             var hasFreeTextRelatedPerson =
@@ -632,13 +857,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 !string.IsNullOrWhiteSpace(relatedPersonWhatsAppNumber);
 
             if (!normalizedRelatedPatientId.HasValue && !hasFreeTextRelatedPerson)
-                return (false, "Isi pasien terkait atau minimal nama/identitas/nomor kontak relasi.");
-
-            if (relationshipType == PatientRelationshipType.Unknown)
-                return (false, "Tipe relasi pasien wajib dipilih.");
+            {
+                return (false, "Isi pasien terkait atau minimal nama, identitas, atau nomor kontak relasi.");
+            }
 
             if (isLegalGuardian && !isResponsiblePerson)
-                return (false, "Wali hukum sebaiknya juga ditandai sebagai penanggung jawab.");
+            {
+                return (false, "Wali hukum harus ditandai sebagai penanggung jawab.");
+            }
 
             if (isEmergencyContact &&
                 string.IsNullOrWhiteSpace(relatedPersonPhoneNumber) &&
@@ -648,11 +874,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 return (false, "Kontak darurat wajib memiliki nomor telepon, WhatsApp, atau terhubung ke pasien terkait.");
             }
 
+            if (!string.IsNullOrWhiteSpace(relatedPersonEmail) && !relatedPersonEmail.Contains('@'))
+            {
+                return (false, "Format email relasi pasien tidak valid.");
+            }
+
             if (!string.IsNullOrWhiteSpace(relatedPersonIdentityNumber))
             {
                 var normalizedIdentityNumber = relatedPersonIdentityNumber.Trim().ToLower();
 
                 var duplicateIdentity = await _dbContext.Set<MstPatientRelationship>()
+                    .AsNoTracking()
                     .AnyAsync(x =>
                         !x.IsDelete &&
                         x.PatientId == patientId &&
@@ -661,12 +893,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         (!excludeId.HasValue || x.Id != excludeId.Value));
 
                 if (duplicateIdentity)
+                {
                     return (false, "Nomor identitas relasi pasien sudah digunakan pada pasien ini.");
+                }
             }
 
             if (normalizedRelatedPatientId.HasValue)
             {
                 var duplicateRelatedPatient = await _dbContext.Set<MstPatientRelationship>()
+                    .AsNoTracking()
                     .AnyAsync(x =>
                         !x.IsDelete &&
                         x.PatientId == patientId &&
@@ -675,21 +910,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         (!excludeId.HasValue || x.Id != excludeId.Value));
 
                 if (duplicateRelatedPatient)
+                {
                     return (false, "Relasi pasien terkait dengan tipe relasi tersebut sudah ada.");
+                }
             }
 
             return (true, null);
         }
 
-        private async Task ResetPrimaryAsync(Guid patientId, Guid? excludeId, Guid actorUserId, DateTime now)
+        private async Task ResetPrimaryAsync(
+            Guid patientId,
+            Guid? excludeId,
+            Guid actorUserId,
+            DateTime now)
         {
-            var existingPrimaryRelationships = await _dbContext.Set<MstPatientRelationship>()
+            var query = _dbContext.Set<MstPatientRelationship>()
                 .Where(x =>
                     !x.IsDelete &&
                     x.PatientId == patientId &&
-                    x.IsPrimary &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value))
-                .ToListAsync();
+                    x.IsPrimary);
+
+            if (excludeId.HasValue)
+            {
+                query = query.Where(x => x.Id != excludeId.Value);
+            }
+
+            var existingPrimaryRelationships = await query.ToListAsync();
 
             foreach (var item in existingPrimaryRelationships)
             {
@@ -699,62 +945,135 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             }
         }
 
-        private static IQueryable<MstPatientRelationship> ApplySorting(
-            IQueryable<MstPatientRelationship> query,
-            string? sortBy,
-            string? sortDirection)
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(
+            IEnumerable<Guid> actorIds)
         {
-            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
 
-            return (sortBy ?? "createDateTime").ToLowerInvariant() switch
+            if (!ids.Any())
             {
-                "patientname" => isDesc
-                    ? query.OrderByDescending(x => x.Patient != null ? x.Patient.FullName : "")
-                    : query.OrderBy(x => x.Patient != null ? x.Patient.FullName : ""),
+                return new Dictionary<Guid, string?>();
+            }
 
-                "medicalrecordnumber" => isDesc
-                    ? query.OrderByDescending(x => x.Patient != null ? x.Patient.MedicalRecordNumber : "")
-                    : query.OrderBy(x => x.Patient != null ? x.Patient.MedicalRecordNumber : ""),
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
 
-                "relatedpatientname" => isDesc
-                    ? query.OrderByDescending(x => x.RelatedPatient != null ? x.RelatedPatient.FullName : "")
-                    : query.OrderBy(x => x.RelatedPatient != null ? x.RelatedPatient.FullName : ""),
-
-                "relationshiptype" => isDesc
-                    ? query.OrderByDescending(x => x.RelationshipType)
-                    : query.OrderBy(x => x.RelationshipType),
-
-                "relatedpersonname" => isDesc
-                    ? query.OrderByDescending(x => x.RelatedPersonName)
-                    : query.OrderBy(x => x.RelatedPersonName),
-
-                "isprimary" => isDesc
-                    ? query.OrderByDescending(x => x.IsPrimary)
-                    : query.OrderBy(x => x.IsPrimary),
-
-                "isemergencycontact" => isDesc
-                    ? query.OrderByDescending(x => x.IsEmergencyContact)
-                    : query.OrderBy(x => x.IsEmergencyContact),
-
-                "isresponsibleperson" => isDesc
-                    ? query.OrderByDescending(x => x.IsResponsiblePerson)
-                    : query.OrderBy(x => x.IsResponsiblePerson),
-
-                "islegalguardian" => isDesc
-                    ? query.OrderByDescending(x => x.IsLegalGuardian)
-                    : query.OrderBy(x => x.IsLegalGuardian),
-
-                "isactive" => isDesc
-                    ? query.OrderByDescending(x => x.IsActive)
-                    : query.OrderBy(x => x.IsActive),
-
-                _ => isDesc
-                    ? query.OrderByDescending(x => x.CreateDateTime)
-                    : query.OrderBy(x => x.CreateDateTime)
+        private static PatientRelationshipResponse MapResponse(
+            MstPatientRelationship entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new PatientRelationshipResponse
+            {
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientCode = entity.Patient?.PatientCode ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                RelatedPatientId = entity.RelatedPatientId,
+                RelatedPatientCode = entity.RelatedPatient?.PatientCode,
+                RelatedPatientMedicalRecordNumber = entity.RelatedPatient?.MedicalRecordNumber,
+                RelatedPatientName = entity.RelatedPatient?.FullName,
+                RelationshipType = entity.RelationshipType,
+                RelationshipTypeName = BuildEnumLabel(entity.RelationshipType),
+                RelatedPersonName = entity.RelatedPersonName,
+                RelatedPersonIdentityType = entity.RelatedPersonIdentityType,
+                RelatedPersonIdentityNumber = entity.RelatedPersonIdentityNumber,
+                RelatedPersonPhoneNumber = entity.RelatedPersonPhoneNumber,
+                RelatedPersonWhatsAppNumber = entity.RelatedPersonWhatsAppNumber,
+                RelatedPersonEmail = entity.RelatedPersonEmail,
+                IsPrimary = entity.IsPrimary,
+                IsEmergencyContact = entity.IsEmergencyContact,
+                IsResponsiblePerson = entity.IsResponsiblePerson,
+                IsLegalGuardian = entity.IsLegalGuardian,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
         }
 
-        private static List<PatientRelationshipEnumOptionResponse> BuildEnumOptions<TEnum>() where TEnum : Enum
+        private static PatientRelationshipDetailResponse MapDetailResponse(
+            MstPatientRelationship entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            var response = new PatientRelationshipDetailResponse
+            {
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientCode = entity.Patient?.PatientCode ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                RelatedPatientId = entity.RelatedPatientId,
+                RelatedPatientCode = entity.RelatedPatient?.PatientCode,
+                RelatedPatientMedicalRecordNumber = entity.RelatedPatient?.MedicalRecordNumber,
+                RelatedPatientName = entity.RelatedPatient?.FullName,
+                RelationshipType = entity.RelationshipType,
+                RelationshipTypeName = BuildEnumLabel(entity.RelationshipType),
+                RelatedPersonName = entity.RelatedPersonName,
+                RelatedPersonIdentityType = entity.RelatedPersonIdentityType,
+                RelatedPersonIdentityNumber = entity.RelatedPersonIdentityNumber,
+                RelatedPersonPhoneNumber = entity.RelatedPersonPhoneNumber,
+                RelatedPersonWhatsAppNumber = entity.RelatedPersonWhatsAppNumber,
+                RelatedPersonEmail = entity.RelatedPersonEmail,
+                RelatedPersonAddress = entity.RelatedPersonAddress,
+                IsPrimary = entity.IsPrimary,
+                IsEmergencyContact = entity.IsEmergencyContact,
+                IsResponsiblePerson = entity.IsResponsiblePerson,
+                IsLegalGuardian = entity.IsLegalGuardian,
+                Notes = entity.Notes,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+
+            return response;
+        }
+
+        private static PatientRelationshipOptionResponse MapOptionResponse(MstPatientRelationship entity)
+        {
+            var displayName = entity.RelatedPatient?.FullName ?? entity.RelatedPersonName ?? string.Empty;
+
+            return new PatientRelationshipOptionResponse
+            {
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                RelatedPatientId = entity.RelatedPatientId,
+                RelatedPatientName = entity.RelatedPatient?.FullName,
+                RelationshipType = entity.RelationshipType,
+                RelationshipTypeName = BuildEnumLabel(entity.RelationshipType),
+                DisplayName = displayName,
+                IsPrimary = entity.IsPrimary,
+                IsEmergencyContact = entity.IsEmergencyContact,
+                IsResponsiblePerson = entity.IsResponsiblePerson,
+                IsLegalGuardian = entity.IsLegalGuardian
+            };
+        }
+
+        private static List<PatientRelationshipEnumOptionResponse> BuildEnumOptions<TEnum>()
+            where TEnum : Enum
         {
             return Enum.GetValues(typeof(TEnum))
                 .Cast<TEnum>()
@@ -762,9 +1081,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 {
                     Value = Convert.ToInt32(x),
                     Name = x.ToString(),
-                    Label = SplitPascalCase(x.ToString())
+                    Label = BuildEnumLabel(x)
                 })
                 .ToList();
+        }
+
+        private static string BuildEnumLabel<TEnum>(TEnum value)
+            where TEnum : Enum
+        {
+            return SplitPascalCase(value.ToString());
         }
 
         private static string SplitPascalCase(string value)
@@ -773,37 +1098,75 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
         }
 
-        private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 25;
-            if (pageSize > 100) pageSize = 100;
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
+        }
+
+        private static (int PageNumber, int PageSize) NormalizePaging(
+            int pageNumber,
+            int pageSize)
+        {
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 25;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
 
             return (pageNumber, pageSize);
         }
 
-        private Guid GetCurrentUserId()
-        {
-            var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            return Guid.TryParse(userIdText, out var userId)
-                ? userId
-                : Guid.Empty;
-        }
-
-        private static string? NormalizeNullableText(string? value)
+        private static string? NormalizeNullableString(string? value)
         {
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
         }
 
+        private static string? NormalizeLowerNullableString(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value.Trim().ToLowerInvariant();
+        }
+
         private static Guid? NormalizeNullableGuid(Guid? value)
         {
             if (!value.HasValue || value.Value == Guid.Empty)
+            {
                 return null;
+            }
 
             return value.Value;
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var userIdValue =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("user_id");
+
+            return Guid.TryParse(userIdValue, out var userId)
+                ? userId
+                : Guid.Empty;
         }
     }
 }

@@ -20,18 +20,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
     [Authorize]
     [Route("api/v1/health-services/patient-management/master-data/patient-identity-documents")]
     [AccessController(
-        moduleCode: "HEALTH_SERVICE_PATIENT_MANAGEMENT",
-        moduleName: "Health Service Patient Management",
+        moduleCode: "HEALTH_SERVICE_PATIENT_MANAGEMENT_MASTER_DATA",
+        moduleName: "Health Service Patient Management Master Data",
         displayName: "Patient Identity Document",
         AreaName = "HealthServices",
         ControllerName = "PatientIdentityDocument",
         Description = "Health service patient management master data patient identity document",
-        SortOrder = 2
+        SortOrder = 15
     )]
-    [Tags("Health Services / Patient Management / Patient Identity Document")]
+    [Tags("Health Services / Patient Management / Master Data / Patient Identity Document")]
     public class PatientIdentityDocumentController : ControllerBase
     {
-        private const string LogCategory = "HealthServices.PatientManagement";
+        private const string LogCategory = "HealthServices.PatientManagement.MasterData";
+
+        private static readonly List<string> CommonIdentityTypes = new()
+        {
+            "KTP",
+            "NIK",
+            "KIA",
+            "Passport",
+            "SIM",
+            "BirthCertificate",
+            "StudentCard",
+            "Other"
+        };
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -46,16 +58,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<PatientIdentityDocumentFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Identity Document", Description = "Melihat data patient identity document", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Identity Document",
+            Description = "Melihat metadata filter patient identity document",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientIdentityDocument", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new PatientIdentityDocumentFilterMetadataResponse
             {
                 DefaultFilter = new PatientIdentityDocumentDefaultFilterResponse(),
+                CustomPeriods = new List<PatientIdentityDocumentCustomPeriodOptionResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "lastmonth", Label = "Bulan lalu" }
+                },
+                RelationFilters = new List<PatientIdentityDocumentRelationFilterResponse>
+                {
+                    new()
+                    {
+                        Value = "patientId",
+                        Label = "Patient",
+                        Endpoint = "/api/v1/health-services/patient-management/master-data/patients/options"
+                    }
+                },
                 SortOptions = new List<PatientIdentityDocumentSortOptionResponse>
                 {
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "updateDateTime", Label = "Tanggal diperbarui" },
                     new() { Value = "patientName", Label = "Nama pasien" },
                     new() { Value = "medicalRecordNumber", Label = "Nomor rekam medis" },
                     new() { Value = "identityType", Label = "Tipe identitas" },
@@ -65,21 +100,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     new() { Value = "expiredDate", Label = "Tanggal kedaluwarsa" },
                     new() { Value = "isPrimary", Label = "Dokumen utama" },
                     new() { Value = "isVerified", Label = "Status verifikasi" },
+                    new() { Value = "isFromKioskScan", Label = "Kiosk scan" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                CommonIdentityTypes = new List<string>
-                {
-                    "KTP",
-                    "NIK",
-                    "KIA",
-                    "Passport",
-                    "SIM",
-                    "BirthCertificate",
-                    "StudentCard",
-                    "Other"
-                }
+                CommonIdentityTypes = CommonIdentityTypes,
+                ResetButtonLabel = "Reset"
             };
 
             await _loggerService.InfoAsync(
@@ -97,18 +124,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<PatientIdentityDocumentSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Identity Document", Description = "Melihat data patient identity document", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Identity Document",
+            Description = "Melihat ringkasan patient identity document",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientIdentityDocument", "Read")]
-        public async Task<IActionResult> GetSummary([FromQuery] Guid? patientId)
+        public async Task<IActionResult> GetSummary()
         {
             var today = DateTime.UtcNow.Date;
-
-            var query = _dbContext.Set<MstPatientIdentityDocument>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
-
-            if (patientId.HasValue && patientId.Value != Guid.Empty)
-                query = query.Where(x => x.PatientId == patientId.Value);
+            var query = BuildBaseQuery();
 
             var result = new PatientIdentityDocumentSummaryResponse
             {
@@ -119,7 +146,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 VerifiedDocument = await query.CountAsync(x => x.IsVerified),
                 UnverifiedDocument = await query.CountAsync(x => !x.IsVerified),
                 FromKioskScanDocument = await query.CountAsync(x => x.IsFromKioskScan),
-                ExpiredDocument = await query.CountAsync(x => x.ExpiredDate.HasValue && x.ExpiredDate.Value.Date < today)
+                ExpiredDocument = await query.CountAsync(x =>
+                    x.ExpiredDate.HasValue &&
+                    x.ExpiredDate.Value.Date < today),
+                WithFileDocument = await query.CountAsync(x =>
+                    x.FilePath != null &&
+                    x.FilePath != string.Empty)
             };
 
             return Ok(ApiResponse<PatientIdentityDocumentSummaryResponse>.Ok(
@@ -130,18 +162,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientIdentityDocumentPagedResult>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Identity Document", Description = "Melihat data patient identity document", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Identity Document",
+            Description = "Melihat data patient identity document",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientIdentityDocument", "Read")]
         public async Task<IActionResult> GetPatientIdentityDocuments(
-            [FromQuery] string? search,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? patientId,
-            [FromQuery] string? identityType,
-            [FromQuery] bool? isPrimary,
-            [FromQuery] bool? isVerified,
-            [FromQuery] bool? isFromKioskScan,
             [FromQuery] bool? isActive,
-            [FromQuery] DateTime? expiredFrom,
-            [FromQuery] DateTime? expiredTo,
+            [FromQuery] string? search,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -151,52 +186,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.Set<MstPatientIdentityDocument>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery();
 
-            query = ApplyFilters(
-                query,
-                search,
-                patientId,
-                identityType,
-                isPrimary,
-                isVerified,
-                isFromKioskScan,
-                isActive,
-                expiredFrom,
-                expiredTo
-            );
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyRelationFilter(query, patientId);
+            query = ApplyStandardFilter(query, isActive, search);
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new PatientIdentityDocumentResponse
-                {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    PatientCode = x.Patient != null ? x.Patient.PatientCode : string.Empty,
-                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                    PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                    IdentityType = x.IdentityType,
-                    IdentityNumber = x.IdentityNumber,
-                    DocumentName = x.DocumentName,
-                    FilePath = x.FilePath,
-                    FileContentType = x.FileContentType,
-                    IssuedBy = x.IssuedBy,
-                    IssueDate = x.IssueDate,
-                    ExpiredDate = x.ExpiredDate,
-                    IsPrimary = x.IsPrimary,
-                    IsVerified = x.IsVerified,
-                    VerifiedByUserId = x.VerifiedByUserId,
-                    VerifiedAt = x.VerifiedAt,
-                    IsFromKioskScan = x.IsFromKioskScan,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
                 .ToListAsync();
+
+            var actorIds = entities
+                .SelectMany(x => new[] { x.CreateBy, x.UpdateBy })
+                .Concat(entities
+                    .Where(x => x.VerifiedByUserId.HasValue)
+                    .Select(x => x.VerifiedByUserId!.Value));
+
+            var actorNames = await GetActorNameMapAsync(actorIds);
+
+            var items = entities
+                .Select(x => MapResponse(x, actorNames))
+                .ToList();
 
             var result = new ResponsePatientIdentityDocumentPagedResult
             {
@@ -214,73 +227,62 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("options")]
-        [ProducesResponseType(typeof(ApiResponse<List<PatientIdentityDocumentOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Identity Document", Description = "Melihat data patient identity document", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [ProducesResponseType(typeof(ApiResponse<PatientIdentityDocumentOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction(
+            "Read",
+            "Read Patient Identity Document",
+            Description = "Melihat data pilihan patient identity document",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientIdentityDocument", "Read")]
         public async Task<IActionResult> GetPatientIdentityDocumentOptions(
-            [FromQuery] Guid? patientId,
-            [FromQuery] string? identityType,
-            [FromQuery] bool? isPrimary,
-            [FromQuery] bool? isVerified,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null)
+            [FromQuery] Guid? patientId = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
-            var query = _dbContext.Set<MstPatientIdentityDocument>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
 
-            if (onlyActive)
-                query = query.Where(x => x.IsActive);
+            var query = BuildBaseQuery();
 
-            if (patientId.HasValue && patientId.Value != Guid.Empty)
-                query = query.Where(x => x.PatientId == patientId.Value);
+            query = ApplyRelationFilter(query, patientId);
+            query = ApplyStandardFilter(
+                query,
+                onlyActive ? true : null,
+                search
+            );
 
-            if (!string.IsNullOrWhiteSpace(identityType))
-            {
-                var normalizedType = identityType.Trim().ToLower();
-                query = query.Where(x => x.IdentityType.ToLower() == normalizedType);
-            }
+            var totalData = await query.CountAsync();
 
-            if (isPrimary.HasValue)
-                query = query.Where(x => x.IsPrimary == isPrimary.Value);
-
-            if (isVerified.HasValue)
-                query = query.Where(x => x.IsVerified == isVerified.Value);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.IdentityType.ToLower().Contains(keyword) ||
-                    x.IdentityNumber.ToLower().Contains(keyword) ||
-                    (x.DocumentName != null && x.DocumentName.ToLower().Contains(keyword)) ||
-                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
-                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)));
-            }
-
-            var data = await query
+            var entities = await query
                 .OrderByDescending(x => x.IsPrimary)
                 .ThenByDescending(x => x.IsVerified)
+                .ThenBy(x => x.Patient != null ? x.Patient.FullName : string.Empty)
                 .ThenBy(x => x.IdentityType)
                 .ThenBy(x => x.IdentityNumber)
-                .Take(100)
-                .Select(x => new PatientIdentityDocumentOptionResponse
-                {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                    IdentityType = x.IdentityType,
-                    IdentityNumber = x.IdentityNumber,
-                    DocumentName = x.DocumentName,
-                    IsPrimary = x.IsPrimary,
-                    IsVerified = x.IsVerified
-                })
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            return Ok(ApiResponse<List<PatientIdentityDocumentOptionResponse>>.Ok(
-                data,
+            var items = entities
+                .Select(MapOptionResponse)
+                .ToList();
+
+            var result = new PatientIdentityDocumentOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<PatientIdentityDocumentOptionPagedResponse>.Ok(
+                result,
                 "Data pilihan patient identity document berhasil diambil."
             ));
         }
@@ -288,46 +290,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientIdentityDocumentDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Patient Identity Document", Description = "Melihat data patient identity document", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction(
+            "Read",
+            "Read Patient Identity Document",
+            Description = "Melihat detail patient identity document",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
         [AccessPermission("PatientIdentityDocument", "Read")]
         public async Task<IActionResult> GetPatientIdentityDocumentById(Guid id)
         {
-            var data = await _dbContext.Set<MstPatientIdentityDocument>()
-                .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => new PatientIdentityDocumentDetailResponse
-                {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    PatientCode = x.Patient != null ? x.Patient.PatientCode : string.Empty,
-                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
-                    PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                    IdentityType = x.IdentityType,
-                    IdentityNumber = x.IdentityNumber,
-                    DocumentName = x.DocumentName,
-                    FilePath = x.FilePath,
-                    FileContentType = x.FileContentType,
-                    IssuedBy = x.IssuedBy,
-                    IssueDate = x.IssueDate,
-                    ExpiredDate = x.ExpiredDate,
-                    IsPrimary = x.IsPrimary,
-                    IsVerified = x.IsVerified,
-                    VerifiedByUserId = x.VerifiedByUserId,
-                    VerifiedAt = x.VerifiedAt,
-                    VerificationNote = x.VerificationNote,
-                    IsFromKioskScan = x.IsFromKioskScan,
-                    IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
-                })
-                .FirstOrDefaultAsync();
+            var entity = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
 
-            if (data == null)
+            if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Patient identity document tidak ditemukan."
                 ));
             }
+
+            var actorIds = new List<Guid>
+            {
+                entity.CreateBy,
+                entity.UpdateBy
+            };
+
+            if (entity.VerifiedByUserId.HasValue)
+            {
+                actorIds.Add(entity.VerifiedByUserId.Value);
+            }
+
+            var actorNames = await GetActorNameMapAsync(actorIds);
+
+            var data = MapDetailResponse(entity, actorNames);
+
+            NormalizeActorInfo(data);
 
             return Ok(ApiResponse<PatientIdentityDocumentDetailResponse>.Ok(
                 data,
@@ -337,17 +336,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<PatientIdentityDocumentCreateResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Create", "Create Patient Identity Document", Description = "Membuat data patient identity document", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Create",
+            "Create Patient Identity Document",
+            Description = "Membuat data patient identity document",
+            AccessType = AccessTypes.Create,
+            SortOrder = 2
+        )]
         [AccessPermission("PatientIdentityDocument", "Create")]
-        public async Task<IActionResult> CreatePatientIdentityDocument([FromBody] CreatePatientIdentityDocumentRequest request)
+        public async Task<IActionResult> CreatePatientIdentityDocument(
+            [FromBody] CreatePatientIdentityDocumentRequest request)
         {
             var validation = await ValidateRequestAsync(
                 excludeId: null,
-                request.PatientId,
-                request.IdentityType,
-                request.IdentityNumber,
-                request.IssueDate,
-                request.ExpiredDate
+                request: request
             );
 
             if (!validation.IsValid)
@@ -362,60 +365,99 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             var actorUserId = GetCurrentUserId();
             var isPrimary = request.IsPrimary || !await HasAnyActiveDocumentAsync(request.PatientId);
 
-            if (isPrimary)
-                await ClearPrimaryDocumentAsync(request.PatientId, excludeId: null);
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            var entity = new MstPatientIdentityDocument
+            try
             {
-                Id = Guid.NewGuid(),
-                PatientId = request.PatientId,
-                IdentityType = request.IdentityType.Trim(),
-                IdentityNumber = request.IdentityNumber.Trim(),
-                DocumentName = NormalizeNullableText(request.DocumentName),
-                FilePath = NormalizeNullableText(request.FilePath),
-                FileContentType = NormalizeNullableText(request.FileContentType),
-                IssuedBy = NormalizeNullableText(request.IssuedBy),
-                IssueDate = request.IssueDate,
-                ExpiredDate = request.ExpiredDate,
-                IsPrimary = isPrimary,
-                IsVerified = request.IsVerified,
-                VerifiedByUserId = request.IsVerified ? actorUserId : null,
-                VerifiedAt = request.IsVerified ? now : null,
-                VerificationNote = NormalizeNullableText(request.VerificationNote),
-                IsFromKioskScan = request.IsFromKioskScan,
-                IsActive = true,
-                CreateDateTime = now,
-                CreateBy = actorUserId,
-                IsDelete = false,
-                IsCancel = false
-            };
+                if (isPrimary)
+                {
+                    await UnsetOtherPrimaryAsync(
+                        patientId: request.PatientId,
+                        exceptId: null,
+                        now: now,
+                        actorUserId: actorUserId
+                    );
+                }
 
-            _dbContext.Set<MstPatientIdentityDocument>().Add(entity);
-            await _dbContext.SaveChangesAsync();
+                var entity = new MstPatientIdentityDocument
+                {
+                    Id = Guid.NewGuid(),
+                    PatientId = request.PatientId,
+                    IdentityType = request.IdentityType.Trim(),
+                    IdentityNumber = request.IdentityNumber.Trim(),
+                    DocumentName = NormalizeNullableString(request.DocumentName),
+                    FilePath = NormalizeNullableString(request.FilePath),
+                    FileContentType = NormalizeNullableString(request.FileContentType),
+                    IssuedBy = NormalizeNullableString(request.IssuedBy),
+                    IssueDate = request.IssueDate,
+                    ExpiredDate = request.ExpiredDate,
+                    IsPrimary = isPrimary,
+                    IsVerified = request.IsVerified,
+                    VerifiedByUserId = request.IsVerified ? actorUserId : null,
+                    VerifiedAt = request.IsVerified ? now : null,
+                    VerificationNote = NormalizeNullableString(request.VerificationNote),
+                    IsFromKioskScan = request.IsFromKioskScan,
+                    IsActive = true,
+                    CreateDateTime = now,
+                    CreateBy = actorUserId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
 
-            var response = new PatientIdentityDocumentCreateResponse
+                _dbContext.Set<MstPatientIdentityDocument>().Add(entity);
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var result = await BuildCreateResponseAsync(entity.Id);
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "PatientIdentityDocument.CreatePatientIdentityDocument",
+                    "Membuat data patient identity document.",
+                    result
+                );
+
+                return Ok(ApiResponse<PatientIdentityDocumentCreateResponse>.Ok(
+                    result,
+                    "Patient identity document berhasil dibuat."
+                ));
+            }
+            catch (Exception ex)
             {
-                Id = entity.Id,
-                PatientId = entity.PatientId,
-                IdentityType = entity.IdentityType,
-                IdentityNumber = entity.IdentityNumber,
-                IsPrimary = entity.IsPrimary,
-                IsVerified = entity.IsVerified,
-                IsActive = entity.IsActive
-            };
+                await transaction.RollbackAsync();
 
-            return Ok(ApiResponse<PatientIdentityDocumentCreateResponse>.Ok(
-                response,
-                "Patient identity document berhasil dibuat."
-            ));
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "PatientIdentityDocument.CreatePatientIdentityDocument",
+                    "Gagal membuat data patient identity document.",
+                    ex
+                );
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat membuat patient identity document."
+                    )
+                );
+            }
         }
 
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Patient Identity Document", Description = "Mengubah data patient identity document", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Update",
+            "Update Patient Identity Document",
+            Description = "Mengubah data patient identity document",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
         [AccessPermission("PatientIdentityDocument", "Update")]
-        public async Task<IActionResult> UpdatePatientIdentityDocument(Guid id, [FromBody] UpdatePatientIdentityDocumentRequest request)
+        public async Task<IActionResult> UpdatePatientIdentityDocument(
+            Guid id,
+            [FromBody] UpdatePatientIdentityDocumentRequest request)
         {
             var entity = await _dbContext.Set<MstPatientIdentityDocument>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -428,13 +470,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 ));
             }
 
+            if (request.IsPrimary && !request.IsActive)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Patient identity document primary harus aktif."
+                ));
+            }
+
             var validation = await ValidateRequestAsync(
                 excludeId: id,
-                request.PatientId,
-                request.IdentityType,
-                request.IdentityNumber,
-                request.IssueDate,
-                request.ExpiredDate
+                request: request
             );
 
             if (!validation.IsValid)
@@ -445,28 +491,127 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 ));
             }
 
-            var actorUserId = GetCurrentUserId();
             var now = DateTime.UtcNow;
-            var isPrimary = request.IsPrimary;
+            var actorUserId = GetCurrentUserId();
 
-            if (isPrimary)
-                await ClearPrimaryDocumentAsync(request.PatientId, excludeId: id);
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            entity.PatientId = request.PatientId;
-            entity.IdentityType = request.IdentityType.Trim();
-            entity.IdentityNumber = request.IdentityNumber.Trim();
-            entity.DocumentName = NormalizeNullableText(request.DocumentName);
-            entity.FilePath = NormalizeNullableText(request.FilePath);
-            entity.FileContentType = NormalizeNullableText(request.FileContentType);
-            entity.IssuedBy = NormalizeNullableText(request.IssuedBy);
-            entity.IssueDate = request.IssueDate;
-            entity.ExpiredDate = request.ExpiredDate;
-            entity.IsPrimary = isPrimary;
-            entity.IsVerified = request.IsVerified;
-            entity.VerifiedByUserId = request.IsVerified ? entity.VerifiedByUserId ?? actorUserId : null;
-            entity.VerifiedAt = request.IsVerified ? entity.VerifiedAt ?? now : null;
-            entity.VerificationNote = NormalizeNullableText(request.VerificationNote);
-            entity.IsFromKioskScan = request.IsFromKioskScan;
+            try
+            {
+                if (request.IsPrimary)
+                {
+                    await UnsetOtherPrimaryAsync(
+                        patientId: request.PatientId,
+                        exceptId: id,
+                        now: now,
+                        actorUserId: actorUserId
+                    );
+                }
+
+                var wasVerified = entity.IsVerified;
+
+                entity.PatientId = request.PatientId;
+                entity.IdentityType = request.IdentityType.Trim();
+                entity.IdentityNumber = request.IdentityNumber.Trim();
+                entity.DocumentName = NormalizeNullableString(request.DocumentName);
+                entity.FilePath = NormalizeNullableString(request.FilePath);
+                entity.FileContentType = NormalizeNullableString(request.FileContentType);
+                entity.IssuedBy = NormalizeNullableString(request.IssuedBy);
+                entity.IssueDate = request.IssueDate;
+                entity.ExpiredDate = request.ExpiredDate;
+                entity.IsPrimary = request.IsPrimary;
+                entity.IsVerified = request.IsVerified;
+                entity.VerifiedByUserId = request.IsVerified
+                    ? wasVerified && entity.VerifiedByUserId.HasValue ? entity.VerifiedByUserId : actorUserId
+                    : null;
+                entity.VerifiedAt = request.IsVerified
+                    ? wasVerified && entity.VerifiedAt.HasValue ? entity.VerifiedAt : now
+                    : null;
+                entity.VerificationNote = NormalizeNullableString(request.VerificationNote);
+                entity.IsFromKioskScan = request.IsFromKioskScan;
+                entity.IsActive = request.IsActive;
+                entity.UpdateDateTime = now;
+                entity.UpdateBy = actorUserId;
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "PatientIdentityDocument.UpdatePatientIdentityDocument",
+                    "Mengubah data patient identity document.",
+                    new
+                    {
+                        entity.Id,
+                        entity.PatientId,
+                        entity.IdentityType,
+                        entity.IdentityNumber,
+                        entity.IsPrimary,
+                        entity.IsVerified,
+                        entity.IsActive
+                    }
+                );
+
+                return Ok(ApiResponse<object>.Ok(
+                    null,
+                    "Patient identity document berhasil diperbarui."
+                ));
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "PatientIdentityDocument.UpdatePatientIdentityDocument",
+                    "Gagal mengubah data patient identity document.",
+                    ex
+                );
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat mengubah patient identity document."
+                    )
+                );
+            }
+        }
+
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Update",
+            "Update Patient Identity Document Status",
+            Description = "Mengubah status patient identity document",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
+        [AccessPermission("PatientIdentityDocument", "Update")]
+        public async Task<IActionResult> UpdatePatientIdentityDocumentStatus(
+            Guid id,
+            [FromBody] UpdatePatientIdentityDocumentStatusRequest request)
+        {
+            var entity = await _dbContext.Set<MstPatientIdentityDocument>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Patient identity document tidak ditemukan."
+                ));
+            }
+
+            if (!request.IsActive && entity.IsPrimary)
+            {
+                entity.IsPrimary = false;
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
@@ -475,93 +620,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             return Ok(ApiResponse<object>.Ok(
                 null,
-                "Patient identity document berhasil diperbarui."
-            ));
-        }
-
-        [HttpPatch("{id:guid}/verify")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Verify Patient Identity Document", Description = "Verifikasi data patient identity document", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("PatientIdentityDocument", "Update")]
-        public async Task<IActionResult> VerifyPatientIdentityDocument(Guid id, [FromBody] VerifyPatientIdentityDocumentRequest request)
-        {
-            var entity = await _dbContext.Set<MstPatientIdentityDocument>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Patient identity document tidak ditemukan."
-                ));
-            }
-
-            var actorUserId = GetCurrentUserId();
-
-            entity.IsVerified = request.IsVerified;
-            entity.VerificationNote = NormalizeNullableText(request.VerificationNote);
-            entity.VerifiedByUserId = request.IsVerified ? actorUserId : null;
-            entity.VerifiedAt = request.IsVerified ? DateTime.UtcNow : null;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync();
-
-            return Ok(ApiResponse<object>.Ok(
-                null,
-                request.IsVerified
-                    ? "Patient identity document berhasil diverifikasi."
-                    : "Verifikasi patient identity document berhasil dibatalkan."
-            ));
-        }
-
-        [HttpPatch("{id:guid}/set-primary")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Set Primary Patient Identity Document", Description = "Mengatur dokumen identitas utama patient", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("PatientIdentityDocument", "Update")]
-        public async Task<IActionResult> SetPrimaryPatientIdentityDocument(Guid id)
-        {
-            var entity = await _dbContext.Set<MstPatientIdentityDocument>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Patient identity document tidak ditemukan."
-                ));
-            }
-
-            if (!entity.IsActive)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Dokumen tidak aktif tidak dapat dijadikan dokumen utama."
-                ));
-            }
-
-            await ClearPrimaryDocumentAsync(entity.PatientId, excludeId: id);
-
-            entity.IsPrimary = true;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
-
-            await _dbContext.SaveChangesAsync();
-
-            return Ok(ApiResponse<object>.Ok(
-                null,
-                "Patient identity document berhasil dijadikan dokumen utama."
+                "Status patient identity document berhasil diperbarui."
             ));
         }
 
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Delete", "Delete Patient Identity Document", Description = "Menghapus data patient identity document", AccessType = AccessTypes.Delete, SortOrder = 6)]
+        [AccessAction(
+            "Delete",
+            "Delete Patient Identity Document",
+            Description = "Menghapus data patient identity document",
+            AccessType = AccessTypes.Delete,
+            SortOrder = 4
+        )]
         [AccessPermission("PatientIdentityDocument", "Delete")]
-        public async Task<IActionResult> DeletePatientIdentityDocument(Guid id)
+        public async Task<IActionResult> DeletePatientIdentityDocument(
+            Guid id,
+            [FromBody] DeletePatientIdentityDocumentRequest? request = null)
         {
             var entity = await _dbContext.Set<MstPatientIdentityDocument>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -574,13 +650,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 ));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.IsDelete = true;
             entity.IsActive = false;
             entity.IsPrimary = false;
-            entity.DeleteDateTime = DateTime.UtcNow;
-            entity.DeleteBy = GetCurrentUserId();
+            entity.DeleteDateTime = now;
+            entity.DeleteBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
+            {
+                entity.VerificationNote = request.DeleteReason.Trim();
+            }
 
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientIdentityDocument.DeletePatientIdentityDocument",
+                "Menghapus data patient identity document.",
+                new
+                {
+                    entity.Id,
+                    entity.PatientId,
+                    entity.IdentityType,
+                    entity.IdentityNumber,
+                    entity.DeleteDateTime
+                }
+            );
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -588,18 +688,115 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
-        private static IQueryable<MstPatientIdentityDocument> ApplyFilters(
-            IQueryable<MstPatientIdentityDocument> query,
-            string? search,
-            Guid? patientId,
-            string? identityType,
-            bool? isPrimary,
-            bool? isVerified,
-            bool? isFromKioskScan,
-            bool? isActive,
-            DateTime? expiredFrom,
-            DateTime? expiredTo)
+        private IQueryable<MstPatientIdentityDocument> BuildBaseQuery()
         {
+            return _dbContext.Set<MstPatientIdentityDocument>()
+                .AsNoTracking()
+                .Include(x => x.Patient)
+                .Where(x => !x.IsDelete);
+        }
+
+        private static IQueryable<MstPatientIdentityDocument> ApplyDateFilter(
+            IQueryable<MstPatientIdentityDocument> query,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            if (startDate.HasValue)
+            {
+                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime >= start);
+            }
+
+            if (endDate.HasValue)
+            {
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(x => x.CreateDateTime < end);
+            }
+
+            if (!startDate.HasValue &&
+                !endDate.HasValue &&
+                !string.IsNullOrWhiteSpace(customPeriod))
+            {
+                var today = DateTime.UtcNow.Date;
+
+                switch (customPeriod.Trim().ToLowerInvariant())
+                {
+                    case "today":
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today &&
+                            x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "last7days":
+                        query = query.Where(x =>
+                            x.CreateDateTime >= today.AddDays(-6) &&
+                            x.CreateDateTime < today.AddDays(1));
+                        break;
+
+                    case "thismonth":
+                        var thisMonthStart = new DateTime(
+                            today.Year,
+                            today.Month,
+                            1,
+                            0,
+                            0,
+                            0,
+                            DateTimeKind.Utc
+                        );
+
+                        query = query.Where(x =>
+                            x.CreateDateTime >= thisMonthStart &&
+                            x.CreateDateTime < thisMonthStart.AddMonths(1));
+                        break;
+
+                    case "lastmonth":
+                        var currentMonthStart = new DateTime(
+                            today.Year,
+                            today.Month,
+                            1,
+                            0,
+                            0,
+                            0,
+                            DateTimeKind.Utc
+                        );
+
+                        var lastMonthStart = currentMonthStart.AddMonths(-1);
+
+                        query = query.Where(x =>
+                            x.CreateDateTime >= lastMonthStart &&
+                            x.CreateDateTime < currentMonthStart);
+                        break;
+                }
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstPatientIdentityDocument> ApplyRelationFilter(
+            IQueryable<MstPatientIdentityDocument> query,
+            Guid? patientId)
+        {
+            var normalizedPatientId = NormalizeNullableGuid(patientId);
+
+            if (normalizedPatientId.HasValue)
+            {
+                query = query.Where(x => x.PatientId == normalizedPatientId.Value);
+            }
+
+            return query;
+        }
+
+        private static IQueryable<MstPatientIdentityDocument> ApplyStandardFilter(
+            IQueryable<MstPatientIdentityDocument> query,
+            bool? isActive,
+            string? search)
+        {
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -608,72 +805,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     x.IdentityType.ToLower().Contains(keyword) ||
                     x.IdentityNumber.ToLower().Contains(keyword) ||
                     (x.DocumentName != null && x.DocumentName.ToLower().Contains(keyword)) ||
+                    (x.FileContentType != null && x.FileContentType.ToLower().Contains(keyword)) ||
                     (x.IssuedBy != null && x.IssuedBy.ToLower().Contains(keyword)) ||
                     (x.Patient != null && x.Patient.PatientCode.ToLower().Contains(keyword)) ||
                     (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
                     (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)));
             }
 
-            if (patientId.HasValue && patientId.Value != Guid.Empty)
-                query = query.Where(x => x.PatientId == patientId.Value);
-
-            if (!string.IsNullOrWhiteSpace(identityType))
-            {
-                var normalizedType = identityType.Trim().ToLower();
-                query = query.Where(x => x.IdentityType.ToLower() == normalizedType);
-            }
-
-            if (isPrimary.HasValue)
-                query = query.Where(x => x.IsPrimary == isPrimary.Value);
-
-            if (isVerified.HasValue)
-                query = query.Where(x => x.IsVerified == isVerified.Value);
-
-            if (isFromKioskScan.HasValue)
-                query = query.Where(x => x.IsFromKioskScan == isFromKioskScan.Value);
-
-            if (isActive.HasValue)
-                query = query.Where(x => x.IsActive == isActive.Value);
-
-            if (expiredFrom.HasValue)
-                query = query.Where(x => x.ExpiredDate.HasValue && x.ExpiredDate.Value.Date >= expiredFrom.Value.Date);
-
-            if (expiredTo.HasValue)
-                query = query.Where(x => x.ExpiredDate.HasValue && x.ExpiredDate.Value.Date <= expiredTo.Value.Date);
-
             return query;
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
             Guid? excludeId,
-            Guid patientId,
-            string identityType,
-            string identityNumber,
-            DateTime? issueDate,
-            DateTime? expiredDate)
+            CreatePatientIdentityDocumentRequest request)
         {
-            if (patientId == Guid.Empty)
+            if (request.PatientId == Guid.Empty)
+            {
                 return (false, "Patient wajib dipilih.");
+            }
 
-            if (string.IsNullOrWhiteSpace(identityType))
+            if (string.IsNullOrWhiteSpace(request.IdentityType))
+            {
                 return (false, "Tipe identitas wajib diisi.");
+            }
 
-            if (string.IsNullOrWhiteSpace(identityNumber))
+            if (string.IsNullOrWhiteSpace(request.IdentityNumber))
+            {
                 return (false, "Nomor identitas wajib diisi.");
+            }
 
-            if (issueDate.HasValue && expiredDate.HasValue && expiredDate.Value.Date < issueDate.Value.Date)
+            if (request.IssueDate.HasValue &&
+                request.ExpiredDate.HasValue &&
+                request.ExpiredDate.Value.Date < request.IssueDate.Value.Date)
+            {
                 return (false, "Tanggal kedaluwarsa tidak boleh lebih kecil dari tanggal terbit.");
+            }
 
             var patientExists = await _dbContext.Set<MstPatient>()
-                .AnyAsync(x => x.Id == patientId && x.IsActive && !x.IsDelete);
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.Id == request.PatientId &&
+                    x.IsActive &&
+                    !x.IsDelete);
 
             if (!patientExists)
+            {
                 return (false, "Patient tidak valid atau tidak aktif.");
+            }
 
-            var normalizedType = identityType.Trim().ToLower();
-            var normalizedNumber = identityNumber.Trim().ToLower();
+            var normalizedType = request.IdentityType.Trim().ToLower();
+            var normalizedNumber = request.IdentityNumber.Trim().ToLower();
 
             var duplicateDocument = await _dbContext.Set<MstPatientIdentityDocument>()
+                .AsNoTracking()
                 .AnyAsync(x =>
                     !x.IsDelete &&
                     x.IdentityType.ToLower() == normalizedType &&
@@ -681,7 +865,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     (!excludeId.HasValue || x.Id != excludeId.Value));
 
             if (duplicateDocument)
+            {
                 return (false, "Dokumen identitas dengan tipe dan nomor tersebut sudah digunakan.");
+            }
 
             return (true, null);
         }
@@ -689,87 +875,336 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private async Task<bool> HasAnyActiveDocumentAsync(Guid patientId)
         {
             return await _dbContext.Set<MstPatientIdentityDocument>()
-                .AnyAsync(x => x.PatientId == patientId && x.IsActive && !x.IsDelete);
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.PatientId == patientId &&
+                    x.IsActive &&
+                    !x.IsDelete);
         }
 
-        private async Task ClearPrimaryDocumentAsync(Guid patientId, Guid? excludeId)
+        private async Task UnsetOtherPrimaryAsync(
+            Guid patientId,
+            Guid? exceptId,
+            DateTime now,
+            Guid actorUserId)
         {
-            var existingPrimaries = await _dbContext.Set<MstPatientIdentityDocument>()
+            var query = _dbContext.Set<MstPatientIdentityDocument>()
                 .Where(x =>
-                    x.PatientId == patientId &&
-                    x.IsPrimary &&
                     !x.IsDelete &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value))
-                .ToListAsync();
+                    x.PatientId == patientId &&
+                    x.IsPrimary);
 
-            if (!existingPrimaries.Any())
-                return;
-
-            var actorUserId = GetCurrentUserId();
-            var now = DateTime.UtcNow;
-
-            foreach (var item in existingPrimaries)
+            if (exceptId.HasValue)
             {
-                item.IsPrimary = false;
-                item.UpdateDateTime = now;
-                item.UpdateBy = actorUserId;
+                query = query.Where(x => x.Id != exceptId.Value);
+            }
+
+            var entities = await query.ToListAsync();
+
+            foreach (var entity in entities)
+            {
+                entity.IsPrimary = false;
+                entity.UpdateDateTime = now;
+                entity.UpdateBy = actorUserId;
             }
         }
 
-        private static IQueryable<MstPatientIdentityDocument> ApplySorting(
+        private async Task<PatientIdentityDocumentCreateResponse> BuildCreateResponseAsync(Guid id)
+        {
+            var entity = await BuildBaseQuery()
+                .FirstAsync(x => x.Id == id);
+
+            return new PatientIdentityDocumentCreateResponse
+            {
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                IdentityType = entity.IdentityType,
+                IdentityNumber = entity.IdentityNumber,
+                IsPrimary = entity.IsPrimary,
+                IsVerified = entity.IsVerified,
+                IsActive = entity.IsActive
+            };
+        }
+
+        private static PatientIdentityDocumentResponse MapResponse(
+            MstPatientIdentityDocument entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new PatientIdentityDocumentResponse
+            {
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientCode = entity.Patient?.PatientCode ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                IdentityType = entity.IdentityType,
+                IdentityNumber = entity.IdentityNumber,
+                DocumentName = entity.DocumentName,
+                FilePath = entity.FilePath,
+                FileContentType = entity.FileContentType,
+                IssuedBy = entity.IssuedBy,
+                IssueDate = entity.IssueDate,
+                ExpiredDate = entity.ExpiredDate,
+                IsPrimary = entity.IsPrimary,
+                IsVerified = entity.IsVerified,
+                VerifiedByUserId = entity.VerifiedByUserId,
+                VerifiedByUserName = entity.VerifiedByUserId.HasValue
+                    ? GetActorName(actorNames, entity.VerifiedByUserId.Value)
+                    : null,
+                VerifiedAt = entity.VerifiedAt,
+                IsFromKioskScan = entity.IsFromKioskScan,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
+
+        private static PatientIdentityDocumentDetailResponse MapDetailResponse(
+            MstPatientIdentityDocument entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            var response = new PatientIdentityDocumentDetailResponse
+            {
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientCode = entity.Patient?.PatientCode ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                IdentityType = entity.IdentityType,
+                IdentityNumber = entity.IdentityNumber,
+                DocumentName = entity.DocumentName,
+                FilePath = entity.FilePath,
+                FileContentType = entity.FileContentType,
+                IssuedBy = entity.IssuedBy,
+                IssueDate = entity.IssueDate,
+                ExpiredDate = entity.ExpiredDate,
+                IsPrimary = entity.IsPrimary,
+                IsVerified = entity.IsVerified,
+                VerifiedByUserId = entity.VerifiedByUserId,
+                VerifiedByUserName = entity.VerifiedByUserId.HasValue
+                    ? GetActorName(actorNames, entity.VerifiedByUserId.Value)
+                    : null,
+                VerifiedAt = entity.VerifiedAt,
+                VerificationNote = entity.VerificationNote,
+                IsFromKioskScan = entity.IsFromKioskScan,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+
+            return response;
+        }
+
+        private static PatientIdentityDocumentOptionResponse MapOptionResponse(MstPatientIdentityDocument entity)
+        {
+            return new PatientIdentityDocumentOptionResponse
+            {
+                Id = entity.Id,
+                PatientId = entity.PatientId,
+                PatientCode = entity.Patient?.PatientCode ?? string.Empty,
+                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                PatientName = entity.Patient?.FullName ?? string.Empty,
+                IdentityType = entity.IdentityType,
+                IdentityNumber = entity.IdentityNumber,
+                DocumentName = entity.DocumentName,
+                IsPrimary = entity.IsPrimary,
+                IsVerified = entity.IsVerified
+            };
+        }
+
+        private static IOrderedQueryable<MstPatientIdentityDocument> ApplySorting(
             IQueryable<MstPatientIdentityDocument> query,
             string? sortBy,
             string? sortDirection)
         {
-            var isDesc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            var isDescending = string.Equals(
+                sortDirection,
+                "desc",
+                StringComparison.OrdinalIgnoreCase
+            );
 
-            return (sortBy ?? "createDateTime").ToLowerInvariant() switch
+            return (sortBy ?? "createDateTime").Trim().ToLowerInvariant() switch
             {
-                "patientname" => isDesc
-                    ? query.OrderByDescending(x => x.Patient != null ? x.Patient.FullName : "")
-                    : query.OrderBy(x => x.Patient != null ? x.Patient.FullName : ""),
+                "updatedatetime" => isDescending
+                    ? query.OrderByDescending(x => x.UpdateDateTime).ThenByDescending(x => x.CreateDateTime)
+                    : query.OrderBy(x => x.UpdateDateTime).ThenBy(x => x.CreateDateTime),
 
-                "medicalrecordnumber" => isDesc
-                    ? query.OrderByDescending(x => x.Patient != null ? x.Patient.MedicalRecordNumber : "")
-                    : query.OrderBy(x => x.Patient != null ? x.Patient.MedicalRecordNumber : ""),
+                "patientname" => isDescending
+                    ? query.OrderByDescending(x => x.Patient != null ? x.Patient.FullName : string.Empty)
+                    : query.OrderBy(x => x.Patient != null ? x.Patient.FullName : string.Empty),
 
-                "identitytype" => isDesc ? query.OrderByDescending(x => x.IdentityType) : query.OrderBy(x => x.IdentityType),
-                "identitynumber" => isDesc ? query.OrderByDescending(x => x.IdentityNumber) : query.OrderBy(x => x.IdentityNumber),
-                "documentname" => isDesc ? query.OrderByDescending(x => x.DocumentName) : query.OrderBy(x => x.DocumentName),
-                "issuedate" => isDesc ? query.OrderByDescending(x => x.IssueDate) : query.OrderBy(x => x.IssueDate),
-                "expireddate" => isDesc ? query.OrderByDescending(x => x.ExpiredDate) : query.OrderBy(x => x.ExpiredDate),
-                "isprimary" => isDesc ? query.OrderByDescending(x => x.IsPrimary) : query.OrderBy(x => x.IsPrimary),
-                "isverified" => isDesc ? query.OrderByDescending(x => x.IsVerified) : query.OrderBy(x => x.IsVerified),
-                "isactive" => isDesc ? query.OrderByDescending(x => x.IsActive) : query.OrderBy(x => x.IsActive),
-                _ => isDesc
+                "medicalrecordnumber" => isDescending
+                    ? query.OrderByDescending(x => x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty)
+                    : query.OrderBy(x => x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty),
+
+                "identitytype" => isDescending
+                    ? query.OrderByDescending(x => x.IdentityType)
+                    : query.OrderBy(x => x.IdentityType),
+
+                "identitynumber" => isDescending
+                    ? query.OrderByDescending(x => x.IdentityNumber)
+                    : query.OrderBy(x => x.IdentityNumber),
+
+                "documentname" => isDescending
+                    ? query.OrderByDescending(x => x.DocumentName)
+                    : query.OrderBy(x => x.DocumentName),
+
+                "issuedate" => isDescending
+                    ? query.OrderByDescending(x => x.IssueDate)
+                    : query.OrderBy(x => x.IssueDate),
+
+                "expireddate" => isDescending
+                    ? query.OrderByDescending(x => x.ExpiredDate)
+                    : query.OrderBy(x => x.ExpiredDate),
+
+                "isprimary" => isDescending
+                    ? query.OrderByDescending(x => x.IsPrimary).ThenBy(x => x.Patient != null ? x.Patient.FullName : string.Empty)
+                    : query.OrderBy(x => x.IsPrimary).ThenBy(x => x.Patient != null ? x.Patient.FullName : string.Empty),
+
+                "isverified" => isDescending
+                    ? query.OrderByDescending(x => x.IsVerified).ThenBy(x => x.Patient != null ? x.Patient.FullName : string.Empty)
+                    : query.OrderBy(x => x.IsVerified).ThenBy(x => x.Patient != null ? x.Patient.FullName : string.Empty),
+
+                "isfromkioskscan" => isDescending
+                    ? query.OrderByDescending(x => x.IsFromKioskScan).ThenBy(x => x.Patient != null ? x.Patient.FullName : string.Empty)
+                    : query.OrderBy(x => x.IsFromKioskScan).ThenBy(x => x.Patient != null ? x.Patient.FullName : string.Empty),
+
+                "isactive" => isDescending
+                    ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.Patient != null ? x.Patient.FullName : string.Empty)
+                    : query.OrderBy(x => x.IsActive).ThenBy(x => x.Patient != null ? x.Patient.FullName : string.Empty),
+
+                _ => isDescending
                     ? query.OrderByDescending(x => x.CreateDateTime).ThenByDescending(x => x.IdentityType)
                     : query.OrderBy(x => x.CreateDateTime).ThenBy(x => x.IdentityType)
             };
         }
 
-        private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
+        private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(
+            IEnumerable<Guid> actorIds)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 25;
-            if (pageSize > 100) pageSize = 100;
+            var ids = actorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, string?>();
+            }
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new
+                {
+                    x.Id,
+                    Name =
+                        x.DisplayName ??
+                        x.UserName ??
+                        x.Email ??
+                        x.UserCode
+                })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
+        }
+
+        private static string? GetActorName(
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            Guid actorId)
+        {
+            if (actorId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return actorNames.TryGetValue(actorId, out var actorName)
+                ? actorName
+                : null;
+        }
+
+        private static void NormalizeActorInfo(PatientIdentityDocumentResponse data)
+        {
+            if (data.UpdateDateTime.HasValue &&
+                data.UpdateDateTime.Value == DateTime.MinValue)
+            {
+                data.UpdateDateTime = null;
+            }
+
+            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
+            {
+                data.CreateBy = null;
+                data.CreateByName = null;
+            }
+
+            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
+            {
+                data.UpdateBy = null;
+                data.UpdateByName = null;
+            }
+
+            if (!data.VerifiedByUserId.HasValue || data.VerifiedByUserId.Value == Guid.Empty)
+            {
+                data.VerifiedByUserId = null;
+                data.VerifiedByUserName = null;
+            }
+        }
+
+        private static (int PageNumber, int PageSize) NormalizePaging(
+            int pageNumber,
+            int pageSize)
+        {
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 25;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
 
             return (pageNumber, pageSize);
         }
 
-        private Guid GetCurrentUserId()
-        {
-            var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            return Guid.TryParse(userIdText, out var userId)
-                ? userId
-                : Guid.Empty;
-        }
-
-        private static string? NormalizeNullableText(string? value)
+        private static string? NormalizeNullableString(string? value)
         {
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private static Guid? NormalizeNullableGuid(Guid? value)
+        {
+            if (!value.HasValue || value.Value == Guid.Empty)
+            {
+                return null;
+            }
+
+            return value.Value;
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var userIdValue =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("user_id");
+
+            return Guid.TryParse(userIdValue, out var userId)
+                ? userId
+                : Guid.Empty;
         }
     }
 }
