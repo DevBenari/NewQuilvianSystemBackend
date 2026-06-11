@@ -4,12 +4,13 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.Data;
+using System.Globalization;
 using System.Net;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
@@ -36,6 +37,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
     public class KioskDeviceController : ControllerBase
     {
         private const string LogCategory = "Administrator.MasterData";
+        private const string KioskDeviceCodePrefix = "KSK-RSMMC-";
+        private const int KioskDeviceCodeDigitLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -60,16 +63,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [AccessPermission("KioskDevice", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
+            var deviceTypeOptions = BuildEnumOptions<KioskDeviceType>();
+            var deviceStatusOptions = BuildEnumOptions<KioskDeviceStatus>();
+
             var result = new KioskDeviceFilterMetadataResponse
             {
                 DefaultFilter = new KioskDeviceDefaultFilterResponse(),
-                CustomPeriods = new List<KioskDeviceCustomPeriodOptionResponse>
-                {
-                    new() { Value = "today", Label = "Hari ini" },
-                    new() { Value = "last7days", Label = "7 hari terakhir" },
-                    new() { Value = "thismonth", Label = "Bulan ini" },
-                    new() { Value = "lastmonth", Label = "Bulan lalu" }
-                },
+                CustomPeriods = BuildCustomPeriodOptions(),
                 SortOptions = new List<KioskDeviceSortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -78,20 +78,26 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     new() { Value = "deviceName", Label = "Nama device" },
                     new() { Value = "deviceType", Label = "Tipe device" },
                     new() { Value = "deviceStatus", Label = "Status device" },
-                    new() { Value = "serviceUnitName", Label = "Nama service unit" },
-                    new() { Value = "clinicName", Label = "Nama clinic" },
                     new() { Value = "defaultScannerProfileName", Label = "Default scanner profile" },
                     new() { Value = "locationName", Label = "Lokasi" },
                     new() { Value = "floorName", Label = "Lantai" },
                     new() { Value = "ipAddress", Label = "IP address" },
-                    new() { Value = "serialNumber", Label = "Serial number" },
-                    new() { Value = "vendorName", Label = "Vendor" },
+                    new() { Value = "macAddress", Label = "MAC address" },
+                    new() { Value = "isAllowWalkIn", Label = "Izinkan walk-in" },
+                    new() { Value = "isAllowAppointment", Label = "Izinkan appointment" },
+                    new() { Value = "isAllowInsuranceRegistration", Label = "Izinkan registrasi asuransi" },
+                    new() { Value = "lastOnlineAt", Label = "Terakhir online" },
+                    new() { Value = "lastOfflineAt", Label = "Terakhir offline" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                DeviceTypeOptions = BuildEnumOptions<KioskDeviceType>(),
-                DeviceStatusOptions = BuildEnumOptions<KioskDeviceStatus>(),
+                EnumOptions = BuildEnumMetadataOptions(deviceTypeOptions, deviceStatusOptions),
+                DeviceTypeOptions = deviceTypeOptions,
+                DeviceStatusOptions = deviceStatusOptions,
+                QueryParameters = BuildQueryParameterInfo(),
+                CreateFields = BuildCreateFieldMetadata(),
+                UpdateFields = BuildUpdateFieldMetadata(),
                 ResetButtonLabel = "Reset"
             };
 
@@ -130,14 +136,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 OnlineDevice = await query.CountAsync(x => x.DeviceStatus == KioskDeviceStatus.Active),
                 OfflineDevice = await query.CountAsync(x => x.DeviceStatus == KioskDeviceStatus.Offline),
                 MaintenanceDevice = await query.CountAsync(x => x.DeviceStatus == KioskDeviceStatus.Maintenance),
-                RegistrationAvailableDevice = await query.CountAsync(x => x.IsAvailableForRegistration),
-                CheckInAvailableDevice = await query.CountAsync(x => x.IsAvailableForCheckIn),
-                PaymentAvailableDevice = await query.CountAsync(x => x.IsAvailableForPayment),
                 WalkInAllowedDevice = await query.CountAsync(x => x.IsAllowWalkIn),
                 AppointmentAllowedDevice = await query.CountAsync(x => x.IsAllowAppointment),
                 InsuranceRegistrationAllowedDevice = await query.CountAsync(x => x.IsAllowInsuranceRegistration),
-                WithServiceUnitDevice = await query.CountAsync(x => x.ServiceUnitId.HasValue),
-                WithClinicDevice = await query.CountAsync(x => x.ClinicId.HasValue),
                 WithScannerProfileDevice = await query.CountAsync(x => x.DefaultScannerProfileId.HasValue)
             };
 
@@ -149,6 +150,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponseKioskDevicePagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
             "Read",
             "Read Kiosk Device",
@@ -163,14 +165,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             [FromQuery] string? customPeriod,
             [FromQuery] string? search,
             [FromQuery] bool? isActive,
-            [FromQuery] Guid? serviceUnitId,
-            [FromQuery] Guid? clinicId,
             [FromQuery] Guid? defaultScannerProfileId,
             [FromQuery] KioskDeviceType? deviceType,
             [FromQuery] KioskDeviceStatus? deviceStatus,
-            [FromQuery] bool? isAvailableForRegistration,
-            [FromQuery] bool? isAvailableForCheckIn,
-            [FromQuery] bool? isAvailableForPayment,
             [FromQuery] bool? isAllowWalkIn,
             [FromQuery] bool? isAllowAppointment,
             [FromQuery] bool? isAllowInsuranceRegistration,
@@ -183,24 +180,29 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
             var query = BuildBaseQuery();
 
-            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyDateFilter(query, dateRange);
             query = ApplyStandardFilter(
                 query,
+                search,
                 isActive,
-                serviceUnitId,
-                clinicId,
                 defaultScannerProfileId,
                 deviceType,
                 deviceStatus,
-                isAvailableForRegistration,
-                isAvailableForCheckIn,
-                isAvailableForPayment,
                 isAllowWalkIn,
                 isAllowAppointment,
-                isAllowInsuranceRegistration,
-                search
+                isAllowInsuranceRegistration
             );
 
             var totalData = await query.CountAsync();
@@ -246,14 +248,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         )]
         [AccessPermission("KioskDevice", "Read")]
         public async Task<IActionResult> GetKioskDeviceOptions(
-            [FromQuery] Guid? serviceUnitId,
-            [FromQuery] Guid? clinicId,
             [FromQuery] Guid? defaultScannerProfileId,
             [FromQuery] KioskDeviceType? deviceType,
             [FromQuery] KioskDeviceStatus? deviceStatus,
-            [FromQuery] bool? isAvailableForRegistration,
-            [FromQuery] bool? isAvailableForCheckIn,
-            [FromQuery] bool? isAvailableForPayment,
             [FromQuery] bool? isAllowWalkIn,
             [FromQuery] bool? isAllowAppointment,
             [FromQuery] bool? isAllowInsuranceRegistration,
@@ -273,19 +270,14 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             query = ApplyStandardFilter(
                 query,
+                search,
                 useOnlyActive ? true : null,
-                serviceUnitId,
-                clinicId,
                 defaultScannerProfileId,
                 deviceType,
                 deviceStatus,
-                isAvailableForRegistration,
-                isAvailableForCheckIn,
-                isAvailableForPayment,
                 isAllowWalkIn,
                 isAllowAppointment,
-                isAllowInsuranceRegistration,
-                search
+                isAllowInsuranceRegistration
             );
 
             var totalData = await query.CountAsync();
@@ -348,18 +340,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             var data = MapDetailResponse(entity, actorNames);
 
-            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
-            {
-                data.CreateBy = null;
-                data.CreateByName = null;
-            }
-
-            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
-            {
-                data.UpdateBy = null;
-                data.UpdateByName = null;
-            }
-
             return Ok(ApiResponse<KioskDeviceDetailResponse>.Ok(
                 data,
                 "Detail kiosk device berhasil diambil."
@@ -369,6 +349,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<KioskDeviceCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
         [AccessAction(
             "Create",
             "Create Kiosk Device",
@@ -395,70 +376,89 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            var entity = new MstKioskDevice
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+            try
             {
-                Id = Guid.NewGuid(),
-                DeviceCode = request.DeviceCode.Trim().ToUpperInvariant(),
-                DeviceName = request.DeviceName.Trim(),
-                DeviceType = request.DeviceType,
-                DeviceStatus = request.DeviceStatus,
-                ServiceUnitId = NormalizeNullableGuid(request.ServiceUnitId),
-                ClinicId = NormalizeNullableGuid(request.ClinicId),
-                DefaultScannerProfileId = NormalizeNullableGuid(request.DefaultScannerProfileId),
-                LocationName = NormalizeNullableString(request.LocationName),
-                FloorName = NormalizeNullableString(request.FloorName),
-                IpAddress = NormalizeNullableString(request.IpAddress),
-                MacAddress = NormalizeMacAddress(request.MacAddress),
-                SerialNumber = NormalizeNullableUpperString(request.SerialNumber),
-                DeviceModel = NormalizeNullableString(request.DeviceModel),
-                VendorName = NormalizeNullableString(request.VendorName),
-                IsAvailableForRegistration = request.IsAvailableForRegistration,
-                IsAvailableForCheckIn = request.IsAvailableForCheckIn,
-                IsAvailableForPayment = request.IsAvailableForPayment,
-                IsAllowWalkIn = request.IsAllowWalkIn,
-                IsAllowAppointment = request.IsAllowAppointment,
-                IsAllowInsuranceRegistration = request.IsAllowInsuranceRegistration,
-                SortOrder = request.SortOrder,
-                Description = NormalizeNullableString(request.Description),
-                IsActive = true,
-                CreateDateTime = now,
-                CreateBy = actorUserId,
-                IsDelete = false,
-                IsCancel = false
-            };
+                var generatedKioskDeviceCode = await GenerateKioskDeviceCodeAsync();
 
-            _dbContext.Set<MstKioskDevice>().Add(entity);
-            await _dbContext.SaveChangesAsync();
+                var entity = new MstKioskDevice
+                {
+                    Id = Guid.NewGuid(),
+                    DeviceCode = generatedKioskDeviceCode,
+                    DeviceName = request.DeviceName.Trim(),
+                    DeviceType = request.DeviceType,
+                    DeviceStatus = request.DeviceStatus,
+                    DefaultScannerProfileId = NormalizeNullableGuid(request.DefaultScannerProfileId),
+                    LocationName = NormalizeNullableText(request.LocationName),
+                    FloorName = NormalizeNullableText(request.FloorName),
+                    IpAddress = NormalizeNullableText(request.IpAddress),
+                    MacAddress = NormalizeMacAddress(request.MacAddress),
+                    IsAllowWalkIn = request.IsAllowWalkIn,
+                    IsAllowAppointment = request.IsAllowAppointment,
+                    IsAllowInsuranceRegistration = request.IsAllowInsuranceRegistration,
+                    SortOrder = request.SortOrder,
+                    Description = NormalizeNullableText(request.Description),
+                    IsActive = true,
+                    CreateDateTime = now,
+                    CreateBy = actorUserId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
 
-            var result = new KioskDeviceCreateResponse
+                _dbContext.Set<MstKioskDevice>().Add(entity);
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var actorNames = await GetActorNameMapAsync(new[] { entity.CreateBy });
+
+                var result = new KioskDeviceCreateResponse
+                {
+                    Id = entity.Id,
+                    DeviceCode = entity.DeviceCode,
+                    DeviceName = entity.DeviceName,
+                    DeviceType = entity.DeviceType,
+                    DeviceTypeName = BuildEnumLabel(entity.DeviceType.ToString()),
+                    DeviceStatus = entity.DeviceStatus,
+                    DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
+                    DefaultScannerProfileId = entity.DefaultScannerProfileId,
+                    IsActive = entity.IsActive,
+                    CreateDateTime = entity.CreateDateTime,
+                    CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                    CreateByName = GetActorName(actorNames, entity.CreateBy)
+                };
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "KioskDevice.CreateKioskDevice",
+                    "Membuat data kiosk device.",
+                    result
+                );
+
+                return Ok(ApiResponse<KioskDeviceCreateResponse>.Ok(
+                    result,
+                    "Kiosk device berhasil dibuat."
+                ));
+            }
+            catch (Exception ex)
             {
-                Id = entity.Id,
-                DeviceCode = entity.DeviceCode,
-                DeviceName = entity.DeviceName,
-                DeviceType = entity.DeviceType,
-                DeviceTypeName = BuildEnumLabel(entity.DeviceType.ToString()),
-                DeviceStatus = entity.DeviceStatus,
-                DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
-                ServiceUnitId = entity.ServiceUnitId,
-                ClinicId = entity.ClinicId,
-                DefaultScannerProfileId = entity.DefaultScannerProfileId,
-                IsAvailableForRegistration = entity.IsAvailableForRegistration,
-                IsAvailableForCheckIn = entity.IsAvailableForCheckIn,
-                IsAvailableForPayment = entity.IsAvailableForPayment,
-                IsActive = entity.IsActive
-            };
+                await transaction.RollbackAsync();
 
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "KioskDevice.CreateKioskDevice",
-                "Membuat data kiosk device.",
-                result
-            );
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "KioskDevice.CreateKioskDevice",
+                    "Gagal membuat data kiosk device.",
+                    ex
+                );
 
-            return Ok(ApiResponse<KioskDeviceCreateResponse>.Ok(
-                result,
-                "Kiosk device berhasil dibuat."
-            ));
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat membuat kiosk device."
+                    )
+                );
+            }
         }
 
         [HttpPut("{id:guid}")]
@@ -504,46 +504,43 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            entity.DeviceCode = request.DeviceCode.Trim().ToUpperInvariant();
             entity.DeviceName = request.DeviceName.Trim();
             entity.DeviceType = request.DeviceType;
             entity.DeviceStatus = request.DeviceStatus;
-            entity.ServiceUnitId = NormalizeNullableGuid(request.ServiceUnitId);
-            entity.ClinicId = NormalizeNullableGuid(request.ClinicId);
             entity.DefaultScannerProfileId = NormalizeNullableGuid(request.DefaultScannerProfileId);
-            entity.LocationName = NormalizeNullableString(request.LocationName);
-            entity.FloorName = NormalizeNullableString(request.FloorName);
-            entity.IpAddress = NormalizeNullableString(request.IpAddress);
+            entity.LocationName = NormalizeNullableText(request.LocationName);
+            entity.FloorName = NormalizeNullableText(request.FloorName);
+            entity.IpAddress = NormalizeNullableText(request.IpAddress);
             entity.MacAddress = NormalizeMacAddress(request.MacAddress);
-            entity.SerialNumber = NormalizeNullableUpperString(request.SerialNumber);
-            entity.DeviceModel = NormalizeNullableString(request.DeviceModel);
-            entity.VendorName = NormalizeNullableString(request.VendorName);
-            entity.IsAvailableForRegistration = request.IsAvailableForRegistration;
-            entity.IsAvailableForCheckIn = request.IsAvailableForCheckIn;
-            entity.IsAvailableForPayment = request.IsAvailableForPayment;
             entity.IsAllowWalkIn = request.IsAllowWalkIn;
             entity.IsAllowAppointment = request.IsAllowAppointment;
             entity.IsAllowInsuranceRegistration = request.IsAllowInsuranceRegistration;
             entity.LastOnlineAt = NormalizeNullableUtcDateTime(request.LastOnlineAt);
             entity.LastOfflineAt = NormalizeNullableUtcDateTime(request.LastOfflineAt);
-            entity.LastErrorMessage = NormalizeNullableString(request.LastErrorMessage);
+            entity.LastErrorMessage = NormalizeNullableText(request.LastErrorMessage);
             entity.SortOrder = request.SortOrder;
-            entity.Description = NormalizeNullableString(request.Description);
+            entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[] { entity.UpdateBy });
+
             var result = new KioskDeviceUpdateResponse
             {
                 Id = entity.Id,
                 DeviceCode = entity.DeviceCode,
                 DeviceName = entity.DeviceName,
+                DeviceType = entity.DeviceType,
+                DeviceTypeName = BuildEnumLabel(entity.DeviceType.ToString()),
                 DeviceStatus = entity.DeviceStatus,
                 DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
                 IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
 
             await _loggerService.InfoAsync(
@@ -594,15 +591,21 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[] { entity.UpdateBy });
+
             var result = new KioskDeviceUpdateResponse
             {
                 Id = entity.Id,
                 DeviceCode = entity.DeviceCode,
                 DeviceName = entity.DeviceName,
+                DeviceType = entity.DeviceType,
+                DeviceTypeName = BuildEnumLabel(entity.DeviceType.ToString()),
                 DeviceStatus = entity.DeviceStatus,
                 DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
                 IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
 
             return Ok(ApiResponse<KioskDeviceUpdateResponse>.Ok(
@@ -654,12 +657,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[] { entity.DeleteBy });
+
             var result = new KioskDeviceDeleteResponse
             {
                 Id = entity.Id,
                 DeviceCode = entity.DeviceCode,
                 DeviceName = entity.DeviceName,
-                DeleteDateTime = entity.DeleteDateTime
+                DeleteDateTime = entity.DeleteDateTime,
+                DeleteBy = entity.DeleteBy == Guid.Empty ? null : (Guid?)entity.DeleteBy,
+                DeleteByName = GetActorName(actorNames, entity.DeleteBy)
             };
 
             await _loggerService.InfoAsync(
@@ -679,84 +686,22 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         {
             return _dbContext.Set<MstKioskDevice>()
                 .AsNoTracking()
-                .Include(x => x.ServiceUnit)
-                .Include(x => x.Clinic)
                 .Include(x => x.DefaultScannerProfile)
                 .Where(x => !x.IsDelete);
         }
 
         private static IQueryable<MstKioskDevice> ApplyDateFilter(
             IQueryable<MstKioskDevice> query,
-            DateTime? startDate,
-            DateTime? endDate,
-            string? customPeriod)
+            DateRangeResolveResult dateRange)
         {
-            if (startDate.HasValue)
+            if (dateRange.Start.HasValue)
             {
-                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
-                query = query.Where(x => x.CreateDateTime >= start);
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
             }
 
-            if (endDate.HasValue)
+            if (dateRange.EndExclusive.HasValue)
             {
-                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
-                query = query.Where(x => x.CreateDateTime < end);
-            }
-
-            if (!startDate.HasValue &&
-                !endDate.HasValue &&
-                !string.IsNullOrWhiteSpace(customPeriod))
-            {
-                var today = DateTime.UtcNow.Date;
-
-                switch (customPeriod.Trim().ToLowerInvariant())
-                {
-                    case "today":
-                        query = query.Where(x =>
-                            x.CreateDateTime >= today &&
-                            x.CreateDateTime < today.AddDays(1));
-                        break;
-
-                    case "last7days":
-                        query = query.Where(x =>
-                            x.CreateDateTime >= today.AddDays(-6) &&
-                            x.CreateDateTime < today.AddDays(1));
-                        break;
-
-                    case "thismonth":
-                        var thisMonthStart = new DateTime(
-                            today.Year,
-                            today.Month,
-                            1,
-                            0,
-                            0,
-                            0,
-                            DateTimeKind.Utc
-                        );
-
-                        query = query.Where(x =>
-                            x.CreateDateTime >= thisMonthStart &&
-                            x.CreateDateTime < thisMonthStart.AddMonths(1));
-                        break;
-
-                    case "lastmonth":
-                        var currentMonthStart = new DateTime(
-                            today.Year,
-                            today.Month,
-                            1,
-                            0,
-                            0,
-                            0,
-                            DateTimeKind.Utc
-                        );
-
-                        var lastMonthStart = currentMonthStart.AddMonths(-1);
-
-                        query = query.Where(x =>
-                            x.CreateDateTime >= lastMonthStart &&
-                            x.CreateDateTime < currentMonthStart);
-                        break;
-                }
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
             }
 
             return query;
@@ -764,33 +709,51 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         private static IQueryable<MstKioskDevice> ApplyStandardFilter(
             IQueryable<MstKioskDevice> query,
+            string? search,
             bool? isActive,
-            Guid? serviceUnitId,
-            Guid? clinicId,
             Guid? defaultScannerProfileId,
             KioskDeviceType? deviceType,
             KioskDeviceStatus? deviceStatus,
-            bool? isAvailableForRegistration,
-            bool? isAvailableForCheckIn,
-            bool? isAvailableForPayment,
             bool? isAllowWalkIn,
             bool? isAllowAppointment,
-            bool? isAllowInsuranceRegistration,
-            string? search)
+            bool? isAllowInsuranceRegistration)
         {
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                var matchedDeviceTypes = Enum.GetValues(typeof(KioskDeviceType))
+                    .Cast<KioskDeviceType>()
+                    .Where(x =>
+                        x.ToString().ToLower().Contains(keyword) ||
+                        BuildEnumLabel(x.ToString()).ToLower().Contains(keyword))
+                    .ToList();
+
+                var matchedDeviceStatuses = Enum.GetValues(typeof(KioskDeviceStatus))
+                    .Cast<KioskDeviceStatus>()
+                    .Where(x =>
+                        x.ToString().ToLower().Contains(keyword) ||
+                        BuildEnumLabel(x.ToString()).ToLower().Contains(keyword))
+                    .ToList();
+
+                query = query.Where(x =>
+                    x.DeviceCode.ToLower().Contains(keyword) ||
+                    x.DeviceName.ToLower().Contains(keyword) ||
+                    (x.LocationName != null && x.LocationName.ToLower().Contains(keyword)) ||
+                    (x.FloorName != null && x.FloorName.ToLower().Contains(keyword)) ||
+                    (x.IpAddress != null && x.IpAddress.ToLower().Contains(keyword)) ||
+                    (x.MacAddress != null && x.MacAddress.ToLower().Contains(keyword)) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
+                    (x.LastErrorMessage != null && x.LastErrorMessage.ToLower().Contains(keyword)) ||
+                    (x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileCode.ToLower().Contains(keyword)) ||
+                    (x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileName.ToLower().Contains(keyword)) ||
+                    matchedDeviceTypes.Contains(x.DeviceType) ||
+                    matchedDeviceStatuses.Contains(x.DeviceStatus));
+            }
+
             if (isActive.HasValue)
             {
                 query = query.Where(x => x.IsActive == isActive.Value);
-            }
-
-            if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
-            }
-
-            if (clinicId.HasValue && clinicId.Value != Guid.Empty)
-            {
-                query = query.Where(x => x.ClinicId == clinicId.Value);
             }
 
             if (defaultScannerProfileId.HasValue && defaultScannerProfileId.Value != Guid.Empty)
@@ -808,21 +771,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 query = query.Where(x => x.DeviceStatus == deviceStatus.Value);
             }
 
-            if (isAvailableForRegistration.HasValue)
-            {
-                query = query.Where(x => x.IsAvailableForRegistration == isAvailableForRegistration.Value);
-            }
-
-            if (isAvailableForCheckIn.HasValue)
-            {
-                query = query.Where(x => x.IsAvailableForCheckIn == isAvailableForCheckIn.Value);
-            }
-
-            if (isAvailableForPayment.HasValue)
-            {
-                query = query.Where(x => x.IsAvailableForPayment == isAvailableForPayment.Value);
-            }
-
             if (isAllowWalkIn.HasValue)
             {
                 query = query.Where(x => x.IsAllowWalkIn == isAllowWalkIn.Value);
@@ -836,29 +784,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             if (isAllowInsuranceRegistration.HasValue)
             {
                 query = query.Where(x => x.IsAllowInsuranceRegistration == isAllowInsuranceRegistration.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var keyword = search.Trim().ToLower();
-
-                query = query.Where(x =>
-                    x.DeviceCode.ToLower().Contains(keyword) ||
-                    x.DeviceName.ToLower().Contains(keyword) ||
-                    (x.LocationName != null && x.LocationName.ToLower().Contains(keyword)) ||
-                    (x.FloorName != null && x.FloorName.ToLower().Contains(keyword)) ||
-                    (x.IpAddress != null && x.IpAddress.ToLower().Contains(keyword)) ||
-                    (x.MacAddress != null && x.MacAddress.ToLower().Contains(keyword)) ||
-                    (x.SerialNumber != null && x.SerialNumber.ToLower().Contains(keyword)) ||
-                    (x.DeviceModel != null && x.DeviceModel.ToLower().Contains(keyword)) ||
-                    (x.VendorName != null && x.VendorName.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
-                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitCode.ToLower().Contains(keyword)) ||
-                    (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
-                    (x.Clinic != null && x.Clinic.ClinicCode.ToLower().Contains(keyword)) ||
-                    (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)) ||
-                    (x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileCode.ToLower().Contains(keyword)) ||
-                    (x.DefaultScannerProfile != null && x.DefaultScannerProfile.ProfileName.ToLower().Contains(keyword)));
             }
 
             return query;
@@ -897,14 +822,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     ? query.OrderByDescending(x => x.DeviceStatus).ThenBy(x => x.DeviceName)
                     : query.OrderBy(x => x.DeviceStatus).ThenBy(x => x.DeviceName),
 
-                "serviceunitname" => isDescending
-                    ? query.OrderByDescending(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty).ThenBy(x => x.DeviceName)
-                    : query.OrderBy(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty).ThenBy(x => x.DeviceName),
-
-                "clinicname" => isDescending
-                    ? query.OrderByDescending(x => x.Clinic != null ? x.Clinic.ClinicName : string.Empty).ThenBy(x => x.DeviceName)
-                    : query.OrderBy(x => x.Clinic != null ? x.Clinic.ClinicName : string.Empty).ThenBy(x => x.DeviceName),
-
                 "defaultscannerprofilename" => isDescending
                     ? query.OrderByDescending(x => x.DefaultScannerProfile != null ? x.DefaultScannerProfile.ProfileName : string.Empty).ThenBy(x => x.DeviceName)
                     : query.OrderBy(x => x.DefaultScannerProfile != null ? x.DefaultScannerProfile.ProfileName : string.Empty).ThenBy(x => x.DeviceName),
@@ -921,13 +838,29 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     ? query.OrderByDescending(x => x.IpAddress).ThenBy(x => x.DeviceName)
                     : query.OrderBy(x => x.IpAddress).ThenBy(x => x.DeviceName),
 
-                "serialnumber" => isDescending
-                    ? query.OrderByDescending(x => x.SerialNumber).ThenBy(x => x.DeviceName)
-                    : query.OrderBy(x => x.SerialNumber).ThenBy(x => x.DeviceName),
+                "macaddress" => isDescending
+                    ? query.OrderByDescending(x => x.MacAddress).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.MacAddress).ThenBy(x => x.DeviceName),
 
-                "vendorname" => isDescending
-                    ? query.OrderByDescending(x => x.VendorName).ThenBy(x => x.DeviceName)
-                    : query.OrderBy(x => x.VendorName).ThenBy(x => x.DeviceName),
+                "isallowwalkin" => isDescending
+                    ? query.OrderByDescending(x => x.IsAllowWalkIn).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.IsAllowWalkIn).ThenBy(x => x.DeviceName),
+
+                "isallowappointment" => isDescending
+                    ? query.OrderByDescending(x => x.IsAllowAppointment).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.IsAllowAppointment).ThenBy(x => x.DeviceName),
+
+                "isallowinsuranceregistration" => isDescending
+                    ? query.OrderByDescending(x => x.IsAllowInsuranceRegistration).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.IsAllowInsuranceRegistration).ThenBy(x => x.DeviceName),
+
+                "lastonlineat" => isDescending
+                    ? query.OrderByDescending(x => x.LastOnlineAt).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.LastOnlineAt).ThenBy(x => x.DeviceName),
+
+                "lastofflineat" => isDescending
+                    ? query.OrderByDescending(x => x.LastOfflineAt).ThenBy(x => x.DeviceName)
+                    : query.OrderBy(x => x.LastOfflineAt).ThenBy(x => x.DeviceName),
 
                 "isactive" => isDescending
                     ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.DeviceName)
@@ -943,11 +876,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             Guid? excludeId,
             CreateKioskDeviceRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.DeviceCode))
-            {
-                return (false, "Kode kiosk device wajib diisi.");
-            }
-
             if (string.IsNullOrWhiteSpace(request.DeviceName))
             {
                 return (false, "Nama kiosk device wajib diisi.");
@@ -963,46 +891,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Status kiosk device tidak valid. Gunakan nilai dari endpoint filters/metadata.");
             }
 
-            var serviceUnitId = NormalizeNullableGuid(request.ServiceUnitId);
-            var clinicId = NormalizeNullableGuid(request.ClinicId);
+            if (request.SortOrder < 0)
+            {
+                return (false, "Urutan tidak boleh kurang dari 0.");
+            }
+
             var defaultScannerProfileId = NormalizeNullableGuid(request.DefaultScannerProfileId);
-
-            if (serviceUnitId.HasValue)
-            {
-                var serviceUnitExists = await _dbContext.Set<MstServiceUnit>()
-                    .AsNoTracking()
-                    .AnyAsync(x =>
-                        x.Id == serviceUnitId.Value &&
-                        x.IsActive &&
-                        !x.IsDelete);
-
-                if (!serviceUnitExists)
-                {
-                    return (false, "Service unit tidak valid atau tidak aktif.");
-                }
-            }
-
-            if (clinicId.HasValue)
-            {
-                var clinicQuery = _dbContext.Set<MstClinic>()
-                    .AsNoTracking()
-                    .Where(x =>
-                        x.Id == clinicId.Value &&
-                        x.IsActive &&
-                        !x.IsDelete);
-
-                if (serviceUnitId.HasValue)
-                {
-                    clinicQuery = clinicQuery.Where(x => x.ServiceUnitId == serviceUnitId.Value);
-                }
-
-                var clinicExists = await clinicQuery.AnyAsync();
-
-                if (!clinicExists)
-                {
-                    return (false, "Clinic tidak valid, tidak aktif, atau tidak sesuai dengan service unit.");
-                }
-            }
 
             if (defaultScannerProfileId.HasValue)
             {
@@ -1031,24 +925,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Format MAC address tidak valid.");
             }
 
-            var normalizedCode = request.DeviceCode.Trim().ToUpperInvariant();
             var normalizedName = request.DeviceName.Trim().ToLower();
-
-            var duplicateCodeQuery = _dbContext.Set<MstKioskDevice>()
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.DeviceCode.ToUpper() == normalizedCode);
-
-            if (excludeId.HasValue)
-            {
-                duplicateCodeQuery = duplicateCodeQuery.Where(x => x.Id != excludeId.Value);
-            }
-
-            if (await duplicateCodeQuery.AnyAsync())
-            {
-                return (false, "Kode kiosk device sudah digunakan.");
-            }
 
             var duplicateNameQuery = _dbContext.Set<MstKioskDevice>()
                 .AsNoTracking()
@@ -1066,7 +943,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Nama kiosk device sudah digunakan.");
             }
 
-            var ipAddress = NormalizeNullableString(request.IpAddress);
+            var ipAddress = NormalizeNullableText(request.IpAddress);
 
             if (!string.IsNullOrWhiteSpace(ipAddress))
             {
@@ -1112,29 +989,52 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 }
             }
 
-            var serialNumber = NormalizeNullableUpperString(request.SerialNumber);
+            return (true, null);
+        }
 
-            if (!string.IsNullOrWhiteSpace(serialNumber))
+        private async Task<string> GenerateKioskDeviceCodeAsync()
+        {
+            var existingCodes = await _dbContext.Set<MstKioskDevice>()
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(x => x.DeviceCode.StartsWith(KioskDeviceCodePrefix))
+                .Select(x => x.DeviceCode)
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(TryExtractKioskDeviceSequenceNumber)
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .Where(x => x > 0)
+                .ToHashSet();
+
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
             {
-                var duplicateSerialNumberQuery = _dbContext.Set<MstKioskDevice>()
-                    .AsNoTracking()
-                    .Where(x =>
-                        !x.IsDelete &&
-                        x.SerialNumber != null &&
-                        x.SerialNumber.ToUpper() == serialNumber);
-
-                if (excludeId.HasValue)
-                {
-                    duplicateSerialNumberQuery = duplicateSerialNumberQuery.Where(x => x.Id != excludeId.Value);
-                }
-
-                if (await duplicateSerialNumberQuery.AnyAsync())
-                {
-                    return (false, "Serial number kiosk device sudah digunakan.");
-                }
+                nextNumber++;
             }
 
-            return (true, null);
+            return KioskDeviceCodePrefix + nextNumber.ToString("D" + KioskDeviceCodeDigitLength, CultureInfo.InvariantCulture);
+        }
+
+        private static int? TryExtractKioskDeviceSequenceNumber(string kioskDeviceCode)
+        {
+            if (string.IsNullOrWhiteSpace(kioskDeviceCode))
+            {
+                return null;
+            }
+
+            if (!kioskDeviceCode.StartsWith(KioskDeviceCodePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var numberText = kioskDeviceCode[KioskDeviceCodePrefix.Length..];
+
+            return int.TryParse(numberText, NumberStyles.None, CultureInfo.InvariantCulture, out var number)
+                ? number
+                : null;
         }
 
         private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(
@@ -1178,24 +1078,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 DeviceTypeName = BuildEnumLabel(entity.DeviceType.ToString()),
                 DeviceStatus = entity.DeviceStatus,
                 DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
-                ServiceUnitId = entity.ServiceUnitId,
-                ServiceUnitCode = entity.ServiceUnit?.ServiceUnitCode,
-                ServiceUnitName = entity.ServiceUnit?.ServiceUnitName,
-                ClinicId = entity.ClinicId,
-                ClinicCode = entity.Clinic?.ClinicCode,
-                ClinicName = entity.Clinic?.ClinicName,
                 DefaultScannerProfileId = entity.DefaultScannerProfileId,
                 DefaultScannerProfileCode = entity.DefaultScannerProfile?.ProfileCode,
                 DefaultScannerProfileName = entity.DefaultScannerProfile?.ProfileName,
                 LocationName = entity.LocationName,
                 FloorName = entity.FloorName,
                 IpAddress = entity.IpAddress,
-                SerialNumber = entity.SerialNumber,
-                DeviceModel = entity.DeviceModel,
-                VendorName = entity.VendorName,
-                IsAvailableForRegistration = entity.IsAvailableForRegistration,
-                IsAvailableForCheckIn = entity.IsAvailableForCheckIn,
-                IsAvailableForPayment = entity.IsAvailableForPayment,
                 IsAllowWalkIn = entity.IsAllowWalkIn,
                 IsAllowAppointment = entity.IsAllowAppointment,
                 IsAllowInsuranceRegistration = entity.IsAllowInsuranceRegistration,
@@ -1222,12 +1110,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 DeviceTypeName = BuildEnumLabel(entity.DeviceType.ToString()),
                 DeviceStatus = entity.DeviceStatus,
                 DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
-                ServiceUnitId = entity.ServiceUnitId,
-                ServiceUnitCode = entity.ServiceUnit?.ServiceUnitCode,
-                ServiceUnitName = entity.ServiceUnit?.ServiceUnitName,
-                ClinicId = entity.ClinicId,
-                ClinicCode = entity.Clinic?.ClinicCode,
-                ClinicName = entity.Clinic?.ClinicName,
                 DefaultScannerProfileId = entity.DefaultScannerProfileId,
                 DefaultScannerProfileCode = entity.DefaultScannerProfile?.ProfileCode,
                 DefaultScannerProfileName = entity.DefaultScannerProfile?.ProfileName,
@@ -1235,12 +1117,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 FloorName = entity.FloorName,
                 IpAddress = entity.IpAddress,
                 MacAddress = entity.MacAddress,
-                SerialNumber = entity.SerialNumber,
-                DeviceModel = entity.DeviceModel,
-                VendorName = entity.VendorName,
-                IsAvailableForRegistration = entity.IsAvailableForRegistration,
-                IsAvailableForCheckIn = entity.IsAvailableForCheckIn,
-                IsAvailableForPayment = entity.IsAvailableForPayment,
                 IsAllowWalkIn = entity.IsAllowWalkIn,
                 IsAllowAppointment = entity.IsAllowAppointment,
                 IsAllowInsuranceRegistration = entity.IsAllowInsuranceRegistration,
@@ -1270,21 +1146,15 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 DeviceTypeName = BuildEnumLabel(entity.DeviceType.ToString()),
                 DeviceStatus = entity.DeviceStatus,
                 DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
-                ServiceUnitId = entity.ServiceUnitId,
-                ServiceUnitCode = entity.ServiceUnit?.ServiceUnitCode,
-                ServiceUnitName = entity.ServiceUnit?.ServiceUnitName,
-                ClinicId = entity.ClinicId,
-                ClinicCode = entity.Clinic?.ClinicCode,
-                ClinicName = entity.Clinic?.ClinicName,
                 DefaultScannerProfileId = entity.DefaultScannerProfileId,
                 DefaultScannerProfileCode = entity.DefaultScannerProfile?.ProfileCode,
                 DefaultScannerProfileName = entity.DefaultScannerProfile?.ProfileName,
-                IsAvailableForRegistration = entity.IsAvailableForRegistration,
-                IsAvailableForCheckIn = entity.IsAvailableForCheckIn,
-                IsAvailableForPayment = entity.IsAvailableForPayment,
+                LocationName = entity.LocationName,
+                FloorName = entity.FloorName,
                 IsAllowWalkIn = entity.IsAllowWalkIn,
                 IsAllowAppointment = entity.IsAllowAppointment,
-                IsAllowInsuranceRegistration = entity.IsAllowInsuranceRegistration
+                IsAllowInsuranceRegistration = entity.IsAllowInsuranceRegistration,
+                SortOrder = entity.SortOrder
             };
         }
 
@@ -1299,6 +1169,45 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     Label = BuildEnumLabel(x.ToString())
                 })
                 .ToList();
+        }
+
+        private static List<KioskDeviceEnumMetadataResponse> BuildEnumMetadataOptions(
+            List<KioskDeviceEnumOptionResponse> deviceTypeOptions,
+            List<KioskDeviceEnumOptionResponse> deviceStatusOptions)
+        {
+            return new List<KioskDeviceEnumMetadataResponse>
+            {
+                new()
+                {
+                    EnumName = nameof(KioskDeviceType),
+                    FieldName = "deviceType",
+                    OptionsSource = "deviceTypeOptions",
+                    Description = "Enum tipe kiosk device untuk field deviceType pada create, update, filter, response, dan option.",
+                    Options = deviceTypeOptions
+                        .Select(x => new KioskDeviceEnumMetadataOptionResponse
+                        {
+                            Value = x.Value,
+                            Name = x.Name,
+                            Label = x.Label
+                        })
+                        .ToList()
+                },
+                new()
+                {
+                    EnumName = nameof(KioskDeviceStatus),
+                    FieldName = "deviceStatus",
+                    OptionsSource = "deviceStatusOptions",
+                    Description = "Enum status operasional kiosk device untuk field deviceStatus pada create, update, filter, response, dan option.",
+                    Options = deviceStatusOptions
+                        .Select(x => new KioskDeviceEnumMetadataOptionResponse
+                        {
+                            Value = x.Value,
+                            Name = x.Name,
+                            Label = x.Label
+                        })
+                        .ToList()
+                }
+            };
         }
 
         private static string BuildEnumLabel(string value)
@@ -1348,6 +1257,151 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return (pageNumber, pageSize);
         }
 
+        private static DateRangeResolveResult ResolveDateRange(
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            var period = customPeriod?.Trim().ToLowerInvariant();
+            var today = DateTime.UtcNow.Date;
+
+            DateTime? start = null;
+            DateTime? endExclusive = null;
+
+            switch (period)
+            {
+                case null:
+                case "":
+                case "custom":
+                    if (startDate.HasValue)
+                    {
+                        start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                    }
+
+                    if (endDate.HasValue)
+                    {
+                        endExclusive = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                    }
+
+                    break;
+
+                case "today":
+                    start = today;
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "last7days":
+                    start = today.AddDays(-6);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "last30days":
+                    start = today.AddDays(-29);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "thismonth":
+                    start = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    endExclusive = start.Value.AddMonths(1);
+                    break;
+
+                case "lastmonth":
+                    var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    start = currentMonthStart.AddMonths(-1);
+                    endExclusive = currentMonthStart;
+                    break;
+
+                default:
+                    return DateRangeResolveResult.Invalid($"customPeriod '{customPeriod}' tidak valid.");
+            }
+
+            if (start.HasValue && endExclusive.HasValue && start.Value >= endExclusive.Value)
+            {
+                return DateRangeResolveResult.Invalid("startDate tidak boleh lebih besar atau sama dengan endDate.");
+            }
+
+            return DateRangeResolveResult.Valid(start, endExclusive);
+        }
+
+        private static List<KioskDeviceCustomPeriodOptionResponse> BuildCustomPeriodOptions()
+        {
+            return new List<KioskDeviceCustomPeriodOptionResponse>
+            {
+                new() { Value = "custom", Label = "Custom", Description = "Gunakan startDate dan endDate.", UsesStartDate = true, UsesEndDate = true },
+                new() { Value = "today", Label = "Hari ini", Description = "Data yang dibuat hari ini.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last7days", Label = "7 hari terakhir", Description = "Data yang dibuat dalam 7 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last30days", Label = "30 hari terakhir", Description = "Data yang dibuat dalam 30 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "thismonth", Label = "Bulan ini", Description = "Data yang dibuat pada bulan berjalan.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "lastmonth", Label = "Bulan lalu", Description = "Data yang dibuat pada bulan sebelumnya.", UsesStartDate = false, UsesEndDate = false }
+            };
+        }
+
+        private static List<KioskDeviceQueryParameterInfoResponse> BuildQueryParameterInfo()
+        {
+            return new List<KioskDeviceQueryParameterInfoResponse>
+            {
+                new() { Name = "startDate", Type = "DateTime?", Description = "Tanggal awal filter berdasarkan CreateDateTime.", Example = "2026-06-01" },
+                new() { Name = "endDate", Type = "DateTime?", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-06-30" },
+                new() { Name = "customPeriod", Type = "string", Description = "Filter periode cepat: custom, today, last7days, last30days, thismonth, lastmonth.", Example = "thismonth" },
+                new() { Name = "search", Type = "string", Description = "Cari berdasarkan kode, nama, lokasi, lantai, IP, MAC, tipe, status, scanner profile, error, atau deskripsi.", Example = "Lobby" },
+                new() { Name = "isActive", Type = "bool", Description = "Filter status aktif.", Example = "true" },
+                new() { Name = "defaultScannerProfileId", Type = "Guid?", Description = "Filter berdasarkan default scanner profile.", Example = "3fa85f64-5717-4562-b3fc-2c963f66afa6" },
+                new() { Name = "deviceType", Type = "enum", Description = "Filter berdasarkan tipe kiosk device.", Example = "1" },
+                new() { Name = "deviceStatus", Type = "enum", Description = "Filter berdasarkan status operasional kiosk device.", Example = "1" },
+                new() { Name = "isAllowWalkIn", Type = "bool", Description = "Filter kiosk yang mengizinkan walk-in.", Example = "true" },
+                new() { Name = "isAllowAppointment", Type = "bool", Description = "Filter kiosk yang mengizinkan appointment.", Example = "true" },
+                new() { Name = "isAllowInsuranceRegistration", Type = "bool", Description = "Filter kiosk yang mengizinkan registrasi asuransi.", Example = "true" },
+                new() { Name = "sortBy", Type = "string", Description = "Kolom sorting.", Example = "sortOrder" },
+                new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
+                new() { Name = "pageNumber", Type = "int", Description = "Nomor halaman.", Example = "1" },
+                new() { Name = "pageSize", Type = "int", Description = "Jumlah data per halaman, maksimal 100.", Example = "25" }
+            };
+        }
+
+        private static List<KioskDeviceFormFieldMetadataResponse> BuildCreateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: false);
+        }
+
+        private static List<KioskDeviceFormFieldMetadataResponse> BuildUpdateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: true);
+        }
+
+        private static List<KioskDeviceFormFieldMetadataResponse> BuildFieldMetadata(bool isUpdate)
+        {
+            var fields = new List<KioskDeviceFormFieldMetadataResponse>
+            {
+                new() { Name = "deviceCode", Label = "Kode Kiosk Device", Section = "Basic", InputType = "readonly", IsRequiredOnCreate = false, IsRequiredOnUpdate = false, RequiredType = "AutoGenerated", MaxLength = 50, Description = "Digenerate otomatis oleh sistem dengan format KSK-RSMMC-00001.", Example = "KSK-RSMMC-00001", SortOrder = 1 },
+                new() { Name = "deviceName", Label = "Nama Kiosk Device", Section = "Basic", InputType = "text", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", MaxLength = 150, Example = "Kiosk Lobby Utama", SortOrder = 2 },
+                new() { Name = "deviceType", Label = "Tipe Device", Section = "Basic", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "deviceTypeOptions", SortOrder = 3 },
+                new() { Name = "deviceStatus", Label = "Status Device", Section = "Basic", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "deviceStatusOptions", SortOrder = 4 },
+                new() { Name = "defaultScannerProfileId", Label = "Default Scanner Profile", Section = "Scanner", InputType = "select", OptionsSource = "identityScannerProfileOptions", Description = "Opsional. Profil scanner default yang digunakan kiosk.", SortOrder = 5 },
+                new() { Name = "locationName", Label = "Lokasi", Section = "Location", InputType = "text", MaxLength = 100, Example = "Lobby Utama", SortOrder = 6 },
+                new() { Name = "floorName", Label = "Lantai", Section = "Location", InputType = "text", MaxLength = 50, Example = "Lantai 1", SortOrder = 7 },
+                new() { Name = "ipAddress", Label = "IP Address", Section = "Network", InputType = "text", MaxLength = 100, Example = "192.168.1.50", SortOrder = 8 },
+                new() { Name = "macAddress", Label = "MAC Address", Section = "Network", InputType = "text", MaxLength = 100, Example = "A1:B2:C3:D4:E5:F6", SortOrder = 9 },
+                new() { Name = "isAllowWalkIn", Label = "Izinkan Walk-In", Section = "Rule", InputType = "switch", SortOrder = 10 },
+                new() { Name = "isAllowAppointment", Label = "Izinkan Appointment", Section = "Rule", InputType = "switch", SortOrder = 11 },
+                new() { Name = "isAllowInsuranceRegistration", Label = "Izinkan Registrasi Asuransi", Section = "Rule", InputType = "switch", SortOrder = 12 },
+                new() { Name = "sortOrder", Label = "Urutan", Section = "Display", InputType = "number", SortOrder = 13 },
+                new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 14 }
+            };
+
+            if (isUpdate)
+            {
+                fields.AddRange(new[]
+                {
+                    new KioskDeviceFormFieldMetadataResponse { Name = "lastOnlineAt", Label = "Terakhir Online", Section = "Monitoring", InputType = "datetime", SortOrder = 90 },
+                    new KioskDeviceFormFieldMetadataResponse { Name = "lastOfflineAt", Label = "Terakhir Offline", Section = "Monitoring", InputType = "datetime", SortOrder = 91 },
+                    new KioskDeviceFormFieldMetadataResponse { Name = "lastErrorMessage", Label = "Pesan Error Terakhir", Section = "Monitoring", InputType = "textarea", MaxLength = 250, SortOrder = 92 },
+                    new KioskDeviceFormFieldMetadataResponse { Name = "isActive", Label = "Status Aktif", Section = "Status", InputType = "switch", SortOrder = 99 }
+                });
+            }
+
+            return fields.OrderBy(x => x.SortOrder).ToList();
+        }
+
         private static Guid? NormalizeNullableGuid(Guid? value)
         {
             return value.HasValue && value.Value != Guid.Empty
@@ -1370,18 +1424,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             };
         }
 
-        private static string? NormalizeNullableString(string? value)
+        private static string? NormalizeNullableText(string? value)
         {
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
-        }
-
-        private static string? NormalizeNullableUpperString(string? value)
-        {
-            return string.IsNullOrWhiteSpace(value)
-                ? null
-                : value.Trim().ToUpperInvariant();
         }
 
         private static string? NormalizeMacAddress(string? value)
@@ -1427,6 +1474,33 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return Guid.TryParse(userIdValue, out var userId)
                 ? userId
                 : Guid.Empty;
+        }
+
+        private sealed class DateRangeResolveResult
+        {
+            public bool IsValid { get; private set; }
+            public string? ErrorMessage { get; private set; }
+            public DateTime? Start { get; private set; }
+            public DateTime? EndExclusive { get; private set; }
+
+            public static DateRangeResolveResult Valid(DateTime? start, DateTime? endExclusive)
+            {
+                return new DateRangeResolveResult
+                {
+                    IsValid = true,
+                    Start = start,
+                    EndExclusive = endExclusive
+                };
+            }
+
+            public static DateRangeResolveResult Invalid(string errorMessage)
+            {
+                return new DateRangeResolveResult
+                {
+                    IsValid = false,
+                    ErrorMessage = errorMessage
+                };
+            }
         }
     }
 }

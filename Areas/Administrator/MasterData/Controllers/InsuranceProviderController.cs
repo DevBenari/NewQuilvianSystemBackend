@@ -9,6 +9,8 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.ComponentModel.DataAnnotations;
+using System.Data;
+using System.Globalization;
 using System.Security.Claims;
 
 using ResponseInsuranceProviderPagedResult =
@@ -36,7 +38,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         private const string InsuranceProviderCodePrefix = "IP-RSMMC-";
         private const int InsuranceProviderCodeDigitLength = 5;
 
-        private static readonly HashSet<string> AllowedProviderTypes = new(StringComparer.OrdinalIgnoreCase)
+        private const string ContractStatusActive = "active";
+        private const string ContractStatusExpired = "expired";
+        private const string ContractStatusUpcoming = "upcoming";
+        private const string ContractStatusNoContract = "noContract";
+
+        private static readonly List<string> AllowedProviderTypes = new()
         {
             "PrivateInsurance",
             "TPA",
@@ -45,12 +52,20 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             "Other"
         };
 
-        private static readonly HashSet<string> AllowedClaimMethods = new(StringComparer.OrdinalIgnoreCase)
+        private static readonly List<string> AllowedClaimMethods = new()
         {
             "Cashless",
             "Reimbursement",
             "GuaranteeLetter",
             "Mixed"
+        };
+
+        private static readonly List<string> AllowedContractStatuses = new()
+        {
+            ContractStatusActive,
+            ContractStatusExpired,
+            ContractStatusUpcoming,
+            ContractStatusNoContract
         };
 
         private readonly ApplicationDbContext _dbContext;
@@ -79,13 +94,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var result = new InsuranceProviderFilterMetadataResponse
             {
                 DefaultFilter = new InsuranceProviderDefaultFilterResponse(),
-                CustomPeriods = new List<InsuranceProviderCustomPeriodOptionResponse>
-                {
-                    new() { Value = "today", Label = "Hari ini" },
-                    new() { Value = "last7days", Label = "7 hari terakhir" },
-                    new() { Value = "thismonth", Label = "Bulan ini" },
-                    new() { Value = "lastmonth", Label = "Bulan lalu" }
-                },
+                CustomPeriods = BuildCustomPeriodOptions(),
                 SortOptions = new List<InsuranceProviderSortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -97,26 +106,19 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     new() { Value = "claimMethod", Label = "Metode klaim" },
                     new() { Value = "contractStartDate", Label = "Tanggal mulai kontrak" },
                     new() { Value = "contractEndDate", Label = "Tanggal akhir kontrak" },
+                    new() { Value = "isUsingInsuranceTariffBook", Label = "Pakai tarif insurance" },
+                    new() { Value = "isNeedEligibilityCheck", Label = "Butuh eligibility check" },
+                    new() { Value = "isNeedGuaranteeLetter", Label = "Butuh guarantee letter" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                ProviderTypeOptions = AllowedProviderTypes
-                    .OrderBy(x => x)
-                    .Select(x => new InsuranceProviderStringOptionResponse
-                    {
-                        Value = x,
-                        Label = BuildProviderTypeLabel(x)
-                    })
-                    .ToList(),
-                ClaimMethodOptions = AllowedClaimMethods
-                    .OrderBy(x => x)
-                    .Select(x => new InsuranceProviderStringOptionResponse
-                    {
-                        Value = x,
-                        Label = BuildClaimMethodLabel(x)
-                    })
-                    .ToList(),
+                ProviderTypeOptions = BuildProviderTypeOptions(),
+                ClaimMethodOptions = BuildClaimMethodOptions(),
+                ContractStatusOptions = BuildContractStatusOptions(),
+                QueryParameters = BuildQueryParameterInfo(),
+                CreateFields = BuildCreateFieldMetadata(),
+                UpdateFields = BuildUpdateFieldMetadata(),
                 ResetButtonLabel = "Reset"
             };
 
@@ -157,6 +159,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 TpaProvider = await query.CountAsync(x => x.ProviderType == "TPA"),
                 GovernmentInsuranceProvider = await query.CountAsync(x => x.ProviderType == "GovernmentInsurance"),
                 CorporateInsuranceProvider = await query.CountAsync(x => x.ProviderType == "CorporateInsurance"),
+                OtherInsuranceProvider = await query.CountAsync(x => x.ProviderType == "Other"),
                 CashlessProvider = await query.CountAsync(x => x.ClaimMethod == "Cashless"),
                 ReimbursementProvider = await query.CountAsync(x => x.ClaimMethod == "Reimbursement"),
                 GuaranteeLetterProvider = await query.CountAsync(x => x.ClaimMethod == "GuaranteeLetter"),
@@ -168,11 +171,18 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 NeedApprovalForDrugProvider = await query.CountAsync(x => x.IsNeedApprovalForDrug),
                 UsingInsuranceTariffBookProvider = await query.CountAsync(x => x.IsUsingInsuranceTariffBook),
                 UsingHospitalTariffProvider = await query.CountAsync(x => x.IsUsingHospitalTariff),
+                CoverageLimitedByPlanProvider = await query.CountAsync(x => x.IsCoverageLimitedByPlan),
+                AllowExcessPaymentByPatientProvider = await query.CountAsync(x => x.IsAllowExcessPaymentByPatient),
                 ActiveContractProvider = await query.CountAsync(x =>
+                    (x.ContractStartDate.HasValue || x.ContractEndDate.HasValue) &&
                     (!x.ContractStartDate.HasValue || x.ContractStartDate.Value.Date <= today) &&
                     (!x.ContractEndDate.HasValue || x.ContractEndDate.Value.Date >= today)),
                 ExpiredContractProvider = await query.CountAsync(x =>
-                    x.ContractEndDate.HasValue && x.ContractEndDate.Value.Date < today)
+                    x.ContractEndDate.HasValue && x.ContractEndDate.Value.Date < today),
+                UpcomingContractProvider = await query.CountAsync(x =>
+                    x.ContractStartDate.HasValue && x.ContractStartDate.Value.Date > today),
+                NoContractDateProvider = await query.CountAsync(x =>
+                    !x.ContractStartDate.HasValue && !x.ContractEndDate.HasValue)
             };
 
             return Ok(ApiResponse<InsuranceProviderSummaryResponse>.Ok(
@@ -195,10 +205,20 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
+            [FromQuery] string? search,
             [FromQuery] bool? isActive,
             [FromQuery] string? providerType,
             [FromQuery] string? claimMethod,
-            [FromQuery] string? search,
+            [FromQuery] string? contractStatus,
+            [FromQuery] bool? isUsingInsuranceTariffBook,
+            [FromQuery] bool? isUsingHospitalTariff,
+            [FromQuery] bool? isNeedEligibilityCheck,
+            [FromQuery] bool? isNeedGuaranteeLetter,
+            [FromQuery] bool? isNeedReferralLetter,
+            [FromQuery] bool? isNeedApprovalForProcedure,
+            [FromQuery] bool? isNeedApprovalForDrug,
+            [FromQuery] bool? isCoverageLimitedByPlan,
+            [FromQuery] bool? isAllowExcessPaymentByPatient,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -208,10 +228,36 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
             var query = BuildBaseQuery();
 
-            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
-            query = ApplyStandardFilter(query, isActive, providerType, claimMethod, search);
+            query = ApplyDateFilter(query, dateRange);
+            query = ApplyStandardFilter(
+                query,
+                search,
+                isActive,
+                providerType,
+                claimMethod,
+                contractStatus,
+                isUsingInsuranceTariffBook,
+                isUsingHospitalTariff,
+                isNeedEligibilityCheck,
+                isNeedGuaranteeLetter,
+                isNeedReferralLetter,
+                isNeedApprovalForProcedure,
+                isNeedApprovalForDrug,
+                isCoverageLimitedByPlan,
+                isAllowExcessPaymentByPatient
+            );
 
             var totalData = await query.CountAsync();
 
@@ -257,8 +303,19 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [AccessPermission("InsuranceProvider", "Read")]
         public async Task<IActionResult> GetInsuranceProviderOptions(
             [FromQuery] bool onlyActive = true,
+            [FromQuery] bool? activeOnly = null,
             [FromQuery] string? providerType = null,
             [FromQuery] string? claimMethod = null,
+            [FromQuery] string? contractStatus = null,
+            [FromQuery] bool? isUsingInsuranceTariffBook = null,
+            [FromQuery] bool? isUsingHospitalTariff = null,
+            [FromQuery] bool? isNeedEligibilityCheck = null,
+            [FromQuery] bool? isNeedGuaranteeLetter = null,
+            [FromQuery] bool? isNeedReferralLetter = null,
+            [FromQuery] bool? isNeedApprovalForProcedure = null,
+            [FromQuery] bool? isNeedApprovalForDrug = null,
+            [FromQuery] bool? isCoverageLimitedByPlan = null,
+            [FromQuery] bool? isAllowExcessPaymentByPatient = null,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
@@ -267,44 +324,40 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            var useOnlyActive = activeOnly ?? onlyActive;
+
             var query = BuildBaseQuery();
 
             query = ApplyStandardFilter(
                 query,
-                onlyActive ? true : null,
+                search,
+                useOnlyActive ? true : null,
                 providerType,
                 claimMethod,
-                search
+                contractStatus,
+                isUsingInsuranceTariffBook,
+                isUsingHospitalTariff,
+                isNeedEligibilityCheck,
+                isNeedGuaranteeLetter,
+                isNeedReferralLetter,
+                isNeedApprovalForProcedure,
+                isNeedApprovalForDrug,
+                isCoverageLimitedByPlan,
+                isAllowExcessPaymentByPatient
             );
 
             var totalData = await query.CountAsync();
 
-            var items = await query
+            var entities = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.InsuranceProviderName)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new InsuranceProviderOptionResponse
-                {
-                    Id = x.Id,
-                    InsuranceProviderCode = x.InsuranceProviderCode,
-                    InsuranceProviderName = x.InsuranceProviderName,
-                    InsuranceGroupName = x.InsuranceGroupName,
-                    ProviderType = x.ProviderType,
-                    ProviderTypeName = BuildProviderTypeLabel(x.ProviderType),
-                    ClaimMethod = x.ClaimMethod,
-                    ClaimMethodName = BuildClaimMethodLabel(x.ClaimMethod),
-                    IsUsingInsuranceTariffBook = x.IsUsingInsuranceTariffBook,
-                    IsUsingHospitalTariff = x.IsUsingHospitalTariff,
-                    IsNeedEligibilityCheck = x.IsNeedEligibilityCheck,
-                    IsNeedGuaranteeLetter = x.IsNeedGuaranteeLetter,
-                    IsNeedReferralLetter = x.IsNeedReferralLetter,
-                    IsNeedApprovalForProcedure = x.IsNeedApprovalForProcedure,
-                    IsNeedApprovalForDrug = x.IsNeedApprovalForDrug,
-                    IsCoverageLimitedByPlan = x.IsCoverageLimitedByPlan,
-                    IsAllowExcessPaymentByPatient = x.IsAllowExcessPaymentByPatient
-                })
                 .ToListAsync();
+
+            var items = entities
+                .Select(MapOptionResponse)
+                .ToList();
 
             var result = new InsuranceProviderOptionPagedResponse
             {
@@ -388,16 +441,20 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+            var generatedInsuranceProviderCode = await GenerateInsuranceProviderCodeAsync();
+
             var entity = new MstInsuranceProvider
             {
                 Id = Guid.NewGuid(),
-                InsuranceProviderCode = await GenerateInsuranceProviderCodeAsync(),
+                InsuranceProviderCode = generatedInsuranceProviderCode,
                 InsuranceProviderName = request.InsuranceProviderName.Trim(),
                 InsuranceGroupName = NormalizeNullableString(request.InsuranceGroupName),
                 ProviderType = NormalizeProviderType(request.ProviderType),
                 ClaimMethod = NormalizeClaimMethod(request.ClaimMethod),
-                ExternalProviderCode = NormalizeNullableString(request.ExternalProviderCode),
-                IntegrationCode = NormalizeNullableString(request.IntegrationCode),
+                ExternalProviderCode = NormalizeUpperNullableString(request.ExternalProviderCode),
+                IntegrationCode = NormalizeUpperNullableString(request.IntegrationCode),
                 ContractNumber = NormalizeNullableString(request.ContractNumber),
                 ContractStartDate = request.ContractStartDate,
                 ContractEndDate = request.ContractEndDate,
@@ -413,7 +470,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 PicName = NormalizeNullableString(request.PicName),
                 PicPhoneNumber = NormalizeNullableString(request.PicPhoneNumber),
                 PicWhatsAppNumber = NormalizeNullableString(request.PicWhatsAppNumber),
-                PicEmail = NormalizeNullableString(request.PicEmail),
+                PicEmail = NormalizeLowerNullableString(request.PicEmail),
                 OfficeAddress = NormalizeNullableString(request.OfficeAddress),
                 LogoPath = NormalizeNullableString(request.LogoPath),
                 BillingInstruction = NormalizeNullableString(request.BillingInstruction),
@@ -429,6 +486,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             _dbContext.Set<MstInsuranceProvider>().Add(entity);
             await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            var actorNames = await GetActorNameMapAsync(new[] { entity.CreateBy });
 
             var result = new InsuranceProviderCreateResponse
             {
@@ -436,9 +496,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 InsuranceProviderCode = entity.InsuranceProviderCode,
                 InsuranceProviderName = entity.InsuranceProviderName,
                 ProviderType = entity.ProviderType,
+                ProviderTypeName = BuildProviderTypeLabel(entity.ProviderType),
                 ClaimMethod = entity.ClaimMethod,
+                ClaimMethodName = BuildClaimMethodLabel(entity.ClaimMethod),
                 IsActive = entity.IsActive,
-                CreateDateTime = entity.CreateDateTime
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
             };
 
             await _loggerService.InfoAsync(
@@ -501,8 +565,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             entity.InsuranceGroupName = NormalizeNullableString(request.InsuranceGroupName);
             entity.ProviderType = NormalizeProviderType(request.ProviderType);
             entity.ClaimMethod = NormalizeClaimMethod(request.ClaimMethod);
-            entity.ExternalProviderCode = NormalizeNullableString(request.ExternalProviderCode);
-            entity.IntegrationCode = NormalizeNullableString(request.IntegrationCode);
+            entity.ExternalProviderCode = NormalizeUpperNullableString(request.ExternalProviderCode);
+            entity.IntegrationCode = NormalizeUpperNullableString(request.IntegrationCode);
             entity.ContractNumber = NormalizeNullableString(request.ContractNumber);
             entity.ContractStartDate = request.ContractStartDate;
             entity.ContractEndDate = request.ContractEndDate;
@@ -518,7 +582,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             entity.PicName = NormalizeNullableString(request.PicName);
             entity.PicPhoneNumber = NormalizeNullableString(request.PicPhoneNumber);
             entity.PicWhatsAppNumber = NormalizeNullableString(request.PicWhatsAppNumber);
-            entity.PicEmail = NormalizeNullableString(request.PicEmail);
+            entity.PicEmail = NormalizeLowerNullableString(request.PicEmail);
             entity.OfficeAddress = NormalizeNullableString(request.OfficeAddress);
             entity.LogoPath = NormalizeNullableString(request.LogoPath);
             entity.BillingInstruction = NormalizeNullableString(request.BillingInstruction);
@@ -531,13 +595,21 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[] { entity.UpdateBy });
+
             var result = new InsuranceProviderUpdateResponse
             {
                 Id = entity.Id,
                 InsuranceProviderCode = entity.InsuranceProviderCode,
                 InsuranceProviderName = entity.InsuranceProviderName,
+                ProviderType = entity.ProviderType,
+                ProviderTypeName = BuildProviderTypeLabel(entity.ProviderType),
+                ClaimMethod = entity.ClaimMethod,
+                ClaimMethodName = BuildClaimMethodLabel(entity.ClaimMethod),
                 IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
 
             await _loggerService.InfoAsync(
@@ -588,13 +660,21 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[] { entity.UpdateBy });
+
             var result = new InsuranceProviderUpdateResponse
             {
                 Id = entity.Id,
                 InsuranceProviderCode = entity.InsuranceProviderCode,
                 InsuranceProviderName = entity.InsuranceProviderName,
+                ProviderType = entity.ProviderType,
+                ProviderTypeName = BuildProviderTypeLabel(entity.ProviderType),
+                ClaimMethod = entity.ClaimMethod,
+                ClaimMethodName = BuildClaimMethodLabel(entity.ClaimMethod),
                 IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
 
             return Ok(ApiResponse<InsuranceProviderUpdateResponse>.Ok(
@@ -646,12 +726,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[] { entity.DeleteBy });
+
             var result = new InsuranceProviderDeleteResponse
             {
                 Id = entity.Id,
                 InsuranceProviderCode = entity.InsuranceProviderCode,
                 InsuranceProviderName = entity.InsuranceProviderName,
-                DeleteDateTime = entity.DeleteDateTime
+                DeleteDateTime = entity.DeleteDateTime,
+                DeleteBy = entity.DeleteBy == Guid.Empty ? null : (Guid?)entity.DeleteBy,
+                DeleteByName = GetActorName(actorNames, entity.DeleteBy)
             };
 
             await _loggerService.InfoAsync(
@@ -676,76 +760,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         private static IQueryable<MstInsuranceProvider> ApplyDateFilter(
             IQueryable<MstInsuranceProvider> query,
-            DateTime? startDate,
-            DateTime? endDate,
-            string? customPeriod)
+            DateRangeResolveResult dateRange)
         {
-            if (startDate.HasValue)
+            if (dateRange.Start.HasValue)
             {
-                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
-                query = query.Where(x => x.CreateDateTime >= start);
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
             }
 
-            if (endDate.HasValue)
+            if (dateRange.EndExclusive.HasValue)
             {
-                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
-                query = query.Where(x => x.CreateDateTime < end);
-            }
-
-            if (!startDate.HasValue &&
-                !endDate.HasValue &&
-                !string.IsNullOrWhiteSpace(customPeriod))
-            {
-                var today = DateTime.UtcNow.Date;
-
-                switch (customPeriod.Trim().ToLowerInvariant())
-                {
-                    case "today":
-                        query = query.Where(x =>
-                            x.CreateDateTime >= today &&
-                            x.CreateDateTime < today.AddDays(1));
-                        break;
-
-                    case "last7days":
-                        query = query.Where(x =>
-                            x.CreateDateTime >= today.AddDays(-6) &&
-                            x.CreateDateTime < today.AddDays(1));
-                        break;
-
-                    case "thismonth":
-                        var thisMonthStart = new DateTime(
-                            today.Year,
-                            today.Month,
-                            1,
-                            0,
-                            0,
-                            0,
-                            DateTimeKind.Utc
-                        );
-
-                        query = query.Where(x =>
-                            x.CreateDateTime >= thisMonthStart &&
-                            x.CreateDateTime < thisMonthStart.AddMonths(1));
-                        break;
-
-                    case "lastmonth":
-                        var currentMonthStart = new DateTime(
-                            today.Year,
-                            today.Month,
-                            1,
-                            0,
-                            0,
-                            0,
-                            DateTimeKind.Utc
-                        );
-
-                        var lastMonthStart = currentMonthStart.AddMonths(-1);
-
-                        query = query.Where(x =>
-                            x.CreateDateTime >= lastMonthStart &&
-                            x.CreateDateTime < currentMonthStart);
-                        break;
-                }
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
             }
 
             return query;
@@ -753,10 +777,20 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         private static IQueryable<MstInsuranceProvider> ApplyStandardFilter(
             IQueryable<MstInsuranceProvider> query,
+            string? search,
             bool? isActive,
             string? providerType,
             string? claimMethod,
-            string? search)
+            string? contractStatus,
+            bool? isUsingInsuranceTariffBook,
+            bool? isUsingHospitalTariff,
+            bool? isNeedEligibilityCheck,
+            bool? isNeedGuaranteeLetter,
+            bool? isNeedReferralLetter,
+            bool? isNeedApprovalForProcedure,
+            bool? isNeedApprovalForDrug,
+            bool? isCoverageLimitedByPlan,
+            bool? isAllowExcessPaymentByPatient)
         {
             if (isActive.HasValue)
             {
@@ -775,9 +809,68 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 query = query.Where(x => x.ClaimMethod == normalizedClaimMethod);
             }
 
+            query = ApplyContractStatusFilter(query, contractStatus);
+
+            if (isUsingInsuranceTariffBook.HasValue)
+            {
+                query = query.Where(x => x.IsUsingInsuranceTariffBook == isUsingInsuranceTariffBook.Value);
+            }
+
+            if (isUsingHospitalTariff.HasValue)
+            {
+                query = query.Where(x => x.IsUsingHospitalTariff == isUsingHospitalTariff.Value);
+            }
+
+            if (isNeedEligibilityCheck.HasValue)
+            {
+                query = query.Where(x => x.IsNeedEligibilityCheck == isNeedEligibilityCheck.Value);
+            }
+
+            if (isNeedGuaranteeLetter.HasValue)
+            {
+                query = query.Where(x => x.IsNeedGuaranteeLetter == isNeedGuaranteeLetter.Value);
+            }
+
+            if (isNeedReferralLetter.HasValue)
+            {
+                query = query.Where(x => x.IsNeedReferralLetter == isNeedReferralLetter.Value);
+            }
+
+            if (isNeedApprovalForProcedure.HasValue)
+            {
+                query = query.Where(x => x.IsNeedApprovalForProcedure == isNeedApprovalForProcedure.Value);
+            }
+
+            if (isNeedApprovalForDrug.HasValue)
+            {
+                query = query.Where(x => x.IsNeedApprovalForDrug == isNeedApprovalForDrug.Value);
+            }
+
+            if (isCoverageLimitedByPlan.HasValue)
+            {
+                query = query.Where(x => x.IsCoverageLimitedByPlan == isCoverageLimitedByPlan.Value);
+            }
+
+            if (isAllowExcessPaymentByPatient.HasValue)
+            {
+                query = query.Where(x => x.IsAllowExcessPaymentByPatient == isAllowExcessPaymentByPatient.Value);
+            }
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
+
+                var matchedProviderTypes = AllowedProviderTypes
+                    .Where(x =>
+                        x.ToLower().Contains(keyword) ||
+                        BuildProviderTypeLabel(x).ToLower().Contains(keyword))
+                    .ToList();
+
+                var matchedClaimMethods = AllowedClaimMethods
+                    .Where(x =>
+                        x.ToLower().Contains(keyword) ||
+                        BuildClaimMethodLabel(x).ToLower().Contains(keyword))
+                    .ToList();
 
                 query = query.Where(x =>
                     x.InsuranceProviderCode.ToLower().Contains(keyword) ||
@@ -795,10 +888,47 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     (x.OfficeAddress != null && x.OfficeAddress.ToLower().Contains(keyword)) ||
                     (x.BillingInstruction != null && x.BillingInstruction.ToLower().Contains(keyword)) ||
                     (x.ClaimInstruction != null && x.ClaimInstruction.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)));
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
+                    matchedProviderTypes.Contains(x.ProviderType) ||
+                    matchedClaimMethods.Contains(x.ClaimMethod));
             }
 
             return query;
+        }
+
+        private static IQueryable<MstInsuranceProvider> ApplyContractStatusFilter(
+            IQueryable<MstInsuranceProvider> query,
+            string? contractStatus)
+        {
+            if (string.IsNullOrWhiteSpace(contractStatus))
+            {
+                return query;
+            }
+
+            var normalizedStatus = NormalizeContractStatus(contractStatus);
+            var today = DateTime.UtcNow.Date;
+
+            return normalizedStatus switch
+            {
+                ContractStatusActive => query.Where(x =>
+                    (x.ContractStartDate.HasValue || x.ContractEndDate.HasValue) &&
+                    (!x.ContractStartDate.HasValue || x.ContractStartDate.Value.Date <= today) &&
+                    (!x.ContractEndDate.HasValue || x.ContractEndDate.Value.Date >= today)),
+
+                ContractStatusExpired => query.Where(x =>
+                    x.ContractEndDate.HasValue &&
+                    x.ContractEndDate.Value.Date < today),
+
+                ContractStatusUpcoming => query.Where(x =>
+                    x.ContractStartDate.HasValue &&
+                    x.ContractStartDate.Value.Date > today),
+
+                ContractStatusNoContract => query.Where(x =>
+                    !x.ContractStartDate.HasValue &&
+                    !x.ContractEndDate.HasValue),
+
+                _ => query
+            };
         }
 
         private static IOrderedQueryable<MstInsuranceProvider> ApplySorting(
@@ -827,8 +957,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     : query.OrderBy(x => x.InsuranceProviderName),
 
                 "insurancegroupname" => isDescending
-                    ? query.OrderByDescending(x => x.InsuranceGroupName)
-                    : query.OrderBy(x => x.InsuranceGroupName),
+                    ? query.OrderByDescending(x => x.InsuranceGroupName).ThenBy(x => x.InsuranceProviderName)
+                    : query.OrderBy(x => x.InsuranceGroupName).ThenBy(x => x.InsuranceProviderName),
 
                 "providertype" => isDescending
                     ? query.OrderByDescending(x => x.ProviderType).ThenBy(x => x.InsuranceProviderName)
@@ -845,6 +975,18 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 "contractenddate" => isDescending
                     ? query.OrderByDescending(x => x.ContractEndDate).ThenBy(x => x.InsuranceProviderName)
                     : query.OrderBy(x => x.ContractEndDate).ThenBy(x => x.InsuranceProviderName),
+
+                "isusinginsurancetariffbook" => isDescending
+                    ? query.OrderByDescending(x => x.IsUsingInsuranceTariffBook).ThenBy(x => x.InsuranceProviderName)
+                    : query.OrderBy(x => x.IsUsingInsuranceTariffBook).ThenBy(x => x.InsuranceProviderName),
+
+                "isneedeligibilitycheck" => isDescending
+                    ? query.OrderByDescending(x => x.IsNeedEligibilityCheck).ThenBy(x => x.InsuranceProviderName)
+                    : query.OrderBy(x => x.IsNeedEligibilityCheck).ThenBy(x => x.InsuranceProviderName),
+
+                "isneedguaranteeletter" => isDescending
+                    ? query.OrderByDescending(x => x.IsNeedGuaranteeLetter).ThenBy(x => x.InsuranceProviderName)
+                    : query.OrderBy(x => x.IsNeedGuaranteeLetter).ThenBy(x => x.InsuranceProviderName),
 
                 "isactive" => isDescending
                     ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.InsuranceProviderName)
@@ -870,7 +1012,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Tipe provider wajib diisi.");
             }
 
-            if (!AllowedProviderTypes.Contains(request.ProviderType.Trim()))
+            if (!AllowedProviderTypes.Any(x => string.Equals(x, request.ProviderType.Trim(), StringComparison.OrdinalIgnoreCase)))
             {
                 return (false, "Tipe provider tidak valid. Gunakan nilai dari endpoint filters/metadata.");
             }
@@ -880,7 +1022,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Metode klaim wajib diisi.");
             }
 
-            if (!AllowedClaimMethods.Contains(request.ClaimMethod.Trim()))
+            if (!AllowedClaimMethods.Any(x => string.Equals(x, request.ClaimMethod.Trim(), StringComparison.OrdinalIgnoreCase)))
             {
                 return (false, "Metode klaim tidak valid. Gunakan nilai dari endpoint filters/metadata.");
             }
@@ -890,6 +1032,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 request.ContractEndDate.Value.Date < request.ContractStartDate.Value.Date)
             {
                 return (false, "Tanggal akhir kontrak tidak boleh lebih kecil dari tanggal mulai kontrak.");
+            }
+
+            if (request.SortOrder < 0)
+            {
+                return (false, "Urutan tidak boleh kurang dari 0.");
             }
 
             if (!string.IsNullOrWhiteSpace(request.PicEmail) &&
@@ -916,18 +1063,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Nama insurance provider sudah digunakan.");
             }
 
-            var externalProviderCode = NormalizeNullableString(request.ExternalProviderCode);
+            var externalProviderCode = NormalizeUpperNullableString(request.ExternalProviderCode);
 
             if (!string.IsNullOrWhiteSpace(externalProviderCode))
             {
-                var normalizedExternalProviderCode = externalProviderCode.ToLower();
-
                 var duplicateExternalProviderCodeQuery = _dbContext.Set<MstInsuranceProvider>()
                     .AsNoTracking()
                     .Where(x =>
                         !x.IsDelete &&
                         x.ExternalProviderCode != null &&
-                        x.ExternalProviderCode.ToLower() == normalizedExternalProviderCode);
+                        x.ExternalProviderCode.ToUpper() == externalProviderCode);
 
                 if (excludeId.HasValue)
                 {
@@ -940,18 +1085,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 }
             }
 
-            var integrationCode = NormalizeNullableString(request.IntegrationCode);
+            var integrationCode = NormalizeUpperNullableString(request.IntegrationCode);
 
             if (!string.IsNullOrWhiteSpace(integrationCode))
             {
-                var normalizedIntegrationCode = integrationCode.ToLower();
-
                 var duplicateIntegrationCodeQuery = _dbContext.Set<MstInsuranceProvider>()
                     .AsNoTracking()
                     .Where(x =>
                         !x.IsDelete &&
                         x.IntegrationCode != null &&
-                        x.IntegrationCode.ToLower() == normalizedIntegrationCode);
+                        x.IntegrationCode.ToUpper() == integrationCode);
 
                 if (excludeId.HasValue)
                 {
@@ -1014,7 +1157,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 nextNumber++;
             }
 
-            return InsuranceProviderCodePrefix + nextNumber.ToString().PadLeft(InsuranceProviderCodeDigitLength, '0');
+            return InsuranceProviderCodePrefix + nextNumber.ToString("D" + InsuranceProviderCodeDigitLength, CultureInfo.InvariantCulture);
         }
 
         private static int? TryExtractInsuranceProviderSequenceNumber(string insuranceProviderCode)
@@ -1031,7 +1174,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             var numberText = insuranceProviderCode[InsuranceProviderCodePrefix.Length..];
 
-            return int.TryParse(numberText, out var number)
+            return int.TryParse(numberText, NumberStyles.None, CultureInfo.InvariantCulture, out var number)
                 ? number
                 : null;
         }
@@ -1068,6 +1211,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             MstInsuranceProvider entity,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
+            var contractStatus = ResolveContractStatus(
+                entity.ContractStartDate,
+                entity.ContractEndDate,
+                DateTime.UtcNow.Date
+            );
+
             return new InsuranceProviderResponse
             {
                 Id = entity.Id,
@@ -1083,6 +1232,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 ContractNumber = entity.ContractNumber,
                 ContractStartDate = entity.ContractStartDate,
                 ContractEndDate = entity.ContractEndDate,
+                ContractStatus = contractStatus,
+                ContractStatusName = BuildContractStatusLabel(contractStatus),
                 IsUsingInsuranceTariffBook = entity.IsUsingInsuranceTariffBook,
                 IsUsingHospitalTariff = entity.IsUsingHospitalTariff,
                 IsNeedEligibilityCheck = entity.IsNeedEligibilityCheck,
@@ -1110,6 +1261,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             MstInsuranceProvider entity,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
+            var contractStatus = ResolveContractStatus(
+                entity.ContractStartDate,
+                entity.ContractEndDate,
+                DateTime.UtcNow.Date
+            );
+
             return new InsuranceProviderDetailResponse
             {
                 Id = entity.Id,
@@ -1125,6 +1282,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 ContractNumber = entity.ContractNumber,
                 ContractStartDate = entity.ContractStartDate,
                 ContractEndDate = entity.ContractEndDate,
+                ContractStatus = contractStatus,
+                ContractStatusName = BuildContractStatusLabel(contractStatus),
                 IsUsingInsuranceTariffBook = entity.IsUsingInsuranceTariffBook,
                 IsUsingHospitalTariff = entity.IsUsingHospitalTariff,
                 IsNeedEligibilityCheck = entity.IsNeedEligibilityCheck,
@@ -1140,17 +1299,54 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 PicEmail = entity.PicEmail,
                 OfficeAddress = entity.OfficeAddress,
                 LogoPath = entity.LogoPath,
+                BillingInstruction = entity.BillingInstruction,
+                ClaimInstruction = entity.ClaimInstruction,
+                Description = entity.Description,
                 SortOrder = entity.SortOrder,
                 IsActive = entity.IsActive,
                 CreateDateTime = entity.CreateDateTime,
                 CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
                 CreateByName = GetActorName(actorNames, entity.CreateBy),
-                BillingInstruction = entity.BillingInstruction,
-                ClaimInstruction = entity.ClaimInstruction,
-                Description = entity.Description,
                 UpdateDateTime = entity.UpdateDateTime,
                 UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
                 UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
+
+        private static InsuranceProviderOptionResponse MapOptionResponse(
+            MstInsuranceProvider entity)
+        {
+            var contractStatus = ResolveContractStatus(
+                entity.ContractStartDate,
+                entity.ContractEndDate,
+                DateTime.UtcNow.Date
+            );
+
+            return new InsuranceProviderOptionResponse
+            {
+                Id = entity.Id,
+                InsuranceProviderCode = entity.InsuranceProviderCode,
+                InsuranceProviderName = entity.InsuranceProviderName,
+                InsuranceGroupName = entity.InsuranceGroupName,
+                ProviderType = entity.ProviderType,
+                ProviderTypeName = BuildProviderTypeLabel(entity.ProviderType),
+                ClaimMethod = entity.ClaimMethod,
+                ClaimMethodName = BuildClaimMethodLabel(entity.ClaimMethod),
+                ContractNumber = entity.ContractNumber,
+                ContractStartDate = entity.ContractStartDate,
+                ContractEndDate = entity.ContractEndDate,
+                ContractStatus = contractStatus,
+                ContractStatusName = BuildContractStatusLabel(contractStatus),
+                IsUsingInsuranceTariffBook = entity.IsUsingInsuranceTariffBook,
+                IsUsingHospitalTariff = entity.IsUsingHospitalTariff,
+                IsNeedEligibilityCheck = entity.IsNeedEligibilityCheck,
+                IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter,
+                IsNeedReferralLetter = entity.IsNeedReferralLetter,
+                IsNeedApprovalForProcedure = entity.IsNeedApprovalForProcedure,
+                IsNeedApprovalForDrug = entity.IsNeedApprovalForDrug,
+                IsCoverageLimitedByPlan = entity.IsCoverageLimitedByPlan,
+                IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
+                SortOrder = entity.SortOrder
             };
         }
 
@@ -1166,6 +1362,148 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return actorNames.TryGetValue(actorId, out var actorName)
                 ? actorName
                 : null;
+        }
+
+        private static (int PageNumber, int PageSize) NormalizePaging(
+            int pageNumber,
+            int pageSize)
+        {
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 25;
+            }
+
+            if (pageSize > 100)
+            {
+                pageSize = 100;
+            }
+
+            return (pageNumber, pageSize);
+        }
+
+        private static DateRangeResolveResult ResolveDateRange(
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            var period = customPeriod?.Trim().ToLowerInvariant();
+            var today = DateTime.UtcNow.Date;
+
+            DateTime? start = null;
+            DateTime? endExclusive = null;
+
+            switch (period)
+            {
+                case null:
+                case "":
+                case "custom":
+                    if (startDate.HasValue)
+                    {
+                        start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                    }
+
+                    if (endDate.HasValue)
+                    {
+                        endExclusive = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                    }
+
+                    break;
+
+                case "today":
+                    start = today;
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "last7days":
+                    start = today.AddDays(-6);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "last30days":
+                    start = today.AddDays(-29);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "thismonth":
+                    start = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    endExclusive = start.Value.AddMonths(1);
+                    break;
+
+                case "lastmonth":
+                    var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    start = currentMonthStart.AddMonths(-1);
+                    endExclusive = currentMonthStart;
+                    break;
+
+                default:
+                    return DateRangeResolveResult.Invalid($"customPeriod '{customPeriod}' tidak valid.");
+            }
+
+            if (start.HasValue && endExclusive.HasValue && start.Value >= endExclusive.Value)
+            {
+                return DateRangeResolveResult.Invalid("startDate tidak boleh lebih besar atau sama dengan endDate.");
+            }
+
+            return DateRangeResolveResult.Valid(start, endExclusive);
+        }
+
+        private static List<InsuranceProviderCustomPeriodOptionResponse> BuildCustomPeriodOptions()
+        {
+            return new List<InsuranceProviderCustomPeriodOptionResponse>
+            {
+                new() { Value = "custom", Label = "Custom", Description = "Gunakan startDate dan endDate.", UsesStartDate = true, UsesEndDate = true },
+                new() { Value = "today", Label = "Hari ini", Description = "Data yang dibuat hari ini.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last7days", Label = "7 hari terakhir", Description = "Data yang dibuat dalam 7 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last30days", Label = "30 hari terakhir", Description = "Data yang dibuat dalam 30 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "thismonth", Label = "Bulan ini", Description = "Data yang dibuat pada bulan berjalan.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "lastmonth", Label = "Bulan lalu", Description = "Data yang dibuat pada bulan sebelumnya.", UsesStartDate = false, UsesEndDate = false }
+            };
+        }
+
+        private static List<InsuranceProviderStringOptionResponse> BuildProviderTypeOptions()
+        {
+            return AllowedProviderTypes
+                .Select(x => new InsuranceProviderStringOptionResponse
+                {
+                    Value = x,
+                    Label = BuildProviderTypeLabel(x)
+                })
+                .ToList();
+        }
+
+        private static List<InsuranceProviderStringOptionResponse> BuildClaimMethodOptions()
+        {
+            return AllowedClaimMethods
+                .Select(x => new InsuranceProviderStringOptionResponse
+                {
+                    Value = x,
+                    Label = BuildClaimMethodLabel(x)
+                })
+                .ToList();
+        }
+
+        private static List<InsuranceProviderStringOptionResponse> BuildContractStatusOptions()
+        {
+            return AllowedContractStatuses
+                .Select(x => new InsuranceProviderStringOptionResponse
+                {
+                    Value = x,
+                    Label = BuildContractStatusLabel(x),
+                    Description = x switch
+                    {
+                        ContractStatusActive => "Kontrak sedang berjalan.",
+                        ContractStatusExpired => "Kontrak sudah berakhir.",
+                        ContractStatusUpcoming => "Kontrak belum mulai.",
+                        ContractStatusNoContract => "Tanggal kontrak belum diisi.",
+                        _ => null
+                    }
+                })
+                .ToList();
         }
 
         private static string NormalizeProviderType(string value)
@@ -1186,6 +1524,39 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 .FirstOrDefault(x => string.Equals(x, trimmed, StringComparison.OrdinalIgnoreCase));
 
             return matched ?? "Cashless";
+        }
+
+        private static string NormalizeContractStatus(string value)
+        {
+            var trimmed = value.Trim();
+
+            var matched = AllowedContractStatuses
+                .FirstOrDefault(x => string.Equals(x, trimmed, StringComparison.OrdinalIgnoreCase));
+
+            return matched ?? string.Empty;
+        }
+
+        private static string ResolveContractStatus(
+            DateTime? contractStartDate,
+            DateTime? contractEndDate,
+            DateTime today)
+        {
+            if (!contractStartDate.HasValue && !contractEndDate.HasValue)
+            {
+                return ContractStatusNoContract;
+            }
+
+            if (contractStartDate.HasValue && contractStartDate.Value.Date > today)
+            {
+                return ContractStatusUpcoming;
+            }
+
+            if (contractEndDate.HasValue && contractEndDate.Value.Date < today)
+            {
+                return ContractStatusExpired;
+            }
+
+            return ContractStatusActive;
         }
 
         private static string BuildProviderTypeLabel(string value)
@@ -1213,6 +1584,18 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             };
         }
 
+        private static string BuildContractStatusLabel(string value)
+        {
+            return value switch
+            {
+                ContractStatusActive => "Active",
+                ContractStatusExpired => "Expired",
+                ContractStatusUpcoming => "Upcoming",
+                ContractStatusNoContract => "No Contract Date",
+                _ => SplitPascalCase(value)
+            };
+        }
+
         private static string SplitPascalCase(string value)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -1224,26 +1607,92 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
         }
 
-        private static (int PageNumber, int PageSize) NormalizePaging(
-            int pageNumber,
-            int pageSize)
+        private static List<InsuranceProviderQueryParameterInfoResponse> BuildQueryParameterInfo()
         {
-            if (pageNumber < 1)
+            return new List<InsuranceProviderQueryParameterInfoResponse>
             {
-                pageNumber = 1;
+                new() { Name = "startDate", Type = "DateTime?", Description = "Tanggal awal filter berdasarkan CreateDateTime.", Example = "2026-06-01" },
+                new() { Name = "endDate", Type = "DateTime?", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-06-30" },
+                new() { Name = "customPeriod", Type = "string", Description = "Filter periode cepat: custom, today, last7days, last30days, thismonth, lastmonth.", Example = "thismonth" },
+                new() { Name = "search", Type = "string", Description = "Cari berdasarkan kode, nama, group, tipe provider, metode klaim, kode eksternal, integration code, nomor kontrak, PIC, alamat, instruksi, atau deskripsi.", Example = "cashless" },
+                new() { Name = "isActive", Type = "bool?", Description = "Filter status aktif.", Example = "true" },
+                new() { Name = "providerType", Type = "string", Description = "Filter tipe provider.", Example = "PrivateInsurance" },
+                new() { Name = "claimMethod", Type = "string", Description = "Filter metode klaim.", Example = "Cashless" },
+                new() { Name = "contractStatus", Type = "string", Description = "Filter status kontrak: active, expired, upcoming, noContract.", Example = "active" },
+                new() { Name = "isUsingInsuranceTariffBook", Type = "bool?", Description = "Filter provider yang memakai tariff book asuransi.", Example = "true" },
+                new() { Name = "isUsingHospitalTariff", Type = "bool?", Description = "Filter provider yang memakai tarif rumah sakit.", Example = "false" },
+                new() { Name = "isNeedEligibilityCheck", Type = "bool?", Description = "Filter kebutuhan eligibility check.", Example = "true" },
+                new() { Name = "isNeedGuaranteeLetter", Type = "bool?", Description = "Filter kebutuhan guarantee letter.", Example = "true" },
+                new() { Name = "isNeedReferralLetter", Type = "bool?", Description = "Filter kebutuhan surat rujukan.", Example = "false" },
+                new() { Name = "isNeedApprovalForProcedure", Type = "bool?", Description = "Filter kebutuhan approval tindakan.", Example = "true" },
+                new() { Name = "isNeedApprovalForDrug", Type = "bool?", Description = "Filter kebutuhan approval obat.", Example = "false" },
+                new() { Name = "isCoverageLimitedByPlan", Type = "bool?", Description = "Filter pembatasan coverage berdasarkan plan.", Example = "true" },
+                new() { Name = "isAllowExcessPaymentByPatient", Type = "bool?", Description = "Filter apakah selisih biaya boleh dibayar pasien.", Example = "true" },
+                new() { Name = "sortBy", Type = "string", Description = "Kolom sorting.", Example = "sortOrder" },
+                new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
+                new() { Name = "pageNumber", Type = "int", Description = "Nomor halaman.", Example = "1" },
+                new() { Name = "pageSize", Type = "int", Description = "Jumlah data per halaman, maksimal 100.", Example = "25" }
+            };
+        }
+
+        private static List<InsuranceProviderFormFieldMetadataResponse> BuildCreateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: false);
+        }
+
+        private static List<InsuranceProviderFormFieldMetadataResponse> BuildUpdateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: true);
+        }
+
+        private static List<InsuranceProviderFormFieldMetadataResponse> BuildFieldMetadata(bool isUpdate)
+        {
+            var fields = new List<InsuranceProviderFormFieldMetadataResponse>
+            {
+                new() { Name = "insuranceProviderCode", Label = "Kode Insurance Provider", Section = "Basic", InputType = "readonly", IsRequiredOnCreate = false, IsRequiredOnUpdate = false, RequiredType = "AutoGenerated", MaxLength = 50, Description = "Digenerate otomatis oleh sistem dengan format IP-RSMMC-00001.", Example = "IP-RSMMC-00001", SortOrder = 1 },
+                new() { Name = "insuranceProviderName", Label = "Nama Insurance Provider", Section = "Basic", InputType = "text", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", MaxLength = 200, Example = "Asuransi Sehat Sentosa", SortOrder = 2 },
+                new() { Name = "insuranceGroupName", Label = "Group Insurance", Section = "Basic", InputType = "text", MaxLength = 100, Example = "Sehat Group", SortOrder = 3 },
+                new() { Name = "providerType", Label = "Tipe Provider", Section = "Basic", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "providerTypeOptions", Example = "PrivateInsurance", SortOrder = 4 },
+                new() { Name = "claimMethod", Label = "Metode Klaim", Section = "Basic", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "claimMethodOptions", Example = "Cashless", SortOrder = 5 },
+                new() { Name = "externalProviderCode", Label = "Kode Eksternal", Section = "Integration", InputType = "text", MaxLength = 50, Example = "EXT-INS-001", SortOrder = 6 },
+                new() { Name = "integrationCode", Label = "Kode Integrasi", Section = "Integration", InputType = "text", MaxLength = 50, Example = "INS001", SortOrder = 7 },
+                new() { Name = "contractNumber", Label = "Nomor Kontrak", Section = "Contract", InputType = "text", MaxLength = 100, Example = "PKS/INS/2026/001", SortOrder = 8 },
+                new() { Name = "contractStartDate", Label = "Tanggal Mulai Kontrak", Section = "Contract", InputType = "date", SortOrder = 9 },
+                new() { Name = "contractEndDate", Label = "Tanggal Akhir Kontrak", Section = "Contract", InputType = "date", SortOrder = 10 },
+                new() { Name = "isUsingInsuranceTariffBook", Label = "Pakai Tariff Book Insurance", Section = "Rule", InputType = "switch", SortOrder = 11 },
+                new() { Name = "isUsingHospitalTariff", Label = "Pakai Tarif Rumah Sakit", Section = "Rule", InputType = "switch", SortOrder = 12 },
+                new() { Name = "isNeedEligibilityCheck", Label = "Butuh Eligibility Check", Section = "Rule", InputType = "switch", SortOrder = 13 },
+                new() { Name = "isNeedGuaranteeLetter", Label = "Butuh Guarantee Letter", Section = "Rule", InputType = "switch", SortOrder = 14 },
+                new() { Name = "isNeedReferralLetter", Label = "Butuh Surat Rujukan", Section = "Rule", InputType = "switch", SortOrder = 15 },
+                new() { Name = "isNeedApprovalForProcedure", Label = "Butuh Approval Tindakan", Section = "Rule", InputType = "switch", SortOrder = 16 },
+                new() { Name = "isNeedApprovalForDrug", Label = "Butuh Approval Obat", Section = "Rule", InputType = "switch", SortOrder = 17 },
+                new() { Name = "isCoverageLimitedByPlan", Label = "Coverage Dibatasi Plan", Section = "Rule", InputType = "switch", SortOrder = 18 },
+                new() { Name = "isAllowExcessPaymentByPatient", Label = "Selisih Boleh Dibayar Pasien", Section = "Rule", InputType = "switch", SortOrder = 19 },
+                new() { Name = "picName", Label = "Nama PIC", Section = "Contact", InputType = "text", MaxLength = 100, SortOrder = 20 },
+                new() { Name = "picPhoneNumber", Label = "Telepon PIC", Section = "Contact", InputType = "text", MaxLength = 30, SortOrder = 21 },
+                new() { Name = "picWhatsAppNumber", Label = "WhatsApp PIC", Section = "Contact", InputType = "text", MaxLength = 30, SortOrder = 22 },
+                new() { Name = "picEmail", Label = "Email PIC", Section = "Contact", InputType = "email", MaxLength = 200, SortOrder = 23 },
+                new() { Name = "officeAddress", Label = "Alamat Kantor", Section = "Contact", InputType = "textarea", MaxLength = 500, SortOrder = 24 },
+                new() { Name = "logoPath", Label = "Logo Path", Section = "Additional", InputType = "text", MaxLength = 500, SortOrder = 25 },
+                new() { Name = "billingInstruction", Label = "Instruksi Billing", Section = "Instruction", InputType = "textarea", MaxLength = 250, SortOrder = 26 },
+                new() { Name = "claimInstruction", Label = "Instruksi Klaim", Section = "Instruction", InputType = "textarea", MaxLength = 250, SortOrder = 27 },
+                new() { Name = "sortOrder", Label = "Urutan", Section = "Display", InputType = "number", SortOrder = 28 },
+                new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 29 }
+            };
+
+            if (isUpdate)
+            {
+                fields.Add(new InsuranceProviderFormFieldMetadataResponse
+                {
+                    Name = "isActive",
+                    Label = "Status Aktif",
+                    Section = "Status",
+                    InputType = "switch",
+                    SortOrder = 99
+                });
             }
 
-            if (pageSize < 1)
-            {
-                pageSize = 25;
-            }
-
-            if (pageSize > 100)
-            {
-                pageSize = 100;
-            }
-
-            return (pageNumber, pageSize);
+            return fields.OrderBy(x => x.SortOrder).ToList();
         }
 
         private static string? NormalizeNullableString(string? value)
@@ -1251,6 +1700,20 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private static string? NormalizeUpperNullableString(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value.Trim().ToUpperInvariant();
+        }
+
+        private static string? NormalizeLowerNullableString(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value.Trim().ToLowerInvariant();
         }
 
         private Guid GetCurrentUserId()
@@ -1262,6 +1725,33 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return Guid.TryParse(userIdValue, out var userId)
                 ? userId
                 : Guid.Empty;
+        }
+
+        private sealed class DateRangeResolveResult
+        {
+            public bool IsValid { get; private set; }
+            public string? ErrorMessage { get; private set; }
+            public DateTime? Start { get; private set; }
+            public DateTime? EndExclusive { get; private set; }
+
+            public static DateRangeResolveResult Valid(DateTime? start, DateTime? endExclusive)
+            {
+                return new DateRangeResolveResult
+                {
+                    IsValid = true,
+                    Start = start,
+                    EndExclusive = endExclusive
+                };
+            }
+
+            public static DateRangeResolveResult Invalid(string errorMessage)
+            {
+                return new DateRangeResolveResult
+                {
+                    IsValid = false,
+                    ErrorMessage = errorMessage
+                };
+            }
         }
     }
 }

@@ -17,6 +17,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public int MedicalDeviceSupplier { get; set; }
         public int LaboratorySupplier { get; set; }
         public int ConsumableSupplier { get; set; }
+        public int WithTaxNumberSupplier { get; set; }
+        public int WithCreditLimitSupplier { get; set; }
+        public int WithBankAccountSupplier { get; set; }
     }
 
     public class SupplierResponse
@@ -100,6 +103,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsConsumableSupplier { get; set; }
         public bool IsPreferredSupplier { get; set; }
         public bool IsBlacklisted { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class SupplierOptionPagedResponse
@@ -114,13 +118,19 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     public class SupplierFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
+        public string CustomPeriodPriorityInfo { get; set; } =
+            "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
+        public string ResetButtonLabel { get; set; } = "Reset";
+
         public SupplierDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<SupplierCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<SupplierSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
         public List<SupplierTypeOptionResponse> SupplierTypeOptions { get; set; } = new();
-        public string ResetButtonLabel { get; set; } = "Reset";
+        public List<SupplierQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+        public List<SupplierFormFieldMetadataResponse> CreateFields { get; set; } = new();
+        public List<SupplierFormFieldMetadataResponse> UpdateFields { get; set; } = new();
     }
 
     public class SupplierDefaultFilterResponse
@@ -128,6 +138,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string? CustomPeriod { get; set; }
+        public string? Search { get; set; }
         public bool? IsActive { get; set; }
         public string? SupplierType { get; set; }
         public bool? IsPreferredSupplier { get; set; }
@@ -140,7 +151,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool? IsMedicalDeviceSupplier { get; set; }
         public bool? IsLaboratorySupplier { get; set; }
         public bool? IsConsumableSupplier { get; set; }
-        public string? Search { get; set; }
+        public bool? HasTaxNumber { get; set; }
+        public bool? HasCreditLimit { get; set; }
+        public bool? HasBankAccount { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
@@ -151,6 +164,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     {
         public string Value { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public bool UsesStartDate { get; set; }
+        public bool UsesEndDate { get; set; }
     }
 
     public class SupplierSortOptionResponse
@@ -163,6 +179,34 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     {
         public string Value { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
+        public string? Description { get; set; }
+    }
+
+    public class SupplierQueryParameterInfoResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Required { get; set; } = "No";
+        public string Description { get; set; } = string.Empty;
+        public string? Example { get; set; }
+    }
+
+    public class SupplierFormFieldMetadataResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Section { get; set; } = string.Empty;
+        public string InputType { get; set; } = string.Empty;
+        public bool IsRequiredOnCreate { get; set; }
+        public bool IsRequiredOnUpdate { get; set; }
+        public string RequiredType { get; set; } = "Optional";
+        public int? MaxLength { get; set; }
+        public decimal? MinValue { get; set; }
+        public decimal? MaxValue { get; set; }
+        public string? OptionsSource { get; set; }
+        public string? Description { get; set; }
+        public string? Example { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class CreateSupplierRequest
@@ -288,6 +332,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsPreferredSupplier { get; set; }
         public bool IsBlacklisted { get; set; }
         public bool IsActive { get; set; }
+        public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class SupplierUpdateResponse
@@ -301,6 +348,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsBlacklisted { get; set; }
         public bool IsActive { get; set; }
         public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class SupplierDeleteResponse
@@ -309,5 +358,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string SupplierCode { get; set; } = string.Empty;
         public string SupplierName { get; set; } = string.Empty;
         public DateTime? DeleteDateTime { get; set; }
+        public Guid? DeleteBy { get; set; }
+        public string? DeleteByName { get; set; }
     }
 }

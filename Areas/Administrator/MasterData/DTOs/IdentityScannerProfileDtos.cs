@@ -15,6 +15,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public int OcrEnabledProfile { get; set; }
         public int BarcodeEnabledProfile { get; set; }
         public int QrEnabledProfile { get; set; }
+        public int ManualInputAllowedProfile { get; set; }
+        public int AutoCreatePatientAllowedProfile { get; set; }
+        public int VerificationRequiredProfile { get; set; }
     }
 
     public class IdentityScannerProfileResponse
@@ -76,6 +79,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string ProfileName { get; set; } = string.Empty;
         public IdentityScannerProfileType ProfileType { get; set; }
         public string ProfileTypeName { get; set; } = string.Empty;
+        public string? ScannerVendorName { get; set; }
+        public string? ScannerModel { get; set; }
         public bool IsForIdentityCard { get; set; }
         public bool IsForPatientCard { get; set; }
         public bool IsForMembershipCard { get; set; }
@@ -84,6 +89,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsBarcodeEnabled { get; set; }
         public bool IsQrEnabled { get; set; }
         public bool IsManualInputAllowed { get; set; }
+        public bool IsAutoCreatePatientAllowed { get; set; }
+        public bool IsVerificationRequired { get; set; }
+        public int SortOrder { get; set; }
     }
 
     public class IdentityScannerProfileOptionPagedResponse
@@ -105,13 +113,36 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     public class IdentityScannerProfileFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
+        public string CustomPeriodPriorityInfo { get; set; } =
+            "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
+        public string ResetButtonLabel { get; set; } = "Reset";
+
         public IdentityScannerProfileDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<IdentityScannerProfileCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<IdentityScannerProfileSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
+        public List<IdentityScannerProfileEnumMetadataResponse> EnumOptions { get; set; } = new();
         public List<IdentityScannerProfileEnumOptionResponse> ProfileTypeOptions { get; set; } = new();
-        public string ResetButtonLabel { get; set; } = "Reset";
+        public List<IdentityScannerProfileQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+        public List<IdentityScannerProfileFormFieldMetadataResponse> CreateFields { get; set; } = new();
+        public List<IdentityScannerProfileFormFieldMetadataResponse> UpdateFields { get; set; } = new();
+    }
+
+    public class IdentityScannerProfileEnumMetadataResponse
+    {
+        public string EnumName { get; set; } = string.Empty;
+        public string FieldName { get; set; } = string.Empty;
+        public string OptionsSource { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public List<IdentityScannerProfileEnumMetadataOptionResponse> Options { get; set; } = new();
+    }
+
+    public class IdentityScannerProfileEnumMetadataOptionResponse
+    {
+        public int Value { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class IdentityScannerProfileDefaultFilterResponse
@@ -130,6 +161,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool? IsBarcodeEnabled { get; set; }
         public bool? IsQrEnabled { get; set; }
         public bool? IsManualInputAllowed { get; set; }
+        public bool? IsAutoCreatePatientAllowed { get; set; }
+        public bool? IsVerificationRequired { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
@@ -140,6 +173,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     {
         public string Value { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public bool UsesStartDate { get; set; }
+        public bool UsesEndDate { get; set; }
     }
 
     public class IdentityScannerProfileSortOptionResponse
@@ -148,12 +184,33 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string Label { get; set; } = string.Empty;
     }
 
+    public class IdentityScannerProfileQueryParameterInfoResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Required { get; set; } = "No";
+        public string Description { get; set; } = string.Empty;
+        public string? Example { get; set; }
+    }
+
+    public class IdentityScannerProfileFormFieldMetadataResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Section { get; set; } = string.Empty;
+        public string InputType { get; set; } = string.Empty;
+        public bool IsRequiredOnCreate { get; set; }
+        public bool IsRequiredOnUpdate { get; set; }
+        public string RequiredType { get; set; } = "Optional";
+        public int? MaxLength { get; set; }
+        public string? OptionsSource { get; set; }
+        public string? Description { get; set; }
+        public string? Example { get; set; }
+        public int SortOrder { get; set; }
+    }
+
     public class CreateIdentityScannerProfileRequest
     {
-        [Required]
-        [MaxLength(50)]
-        public string ProfileCode { get; set; } = string.Empty;
-
         [Required]
         [MaxLength(150)]
         public string ProfileName { get; set; } = string.Empty;
@@ -244,5 +301,31 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsForMembershipCard { get; set; }
         public bool IsForInsuranceCard { get; set; }
         public bool IsActive { get; set; }
+        public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
+    }
+
+    public class IdentityScannerProfileUpdateResponse
+    {
+        public Guid Id { get; set; }
+        public string ProfileCode { get; set; } = string.Empty;
+        public string ProfileName { get; set; } = string.Empty;
+        public IdentityScannerProfileType ProfileType { get; set; }
+        public string ProfileTypeName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
+    }
+
+    public class IdentityScannerProfileDeleteResponse
+    {
+        public Guid Id { get; set; }
+        public string ProfileCode { get; set; } = string.Empty;
+        public string ProfileName { get; set; } = string.Empty;
+        public DateTime? DeleteDateTime { get; set; }
+        public Guid? DeleteBy { get; set; }
+        public string? DeleteByName { get; set; }
     }
 }

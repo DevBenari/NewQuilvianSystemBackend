@@ -8,6 +8,8 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.Data;
+using System.Globalization;
 using System.Security.Claims;
 
 using ResponseCompanyGuarantorPagedResult =
@@ -32,10 +34,15 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
     public class CompanyGuarantorController : ControllerBase
     {
         private const string LogCategory = "Administrator.MasterData";
-        private const string CodePrefix = "CG-RSMMC-";
-        private const int CodeNumberLength = 5;
+        private const string CompanyGuarantorCodePrefix = "CG-RSMMC-";
+        private const int CompanyGuarantorCodeDigitLength = 5;
 
-        private static readonly HashSet<string> AllowedGuarantorTypes = new(StringComparer.OrdinalIgnoreCase)
+        private const string ContractStatusActive = "active";
+        private const string ContractStatusExpired = "expired";
+        private const string ContractStatusUpcoming = "upcoming";
+        private const string ContractStatusNoContract = "noContract";
+
+        private static readonly List<string> AllowedGuarantorTypes = new()
         {
             "Corporate",
             "Government",
@@ -44,11 +51,19 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             "Other"
         };
 
-        private static readonly HashSet<string> AllowedBillingMethods = new(StringComparer.OrdinalIgnoreCase)
+        private static readonly List<string> AllowedBillingMethods = new()
         {
             "Invoice",
             "Deposit",
             "Mixed"
+        };
+
+        private static readonly List<string> AllowedContractStatuses = new()
+        {
+            ContractStatusActive,
+            ContractStatusExpired,
+            ContractStatusUpcoming,
+            ContractStatusNoContract
         };
 
         private readonly ApplicationDbContext _dbContext;
@@ -77,13 +92,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var result = new CompanyGuarantorFilterMetadataResponse
             {
                 DefaultFilter = new CompanyGuarantorDefaultFilterResponse(),
-                CustomPeriods = new List<CompanyGuarantorCustomPeriodOptionResponse>
-                {
-                    new() { Value = "today", Label = "Hari ini" },
-                    new() { Value = "last7days", Label = "7 hari terakhir" },
-                    new() { Value = "thismonth", Label = "Bulan ini" },
-                    new() { Value = "lastmonth", Label = "Bulan lalu" }
-                },
+                CustomPeriods = BuildCustomPeriodOptions(),
                 SortOptions = new List<CompanyGuarantorSortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -95,14 +104,21 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     new() { Value = "billingMethod", Label = "Metode billing" },
                     new() { Value = "creditLimitAmount", Label = "Credit limit" },
                     new() { Value = "currentOutstandingAmount", Label = "Outstanding" },
+                    new() { Value = "paymentDueDays", Label = "Payment due days" },
                     new() { Value = "contractStartDate", Label = "Tanggal mulai kontrak" },
                     new() { Value = "contractEndDate", Label = "Tanggal akhir kontrak" },
+                    new() { Value = "isUsingCompanyTariffBook", Label = "Pakai tarif company" },
+                    new() { Value = "isNeedGuaranteeLetter", Label = "Butuh guarantee letter" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
                 GuarantorTypeOptions = BuildAllowedStringOptions(AllowedGuarantorTypes),
                 BillingMethodOptions = BuildAllowedStringOptions(AllowedBillingMethods),
+                ContractStatusOptions = BuildContractStatusOptions(),
+                QueryParameters = BuildQueryParameterInfo(),
+                CreateFields = BuildCreateFieldMetadata(),
+                UpdateFields = BuildUpdateFieldMetadata(),
                 ResetButtonLabel = "Reset"
             };
 
@@ -156,10 +172,15 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 CoverageLimitedByEmployeeGradeGuarantor = await query.CountAsync(x => x.IsCoverageLimitedByEmployeeGrade),
                 AllowExcessPaymentByPatientGuarantor = await query.CountAsync(x => x.IsAllowExcessPaymentByPatient),
                 ActiveContractGuarantor = await query.CountAsync(x =>
+                    (x.ContractStartDate.HasValue || x.ContractEndDate.HasValue) &&
                     (!x.ContractStartDate.HasValue || x.ContractStartDate.Value.Date <= today) &&
                     (!x.ContractEndDate.HasValue || x.ContractEndDate.Value.Date >= today)),
                 ExpiredContractGuarantor = await query.CountAsync(x =>
-                    x.ContractEndDate.HasValue && x.ContractEndDate.Value.Date < today)
+                    x.ContractEndDate.HasValue && x.ContractEndDate.Value.Date < today),
+                UpcomingContractGuarantor = await query.CountAsync(x =>
+                    x.ContractStartDate.HasValue && x.ContractStartDate.Value.Date > today),
+                NoContractDateGuarantor = await query.CountAsync(x =>
+                    !x.ContractStartDate.HasValue && !x.ContractEndDate.HasValue)
             };
 
             return Ok(ApiResponse<CompanyGuarantorSummaryResponse>.Ok(
@@ -170,6 +191,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponseCompanyGuarantorPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
             "Read",
             "Read Company Guarantor",
@@ -182,8 +204,21 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
-            [FromQuery] bool? isActive,
             [FromQuery] string? search,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? guarantorType,
+            [FromQuery] string? billingMethod,
+            [FromQuery] string? contractStatus,
+            [FromQuery] bool? isUsingCompanyTariffBook,
+            [FromQuery] bool? isUsingHospitalTariff,
+            [FromQuery] bool? isNeedGuaranteeLetter,
+            [FromQuery] bool? isNeedEmployeeVerification,
+            [FromQuery] bool? isNeedApprovalForProcedure,
+            [FromQuery] bool? isNeedApprovalForDrug,
+            [FromQuery] bool? isCoverageLimitedByEmployeeGrade,
+            [FromQuery] bool? isAllowExcessPaymentByPatient,
+            [FromQuery] bool? hasCreditLimit,
+            [FromQuery] bool? hasOutstanding,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -193,9 +228,47 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
+            var filterValidation = ValidateFilterValues(guarantorType, billingMethod, contractStatus);
+
+            if (!filterValidation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    filterValidation.ErrorMessage ?? "Filter company guarantor tidak valid."
+                ));
+            }
+
             var query = BuildBaseQuery();
-            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
-            query = ApplyStandardFilter(query, isActive, search);
+
+            query = ApplyDateFilter(query, dateRange);
+            query = ApplyStandardFilter(
+                query,
+                search,
+                isActive,
+                guarantorType,
+                billingMethod,
+                contractStatus,
+                isUsingCompanyTariffBook,
+                isUsingHospitalTariff,
+                isNeedGuaranteeLetter,
+                isNeedEmployeeVerification,
+                isNeedApprovalForProcedure,
+                isNeedApprovalForDrug,
+                isCoverageLimitedByEmployeeGrade,
+                isAllowExcessPaymentByPatient,
+                hasCreditLimit,
+                hasOutstanding
+            );
 
             var totalData = await query.CountAsync();
 
@@ -231,6 +304,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet("options")]
         [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorOptionPagedResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
             "Read",
             "Read Company Guarantor",
@@ -241,6 +315,20 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [AccessPermission("CompanyGuarantor", "Read")]
         public async Task<IActionResult> GetCompanyGuarantorOptions(
             [FromQuery] bool onlyActive = true,
+            [FromQuery] bool? activeOnly = null,
+            [FromQuery] string? guarantorType = null,
+            [FromQuery] string? billingMethod = null,
+            [FromQuery] string? contractStatus = null,
+            [FromQuery] bool? isUsingCompanyTariffBook = null,
+            [FromQuery] bool? isUsingHospitalTariff = null,
+            [FromQuery] bool? isNeedGuaranteeLetter = null,
+            [FromQuery] bool? isNeedEmployeeVerification = null,
+            [FromQuery] bool? isNeedApprovalForProcedure = null,
+            [FromQuery] bool? isNeedApprovalForDrug = null,
+            [FromQuery] bool? isCoverageLimitedByEmployeeGrade = null,
+            [FromQuery] bool? isAllowExcessPaymentByPatient = null,
+            [FromQuery] bool? hasCreditLimit = null,
+            [FromQuery] bool? hasOutstanding = null,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
@@ -249,11 +337,36 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            var filterValidation = ValidateFilterValues(guarantorType, billingMethod, contractStatus);
+
+            if (!filterValidation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    filterValidation.ErrorMessage ?? "Filter company guarantor tidak valid."
+                ));
+            }
+
+            var useOnlyActive = activeOnly ?? onlyActive;
+
             var query = BuildBaseQuery();
             query = ApplyStandardFilter(
                 query,
-                onlyActive ? true : null,
-                search
+                search,
+                useOnlyActive ? true : null,
+                guarantorType,
+                billingMethod,
+                contractStatus,
+                isUsingCompanyTariffBook,
+                isUsingHospitalTariff,
+                isNeedGuaranteeLetter,
+                isNeedEmployeeVerification,
+                isNeedApprovalForProcedure,
+                isNeedApprovalForDrug,
+                isCoverageLimitedByEmployeeGrade,
+                isAllowExcessPaymentByPatient,
+                hasCreditLimit,
+                hasOutstanding
             );
 
             var totalData = await query.CountAsync();
@@ -351,91 +464,83 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            try
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+            var generatedCompanyGuarantorCode = await GenerateCompanyGuarantorCodeAsync();
+
+            var entity = new MstCompanyGuarantor
             {
-                var entity = new MstCompanyGuarantor
-                {
-                    Id = Guid.NewGuid(),
-                    CompanyGuarantorCode = await GenerateCompanyGuarantorCodeAsync(),
-                    CompanyGuarantorName = request.CompanyGuarantorName.Trim(),
-                    CompanyGroupName = NormalizeNullableString(request.CompanyGroupName),
-                    GuarantorType = NormalizeGuarantorType(request.GuarantorType),
-                    BillingMethod = NormalizeBillingMethod(request.BillingMethod),
-                    ExternalCompanyCode = NormalizeUpperNullableString(request.ExternalCompanyCode),
-                    IntegrationCode = NormalizeUpperNullableString(request.IntegrationCode),
-                    ContractNumber = NormalizeNullableString(request.ContractNumber),
-                    ContractStartDate = request.ContractStartDate,
-                    ContractEndDate = request.ContractEndDate,
-                    IsUsingCompanyTariffBook = request.IsUsingCompanyTariffBook,
-                    IsUsingHospitalTariff = request.IsUsingHospitalTariff,
-                    IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter,
-                    IsNeedEmployeeVerification = request.IsNeedEmployeeVerification,
-                    IsNeedApprovalForProcedure = request.IsNeedApprovalForProcedure,
-                    IsNeedApprovalForDrug = request.IsNeedApprovalForDrug,
-                    IsCoverageLimitedByEmployeeGrade = request.IsCoverageLimitedByEmployeeGrade,
-                    IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient,
-                    CreditLimitAmount = request.CreditLimitAmount,
-                    CurrentOutstandingAmount = request.CurrentOutstandingAmount,
-                    PaymentDueDays = request.PaymentDueDays,
-                    PicName = NormalizeNullableString(request.PicName),
-                    PicPhoneNumber = NormalizeNullableString(request.PicPhoneNumber),
-                    PicWhatsAppNumber = NormalizeNullableString(request.PicWhatsAppNumber),
-                    PicEmail = NormalizeLowerNullableString(request.PicEmail),
-                    OfficeAddress = NormalizeNullableString(request.OfficeAddress),
-                    LogoPath = NormalizeNullableString(request.LogoPath),
-                    BillingInstruction = NormalizeNullableString(request.BillingInstruction),
-                    ClaimInstruction = NormalizeNullableString(request.ClaimInstruction),
-                    Description = NormalizeNullableString(request.Description),
-                    SortOrder = request.SortOrder,
-                    IsActive = true,
-                    CreateDateTime = now,
-                    CreateBy = actorUserId,
-                    IsDelete = false,
-                    IsCancel = false
-                };
+                Id = Guid.NewGuid(),
+                CompanyGuarantorCode = generatedCompanyGuarantorCode,
+                CompanyGuarantorName = request.CompanyGuarantorName.Trim(),
+                CompanyGroupName = NormalizeNullableText(request.CompanyGroupName),
+                GuarantorType = NormalizeGuarantorType(request.GuarantorType),
+                BillingMethod = NormalizeBillingMethod(request.BillingMethod),
+                ExternalCompanyCode = NormalizeUpperNullableText(request.ExternalCompanyCode),
+                IntegrationCode = NormalizeUpperNullableText(request.IntegrationCode),
+                ContractNumber = NormalizeNullableText(request.ContractNumber),
+                ContractStartDate = request.ContractStartDate,
+                ContractEndDate = request.ContractEndDate,
+                IsUsingCompanyTariffBook = request.IsUsingCompanyTariffBook,
+                IsUsingHospitalTariff = request.IsUsingHospitalTariff,
+                IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter,
+                IsNeedEmployeeVerification = request.IsNeedEmployeeVerification,
+                IsNeedApprovalForProcedure = request.IsNeedApprovalForProcedure,
+                IsNeedApprovalForDrug = request.IsNeedApprovalForDrug,
+                IsCoverageLimitedByEmployeeGrade = request.IsCoverageLimitedByEmployeeGrade,
+                IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient,
+                CreditLimitAmount = request.CreditLimitAmount,
+                CurrentOutstandingAmount = request.CurrentOutstandingAmount,
+                PaymentDueDays = request.PaymentDueDays,
+                PicName = NormalizeNullableText(request.PicName),
+                PicPhoneNumber = NormalizeNullableText(request.PicPhoneNumber),
+                PicWhatsAppNumber = NormalizeNullableText(request.PicWhatsAppNumber),
+                PicEmail = NormalizeLowerNullableText(request.PicEmail),
+                OfficeAddress = NormalizeNullableText(request.OfficeAddress),
+                LogoPath = NormalizeNullableText(request.LogoPath),
+                BillingInstruction = NormalizeNullableText(request.BillingInstruction),
+                ClaimInstruction = NormalizeNullableText(request.ClaimInstruction),
+                Description = NormalizeNullableText(request.Description),
+                SortOrder = request.SortOrder,
+                IsActive = true,
+                CreateDateTime = now,
+                CreateBy = actorUserId,
+                IsDelete = false,
+                IsCancel = false
+            };
 
-                _dbContext.Set<MstCompanyGuarantor>().Add(entity);
-                await _dbContext.SaveChangesAsync();
+            _dbContext.Set<MstCompanyGuarantor>().Add(entity);
+            await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
 
-                var result = new CompanyGuarantorCreateResponse
-                {
-                    Id = entity.Id,
-                    CompanyGuarantorCode = entity.CompanyGuarantorCode,
-                    CompanyGuarantorName = entity.CompanyGuarantorName,
-                    GuarantorType = entity.GuarantorType,
-                    BillingMethod = entity.BillingMethod,
-                    IsActive = entity.IsActive
-                };
+            var actorNames = await GetActorNameMapAsync(new[] { entity.CreateBy });
 
-                await _loggerService.InfoAsync(
-                    LogCategory,
-                    "CompanyGuarantor.CreateCompanyGuarantor",
-                    "Membuat data company guarantor.",
-                    result
-                );
-
-                return Ok(ApiResponse<CompanyGuarantorCreateResponse>.Ok(
-                    result,
-                    "Company guarantor berhasil dibuat."
-                ));
-            }
-            catch (Exception ex)
+            var result = new CompanyGuarantorCreateResponse
             {
-                await _loggerService.ErrorAsync(
-                    LogCategory,
-                    "CompanyGuarantor.CreateCompanyGuarantor",
-                    "Gagal membuat data company guarantor.",
-                    ex
-                );
+                Id = entity.Id,
+                CompanyGuarantorCode = entity.CompanyGuarantorCode,
+                CompanyGuarantorName = entity.CompanyGuarantorName,
+                GuarantorType = entity.GuarantorType,
+                GuarantorTypeName = BuildStringLabel(entity.GuarantorType),
+                BillingMethod = entity.BillingMethod,
+                BillingMethodName = BuildStringLabel(entity.BillingMethod),
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
+            };
 
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiResponse<object>.Fail(
-                        StatusCodes.Status500InternalServerError,
-                        "Terjadi kesalahan saat membuat company guarantor."
-                    )
-                );
-            }
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "CompanyGuarantor.CreateCompanyGuarantor",
+                "Membuat data company guarantor.",
+                result
+            );
+
+            return Ok(ApiResponse<CompanyGuarantorCreateResponse>.Ok(
+                result,
+                "Company guarantor berhasil dibuat."
+            ));
         }
 
         [HttpPut("{id:guid}")]
@@ -481,90 +586,74 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            try
+            entity.CompanyGuarantorName = request.CompanyGuarantorName.Trim();
+            entity.CompanyGroupName = NormalizeNullableText(request.CompanyGroupName);
+            entity.GuarantorType = NormalizeGuarantorType(request.GuarantorType);
+            entity.BillingMethod = NormalizeBillingMethod(request.BillingMethod);
+            entity.ExternalCompanyCode = NormalizeUpperNullableText(request.ExternalCompanyCode);
+            entity.IntegrationCode = NormalizeUpperNullableText(request.IntegrationCode);
+            entity.ContractNumber = NormalizeNullableText(request.ContractNumber);
+            entity.ContractStartDate = request.ContractStartDate;
+            entity.ContractEndDate = request.ContractEndDate;
+            entity.IsUsingCompanyTariffBook = request.IsUsingCompanyTariffBook;
+            entity.IsUsingHospitalTariff = request.IsUsingHospitalTariff;
+            entity.IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter;
+            entity.IsNeedEmployeeVerification = request.IsNeedEmployeeVerification;
+            entity.IsNeedApprovalForProcedure = request.IsNeedApprovalForProcedure;
+            entity.IsNeedApprovalForDrug = request.IsNeedApprovalForDrug;
+            entity.IsCoverageLimitedByEmployeeGrade = request.IsCoverageLimitedByEmployeeGrade;
+            entity.IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient;
+            entity.CreditLimitAmount = request.CreditLimitAmount;
+            entity.CurrentOutstandingAmount = request.CurrentOutstandingAmount;
+            entity.PaymentDueDays = request.PaymentDueDays;
+            entity.PicName = NormalizeNullableText(request.PicName);
+            entity.PicPhoneNumber = NormalizeNullableText(request.PicPhoneNumber);
+            entity.PicWhatsAppNumber = NormalizeNullableText(request.PicWhatsAppNumber);
+            entity.PicEmail = NormalizeLowerNullableText(request.PicEmail);
+            entity.OfficeAddress = NormalizeNullableText(request.OfficeAddress);
+            entity.LogoPath = NormalizeNullableText(request.LogoPath);
+            entity.BillingInstruction = NormalizeNullableText(request.BillingInstruction);
+            entity.ClaimInstruction = NormalizeNullableText(request.ClaimInstruction);
+            entity.Description = NormalizeNullableText(request.Description);
+            entity.SortOrder = request.SortOrder;
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            var actorNames = await GetActorNameMapAsync(new[] { entity.UpdateBy });
+
+            var result = new CompanyGuarantorUpdateResponse
             {
-                entity.CompanyGuarantorName = request.CompanyGuarantorName.Trim();
-                entity.CompanyGroupName = NormalizeNullableString(request.CompanyGroupName);
-                entity.GuarantorType = NormalizeGuarantorType(request.GuarantorType);
-                entity.BillingMethod = NormalizeBillingMethod(request.BillingMethod);
-                entity.ExternalCompanyCode = NormalizeUpperNullableString(request.ExternalCompanyCode);
-                entity.IntegrationCode = NormalizeUpperNullableString(request.IntegrationCode);
-                entity.ContractNumber = NormalizeNullableString(request.ContractNumber);
-                entity.ContractStartDate = request.ContractStartDate;
-                entity.ContractEndDate = request.ContractEndDate;
-                entity.IsUsingCompanyTariffBook = request.IsUsingCompanyTariffBook;
-                entity.IsUsingHospitalTariff = request.IsUsingHospitalTariff;
-                entity.IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter;
-                entity.IsNeedEmployeeVerification = request.IsNeedEmployeeVerification;
-                entity.IsNeedApprovalForProcedure = request.IsNeedApprovalForProcedure;
-                entity.IsNeedApprovalForDrug = request.IsNeedApprovalForDrug;
-                entity.IsCoverageLimitedByEmployeeGrade = request.IsCoverageLimitedByEmployeeGrade;
-                entity.IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient;
-                entity.CreditLimitAmount = request.CreditLimitAmount;
-                entity.CurrentOutstandingAmount = request.CurrentOutstandingAmount;
-                entity.PaymentDueDays = request.PaymentDueDays;
-                entity.PicName = NormalizeNullableString(request.PicName);
-                entity.PicPhoneNumber = NormalizeNullableString(request.PicPhoneNumber);
-                entity.PicWhatsAppNumber = NormalizeNullableString(request.PicWhatsAppNumber);
-                entity.PicEmail = NormalizeLowerNullableString(request.PicEmail);
-                entity.OfficeAddress = NormalizeNullableString(request.OfficeAddress);
-                entity.LogoPath = NormalizeNullableString(request.LogoPath);
-                entity.BillingInstruction = NormalizeNullableString(request.BillingInstruction);
-                entity.ClaimInstruction = NormalizeNullableString(request.ClaimInstruction);
-                entity.Description = NormalizeNullableString(request.Description);
-                entity.SortOrder = request.SortOrder;
-                entity.IsActive = request.IsActive;
-                entity.UpdateDateTime = now;
-                entity.UpdateBy = actorUserId;
+                Id = entity.Id,
+                CompanyGuarantorCode = entity.CompanyGuarantorCode,
+                CompanyGuarantorName = entity.CompanyGuarantorName,
+                GuarantorType = entity.GuarantorType,
+                GuarantorTypeName = BuildStringLabel(entity.GuarantorType),
+                BillingMethod = entity.BillingMethod,
+                BillingMethodName = BuildStringLabel(entity.BillingMethod),
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
 
-                await _dbContext.SaveChangesAsync();
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "CompanyGuarantor.UpdateCompanyGuarantor",
+                "Mengubah data company guarantor.",
+                result
+            );
 
-                var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
-
-                var result = new CompanyGuarantorUpdateResponse
-                {
-                    Id = entity.Id,
-                    CompanyGuarantorCode = entity.CompanyGuarantorCode,
-                    CompanyGuarantorName = entity.CompanyGuarantorName,
-                    IsActive = entity.IsActive,
-                    UpdateDateTime = entity.UpdateDateTime,
-                    UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
-                    UpdateByName = GetActorName(actorNames, entity.UpdateBy)
-                };
-
-                await _loggerService.InfoAsync(
-                    LogCategory,
-                    "CompanyGuarantor.UpdateCompanyGuarantor",
-                    "Mengubah data company guarantor.",
-                    result
-                );
-
-                return Ok(ApiResponse<CompanyGuarantorUpdateResponse>.Ok(
-                    result,
-                    "Company guarantor berhasil diperbarui."
-                ));
-            }
-            catch (Exception ex)
-            {
-                await _loggerService.ErrorAsync(
-                    LogCategory,
-                    "CompanyGuarantor.UpdateCompanyGuarantor",
-                    "Gagal mengubah data company guarantor.",
-                    ex
-                );
-
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiResponse<object>.Fail(
-                        StatusCodes.Status500InternalServerError,
-                        "Terjadi kesalahan saat memperbarui company guarantor."
-                    )
-                );
-            }
+            return Ok(ApiResponse<CompanyGuarantorUpdateResponse>.Ok(
+                result,
+                "Company guarantor berhasil diperbarui."
+            ));
         }
 
         [HttpPatch("{id:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
             "Update",
@@ -598,21 +687,32 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[] { entity.UpdateBy });
+
+            var result = new CompanyGuarantorUpdateResponse
+            {
+                Id = entity.Id,
+                CompanyGuarantorCode = entity.CompanyGuarantorCode,
+                CompanyGuarantorName = entity.CompanyGuarantorName,
+                GuarantorType = entity.GuarantorType,
+                GuarantorTypeName = BuildStringLabel(entity.GuarantorType),
+                BillingMethod = entity.BillingMethod,
+                BillingMethodName = BuildStringLabel(entity.BillingMethod),
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+
             await _loggerService.InfoAsync(
                 LogCategory,
                 "CompanyGuarantor.UpdateCompanyGuarantorStatus",
                 "Mengubah status company guarantor.",
-                new
-                {
-                    entity.Id,
-                    entity.CompanyGuarantorCode,
-                    entity.CompanyGuarantorName,
-                    entity.IsActive
-                }
+                result
             );
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            return Ok(ApiResponse<CompanyGuarantorUpdateResponse>.Ok(
+                result,
                 "Status company guarantor berhasil diperbarui."
             ));
         }
@@ -660,12 +760,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[] { entity.DeleteBy });
+
             var result = new CompanyGuarantorDeleteResponse
             {
                 Id = entity.Id,
                 CompanyGuarantorCode = entity.CompanyGuarantorCode,
                 CompanyGuarantorName = entity.CompanyGuarantorName,
-                DeleteDateTime = entity.DeleteDateTime
+                DeleteDateTime = entity.DeleteDateTime,
+                DeleteBy = entity.DeleteBy == Guid.Empty ? null : (Guid?)entity.DeleteBy,
+                DeleteByName = GetActorName(actorNames, entity.DeleteBy)
             };
 
             await _loggerService.InfoAsync(
@@ -690,76 +794,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         private static IQueryable<MstCompanyGuarantor> ApplyDateFilter(
             IQueryable<MstCompanyGuarantor> query,
-            DateTime? startDate,
-            DateTime? endDate,
-            string? customPeriod)
+            DateRangeResolveResult dateRange)
         {
-            if (startDate.HasValue)
+            if (dateRange.Start.HasValue)
             {
-                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
-                query = query.Where(x => x.CreateDateTime >= start);
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
             }
 
-            if (endDate.HasValue)
+            if (dateRange.EndExclusive.HasValue)
             {
-                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
-                query = query.Where(x => x.CreateDateTime < end);
-            }
-
-            if (!startDate.HasValue &&
-                !endDate.HasValue &&
-                !string.IsNullOrWhiteSpace(customPeriod))
-            {
-                var today = DateTime.UtcNow.Date;
-
-                switch (customPeriod.Trim().ToLowerInvariant())
-                {
-                    case "today":
-                        query = query.Where(x =>
-                            x.CreateDateTime >= today &&
-                            x.CreateDateTime < today.AddDays(1));
-                        break;
-
-                    case "last7days":
-                        query = query.Where(x =>
-                            x.CreateDateTime >= today.AddDays(-6) &&
-                            x.CreateDateTime < today.AddDays(1));
-                        break;
-
-                    case "thismonth":
-                        var thisMonthStart = new DateTime(
-                            today.Year,
-                            today.Month,
-                            1,
-                            0,
-                            0,
-                            0,
-                            DateTimeKind.Utc
-                        );
-
-                        query = query.Where(x =>
-                            x.CreateDateTime >= thisMonthStart &&
-                            x.CreateDateTime < thisMonthStart.AddMonths(1));
-                        break;
-
-                    case "lastmonth":
-                        var currentMonthStart = new DateTime(
-                            today.Year,
-                            today.Month,
-                            1,
-                            0,
-                            0,
-                            0,
-                            DateTimeKind.Utc
-                        );
-
-                        var lastMonthStart = currentMonthStart.AddMonths(-1);
-
-                        query = query.Where(x =>
-                            x.CreateDateTime >= lastMonthStart &&
-                            x.CreateDateTime < currentMonthStart);
-                        break;
-                }
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
             }
 
             return query;
@@ -767,14 +811,22 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         private static IQueryable<MstCompanyGuarantor> ApplyStandardFilter(
             IQueryable<MstCompanyGuarantor> query,
+            string? search,
             bool? isActive,
-            string? search)
+            string? guarantorType,
+            string? billingMethod,
+            string? contractStatus,
+            bool? isUsingCompanyTariffBook,
+            bool? isUsingHospitalTariff,
+            bool? isNeedGuaranteeLetter,
+            bool? isNeedEmployeeVerification,
+            bool? isNeedApprovalForProcedure,
+            bool? isNeedApprovalForDrug,
+            bool? isCoverageLimitedByEmployeeGrade,
+            bool? isAllowExcessPaymentByPatient,
+            bool? hasCreditLimit,
+            bool? hasOutstanding)
         {
-            if (isActive.HasValue)
-            {
-                query = query.Where(x => x.IsActive == isActive.Value);
-            }
-
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -798,7 +850,113 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     (x.Description != null && x.Description.ToLower().Contains(keyword)));
             }
 
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(guarantorType))
+            {
+                var normalizedGuarantorType = NormalizeGuarantorType(guarantorType);
+                query = query.Where(x => x.GuarantorType == normalizedGuarantorType);
+            }
+
+            if (!string.IsNullOrWhiteSpace(billingMethod))
+            {
+                var normalizedBillingMethod = NormalizeBillingMethod(billingMethod);
+                query = query.Where(x => x.BillingMethod == normalizedBillingMethod);
+            }
+
+            if (!string.IsNullOrWhiteSpace(contractStatus))
+            {
+                query = ApplyContractStatusFilter(query, contractStatus);
+            }
+
+            if (isUsingCompanyTariffBook.HasValue)
+            {
+                query = query.Where(x => x.IsUsingCompanyTariffBook == isUsingCompanyTariffBook.Value);
+            }
+
+            if (isUsingHospitalTariff.HasValue)
+            {
+                query = query.Where(x => x.IsUsingHospitalTariff == isUsingHospitalTariff.Value);
+            }
+
+            if (isNeedGuaranteeLetter.HasValue)
+            {
+                query = query.Where(x => x.IsNeedGuaranteeLetter == isNeedGuaranteeLetter.Value);
+            }
+
+            if (isNeedEmployeeVerification.HasValue)
+            {
+                query = query.Where(x => x.IsNeedEmployeeVerification == isNeedEmployeeVerification.Value);
+            }
+
+            if (isNeedApprovalForProcedure.HasValue)
+            {
+                query = query.Where(x => x.IsNeedApprovalForProcedure == isNeedApprovalForProcedure.Value);
+            }
+
+            if (isNeedApprovalForDrug.HasValue)
+            {
+                query = query.Where(x => x.IsNeedApprovalForDrug == isNeedApprovalForDrug.Value);
+            }
+
+            if (isCoverageLimitedByEmployeeGrade.HasValue)
+            {
+                query = query.Where(x => x.IsCoverageLimitedByEmployeeGrade == isCoverageLimitedByEmployeeGrade.Value);
+            }
+
+            if (isAllowExcessPaymentByPatient.HasValue)
+            {
+                query = query.Where(x => x.IsAllowExcessPaymentByPatient == isAllowExcessPaymentByPatient.Value);
+            }
+
+            if (hasCreditLimit.HasValue)
+            {
+                query = hasCreditLimit.Value
+                    ? query.Where(x => x.CreditLimitAmount.HasValue && x.CreditLimitAmount.Value > 0)
+                    : query.Where(x => !x.CreditLimitAmount.HasValue || x.CreditLimitAmount.Value <= 0);
+            }
+
+            if (hasOutstanding.HasValue)
+            {
+                query = hasOutstanding.Value
+                    ? query.Where(x => x.CurrentOutstandingAmount.HasValue && x.CurrentOutstandingAmount.Value > 0)
+                    : query.Where(x => !x.CurrentOutstandingAmount.HasValue || x.CurrentOutstandingAmount.Value <= 0);
+            }
+
             return query;
+        }
+
+        private static IQueryable<MstCompanyGuarantor> ApplyContractStatusFilter(
+            IQueryable<MstCompanyGuarantor> query,
+            string contractStatus)
+        {
+            var normalizedStatus = NormalizeContractStatus(contractStatus);
+            var today = DateTime.UtcNow.Date;
+
+            return normalizedStatus switch
+            {
+                ContractStatusActive => query.Where(x =>
+                    (x.ContractStartDate.HasValue || x.ContractEndDate.HasValue) &&
+                    (!x.ContractStartDate.HasValue || x.ContractStartDate.Value.Date <= today) &&
+                    (!x.ContractEndDate.HasValue || x.ContractEndDate.Value.Date >= today)),
+
+                ContractStatusExpired => query.Where(x =>
+                    x.ContractEndDate.HasValue &&
+                    x.ContractEndDate.Value.Date < today),
+
+                ContractStatusUpcoming => query.Where(x =>
+                    x.ContractStartDate.HasValue &&
+                    x.ContractStartDate.Value.Date > today),
+
+                ContractStatusNoContract => query.Where(x =>
+                    !x.ContractStartDate.HasValue &&
+                    !x.ContractEndDate.HasValue),
+
+                _ => query
+            };
         }
 
         private static IOrderedQueryable<MstCompanyGuarantor> ApplySorting(
@@ -846,6 +1004,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     ? query.OrderByDescending(x => x.CurrentOutstandingAmount).ThenBy(x => x.CompanyGuarantorName)
                     : query.OrderBy(x => x.CurrentOutstandingAmount).ThenBy(x => x.CompanyGuarantorName),
 
+                "paymentduedays" => isDescending
+                    ? query.OrderByDescending(x => x.PaymentDueDays).ThenBy(x => x.CompanyGuarantorName)
+                    : query.OrderBy(x => x.PaymentDueDays).ThenBy(x => x.CompanyGuarantorName),
+
                 "contractstartdate" => isDescending
                     ? query.OrderByDescending(x => x.ContractStartDate).ThenBy(x => x.CompanyGuarantorName)
                     : query.OrderBy(x => x.ContractStartDate).ThenBy(x => x.CompanyGuarantorName),
@@ -853,6 +1015,14 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 "contractenddate" => isDescending
                     ? query.OrderByDescending(x => x.ContractEndDate).ThenBy(x => x.CompanyGuarantorName)
                     : query.OrderBy(x => x.ContractEndDate).ThenBy(x => x.CompanyGuarantorName),
+
+                "isusingcompanytariffbook" => isDescending
+                    ? query.OrderByDescending(x => x.IsUsingCompanyTariffBook).ThenBy(x => x.CompanyGuarantorName)
+                    : query.OrderBy(x => x.IsUsingCompanyTariffBook).ThenBy(x => x.CompanyGuarantorName),
+
+                "isneedguaranteeletter" => isDescending
+                    ? query.OrderByDescending(x => x.IsNeedGuaranteeLetter).ThenBy(x => x.CompanyGuarantorName)
+                    : query.OrderBy(x => x.IsNeedGuaranteeLetter).ThenBy(x => x.CompanyGuarantorName),
 
                 "isactive" => isDescending
                     ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.CompanyGuarantorName)
@@ -878,9 +1048,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Tipe guarantor wajib diisi.");
             }
 
-            if (!AllowedGuarantorTypes.Contains(request.GuarantorType.Trim()))
+            if (!IsAllowedValue(AllowedGuarantorTypes, request.GuarantorType))
             {
-                return (false, "Tipe guarantor tidak valid. Gunakan Corporate, Government, Foundation, School, atau Other.");
+                return (false, "Tipe guarantor tidak valid. Gunakan nilai dari endpoint filters/metadata.");
             }
 
             if (string.IsNullOrWhiteSpace(request.BillingMethod))
@@ -888,9 +1058,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Metode billing wajib diisi.");
             }
 
-            if (!AllowedBillingMethods.Contains(request.BillingMethod.Trim()))
+            if (!IsAllowedValue(AllowedBillingMethods, request.BillingMethod))
             {
-                return (false, "Metode billing tidak valid. Gunakan Invoice, Deposit, atau Mixed.");
+                return (false, "Metode billing tidak valid. Gunakan nilai dari endpoint filters/metadata.");
             }
 
             if (request.ContractStartDate.HasValue &&
@@ -913,6 +1083,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             if (request.PaymentDueDays < 0)
             {
                 return (false, "Payment due days tidak boleh lebih kecil dari 0.");
+            }
+
+            if (request.PaymentDueDays > 3650)
+            {
+                return (false, "Payment due days tidak boleh lebih dari 3650.");
+            }
+
+            if (request.SortOrder < 0)
+            {
+                return (false, "Urutan tidak boleh kurang dari 0.");
             }
 
             if (!string.IsNullOrWhiteSpace(request.PicEmail) && !request.PicEmail.Contains('@'))
@@ -938,7 +1118,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Nama company guarantor sudah digunakan.");
             }
 
-            var externalCompanyCode = NormalizeUpperNullableString(request.ExternalCompanyCode);
+            var externalCompanyCode = NormalizeUpperNullableText(request.ExternalCompanyCode);
 
             if (!string.IsNullOrWhiteSpace(externalCompanyCode))
             {
@@ -960,7 +1140,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 }
             }
 
-            var integrationCode = NormalizeUpperNullableString(request.IntegrationCode);
+            var integrationCode = NormalizeUpperNullableText(request.IntegrationCode);
 
             if (!string.IsNullOrWhiteSpace(integrationCode))
             {
@@ -982,7 +1162,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 }
             }
 
-            var contractNumber = NormalizeNullableString(request.ContractNumber);
+            var contractNumber = NormalizeNullableText(request.ContractNumber);
 
             if (!string.IsNullOrWhiteSpace(contractNumber))
             {
@@ -1007,19 +1187,42 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return (true, null);
         }
 
+        private static (bool IsValid, string? ErrorMessage) ValidateFilterValues(
+            string? guarantorType,
+            string? billingMethod,
+            string? contractStatus)
+        {
+            if (!string.IsNullOrWhiteSpace(guarantorType) && !IsAllowedValue(AllowedGuarantorTypes, guarantorType))
+            {
+                return (false, "Filter tipe guarantor tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(billingMethod) && !IsAllowedValue(AllowedBillingMethods, billingMethod))
+            {
+                return (false, "Filter metode billing tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(contractStatus) && !IsAllowedValue(AllowedContractStatuses, contractStatus))
+            {
+                return (false, "Filter status kontrak tidak valid. Gunakan active, expired, upcoming, atau noContract.");
+            }
+
+            return (true, null);
+        }
+
         private async Task<string> GenerateCompanyGuarantorCodeAsync()
         {
             var existingCodes = await _dbContext.Set<MstCompanyGuarantor>()
                 .IgnoreQueryFilters()
                 .AsNoTracking()
-                .Where(x => x.CompanyGuarantorCode.StartsWith(CodePrefix))
+                .Where(x => x.CompanyGuarantorCode.StartsWith(CompanyGuarantorCodePrefix))
                 .Select(x => x.CompanyGuarantorCode)
                 .ToListAsync();
 
             var usedNumbers = existingCodes
-                .Select(x => x.Replace(CodePrefix, string.Empty))
-                .Where(x => int.TryParse(x, out _))
-                .Select(int.Parse)
+                .Select(TryExtractCompanyGuarantorSequenceNumber)
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
                 .Where(x => x > 0)
                 .ToHashSet();
 
@@ -1030,7 +1233,26 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 nextNumber++;
             }
 
-            return CodePrefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
+            return CompanyGuarantorCodePrefix + nextNumber.ToString("D" + CompanyGuarantorCodeDigitLength, CultureInfo.InvariantCulture);
+        }
+
+        private static int? TryExtractCompanyGuarantorSequenceNumber(string companyGuarantorCode)
+        {
+            if (string.IsNullOrWhiteSpace(companyGuarantorCode))
+            {
+                return null;
+            }
+
+            if (!companyGuarantorCode.StartsWith(CompanyGuarantorCodePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var numberText = companyGuarantorCode[CompanyGuarantorCodePrefix.Length..];
+
+            return int.TryParse(numberText, NumberStyles.None, CultureInfo.InvariantCulture, out var number)
+                ? number
+                : null;
         }
 
         private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(
@@ -1065,6 +1287,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             MstCompanyGuarantor entity,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
+            var contractStatus = BuildContractStatus(entity.ContractStartDate, entity.ContractEndDate);
+
             return new CompanyGuarantorResponse
             {
                 Id = entity.Id,
@@ -1072,12 +1296,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 CompanyGuarantorName = entity.CompanyGuarantorName,
                 CompanyGroupName = entity.CompanyGroupName,
                 GuarantorType = entity.GuarantorType,
+                GuarantorTypeName = BuildStringLabel(entity.GuarantorType),
                 BillingMethod = entity.BillingMethod,
+                BillingMethodName = BuildStringLabel(entity.BillingMethod),
                 ExternalCompanyCode = entity.ExternalCompanyCode,
                 IntegrationCode = entity.IntegrationCode,
                 ContractNumber = entity.ContractNumber,
                 ContractStartDate = entity.ContractStartDate,
                 ContractEndDate = entity.ContractEndDate,
+                ContractStatus = contractStatus,
+                ContractStatusName = BuildContractStatusLabel(contractStatus),
                 IsUsingCompanyTariffBook = entity.IsUsingCompanyTariffBook,
                 IsUsingHospitalTariff = entity.IsUsingHospitalTariff,
                 IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter,
@@ -1107,6 +1335,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             MstCompanyGuarantor entity,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
+            var contractStatus = BuildContractStatus(entity.ContractStartDate, entity.ContractEndDate);
+
             return new CompanyGuarantorDetailResponse
             {
                 Id = entity.Id,
@@ -1114,12 +1344,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 CompanyGuarantorName = entity.CompanyGuarantorName,
                 CompanyGroupName = entity.CompanyGroupName,
                 GuarantorType = entity.GuarantorType,
+                GuarantorTypeName = BuildStringLabel(entity.GuarantorType),
                 BillingMethod = entity.BillingMethod,
+                BillingMethodName = BuildStringLabel(entity.BillingMethod),
                 ExternalCompanyCode = entity.ExternalCompanyCode,
                 IntegrationCode = entity.IntegrationCode,
                 ContractNumber = entity.ContractNumber,
                 ContractStartDate = entity.ContractStartDate,
                 ContractEndDate = entity.ContractEndDate,
+                ContractStatus = contractStatus,
+                ContractStatusName = BuildContractStatusLabel(contractStatus),
                 IsUsingCompanyTariffBook = entity.IsUsingCompanyTariffBook,
                 IsUsingHospitalTariff = entity.IsUsingHospitalTariff,
                 IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter,
@@ -1154,6 +1388,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         private static CompanyGuarantorOptionResponse MapOptionResponse(
             MstCompanyGuarantor entity)
         {
+            var contractStatus = BuildContractStatus(entity.ContractStartDate, entity.ContractEndDate);
+
             return new CompanyGuarantorOptionResponse
             {
                 Id = entity.Id,
@@ -1161,7 +1397,14 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 CompanyGuarantorName = entity.CompanyGuarantorName,
                 CompanyGroupName = entity.CompanyGroupName,
                 GuarantorType = entity.GuarantorType,
+                GuarantorTypeName = BuildStringLabel(entity.GuarantorType),
                 BillingMethod = entity.BillingMethod,
+                BillingMethodName = BuildStringLabel(entity.BillingMethod),
+                ContractNumber = entity.ContractNumber,
+                ContractStartDate = entity.ContractStartDate,
+                ContractEndDate = entity.ContractEndDate,
+                ContractStatus = contractStatus,
+                ContractStatusName = BuildContractStatusLabel(contractStatus),
                 IsUsingCompanyTariffBook = entity.IsUsingCompanyTariffBook,
                 IsUsingHospitalTariff = entity.IsUsingHospitalTariff,
                 IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter,
@@ -1172,7 +1415,87 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
                 CreditLimitAmount = entity.CreditLimitAmount,
                 CurrentOutstandingAmount = entity.CurrentOutstandingAmount,
-                PaymentDueDays = entity.PaymentDueDays
+                PaymentDueDays = entity.PaymentDueDays,
+                SortOrder = entity.SortOrder
+            };
+        }
+
+        private static DateRangeResolveResult ResolveDateRange(
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            var period = customPeriod?.Trim().ToLowerInvariant();
+            var today = DateTime.UtcNow.Date;
+
+            DateTime? start = null;
+            DateTime? endExclusive = null;
+
+            switch (period)
+            {
+                case null:
+                case "":
+                case "custom":
+                    if (startDate.HasValue)
+                    {
+                        start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                    }
+
+                    if (endDate.HasValue)
+                    {
+                        endExclusive = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                    }
+
+                    break;
+
+                case "today":
+                    start = today;
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "last7days":
+                    start = today.AddDays(-6);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "last30days":
+                    start = today.AddDays(-29);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "thismonth":
+                    start = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    endExclusive = start.Value.AddMonths(1);
+                    break;
+
+                case "lastmonth":
+                    var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    start = currentMonthStart.AddMonths(-1);
+                    endExclusive = currentMonthStart;
+                    break;
+
+                default:
+                    return DateRangeResolveResult.Invalid($"customPeriod '{customPeriod}' tidak valid.");
+            }
+
+            if (start.HasValue && endExclusive.HasValue && start.Value >= endExclusive.Value)
+            {
+                return DateRangeResolveResult.Invalid("startDate tidak boleh lebih besar atau sama dengan endDate.");
+            }
+
+            return DateRangeResolveResult.Valid(start, endExclusive);
+        }
+
+        private static List<CompanyGuarantorCustomPeriodOptionResponse> BuildCustomPeriodOptions()
+        {
+            return new List<CompanyGuarantorCustomPeriodOptionResponse>
+            {
+                new() { Value = "custom", Label = "Custom", Description = "Gunakan startDate dan endDate.", UsesStartDate = true, UsesEndDate = true },
+                new() { Value = "today", Label = "Hari ini", Description = "Data yang dibuat hari ini.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last7days", Label = "7 hari terakhir", Description = "Data yang dibuat dalam 7 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last30days", Label = "30 hari terakhir", Description = "Data yang dibuat dalam 30 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "thismonth", Label = "Bulan ini", Description = "Data yang dibuat pada bulan berjalan.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "lastmonth", Label = "Bulan lalu", Description = "Data yang dibuat pada bulan sebelumnya.", UsesStartDate = false, UsesEndDate = false }
             };
         }
 
@@ -1180,13 +1503,23 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             IEnumerable<string> values)
         {
             return values
-                .OrderBy(x => x)
                 .Select(x => new CompanyGuarantorStringOptionResponse
                 {
                     Value = x,
-                    Label = SplitPascalCase(x)
+                    Label = BuildStringLabel(x)
                 })
                 .ToList();
+        }
+
+        private static List<CompanyGuarantorStringOptionResponse> BuildContractStatusOptions()
+        {
+            return new List<CompanyGuarantorStringOptionResponse>
+            {
+                new() { Value = ContractStatusActive, Label = "Active", Description = "Kontrak sedang berjalan." },
+                new() { Value = ContractStatusExpired, Label = "Expired", Description = "Kontrak sudah melewati tanggal akhir." },
+                new() { Value = ContractStatusUpcoming, Label = "Upcoming", Description = "Kontrak belum mulai." },
+                new() { Value = ContractStatusNoContract, Label = "No Contract", Description = "Tanggal kontrak belum diisi." }
+            };
         }
 
         private static string NormalizeGuarantorType(string value)
@@ -1209,7 +1542,51 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return matched ?? "Invoice";
         }
 
-        private static string SplitPascalCase(string value)
+        private static string NormalizeContractStatus(string value)
+        {
+            var trimmed = value.Trim();
+
+            var matched = AllowedContractStatuses
+                .FirstOrDefault(x => string.Equals(x, trimmed, StringComparison.OrdinalIgnoreCase));
+
+            return matched ?? string.Empty;
+        }
+
+        private static string BuildContractStatus(DateTime? contractStartDate, DateTime? contractEndDate)
+        {
+            var today = DateTime.UtcNow.Date;
+
+            if (!contractStartDate.HasValue && !contractEndDate.HasValue)
+            {
+                return ContractStatusNoContract;
+            }
+
+            if (contractEndDate.HasValue && contractEndDate.Value.Date < today)
+            {
+                return ContractStatusExpired;
+            }
+
+            if (contractStartDate.HasValue && contractStartDate.Value.Date > today)
+            {
+                return ContractStatusUpcoming;
+            }
+
+            return ContractStatusActive;
+        }
+
+        private static string BuildContractStatusLabel(string value)
+        {
+            return value switch
+            {
+                ContractStatusActive => "Active",
+                ContractStatusExpired => "Expired",
+                ContractStatusUpcoming => "Upcoming",
+                ContractStatusNoContract => "No Contract",
+                _ => BuildStringLabel(value)
+            };
+        }
+
+        private static string BuildStringLabel(string value)
         {
             if (string.IsNullOrWhiteSpace(value))
             {
@@ -1218,6 +1595,117 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             return string.Concat(value.Select((x, i) =>
                 i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
+        }
+
+        private static bool IsAllowedValue(IEnumerable<string> allowedValues, string value)
+        {
+            return allowedValues.Any(x => string.Equals(
+                x,
+                value.Trim(),
+                StringComparison.OrdinalIgnoreCase
+            ));
+        }
+
+        private static List<CompanyGuarantorQueryParameterInfoResponse> BuildQueryParameterInfo()
+        {
+            return new List<CompanyGuarantorQueryParameterInfoResponse>
+            {
+                new() { Name = "startDate", Type = "DateTime?", Description = "Tanggal awal filter berdasarkan CreateDateTime.", Example = "2026-06-01" },
+                new() { Name = "endDate", Type = "DateTime?", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-06-30" },
+                new() { Name = "customPeriod", Type = "string", Description = "Filter periode cepat: custom, today, last7days, last30days, thismonth, lastmonth.", Example = "thismonth" },
+                new() { Name = "search", Type = "string", Description = "Cari berdasarkan kode, nama, group, tipe, metode billing, kode integrasi, nomor kontrak, PIC, alamat, instruksi, atau deskripsi.", Example = "PT Sehat" },
+                new() { Name = "isActive", Type = "bool", Description = "Filter status aktif.", Example = "true" },
+                new() { Name = "guarantorType", Type = "string", Description = "Filter tipe guarantor.", Example = "Corporate" },
+                new() { Name = "billingMethod", Type = "string", Description = "Filter metode billing.", Example = "Invoice" },
+                new() { Name = "contractStatus", Type = "string", Description = "Filter status kontrak: active, expired, upcoming, noContract.", Example = "active" },
+                new() { Name = "isUsingCompanyTariffBook", Type = "bool", Description = "Filter penggunaan tarif company.", Example = "true" },
+                new() { Name = "isUsingHospitalTariff", Type = "bool", Description = "Filter penggunaan tarif rumah sakit.", Example = "false" },
+                new() { Name = "isNeedGuaranteeLetter", Type = "bool", Description = "Filter butuh guarantee letter.", Example = "true" },
+                new() { Name = "isNeedEmployeeVerification", Type = "bool", Description = "Filter butuh verifikasi karyawan.", Example = "true" },
+                new() { Name = "isNeedApprovalForProcedure", Type = "bool", Description = "Filter butuh approval tindakan.", Example = "true" },
+                new() { Name = "isNeedApprovalForDrug", Type = "bool", Description = "Filter butuh approval obat.", Example = "false" },
+                new() { Name = "isCoverageLimitedByEmployeeGrade", Type = "bool", Description = "Filter coverage berdasarkan grade karyawan.", Example = "true" },
+                new() { Name = "isAllowExcessPaymentByPatient", Type = "bool", Description = "Filter selisih boleh dibayar pasien.", Example = "true" },
+                new() { Name = "hasCreditLimit", Type = "bool", Description = "Filter penjamin yang memiliki credit limit lebih dari 0 atau tidak.", Example = "true" },
+                new() { Name = "hasOutstanding", Type = "bool", Description = "Filter penjamin yang memiliki outstanding lebih dari 0 atau tidak.", Example = "true" },
+                new() { Name = "sortBy", Type = "string", Description = "Kolom sorting.", Example = "sortOrder" },
+                new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
+                new() { Name = "pageNumber", Type = "int", Description = "Nomor halaman.", Example = "1" },
+                new() { Name = "pageSize", Type = "int", Description = "Jumlah data per halaman, maksimal 100.", Example = "25" }
+            };
+        }
+
+        private static List<CompanyGuarantorFormFieldMetadataResponse> BuildCreateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: false);
+        }
+
+        private static List<CompanyGuarantorFormFieldMetadataResponse> BuildUpdateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: true);
+        }
+
+        private static List<CompanyGuarantorFormFieldMetadataResponse> BuildFieldMetadata(bool isUpdate)
+        {
+            var fields = new List<CompanyGuarantorFormFieldMetadataResponse>
+            {
+                new() { Name = "companyGuarantorCode", Label = "Kode Company Guarantor", Section = "Basic", InputType = "readonly", IsRequiredOnCreate = false, IsRequiredOnUpdate = false, RequiredType = "AutoGenerated", MaxLength = 50, Description = "Digenerate otomatis oleh sistem dengan format CG-RSMMC-00001.", Example = "CG-RSMMC-00001", SortOrder = 1 },
+                new() { Name = "companyGuarantorName", Label = "Nama Company Guarantor", Section = "Basic", InputType = "text", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", MaxLength = 200, Example = "PT Sehat Bersama", SortOrder = 2 },
+                new() { Name = "companyGroupName", Label = "Group Company", Section = "Basic", InputType = "text", MaxLength = 100, Example = "Sehat Group", SortOrder = 3 },
+                new() { Name = "guarantorType", Label = "Tipe Guarantor", Section = "Basic", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "guarantorTypeOptions", SortOrder = 4 },
+                new() { Name = "billingMethod", Label = "Metode Billing", Section = "Billing", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "billingMethodOptions", SortOrder = 5 },
+                new() { Name = "externalCompanyCode", Label = "External Company Code", Section = "Integration", InputType = "text", MaxLength = 50, Example = "EXT-COMP-001", SortOrder = 6 },
+                new() { Name = "integrationCode", Label = "Integration Code", Section = "Integration", InputType = "text", MaxLength = 50, Example = "INT-COMP-001", SortOrder = 7 },
+                new() { Name = "contractNumber", Label = "Nomor Kontrak", Section = "Contract", InputType = "text", MaxLength = 100, Example = "PKS/001/2026", SortOrder = 8 },
+                new() { Name = "contractStartDate", Label = "Tanggal Mulai Kontrak", Section = "Contract", InputType = "date", SortOrder = 9 },
+                new() { Name = "contractEndDate", Label = "Tanggal Akhir Kontrak", Section = "Contract", InputType = "date", SortOrder = 10 },
+                new() { Name = "isUsingCompanyTariffBook", Label = "Pakai Tarif Company", Section = "Rule", InputType = "switch", SortOrder = 11 },
+                new() { Name = "isUsingHospitalTariff", Label = "Pakai Tarif Rumah Sakit", Section = "Rule", InputType = "switch", SortOrder = 12 },
+                new() { Name = "isNeedGuaranteeLetter", Label = "Butuh Guarantee Letter", Section = "Rule", InputType = "switch", SortOrder = 13 },
+                new() { Name = "isNeedEmployeeVerification", Label = "Butuh Verifikasi Karyawan", Section = "Rule", InputType = "switch", SortOrder = 14 },
+                new() { Name = "isNeedApprovalForProcedure", Label = "Butuh Approval Tindakan", Section = "Rule", InputType = "switch", SortOrder = 15 },
+                new() { Name = "isNeedApprovalForDrug", Label = "Butuh Approval Obat", Section = "Rule", InputType = "switch", SortOrder = 16 },
+                new() { Name = "isCoverageLimitedByEmployeeGrade", Label = "Coverage Sesuai Grade", Section = "Rule", InputType = "switch", SortOrder = 17 },
+                new() { Name = "isAllowExcessPaymentByPatient", Label = "Selisih Boleh Dibayar Pasien", Section = "Rule", InputType = "switch", SortOrder = 18 },
+                new() { Name = "creditLimitAmount", Label = "Credit Limit", Section = "Finance", InputType = "number", Example = "100000000", SortOrder = 19 },
+                new() { Name = "currentOutstandingAmount", Label = "Current Outstanding", Section = "Finance", InputType = "number", Example = "0", SortOrder = 20 },
+                new() { Name = "paymentDueDays", Label = "Payment Due Days", Section = "Finance", InputType = "number", Example = "30", SortOrder = 21 },
+                new() { Name = "picName", Label = "Nama PIC", Section = "Contact", InputType = "text", MaxLength = 100, Example = "Budi", SortOrder = 22 },
+                new() { Name = "picPhoneNumber", Label = "No. Telepon PIC", Section = "Contact", InputType = "text", MaxLength = 30, Example = "021123456", SortOrder = 23 },
+                new() { Name = "picWhatsAppNumber", Label = "No. WhatsApp PIC", Section = "Contact", InputType = "text", MaxLength = 30, Example = "08123456789", SortOrder = 24 },
+                new() { Name = "picEmail", Label = "Email PIC", Section = "Contact", InputType = "email", MaxLength = 200, Example = "pic@company.com", SortOrder = 25 },
+                new() { Name = "officeAddress", Label = "Alamat Kantor", Section = "Contact", InputType = "textarea", MaxLength = 500, SortOrder = 26 },
+                new() { Name = "logoPath", Label = "Logo Path", Section = "Media", InputType = "text", MaxLength = 500, SortOrder = 27 },
+                new() { Name = "billingInstruction", Label = "Instruksi Billing", Section = "Instruction", InputType = "textarea", MaxLength = 250, SortOrder = 28 },
+                new() { Name = "claimInstruction", Label = "Instruksi Klaim", Section = "Instruction", InputType = "textarea", MaxLength = 250, SortOrder = 29 },
+                new() { Name = "sortOrder", Label = "Urutan", Section = "Display", InputType = "number", SortOrder = 30 },
+                new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 31 }
+            };
+
+            if (isUpdate)
+            {
+                fields.Add(new CompanyGuarantorFormFieldMetadataResponse
+                {
+                    Name = "isActive",
+                    Label = "Status Aktif",
+                    Section = "Status",
+                    InputType = "switch",
+                    SortOrder = 99
+                });
+            }
+
+            return fields.OrderBy(x => x.SortOrder).ToList();
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var userIdValue =
+                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue("user_id");
+
+            return Guid.TryParse(userIdValue, out var userId)
+                ? userId
+                : Guid.Empty;
         }
 
         private static string? GetActorName(
@@ -1256,36 +1744,52 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return (pageNumber, pageSize);
         }
 
-        private static string? NormalizeNullableString(string? value)
+        private static string? NormalizeNullableText(string? value)
         {
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
         }
 
-        private static string? NormalizeUpperNullableString(string? value)
+        private static string? NormalizeUpperNullableText(string? value)
         {
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim().ToUpperInvariant();
         }
 
-        private static string? NormalizeLowerNullableString(string? value)
+        private static string? NormalizeLowerNullableText(string? value)
         {
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim().ToLowerInvariant();
         }
 
-        private Guid GetCurrentUserId()
+        private sealed class DateRangeResolveResult
         {
-            var userIdValue =
-                User.FindFirstValue(ClaimTypes.NameIdentifier) ??
-                User.FindFirstValue("user_id");
+            public bool IsValid { get; private set; }
+            public string? ErrorMessage { get; private set; }
+            public DateTime? Start { get; private set; }
+            public DateTime? EndExclusive { get; private set; }
 
-            return Guid.TryParse(userIdValue, out var userId)
-                ? userId
-                : Guid.Empty;
+            public static DateRangeResolveResult Valid(DateTime? start, DateTime? endExclusive)
+            {
+                return new DateRangeResolveResult
+                {
+                    IsValid = true,
+                    Start = start,
+                    EndExclusive = endExclusive
+                };
+            }
+
+            public static DateRangeResolveResult Invalid(string errorMessage)
+            {
+                return new DateRangeResolveResult
+                {
+                    IsValid = false,
+                    ErrorMessage = errorMessage
+                };
+            }
         }
     }
 }

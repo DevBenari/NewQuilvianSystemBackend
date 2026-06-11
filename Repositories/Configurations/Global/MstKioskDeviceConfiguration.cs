@@ -31,6 +31,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
                 .HasDefaultValue(KioskDeviceStatus.Active)
                 .IsRequired();
 
+            entity.Property(x => x.DefaultScannerProfileId)
+                .IsRequired(false);
+
             entity.Property(x => x.LocationName)
                 .HasMaxLength(100);
 
@@ -42,24 +45,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
 
             entity.Property(x => x.MacAddress)
                 .HasMaxLength(100);
-
-            entity.Property(x => x.SerialNumber)
-                .HasMaxLength(100);
-
-            entity.Property(x => x.DeviceModel)
-                .HasMaxLength(100);
-
-            entity.Property(x => x.VendorName)
-                .HasMaxLength(100);
-
-            entity.Property(x => x.IsAvailableForRegistration)
-                .HasDefaultValue(true);
-
-            entity.Property(x => x.IsAvailableForCheckIn)
-                .HasDefaultValue(true);
-
-            entity.Property(x => x.IsAvailableForPayment)
-                .HasDefaultValue(false);
 
             entity.Property(x => x.IsAllowWalkIn)
                 .HasDefaultValue(true);
@@ -94,33 +79,35 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
                 .HasColumnType("timestamp with time zone")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+            entity.Property(x => x.CreateBy)
+                .HasDefaultValue(Guid.Empty);
+
             entity.Property(x => x.UpdateDateTime)
                 .HasColumnType("timestamp with time zone")
                 .IsRequired(false);
+
+            entity.Property(x => x.UpdateBy)
+                .HasDefaultValue(Guid.Empty);
 
             entity.Property(x => x.DeleteDateTime)
                 .HasColumnType("timestamp with time zone")
                 .IsRequired(false);
 
+            entity.Property(x => x.DeleteBy)
+                .HasDefaultValue(Guid.Empty);
+
             entity.Property(x => x.CancelDateTime)
                 .HasColumnType("timestamp with time zone")
                 .IsRequired(false);
+
+            entity.Property(x => x.CancelBy)
+                .HasDefaultValue(Guid.Empty);
 
             entity.Property(x => x.IsDelete)
                 .HasDefaultValue(false);
 
             entity.Property(x => x.IsCancel)
                 .HasDefaultValue(false);
-
-            entity.HasOne(x => x.ServiceUnit)
-                .WithMany()
-                .HasForeignKey(x => x.ServiceUnitId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(x => x.Clinic)
-                .WithMany()
-                .HasForeignKey(x => x.ClinicId)
-                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.DefaultScannerProfile)
                 .WithMany()
@@ -132,17 +119,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
 
             entity.HasIndex(x => x.DeviceName);
 
-            entity.HasIndex(x => x.ServiceUnitId);
-
-            entity.HasIndex(x => x.ClinicId);
-
             entity.HasIndex(x => x.DefaultScannerProfileId);
-
-            entity.HasIndex(x => x.SerialNumber)
-                .HasFilter("\"SerialNumber\" IS NOT NULL");
 
             entity.HasIndex(x => x.IpAddress)
                 .HasFilter("\"IpAddress\" IS NOT NULL");
+
+            entity.HasIndex(x => x.MacAddress)
+                .HasFilter("\"MacAddress\" IS NOT NULL");
 
             entity.HasIndex(x => new
             {
@@ -154,9 +137,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
 
             entity.HasIndex(x => new
             {
-                x.ServiceUnitId,
-                x.ClinicId,
-                x.IsAvailableForRegistration,
+                x.IsAllowWalkIn,
+                x.IsAllowAppointment,
+                x.IsAllowInsuranceRegistration,
                 x.IsActive,
                 x.IsDelete
             });

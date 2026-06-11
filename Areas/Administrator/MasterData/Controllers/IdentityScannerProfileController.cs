@@ -9,6 +9,8 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.Data;
+using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -35,6 +37,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
     public class IdentityScannerProfileController : ControllerBase
     {
         private const string LogCategory = "Administrator.MasterData";
+        private const string IdentityScannerProfileCodePrefix = "ISP-RSMMC-";
+        private const int IdentityScannerProfileCodeDigitLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -59,16 +63,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [AccessPermission("IdentityScannerProfile", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
+            var profileTypeOptions = BuildEnumOptions<IdentityScannerProfileType>();
+
             var result = new IdentityScannerProfileFilterMetadataResponse
             {
                 DefaultFilter = new IdentityScannerProfileDefaultFilterResponse(),
-                CustomPeriods = new List<IdentityScannerProfileCustomPeriodOptionResponse>
-                {
-                    new() { Value = "today", Label = "Hari ini" },
-                    new() { Value = "last7days", Label = "7 hari terakhir" },
-                    new() { Value = "thismonth", Label = "Bulan ini" },
-                    new() { Value = "lastmonth", Label = "Bulan lalu" }
-                },
+                CustomPeriods = BuildCustomPeriodOptions(),
                 SortOptions = new List<IdentityScannerProfileSortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -80,11 +80,25 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     new() { Value = "scannerModel", Label = "Model scanner" },
                     new() { Value = "inputFormat", Label = "Input format" },
                     new() { Value = "outputFormat", Label = "Output format" },
+                    new() { Value = "isForIdentityCard", Label = "Untuk kartu identitas" },
+                    new() { Value = "isForPatientCard", Label = "Untuk kartu pasien" },
+                    new() { Value = "isForMembershipCard", Label = "Untuk kartu membership" },
+                    new() { Value = "isForInsuranceCard", Label = "Untuk kartu asuransi" },
+                    new() { Value = "isOcrEnabled", Label = "OCR aktif" },
+                    new() { Value = "isBarcodeEnabled", Label = "Barcode aktif" },
+                    new() { Value = "isQrEnabled", Label = "QR aktif" },
+                    new() { Value = "isManualInputAllowed", Label = "Manual input diizinkan" },
+                    new() { Value = "isAutoCreatePatientAllowed", Label = "Auto create pasien diizinkan" },
+                    new() { Value = "isVerificationRequired", Label = "Verifikasi wajib" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                ProfileTypeOptions = BuildEnumOptions<IdentityScannerProfileType>(),
+                EnumOptions = BuildEnumMetadataOptions(profileTypeOptions),
+                ProfileTypeOptions = profileTypeOptions,
+                QueryParameters = BuildQueryParameterInfo(),
+                CreateFields = BuildCreateFieldMetadata(),
+                UpdateFields = BuildUpdateFieldMetadata(),
                 ResetButtonLabel = "Reset"
             };
 
@@ -126,7 +140,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 InsuranceCardProfile = await query.CountAsync(x => x.IsForInsuranceCard),
                 OcrEnabledProfile = await query.CountAsync(x => x.IsOcrEnabled),
                 BarcodeEnabledProfile = await query.CountAsync(x => x.IsBarcodeEnabled),
-                QrEnabledProfile = await query.CountAsync(x => x.IsQrEnabled)
+                QrEnabledProfile = await query.CountAsync(x => x.IsQrEnabled),
+                ManualInputAllowedProfile = await query.CountAsync(x => x.IsManualInputAllowed),
+                AutoCreatePatientAllowedProfile = await query.CountAsync(x => x.IsAutoCreatePatientAllowed),
+                VerificationRequiredProfile = await query.CountAsync(x => x.IsVerificationRequired)
             };
 
             return Ok(ApiResponse<IdentityScannerProfileSummaryResponse>.Ok(
@@ -137,6 +154,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponseIdentityScannerProfilePagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
             "Read",
             "Read Identity Scanner Profile",
@@ -160,6 +178,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             [FromQuery] bool? isBarcodeEnabled,
             [FromQuery] bool? isQrEnabled,
             [FromQuery] bool? isManualInputAllowed,
+            [FromQuery] bool? isAutoCreatePatientAllowed,
+            [FromQuery] bool? isVerificationRequired,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -169,9 +189,19 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
             var query = BuildBaseQuery();
 
-            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyDateFilter(query, dateRange);
             query = ApplyStandardFilter(
                 query,
                 search,
@@ -184,7 +214,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 isOcrEnabled,
                 isBarcodeEnabled,
                 isQrEnabled,
-                isManualInputAllowed
+                isManualInputAllowed,
+                isAutoCreatePatientAllowed,
+                isVerificationRequired
             );
 
             var totalData = await query.CountAsync();
@@ -239,6 +271,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             [FromQuery] bool? isBarcodeEnabled,
             [FromQuery] bool? isQrEnabled,
             [FromQuery] bool? isManualInputAllowed,
+            [FromQuery] bool? isAutoCreatePatientAllowed,
+            [FromQuery] bool? isVerificationRequired,
             [FromQuery] bool onlyActive = true,
             [FromQuery] bool? activeOnly = null,
             [FromQuery] string? search = null,
@@ -265,7 +299,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 isOcrEnabled,
                 isBarcodeEnabled,
                 isQrEnabled,
-                isManualInputAllowed
+                isManualInputAllowed,
+                isAutoCreatePatientAllowed,
+                isVerificationRequired
             );
 
             var totalData = await query.CountAsync();
@@ -328,24 +364,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             var result = MapDetailResponse(entity, actorNames);
 
-            if (result.UpdateDateTime.HasValue &&
-                result.UpdateDateTime.Value == DateTime.MinValue)
-            {
-                result.UpdateDateTime = null;
-            }
-
-            if (!result.CreateBy.HasValue || result.CreateBy.Value == Guid.Empty)
-            {
-                result.CreateBy = null;
-                result.CreateByName = null;
-            }
-
-            if (!result.UpdateBy.HasValue || result.UpdateBy.Value == Guid.Empty)
-            {
-                result.UpdateBy = null;
-                result.UpdateByName = null;
-            }
-
             return Ok(ApiResponse<IdentityScannerProfileDetailResponse>.Ok(
                 result,
                 "Detail identity scanner profile berhasil diambil."
@@ -381,76 +399,108 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            var entity = new MstIdentityScannerProfile
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+            try
             {
-                Id = Guid.NewGuid(),
-                ProfileCode = NormalizeCode(request.ProfileCode),
-                ProfileName = request.ProfileName.Trim(),
-                ProfileType = request.ProfileType,
-                ScannerVendorName = NormalizeNullableText(request.ScannerVendorName),
-                ScannerModel = NormalizeNullableText(request.ScannerModel),
-                InputFormat = NormalizeNullableText(request.InputFormat),
-                OutputFormat = NormalizeNullableText(request.OutputFormat),
-                IdentityNumberRegex = NormalizeNullableText(request.IdentityNumberRegex),
-                MemberNumberRegex = NormalizeNullableText(request.MemberNumberRegex),
-                CardNumberRegex = NormalizeNullableText(request.CardNumberRegex),
-                IdentityNumberFieldName = NormalizeNullableText(request.IdentityNumberFieldName),
-                FullNameFieldName = NormalizeNullableText(request.FullNameFieldName),
-                BirthDateFieldName = NormalizeNullableText(request.BirthDateFieldName),
-                GenderFieldName = NormalizeNullableText(request.GenderFieldName),
-                AddressFieldName = NormalizeNullableText(request.AddressFieldName),
-                IsForIdentityCard = request.IsForIdentityCard,
-                IsForPatientCard = request.IsForPatientCard,
-                IsForMembershipCard = request.IsForMembershipCard,
-                IsForInsuranceCard = request.IsForInsuranceCard,
-                IsOcrEnabled = request.IsOcrEnabled,
-                IsBarcodeEnabled = request.IsBarcodeEnabled,
-                IsQrEnabled = request.IsQrEnabled,
-                IsManualInputAllowed = request.IsManualInputAllowed,
-                IsAutoCreatePatientAllowed = request.IsAutoCreatePatientAllowed,
-                IsVerificationRequired = request.IsVerificationRequired,
-                SortOrder = request.SortOrder,
-                ConfigurationJson = NormalizeNullableText(request.ConfigurationJson),
-                Description = NormalizeNullableText(request.Description),
-                IsActive = true,
-                CreateDateTime = now,
-                CreateBy = actorUserId,
-                IsDelete = false,
-                IsCancel = false
-            };
+                var generatedProfileCode = await GenerateIdentityScannerProfileCodeAsync();
 
-            _dbContext.Set<MstIdentityScannerProfile>().Add(entity);
-            await _dbContext.SaveChangesAsync();
+                var entity = new MstIdentityScannerProfile
+                {
+                    Id = Guid.NewGuid(),
+                    ProfileCode = generatedProfileCode,
+                    ProfileName = request.ProfileName.Trim(),
+                    ProfileType = request.ProfileType,
+                    ScannerVendorName = NormalizeNullableText(request.ScannerVendorName),
+                    ScannerModel = NormalizeNullableText(request.ScannerModel),
+                    InputFormat = NormalizeNullableText(request.InputFormat),
+                    OutputFormat = NormalizeNullableText(request.OutputFormat),
+                    IdentityNumberRegex = NormalizeNullableText(request.IdentityNumberRegex),
+                    MemberNumberRegex = NormalizeNullableText(request.MemberNumberRegex),
+                    CardNumberRegex = NormalizeNullableText(request.CardNumberRegex),
+                    IdentityNumberFieldName = NormalizeNullableText(request.IdentityNumberFieldName),
+                    FullNameFieldName = NormalizeNullableText(request.FullNameFieldName),
+                    BirthDateFieldName = NormalizeNullableText(request.BirthDateFieldName),
+                    GenderFieldName = NormalizeNullableText(request.GenderFieldName),
+                    AddressFieldName = NormalizeNullableText(request.AddressFieldName),
+                    IsForIdentityCard = request.IsForIdentityCard,
+                    IsForPatientCard = request.IsForPatientCard,
+                    IsForMembershipCard = request.IsForMembershipCard,
+                    IsForInsuranceCard = request.IsForInsuranceCard,
+                    IsOcrEnabled = request.IsOcrEnabled,
+                    IsBarcodeEnabled = request.IsBarcodeEnabled,
+                    IsQrEnabled = request.IsQrEnabled,
+                    IsManualInputAllowed = request.IsManualInputAllowed,
+                    IsAutoCreatePatientAllowed = request.IsAutoCreatePatientAllowed,
+                    IsVerificationRequired = request.IsVerificationRequired,
+                    SortOrder = request.SortOrder,
+                    ConfigurationJson = NormalizeNullableText(request.ConfigurationJson),
+                    Description = NormalizeNullableText(request.Description),
+                    IsActive = true,
+                    CreateDateTime = now,
+                    CreateBy = actorUserId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
 
-            var result = new IdentityScannerProfileCreateResponse
+                _dbContext.Set<MstIdentityScannerProfile>().Add(entity);
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var actorNames = await GetActorNameMapAsync(new[] { entity.CreateBy });
+
+                var result = new IdentityScannerProfileCreateResponse
+                {
+                    Id = entity.Id,
+                    ProfileCode = entity.ProfileCode,
+                    ProfileName = entity.ProfileName,
+                    ProfileType = entity.ProfileType,
+                    ProfileTypeName = BuildProfileTypeLabel(entity.ProfileType),
+                    IsForIdentityCard = entity.IsForIdentityCard,
+                    IsForPatientCard = entity.IsForPatientCard,
+                    IsForMembershipCard = entity.IsForMembershipCard,
+                    IsForInsuranceCard = entity.IsForInsuranceCard,
+                    IsActive = entity.IsActive,
+                    CreateDateTime = entity.CreateDateTime,
+                    CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                    CreateByName = GetActorName(actorNames, entity.CreateBy)
+                };
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "IdentityScannerProfile.CreateIdentityScannerProfile",
+                    "Membuat data identity scanner profile.",
+                    result
+                );
+
+                return Ok(ApiResponse<IdentityScannerProfileCreateResponse>.Ok(
+                    result,
+                    "Identity scanner profile berhasil dibuat."
+                ));
+            }
+            catch (Exception ex)
             {
-                Id = entity.Id,
-                ProfileCode = entity.ProfileCode,
-                ProfileName = entity.ProfileName,
-                ProfileType = entity.ProfileType,
-                ProfileTypeName = BuildProfileTypeLabel(entity.ProfileType),
-                IsForIdentityCard = entity.IsForIdentityCard,
-                IsForPatientCard = entity.IsForPatientCard,
-                IsForMembershipCard = entity.IsForMembershipCard,
-                IsForInsuranceCard = entity.IsForInsuranceCard,
-                IsActive = entity.IsActive
-            };
+                await transaction.RollbackAsync();
 
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "IdentityScannerProfile.CreateIdentityScannerProfile",
-                "Membuat data identity scanner profile.",
-                result
-            );
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "IdentityScannerProfile.CreateIdentityScannerProfile",
+                    "Gagal membuat data identity scanner profile.",
+                    ex
+                );
 
-            return Ok(ApiResponse<IdentityScannerProfileCreateResponse>.Ok(
-                result,
-                "Identity scanner profile berhasil dibuat."
-            ));
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat membuat identity scanner profile."
+                    )
+                );
+            }
         }
 
         [HttpPut("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<IdentityScannerProfileUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
@@ -492,7 +542,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            entity.ProfileCode = NormalizeCode(request.ProfileCode);
             entity.ProfileName = request.ProfileName.Trim();
             entity.ProfileType = request.ProfileType;
             entity.ScannerVendorName = NormalizeNullableText(request.ScannerVendorName);
@@ -526,28 +575,36 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[] { entity.UpdateBy });
+
+            var result = new IdentityScannerProfileUpdateResponse
+            {
+                Id = entity.Id,
+                ProfileCode = entity.ProfileCode,
+                ProfileName = entity.ProfileName,
+                ProfileType = entity.ProfileType,
+                ProfileTypeName = BuildProfileTypeLabel(entity.ProfileType),
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+
             await _loggerService.InfoAsync(
                 LogCategory,
                 "IdentityScannerProfile.UpdateIdentityScannerProfile",
                 "Mengubah data identity scanner profile.",
-                new
-                {
-                    entity.Id,
-                    entity.ProfileCode,
-                    entity.ProfileName,
-                    entity.ProfileType,
-                    entity.IsActive
-                }
+                result
             );
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            return Ok(ApiResponse<IdentityScannerProfileUpdateResponse>.Ok(
+                result,
                 "Identity scanner profile berhasil diperbarui."
             ));
         }
 
         [HttpPatch("{id:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<IdentityScannerProfileUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
             "Update",
@@ -581,14 +638,29 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var actorNames = await GetActorNameMapAsync(new[] { entity.UpdateBy });
+
+            var result = new IdentityScannerProfileUpdateResponse
+            {
+                Id = entity.Id,
+                ProfileCode = entity.ProfileCode,
+                ProfileName = entity.ProfileName,
+                ProfileType = entity.ProfileType,
+                ProfileTypeName = BuildProfileTypeLabel(entity.ProfileType),
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+
+            return Ok(ApiResponse<IdentityScannerProfileUpdateResponse>.Ok(
+                result,
                 "Status identity scanner profile berhasil diperbarui."
             ));
         }
 
         [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<IdentityScannerProfileDeleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
@@ -644,21 +716,27 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[] { entity.DeleteBy });
+
+            var result = new IdentityScannerProfileDeleteResponse
+            {
+                Id = entity.Id,
+                ProfileCode = entity.ProfileCode,
+                ProfileName = entity.ProfileName,
+                DeleteDateTime = entity.DeleteDateTime,
+                DeleteBy = entity.DeleteBy == Guid.Empty ? null : (Guid?)entity.DeleteBy,
+                DeleteByName = GetActorName(actorNames, entity.DeleteBy)
+            };
+
             await _loggerService.InfoAsync(
                 LogCategory,
                 "IdentityScannerProfile.DeleteIdentityScannerProfile",
                 "Menghapus data identity scanner profile.",
-                new
-                {
-                    entity.Id,
-                    entity.ProfileCode,
-                    entity.ProfileName,
-                    entity.DeleteDateTime
-                }
+                result
             );
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            return Ok(ApiResponse<IdentityScannerProfileDeleteResponse>.Ok(
+                result,
                 "Identity scanner profile berhasil dihapus."
             ));
         }
@@ -672,76 +750,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         private static IQueryable<MstIdentityScannerProfile> ApplyDateFilter(
             IQueryable<MstIdentityScannerProfile> query,
-            DateTime? startDate,
-            DateTime? endDate,
-            string? customPeriod)
+            DateRangeResolveResult dateRange)
         {
-            if (startDate.HasValue)
+            if (dateRange.Start.HasValue)
             {
-                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
-                query = query.Where(x => x.CreateDateTime >= start);
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
             }
 
-            if (endDate.HasValue)
+            if (dateRange.EndExclusive.HasValue)
             {
-                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
-                query = query.Where(x => x.CreateDateTime < end);
-            }
-
-            if (!startDate.HasValue &&
-                !endDate.HasValue &&
-                !string.IsNullOrWhiteSpace(customPeriod))
-            {
-                var today = DateTime.UtcNow.Date;
-
-                switch (customPeriod.Trim().ToLowerInvariant())
-                {
-                    case "today":
-                        query = query.Where(x =>
-                            x.CreateDateTime >= today &&
-                            x.CreateDateTime < today.AddDays(1));
-                        break;
-
-                    case "last7days":
-                        query = query.Where(x =>
-                            x.CreateDateTime >= today.AddDays(-6) &&
-                            x.CreateDateTime < today.AddDays(1));
-                        break;
-
-                    case "thismonth":
-                        var thisMonthStart = new DateTime(
-                            today.Year,
-                            today.Month,
-                            1,
-                            0,
-                            0,
-                            0,
-                            DateTimeKind.Utc
-                        );
-
-                        query = query.Where(x =>
-                            x.CreateDateTime >= thisMonthStart &&
-                            x.CreateDateTime < thisMonthStart.AddMonths(1));
-                        break;
-
-                    case "lastmonth":
-                        var currentMonthStart = new DateTime(
-                            today.Year,
-                            today.Month,
-                            1,
-                            0,
-                            0,
-                            0,
-                            DateTimeKind.Utc
-                        );
-
-                        var lastMonthStart = currentMonthStart.AddMonths(-1);
-
-                        query = query.Where(x =>
-                            x.CreateDateTime >= lastMonthStart &&
-                            x.CreateDateTime < currentMonthStart);
-                        break;
-                }
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
             }
 
             return query;
@@ -759,8 +777,40 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             bool? isOcrEnabled,
             bool? isBarcodeEnabled,
             bool? isQrEnabled,
-            bool? isManualInputAllowed)
+            bool? isManualInputAllowed,
+            bool? isAutoCreatePatientAllowed,
+            bool? isVerificationRequired)
         {
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                var matchedProfileTypes = Enum.GetValues<IdentityScannerProfileType>()
+                    .Where(x =>
+                        x.ToString().ToLower().Contains(keyword) ||
+                        BuildProfileTypeLabel(x).ToLower().Contains(keyword))
+                    .ToList();
+
+                query = query.Where(x =>
+                    x.ProfileCode.ToLower().Contains(keyword) ||
+                    x.ProfileName.ToLower().Contains(keyword) ||
+                    (x.ScannerVendorName != null && x.ScannerVendorName.ToLower().Contains(keyword)) ||
+                    (x.ScannerModel != null && x.ScannerModel.ToLower().Contains(keyword)) ||
+                    (x.InputFormat != null && x.InputFormat.ToLower().Contains(keyword)) ||
+                    (x.OutputFormat != null && x.OutputFormat.ToLower().Contains(keyword)) ||
+                    (x.IdentityNumberRegex != null && x.IdentityNumberRegex.ToLower().Contains(keyword)) ||
+                    (x.MemberNumberRegex != null && x.MemberNumberRegex.ToLower().Contains(keyword)) ||
+                    (x.CardNumberRegex != null && x.CardNumberRegex.ToLower().Contains(keyword)) ||
+                    (x.IdentityNumberFieldName != null && x.IdentityNumberFieldName.ToLower().Contains(keyword)) ||
+                    (x.FullNameFieldName != null && x.FullNameFieldName.ToLower().Contains(keyword)) ||
+                    (x.BirthDateFieldName != null && x.BirthDateFieldName.ToLower().Contains(keyword)) ||
+                    (x.GenderFieldName != null && x.GenderFieldName.ToLower().Contains(keyword)) ||
+                    (x.AddressFieldName != null && x.AddressFieldName.ToLower().Contains(keyword)) ||
+                    (x.ConfigurationJson != null && x.ConfigurationJson.ToLower().Contains(keyword)) ||
+                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
+                    matchedProfileTypes.Contains(x.ProfileType));
+            }
+
             if (isActive.HasValue)
             {
                 query = query.Where(x => x.IsActive == isActive.Value);
@@ -811,34 +861,14 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 query = query.Where(x => x.IsManualInputAllowed == isManualInputAllowed.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(search))
+            if (isAutoCreatePatientAllowed.HasValue)
             {
-                var keyword = search.Trim().ToLower();
+                query = query.Where(x => x.IsAutoCreatePatientAllowed == isAutoCreatePatientAllowed.Value);
+            }
 
-                var matchedProfileTypes = Enum.GetValues<IdentityScannerProfileType>()
-                    .Where(x =>
-                        x.ToString().ToLower().Contains(keyword) ||
-                        BuildProfileTypeLabel(x).ToLower().Contains(keyword))
-                    .ToList();
-
-                query = query.Where(x =>
-                    x.ProfileCode.ToLower().Contains(keyword) ||
-                    x.ProfileName.ToLower().Contains(keyword) ||
-                    (x.ScannerVendorName != null && x.ScannerVendorName.ToLower().Contains(keyword)) ||
-                    (x.ScannerModel != null && x.ScannerModel.ToLower().Contains(keyword)) ||
-                    (x.InputFormat != null && x.InputFormat.ToLower().Contains(keyword)) ||
-                    (x.OutputFormat != null && x.OutputFormat.ToLower().Contains(keyword)) ||
-                    (x.IdentityNumberRegex != null && x.IdentityNumberRegex.ToLower().Contains(keyword)) ||
-                    (x.MemberNumberRegex != null && x.MemberNumberRegex.ToLower().Contains(keyword)) ||
-                    (x.CardNumberRegex != null && x.CardNumberRegex.ToLower().Contains(keyword)) ||
-                    (x.IdentityNumberFieldName != null && x.IdentityNumberFieldName.ToLower().Contains(keyword)) ||
-                    (x.FullNameFieldName != null && x.FullNameFieldName.ToLower().Contains(keyword)) ||
-                    (x.BirthDateFieldName != null && x.BirthDateFieldName.ToLower().Contains(keyword)) ||
-                    (x.GenderFieldName != null && x.GenderFieldName.ToLower().Contains(keyword)) ||
-                    (x.AddressFieldName != null && x.AddressFieldName.ToLower().Contains(keyword)) ||
-                    (x.ConfigurationJson != null && x.ConfigurationJson.ToLower().Contains(keyword)) ||
-                    (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
-                    matchedProfileTypes.Contains(x.ProfileType));
+            if (isVerificationRequired.HasValue)
+            {
+                query = query.Where(x => x.IsVerificationRequired == isVerificationRequired.Value);
             }
 
             return query;
@@ -889,6 +919,46 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     ? query.OrderByDescending(x => x.OutputFormat).ThenBy(x => x.ProfileName)
                     : query.OrderBy(x => x.OutputFormat).ThenBy(x => x.ProfileName),
 
+                "isforidentitycard" => isDescending
+                    ? query.OrderByDescending(x => x.IsForIdentityCard).ThenBy(x => x.ProfileName)
+                    : query.OrderBy(x => x.IsForIdentityCard).ThenBy(x => x.ProfileName),
+
+                "isforpatientcard" => isDescending
+                    ? query.OrderByDescending(x => x.IsForPatientCard).ThenBy(x => x.ProfileName)
+                    : query.OrderBy(x => x.IsForPatientCard).ThenBy(x => x.ProfileName),
+
+                "isformembershipcard" => isDescending
+                    ? query.OrderByDescending(x => x.IsForMembershipCard).ThenBy(x => x.ProfileName)
+                    : query.OrderBy(x => x.IsForMembershipCard).ThenBy(x => x.ProfileName),
+
+                "isforinsurancecard" => isDescending
+                    ? query.OrderByDescending(x => x.IsForInsuranceCard).ThenBy(x => x.ProfileName)
+                    : query.OrderBy(x => x.IsForInsuranceCard).ThenBy(x => x.ProfileName),
+
+                "isocrenabled" => isDescending
+                    ? query.OrderByDescending(x => x.IsOcrEnabled).ThenBy(x => x.ProfileName)
+                    : query.OrderBy(x => x.IsOcrEnabled).ThenBy(x => x.ProfileName),
+
+                "isbarcodeenabled" => isDescending
+                    ? query.OrderByDescending(x => x.IsBarcodeEnabled).ThenBy(x => x.ProfileName)
+                    : query.OrderBy(x => x.IsBarcodeEnabled).ThenBy(x => x.ProfileName),
+
+                "isqrenabled" => isDescending
+                    ? query.OrderByDescending(x => x.IsQrEnabled).ThenBy(x => x.ProfileName)
+                    : query.OrderBy(x => x.IsQrEnabled).ThenBy(x => x.ProfileName),
+
+                "ismanualinputallowed" => isDescending
+                    ? query.OrderByDescending(x => x.IsManualInputAllowed).ThenBy(x => x.ProfileName)
+                    : query.OrderBy(x => x.IsManualInputAllowed).ThenBy(x => x.ProfileName),
+
+                "isautocreatepatientallowed" => isDescending
+                    ? query.OrderByDescending(x => x.IsAutoCreatePatientAllowed).ThenBy(x => x.ProfileName)
+                    : query.OrderBy(x => x.IsAutoCreatePatientAllowed).ThenBy(x => x.ProfileName),
+
+                "isverificationrequired" => isDescending
+                    ? query.OrderByDescending(x => x.IsVerificationRequired).ThenBy(x => x.ProfileName)
+                    : query.OrderBy(x => x.IsVerificationRequired).ThenBy(x => x.ProfileName),
+
                 "isactive" => isDescending
                     ? query.OrderByDescending(x => x.IsActive).ThenBy(x => x.ProfileName)
                     : query.OrderBy(x => x.IsActive).ThenBy(x => x.ProfileName),
@@ -903,11 +973,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             Guid? excludeId,
             CreateIdentityScannerProfileRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.ProfileCode))
-            {
-                return (false, "Kode identity scanner profile wajib diisi.");
-            }
-
             if (string.IsNullOrWhiteSpace(request.ProfileName))
             {
                 return (false, "Nama identity scanner profile wajib diisi.");
@@ -924,6 +989,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 !request.IsQrEnabled)
             {
                 return (false, "Minimal satu metode input harus aktif: manual input, OCR, barcode, atau QR.");
+            }
+
+            if (request.SortOrder < 0)
+            {
+                return (false, "Urutan tidak boleh kurang dari 0.");
             }
 
             var regexValidation = ValidateRegexFields(request);
@@ -945,24 +1015,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 }
             }
 
-            var normalizedCode = NormalizeCode(request.ProfileCode);
             var normalizedName = request.ProfileName.Trim().ToLower();
-
-            var duplicateCodeQuery = _dbContext.Set<MstIdentityScannerProfile>()
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.ProfileCode.ToUpper() == normalizedCode);
-
-            if (excludeId.HasValue)
-            {
-                duplicateCodeQuery = duplicateCodeQuery.Where(x => x.Id != excludeId.Value);
-            }
-
-            if (await duplicateCodeQuery.AnyAsync())
-            {
-                return (false, "Kode identity scanner profile sudah digunakan.");
-            }
 
             var duplicateNameQuery = _dbContext.Set<MstIdentityScannerProfile>()
                 .AsNoTracking()
@@ -1011,6 +1064,51 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             }
 
             return (true, null);
+        }
+
+        private async Task<string> GenerateIdentityScannerProfileCodeAsync()
+        {
+            var existingCodes = await _dbContext.Set<MstIdentityScannerProfile>()
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(x => x.ProfileCode.StartsWith(IdentityScannerProfileCodePrefix))
+                .Select(x => x.ProfileCode)
+                .ToListAsync();
+
+            var usedNumbers = existingCodes
+                .Select(TryExtractIdentityScannerProfileSequenceNumber)
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .Where(x => x > 0)
+                .ToHashSet();
+
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
+            {
+                nextNumber++;
+            }
+
+            return IdentityScannerProfileCodePrefix + nextNumber.ToString("D" + IdentityScannerProfileCodeDigitLength, CultureInfo.InvariantCulture);
+        }
+
+        private static int? TryExtractIdentityScannerProfileSequenceNumber(string profileCode)
+        {
+            if (string.IsNullOrWhiteSpace(profileCode))
+            {
+                return null;
+            }
+
+            if (!profileCode.StartsWith(IdentityScannerProfileCodePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var numberText = profileCode[IdentityScannerProfileCodePrefix.Length..];
+
+            return int.TryParse(numberText, NumberStyles.None, CultureInfo.InvariantCulture, out var number)
+                ? number
+                : null;
         }
 
         private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(
@@ -1130,6 +1228,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 ProfileName = entity.ProfileName,
                 ProfileType = entity.ProfileType,
                 ProfileTypeName = BuildProfileTypeLabel(entity.ProfileType),
+                ScannerVendorName = entity.ScannerVendorName,
+                ScannerModel = entity.ScannerModel,
                 IsForIdentityCard = entity.IsForIdentityCard,
                 IsForPatientCard = entity.IsForPatientCard,
                 IsForMembershipCard = entity.IsForMembershipCard,
@@ -1137,7 +1237,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 IsOcrEnabled = entity.IsOcrEnabled,
                 IsBarcodeEnabled = entity.IsBarcodeEnabled,
                 IsQrEnabled = entity.IsQrEnabled,
-                IsManualInputAllowed = entity.IsManualInputAllowed
+                IsManualInputAllowed = entity.IsManualInputAllowed,
+                IsAutoCreatePatientAllowed = entity.IsAutoCreatePatientAllowed,
+                IsVerificationRequired = entity.IsVerificationRequired,
+                SortOrder = entity.SortOrder
             };
         }
 
@@ -1152,6 +1255,29 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     Label = SplitPascalCase(x.ToString())
                 })
                 .ToList();
+        }
+
+        private static List<IdentityScannerProfileEnumMetadataResponse> BuildEnumMetadataOptions(
+            List<IdentityScannerProfileEnumOptionResponse> profileTypeOptions)
+        {
+            return new List<IdentityScannerProfileEnumMetadataResponse>
+            {
+                new()
+                {
+                    EnumName = nameof(IdentityScannerProfileType),
+                    FieldName = "profileType",
+                    OptionsSource = "profileTypeOptions",
+                    Description = "Enum tipe identity scanner profile untuk field profileType pada create, update, filter, response, dan option.",
+                    Options = profileTypeOptions
+                        .Select(x => new IdentityScannerProfileEnumMetadataOptionResponse
+                        {
+                            Value = x.Value,
+                            Name = x.Name,
+                            Label = x.Label
+                        })
+                        .ToList()
+                }
+            };
         }
 
         private static string BuildProfileTypeLabel(IdentityScannerProfileType value)
@@ -1195,6 +1321,171 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return (pageNumber, pageSize);
         }
 
+        private static DateRangeResolveResult ResolveDateRange(
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            var period = customPeriod?.Trim().ToLowerInvariant();
+            var today = DateTime.UtcNow.Date;
+
+            DateTime? start = null;
+            DateTime? endExclusive = null;
+
+            switch (period)
+            {
+                case null:
+                case "":
+                case "custom":
+                    if (startDate.HasValue)
+                    {
+                        start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                    }
+
+                    if (endDate.HasValue)
+                    {
+                        endExclusive = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                    }
+
+                    break;
+
+                case "today":
+                    start = today;
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "last7days":
+                    start = today.AddDays(-6);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "last30days":
+                    start = today.AddDays(-29);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "thismonth":
+                    start = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    endExclusive = start.Value.AddMonths(1);
+                    break;
+
+                case "lastmonth":
+                    var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    start = currentMonthStart.AddMonths(-1);
+                    endExclusive = currentMonthStart;
+                    break;
+
+                default:
+                    return DateRangeResolveResult.Invalid($"customPeriod '{customPeriod}' tidak valid.");
+            }
+
+            if (start.HasValue && endExclusive.HasValue && start.Value >= endExclusive.Value)
+            {
+                return DateRangeResolveResult.Invalid("startDate tidak boleh lebih besar atau sama dengan endDate.");
+            }
+
+            return DateRangeResolveResult.Valid(start, endExclusive);
+        }
+
+        private static List<IdentityScannerProfileCustomPeriodOptionResponse> BuildCustomPeriodOptions()
+        {
+            return new List<IdentityScannerProfileCustomPeriodOptionResponse>
+            {
+                new() { Value = "custom", Label = "Custom", Description = "Gunakan startDate dan endDate.", UsesStartDate = true, UsesEndDate = true },
+                new() { Value = "today", Label = "Hari ini", Description = "Data yang dibuat hari ini.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last7days", Label = "7 hari terakhir", Description = "Data yang dibuat dalam 7 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last30days", Label = "30 hari terakhir", Description = "Data yang dibuat dalam 30 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "thismonth", Label = "Bulan ini", Description = "Data yang dibuat pada bulan berjalan.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "lastmonth", Label = "Bulan lalu", Description = "Data yang dibuat pada bulan sebelumnya.", UsesStartDate = false, UsesEndDate = false }
+            };
+        }
+
+        private static List<IdentityScannerProfileQueryParameterInfoResponse> BuildQueryParameterInfo()
+        {
+            return new List<IdentityScannerProfileQueryParameterInfoResponse>
+            {
+                new() { Name = "startDate", Type = "DateTime?", Description = "Tanggal awal filter berdasarkan CreateDateTime.", Example = "2026-06-01" },
+                new() { Name = "endDate", Type = "DateTime?", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-06-30" },
+                new() { Name = "customPeriod", Type = "string", Description = "Filter periode cepat: custom, today, last7days, last30days, thismonth, lastmonth.", Example = "thismonth" },
+                new() { Name = "search", Type = "string", Description = "Cari berdasarkan kode, nama profile, tipe, vendor, model, format, field mapping, regex, configuration, atau deskripsi.", Example = "KTP" },
+                new() { Name = "profileType", Type = "enum", Description = "Filter berdasarkan tipe scanner profile.", Example = "1" },
+                new() { Name = "isActive", Type = "bool", Description = "Filter status aktif.", Example = "true" },
+                new() { Name = "isForIdentityCard", Type = "bool", Description = "Filter profile untuk kartu identitas.", Example = "true" },
+                new() { Name = "isForPatientCard", Type = "bool", Description = "Filter profile untuk kartu pasien.", Example = "true" },
+                new() { Name = "isForMembershipCard", Type = "bool", Description = "Filter profile untuk kartu membership.", Example = "true" },
+                new() { Name = "isForInsuranceCard", Type = "bool", Description = "Filter profile untuk kartu asuransi.", Example = "true" },
+                new() { Name = "isOcrEnabled", Type = "bool", Description = "Filter OCR aktif.", Example = "true" },
+                new() { Name = "isBarcodeEnabled", Type = "bool", Description = "Filter barcode aktif.", Example = "true" },
+                new() { Name = "isQrEnabled", Type = "bool", Description = "Filter QR aktif.", Example = "true" },
+                new() { Name = "isManualInputAllowed", Type = "bool", Description = "Filter manual input diizinkan.", Example = "true" },
+                new() { Name = "isAutoCreatePatientAllowed", Type = "bool", Description = "Filter auto create pasien diizinkan.", Example = "false" },
+                new() { Name = "isVerificationRequired", Type = "bool", Description = "Filter verifikasi wajib.", Example = "true" },
+                new() { Name = "sortBy", Type = "string", Description = "Kolom sorting.", Example = "sortOrder" },
+                new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
+                new() { Name = "pageNumber", Type = "int", Description = "Nomor halaman.", Example = "1" },
+                new() { Name = "pageSize", Type = "int", Description = "Jumlah data per halaman, maksimal 100.", Example = "25" }
+            };
+        }
+
+        private static List<IdentityScannerProfileFormFieldMetadataResponse> BuildCreateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: false);
+        }
+
+        private static List<IdentityScannerProfileFormFieldMetadataResponse> BuildUpdateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: true);
+        }
+
+        private static List<IdentityScannerProfileFormFieldMetadataResponse> BuildFieldMetadata(bool isUpdate)
+        {
+            var fields = new List<IdentityScannerProfileFormFieldMetadataResponse>
+            {
+                new() { Name = "profileCode", Label = "Kode Profile", Section = "Basic", InputType = "readonly", IsRequiredOnCreate = false, IsRequiredOnUpdate = false, RequiredType = "AutoGenerated", MaxLength = 50, Description = "Digenerate otomatis oleh sistem dengan format ISP-RSMMC-00001.", Example = "ISP-RSMMC-00001", SortOrder = 1 },
+                new() { Name = "profileName", Label = "Nama Profile", Section = "Basic", InputType = "text", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", MaxLength = 150, Example = "KTP OCR Default", SortOrder = 2 },
+                new() { Name = "profileType", Label = "Tipe Profile", Section = "Basic", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "profileTypeOptions", SortOrder = 3 },
+                new() { Name = "scannerVendorName", Label = "Vendor Scanner", Section = "Scanner", InputType = "text", MaxLength = 100, Example = "Zebra", SortOrder = 4 },
+                new() { Name = "scannerModel", Label = "Model Scanner", Section = "Scanner", InputType = "text", MaxLength = 100, Example = "DS2208", SortOrder = 5 },
+                new() { Name = "inputFormat", Label = "Input Format", Section = "Format", InputType = "text", MaxLength = 100, Example = "Image", SortOrder = 6 },
+                new() { Name = "outputFormat", Label = "Output Format", Section = "Format", InputType = "text", MaxLength = 100, Example = "JSON", SortOrder = 7 },
+                new() { Name = "identityNumberRegex", Label = "Regex Nomor Identitas", Section = "Regex", InputType = "text", MaxLength = 250, Example = "^[0-9]{16}$", SortOrder = 8 },
+                new() { Name = "memberNumberRegex", Label = "Regex Nomor Member", Section = "Regex", InputType = "text", MaxLength = 250, SortOrder = 9 },
+                new() { Name = "cardNumberRegex", Label = "Regex Nomor Kartu", Section = "Regex", InputType = "text", MaxLength = 250, SortOrder = 10 },
+                new() { Name = "identityNumberFieldName", Label = "Field Nomor Identitas", Section = "Field Mapping", InputType = "text", MaxLength = 100, Example = "nik", SortOrder = 11 },
+                new() { Name = "fullNameFieldName", Label = "Field Nama Lengkap", Section = "Field Mapping", InputType = "text", MaxLength = 100, Example = "fullName", SortOrder = 12 },
+                new() { Name = "birthDateFieldName", Label = "Field Tanggal Lahir", Section = "Field Mapping", InputType = "text", MaxLength = 100, Example = "birthDate", SortOrder = 13 },
+                new() { Name = "genderFieldName", Label = "Field Gender", Section = "Field Mapping", InputType = "text", MaxLength = 100, Example = "gender", SortOrder = 14 },
+                new() { Name = "addressFieldName", Label = "Field Alamat", Section = "Field Mapping", InputType = "text", MaxLength = 100, Example = "address", SortOrder = 15 },
+                new() { Name = "isForIdentityCard", Label = "Untuk Kartu Identitas", Section = "Usage", InputType = "switch", SortOrder = 16 },
+                new() { Name = "isForPatientCard", Label = "Untuk Kartu Pasien", Section = "Usage", InputType = "switch", SortOrder = 17 },
+                new() { Name = "isForMembershipCard", Label = "Untuk Kartu Membership", Section = "Usage", InputType = "switch", SortOrder = 18 },
+                new() { Name = "isForInsuranceCard", Label = "Untuk Kartu Asuransi", Section = "Usage", InputType = "switch", SortOrder = 19 },
+                new() { Name = "isOcrEnabled", Label = "OCR Aktif", Section = "Input Method", InputType = "switch", SortOrder = 20 },
+                new() { Name = "isBarcodeEnabled", Label = "Barcode Aktif", Section = "Input Method", InputType = "switch", SortOrder = 21 },
+                new() { Name = "isQrEnabled", Label = "QR Aktif", Section = "Input Method", InputType = "switch", SortOrder = 22 },
+                new() { Name = "isManualInputAllowed", Label = "Izinkan Manual Input", Section = "Input Method", InputType = "switch", SortOrder = 23 },
+                new() { Name = "isAutoCreatePatientAllowed", Label = "Izinkan Auto Create Pasien", Section = "Rule", InputType = "switch", SortOrder = 24 },
+                new() { Name = "isVerificationRequired", Label = "Wajib Verifikasi", Section = "Rule", InputType = "switch", SortOrder = 25 },
+                new() { Name = "sortOrder", Label = "Urutan", Section = "Display", InputType = "number", SortOrder = 26 },
+                new() { Name = "configurationJson", Label = "Configuration JSON", Section = "Configuration", InputType = "textarea", MaxLength = 500, Description = "JSON konfigurasi tambahan. Harus valid jika diisi.", Example = "{\"timeout\":30}", SortOrder = 27 },
+                new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 28 }
+            };
+
+            if (isUpdate)
+            {
+                fields.Add(new IdentityScannerProfileFormFieldMetadataResponse
+                {
+                    Name = "isActive",
+                    Label = "Status Aktif",
+                    Section = "Status",
+                    InputType = "switch",
+                    SortOrder = 99
+                });
+            }
+
+            return fields.OrderBy(x => x.SortOrder).ToList();
+        }
+
         private static string SplitPascalCase(string value)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -1204,11 +1495,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             return string.Concat(value.Select((x, i) =>
                 i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
-        }
-
-        private static string NormalizeCode(string value)
-        {
-            return value.Trim().ToUpperInvariant();
         }
 
         private static string? NormalizeNullableText(string? value)
@@ -1227,6 +1513,33 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return Guid.TryParse(userIdValue, out var userId)
                 ? userId
                 : Guid.Empty;
+        }
+
+        private sealed class DateRangeResolveResult
+        {
+            public bool IsValid { get; private set; }
+            public string? ErrorMessage { get; private set; }
+            public DateTime? Start { get; private set; }
+            public DateTime? EndExclusive { get; private set; }
+
+            public static DateRangeResolveResult Valid(DateTime? start, DateTime? endExclusive)
+            {
+                return new DateRangeResolveResult
+                {
+                    IsValid = true,
+                    Start = start,
+                    EndExclusive = endExclusive
+                };
+            }
+
+            public static DateRangeResolveResult Invalid(string errorMessage)
+            {
+                return new DateRangeResolveResult
+                {
+                    IsValid = false,
+                    ErrorMessage = errorMessage
+                };
+            }
         }
     }
 }

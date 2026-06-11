@@ -11,14 +11,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public int OnlineDevice { get; set; }
         public int OfflineDevice { get; set; }
         public int MaintenanceDevice { get; set; }
-        public int RegistrationAvailableDevice { get; set; }
-        public int CheckInAvailableDevice { get; set; }
-        public int PaymentAvailableDevice { get; set; }
         public int WalkInAllowedDevice { get; set; }
         public int AppointmentAllowedDevice { get; set; }
         public int InsuranceRegistrationAllowedDevice { get; set; }
-        public int WithServiceUnitDevice { get; set; }
-        public int WithClinicDevice { get; set; }
         public int WithScannerProfileDevice { get; set; }
     }
 
@@ -32,14 +27,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public KioskDeviceStatus DeviceStatus { get; set; }
         public string DeviceStatusName { get; set; } = string.Empty;
 
-        public Guid? ServiceUnitId { get; set; }
-        public string? ServiceUnitCode { get; set; }
-        public string? ServiceUnitName { get; set; }
-
-        public Guid? ClinicId { get; set; }
-        public string? ClinicCode { get; set; }
-        public string? ClinicName { get; set; }
-
         public Guid? DefaultScannerProfileId { get; set; }
         public string? DefaultScannerProfileCode { get; set; }
         public string? DefaultScannerProfileName { get; set; }
@@ -47,13 +34,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string? LocationName { get; set; }
         public string? FloorName { get; set; }
         public string? IpAddress { get; set; }
-        public string? SerialNumber { get; set; }
-        public string? DeviceModel { get; set; }
-        public string? VendorName { get; set; }
 
-        public bool IsAvailableForRegistration { get; set; }
-        public bool IsAvailableForCheckIn { get; set; }
-        public bool IsAvailableForPayment { get; set; }
         public bool IsAllowWalkIn { get; set; }
         public bool IsAllowAppointment { get; set; }
         public bool IsAllowInsuranceRegistration { get; set; }
@@ -88,24 +69,18 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public KioskDeviceStatus DeviceStatus { get; set; }
         public string DeviceStatusName { get; set; } = string.Empty;
 
-        public Guid? ServiceUnitId { get; set; }
-        public string? ServiceUnitCode { get; set; }
-        public string? ServiceUnitName { get; set; }
-
-        public Guid? ClinicId { get; set; }
-        public string? ClinicCode { get; set; }
-        public string? ClinicName { get; set; }
-
         public Guid? DefaultScannerProfileId { get; set; }
         public string? DefaultScannerProfileCode { get; set; }
         public string? DefaultScannerProfileName { get; set; }
 
-        public bool IsAvailableForRegistration { get; set; }
-        public bool IsAvailableForCheckIn { get; set; }
-        public bool IsAvailableForPayment { get; set; }
+        public string? LocationName { get; set; }
+        public string? FloorName { get; set; }
+
         public bool IsAllowWalkIn { get; set; }
         public bool IsAllowAppointment { get; set; }
         public bool IsAllowInsuranceRegistration { get; set; }
+
+        public int SortOrder { get; set; }
     }
 
     public class KioskDeviceOptionPagedResponse
@@ -127,14 +102,37 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     public class KioskDeviceFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
+        public string CustomPeriodPriorityInfo { get; set; } =
+            "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
+        public string ResetButtonLabel { get; set; } = "Reset";
+
         public KioskDeviceDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<KioskDeviceCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<KioskDeviceSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
+        public List<KioskDeviceEnumMetadataResponse> EnumOptions { get; set; } = new();
         public List<KioskDeviceEnumOptionResponse> DeviceTypeOptions { get; set; } = new();
         public List<KioskDeviceEnumOptionResponse> DeviceStatusOptions { get; set; } = new();
-        public string ResetButtonLabel { get; set; } = "Reset";
+        public List<KioskDeviceQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+        public List<KioskDeviceFormFieldMetadataResponse> CreateFields { get; set; } = new();
+        public List<KioskDeviceFormFieldMetadataResponse> UpdateFields { get; set; } = new();
+    }
+
+    public class KioskDeviceEnumMetadataResponse
+    {
+        public string EnumName { get; set; } = string.Empty;
+        public string FieldName { get; set; } = string.Empty;
+        public string OptionsSource { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public List<KioskDeviceEnumMetadataOptionResponse> Options { get; set; } = new();
+    }
+
+    public class KioskDeviceEnumMetadataOptionResponse
+    {
+        public int Value { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class KioskDeviceDefaultFilterResponse
@@ -144,14 +142,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string? CustomPeriod { get; set; }
         public string? Search { get; set; }
         public bool? IsActive { get; set; }
-        public Guid? ServiceUnitId { get; set; }
-        public Guid? ClinicId { get; set; }
         public Guid? DefaultScannerProfileId { get; set; }
         public KioskDeviceType? DeviceType { get; set; }
         public KioskDeviceStatus? DeviceStatus { get; set; }
-        public bool? IsAvailableForRegistration { get; set; }
-        public bool? IsAvailableForCheckIn { get; set; }
-        public bool? IsAvailableForPayment { get; set; }
         public bool? IsAllowWalkIn { get; set; }
         public bool? IsAllowAppointment { get; set; }
         public bool? IsAllowInsuranceRegistration { get; set; }
@@ -165,6 +158,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     {
         public string Value { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public bool UsesStartDate { get; set; }
+        public bool UsesEndDate { get; set; }
     }
 
     public class KioskDeviceSortOptionResponse
@@ -173,12 +169,33 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string Label { get; set; } = string.Empty;
     }
 
+    public class KioskDeviceQueryParameterInfoResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Required { get; set; } = "No";
+        public string Description { get; set; } = string.Empty;
+        public string? Example { get; set; }
+    }
+
+    public class KioskDeviceFormFieldMetadataResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Section { get; set; } = string.Empty;
+        public string InputType { get; set; } = string.Empty;
+        public bool IsRequiredOnCreate { get; set; }
+        public bool IsRequiredOnUpdate { get; set; }
+        public string RequiredType { get; set; } = "Optional";
+        public int? MaxLength { get; set; }
+        public string? OptionsSource { get; set; }
+        public string? Description { get; set; }
+        public string? Example { get; set; }
+        public int SortOrder { get; set; }
+    }
+
     public class CreateKioskDeviceRequest
     {
-        [Required]
-        [MaxLength(50)]
-        public string DeviceCode { get; set; } = string.Empty;
-
         [Required]
         [MaxLength(150)]
         public string DeviceName { get; set; } = string.Empty;
@@ -186,8 +203,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public KioskDeviceType DeviceType { get; set; } = KioskDeviceType.Unknown;
         public KioskDeviceStatus DeviceStatus { get; set; } = KioskDeviceStatus.Active;
 
-        public Guid? ServiceUnitId { get; set; }
-        public Guid? ClinicId { get; set; }
         public Guid? DefaultScannerProfileId { get; set; }
 
         [MaxLength(100)]
@@ -202,18 +217,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         [MaxLength(100)]
         public string? MacAddress { get; set; }
 
-        [MaxLength(100)]
-        public string? SerialNumber { get; set; }
-
-        [MaxLength(100)]
-        public string? DeviceModel { get; set; }
-
-        [MaxLength(100)]
-        public string? VendorName { get; set; }
-
-        public bool IsAvailableForRegistration { get; set; } = true;
-        public bool IsAvailableForCheckIn { get; set; } = true;
-        public bool IsAvailableForPayment { get; set; } = false;
         public bool IsAllowWalkIn { get; set; } = true;
         public bool IsAllowAppointment { get; set; } = true;
         public bool IsAllowInsuranceRegistration { get; set; } = true;
@@ -255,13 +258,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string DeviceTypeName { get; set; } = string.Empty;
         public KioskDeviceStatus DeviceStatus { get; set; }
         public string DeviceStatusName { get; set; } = string.Empty;
-        public Guid? ServiceUnitId { get; set; }
-        public Guid? ClinicId { get; set; }
         public Guid? DefaultScannerProfileId { get; set; }
-        public bool IsAvailableForRegistration { get; set; }
-        public bool IsAvailableForCheckIn { get; set; }
-        public bool IsAvailableForPayment { get; set; }
         public bool IsActive { get; set; }
+        public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class KioskDeviceUpdateResponse
@@ -269,10 +270,14 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public Guid Id { get; set; }
         public string DeviceCode { get; set; } = string.Empty;
         public string DeviceName { get; set; } = string.Empty;
+        public KioskDeviceType DeviceType { get; set; }
+        public string DeviceTypeName { get; set; } = string.Empty;
         public KioskDeviceStatus DeviceStatus { get; set; }
         public string DeviceStatusName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class KioskDeviceDeleteResponse
@@ -281,5 +286,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string DeviceCode { get; set; } = string.Empty;
         public string DeviceName { get; set; } = string.Empty;
         public DateTime? DeleteDateTime { get; set; }
+        public Guid? DeleteBy { get; set; }
+        public string? DeleteByName { get; set; }
     }
 }

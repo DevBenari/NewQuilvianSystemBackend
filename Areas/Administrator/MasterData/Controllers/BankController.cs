@@ -9,6 +9,8 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.Data;
+using System.Globalization;
 using System.Security.Claims;
 
 using ResponseBankPagedResult =
@@ -33,8 +35,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
     public class BankController : ControllerBase
     {
         private const string LogCategory = "Administrator.MasterData";
-        private const string CodePrefix = "BNK-RSMMC-";
-        private const int CodeNumberLength = 5;
+        private const string BankCodePrefix = "BNK-RSMMC-";
+        private const int BankCodeDigitLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -59,16 +61,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [AccessPermission("Bank", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
+            var bankCategoryOptions = BuildBankCategoryOptions();
+
             var result = new BankFilterMetadataResponse
             {
                 DefaultFilter = new BankDefaultFilterResponse(),
-                CustomPeriods = new List<BankCustomPeriodOptionResponse>
-                {
-                    new() { Value = "today", Label = "Hari ini" },
-                    new() { Value = "last7days", Label = "7 hari terakhir" },
-                    new() { Value = "thismonth", Label = "Bulan ini" },
-                    new() { Value = "lastmonth", Label = "Bulan lalu" }
-                },
+                CustomPeriods = BuildCustomPeriodOptions(),
                 SortOptions = new List<BankSortOptionResponse>
                 {
                     new() { Value = "sortOrder", Label = "Urutan" },
@@ -83,7 +81,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                BankCategoryOptions = BuildBankCategoryOptions(),
+                EnumOptions = BuildEnumMetadataOptions(bankCategoryOptions),
+                BankCategoryOptions = bankCategoryOptions,
+                QueryParameters = BuildQueryParameterInfo(),
+                CreateFields = BuildCreateFieldMetadata(),
+                UpdateFields = BuildUpdateFieldMetadata(),
                 ResetButtonLabel = "Reset"
             };
 
@@ -138,6 +140,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponseBankPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
             "Read",
             "Read Bank",
@@ -150,8 +153,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
-            [FromQuery] bool? isActive,
             [FromQuery] string? search,
+            [FromQuery] bool? isActive,
+            [FromQuery] BankCategory? bankCategory,
+            [FromQuery] bool? isDefault,
+            [FromQuery] bool? hasClearingCode,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -161,10 +167,27 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
             var query = BuildBaseQuery();
 
-            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
-            query = ApplyStandardFilter(query, isActive, search);
+            query = ApplyDateFilter(query, dateRange);
+            query = ApplyStandardFilter(
+                query,
+                search,
+                isActive,
+                bankCategory,
+                isDefault,
+                hasClearingCode
+            );
 
             var totalData = await query.CountAsync();
 
@@ -210,6 +233,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [AccessPermission("Bank", "Read")]
         public async Task<IActionResult> GetBankOptions(
             [FromQuery] bool onlyActive = true,
+            [FromQuery] bool? activeOnly = null,
+            [FromQuery] BankCategory? bankCategory = null,
+            [FromQuery] bool? isDefault = null,
+            [FromQuery] bool? hasClearingCode = null,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
@@ -218,12 +245,17 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            var useOnlyActive = activeOnly ?? onlyActive;
+
             var query = BuildBaseQuery();
 
             query = ApplyStandardFilter(
                 query,
-                onlyActive ? true : null,
-                search
+                search,
+                useOnlyActive ? true : null,
+                bankCategory,
+                isDefault,
+                hasClearingCode
             );
 
             var totalData = await query.CountAsync();
@@ -287,24 +319,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             var data = MapDetailResponse(entity, actorNames);
 
-            if (data.UpdateDateTime.HasValue &&
-                data.UpdateDateTime.Value == DateTime.MinValue)
-            {
-                data.UpdateDateTime = null;
-            }
-
-            if (!data.CreateBy.HasValue || data.CreateBy.Value == Guid.Empty)
-            {
-                data.CreateBy = null;
-                data.CreateByName = null;
-            }
-
-            if (!data.UpdateBy.HasValue || data.UpdateBy.Value == Guid.Empty)
-            {
-                data.UpdateBy = null;
-                data.UpdateByName = null;
-            }
-
             return Ok(ApiResponse<BankDetailResponse>.Ok(
                 data,
                 "Detail bank berhasil diambil."
@@ -340,87 +354,75 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
-            try
+            if (request.IsDefault)
             {
-                if (request.IsDefault)
-                {
-                    await UnsetOtherDefaultBanksAsync(
-                        exceptId: null,
-                        now: now,
-                        actorUserId: actorUserId
-                    );
-                }
-
-                var entity = new MstBank
-                {
-                    Id = Guid.NewGuid(),
-                    BankCode = await GenerateBankCodeAsync(),
-                    BankName = request.BankName.Trim(),
-                    BankShortName = NormalizeNullableString(request.BankShortName),
-                    BankCategory = request.BankCategory,
-                    ClearingCode = NormalizeUpperNullableString(request.ClearingCode),
-                    IsDefault = request.IsDefault,
-                    SortOrder = request.SortOrder,
-                    Description = NormalizeNullableString(request.Description),
-                    IsActive = true,
-                    CreateDateTime = now,
-                    CreateBy = actorUserId,
-                    IsDelete = false,
-                    IsCancel = false
-                };
-
-                _dbContext.Set<MstBank>().Add(entity);
-                await _dbContext.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                var result = new BankCreateResponse
-                {
-                    Id = entity.Id,
-                    BankCode = entity.BankCode,
-                    BankName = entity.BankName,
-                    BankShortName = entity.BankShortName,
-                    IsActive = entity.IsActive
-                };
-
-                await _loggerService.InfoAsync(
-                    LogCategory,
-                    "Bank.CreateBank",
-                    "Membuat data bank.",
-                    result
-                );
-
-                return Ok(ApiResponse<BankCreateResponse>.Ok(
-                    result,
-                    "Bank berhasil dibuat."
-                ));
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-
-                await _loggerService.ErrorAsync(
-                    LogCategory,
-                    "Bank.CreateBank",
-                    "Gagal membuat data bank.",
-                    ex
-                );
-
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiResponse<object>.Fail(
-                        StatusCodes.Status500InternalServerError,
-                        "Terjadi kesalahan saat membuat bank."
-                    )
+                await UnsetOtherDefaultBanksAsync(
+                    exceptId: null,
+                    now: now,
+                    actorUserId: actorUserId
                 );
             }
+
+            var generatedBankCode = await GenerateBankCodeAsync();
+
+            var entity = new MstBank
+            {
+                Id = Guid.NewGuid(),
+                BankCode = generatedBankCode,
+                BankName = request.BankName.Trim(),
+                BankShortName = NormalizeNullableText(request.BankShortName),
+                BankCategory = request.BankCategory,
+                ClearingCode = NormalizeUpperNullableText(request.ClearingCode),
+                IsDefault = request.IsDefault,
+                SortOrder = request.SortOrder,
+                Description = NormalizeNullableText(request.Description),
+                IsActive = true,
+                CreateDateTime = now,
+                CreateBy = actorUserId,
+                IsDelete = false,
+                IsCancel = false
+            };
+
+            _dbContext.Set<MstBank>().Add(entity);
+            await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            var actorNames = await GetActorNameMapAsync(new[] { entity.CreateBy });
+
+            var result = new BankCreateResponse
+            {
+                Id = entity.Id,
+                BankCode = entity.BankCode,
+                BankName = entity.BankName,
+                BankShortName = entity.BankShortName,
+                BankCategory = entity.BankCategory,
+                BankCategoryName = BuildBankCategoryLabel(entity.BankCategory),
+                IsDefault = entity.IsDefault,
+                IsActive = entity.IsActive,
+                CreateDateTime = entity.CreateDateTime,
+                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy)
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Bank.CreateBank",
+                "Membuat data bank.",
+                result
+            );
+
+            return Ok(ApiResponse<BankCreateResponse>.Ok(
+                result,
+                "Bank berhasil dibuat."
+            ));
         }
 
         [HttpPut("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<BankUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
             "Update",
             "Update Bank",
@@ -468,75 +470,63 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
-            try
+            if (request.IsDefault)
             {
-                if (request.IsDefault)
-                {
-                    await UnsetOtherDefaultBanksAsync(
-                        exceptId: id,
-                        now: now,
-                        actorUserId: actorUserId
-                    );
-                }
-
-                entity.BankName = request.BankName.Trim();
-                entity.BankShortName = NormalizeNullableString(request.BankShortName);
-                entity.BankCategory = request.BankCategory;
-                entity.ClearingCode = NormalizeUpperNullableString(request.ClearingCode);
-                entity.IsDefault = request.IsActive ? request.IsDefault : false;
-                entity.SortOrder = request.SortOrder;
-                entity.Description = NormalizeNullableString(request.Description);
-                entity.IsActive = request.IsActive;
-                entity.UpdateDateTime = now;
-                entity.UpdateBy = actorUserId;
-
-                await _dbContext.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                await _loggerService.InfoAsync(
-                    LogCategory,
-                    "Bank.UpdateBank",
-                    "Mengubah data bank.",
-                    new
-                    {
-                        entity.Id,
-                        entity.BankCode,
-                        entity.BankName,
-                        entity.BankCategory,
-                        entity.IsActive
-                    }
-                );
-
-                return Ok(ApiResponse<object>.Ok(
-                    null,
-                    "Bank berhasil diperbarui."
-                ));
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-
-                await _loggerService.ErrorAsync(
-                    LogCategory,
-                    "Bank.UpdateBank",
-                    "Gagal mengubah data bank.",
-                    ex
-                );
-
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiResponse<object>.Fail(
-                        StatusCodes.Status500InternalServerError,
-                        "Terjadi kesalahan saat memperbarui bank."
-                    )
+                await UnsetOtherDefaultBanksAsync(
+                    exceptId: id,
+                    now: now,
+                    actorUserId: actorUserId
                 );
             }
+
+            entity.BankName = request.BankName.Trim();
+            entity.BankShortName = NormalizeNullableText(request.BankShortName);
+            entity.BankCategory = request.BankCategory;
+            entity.ClearingCode = NormalizeUpperNullableText(request.ClearingCode);
+            entity.IsDefault = request.IsActive ? request.IsDefault : false;
+            entity.SortOrder = request.SortOrder;
+            entity.Description = NormalizeNullableText(request.Description);
+            entity.IsActive = request.IsActive;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            var actorNames = await GetActorNameMapAsync(new[] { entity.UpdateBy });
+
+            var result = new BankUpdateResponse
+            {
+                Id = entity.Id,
+                BankCode = entity.BankCode,
+                BankName = entity.BankName,
+                BankShortName = entity.BankShortName,
+                BankCategory = entity.BankCategory,
+                BankCategoryName = BuildBankCategoryLabel(entity.BankCategory),
+                IsDefault = entity.IsDefault,
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Bank.UpdateBank",
+                "Mengubah data bank.",
+                result
+            );
+
+            return Ok(ApiResponse<BankUpdateResponse>.Ok(
+                result,
+                "Bank berhasil diperbarui."
+            ));
         }
 
         [HttpPatch("{id:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<BankUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
             "Update",
@@ -576,14 +566,32 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var actorNames = await GetActorNameMapAsync(new[] { entity.UpdateBy });
+
+            var result = new BankUpdateResponse
+            {
+                Id = entity.Id,
+                BankCode = entity.BankCode,
+                BankName = entity.BankName,
+                BankShortName = entity.BankShortName,
+                BankCategory = entity.BankCategory,
+                BankCategoryName = BuildBankCategoryLabel(entity.BankCategory),
+                IsDefault = entity.IsDefault,
+                IsActive = entity.IsActive,
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+
+            return Ok(ApiResponse<BankUpdateResponse>.Ok(
+                result,
                 "Status bank berhasil diperbarui."
             ));
         }
 
         [HttpDelete("{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<BankDeleteResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
             "Delete",
@@ -608,6 +616,17 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 ));
             }
 
+            var isUsedByWorkforceBankAccount = await _dbContext.WfpBankAccounts
+                .AnyAsync(x => x.BankId == id && !x.IsDelete);
+
+            if (isUsedByWorkforceBankAccount)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Bank tidak dapat dihapus karena sudah digunakan oleh rekening bank workforce."
+                ));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -626,21 +645,27 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             await _dbContext.SaveChangesAsync();
 
+            var actorNames = await GetActorNameMapAsync(new[] { entity.DeleteBy });
+
+            var result = new BankDeleteResponse
+            {
+                Id = entity.Id,
+                BankCode = entity.BankCode,
+                BankName = entity.BankName,
+                DeleteDateTime = entity.DeleteDateTime,
+                DeleteBy = entity.DeleteBy == Guid.Empty ? null : (Guid?)entity.DeleteBy,
+                DeleteByName = GetActorName(actorNames, entity.DeleteBy)
+            };
+
             await _loggerService.InfoAsync(
                 LogCategory,
                 "Bank.DeleteBank",
                 "Menghapus data bank.",
-                new
-                {
-                    entity.Id,
-                    entity.BankCode,
-                    entity.BankName,
-                    entity.DeleteDateTime
-                }
+                result
             );
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            return Ok(ApiResponse<BankDeleteResponse>.Ok(
+                result,
                 "Bank berhasil dihapus."
             ));
         }
@@ -654,76 +679,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         private static IQueryable<MstBank> ApplyDateFilter(
             IQueryable<MstBank> query,
-            DateTime? startDate,
-            DateTime? endDate,
-            string? customPeriod)
+            DateRangeResolveResult dateRange)
         {
-            if (startDate.HasValue)
+            if (dateRange.Start.HasValue)
             {
-                var start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
-                query = query.Where(x => x.CreateDateTime >= start);
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
             }
 
-            if (endDate.HasValue)
+            if (dateRange.EndExclusive.HasValue)
             {
-                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
-                query = query.Where(x => x.CreateDateTime < end);
-            }
-
-            if (!startDate.HasValue &&
-                !endDate.HasValue &&
-                !string.IsNullOrWhiteSpace(customPeriod))
-            {
-                var today = DateTime.UtcNow.Date;
-
-                switch (customPeriod.Trim().ToLowerInvariant())
-                {
-                    case "today":
-                        query = query.Where(x =>
-                            x.CreateDateTime >= today &&
-                            x.CreateDateTime < today.AddDays(1));
-                        break;
-
-                    case "last7days":
-                        query = query.Where(x =>
-                            x.CreateDateTime >= today.AddDays(-6) &&
-                            x.CreateDateTime < today.AddDays(1));
-                        break;
-
-                    case "thismonth":
-                        var thisMonthStart = new DateTime(
-                            today.Year,
-                            today.Month,
-                            1,
-                            0,
-                            0,
-                            0,
-                            DateTimeKind.Utc
-                        );
-
-                        query = query.Where(x =>
-                            x.CreateDateTime >= thisMonthStart &&
-                            x.CreateDateTime < thisMonthStart.AddMonths(1));
-                        break;
-
-                    case "lastmonth":
-                        var currentMonthStart = new DateTime(
-                            today.Year,
-                            today.Month,
-                            1,
-                            0,
-                            0,
-                            0,
-                            DateTimeKind.Utc
-                        );
-
-                        var lastMonthStart = currentMonthStart.AddMonths(-1);
-
-                        query = query.Where(x =>
-                            x.CreateDateTime >= lastMonthStart &&
-                            x.CreateDateTime < currentMonthStart);
-                        break;
-                }
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
             }
 
             return query;
@@ -731,14 +696,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         private static IQueryable<MstBank> ApplyStandardFilter(
             IQueryable<MstBank> query,
+            string? search,
             bool? isActive,
-            string? search)
+            BankCategory? bankCategory,
+            bool? isDefault,
+            bool? hasClearingCode)
         {
-            if (isActive.HasValue)
-            {
-                query = query.Where(x => x.IsActive == isActive.Value);
-            }
-
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -756,6 +719,28 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     (x.ClearingCode != null && x.ClearingCode.ToLower().Contains(keyword)) ||
                     (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
                     matchedCategories.Contains(x.BankCategory));
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
+            if (bankCategory.HasValue)
+            {
+                query = query.Where(x => x.BankCategory == bankCategory.Value);
+            }
+
+            if (isDefault.HasValue)
+            {
+                query = query.Where(x => x.IsDefault == isDefault.Value);
+            }
+
+            if (hasClearingCode.HasValue)
+            {
+                query = hasClearingCode.Value
+                    ? query.Where(x => x.ClearingCode != null && x.ClearingCode != string.Empty)
+                    : query.Where(x => x.ClearingCode == null || x.ClearingCode == string.Empty);
             }
 
             return query;
@@ -787,8 +772,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     : query.OrderBy(x => x.BankName),
 
                 "bankshortname" => isDescending
-                    ? query.OrderByDescending(x => x.BankShortName)
-                    : query.OrderBy(x => x.BankShortName),
+                    ? query.OrderByDescending(x => x.BankShortName).ThenBy(x => x.BankName)
+                    : query.OrderBy(x => x.BankShortName).ThenBy(x => x.BankName),
 
                 "bankcategory" => isDescending
                     ? query.OrderByDescending(x => x.BankCategory).ThenBy(x => x.BankName)
@@ -826,6 +811,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Kategori bank tidak valid. Gunakan nilai dari endpoint filters/metadata.");
             }
 
+            if (request.SortOrder < 0)
+            {
+                return (false, "Urutan tidak boleh kurang dari 0.");
+            }
+
             var normalizedName = request.BankName.Trim().ToLower();
 
             var duplicateNameQuery = _dbContext.Set<MstBank>()
@@ -844,7 +834,31 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Nama bank sudah digunakan.");
             }
 
-            var clearingCode = NormalizeUpperNullableString(request.ClearingCode);
+            var shortName = NormalizeNullableText(request.BankShortName);
+
+            if (!string.IsNullOrWhiteSpace(shortName))
+            {
+                var normalizedShortName = shortName.ToLower();
+
+                var duplicateShortNameQuery = _dbContext.Set<MstBank>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        !x.IsDelete &&
+                        x.BankShortName != null &&
+                        x.BankShortName.ToLower() == normalizedShortName);
+
+                if (excludeId.HasValue)
+                {
+                    duplicateShortNameQuery = duplicateShortNameQuery.Where(x => x.Id != excludeId.Value);
+                }
+
+                if (await duplicateShortNameQuery.AnyAsync())
+                {
+                    return (false, "Nama singkat bank sudah digunakan.");
+                }
+            }
+
+            var clearingCode = NormalizeUpperNullableText(request.ClearingCode);
 
             if (!string.IsNullOrWhiteSpace(clearingCode))
             {
@@ -899,14 +913,14 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var existingCodes = await _dbContext.Set<MstBank>()
                 .IgnoreQueryFilters()
                 .AsNoTracking()
-                .Where(x => x.BankCode.StartsWith(CodePrefix))
+                .Where(x => x.BankCode.StartsWith(BankCodePrefix))
                 .Select(x => x.BankCode)
                 .ToListAsync();
 
             var usedNumbers = existingCodes
-                .Select(x => x.Replace(CodePrefix, string.Empty))
-                .Where(x => int.TryParse(x, out _))
-                .Select(int.Parse)
+                .Select(TryExtractBankSequenceNumber)
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
                 .Where(x => x > 0)
                 .ToHashSet();
 
@@ -917,7 +931,26 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 nextNumber++;
             }
 
-            return CodePrefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
+            return BankCodePrefix + nextNumber.ToString("D" + BankCodeDigitLength, CultureInfo.InvariantCulture);
+        }
+
+        private static int? TryExtractBankSequenceNumber(string bankCode)
+        {
+            if (string.IsNullOrWhiteSpace(bankCode))
+            {
+                return null;
+            }
+
+            if (!bankCode.StartsWith(BankCodePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var numberText = bankCode[BankCodePrefix.Length..];
+
+            return int.TryParse(numberText, NumberStyles.None, CultureInfo.InvariantCulture, out var number)
+                ? number
+                : null;
         }
 
         private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(
@@ -1012,31 +1045,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             };
         }
 
-        private static List<BankCategoryOptionResponse> BuildBankCategoryOptions()
-        {
-            return Enum.GetValues<BankCategory>()
-                .Select(x => new BankCategoryOptionResponse
-                {
-                    Value = Convert.ToInt32(x),
-                    Name = x.ToString(),
-                    Label = BuildBankCategoryLabel(x)
-                })
-                .ToList();
-        }
-
-        private static string BuildBankCategoryLabel(BankCategory value)
-        {
-            return value switch
-            {
-                BankCategory.Commercial => "Commercial",
-                BankCategory.Syariah => "Syariah",
-                BankCategory.DigitalBank => "Digital Bank",
-                BankCategory.RuralBank => "Rural Bank",
-                BankCategory.Other => "Other",
-                _ => value.ToString()
-            };
-        }
-
         private static string? GetActorName(
             IReadOnlyDictionary<Guid, string?> actorNames,
             Guid actorId)
@@ -1073,18 +1081,201 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return (pageNumber, pageSize);
         }
 
-        private static string? NormalizeNullableString(string? value)
+        private static DateRangeResolveResult ResolveDateRange(
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
         {
-            return string.IsNullOrWhiteSpace(value)
-                ? null
-                : value.Trim();
+            var period = customPeriod?.Trim().ToLowerInvariant();
+            var today = DateTime.UtcNow.Date;
+
+            DateTime? start = null;
+            DateTime? endExclusive = null;
+
+            switch (period)
+            {
+                case null:
+                case "":
+                case "custom":
+                    if (startDate.HasValue)
+                    {
+                        start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                    }
+
+                    if (endDate.HasValue)
+                    {
+                        endExclusive = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                    }
+
+                    break;
+
+                case "today":
+                    start = today;
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "last7days":
+                    start = today.AddDays(-6);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "last30days":
+                    start = today.AddDays(-29);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "thismonth":
+                    start = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    endExclusive = start.Value.AddMonths(1);
+                    break;
+
+                case "lastmonth":
+                    var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    start = currentMonthStart.AddMonths(-1);
+                    endExclusive = currentMonthStart;
+                    break;
+
+                default:
+                    return DateRangeResolveResult.Invalid($"customPeriod '{customPeriod}' tidak valid.");
+            }
+
+            if (start.HasValue && endExclusive.HasValue && start.Value >= endExclusive.Value)
+            {
+                return DateRangeResolveResult.Invalid("startDate tidak boleh lebih besar atau sama dengan endDate.");
+            }
+
+            return DateRangeResolveResult.Valid(start, endExclusive);
         }
 
-        private static string? NormalizeUpperNullableString(string? value)
+        private static List<BankCustomPeriodOptionResponse> BuildCustomPeriodOptions()
         {
-            return string.IsNullOrWhiteSpace(value)
-                ? null
-                : value.Trim().ToUpperInvariant();
+            return new List<BankCustomPeriodOptionResponse>
+            {
+                new() { Value = "custom", Label = "Custom", Description = "Gunakan startDate dan endDate.", UsesStartDate = true, UsesEndDate = true },
+                new() { Value = "today", Label = "Hari ini", Description = "Data yang dibuat hari ini.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last7days", Label = "7 hari terakhir", Description = "Data yang dibuat dalam 7 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last30days", Label = "30 hari terakhir", Description = "Data yang dibuat dalam 30 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "thismonth", Label = "Bulan ini", Description = "Data yang dibuat pada bulan berjalan.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "lastmonth", Label = "Bulan lalu", Description = "Data yang dibuat pada bulan sebelumnya.", UsesStartDate = false, UsesEndDate = false }
+            };
+        }
+
+        private static List<BankCategoryOptionResponse> BuildBankCategoryOptions()
+        {
+            return Enum.GetValues<BankCategory>()
+                .Select(x => new BankCategoryOptionResponse
+                {
+                    Value = Convert.ToInt32(x),
+                    Name = x.ToString(),
+                    Label = BuildBankCategoryLabel(x)
+                })
+                .ToList();
+        }
+
+
+        private static List<BankEnumMetadataResponse> BuildEnumMetadataOptions(
+            List<BankCategoryOptionResponse> bankCategoryOptions)
+        {
+            return new List<BankEnumMetadataResponse>
+            {
+                new()
+                {
+                    EnumName = nameof(BankCategory),
+                    FieldName = "bankCategory",
+                    OptionsSource = "bankCategoryOptions",
+                    Description = "Enum kategori bank untuk field bankCategory pada create, update, filter, response, dan option.",
+                    Options = bankCategoryOptions
+                        .Select(x => new BankEnumOptionResponse
+                        {
+                            Value = x.Value,
+                            Name = x.Name,
+                            Label = x.Label
+                        })
+                        .ToList()
+                }
+            };
+        }
+
+        private static string BuildBankCategoryLabel(BankCategory value)
+        {
+            return value switch
+            {
+                BankCategory.Commercial => "Commercial",
+                BankCategory.Syariah => "Syariah",
+                BankCategory.DigitalBank => "Digital Bank",
+                BankCategory.RuralBank => "Rural Bank",
+                BankCategory.Other => "Other",
+                _ => SplitPascalCase(value.ToString())
+            };
+        }
+
+        private static string SplitPascalCase(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+
+            return string.Concat(value.Select((x, i) =>
+                i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
+        }
+
+        private static List<BankQueryParameterInfoResponse> BuildQueryParameterInfo()
+        {
+            return new List<BankQueryParameterInfoResponse>
+            {
+                new() { Name = "startDate", Type = "DateTime?", Description = "Tanggal awal filter berdasarkan CreateDateTime.", Example = "2026-06-01" },
+                new() { Name = "endDate", Type = "DateTime?", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-06-30" },
+                new() { Name = "customPeriod", Type = "string", Description = "Filter periode cepat: custom, today, last7days, last30days, thismonth, lastmonth.", Example = "thismonth" },
+                new() { Name = "search", Type = "string", Description = "Cari berdasarkan kode, nama, nama singkat, kategori, clearing code, atau deskripsi.", Example = "BCA" },
+                new() { Name = "isActive", Type = "bool", Description = "Filter status aktif.", Example = "true" },
+                new() { Name = "bankCategory", Type = "enum", Description = "Filter berdasarkan kategori bank.", Example = "1" },
+                new() { Name = "isDefault", Type = "bool", Description = "Filter bank default.", Example = "true" },
+                new() { Name = "hasClearingCode", Type = "bool", Description = "Filter bank yang memiliki clearing code atau tidak.", Example = "true" },
+                new() { Name = "sortBy", Type = "string", Description = "Kolom sorting.", Example = "sortOrder" },
+                new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
+                new() { Name = "pageNumber", Type = "int", Description = "Nomor halaman.", Example = "1" },
+                new() { Name = "pageSize", Type = "int", Description = "Jumlah data per halaman, maksimal 100.", Example = "25" }
+            };
+        }
+
+        private static List<BankFormFieldMetadataResponse> BuildCreateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: false);
+        }
+
+        private static List<BankFormFieldMetadataResponse> BuildUpdateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: true);
+        }
+
+        private static List<BankFormFieldMetadataResponse> BuildFieldMetadata(bool isUpdate)
+        {
+            var fields = new List<BankFormFieldMetadataResponse>
+            {
+                new() { Name = "bankCode", Label = "Kode Bank", Section = "Basic", InputType = "readonly", IsRequiredOnCreate = false, IsRequiredOnUpdate = false, RequiredType = "AutoGenerated", MaxLength = 50, Description = "Digenerate otomatis oleh sistem dengan format BNK-RSMMC-00001.", Example = "BNK-RSMMC-00001", SortOrder = 1 },
+                new() { Name = "bankName", Label = "Nama Bank", Section = "Basic", InputType = "text", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", MaxLength = 200, Example = "Bank Central Asia", SortOrder = 2 },
+                new() { Name = "bankShortName", Label = "Nama Singkat", Section = "Basic", InputType = "text", MaxLength = 50, Example = "BCA", SortOrder = 3 },
+                new() { Name = "bankCategory", Label = "Kategori Bank", Section = "Basic", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "bankCategoryOptions", SortOrder = 4 },
+                new() { Name = "clearingCode", Label = "Clearing Code", Section = "Banking", InputType = "text", MaxLength = 50, Example = "014", SortOrder = 5 },
+                new() { Name = "isDefault", Label = "Bank Default", Section = "Rule", InputType = "switch", SortOrder = 6 },
+                new() { Name = "sortOrder", Label = "Urutan", Section = "Display", InputType = "number", SortOrder = 7 },
+                new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 8 }
+            };
+
+            if (isUpdate)
+            {
+                fields.Add(new BankFormFieldMetadataResponse
+                {
+                    Name = "isActive",
+                    Label = "Status Aktif",
+                    Section = "Status",
+                    InputType = "switch",
+                    SortOrder = 99
+                });
+            }
+
+            return fields.OrderBy(x => x.SortOrder).ToList();
         }
 
         private Guid GetCurrentUserId()
@@ -1096,6 +1287,47 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return Guid.TryParse(userIdValue, out var userId)
                 ? userId
                 : Guid.Empty;
+        }
+
+        private static string? NormalizeNullableText(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value.Trim();
+        }
+
+        private static string? NormalizeUpperNullableText(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
+                : value.Trim().ToUpperInvariant();
+        }
+
+        private sealed class DateRangeResolveResult
+        {
+            public bool IsValid { get; private set; }
+            public string? ErrorMessage { get; private set; }
+            public DateTime? Start { get; private set; }
+            public DateTime? EndExclusive { get; private set; }
+
+            public static DateRangeResolveResult Valid(DateTime? start, DateTime? endExclusive)
+            {
+                return new DateRangeResolveResult
+                {
+                    IsValid = true,
+                    Start = start,
+                    EndExclusive = endExclusive
+                };
+            }
+
+            public static DateRangeResolveResult Invalid(string errorMessage)
+            {
+                return new DateRangeResolveResult
+                {
+                    IsValid = false,
+                    ErrorMessage = errorMessage
+                };
+            }
         }
     }
 }

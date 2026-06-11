@@ -1,8 +1,7 @@
-﻿using QuilvianSystemBackend.Models;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
-using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
 {
@@ -23,10 +22,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
 
         public KioskDeviceStatus DeviceStatus { get; set; } = KioskDeviceStatus.Active;
 
-        public Guid? ServiceUnitId { get; set; }
-
-        public Guid? ClinicId { get; set; }
-
         public Guid? DefaultScannerProfileId { get; set; }
 
         [MaxLength(100)]
@@ -40,21 +35,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
 
         [MaxLength(100)]
         public string? MacAddress { get; set; }
-
-        [MaxLength(100)]
-        public string? SerialNumber { get; set; }
-
-        [MaxLength(100)]
-        public string? DeviceModel { get; set; }
-
-        [MaxLength(100)]
-        public string? VendorName { get; set; }
-
-        public bool IsAvailableForRegistration { get; set; } = true;
-
-        public bool IsAvailableForCheckIn { get; set; } = true;
-
-        public bool IsAvailableForPayment { get; set; } = false;
 
         public bool IsAllowWalkIn { get; set; } = true;
 
@@ -75,10 +55,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
         public string? Description { get; set; }
 
         public bool IsActive { get; set; } = true;
-
-        public MstServiceUnit? ServiceUnit { get; set; }
-
-        public MstClinic? Clinic { get; set; }
 
         public MstIdentityScannerProfile? DefaultScannerProfile { get; set; }
     }
