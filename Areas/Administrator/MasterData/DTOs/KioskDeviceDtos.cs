@@ -92,6 +92,154 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public List<KioskDeviceOptionResponse> Items { get; set; } = new();
     }
 
+
+    public class KioskDeviceLoginSummaryResponse
+    {
+        public int TotalDevice { get; set; }
+        public int DeviceWithLogin { get; set; }
+        public int DeviceWithoutLogin { get; set; }
+        public int EnabledLogin { get; set; }
+        public int DisabledOrLockedLogin { get; set; }
+        public int ActiveDeviceWithoutLogin { get; set; }
+    }
+
+    public class KioskDeviceLoginInfoResponse
+    {
+        public Guid KioskDeviceId { get; set; }
+        public string DeviceCode { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
+        public KioskDeviceType DeviceType { get; set; }
+        public string DeviceTypeName { get; set; } = string.Empty;
+        public KioskDeviceStatus DeviceStatus { get; set; }
+        public string DeviceStatusName { get; set; } = string.Empty;
+        public string? LocationName { get; set; }
+        public string? FloorName { get; set; }
+        public string? IpAddress { get; set; }
+        public bool IsActive { get; set; }
+        public Guid? LoginUserId { get; set; }
+        public string? LoginUserCode { get; set; }
+        public string? LoginUserName { get; set; }
+        public string? LoginEmail { get; set; }
+        public string? LoginDisplayName { get; set; }
+        public bool IsLoginCreated { get; set; }
+        public bool IsLoginEnabled { get; set; }
+        public bool IsLoginLocked { get; set; }
+        public DateTimeOffset? LockoutEnd { get; set; }
+        public int AccessFailedCount { get; set; }
+        public bool CanLogin { get; set; }
+    }
+
+    public class KioskDeviceLoginInfoPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<KioskDeviceLoginInfoResponse> Items { get; set; } = new();
+    }
+
+    public class GenerateKioskDeviceLoginRequest
+    {
+        [MaxLength(100)]
+        public string? UserName { get; set; }
+
+        [MaxLength(200)]
+        public string? Email { get; set; }
+
+        [MaxLength(100)]
+        public string? Password { get; set; }
+
+        public bool IsEnabled { get; set; } = true;
+    }
+
+    public class KioskDeviceGenerateLoginResponse
+    {
+        public Guid KioskDeviceId { get; set; }
+        public string DeviceCode { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
+        public Guid LoginUserId { get; set; }
+        public string LoginUserCode { get; set; } = string.Empty;
+        public string LoginUserName { get; set; } = string.Empty;
+        public string? LoginEmail { get; set; }
+        public string GeneratedPassword { get; set; } = string.Empty;
+        public bool IsLoginEnabled { get; set; }
+        public bool IsLoginLocked { get; set; }
+        public DateTime CreateDateTime { get; set; }
+        public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
+    }
+
+    public class ResetKioskDeviceLoginRequest
+    {
+        [MaxLength(100)]
+        public string? NewPassword { get; set; }
+    }
+
+    public class KioskDeviceResetLoginResponse
+    {
+        public Guid KioskDeviceId { get; set; }
+        public string DeviceCode { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
+        public Guid LoginUserId { get; set; }
+        public string LoginUserName { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
+    }
+
+    public class UpdateKioskDeviceLoginStatusRequest
+    {
+        public bool IsEnabled { get; set; }
+
+        [MaxLength(250)]
+        public string? Reason { get; set; }
+    }
+
+    public class KioskDeviceLoginStatusResponse
+    {
+        public Guid KioskDeviceId { get; set; }
+        public string DeviceCode { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
+        public Guid? LoginUserId { get; set; }
+        public string? LoginUserName { get; set; }
+        public bool IsLoginCreated { get; set; }
+        public bool IsLoginEnabled { get; set; }
+        public bool IsLoginLocked { get; set; }
+        public DateTimeOffset? LockoutEnd { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
+    }
+
+    public class KioskDeviceLoginRequest
+    {
+        [Required]
+        [MaxLength(100)]
+        public string UserName { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(100)]
+        public string Password { get; set; } = string.Empty;
+
+        [MaxLength(50)]
+        public string? DeviceCode { get; set; }
+    }
+
+    public class KioskDeviceLoginResponse
+    {
+        public bool IsSuccess { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public Guid? KioskDeviceId { get; set; }
+        public string? DeviceCode { get; set; }
+        public string? DeviceName { get; set; }
+        public Guid? LoginUserId { get; set; }
+        public string? LoginUserName { get; set; }
+        public bool IsLoginEnabled { get; set; }
+        public bool IsLoginLocked { get; set; }
+        public DateTimeOffset? LockoutEnd { get; set; }
+    }
+
     public class KioskDeviceEnumOptionResponse
     {
         public int Value { get; set; }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
@@ -9,6 +10,7 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Models;
 using System.Data;
 using System.Globalization;
 using System.Net;
@@ -42,13 +44,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly UserManager<ApplicationUser> _userManager;
 
         public KioskDeviceController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            UserManager<ApplicationUser> userManager)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _userManager = userManager;
         }
 
         [HttpGet("filters/metadata")]
@@ -611,6 +616,653 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return Ok(ApiResponse<KioskDeviceUpdateResponse>.Ok(
                 result,
                 "Status kiosk device berhasil diperbarui."
+            ));
+        }
+
+
+        [HttpGet("login-summary")]
+        [ProducesResponseType(typeof(ApiResponse<KioskDeviceLoginSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction(
+            "Read",
+            "Read Kiosk Device Login Summary",
+            Description = "Melihat ringkasan login kiosk device",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        [AccessPermission("KioskDevice", "Read")]
+        public async Task<IActionResult> GetKioskDeviceLoginSummary()
+        {
+            var devices = await BuildBaseQuery().ToListAsync();
+            var users = await GetKioskLoginUsersAsync(devices.Select(x => x.DeviceCode));
+
+            var loginInfos = devices
+                .Select(x => BuildLoginInfoResponse(x, users.GetValueOrDefault(x.DeviceCode)))
+                .ToList();
+
+            var result = new KioskDeviceLoginSummaryResponse
+            {
+                TotalDevice = loginInfos.Count,
+                DeviceWithLogin = loginInfos.Count(x => x.IsLoginCreated),
+                DeviceWithoutLogin = loginInfos.Count(x => !x.IsLoginCreated),
+                EnabledLogin = loginInfos.Count(x => x.IsLoginCreated && x.IsLoginEnabled && !x.IsLoginLocked),
+                DisabledOrLockedLogin = loginInfos.Count(x => x.IsLoginCreated && (!x.IsLoginEnabled || x.IsLoginLocked)),
+                ActiveDeviceWithoutLogin = loginInfos.Count(x => x.IsActive && !x.IsLoginCreated)
+            };
+
+            return Ok(ApiResponse<KioskDeviceLoginSummaryResponse>.Ok(
+                result,
+                "Ringkasan login kiosk device berhasil diambil."
+            ));
+        }
+
+        [HttpGet("login-status")]
+        [ProducesResponseType(typeof(ApiResponse<KioskDeviceLoginSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction(
+            "Read",
+            "Read Kiosk Device Login Status Summary",
+            Description = "Melihat ringkasan status login kiosk device",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        [AccessPermission("KioskDevice", "Read")]
+        public async Task<IActionResult> GetKioskDeviceLoginStatusSummary()
+        {
+            return await GetKioskDeviceLoginSummary();
+        }
+
+        [HttpGet("login-info")]
+        [ProducesResponseType(typeof(ApiResponse<KioskDeviceLoginInfoPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction(
+            "Read",
+            "Read Kiosk Device Login Info",
+            Description = "Melihat informasi login kiosk device",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        [AccessPermission("KioskDevice", "Read")]
+        public async Task<IActionResult> GetKioskDeviceLoginInfo(
+            [FromQuery] bool? hasLogin,
+            [FromQuery] bool? isLoginEnabled,
+            [FromQuery] bool? isLoginLocked,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = BuildBaseQuery();
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.DeviceCode.ToLower().Contains(keyword) ||
+                    x.DeviceName.ToLower().Contains(keyword) ||
+                    (x.LocationName != null && x.LocationName.ToLower().Contains(keyword)) ||
+                    (x.FloorName != null && x.FloorName.ToLower().Contains(keyword)) ||
+                    (x.IpAddress != null && x.IpAddress.ToLower().Contains(keyword)));
+            }
+
+            var devices = await query
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.DeviceName)
+                .ToListAsync();
+
+            var users = await GetKioskLoginUsersAsync(devices.Select(x => x.DeviceCode));
+
+            var itemsQuery = devices
+                .Select(x => BuildLoginInfoResponse(x, users.GetValueOrDefault(x.DeviceCode)))
+                .AsEnumerable();
+
+            if (hasLogin.HasValue)
+            {
+                itemsQuery = itemsQuery.Where(x => x.IsLoginCreated == hasLogin.Value);
+            }
+
+            if (isLoginEnabled.HasValue)
+            {
+                itemsQuery = itemsQuery.Where(x => x.IsLoginEnabled == isLoginEnabled.Value);
+            }
+
+            if (isLoginLocked.HasValue)
+            {
+                itemsQuery = itemsQuery.Where(x => x.IsLoginLocked == isLoginLocked.Value);
+            }
+
+            var filteredItems = itemsQuery.ToList();
+            var totalData = filteredItems.Count;
+
+            var items = filteredItems
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var result = new KioskDeviceLoginInfoPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<KioskDeviceLoginInfoPagedResponse>.Ok(
+                result,
+                "Informasi login kiosk device berhasil diambil."
+            ));
+        }
+
+        [HttpGet("{id:guid}/login-info")]
+        [ProducesResponseType(typeof(ApiResponse<KioskDeviceLoginInfoResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Read",
+            "Read Kiosk Device Login Detail",
+            Description = "Melihat detail login kiosk device",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        [AccessPermission("KioskDevice", "Read")]
+        public async Task<IActionResult> GetKioskDeviceLoginInfoById(Guid id)
+        {
+            var device = await BuildBaseQuery()
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (device == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Kiosk device tidak ditemukan."
+                ));
+            }
+
+            var user = await FindKioskLoginUserAsync(device.DeviceCode);
+            var result = BuildLoginInfoResponse(device, user);
+
+            return Ok(ApiResponse<KioskDeviceLoginInfoResponse>.Ok(
+                result,
+                "Detail login kiosk device berhasil diambil."
+            ));
+        }
+
+        [HttpPost("{id:guid}/generate-login")]
+        [ProducesResponseType(typeof(ApiResponse<KioskDeviceGenerateLoginResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Update",
+            "Generate Kiosk Device Login",
+            Description = "Membuat login untuk kiosk device",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
+        [AccessPermission("KioskDevice", "Update")]
+        public async Task<IActionResult> GenerateKioskDeviceLogin(
+            Guid id,
+            [FromBody] GenerateKioskDeviceLoginRequest? request = null)
+        {
+            var device = await _dbContext.Set<MstKioskDevice>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (device == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Kiosk device tidak ditemukan."
+                ));
+            }
+
+            var existingUser = await FindKioskLoginUserAsync(device.DeviceCode);
+
+            if (existingUser != null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Login kiosk device sudah pernah dibuat. Gunakan reset-login jika ingin mengganti password."
+                ));
+            }
+
+            var userName = NormalizeLoginUserName(request?.UserName, device.DeviceCode);
+            var email = NormalizeLoginEmail(request?.Email, device.DeviceCode);
+            var password = string.IsNullOrWhiteSpace(request?.Password)
+                ? GenerateKioskPassword()
+                : request!.Password.Trim();
+
+            var duplicateUserName = await _userManager.FindByNameAsync(userName);
+
+            if (duplicateUserName != null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Username login kiosk device sudah digunakan."
+                ));
+            }
+
+            var duplicateEmail = await _userManager.FindByEmailAsync(email);
+
+            if (duplicateEmail != null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Email login kiosk device sudah digunakan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            var user = new ApplicationUser
+            {
+                Id = Guid.NewGuid(),
+                UserName = userName,
+                NormalizedUserName = userName.ToUpperInvariant(),
+                Email = email,
+                NormalizedEmail = email.ToUpperInvariant(),
+                EmailConfirmed = true,
+                PhoneNumberConfirmed = true,
+                LockoutEnabled = true,
+                UserCode = device.DeviceCode,
+                DisplayName = device.DeviceName
+            };
+
+            var createResult = await _userManager.CreateAsync(user, password);
+
+            if (!createResult.Succeeded)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    BuildIdentityErrorMessage(createResult, "Login kiosk device gagal dibuat.")
+                ));
+            }
+
+            if (request != null && !request.IsEnabled)
+            {
+                await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddYears(100));
+            }
+
+            device.UpdateDateTime = now;
+            device.UpdateBy = actorUserId;
+            await _dbContext.SaveChangesAsync();
+
+            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
+            var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user);
+            var isLocked = await _userManager.IsLockedOutAsync(user);
+
+            var result = new KioskDeviceGenerateLoginResponse
+            {
+                KioskDeviceId = device.Id,
+                DeviceCode = device.DeviceCode,
+                DeviceName = device.DeviceName,
+                LoginUserId = user.Id,
+                LoginUserCode = user.UserCode,
+                LoginUserName = user.UserName ?? string.Empty,
+                LoginEmail = user.Email,
+                GeneratedPassword = password,
+                IsLoginEnabled = !isLocked,
+                IsLoginLocked = isLocked,
+                CreateDateTime = now,
+                CreateBy = actorUserId == Guid.Empty ? null : actorUserId,
+                CreateByName = GetActorName(actorNames, actorUserId)
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "KioskDevice.GenerateKioskDeviceLogin",
+                "Membuat login kiosk device.",
+                new
+                {
+                    result.KioskDeviceId,
+                    result.DeviceCode,
+                    result.DeviceName,
+                    result.LoginUserId,
+                    result.LoginUserName,
+                    result.IsLoginEnabled
+                }
+            );
+
+            return Ok(ApiResponse<KioskDeviceGenerateLoginResponse>.Ok(
+                result,
+                "Login kiosk device berhasil dibuat. Simpan password karena hanya ditampilkan sekali."
+            ));
+        }
+
+        [HttpPatch("{id:guid}/reset-login")]
+        [ProducesResponseType(typeof(ApiResponse<KioskDeviceResetLoginResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Update",
+            "Reset Kiosk Device Login",
+            Description = "Reset password login kiosk device",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
+        [AccessPermission("KioskDevice", "Update")]
+        public async Task<IActionResult> ResetKioskDeviceLogin(
+            Guid id,
+            [FromBody] ResetKioskDeviceLoginRequest? request = null)
+        {
+            var device = await _dbContext.Set<MstKioskDevice>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (device == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Kiosk device tidak ditemukan."
+                ));
+            }
+
+            var user = await FindKioskLoginUserAsync(device.DeviceCode);
+
+            if (user == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Login kiosk device belum dibuat. Gunakan generate-login terlebih dahulu."
+                ));
+            }
+
+            var newPassword = string.IsNullOrWhiteSpace(request?.NewPassword)
+                ? GenerateKioskPassword()
+                : request!.NewPassword.Trim();
+
+            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var resetResult = await _userManager.ResetPasswordAsync(user, resetToken, newPassword);
+
+            if (!resetResult.Succeeded)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    BuildIdentityErrorMessage(resetResult, "Password login kiosk device gagal direset.")
+                ));
+            }
+
+            await _userManager.ResetAccessFailedCountAsync(user);
+            await _userManager.SetLockoutEndDateAsync(user, null);
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            device.UpdateDateTime = now;
+            device.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
+
+            var result = new KioskDeviceResetLoginResponse
+            {
+                KioskDeviceId = device.Id,
+                DeviceCode = device.DeviceCode,
+                DeviceName = device.DeviceName,
+                LoginUserId = user.Id,
+                LoginUserName = user.UserName ?? string.Empty,
+                NewPassword = newPassword,
+                UpdateDateTime = now,
+                UpdateBy = actorUserId == Guid.Empty ? null : actorUserId,
+                UpdateByName = GetActorName(actorNames, actorUserId)
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "KioskDevice.ResetKioskDeviceLogin",
+                "Reset login kiosk device.",
+                new
+                {
+                    result.KioskDeviceId,
+                    result.DeviceCode,
+                    result.DeviceName,
+                    result.LoginUserId,
+                    result.LoginUserName
+                }
+            );
+
+            return Ok(ApiResponse<KioskDeviceResetLoginResponse>.Ok(
+                result,
+                "Password login kiosk device berhasil direset. Simpan password karena hanya ditampilkan sekali."
+            ));
+        }
+
+        [HttpPatch("{id:guid}/login-status")]
+        [ProducesResponseType(typeof(ApiResponse<KioskDeviceLoginStatusResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Update",
+            "Update Kiosk Device Login Status",
+            Description = "Mengubah status login kiosk device",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
+        [AccessPermission("KioskDevice", "Update")]
+        public async Task<IActionResult> UpdateKioskDeviceLoginStatus(
+            Guid id,
+            [FromBody] UpdateKioskDeviceLoginStatusRequest request)
+        {
+            var device = await _dbContext.Set<MstKioskDevice>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (device == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Kiosk device tidak ditemukan."
+                ));
+            }
+
+            var user = await FindKioskLoginUserAsync(device.DeviceCode);
+
+            if (user == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Login kiosk device belum dibuat. Gunakan generate-login terlebih dahulu."
+                ));
+            }
+
+            if (request.IsEnabled)
+            {
+                await _userManager.SetLockoutEndDateAsync(user, null);
+                await _userManager.ResetAccessFailedCountAsync(user);
+            }
+            else
+            {
+                await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddYears(100));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            device.UpdateDateTime = now;
+            device.UpdateBy = actorUserId;
+
+            if (!string.IsNullOrWhiteSpace(request.Reason))
+            {
+                device.Description = request.Reason.Trim();
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
+            var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user);
+            var isLocked = await _userManager.IsLockedOutAsync(user);
+
+            var result = new KioskDeviceLoginStatusResponse
+            {
+                KioskDeviceId = device.Id,
+                DeviceCode = device.DeviceCode,
+                DeviceName = device.DeviceName,
+                LoginUserId = user.Id,
+                LoginUserName = user.UserName,
+                IsLoginCreated = true,
+                IsLoginEnabled = !isLocked,
+                IsLoginLocked = isLocked,
+                LockoutEnd = lockoutEnd,
+                UpdateDateTime = now,
+                UpdateBy = actorUserId == Guid.Empty ? null : actorUserId,
+                UpdateByName = GetActorName(actorNames, actorUserId)
+            };
+
+            return Ok(ApiResponse<KioskDeviceLoginStatusResponse>.Ok(
+                result,
+                request.IsEnabled
+                    ? "Login kiosk device berhasil diaktifkan."
+                    : "Login kiosk device berhasil dinonaktifkan."
+            ));
+        }
+
+        [AllowAnonymous]
+        [HttpPost("login")]
+        [ProducesResponseType(typeof(ApiResponse<KioskDeviceLoginResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> LoginKioskDevice([FromBody] KioskDeviceLoginRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.UserName) || string.IsNullOrWhiteSpace(request.Password))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Username dan password wajib diisi."
+                ));
+            }
+
+            var user = await _userManager.FindByNameAsync(request.UserName.Trim());
+
+            if (user == null)
+            {
+                return Ok(ApiResponse<KioskDeviceLoginResponse>.Ok(
+                    new KioskDeviceLoginResponse
+                    {
+                        IsSuccess = false,
+                        Message = "Username atau password tidak valid."
+                    },
+                    "Login kiosk device gagal."
+                ));
+            }
+
+            var isLockedBeforeCheck = await _userManager.IsLockedOutAsync(user);
+
+            if (isLockedBeforeCheck)
+            {
+                var lockoutEnd = await _userManager.GetLockoutEndDateAsync(user);
+
+                return Ok(ApiResponse<KioskDeviceLoginResponse>.Ok(
+                    new KioskDeviceLoginResponse
+                    {
+                        IsSuccess = false,
+                        Message = "Login kiosk device sedang nonaktif atau terkunci.",
+                        LoginUserId = user.Id,
+                        LoginUserName = user.UserName,
+                        IsLoginEnabled = false,
+                        IsLoginLocked = true,
+                        LockoutEnd = lockoutEnd
+                    },
+                    "Login kiosk device gagal."
+                ));
+            }
+
+            var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
+
+            if (!isPasswordValid)
+            {
+                await _userManager.AccessFailedAsync(user);
+
+                return Ok(ApiResponse<KioskDeviceLoginResponse>.Ok(
+                    new KioskDeviceLoginResponse
+                    {
+                        IsSuccess = false,
+                        Message = "Username atau password tidak valid.",
+                        LoginUserId = user.Id,
+                        LoginUserName = user.UserName,
+                        IsLoginEnabled = true,
+                        IsLoginLocked = await _userManager.IsLockedOutAsync(user),
+                        LockoutEnd = await _userManager.GetLockoutEndDateAsync(user)
+                    },
+                    "Login kiosk device gagal."
+                ));
+            }
+
+            await _userManager.ResetAccessFailedCountAsync(user);
+
+            var loginUserCode = user.UserCode ?? user.UserName ?? string.Empty;
+
+            var deviceQuery = _dbContext.Set<MstKioskDevice>()
+                .Where(x => !x.IsDelete && x.DeviceCode == loginUserCode);
+
+            if (!string.IsNullOrWhiteSpace(request.DeviceCode))
+            {
+                var deviceCode = request.DeviceCode.Trim().ToUpperInvariant();
+                deviceQuery = deviceQuery.Where(x => x.DeviceCode == deviceCode);
+            }
+
+            var device = await deviceQuery.FirstOrDefaultAsync();
+
+            if (device == null)
+            {
+                return Ok(ApiResponse<KioskDeviceLoginResponse>.Ok(
+                    new KioskDeviceLoginResponse
+                    {
+                        IsSuccess = false,
+                        Message = "User login tidak terhubung dengan kiosk device aktif.",
+                        LoginUserId = user.Id,
+                        LoginUserName = user.UserName,
+                        IsLoginEnabled = true,
+                        IsLoginLocked = false
+                    },
+                    "Login kiosk device gagal."
+                ));
+            }
+
+            if (!device.IsActive)
+            {
+                return Ok(ApiResponse<KioskDeviceLoginResponse>.Ok(
+                    new KioskDeviceLoginResponse
+                    {
+                        IsSuccess = false,
+                        Message = "Kiosk device tidak aktif.",
+                        KioskDeviceId = device.Id,
+                        DeviceCode = device.DeviceCode,
+                        DeviceName = device.DeviceName,
+                        LoginUserId = user.Id,
+                        LoginUserName = user.UserName,
+                        IsLoginEnabled = true,
+                        IsLoginLocked = false
+                    },
+                    "Login kiosk device gagal."
+                ));
+            }
+
+            device.LastOnlineAt = DateTime.UtcNow;
+            device.DeviceStatus = KioskDeviceStatus.Active;
+            device.UpdateDateTime = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync();
+
+            var response = new KioskDeviceLoginResponse
+            {
+                IsSuccess = true,
+                Message = "Login kiosk device berhasil.",
+                KioskDeviceId = device.Id,
+                DeviceCode = device.DeviceCode,
+                DeviceName = device.DeviceName,
+                LoginUserId = user.Id,
+                LoginUserName = user.UserName,
+                IsLoginEnabled = true,
+                IsLoginLocked = false,
+                LockoutEnd = await _userManager.GetLockoutEndDateAsync(user)
+            };
+
+            return Ok(ApiResponse<KioskDeviceLoginResponse>.Ok(
+                response,
+                "Login kiosk device berhasil."
             ));
         }
 
@@ -1400,6 +2052,183 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             }
 
             return fields.OrderBy(x => x.SortOrder).ToList();
+        }
+
+
+        private async Task<ApplicationUser?> FindKioskLoginUserAsync(string deviceCode)
+        {
+            if (string.IsNullOrWhiteSpace(deviceCode))
+            {
+                return null;
+            }
+
+            var normalizedDeviceCode = deviceCode.Trim().ToUpperInvariant();
+            var defaultUserName = NormalizeLoginUserName(null, normalizedDeviceCode);
+
+            var userByCode = await _userManager.Users
+                .FirstOrDefaultAsync(x =>
+                    x.UserCode != null &&
+                    x.UserCode.ToUpper() == normalizedDeviceCode);
+
+            if (userByCode != null)
+            {
+                return userByCode;
+            }
+
+            var userByDefaultUserName = await _userManager.FindByNameAsync(defaultUserName);
+
+            if (userByDefaultUserName != null)
+            {
+                return userByDefaultUserName;
+            }
+
+            return await _userManager.FindByNameAsync(normalizedDeviceCode);
+        }
+
+        private async Task<Dictionary<string, ApplicationUser?>> GetKioskLoginUsersAsync(
+            IEnumerable<string> deviceCodes)
+        {
+            var codes = deviceCodes
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim().ToUpperInvariant())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var result = new Dictionary<string, ApplicationUser?>(StringComparer.OrdinalIgnoreCase);
+
+            if (!codes.Any())
+            {
+                return result;
+            }
+
+            var usersByCode = await _userManager.Users
+                .Where(x => x.UserCode != null && codes.Contains(x.UserCode))
+                .ToListAsync();
+
+            foreach (var user in usersByCode)
+            {
+                if (string.IsNullOrWhiteSpace(user.UserCode))
+                {
+                    continue;
+                }
+
+                var normalizedUserCode = user.UserCode.Trim().ToUpperInvariant();
+
+                if (!result.ContainsKey(normalizedUserCode))
+                {
+                    result[normalizedUserCode] = user;
+                }
+            }
+
+            foreach (var code in codes)
+            {
+                if (result.ContainsKey(code))
+                {
+                    continue;
+                }
+
+                var defaultUserName = NormalizeLoginUserName(null, code);
+                var userByUserName = await _userManager.FindByNameAsync(defaultUserName)
+                    ?? await _userManager.FindByNameAsync(code);
+
+                if (userByUserName != null)
+                {
+                    result[code] = userByUserName;
+                }
+            }
+
+            return result;
+        }
+
+        private static KioskDeviceLoginInfoResponse BuildLoginInfoResponse(
+            MstKioskDevice device,
+            ApplicationUser? user)
+        {
+            var isLoginCreated = user != null;
+            var isLoginLocked = user != null &&
+                user.LockoutEnabled &&
+                user.LockoutEnd.HasValue &&
+                user.LockoutEnd.Value > DateTimeOffset.UtcNow;
+
+            return new KioskDeviceLoginInfoResponse
+            {
+                KioskDeviceId = device.Id,
+                DeviceCode = device.DeviceCode,
+                DeviceName = device.DeviceName,
+                DeviceType = device.DeviceType,
+                DeviceTypeName = BuildEnumLabel(device.DeviceType.ToString()),
+                DeviceStatus = device.DeviceStatus,
+                DeviceStatusName = BuildEnumLabel(device.DeviceStatus.ToString()),
+                LocationName = device.LocationName,
+                FloorName = device.FloorName,
+                IpAddress = device.IpAddress,
+                IsActive = device.IsActive,
+                LoginUserId = user?.Id,
+                LoginUserCode = user?.UserCode,
+                LoginUserName = user?.UserName,
+                LoginEmail = user?.Email,
+                LoginDisplayName = user?.DisplayName,
+                IsLoginCreated = isLoginCreated,
+                IsLoginEnabled = isLoginCreated && !isLoginLocked,
+                IsLoginLocked = isLoginLocked,
+                LockoutEnd = user?.LockoutEnd,
+                AccessFailedCount = user?.AccessFailedCount ?? 0,
+                CanLogin = device.IsActive && isLoginCreated && !isLoginLocked
+            };
+        }
+
+        private static string NormalizeLoginUserName(string? userName, string deviceCode)
+        {
+            if (!string.IsNullOrWhiteSpace(userName))
+            {
+                return userName.Trim().ToLowerInvariant();
+            }
+
+            var normalizedDeviceCode = string.IsNullOrWhiteSpace(deviceCode)
+                ? Guid.NewGuid().ToString("N")
+                : deviceCode.Trim().ToUpperInvariant();
+
+            return $"kiosk.{normalizedDeviceCode}".ToLowerInvariant();
+        }
+
+        private static string NormalizeLoginEmail(string? email, string deviceCode)
+        {
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                return email.Trim().ToLowerInvariant();
+            }
+
+            var userName = NormalizeLoginUserName(null, deviceCode)
+                .Replace("@", ".")
+                .Replace(" ", string.Empty);
+
+            return $"{userName}@kiosk.local";
+        }
+
+        private static string GenerateKioskPassword()
+        {
+            var bytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(8);
+            return $"Kiosk@{Convert.ToHexString(bytes)}aA1!";
+        }
+
+        private static string BuildIdentityErrorMessage(
+            IdentityResult identityResult,
+            string defaultMessage)
+        {
+            if (identityResult.Succeeded)
+            {
+                return defaultMessage;
+            }
+
+            var errors = identityResult.Errors
+                .Select(x => x.Description)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .ToList();
+
+            return errors.Any()
+                ? defaultMessage + " " + string.Join(" ", errors)
+                : defaultMessage;
         }
 
         private static Guid? NormalizeNullableGuid(Guid? value)
