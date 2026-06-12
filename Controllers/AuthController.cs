@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
@@ -96,9 +98,11 @@ namespace QuilvianSystemBackend.Controllers
                 ));
             }
 
-            var email = request.Email.Trim();
+            var loginIdentifier = request.Email.Trim();
 
-            var user = await _userManager.FindByEmailAsync(email);
+            var user =
+                await _userManager.FindByEmailAsync(loginIdentifier) ??
+                await _userManager.FindByNameAsync(loginIdentifier);
 
             if (user == null)
             {
@@ -108,7 +112,7 @@ namespace QuilvianSystemBackend.Controllers
                     "Login gagal. Email tidak ditemukan.",
                     new
                     {
-                        Email = email
+                        Email = loginIdentifier
                     }
                 );
 
@@ -205,7 +209,39 @@ namespace QuilvianSystemBackend.Controllers
                 ));
             }
 
-            var geofenceValidation = ValidateLoginGeofence(user, request);
+            var kioskContext = await ResolveKioskLoginContextAsync(user);
+
+            if (kioskContext.IsKioskAccount && !kioskContext.CanLogin)
+            {
+                await _loggerService.WarningAsync(
+                    "Auth",
+                    "Login",
+                    "Login kiosk gagal. Akun/perangkat kiosk tidak dapat digunakan.",
+                    new
+                    {
+                        user.Id,
+                        user.Email,
+                        user.UserName,
+                        kioskContext.KioskDeviceId,
+                        kioskContext.DeviceCode,
+                        kioskContext.DeviceName,
+                        kioskContext.IsDeviceActive,
+                        kioskContext.IsLoginCreated,
+                        kioskContext.IsLoginEnabled,
+                        kioskContext.IsLoginLocked,
+                        kioskContext.BlockReason
+                    }
+                );
+
+                return Unauthorized(ApiResponse<object>.Fail(
+                    StatusCodes.Status401Unauthorized,
+                    kioskContext.BlockReason ?? "Akun kiosk tidak dapat digunakan."
+                ));
+            }
+
+            var geofenceValidation = kioskContext.IsKioskAccount
+                ? GeofenceValidationResult.Bypassed("Kiosk account bypass geolocation.")
+                : ValidateLoginGeofence(user, request);
 
             if (!geofenceValidation.IsValid)
             {
@@ -237,11 +273,13 @@ namespace QuilvianSystemBackend.Controllers
 
             try
             {
-                var attendanceResult = await RecordAttendanceOnLoginAsync(
-                    user,
-                    request,
-                    geofenceValidation
-                );
+                var attendanceResult = kioskContext.IsKioskAccount
+                    ? LoginAttendanceResult.Skipped("Login kiosk tidak mencatat attendance.")
+                    : await RecordAttendanceOnLoginAsync(
+                        user,
+                        request,
+                        geofenceValidation
+                    );
 
                 user.LastLoginAt = DateTime.UtcNow;
 
@@ -277,7 +315,7 @@ namespace QuilvianSystemBackend.Controllers
                 }
 
                 var roles = await _userManager.GetRolesAsync(user);
-                var token = GenerateJwtToken(user, roles);
+                var token = GenerateJwtToken(user, roles, kioskContext);
 
                 SetAuthCookie(token);
 
@@ -305,7 +343,7 @@ namespace QuilvianSystemBackend.Controllers
                     {
                         Auth = BuildAuthInfoResponse(),
                         Endpoints = new AuthEndpointResponse(),
-                        User = BuildUserResponse(user, roles)
+                        User = BuildUserResponse(user, roles, kioskContext)
                     },
                     _languageService.GetMessage(MessageKeys.AuthLoginSuccess)
                 ));
@@ -321,7 +359,7 @@ namespace QuilvianSystemBackend.Controllers
                     ex,
                     new
                     {
-                        Email = email,
+                        Email = loginIdentifier,
                         request.Latitude,
                         request.Longitude,
                         request.AccuracyMeters
@@ -501,7 +539,8 @@ namespace QuilvianSystemBackend.Controllers
             await _userManager.UpdateAsync(user);
 
             var roles = await _userManager.GetRolesAsync(user);
-            var token = GenerateJwtToken(user, roles);
+            var kioskContext = await ResolveKioskLoginContextAsync(user);
+            var token = GenerateJwtToken(user, roles, kioskContext);
 
             SetAuthCookie(token);
 
@@ -528,7 +567,7 @@ namespace QuilvianSystemBackend.Controllers
                 {
                     Auth = BuildAuthInfoResponse(),
                     Endpoints = new AuthEndpointResponse(),
-                    User = BuildUserResponse(user, roles)
+                    User = BuildUserResponse(user, roles, kioskContext)
                 },
                 "Login fingerprint berhasil."
             ));
@@ -602,6 +641,7 @@ namespace QuilvianSystemBackend.Controllers
             }
 
             var roles = await _userManager.GetRolesAsync(user);
+            var kioskContext = await ResolveKioskLoginContextAsync(user);
 
             await _loggerService.InfoAsync(
                 "Auth",
@@ -621,7 +661,7 @@ namespace QuilvianSystemBackend.Controllers
             );
 
             return Ok(ApiResponse<UserLoginResponse>.Ok(
-                BuildUserResponse(user, roles),
+                BuildUserResponse(user, roles, kioskContext),
                 "User profile berhasil diambil."
             ));
         }
@@ -715,7 +755,8 @@ namespace QuilvianSystemBackend.Controllers
             }
 
             var roles = await _userManager.GetRolesAsync(user);
-            var newToken = GenerateJwtToken(user, roles);
+            var kioskContext = await ResolveKioskLoginContextAsync(user);
+            var newToken = GenerateJwtToken(user, roles, kioskContext);
 
             SetAuthCookie(newToken);
 
@@ -736,7 +777,7 @@ namespace QuilvianSystemBackend.Controllers
                 {
                     Auth = BuildAuthInfoResponse(),
                     Endpoints = new AuthEndpointResponse(),
-                    User = BuildUserResponse(user, roles)
+                    User = BuildUserResponse(user, roles, kioskContext)
                 },
                 _languageService.GetMessage(MessageKeys.AuthSessionRefreshed)
             ));
@@ -1546,6 +1587,114 @@ namespace QuilvianSystemBackend.Controllers
             return (true, lateMinutes, "Late");
         }
 
+        private async Task<KioskLoginContext> ResolveKioskLoginContextAsync(ApplicationUser user)
+        {
+            if (user == null)
+            {
+                return KioskLoginContext.None();
+            }
+
+            var userCode = (user.UserCode ?? string.Empty).Trim();
+            var email = (user.Email ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(userCode) && string.IsNullOrWhiteSpace(email))
+            {
+                return KioskLoginContext.None();
+            }
+
+            MstKioskDevice? kioskDevice = null;
+
+            if (!string.IsNullOrWhiteSpace(userCode))
+            {
+                kioskDevice = await _dbContext.MstKioskDevices
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x =>
+                        x.DeviceCode == userCode
+                    );
+            }
+
+            if (kioskDevice == null && !string.IsNullOrWhiteSpace(email))
+            {
+                var loweredEmail = email.ToLowerInvariant();
+
+                if (loweredEmail.StartsWith("kiosk.") &&
+                    loweredEmail.EndsWith("@kiosk.local"))
+                {
+                    var emailDeviceCode = loweredEmail
+                        .Replace("kiosk.", string.Empty)
+                        .Replace("@kiosk.local", string.Empty)
+                        .ToUpperInvariant();
+
+                    kioskDevice = await _dbContext.MstKioskDevices
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(x =>
+                            x.DeviceCode.ToUpper() == emailDeviceCode
+                        );
+                }
+            }
+
+            if (kioskDevice == null)
+            {
+                return KioskLoginContext.None();
+            }
+
+            var isDeviceActive =
+                kioskDevice.IsActive &&
+                kioskDevice.DeviceStatus == KioskDeviceStatus.Active;
+
+            var isLoginCreated = true;
+
+            var isLoginEnabled = user.IsActive;
+
+            var isLoginLocked =
+                user.LockoutEnd.HasValue &&
+                user.LockoutEnd.Value > DateTimeOffset.UtcNow;
+
+            var canLogin =
+                isDeviceActive &&
+                isLoginCreated &&
+                isLoginEnabled &&
+                !isLoginLocked;
+
+            var blockReason = canLogin
+                ? null
+                : !isDeviceActive
+                    ? "Perangkat kiosk tidak aktif."
+                    : !isLoginCreated
+                        ? "Akun login kiosk belum dibuat."
+                        : !isLoginEnabled
+                            ? "Login kiosk sedang dinonaktifkan."
+                            : isLoginLocked
+                                ? "Login kiosk sedang terkunci."
+                                : "Akun kiosk tidak dapat digunakan.";
+
+            return new KioskLoginContext
+            {
+                IsKioskAccount = true,
+
+                KioskDeviceId = kioskDevice.Id,
+                DeviceCode = kioskDevice.DeviceCode,
+                DeviceName = kioskDevice.DeviceName,
+
+                DeviceTypeName = kioskDevice.DeviceType.ToString(),
+                DeviceStatusName = kioskDevice.DeviceStatus.ToString(),
+
+                LocationName = kioskDevice.LocationName,
+                FloorName = kioskDevice.FloorName,
+
+                IsDeviceActive = isDeviceActive,
+                IsLoginCreated = isLoginCreated,
+                IsLoginEnabled = isLoginEnabled,
+                IsLoginLocked = isLoginLocked,
+                CanLogin = canLogin,
+                BlockReason = blockReason,
+
+                IsAllowWalkIn = kioskDevice.IsAllowWalkIn,
+                IsAllowAppointment = kioskDevice.IsAllowAppointment,
+                IsAllowInsuranceRegistration = kioskDevice.IsAllowInsuranceRegistration
+            };
+        }
+
         private static double CalculateDistanceMeters(
             double latitude1,
             double longitude1,
@@ -1575,7 +1724,7 @@ namespace QuilvianSystemBackend.Controllers
             return degrees * Math.PI / 180;
         }
 
-        private string GenerateJwtToken(ApplicationUser user, IList<string> roles)
+        private string GenerateJwtToken(ApplicationUser user, IList<string> roles, KioskLoginContext? kioskContext = null)
         {
             var jwtKey = _configuration["Jwt:Key"];
             var jwtIssuer = _configuration["Jwt:Issuer"];
@@ -1620,6 +1769,22 @@ namespace QuilvianSystemBackend.Controllers
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
+
+            if (kioskContext?.IsKioskAccount == true)
+            {
+                claims.Add(new Claim("is_kiosk_account", "true"));
+                claims.Add(new Claim("profile_type", "KioskDevice"));
+                claims.Add(new Claim("kiosk_device_id", kioskContext.KioskDeviceId?.ToString() ?? string.Empty));
+                claims.Add(new Claim("kiosk_device_code", kioskContext.DeviceCode));
+                claims.Add(new Claim("kiosk_device_name", kioskContext.DeviceName));
+                claims.Add(new Claim("kiosk_can_walk_in", kioskContext.IsAllowWalkIn.ToString().ToLowerInvariant()));
+                claims.Add(new Claim("kiosk_can_appointment", kioskContext.IsAllowAppointment.ToString().ToLowerInvariant()));
+                claims.Add(new Claim("kiosk_can_insurance_registration", kioskContext.IsAllowInsuranceRegistration.ToString().ToLowerInvariant()));
+            }
+            else
+            {
+                claims.Add(new Claim("is_kiosk_account", "false"));
+            }
 
             foreach (var role in roles)
             {
@@ -1757,11 +1922,16 @@ namespace QuilvianSystemBackend.Controllers
             };
         }
 
-        private UserLoginResponse BuildUserResponse(ApplicationUser user, IList<string> roles)
+        private UserLoginResponse BuildUserResponse(
+    ApplicationUser user,
+    IList<string> roles,
+    KioskLoginContext? kioskContext = null)
         {
             var hasWorkforceProfile = user.WorkforceProfileId.HasValue;
+            var isKioskAccount = kioskContext?.IsKioskAccount == true;
 
             var profileType =
+                isKioskAccount ? "KioskDevice" :
                 user.EmployeeId.HasValue ? "Employee" :
                 user.DoctorId.HasValue ? "Doctor" :
                 user.ExternalUserId.HasValue ? "ExternalUser" :
@@ -1799,6 +1969,8 @@ namespace QuilvianSystemBackend.Controllers
                 HasWorkforceProfile = hasWorkforceProfile,
                 ProfileType = profileType,
 
+                IsKioskAccount = isKioskAccount,
+
                 WorkforceContext = new UserWorkforceContextResponse
                 {
                     UserId = user.Id,
@@ -1808,7 +1980,29 @@ namespace QuilvianSystemBackend.Controllers
                     ExternalUserId = user.ExternalUserId,
                     CanAccessWorkforceModules = hasWorkforceProfile,
                     WorkforceProfileBaseEndpoint = workforceProfileBaseEndpoint
-                }
+                },
+
+                KioskContext = isKioskAccount && kioskContext?.KioskDeviceId.HasValue == true
+                    ? new UserKioskContextResponse
+                    {
+                        UserId = user.Id,
+                        KioskDeviceId = kioskContext.KioskDeviceId.Value,
+                        DeviceCode = kioskContext.DeviceCode,
+                        DeviceName = kioskContext.DeviceName,
+                        DeviceTypeName = kioskContext.DeviceTypeName,
+                        DeviceStatusName = kioskContext.DeviceStatusName,
+                        LocationName = kioskContext.LocationName,
+                        FloorName = kioskContext.FloorName,
+                        IsDeviceActive = kioskContext.IsDeviceActive,
+                        IsLoginCreated = kioskContext.IsLoginCreated,
+                        IsLoginEnabled = kioskContext.IsLoginEnabled,
+                        IsLoginLocked = kioskContext.IsLoginLocked,
+                        CanLogin = kioskContext.CanLogin,
+                        IsAllowWalkIn = kioskContext.IsAllowWalkIn,
+                        IsAllowAppointment = kioskContext.IsAllowAppointment,
+                        IsAllowInsuranceRegistration = kioskContext.IsAllowInsuranceRegistration
+                    }
+                    : null
             };
         }
 
@@ -1878,6 +2072,55 @@ namespace QuilvianSystemBackend.Controllers
                     DistanceMeters = distanceMeters
                 };
             }
-        }        
+        }
+
+        private class KioskLoginContext
+        {
+            public bool IsKioskAccount { get; set; }
+
+            public Guid? KioskDeviceId { get; set; }
+
+            public string DeviceCode { get; set; } = string.Empty;
+
+            public string DeviceName { get; set; } = string.Empty;
+
+            public string? DeviceTypeName { get; set; }
+
+            public string? DeviceStatusName { get; set; }
+
+            public string? LocationName { get; set; }
+
+            public string? FloorName { get; set; }
+
+            public bool IsDeviceActive { get; set; }
+
+            public bool IsLoginCreated { get; set; }
+
+            public bool IsLoginEnabled { get; set; }
+
+            public bool IsLoginLocked { get; set; }
+
+            public bool CanLogin { get; set; }
+
+            public bool IsAllowWalkIn { get; set; }
+
+            public bool IsAllowAppointment { get; set; }
+
+            public bool IsAllowInsuranceRegistration { get; set; }
+
+            public string? BlockReason { get; set; }
+
+            public static KioskLoginContext None()
+            {
+                return new KioskLoginContext
+                {
+                    IsKioskAccount = false,
+                    IsLoginCreated = false,
+                    IsLoginEnabled = false,
+                    IsLoginLocked = false,
+                    CanLogin = false
+                };
+            }
+        }
     }
 }

@@ -43,6 +43,10 @@
         public string ProfileType { get; set; } = string.Empty;
 
         public UserWorkforceContextResponse WorkforceContext { get; set; } = new();
+
+        public bool IsKioskAccount { get; set; }
+
+        public UserKioskContextResponse? KioskContext { get; set; }
     }
 
     public class UserWorkforceContextResponse
@@ -60,5 +64,42 @@
         public bool CanAccessWorkforceModules { get; set; }
 
         public string? WorkforceProfileBaseEndpoint { get; set; }
+    }
+
+    public class UserKioskContextResponse
+    {
+        public Guid UserId { get; set; }
+
+        public Guid KioskDeviceId { get; set; }
+
+        public string DeviceCode { get; set; } = string.Empty;
+
+        public string DeviceName { get; set; } = string.Empty;
+
+        public string? DeviceTypeName { get; set; }
+
+        public string? DeviceStatusName { get; set; }
+
+        public string? LocationName { get; set; }
+
+        public string? FloorName { get; set; }
+
+        public bool IsDeviceActive { get; set; }
+
+        public bool IsLoginCreated { get; set; }
+
+        public bool IsLoginEnabled { get; set; }
+
+        public bool IsLoginLocked { get; set; }
+
+        public bool CanLogin { get; set; }
+
+        public bool IsAllowWalkIn { get; set; }
+
+        public bool IsAllowAppointment { get; set; }
+
+        public bool IsAllowInsuranceRegistration { get; set; }
+
+        public string KioskBaseEndpoint { get; set; } = "/api/v1/kiosk";
     }
 }
