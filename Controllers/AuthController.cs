@@ -317,7 +317,7 @@ namespace QuilvianSystemBackend.Controllers
                 var roles = await _userManager.GetRolesAsync(user);
                 var token = GenerateJwtToken(user, roles, kioskContext);
 
-                SetAuthCookie(token);
+                SetAuthCookie(token, user);
 
                 await _loggerService.InfoAsync(
                     "Auth",
@@ -341,7 +341,7 @@ namespace QuilvianSystemBackend.Controllers
                 return Ok(ApiResponse<LoginDataResponse>.Ok(
                     new LoginDataResponse
                     {
-                        Auth = BuildAuthInfoResponse(),
+                        Auth = BuildAuthInfoResponse(user),
                         Endpoints = new AuthEndpointResponse(),
                         User = BuildUserResponse(user, roles, kioskContext)
                     },
@@ -542,7 +542,7 @@ namespace QuilvianSystemBackend.Controllers
             var kioskContext = await ResolveKioskLoginContextAsync(user);
             var token = GenerateJwtToken(user, roles, kioskContext);
 
-            SetAuthCookie(token);
+            SetAuthCookie(token, user);
 
             await _loggerService.InfoAsync(
                 "Auth",
@@ -565,7 +565,7 @@ namespace QuilvianSystemBackend.Controllers
             return Ok(ApiResponse<LoginDataResponse>.Ok(
                 new LoginDataResponse
                 {
-                    Auth = BuildAuthInfoResponse(),
+                    Auth = BuildAuthInfoResponse(user),
                     Endpoints = new AuthEndpointResponse(),
                     User = BuildUserResponse(user, roles, kioskContext)
                 },
@@ -757,8 +757,8 @@ namespace QuilvianSystemBackend.Controllers
             var roles = await _userManager.GetRolesAsync(user);
             var kioskContext = await ResolveKioskLoginContextAsync(user);
             var newToken = GenerateJwtToken(user, roles, kioskContext);
-
-            SetAuthCookie(newToken);
+            
+            SetAuthCookie(newToken, user);
 
             await _loggerService.InfoAsync(
                 "Auth",
@@ -775,7 +775,7 @@ namespace QuilvianSystemBackend.Controllers
             return Ok(ApiResponse<LoginDataResponse>.Ok(
                 new LoginDataResponse
                 {
-                    Auth = BuildAuthInfoResponse(),
+                    Auth = BuildAuthInfoResponse(user),
                     Endpoints = new AuthEndpointResponse(),
                     User = BuildUserResponse(user, roles, kioskContext)
                 },
@@ -1210,6 +1210,11 @@ namespace QuilvianSystemBackend.Controllers
                    user.UserType == UserType.GuestDoctor;
         }
 
+        private static bool IsKioskUser(ApplicationUser user)
+        {
+            return user.UserType == UserType.SystemUser;
+        }
+
         private static DateTime GetSystemNow()
         {
             try
@@ -1263,8 +1268,8 @@ namespace QuilvianSystemBackend.Controllers
         }
 
         private GeofenceValidationResult ValidateLoginGeofence(
-    ApplicationUser user,
-    LoginRequest request)
+            ApplicationUser user,
+            LoginRequest request)
         {
             return ValidateGeofence(
                 user,
@@ -1285,6 +1290,11 @@ namespace QuilvianSystemBackend.Controllers
             if (!geofenceEnabled)
             {
                 return GeofenceValidationResult.Ok(null);
+            }
+
+            if (IsKioskUser(user))
+            {
+                return GeofenceValidationResult.Bypassed("SystemUser kiosk bypass geolocation.");
             }
 
             var bypassActive = IsGeolocationBypassActive(user);
@@ -1755,6 +1765,8 @@ namespace QuilvianSystemBackend.Controllers
                 new Claim("email", user.Email ?? string.Empty),
                 new Claim("full_name", user.DisplayName ?? string.Empty),
                 new Claim("user_type", user.UserType.ToString()),
+                new Claim("user_type_id", ((int)user.UserType).ToString()),
+                new Claim("is_kiosk", IsKioskUser(user) ? "true" : "false"),
 
                 new Claim("department_id", user.PrimaryDepartmentId?.ToString() ?? string.Empty),
                 new Claim("position_id", user.PrimaryPositionId?.ToString() ?? string.Empty),
@@ -1792,7 +1804,7 @@ namespace QuilvianSystemBackend.Controllers
                 claims.Add(new Claim("role", role));
             }
 
-            var expires = DateTime.UtcNow.AddMinutes(GetJwtExpireMinutes());
+            var expires = DateTime.UtcNow.AddMinutes(ResolveJwtExpireMinutes(user));
 
             var token = new JwtSecurityToken(
                 issuer: jwtIssuer,
@@ -1812,16 +1824,30 @@ namespace QuilvianSystemBackend.Controllers
             return expireMinutes <= 0 ? 60 : expireMinutes;
         }
 
-        private void SetAuthCookie(string token)
+        private void SetAuthCookie(string token, ApplicationUser user)
         {
             var cookieName = _configuration["Jwt:CookieName"] ?? "quilvian_access_token";
-            var expireMinutes = GetJwtExpireMinutes();
+            var expireMinutes = ResolveJwtExpireMinutes(user);
 
             Response.Cookies.Append(
                 cookieName,
                 token,
                 BuildAuthCookieOptions(expireMinutes)
             );
+        }
+
+        private int GetKioskJwtExpireMinutes()
+        {
+            var expireMinutes = _configuration.GetValue<int>("Jwt:KioskExpireMinutes");
+
+            return expireMinutes <= 0 ? 1440 : expireMinutes;
+        }
+
+        private int ResolveJwtExpireMinutes(ApplicationUser user)
+        {
+            return IsKioskUser(user)
+                ? GetKioskJwtExpireMinutes()
+                : GetJwtExpireMinutes();
         }
 
         private CookieOptions BuildAuthCookieOptions(int expireMinutes)
@@ -1902,10 +1928,12 @@ namespace QuilvianSystemBackend.Controllers
             );
         }
 
-        private AuthInfoResponse BuildAuthInfoResponse()
+        private AuthInfoResponse BuildAuthInfoResponse(ApplicationUser? user = null)
         {
             var cookieName = _configuration["Jwt:CookieName"] ?? "quilvian_access_token";
-            var expireMinutes = GetJwtExpireMinutes();
+            var expireMinutes = user == null
+                ? GetJwtExpireMinutes()
+                : ResolveJwtExpireMinutes(user);
             var sameSite = GetConfiguredSameSiteMode();
             var secure = _configuration.GetValue<bool?>("AuthCookie:Secure") ?? true;
 
