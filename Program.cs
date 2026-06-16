@@ -142,7 +142,7 @@ builder.Services.AddScoped<AccessPermissionService>();
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("KioskRegionRead", policy =>
+    options.AddPolicy("KioskRead", policy =>
     {
         policy.RequireAuthenticatedUser();
 

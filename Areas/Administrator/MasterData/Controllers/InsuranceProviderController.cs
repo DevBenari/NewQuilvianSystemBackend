@@ -35,6 +35,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
     public class InsuranceProviderController : ControllerBase
     {
         private const string LogCategory = "Administrator.MasterData";
+        private const string KioskReadPolicy = "KioskRead";
         private const string InsuranceProviderCodePrefix = "IP-RSMMC-";
         private const int InsuranceProviderCodeDigitLength = 5;
 
@@ -80,6 +81,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -192,6 +194,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponseInsuranceProviderPagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -292,6 +295,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("options")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",

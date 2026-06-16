@@ -34,6 +34,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
     public class CompanyGuarantorController : ControllerBase
     {
         private const string LogCategory = "Administrator.MasterData";
+        private const string KioskReadPolicy = "KioskRead";
         private const string CompanyGuarantorCodePrefix = "CG-RSMMC-";
         private const int CompanyGuarantorCodeDigitLength = 5;
 
@@ -78,6 +79,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -190,6 +192,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponseCompanyGuarantorPagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
@@ -303,6 +306,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("options")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorOptionPagedResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
