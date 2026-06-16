@@ -68,9 +68,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("filters/metadata")]
+        [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<RegionFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat data region", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new RegionFilterMetadataResponse
@@ -196,7 +196,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [ProducesResponseType(typeof(ApiResponse<ResponseCountryPagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data country", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetCountries(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -274,7 +273,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan country", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetCountryOptions(
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null,
@@ -612,7 +610,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [ProducesResponseType(typeof(ApiResponse<ResponseProvincePagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data province", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetProvinces(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -692,7 +689,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan province", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetProvinceOptions(
             [FromQuery] Guid? countryId,
             [FromQuery] bool onlyActive = true,
@@ -961,7 +957,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [ProducesResponseType(typeof(ApiResponse<ResponseCityPagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data city", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetCities(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -1047,7 +1042,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan city", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetCityOptions(
             [FromQuery] Guid? countryId,
             [FromQuery] Guid? provinceId,
@@ -1325,7 +1319,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [ProducesResponseType(typeof(ApiResponse<ResponseDistrictPagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data district", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetDistricts(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -1416,7 +1409,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan district", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetDistrictOptions(
             [FromQuery] Guid? countryId,
             [FromQuery] Guid? provinceId,
@@ -1697,7 +1689,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [ProducesResponseType(typeof(ApiResponse<ResponsePostalCodePagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data postal code", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetPostalCodes(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -1793,7 +1784,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan postal code", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("Region", "Read")]
         public async Task<IActionResult> GetPostalCodeOptions(
             [FromQuery] Guid? countryId,
             [FromQuery] Guid? provinceId,
