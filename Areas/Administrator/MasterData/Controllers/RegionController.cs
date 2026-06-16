@@ -49,6 +49,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
     public class RegionController : ControllerBase
     {
         private const string LogCategory = "Administrator.MasterData";
+        private const string KioskRegionReadPolicy = "KioskRegionRead";
         private const int CodeNumberLength = 5;
         private const string CountryCodePrefix = "CTR-RSMMC-";
         private const string ProvinceCodePrefix = "PRV-RSMMC-";
@@ -191,6 +192,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         // =========================================================
 
         [HttpGet("countries")]
+        [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponseCountryPagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data country", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -269,6 +271,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("countries/options")]
+        [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan country", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
@@ -605,6 +608,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         // =========================================================
 
         [HttpGet("provinces")]
+        [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponseProvincePagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data province", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -685,6 +689,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("provinces/options")]
+        [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan province", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
@@ -952,6 +957,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         // =========================================================
 
         [HttpGet("cities")]
+        [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponseCityPagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data city", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -1038,6 +1044,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("cities/options")]
+        [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan city", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
@@ -1314,6 +1321,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         // =========================================================
 
         [HttpGet("districts")]
+        [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponseDistrictPagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data district", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -1405,6 +1413,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("districts/options")]
+        [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan district", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]
@@ -1684,6 +1693,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         // =========================================================
 
         [HttpGet("postal-codes")]
+        [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponsePostalCodePagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data postal code", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -1780,6 +1790,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         }
 
         [HttpGet("postal-codes/options")]
+        [Authorize(Policy = KioskRegionReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan postal code", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Region", "Read")]

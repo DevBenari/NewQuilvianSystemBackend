@@ -140,7 +140,26 @@ builder.Services.AddScoped<LanguageService>();
 builder.Services.AddScoped<LoggerService>();
 builder.Services.AddScoped<AccessPermissionService>();
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("KioskRegionRead", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+
+        policy.RequireAssertion(context =>
+        {
+            var user = context.User;
+
+            return
+                user.IsInRole("SuperAdmin") ||
+                user.IsInRole("Administrator") ||
+                user.IsInRole("Kiosk") ||
+                user.HasClaim("is_kiosk", "true") ||
+                user.HasClaim("user_type_id", "6") ||
+                user.HasClaim("user_type", "SystemUser");
+        });
+    });
+});
 
 builder.Services.AddDistributedMemoryCache();
 
