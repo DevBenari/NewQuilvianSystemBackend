@@ -154,9 +154,15 @@ builder.Services.AddAuthorization(options =>
                 user.IsInRole("SuperAdmin") ||
                 user.IsInRole("Administrator") ||
                 user.IsInRole("Kiosk") ||
+
+                // Kiosk berdasarkan UserType SystemUser
                 user.HasClaim("is_kiosk", "true") ||
                 user.HasClaim("user_type_id", "6") ||
-                user.HasClaim("user_type", "SystemUser");
+                user.HasClaim("user_type", "SystemUser") ||
+
+                // Kiosk berdasarkan hasil ResolveKioskLoginContextAsync
+                user.HasClaim("is_kiosk_account", "true") ||
+                user.HasClaim("profile_type", "KioskDevice");
         });
     });
 });
