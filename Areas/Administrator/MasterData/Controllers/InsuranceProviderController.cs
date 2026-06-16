@@ -90,7 +90,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("InsuranceProvider", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new InsuranceProviderFilterMetadataResponse
@@ -203,7 +202,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("InsuranceProvider", "Read")]
         public async Task<IActionResult> GetInsuranceProviders(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -304,7 +302,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("InsuranceProvider", "Read")]
         public async Task<IActionResult> GetInsuranceProviderOptions(
             [FromQuery] bool onlyActive = true,
             [FromQuery] bool? activeOnly = null,

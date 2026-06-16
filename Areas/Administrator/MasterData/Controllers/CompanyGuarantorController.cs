@@ -88,7 +88,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("CompanyGuarantor", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new CompanyGuarantorFilterMetadataResponse
@@ -202,7 +201,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("CompanyGuarantor", "Read")]
         public async Task<IActionResult> GetCompanyGuarantors(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -316,7 +314,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("CompanyGuarantor", "Read")]
         public async Task<IActionResult> GetCompanyGuarantorOptions(
             [FromQuery] bool onlyActive = true,
             [FromQuery] bool? activeOnly = null,
