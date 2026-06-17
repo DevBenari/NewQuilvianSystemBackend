@@ -41,6 +41,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
     {
         private const string DefaultDoctorProfilePhotoPathFallback = "/uploads/default-profile-photos/dokter.png";
         private const string LogCategory = "Corporate.HumanResource.MasterData";
+        private const string KioskReadPolicy = "KioskRead";
         private const string HospitalCode = "RSMMC";
 
         private readonly ApplicationDbContext _dbContext;
@@ -252,6 +253,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet("filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<DoctorFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -260,7 +262,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Doctor", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new DoctorFilterMetadataResponse
@@ -366,6 +367,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponseDoctorPagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -374,7 +376,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Doctor", "Read")]
         public async Task<IActionResult> GetDoctors(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -561,6 +562,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet("options")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<DoctorOptionResponse>>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -569,7 +571,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Doctor", "Read")]
         public async Task<IActionResult> GetDoctorOptions(
             [FromQuery] Guid? departmentId,
             [FromQuery] Guid? positionId,

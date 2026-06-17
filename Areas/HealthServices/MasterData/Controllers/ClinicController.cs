@@ -34,6 +34,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
     public class ClinicController : ControllerBase
     {
         private const string LogCategory = "HealthServices.MasterData";
+        private const string KioskReadPolicy = "KioskRead";
         private const string ClinicCodePrefix = "CL-RSMMC-";
         private const int ClinicCodeDigitLength = 5;
 
@@ -49,9 +50,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ClinicFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Clinic", Description = "Melihat metadata filter clinic", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("Clinic", "Read")]
+        [AccessAction("Read", "Read Clinic", Description = "Melihat metadata filter clinic", AccessType = AccessTypes.Read, SortOrder = 1)]        
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new ClinicFilterMetadataResponse
@@ -128,9 +129,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponseClinicPagedResult>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Clinic", Description = "Melihat data clinic", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("Clinic", "Read")]
+        [AccessAction("Read", "Read Clinic", Description = "Melihat data clinic", AccessType = AccessTypes.Read, SortOrder = 1)]        
         public async Task<IActionResult> GetClinics(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -213,9 +214,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ClinicOptionPagedResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Clinic", Description = "Melihat data pilihan clinic", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("Clinic", "Read")]
+        [AccessAction("Read", "Read Clinic", Description = "Melihat data pilihan clinic", AccessType = AccessTypes.Read, SortOrder = 1)]        
         public async Task<IActionResult> GetClinicOptions(
             [FromQuery] Guid? serviceUnitId,
             [FromQuery] ClinicType? clinicType,

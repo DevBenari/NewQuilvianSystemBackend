@@ -34,6 +34,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
     public class DoctorScheduleController : ControllerBase
     {
         private const string LogCategory = "HealthServices.MasterData";
+        private const string KioskReadPolicy = "KioskRead";
         private const string ScheduleCodePrefix = "DSCH-RSMMC-";
 
         private readonly ApplicationDbContext _dbContext;
@@ -48,9 +49,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("DoctorSchedule", "Read")]
+        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]        
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new DoctorScheduleFilterMetadataResponse
@@ -136,9 +137,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponseDoctorSchedulePagedResult>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("DoctorSchedule", "Read")]
+        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]        
         public async Task<IActionResult> GetDoctorSchedules(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -188,16 +189,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("options")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleOptionPagedResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data pilihan doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("DoctorSchedule", "Read")]
+        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data pilihan doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]        
         public async Task<IActionResult> GetDoctorScheduleOptions(
-    [FromQuery] Guid? doctorId,
-    [FromQuery] Guid? clinicId,
-    [FromQuery] bool onlyActive = true,
-    [FromQuery] string? search = null,
-    [FromQuery] int pageNumber = 1,
-    [FromQuery] int pageSize = 25)
+            [FromQuery] Guid? doctorId,
+            [FromQuery] Guid? clinicId,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
             var paging = NormalizePaging(pageNumber, pageSize);
             pageNumber = paging.PageNumber;
