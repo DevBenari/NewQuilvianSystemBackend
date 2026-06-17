@@ -31,6 +31,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public string FullName { get; set; } = string.Empty;
 
+        public string? ProfilePhotoPath { get; set; }
+
+        public string? ProfilePhotoUrl { get; set; }
+
+        public string? EmployeePhotoPath { get; set; }
+
+        public string? EmployeePhotoUrl { get; set; }
+
         public string? NickName { get; set; }
 
         public Gender? Gender { get; set; }
@@ -169,6 +177,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public string? ProfilePhotoPath { get; set; }
 
+        public string? ProfilePhotoUrl { get; set; }
+
         public bool IsFingerprintRegistrationEnabled { get; set; }
 
         public string? FingerprintRegistrationReason { get; set; }
@@ -240,6 +250,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string EmployeeNumber { get; set; } = string.Empty;
 
         public string FullName { get; set; } = string.Empty;
+
+        public string? ProfilePhotoPath { get; set; }
+
+        public string? ProfilePhotoUrl { get; set; }
+
+        public string? EmployeePhotoPath { get; set; }
+
+        public string? EmployeePhotoUrl { get; set; }
 
         public Guid PrimaryDepartmentId { get; set; }
 
@@ -533,7 +551,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? EmergencyContactRelation { get; set; }
 
         [MaxLength(500)]
-        public string? EmergencyContactAddress { get; set; }        
+        public string? EmergencyContactAddress { get; set; }
     }
 
     public class UpdateEmployeeRequest
@@ -639,7 +657,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         [MaxLength(500)]
         public string? EmergencyContactAddress { get; set; }
 
-        public bool IsActive { get; set; } = true;        
+        public bool IsActive { get; set; } = true;
     }
 
     public class UpdateEmployeeStatusRequest

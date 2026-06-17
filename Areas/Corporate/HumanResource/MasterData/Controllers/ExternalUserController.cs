@@ -412,6 +412,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
 
             var totalData = await query.CountAsync();
+            var defaultExternalUserProfilePhotoPath = GetDefaultUserProfilePhotoPath();
 
             var items = await ApplyExternalUserSorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
@@ -425,6 +426,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     ExternalUserStatus = x.ExternalUserStatus,
                     EngagementType = x.EngagementType,
                     FullName = x.FullName,
+                    ProfilePhotoPath = _dbContext.Users
+                        .Where(u =>
+                            u.ExternalUserId == x.Id &&
+                            u.UserType == UserType.ExternalUser)
+                        .OrderByDescending(u => u.IsActive)
+                        .ThenByDescending(u => u.UpdateDateTime ?? u.CreateDateTime)
+                        .Select(u => u.ProfilePhotoPath)
+                        .FirstOrDefault() ?? defaultExternalUserProfilePhotoPath,
                     CompanyName = x.CompanyName,
                     CompanyCode = x.CompanyCode,
                     JobTitle = x.JobTitle,
@@ -476,6 +485,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                             .FirstOrDefault()
                 })
                 .ToListAsync();
+
+            foreach (var item in items)
+            {
+                EnrichExternalUserPhotoFields(item);
+            }
 
             var result = new ResponseExternalUserPagedResult
             {
@@ -572,6 +586,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
 
             var totalData = await query.CountAsync();
+            var defaultExternalUserProfilePhotoPath = GetDefaultUserProfilePhotoPath();
 
             var items = await query
                 .OrderBy(x => x.FullName)
@@ -586,6 +601,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     ExternalUserType = x.ExternalUserType,
                     ExternalUserStatus = x.ExternalUserStatus,
                     FullName = x.FullName,
+                    ProfilePhotoPath = _dbContext.Users
+                        .Where(u =>
+                            u.ExternalUserId == x.Id &&
+                            u.UserType == UserType.ExternalUser)
+                        .OrderByDescending(u => u.IsActive)
+                        .ThenByDescending(u => u.UpdateDateTime ?? u.CreateDateTime)
+                        .Select(u => u.ProfilePhotoPath)
+                        .FirstOrDefault() ?? defaultExternalUserProfilePhotoPath,
                     CompanyName = x.CompanyName,
                     JobTitle = x.JobTitle,
                     PrimaryDepartmentId = x.PrimaryDepartmentId,
@@ -594,6 +617,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     PrimaryPositionName = x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty
                 })
                 .ToListAsync();
+
+            foreach (var item in items)
+            {
+                EnrichExternalUserPhotoFields(item);
+            }
 
             var result = new PagedResult<ExternalUserOptionResponse>
             {
@@ -623,6 +651,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [AccessPermission("ExternalUser", "Read")]
         public async Task<IActionResult> GetExternalUserById(Guid id)
         {
+            var defaultExternalUserProfilePhotoPath = GetDefaultUserProfilePhotoPath();
+
             var data = await _dbContext.Set<MstExternalUser>()
                 .AsNoTracking()
                 .Where(x => x.Id == id && !x.IsDelete)
@@ -635,6 +665,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     ExternalUserStatus = x.ExternalUserStatus,
                     EngagementType = x.EngagementType,
                     FullName = x.FullName,
+                    ProfilePhotoPath = _dbContext.Users
+                        .Where(u =>
+                            u.ExternalUserId == x.Id &&
+                            u.UserType == UserType.ExternalUser)
+                        .OrderByDescending(u => u.IsActive)
+                        .ThenByDescending(u => u.UpdateDateTime ?? u.CreateDateTime)
+                        .Select(u => u.ProfilePhotoPath)
+                        .FirstOrDefault() ?? defaultExternalUserProfilePhotoPath,
                     CompanyName = x.CompanyName,
                     CompanyCode = x.CompanyCode,
                     JobTitle = x.JobTitle,
@@ -714,7 +752,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
+            EnrichExternalUserPhotoFields(data);
             data.UserAccount = await BuildExternalUserAccountCompactResponseAsync(id);
+            EnrichExternalUserAccountPhotoFields(data.UserAccount);
             data.ChildSummary = await BuildExternalUserChildSummaryAsync(id);
 
             return Ok(ApiResponse<ExternalUserDetailResponse>.Ok(
@@ -1578,7 +1618,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 })
                 .FirstOrDefaultAsync();
 
-            return user ?? new ExternalUserAccountCompactResponse
+            if (user != null)
+            {
+                EnrichExternalUserAccountPhotoFields(user);
+                return user;
+            }
+
+            return new ExternalUserAccountCompactResponse
             {
                 IsAvailable = false,
                 IsActive = false,
@@ -3074,6 +3120,81 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         {
             var suffix = Guid.NewGuid().ToString("N").Substring(0, 6);
             return $"Ext@{DateTime.UtcNow:yyyyMMdd}{suffix}";
+        }
+
+
+        private string ResolveUserProfilePhotoPath(string? profilePhotoPath)
+        {
+            return string.IsNullOrWhiteSpace(profilePhotoPath)
+                ? GetDefaultUserProfilePhotoPath()
+                : profilePhotoPath.Trim();
+        }
+
+        private string? BuildPublicFileUrl(string? filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return null;
+            }
+
+            var normalizedPath = filePath.Trim();
+
+            if (normalizedPath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                normalizedPath.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                normalizedPath.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                return normalizedPath;
+            }
+
+            if (!normalizedPath.StartsWith('/'))
+            {
+                normalizedPath = "/" + normalizedPath;
+            }
+
+            var configuredBaseUrl =
+                _configuration["FileStorage:PublicBaseUrl"] ??
+                _configuration["FileStorage:BaseUrl"] ??
+                _configuration["App:PublicBaseUrl"] ??
+                _configuration["AppSettings:PublicBaseUrl"];
+
+            var requestBaseUrl = Request?.Host.HasValue == true
+                ? $"{Request.Scheme}://{Request.Host.Value}"
+                : string.Empty;
+
+            var baseUrl = string.IsNullOrWhiteSpace(configuredBaseUrl)
+                ? requestBaseUrl
+                : configuredBaseUrl.Trim();
+
+            return string.IsNullOrWhiteSpace(baseUrl)
+                ? normalizedPath
+                : baseUrl.TrimEnd('/') + normalizedPath;
+        }
+
+        private void EnrichExternalUserPhotoFields(ExternalUserResponse response)
+        {
+            response.ProfilePhotoPath = ResolveUserProfilePhotoPath(response.ProfilePhotoPath);
+            response.ProfilePhotoUrl = BuildPublicFileUrl(response.ProfilePhotoPath);
+            response.ExternalUserPhotoPath = response.ProfilePhotoPath;
+            response.ExternalUserPhotoUrl = response.ProfilePhotoUrl;
+        }
+
+        private void EnrichExternalUserPhotoFields(ExternalUserOptionResponse response)
+        {
+            response.ProfilePhotoPath = ResolveUserProfilePhotoPath(response.ProfilePhotoPath);
+            response.ProfilePhotoUrl = BuildPublicFileUrl(response.ProfilePhotoPath);
+            response.ExternalUserPhotoPath = response.ProfilePhotoPath;
+            response.ExternalUserPhotoUrl = response.ProfilePhotoUrl;
+        }
+
+        private void EnrichExternalUserAccountPhotoFields(ExternalUserAccountCompactResponse? response)
+        {
+            if (response == null)
+            {
+                return;
+            }
+
+            response.ProfilePhotoPath = ResolveUserProfilePhotoPath(response.ProfilePhotoPath);
+            response.ProfilePhotoUrl = BuildPublicFileUrl(response.ProfilePhotoPath);
         }
 
         private static (bool IsValid, string? ErrorMessage) ValidateRequiredExternalUserRequest(CreateExternalUserRequest request)

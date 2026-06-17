@@ -37,6 +37,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public string FullName { get; set; } = string.Empty;
 
+        public string? ProfilePhotoPath { get; set; }
+
+        public string? ProfilePhotoUrl { get; set; }
+
+        public string? ExternalUserPhotoPath { get; set; }
+
+        public string? ExternalUserPhotoUrl { get; set; }
+
         public string? CompanyName { get; set; }
 
         public string? CompanyCode { get; set; }
@@ -155,6 +163,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public string? ProfilePhotoPath { get; set; }
 
+        public string? ProfilePhotoUrl { get; set; }
+
         public bool IsFingerprintRegistrationEnabled { get; set; }
 
         public string? FingerprintRegistrationReason { get; set; }
@@ -214,6 +224,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public ExternalUserStatus ExternalUserStatus { get; set; }
 
         public string FullName { get; set; } = string.Empty;
+
+        public string? ProfilePhotoPath { get; set; }
+
+        public string? ProfilePhotoUrl { get; set; }
+
+        public string? ExternalUserPhotoPath { get; set; }
+
+        public string? ExternalUserPhotoUrl { get; set; }
 
         public string? CompanyName { get; set; }
 

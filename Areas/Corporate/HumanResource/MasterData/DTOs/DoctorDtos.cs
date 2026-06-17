@@ -50,6 +50,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public string? Email { get; set; }
 
+        public string? ProfilePhotoPath { get; set; }
+
+        public string? ProfilePhotoUrl { get; set; }
+
+        public string? DoctorPhotoPath { get; set; }
+
+        public string? DoctorPhotoUrl { get; set; }
+
         public Guid? CountryId { get; set; }
 
         public string? CountryName { get; set; }
@@ -180,6 +188,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public string? ProfilePhotoPath { get; set; }
 
+        public string? ProfilePhotoUrl { get; set; }
+
         public bool IsFingerprintRegistrationEnabled { get; set; }
 
         public string? FingerprintRegistrationReason { get; set; }
@@ -251,6 +261,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public string? SpecialistName { get; set; }
 
         public string? SubSpecialistName { get; set; }
+
+        public string? ProfilePhotoPath { get; set; }
+
+        public string? ProfilePhotoUrl { get; set; }
+
+        public string? DoctorPhotoPath { get; set; }
+
+        public string? DoctorPhotoUrl { get; set; }
 
         public Guid? PrimaryDepartmentId { get; set; }
 
@@ -543,7 +561,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public DateTime? CredentialingDate { get; set; }
 
-        public bool IsAvailableForAppointment { get; set; } = true;        
+        public bool IsAvailableForAppointment { get; set; } = true;
     }
 
     public class UpdateDoctorUserFingerprintRegistrationRequest
@@ -680,6 +698,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
 
         public string FullName { get; set; } = string.Empty;
 
+        public string? ProfilePhotoPath { get; set; }
+
+        public string? ProfilePhotoUrl { get; set; }
+
+        public string? DoctorPhotoPath { get; set; }
+
+        public string? DoctorPhotoUrl { get; set; }
+
         public bool IsAvailableForAppointment { get; set; }
 
         public bool IsActive { get; set; }
@@ -708,6 +734,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.DTOs
         public bool MustChangePassword { get; set; }
 
         public string? ProfilePhotoPath { get; set; }
+
+        public string? ProfilePhotoUrl { get; set; }
 
         public string Message { get; set; } = string.Empty;
 

@@ -455,6 +455,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
 
             var totalData = await query.CountAsync();
+            var defaultDoctorProfilePhotoPath = GetDefaultDoctorProfilePhotoPath();
 
             var items = await ApplyDoctorSorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
@@ -472,6 +473,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     PhoneNumber = x.PhoneNumber,
                     WhatsAppNumber = x.WhatsAppNumber,
                     Email = x.Email,
+                    ProfilePhotoPath = _dbContext.Users
+                        .Where(u =>
+                            u.DoctorId == x.Id &&
+                            (u.UserType == UserType.PermanentDoctor || u.UserType == UserType.GuestDoctor))
+                        .OrderByDescending(u => u.IsActive)
+                        .ThenByDescending(u => u.UpdateDateTime ?? u.CreateDateTime)
+                        .Select(u => u.ProfilePhotoPath)
+                        .FirstOrDefault() ?? defaultDoctorProfilePhotoPath,
 
                     CountryId = x.CountryId,
                     CountryName = x.Country != null ? x.Country.CountryName : null,
@@ -522,6 +531,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                         .FirstOrDefault()
                 })
                 .ToListAsync();
+
+            foreach (var item in items)
+            {
+                EnrichDoctorPhotoFields(item);
+            }
 
             var result = new ResponseDoctorPagedResult
             {
@@ -617,6 +631,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
 
             var totalData = await query.CountAsync();
+            var defaultDoctorProfilePhotoPath = GetDefaultDoctorProfilePhotoPath();
 
             var items = await query
                 .OrderBy(x => x.FullName)
@@ -633,6 +648,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     FullName = x.FullName,
                     SpecialistName = x.SpecialistName,
                     SubSpecialistName = x.SubSpecialistName,
+                    ProfilePhotoPath = _dbContext.Users
+                        .Where(u =>
+                            u.DoctorId == x.Id &&
+                            (u.UserType == UserType.PermanentDoctor || u.UserType == UserType.GuestDoctor))
+                        .OrderByDescending(u => u.IsActive)
+                        .ThenByDescending(u => u.UpdateDateTime ?? u.CreateDateTime)
+                        .Select(u => u.ProfilePhotoPath)
+                        .FirstOrDefault() ?? defaultDoctorProfilePhotoPath,
                     PrimaryDepartmentId = x.PrimaryDepartmentId,
                     PrimaryDepartmentName = x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentName : string.Empty,
                     PrimaryPositionId = x.PrimaryPositionId,
@@ -640,6 +663,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     IsAvailableForAppointment = x.IsAvailableForAppointment
                 })
                 .ToListAsync();
+
+            foreach (var item in items)
+            {
+                EnrichDoctorPhotoFields(item);
+            }
 
             var result = new PagedResult<DoctorOptionResponse>
             {
@@ -669,6 +697,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [AccessPermission("Doctor", "Read")]
         public async Task<IActionResult> GetDoctorById(Guid id)
         {
+            var defaultDoctorProfilePhotoPath = GetDefaultDoctorProfilePhotoPath();
+
             var data = await _dbContext.Set<MstDoctor>()
                 .AsNoTracking()
                 .Where(x => x.Id == id && !x.IsDelete)
@@ -693,6 +723,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     WhatsAppNumber = x.WhatsAppNumber,
                     Email = x.Email,
                     Address = x.Address,
+                    ProfilePhotoPath = _dbContext.Users
+                        .Where(u =>
+                            u.DoctorId == x.Id &&
+                            (u.UserType == UserType.PermanentDoctor || u.UserType == UserType.GuestDoctor))
+                        .OrderByDescending(u => u.IsActive)
+                        .ThenByDescending(u => u.UpdateDateTime ?? u.CreateDateTime)
+                        .Select(u => u.ProfilePhotoPath)
+                        .FirstOrDefault() ?? defaultDoctorProfilePhotoPath,
 
                     CountryId = x.CountryId,
                     CountryName = x.Country != null ? x.Country.CountryName : null,
@@ -745,9 +783,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                         u.UserCode)
                     .FirstOrDefault(),
 
-                                    UpdateDateTime = x.UpdateDateTime,
-                                    UpdateBy = x.UpdateBy,
-                                    UpdateByName = _dbContext.Users
+                    UpdateDateTime = x.UpdateDateTime,
+                    UpdateBy = x.UpdateBy,
+                    UpdateByName = _dbContext.Users
                     .Where(u => u.Id == x.UpdateBy)
                     .Select(u =>
                         u.DisplayName ??
@@ -765,6 +803,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     "Doctor tidak ditemukan."
                 ));
             }
+
+            EnrichDoctorPhotoFields(data);
 
             data.UserAccount = await BuildDoctorUserAccountCompactResponseAsync(id);
             data.ChildSummary = await BuildDoctorChildSummaryAsync(id);
@@ -981,7 +1021,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                         doctor: entity,
                         userType: request.DoctorUserType,
                         isFingerprintRegistrationEnabled: request.IsFingerprintRegistrationEnabled,
-                        fingerprintRegistrationReason: request.FingerprintRegistrationReason,                        
+                        fingerprintRegistrationReason: request.FingerprintRegistrationReason,
                         actorUserId: actorUserId
                     );
 
@@ -1023,10 +1063,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     DoctorCode = entity.DoctorCode,
                     DoctorNumber = entity.DoctorNumber,
                     FullName = entity.FullName,
+                    ProfilePhotoPath = loginAccount?.ProfilePhotoPath ?? GetDefaultDoctorProfilePhotoPath(),
                     IsAvailableForAppointment = entity.IsAvailableForAppointment,
                     IsActive = entity.IsActive,
                     LoginAccount = loginAccount
                 };
+
+                EnrichDoctorPhotoFields(response);
 
                 await _loggerService.InfoAsync(
                     LogCategory,
@@ -1819,7 +1862,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 })
                 .FirstOrDefaultAsync();
 
-            return user ?? new DoctorUserAccountCompactResponse
+            if (user != null)
+            {
+                user.ProfilePhotoPath = ResolveDoctorProfilePhotoPath(user.ProfilePhotoPath);
+                user.ProfilePhotoUrl = BuildPublicFileUrl(user.ProfilePhotoPath);
+
+                return user;
+            }
+
+            return new DoctorUserAccountCompactResponse
             {
                 IsAvailable = false,
                 IsActive = false,
@@ -3256,6 +3307,83 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 : configuredPath.Trim();
         }
 
+        private string ResolveDoctorProfilePhotoPath(string? profilePhotoPath)
+        {
+            return string.IsNullOrWhiteSpace(profilePhotoPath)
+                ? GetDefaultDoctorProfilePhotoPath()
+                : profilePhotoPath.Trim();
+        }
+
+        private string? BuildPublicFileUrl(string? filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return null;
+            }
+
+            var normalizedPath = filePath.Trim();
+
+            if (normalizedPath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                normalizedPath.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                normalizedPath.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                return normalizedPath;
+            }
+
+            if (!normalizedPath.StartsWith('/'))
+            {
+                normalizedPath = "/" + normalizedPath;
+            }
+
+            var configuredBaseUrl =
+                _configuration["FileStorage:PublicBaseUrl"] ??
+                _configuration["FileStorage:BaseUrl"] ??
+                _configuration["App:PublicBaseUrl"] ??
+                _configuration["AppSettings:PublicBaseUrl"];
+
+            var requestBaseUrl = Request?.Host.HasValue == true
+                ? $"{Request.Scheme}://{Request.Host.Value}"
+                : string.Empty;
+
+            var baseUrl = string.IsNullOrWhiteSpace(configuredBaseUrl)
+                ? requestBaseUrl
+                : configuredBaseUrl.Trim();
+
+            return string.IsNullOrWhiteSpace(baseUrl)
+                ? normalizedPath
+                : baseUrl.TrimEnd('/') + normalizedPath;
+        }
+
+        private void EnrichDoctorPhotoFields(DoctorResponse response)
+        {
+            response.ProfilePhotoPath = ResolveDoctorProfilePhotoPath(response.ProfilePhotoPath);
+            response.ProfilePhotoUrl = BuildPublicFileUrl(response.ProfilePhotoPath);
+            response.DoctorPhotoPath = response.ProfilePhotoPath;
+            response.DoctorPhotoUrl = response.ProfilePhotoUrl;
+        }
+
+        private void EnrichDoctorPhotoFields(DoctorOptionResponse response)
+        {
+            response.ProfilePhotoPath = ResolveDoctorProfilePhotoPath(response.ProfilePhotoPath);
+            response.ProfilePhotoUrl = BuildPublicFileUrl(response.ProfilePhotoPath);
+            response.DoctorPhotoPath = response.ProfilePhotoPath;
+            response.DoctorPhotoUrl = response.ProfilePhotoUrl;
+        }
+
+        private void EnrichDoctorPhotoFields(DoctorCreateResponse response)
+        {
+            response.ProfilePhotoPath = ResolveDoctorProfilePhotoPath(response.ProfilePhotoPath);
+            response.ProfilePhotoUrl = BuildPublicFileUrl(response.ProfilePhotoPath);
+            response.DoctorPhotoPath = response.ProfilePhotoPath;
+            response.DoctorPhotoUrl = response.ProfilePhotoUrl;
+
+            if (response.LoginAccount != null)
+            {
+                response.LoginAccount.ProfilePhotoPath = ResolveDoctorProfilePhotoPath(response.LoginAccount.ProfilePhotoPath);
+                response.LoginAccount.ProfilePhotoUrl = BuildPublicFileUrl(response.LoginAccount.ProfilePhotoPath);
+            }
+        }
+
         private sealed class DateRangeResolveResult
         {
             public bool IsValid { get; private set; }
@@ -3403,6 +3531,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 InitialPassword = initialPassword,
                 MustChangePassword = user.MustChangePassword,
                 ProfilePhotoPath = user.ProfilePhotoPath,
+                ProfilePhotoUrl = BuildPublicFileUrl(user.ProfilePhotoPath),
                 IsFingerprintRegistrationEnabled = user.IsFingerprintRegistrationEnabled,
                 FingerprintRegistrationReason = user.FingerprintRegistrationReason,
                 FingerprintRegistrationEnabledAt = user.FingerprintRegistrationEnabledAt,

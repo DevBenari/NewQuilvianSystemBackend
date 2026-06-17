@@ -334,7 +334,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     "MonthlyAndNightShift",
                     "Manual"
                 },
-                        TransportTransactionStatuses = new List<string>
+                TransportTransactionStatuses = new List<string>
                 {
                     "Draft",
                     "Calculated",
@@ -342,7 +342,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     "PostedToPayroll",
                     "Cancelled"
                 },
-                        TransportAllowanceTypes = new List<string>
+                TransportAllowanceTypes = new List<string>
                 {
                     "Regular",
                     "Monthly",
@@ -510,6 +510,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
 
             var totalData = await query.CountAsync();
+            var defaultEmployeeProfilePhotoPath = GetDefaultUserProfilePhotoPath();
 
             var items = await ApplyEmployeeSorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
@@ -526,6 +527,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     PhoneNumber = x.PhoneNumber,
                     WhatsAppNumber = x.WhatsAppNumber,
                     Email = x.Email,
+                    ProfilePhotoPath = _dbContext.Users
+                        .Where(u =>
+                            u.EmployeeId == x.Id &&
+                            u.UserType == UserType.Employee)
+                        .OrderByDescending(u => u.IsActive)
+                        .ThenByDescending(u => u.UpdateDateTime ?? u.CreateDateTime)
+                        .Select(u => u.ProfilePhotoPath)
+                        .FirstOrDefault() ?? defaultEmployeeProfilePhotoPath,
 
                     CountryId = x.CountryId,
                     CountryName = x.Country != null ? x.Country.CountryName : null,
@@ -577,6 +586,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                         : null
                 })
                 .ToListAsync();
+
+            foreach (var item in items)
+            {
+                EnrichEmployeePhotoFields(item);
+            }
 
             var result = new ResponseEmployeePagedResult
             {
@@ -670,6 +684,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             }
 
             var totalData = await query.CountAsync();
+            var defaultEmployeeProfilePhotoPath = GetDefaultUserProfilePhotoPath();
 
             var items = await query
                 .OrderBy(x => x.FullName)
@@ -682,12 +697,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     EmployeeCode = x.EmployeeCode,
                     EmployeeNumber = x.EmployeeNumber,
                     FullName = x.FullName,
+                    ProfilePhotoPath = _dbContext.Users
+                        .Where(u =>
+                            u.EmployeeId == x.Id &&
+                            u.UserType == UserType.Employee)
+                        .OrderByDescending(u => u.IsActive)
+                        .ThenByDescending(u => u.UpdateDateTime ?? u.CreateDateTime)
+                        .Select(u => u.ProfilePhotoPath)
+                        .FirstOrDefault() ?? defaultEmployeeProfilePhotoPath,
                     PrimaryDepartmentId = x.PrimaryDepartmentId,
                     PrimaryDepartmentName = x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentName : string.Empty,
                     PrimaryPositionId = x.PrimaryPositionId,
                     PrimaryPositionName = x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : string.Empty
                 })
                 .ToListAsync();
+
+            foreach (var item in items)
+            {
+                EnrichEmployeePhotoFields(item);
+            }
 
             var result = new PagedResult<EmployeeOptionResponse>
             {
@@ -717,6 +745,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         [AccessPermission("Employee", "Read")]
         public async Task<IActionResult> GetEmployeeById(Guid id)
         {
+            var defaultEmployeeProfilePhotoPath = GetDefaultUserProfilePhotoPath();
+
             var data = await _dbContext.Set<MstEmployee>()
                 .AsNoTracking()
                 .Where(x => x.Id == id && !x.IsDelete)
@@ -739,6 +769,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                     PhoneNumber = x.PhoneNumber,
                     WhatsAppNumber = x.WhatsAppNumber,
                     Email = x.Email,
+                    ProfilePhotoPath = _dbContext.Users
+                        .Where(u =>
+                            u.EmployeeId == x.Id &&
+                            u.UserType == UserType.Employee)
+                        .OrderByDescending(u => u.IsActive)
+                        .ThenByDescending(u => u.UpdateDateTime ?? u.CreateDateTime)
+                        .Select(u => u.ProfilePhotoPath)
+                        .FirstOrDefault() ?? defaultEmployeeProfilePhotoPath,
                     Address = x.Address,
 
                     CountryId = x.CountryId,
@@ -797,9 +835,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                             .FirstOrDefault()
                         : null,
 
-                                        UpdateDateTime = x.UpdateDateTime,
-                                        UpdateBy = x.UpdateBy != Guid.Empty ? x.UpdateBy : null,
-                                        UpdateByName = x.UpdateBy != Guid.Empty
+                    UpdateDateTime = x.UpdateDateTime,
+                    UpdateBy = x.UpdateBy != Guid.Empty ? x.UpdateBy : null,
+                    UpdateByName = x.UpdateBy != Guid.Empty
                         ? _dbContext.Users
                             .Where(u => u.Id == x.UpdateBy)
                             .Select(u =>
@@ -820,7 +858,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 ));
             }
 
+            EnrichEmployeePhotoFields(data);
             data.UserAccount = await BuildEmployeeUserAccountCompactResponseAsync(id);
+            EnrichEmployeeUserAccountPhotoFields(data.UserAccount);
             data.ChildSummary = await BuildEmployeeChildSummaryAsync(id);
 
             return Ok(ApiResponse<EmployeeDetailResponse>.Ok(
@@ -1667,7 +1707,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
                 })
                 .FirstOrDefaultAsync();
 
-            return user ?? new EmployeeUserAccountCompactResponse
+            if (user != null)
+            {
+                EnrichEmployeeUserAccountPhotoFields(user);
+                return user;
+            }
+
+            return new EmployeeUserAccountCompactResponse
             {
                 IsAvailable = false,
                 IsActive = false,
@@ -3285,6 +3331,81 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         private static string GenerateInitialPasswordFromBirthDate(DateTime birthDate)
         {
             return birthDate.ToString("ddMMMyyyy", CultureInfo.InvariantCulture);
+        }
+
+
+        private string ResolveUserProfilePhotoPath(string? profilePhotoPath)
+        {
+            return string.IsNullOrWhiteSpace(profilePhotoPath)
+                ? GetDefaultUserProfilePhotoPath()
+                : profilePhotoPath.Trim();
+        }
+
+        private string? BuildPublicFileUrl(string? filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return null;
+            }
+
+            var normalizedPath = filePath.Trim();
+
+            if (normalizedPath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                normalizedPath.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                normalizedPath.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                return normalizedPath;
+            }
+
+            if (!normalizedPath.StartsWith('/'))
+            {
+                normalizedPath = "/" + normalizedPath;
+            }
+
+            var configuredBaseUrl =
+                _configuration["FileStorage:PublicBaseUrl"] ??
+                _configuration["FileStorage:BaseUrl"] ??
+                _configuration["App:PublicBaseUrl"] ??
+                _configuration["AppSettings:PublicBaseUrl"];
+
+            var requestBaseUrl = Request?.Host.HasValue == true
+                ? $"{Request.Scheme}://{Request.Host.Value}"
+                : string.Empty;
+
+            var baseUrl = string.IsNullOrWhiteSpace(configuredBaseUrl)
+                ? requestBaseUrl
+                : configuredBaseUrl.Trim();
+
+            return string.IsNullOrWhiteSpace(baseUrl)
+                ? normalizedPath
+                : baseUrl.TrimEnd('/') + normalizedPath;
+        }
+
+        private void EnrichEmployeePhotoFields(EmployeeResponse response)
+        {
+            response.ProfilePhotoPath = ResolveUserProfilePhotoPath(response.ProfilePhotoPath);
+            response.ProfilePhotoUrl = BuildPublicFileUrl(response.ProfilePhotoPath);
+            response.EmployeePhotoPath = response.ProfilePhotoPath;
+            response.EmployeePhotoUrl = response.ProfilePhotoUrl;
+        }
+
+        private void EnrichEmployeePhotoFields(EmployeeOptionResponse response)
+        {
+            response.ProfilePhotoPath = ResolveUserProfilePhotoPath(response.ProfilePhotoPath);
+            response.ProfilePhotoUrl = BuildPublicFileUrl(response.ProfilePhotoPath);
+            response.EmployeePhotoPath = response.ProfilePhotoPath;
+            response.EmployeePhotoUrl = response.ProfilePhotoUrl;
+        }
+
+        private void EnrichEmployeeUserAccountPhotoFields(EmployeeUserAccountCompactResponse? response)
+        {
+            if (response == null)
+            {
+                return;
+            }
+
+            response.ProfilePhotoPath = ResolveUserProfilePhotoPath(response.ProfilePhotoPath);
+            response.ProfilePhotoUrl = BuildPublicFileUrl(response.ProfilePhotoPath);
         }
 
         private static (bool IsValid, string? ErrorMessage) ValidateRequiredEmployeeRequest(CreateEmployeeRequest request)
