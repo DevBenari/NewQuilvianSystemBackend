@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
@@ -36,22 +37,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         private const string LogCategory = "HealthServices.MasterData";
         private const string KioskReadPolicy = "KioskRead";
         private const string ScheduleCodePrefix = "DSCH-RSMMC-";
+        private const string DefaultDoctorProfilePhotoPathFallback = "/uploads/default-profile-photos/dokter.png";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly IConfiguration _configuration;
 
         public DoctorScheduleController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            IConfiguration configuration)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _configuration = configuration;
         }
 
         [HttpGet("filters/metadata")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]        
+        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new DoctorScheduleFilterMetadataResponse
@@ -139,7 +144,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpGet]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponseDoctorSchedulePagedResult>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]        
+        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
         public async Task<IActionResult> GetDoctorSchedules(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -173,6 +178,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 .Select(ToResponse)
                 .ToList();
 
+            await EnrichDoctorSchedulePhotoFieldsAsync(items);
+
             var result = new ResponseDoctorSchedulePagedResult
             {
                 PageNumber = pageNumber,
@@ -191,7 +198,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpGet("options")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleOptionPagedResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data pilihan doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]        
+        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data pilihan doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
         public async Task<IActionResult> GetDoctorScheduleOptions(
             [FromQuery] Guid? doctorId,
             [FromQuery] Guid? clinicId,
@@ -262,6 +269,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 })
                 .ToListAsync();
 
+            await EnrichDoctorScheduleOptionPhotoFieldsAsync(items);
+
             var result = new DoctorScheduleOptionPagedResponse
             {
                 PageNumber = pageNumber,
@@ -296,6 +305,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }
 
             var data = ToDetailResponse(entity);
+            await EnrichDoctorSchedulePhotoFieldAsync(data);
 
             return Ok(ApiResponse<DoctorScheduleDetailResponse>.Ok(
                 data,
@@ -1238,6 +1248,155 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 : value.Trim();
         }
 
+
+        private string GetDefaultDoctorProfilePhotoPath()
+        {
+            var configuredPath = _configuration["FileStorage:DefaultDoctorProfilePhotoPath"];
+
+            return string.IsNullOrWhiteSpace(configuredPath)
+                ? DefaultDoctorProfilePhotoPathFallback
+                : configuredPath.Trim();
+        }
+
+        private string ResolveDoctorProfilePhotoPath(string? profilePhotoPath)
+        {
+            return string.IsNullOrWhiteSpace(profilePhotoPath)
+                ? GetDefaultDoctorProfilePhotoPath()
+                : profilePhotoPath.Trim();
+        }
+
+        private string? BuildPublicFileUrl(string? filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return null;
+            }
+
+            var normalizedPath = filePath.Trim();
+
+            if (normalizedPath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                normalizedPath.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                normalizedPath.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                return normalizedPath;
+            }
+
+            if (!normalizedPath.StartsWith('/'))
+            {
+                normalizedPath = "/" + normalizedPath;
+            }
+
+            var configuredBaseUrl =
+                _configuration["FileStorage:PublicBaseUrl"] ??
+                _configuration["FileStorage:BaseUrl"] ??
+                _configuration["App:PublicBaseUrl"] ??
+                _configuration["AppSettings:PublicBaseUrl"];
+
+            var requestBaseUrl = Request?.Host.HasValue == true
+                ? $"{Request.Scheme}://{Request.Host.Value}"
+                : string.Empty;
+
+            var baseUrl = string.IsNullOrWhiteSpace(configuredBaseUrl)
+                ? requestBaseUrl
+                : configuredBaseUrl.Trim();
+
+            return string.IsNullOrWhiteSpace(baseUrl)
+                ? normalizedPath
+                : baseUrl.TrimEnd('/') + normalizedPath;
+        }
+
+        private async Task<Dictionary<Guid, string>> GetDoctorProfilePhotoPathMapAsync(IEnumerable<Guid> doctorIds)
+        {
+            var normalizedDoctorIds = doctorIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (normalizedDoctorIds.Count == 0)
+            {
+                return new Dictionary<Guid, string>();
+            }
+
+            var userPhotoRows = await _dbContext.Users
+                .AsNoTracking()
+                .Where(u =>
+                    u.DoctorId.HasValue &&
+                    normalizedDoctorIds.Contains(u.DoctorId.Value))
+                .OrderByDescending(u => u.IsActive)
+                .ThenByDescending(u => u.UpdateDateTime ?? u.CreateDateTime)
+                .Select(u => new
+                {
+                    DoctorId = u.DoctorId!.Value,
+                    u.ProfilePhotoPath
+                })
+                .ToListAsync();
+
+            return userPhotoRows
+                .GroupBy(x => x.DoctorId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => ResolveDoctorProfilePhotoPath(
+                        group
+                            .Select(x => x.ProfilePhotoPath)
+                            .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))
+                    )
+                );
+        }
+
+        private async Task EnrichDoctorSchedulePhotoFieldsAsync(List<DoctorScheduleResponse> responses)
+        {
+            var photoMap = await GetDoctorProfilePhotoPathMapAsync(responses.Select(x => x.DoctorId));
+
+            foreach (var response in responses)
+            {
+                var photoPath = photoMap.TryGetValue(response.DoctorId, out var mappedPhotoPath)
+                    ? mappedPhotoPath
+                    : ResolveDoctorProfilePhotoPath(response.ProfilePhotoPath);
+
+                ApplyDoctorPhotoFields(response, photoPath);
+            }
+        }
+
+        private async Task EnrichDoctorSchedulePhotoFieldAsync(DoctorScheduleResponse response)
+        {
+            var photoMap = await GetDoctorProfilePhotoPathMapAsync(new[] { response.DoctorId });
+            var photoPath = photoMap.TryGetValue(response.DoctorId, out var mappedPhotoPath)
+                ? mappedPhotoPath
+                : ResolveDoctorProfilePhotoPath(response.ProfilePhotoPath);
+
+            ApplyDoctorPhotoFields(response, photoPath);
+        }
+
+        private async Task EnrichDoctorScheduleOptionPhotoFieldsAsync(List<DoctorScheduleOptionResponse> responses)
+        {
+            var photoMap = await GetDoctorProfilePhotoPathMapAsync(responses.Select(x => x.DoctorId));
+
+            foreach (var response in responses)
+            {
+                var photoPath = photoMap.TryGetValue(response.DoctorId, out var mappedPhotoPath)
+                    ? mappedPhotoPath
+                    : ResolveDoctorProfilePhotoPath(response.ProfilePhotoPath);
+
+                ApplyDoctorPhotoFields(response, photoPath);
+            }
+        }
+
+        private void ApplyDoctorPhotoFields(DoctorScheduleResponse response, string? photoPath)
+        {
+            response.ProfilePhotoPath = ResolveDoctorProfilePhotoPath(photoPath);
+            response.ProfilePhotoUrl = BuildPublicFileUrl(response.ProfilePhotoPath);
+            response.DoctorPhotoPath = response.ProfilePhotoPath;
+            response.DoctorPhotoUrl = response.ProfilePhotoUrl;
+        }
+
+        private void ApplyDoctorPhotoFields(DoctorScheduleOptionResponse response, string? photoPath)
+        {
+            response.ProfilePhotoPath = ResolveDoctorProfilePhotoPath(photoPath);
+            response.ProfilePhotoUrl = BuildPublicFileUrl(response.ProfilePhotoPath);
+            response.DoctorPhotoPath = response.ProfilePhotoPath;
+            response.DoctorPhotoUrl = response.ProfilePhotoUrl;
+        }
+
         private static List<DoctorScheduleQueryParameterResponse> BuildQueryParameters()
         {
             return new List<DoctorScheduleQueryParameterResponse>
@@ -1263,7 +1422,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "scheduleCode", Label = "Kode Jadwal", DataType = "text", Required = false, ReadOnly = true, DefaultValue = "Auto generated by system" },
                 new() { Name = "scheduleName", Label = "Nama Jadwal", DataType = "text", Required = true, ReadOnly = false },
                 new() { Name = "scheduleType", Label = "Tipe Jadwal", DataType = "enum", Required = true, ReadOnly = false, OptionsSource = "scheduleTypeOptions" },
-                new() { Name = "doctorId", Label = "Dokter", DataType = "guid", Required = true, ReadOnly = false, OptionsSource = "/api/v1/health-services/master-data/doctors/options" },
+                new() { Name = "doctorId", Label = "Dokter", DataType = "guid", Required = true, ReadOnly = false, OptionsSource = "/api/v1/corporate/human-resource/master-data/doctors/options" },
                 new() { Name = "serviceUnitId", Label = "Service Unit", DataType = "guid", Required = true, ReadOnly = false, OptionsSource = "/api/v1/health-services/master-data/service-units/options" },
                 new() { Name = "clinicId", Label = "Clinic", DataType = "guid", Required = true, ReadOnly = false, OptionsSource = "/api/v1/health-services/master-data/clinics/options" },
                 new() { Name = "roomId", Label = "Room", DataType = "guid", Required = false, ReadOnly = false, OptionsSource = "/api/v1/health-services/master-data/rooms/options" },
@@ -1284,7 +1443,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "isAllowKioskRegistration", Label = "Allow Kiosk Registration", DataType = "boolean", Required = false, ReadOnly = false },
                 new() { Name = "isTelemedicineAvailable", Label = "Telemedicine", DataType = "boolean", Required = false, ReadOnly = false },
                 new() { Name = "isSubstituteSchedule", Label = "Jadwal Pengganti", DataType = "boolean", Required = false, ReadOnly = false },
-                new() { Name = "substituteDoctorId", Label = "Dokter Pengganti", DataType = "guid", Required = false, ReadOnly = false, OptionsSource = "/api/v1/health-services/master-data/doctors/options" },
+                new() { Name = "substituteDoctorId", Label = "Dokter Pengganti", DataType = "guid", Required = false, ReadOnly = false, OptionsSource = "/api/v1/corporate/human-resource/master-data/doctors/options" },
                 new() { Name = "scheduleStatus", Label = "Status Jadwal", DataType = "enum", Required = true, ReadOnly = false, OptionsSource = "scheduleStatusOptions" },
                 new() { Name = "effectiveStartDate", Label = "Tanggal Mulai Efektif", DataType = "date", Required = false, ReadOnly = false },
                 new() { Name = "effectiveEndDate", Label = "Tanggal Akhir Efektif", DataType = "date", Required = false, ReadOnly = false },

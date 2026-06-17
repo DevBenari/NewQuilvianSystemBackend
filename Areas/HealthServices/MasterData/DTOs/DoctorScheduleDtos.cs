@@ -33,6 +33,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? SpecialistName { get; set; }
         public string? SubSpecialistName { get; set; }
         public string? MedicalStaffGroup { get; set; }
+        public string? ProfilePhotoPath { get; set; }
+        public string? ProfilePhotoUrl { get; set; }
+        public string? DoctorPhotoPath { get; set; }
+        public string? DoctorPhotoUrl { get; set; }
 
         public Guid ServiceUnitId { get; set; }
         public string ServiceUnitCode { get; set; } = string.Empty;
@@ -97,6 +101,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid DoctorId { get; set; }
         public string DoctorName { get; set; } = string.Empty;
         public string? SpecialistName { get; set; }
+        public string? ProfilePhotoPath { get; set; }
+        public string? ProfilePhotoUrl { get; set; }
+        public string? DoctorPhotoPath { get; set; }
+        public string? DoctorPhotoUrl { get; set; }
 
         public Guid ServiceUnitId { get; set; }
         public string ServiceUnitName { get; set; } = string.Empty;
