@@ -355,7 +355,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [MaxLength(500)]
         public string? PhotoPath { get; set; }
 
-        public bool IsMember { get; set; } = true;
+        public bool IsMember { get; set; } = false;
 
         public Guid? DefaultMembershipTierId { get; set; }
 
@@ -414,6 +414,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string MedicalRecordNumber { get; set; } = string.Empty;
 
         public string FullName { get; set; } = string.Empty;
+
+        public string? PhotoPath { get; set; }
 
         public PatientType PatientType { get; set; } = PatientType.General;
 

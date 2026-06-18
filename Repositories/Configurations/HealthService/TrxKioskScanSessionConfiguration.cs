@@ -65,10 +65,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasMaxLength(500);
 
             entity.Property(x => x.RawScanText)
-                .HasMaxLength(2000);
+                .HasMaxLength(12000);
 
             entity.Property(x => x.ParsedJson)
-                .HasMaxLength(2000);
+                .HasMaxLength(12000);
 
             entity.Property(x => x.FailureReason)
                 .HasMaxLength(250);

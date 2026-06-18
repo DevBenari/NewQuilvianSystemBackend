@@ -51,6 +51,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public string? IdentityNumber { get; set; }
 
+        public string? ScanImagePath { get; set; }
+
+        public string? ScanImageContentType { get; set; }
+
         public string? CardNumber { get; set; }
 
         public string? MemberNumber { get; set; }
@@ -243,10 +247,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public KioskScanSource ScanSource { get; set; } = KioskScanSource.Unknown;
 
-        [MaxLength(2000)]
+        [MaxLength(12000)]
         public string? RawScanText { get; set; }
 
-        [MaxLength(2000)]
+        [MaxLength(12000)]
         public string? ParsedJson { get; set; }
 
         [MaxLength(100)]
@@ -254,6 +258,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         [MaxLength(100)]
         public string? IdentityNumber { get; set; }
+
+        [MaxLength(500)]
+        public string? ScanImagePath { get; set; }
+
+        [MaxLength(100)]
+        public string? ScanImageContentType { get; set; }
 
         [MaxLength(100)]
         public string? CardNumber { get; set; }

@@ -19,20 +19,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/health-services/registration/queues")]
+    [Route("api/v1/health-services/registration-management/queues")]
     [AccessController(
-        moduleCode: "HEALTH_SERVICE_REGISTRATION",
-        moduleName: "Health Service Registration",
+        moduleCode: "HEALTH_SERVICE_REGISTRATION_MANAGEMENT",
+        moduleName: "Health Service Registration Management",
         displayName: "Queue",
         AreaName = "HealthServices",
         ControllerName = "Queue",
         Description = "Transaksi antrean pasien rawat jalan",
         SortOrder = 3
     )]
-    [Tags("Health Services / Registration / Queue")]
+    [Tags("Health Services / Registration Management / Queue")]
     public class QueueController : ControllerBase
     {
-        private const string LogCategory = "HealthServices.Registration";
+        private const string LogCategory = "HealthServices.RegistrationManagement";
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
 

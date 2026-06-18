@@ -416,6 +416,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     PatientCode = entity.PatientCode,
                     MedicalRecordNumber = entity.MedicalRecordNumber,
                     FullName = entity.FullName,
+                    PhotoPath = entity.PhotoPath,
                     PatientType = entity.PatientType,
                     PatientTypeName = BuildEnumLabel(entity.PatientType),
                     PatientStatus = entity.PatientStatus,

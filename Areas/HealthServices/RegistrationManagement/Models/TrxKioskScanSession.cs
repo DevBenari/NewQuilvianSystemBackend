@@ -32,6 +32,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         [MaxLength(100)]
         public string? IdentityNumber { get; set; }
 
+        [MaxLength(500)]
+        public string? ScanImagePath { get; set; }
+
+        [MaxLength(100)]
+        public string? ScanImageContentType { get; set; }
+
         [MaxLength(100)]
         public string? CardNumber { get; set; }
 
@@ -52,10 +58,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         [MaxLength(500)]
         public string? Address { get; set; }
 
-        [MaxLength(2000)]
+        [MaxLength(12000)]
         public string? RawScanText { get; set; }
 
-        [MaxLength(2000)]
+        [MaxLength(12000)]
         public string? ParsedJson { get; set; }
 
         [MaxLength(250)]

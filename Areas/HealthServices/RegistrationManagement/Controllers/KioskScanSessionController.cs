@@ -410,6 +410,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     Address = NormalizeNullableText(request.Address),
                     RawScanText = NormalizeNullableText(request.RawScanText),
                     ParsedJson = NormalizeNullableText(request.ParsedJson),
+                    ScanImagePath = NormalizeNullableText(request.ScanImagePath),
+                    ScanImageContentType = NormalizeNullableText(request.ScanImageContentType),
                     FailureReason = hasReadableIdentity
                         ? null
                         : NormalizeNullableText(request.FailureReason) ?? "Data identitas tidak terbaca.",
@@ -1118,6 +1120,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 KioskDeviceName = entity.KioskDevice?.DeviceName,
                 IdentityScannerProfileId = entity.IdentityScannerProfileId,
                 IdentityScannerProfileName = entity.IdentityScannerProfile?.ProfileName,
+                ScanImagePath = entity.ScanImagePath,
+                ScanImageContentType = entity.ScanImageContentType,
                 PatientId = entity.PatientId,
                 PatientCode = entity.Patient?.PatientCode,
                 MedicalRecordNumber = entity.Patient?.MedicalRecordNumber,
@@ -1157,6 +1161,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 KioskDeviceName = entity.KioskDevice?.DeviceName,
                 IdentityScannerProfileId = entity.IdentityScannerProfileId,
                 IdentityScannerProfileName = entity.IdentityScannerProfile?.ProfileName,
+                ScanImagePath = entity.ScanImagePath,
+                ScanImageContentType = entity.ScanImageContentType,
                 PatientId = entity.PatientId,
                 PatientCode = entity.Patient?.PatientCode,
                 MedicalRecordNumber = entity.Patient?.MedicalRecordNumber,
