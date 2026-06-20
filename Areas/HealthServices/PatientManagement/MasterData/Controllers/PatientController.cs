@@ -67,6 +67,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -75,7 +76,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Patient", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new PatientFilterMetadataResponse
@@ -238,6 +238,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("options")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -246,7 +247,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("Patient", "Read")]
         public async Task<IActionResult> GetPatientOptions(
             [FromQuery] bool onlyActive = true,
             [FromQuery] Guid? defaultMembershipTierId = null,
