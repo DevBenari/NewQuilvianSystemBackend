@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
@@ -13,6 +15,10 @@ using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using QRCoder;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Security.Claims;
 
 using ResponsePatientPagedResult =
@@ -40,16 +46,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private const string KioskReadPolicy = "KioskRead";
         private const string CodePrefix = "PAT-RSMMC-";
         private const int CodeNumberLength = 5;
+        private const string PatientQrCodeFolderName = "patient-qrcodes";
+        private const string DefaultPublicRequestPath = "/uploads";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly IWebHostEnvironment _environment;
+        private readonly IConfiguration _configuration;
 
         public PatientController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            IWebHostEnvironment environment,
+            IConfiguration configuration)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _environment = environment;
+            _configuration = configuration;
         }
 
         [HttpGet("filters/metadata")]
@@ -331,7 +345,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             Description = "Membuat data patient",
             AccessType = AccessTypes.Create,
             SortOrder = 2
-        )]        
+        )]
         public async Task<IActionResult> CreatePatient([FromBody] CreatePatientRequest request)
         {
             var validation = await ValidateRequestAsync(
@@ -353,6 +367,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             var actorUserId = GetCurrentUserId();
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            (string FilePath, string PhysicalPath)? savedQrCode = null;
 
             try
             {
@@ -407,17 +422,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     IsCancel = false
                 };
 
+                savedQrCode = SavePatientQrCodeFile(entity.MedicalRecordNumber);
+
                 _dbContext.Set<MstPatient>().Add(entity);
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                var result = new PatientCreateResponse
+                var result = new
                 {
                     Id = entity.Id,
                     PatientCode = entity.PatientCode,
                     MedicalRecordNumber = entity.MedicalRecordNumber,
                     FullName = entity.FullName,
                     PhotoPath = entity.PhotoPath,
+                    QrCodePath = savedQrCode?.FilePath,
+                    QrCodePayload = entity.MedicalRecordNumber,
                     PatientType = entity.PatientType,
                     PatientTypeName = BuildEnumLabel(entity.PatientType),
                     PatientStatus = entity.PatientStatus,
@@ -434,7 +453,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     result
                 );
 
-                return Ok(ApiResponse<PatientCreateResponse>.Ok(
+                return Ok(ApiResponse<object>.Ok(
                     result,
                     "Patient berhasil dibuat."
                 ));
@@ -442,6 +461,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
+                DeletePhysicalFileIfExists(savedQrCode?.PhysicalPath);
 
                 await _loggerService.ErrorAsync(
                     LogCategory,
@@ -703,6 +723,319 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 null,
                 "Patient berhasil dihapus."
             ));
+        }
+
+        private (string FilePath, string PhysicalPath) SavePatientQrCodeFile(string medicalRecordNumber)
+        {
+            if (string.IsNullOrWhiteSpace(medicalRecordNumber))
+            {
+                throw new InvalidOperationException("Nomor rekam medis tidak tersedia untuk membuat QR Code pasien.");
+            }
+
+            var storage = GetFileStoragePaths();
+            var qrFolderName = SanitizePathSegment(medicalRecordNumber);
+            var relativeFolder = Path.Combine(PatientQrCodeFolderName, qrFolderName);
+            var absoluteFolder = Path.Combine(storage.RootPath, relativeFolder);
+
+            Directory.CreateDirectory(absoluteFolder);
+
+            var fileName = "qrcode.png";
+            var physicalPath = Path.Combine(absoluteFolder, fileName);
+            var logoPath = ResolveQrLogoPath();
+            var qrPngBytes = GenerateQrCodePngBytes(medicalRecordNumber, logoPath);
+
+            System.IO.File.WriteAllBytes(physicalPath, qrPngBytes);
+
+            var publicPath = CombineUrlPath(
+                storage.PublicRequestPath,
+                relativeFolder.Replace("\\", "/"),
+                fileName
+            );
+
+            return (publicPath, physicalPath);
+        }
+
+        private static byte[] GenerateQrCodePngBytes(string payload, string? logoPath)
+        {
+            using var qrGenerator = new QRCodeGenerator();
+            using var qrCodeData = qrGenerator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.H);
+            using var qrCode = new PngByteQRCode(qrCodeData);
+            var qrCodeBytes = qrCode.GetGraphic(20);
+
+            if (string.IsNullOrWhiteSpace(logoPath) || !System.IO.File.Exists(logoPath))
+            {
+                return qrCodeBytes;
+            }
+
+            using var qrStream = new MemoryStream(qrCodeBytes);
+            using var qrBitmap = new Bitmap(qrStream);
+            using var writableQrBitmap = new Bitmap(
+                qrBitmap.Width,
+                qrBitmap.Height,
+                PixelFormat.Format32bppArgb
+            );
+
+            using (var graphics = Graphics.FromImage(writableQrBitmap))
+            {
+                graphics.Clear(Color.White);
+                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.SmoothingMode = SmoothingMode.HighQuality;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                graphics.DrawImage(qrBitmap, 0, 0, qrBitmap.Width, qrBitmap.Height);
+            }
+
+            using var logoBitmap = new Bitmap(logoPath);
+            using (var graphics = Graphics.FromImage(writableQrBitmap))
+            {
+                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.SmoothingMode = SmoothingMode.HighQuality;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                var logoSize = Math.Max(1, writableQrBitmap.Width / 5);
+                var logoPadding = Math.Max(8, logoSize / 8);
+                var backgroundSize = logoSize + (logoPadding * 2);
+                var x = (writableQrBitmap.Width - backgroundSize) / 2;
+                var y = (writableQrBitmap.Height - backgroundSize) / 2;
+
+                using var backgroundBrush = new SolidBrush(Color.White);
+                using var backgroundPath = BuildRoundedRectanglePath(
+                    new Rectangle(x, y, backgroundSize, backgroundSize),
+                    Math.Max(8, backgroundSize / 8)
+                );
+
+                graphics.FillPath(backgroundBrush, backgroundPath);
+
+                var logoRect = new Rectangle(
+                    x + logoPadding,
+                    y + logoPadding,
+                    logoSize,
+                    logoSize
+                );
+
+                graphics.DrawImage(logoBitmap, logoRect);
+            }
+
+            using var outputStream = new MemoryStream();
+            writableQrBitmap.Save(outputStream, ImageFormat.Png);
+            return outputStream.ToArray();
+        }
+
+        private static GraphicsPath BuildRoundedRectanglePath(Rectangle rectangle, int radius)
+        {
+            var path = new GraphicsPath();
+            var diameter = radius * 2;
+            var arc = new Rectangle(rectangle.Location, new Size(diameter, diameter));
+
+            path.AddArc(arc, 180, 90);
+
+            arc.X = rectangle.Right - diameter;
+            path.AddArc(arc, 270, 90);
+
+            arc.Y = rectangle.Bottom - diameter;
+            path.AddArc(arc, 0, 90);
+
+            arc.X = rectangle.Left;
+            path.AddArc(arc, 90, 90);
+
+            path.CloseFigure();
+            return path;
+        }
+
+        private string? ResolveQrLogoPath()
+        {
+            var configuredLogoPath = NormalizeNullableString(_configuration["PatientQrCode:LogoPath"]);
+            var storage = GetFileStoragePaths();
+
+            if (!string.IsNullOrWhiteSpace(configuredLogoPath))
+            {
+                var resolvedConfiguredLogoPath = ResolveConfiguredQrLogoPath(
+                    configuredLogoPath,
+                    storage.RootPath,
+                    storage.PublicRequestPath
+                );
+
+                if (!string.IsNullOrWhiteSpace(resolvedConfiguredLogoPath))
+                {
+                    return resolvedConfiguredLogoPath;
+                }
+            }
+
+            var webRootPath = _environment.WebRootPath;
+
+            if (string.IsNullOrWhiteSpace(webRootPath))
+            {
+                webRootPath = Path.Combine(_environment.ContentRootPath, "wwwroot");
+            }
+
+            var candidates = new[]
+            {
+                Path.Combine(storage.RootPath, "system-assets", "logo.png"),
+                Path.Combine(storage.RootPath, "system-assets", "logo_mmc.png"),
+                Path.Combine(webRootPath, "Images", "logo.png"),
+                Path.Combine(webRootPath, "images", "logo.png"),
+                Path.Combine(webRootPath, "Images", "logo_mmc.png"),
+                Path.Combine(webRootPath, "images", "logo_mmc.png")
+            };
+
+            return candidates.FirstOrDefault(System.IO.File.Exists);
+        }
+
+        private string? ResolveConfiguredQrLogoPath(
+    string configuredLogoPath,
+    string uploadRootPath,
+    string publicRequestPath)
+        {
+            var normalizedLogoPath = configuredLogoPath
+                .Replace("\\", "/")
+                .Trim();
+
+            if (Path.IsPathRooted(normalizedLogoPath) &&
+                System.IO.File.Exists(normalizedLogoPath))
+            {
+                return normalizedLogoPath;
+            }
+
+            var publicPrefix = publicRequestPath
+                .Replace("\\", "/")
+                .Trim();
+
+            if (!publicPrefix.StartsWith('/'))
+            {
+                publicPrefix = "/" + publicPrefix;
+            }
+
+            publicPrefix = publicPrefix.TrimEnd('/');
+
+            if (normalizedLogoPath.StartsWith(publicPrefix + "/", StringComparison.OrdinalIgnoreCase))
+            {
+                var relativeFromPublicPath = normalizedLogoPath[(publicPrefix.Length + 1)..];
+
+                var resolvedFromPublicPath = Path.Combine(
+                    uploadRootPath,
+                    relativeFromPublicPath.Replace("/", Path.DirectorySeparatorChar.ToString())
+                );
+
+                if (System.IO.File.Exists(resolvedFromPublicPath))
+                {
+                    return resolvedFromPublicPath;
+                }
+            }
+
+            var resolvedFromUploadRoot = Path.Combine(
+                uploadRootPath,
+                normalizedLogoPath
+                    .TrimStart('/')
+                    .Replace("/", Path.DirectorySeparatorChar.ToString())
+            );
+
+            if (System.IO.File.Exists(resolvedFromUploadRoot))
+            {
+                return resolvedFromUploadRoot;
+            }
+
+            var resolvedFromContentRoot = Path.Combine(
+                _environment.ContentRootPath,
+                normalizedLogoPath
+                    .TrimStart('/')
+                    .Replace("/", Path.DirectorySeparatorChar.ToString())
+            );
+
+            if (System.IO.File.Exists(resolvedFromContentRoot))
+            {
+                return resolvedFromContentRoot;
+            }
+
+            var webRootPath = _environment.WebRootPath;
+
+            if (string.IsNullOrWhiteSpace(webRootPath))
+            {
+                webRootPath = Path.Combine(_environment.ContentRootPath, "wwwroot");
+            }
+
+            var resolvedFromWebRoot = Path.Combine(
+                webRootPath,
+                normalizedLogoPath
+                    .TrimStart('/')
+                    .Replace("/", Path.DirectorySeparatorChar.ToString())
+            );
+
+            if (System.IO.File.Exists(resolvedFromWebRoot))
+            {
+                return resolvedFromWebRoot;
+            }
+
+            return null;
+        }
+
+        private (string RootPath, string PublicRequestPath) GetFileStoragePaths()
+        {
+            var publicRequestPath = _configuration["FileStorage:PublicRequestPath"] ?? DefaultPublicRequestPath;
+
+            if (!publicRequestPath.StartsWith('/'))
+            {
+                publicRequestPath = "/" + publicRequestPath;
+            }
+
+            publicRequestPath = publicRequestPath.TrimEnd('/');
+
+            var configuredRoot = _configuration["FileStorage:UploadRootPath"];
+
+            if (!string.IsNullOrWhiteSpace(configuredRoot))
+            {
+                Directory.CreateDirectory(configuredRoot);
+                return (configuredRoot, publicRequestPath);
+            }
+
+            var webRootPath = _environment.WebRootPath;
+
+            if (string.IsNullOrWhiteSpace(webRootPath))
+            {
+                webRootPath = Path.Combine(_environment.ContentRootPath, "wwwroot");
+            }
+
+            var rootPath = Path.Combine(webRootPath, publicRequestPath.TrimStart('/'));
+            Directory.CreateDirectory(rootPath);
+
+            return (rootPath, publicRequestPath);
+        }
+
+        private static string CombineUrlPath(params string[] segments)
+        {
+            return "/" + string.Join(
+                "/",
+                segments
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x.Replace("\\", "/").Trim('/'))
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+            );
+        }
+
+        private static string SanitizePathSegment(string value)
+        {
+            var sanitized = new string(value
+                .Trim()
+                .Select(ch => char.IsLetterOrDigit(ch) || ch == '-' || ch == '_' ? ch : '-')
+                .ToArray());
+
+            while (sanitized.Contains("--", StringComparison.Ordinal))
+            {
+                sanitized = sanitized.Replace("--", "-");
+            }
+
+            return sanitized.Trim('-');
+        }
+
+        private static void DeletePhysicalFileIfExists(string? physicalPath)
+        {
+            if (string.IsNullOrWhiteSpace(physicalPath))
+            {
+                return;
+            }
+
+            if (System.IO.File.Exists(physicalPath))
+            {
+                System.IO.File.Delete(physicalPath);
+            }
         }
 
         private IQueryable<MstPatient> BuildBaseQuery()
