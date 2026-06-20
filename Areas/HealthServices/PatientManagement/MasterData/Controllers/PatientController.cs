@@ -24,6 +24,8 @@ using System.Security.Claims;
 using ResponsePatientPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
         QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs.PatientResponse>;
+using System.Runtime.InteropServices;
+using System.Text.Json;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Controllers
 {
@@ -422,7 +424,64 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     IsCancel = false
                 };
 
-                savedQrCode = SavePatientQrCodeFile(entity.MedicalRecordNumber);
+                WriteDockerInfoLog(
+                     "PATIENT_CREATE_STEP",
+                     new
+                     {
+                         TraceId = HttpContext.TraceIdentifier,
+                         Step = "BeforeGenerateQrCode",
+                         entity.PatientCode,
+                         entity.MedicalRecordNumber,
+                         entity.FullName,
+                         ContentRootPath = _environment.ContentRootPath,
+                         WebRootPath = _environment.WebRootPath,
+                         CurrentDirectory = Directory.GetCurrentDirectory(),
+                         OS = RuntimeInformation.OSDescription,
+                         Framework = RuntimeInformation.FrameworkDescription
+                     }
+                 );
+
+                try
+                {
+                    savedQrCode = SavePatientQrCodeFile(
+                        entity.MedicalRecordNumber,
+                        HttpContext.TraceIdentifier
+                    );
+                }
+                catch (Exception qrEx)
+                {
+                    WriteDockerErrorLog(
+                        "PATIENT_CREATE_QR_ERROR",
+                        qrEx,
+                        new
+                        {
+                            TraceId = HttpContext.TraceIdentifier,
+                            entity.PatientCode,
+                            entity.MedicalRecordNumber,
+                            entity.FullName
+                        }
+                    );
+
+                    await _loggerService.ErrorAsync(
+                        LogCategory,
+                        "Patient.CreatePatient.GenerateQrCode",
+                        $"Gagal generate QR Code pasien. TraceId: {HttpContext.TraceIdentifier}, MRN: {entity.MedicalRecordNumber}",
+                        qrEx
+                    );
+
+                    throw;
+                }
+
+                WriteDockerInfoLog(
+                    "PATIENT_CREATE_STEP",
+                    new
+                    {
+                        TraceId = HttpContext.TraceIdentifier,
+                        Step = "AfterGenerateQrCode",
+                        QrCodePath = savedQrCode?.FilePath,
+                        QrPhysicalPath = savedQrCode?.PhysicalPath
+                    }
+                );
 
                 _dbContext.Set<MstPatient>().Add(entity);
                 await _dbContext.SaveChangesAsync();
@@ -460,13 +519,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                DeletePhysicalFileIfExists(savedQrCode?.PhysicalPath);
+                try
+                {
+                    await transaction.RollbackAsync();
+                }
+                catch (Exception rollbackEx)
+                {
+                    WriteDockerErrorLog(
+                        "PATIENT_CREATE_ROLLBACK_ERROR",
+                        rollbackEx,
+                        new
+                        {
+                            TraceId = HttpContext.TraceIdentifier
+                        }
+                    );
+                }
+
+                try
+                {
+                    DeletePhysicalFileIfExists(savedQrCode?.PhysicalPath);
+                }
+                catch (Exception deleteFileEx)
+                {
+                    WriteDockerErrorLog(
+                        "PATIENT_CREATE_DELETE_QR_ERROR",
+                        deleteFileEx,
+                        new
+                        {
+                            TraceId = HttpContext.TraceIdentifier,
+                            QrPhysicalPath = savedQrCode?.PhysicalPath
+                        }
+                    );
+                }
+
+                WriteDockerErrorLog(
+                    "PATIENT_CREATE_ERROR",
+                    ex,
+                    new
+                    {
+                        TraceId = HttpContext.TraceIdentifier,
+                        SavedQrCodePath = savedQrCode?.FilePath,
+                        SavedQrCodePhysicalPath = savedQrCode?.PhysicalPath,
+                        ContentRootPath = _environment.ContentRootPath,
+                        WebRootPath = _environment.WebRootPath,
+                        CurrentDirectory = Directory.GetCurrentDirectory(),
+                        OS = RuntimeInformation.OSDescription,
+                        Framework = RuntimeInformation.FrameworkDescription
+                    }
+                );
 
                 await _loggerService.ErrorAsync(
                     LogCategory,
                     "Patient.CreatePatient",
-                    "Gagal membuat data patient.",
+                    $"Gagal membuat data patient. TraceId: {HttpContext.TraceIdentifier}",
                     ex
                 );
 
@@ -474,7 +579,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     StatusCodes.Status500InternalServerError,
                     ApiResponse<object>.Fail(
                         StatusCodes.Status500InternalServerError,
-                        "Terjadi kesalahan saat membuat patient."
+                        $"Terjadi kesalahan saat membuat patient. TraceId: {HttpContext.TraceIdentifier}"
                     )
                 );
             }
@@ -725,99 +830,303 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
-        private (string FilePath, string PhysicalPath) SavePatientQrCodeFile(string medicalRecordNumber)
+        private (string FilePath, string PhysicalPath) SavePatientQrCodeFile(
+            string medicalRecordNumber,
+            string? traceId = null)
         {
-            if (string.IsNullOrWhiteSpace(medicalRecordNumber))
+            string step = "Start";
+            string? storageRootPath = null;
+            string? publicRequestPath = null;
+            string? qrFolderName = null;
+            string? relativeFolder = null;
+            string? absoluteFolder = null;
+            string? physicalPath = null;
+            string? logoPath = null;
+            int qrPngByteLength = 0;
+
+            try
             {
-                throw new InvalidOperationException("Nomor rekam medis tidak tersedia untuk membuat QR Code pasien.");
+                step = "ValidateMedicalRecordNumber";
+
+                if (string.IsNullOrWhiteSpace(medicalRecordNumber))
+                {
+                    throw new InvalidOperationException("Nomor rekam medis tidak tersedia untuk membuat QR Code pasien.");
+                }
+
+                step = "GetFileStoragePaths";
+                var storage = GetFileStoragePaths();
+
+                storageRootPath = storage.RootPath;
+                publicRequestPath = storage.PublicRequestPath;
+
+                qrFolderName = SanitizePathSegment(medicalRecordNumber);
+                relativeFolder = Path.Combine(PatientQrCodeFolderName, qrFolderName);
+                absoluteFolder = Path.Combine(storage.RootPath, relativeFolder);
+
+                WriteDockerInfoLog(
+                    "PATIENT_QR_STEP",
+                    new
+                    {
+                        TraceId = traceId,
+                        Step = step,
+                        MedicalRecordNumber = medicalRecordNumber,
+                        StorageRootPath = storageRootPath,
+                        PublicRequestPath = publicRequestPath,
+                        RelativeFolder = relativeFolder,
+                        AbsoluteFolder = absoluteFolder,
+                        ContentRootPath = _environment.ContentRootPath,
+                        WebRootPath = _environment.WebRootPath,
+                        CurrentDirectory = Directory.GetCurrentDirectory()
+                    }
+                );
+
+                step = "CreateQrDirectory";
+                Directory.CreateDirectory(absoluteFolder);
+
+                step = "EnsureQrDirectoryWritable";
+                EnsureDirectoryWritable(absoluteFolder);
+
+                var fileName = "qrcode.png";
+                physicalPath = Path.Combine(absoluteFolder, fileName);
+
+                step = "ResolveQrLogoPath";
+                logoPath = ResolveQrLogoPath();
+
+                WriteDockerInfoLog(
+                    "PATIENT_QR_STEP",
+                    new
+                    {
+                        TraceId = traceId,
+                        Step = step,
+                        LogoPath = logoPath,
+                        LogoExists = !string.IsNullOrWhiteSpace(logoPath) && System.IO.File.Exists(logoPath)
+                    }
+                );
+
+                step = "GenerateQrCodePngBytes";
+                var qrPngBytes = GenerateQrCodePngBytes(
+                    medicalRecordNumber,
+                    logoPath,
+                    traceId
+                );
+
+                qrPngByteLength = qrPngBytes.Length;
+
+                step = "WriteQrFile";
+                System.IO.File.WriteAllBytes(physicalPath, qrPngBytes);
+
+                step = "VerifyQrFileExists";
+
+                if (!System.IO.File.Exists(physicalPath))
+                {
+                    throw new IOException($"File QR Code tidak ditemukan setelah ditulis: {physicalPath}");
+                }
+
+                var publicPath = CombineUrlPath(
+                    storage.PublicRequestPath,
+                    relativeFolder.Replace("\\", "/"),
+                    fileName
+                );
+
+                WriteDockerInfoLog(
+                    "PATIENT_QR_STEP",
+                    new
+                    {
+                        TraceId = traceId,
+                        Step = "QrCodeSaved",
+                        PublicPath = publicPath,
+                        PhysicalPath = physicalPath,
+                        QrPngByteLength = qrPngByteLength
+                    }
+                );
+
+                return (publicPath, physicalPath);
             }
+            catch (Exception ex)
+            {
+                WriteDockerErrorLog(
+                    "PATIENT_QR_ERROR",
+                    ex,
+                    new
+                    {
+                        TraceId = traceId,
+                        Step = step,
+                        MedicalRecordNumber = medicalRecordNumber,
+                        StorageRootPath = storageRootPath,
+                        PublicRequestPath = publicRequestPath,
+                        QrFolderName = qrFolderName,
+                        RelativeFolder = relativeFolder,
+                        AbsoluteFolder = absoluteFolder,
+                        PhysicalPath = physicalPath,
+                        LogoPath = logoPath,
+                        LogoExists = !string.IsNullOrWhiteSpace(logoPath) && System.IO.File.Exists(logoPath),
+                        QrPngByteLength = qrPngByteLength,
+                        ContentRootPath = _environment.ContentRootPath,
+                        WebRootPath = _environment.WebRootPath,
+                        CurrentDirectory = Directory.GetCurrentDirectory(),
+                        OS = RuntimeInformation.OSDescription,
+                        Framework = RuntimeInformation.FrameworkDescription
+                    }
+                );
 
-            var storage = GetFileStoragePaths();
-            var qrFolderName = SanitizePathSegment(medicalRecordNumber);
-            var relativeFolder = Path.Combine(PatientQrCodeFolderName, qrFolderName);
-            var absoluteFolder = Path.Combine(storage.RootPath, relativeFolder);
-
-            Directory.CreateDirectory(absoluteFolder);
-
-            var fileName = "qrcode.png";
-            var physicalPath = Path.Combine(absoluteFolder, fileName);
-            var logoPath = ResolveQrLogoPath();
-            var qrPngBytes = GenerateQrCodePngBytes(medicalRecordNumber, logoPath);
-
-            System.IO.File.WriteAllBytes(physicalPath, qrPngBytes);
-
-            var publicPath = CombineUrlPath(
-                storage.PublicRequestPath,
-                relativeFolder.Replace("\\", "/"),
-                fileName
-            );
-
-            return (publicPath, physicalPath);
+                throw new InvalidOperationException(
+                    $"Gagal membuat file QR pasien pada step {step}. MRN: {medicalRecordNumber}",
+                    ex
+                );
+            }
         }
 
-        private static byte[] GenerateQrCodePngBytes(string payload, string? logoPath)
+        private static byte[] GenerateQrCodePngBytes(
+            string payload,
+            string? logoPath,
+            string? traceId = null)
         {
-            using var qrGenerator = new QRCodeGenerator();
-            using var qrCodeData = qrGenerator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.H);
-            using var qrCode = new PngByteQRCode(qrCodeData);
-            var qrCodeBytes = qrCode.GetGraphic(20);
+            string step = "Start";
 
-            if (string.IsNullOrWhiteSpace(logoPath) || !System.IO.File.Exists(logoPath))
+            try
             {
-                return qrCodeBytes;
-            }
+                step = "CreateQrGenerator";
 
-            using var qrStream = new MemoryStream(qrCodeBytes);
-            using var qrBitmap = new Bitmap(qrStream);
-            using var writableQrBitmap = new Bitmap(
-                qrBitmap.Width,
-                qrBitmap.Height,
-                PixelFormat.Format32bppArgb
-            );
+                using var qrGenerator = new QRCodeGenerator();
+                using var qrCodeData = qrGenerator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.H);
+                using var qrCode = new PngByteQRCode(qrCodeData);
 
-            using (var graphics = Graphics.FromImage(writableQrBitmap))
-            {
-                graphics.Clear(Color.White);
-                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                graphics.SmoothingMode = SmoothingMode.HighQuality;
-                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                graphics.DrawImage(qrBitmap, 0, 0, qrBitmap.Width, qrBitmap.Height);
-            }
+                step = "GeneratePlainQrBytes";
+                var qrCodeBytes = qrCode.GetGraphic(20);
 
-            using var logoBitmap = new Bitmap(logoPath);
-            using (var graphics = Graphics.FromImage(writableQrBitmap))
-            {
-                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                graphics.SmoothingMode = SmoothingMode.HighQuality;
-                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                step = "CheckLogoPath";
 
-                var logoSize = Math.Max(1, writableQrBitmap.Width / 5);
-                var logoPadding = Math.Max(8, logoSize / 8);
-                var backgroundSize = logoSize + (logoPadding * 2);
-                var x = (writableQrBitmap.Width - backgroundSize) / 2;
-                var y = (writableQrBitmap.Height - backgroundSize) / 2;
+                if (string.IsNullOrWhiteSpace(logoPath))
+                {
+                    WriteDockerInfoLog(
+                        "PATIENT_QR_GENERATE_STEP",
+                        new
+                        {
+                            TraceId = traceId,
+                            Step = step,
+                            Message = "LogoPath kosong. QR dibuat tanpa logo.",
+                            PlainQrByteLength = qrCodeBytes.Length
+                        }
+                    );
 
-                using var backgroundBrush = new SolidBrush(Color.White);
-                using var backgroundPath = BuildRoundedRectanglePath(
-                    new Rectangle(x, y, backgroundSize, backgroundSize),
-                    Math.Max(8, backgroundSize / 8)
+                    return qrCodeBytes;
+                }
+
+                if (!System.IO.File.Exists(logoPath))
+                {
+                    WriteDockerInfoLog(
+                        "PATIENT_QR_GENERATE_STEP",
+                        new
+                        {
+                            TraceId = traceId,
+                            Step = step,
+                            Message = "LogoPath tidak ditemukan. QR dibuat tanpa logo.",
+                            LogoPath = logoPath,
+                            PlainQrByteLength = qrCodeBytes.Length
+                        }
+                    );
+
+                    return qrCodeBytes;
+                }
+
+                WriteDockerInfoLog(
+                    "PATIENT_QR_GENERATE_STEP",
+                    new
+                    {
+                        TraceId = traceId,
+                        Step = "BeforeOverlayLogo",
+                        LogoPath = logoPath,
+                        LogoExists = true,
+                        LogoFileLength = new FileInfo(logoPath).Length,
+                        PlainQrByteLength = qrCodeBytes.Length,
+                        OS = RuntimeInformation.OSDescription,
+                        Framework = RuntimeInformation.FrameworkDescription
+                    }
                 );
 
-                graphics.FillPath(backgroundBrush, backgroundPath);
+                step = "LoadQrBitmap";
+                using var qrStream = new MemoryStream(qrCodeBytes);
+                using var qrBitmap = new Bitmap(qrStream);
 
-                var logoRect = new Rectangle(
-                    x + logoPadding,
-                    y + logoPadding,
-                    logoSize,
-                    logoSize
+                step = "CreateWritableQrBitmap";
+                using var writableQrBitmap = new Bitmap(
+                    qrBitmap.Width,
+                    qrBitmap.Height,
+                    PixelFormat.Format32bppArgb
                 );
 
-                graphics.DrawImage(logoBitmap, logoRect);
-            }
+                step = "DrawQrToWritableBitmap";
+                using (var graphics = Graphics.FromImage(writableQrBitmap))
+                {
+                    graphics.Clear(Color.White);
+                    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    graphics.SmoothingMode = SmoothingMode.HighQuality;
+                    graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    graphics.DrawImage(qrBitmap, 0, 0, qrBitmap.Width, qrBitmap.Height);
+                }
 
-            using var outputStream = new MemoryStream();
-            writableQrBitmap.Save(outputStream, ImageFormat.Png);
-            return outputStream.ToArray();
+                step = "LoadLogoBitmap";
+                using var logoBitmap = new Bitmap(logoPath);
+
+                step = "DrawLogoToQr";
+                using (var graphics = Graphics.FromImage(writableQrBitmap))
+                {
+                    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    graphics.SmoothingMode = SmoothingMode.HighQuality;
+                    graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                    var logoSize = Math.Max(1, writableQrBitmap.Width / 5);
+                    var logoPadding = Math.Max(8, logoSize / 8);
+                    var backgroundSize = logoSize + (logoPadding * 2);
+                    var x = (writableQrBitmap.Width - backgroundSize) / 2;
+                    var y = (writableQrBitmap.Height - backgroundSize) / 2;
+
+                    using var backgroundBrush = new SolidBrush(Color.White);
+                    using var backgroundPath = BuildRoundedRectanglePath(
+                        new Rectangle(x, y, backgroundSize, backgroundSize),
+                        Math.Max(8, backgroundSize / 8)
+                    );
+
+                    graphics.FillPath(backgroundBrush, backgroundPath);
+
+                    var logoRect = new Rectangle(
+                        x + logoPadding,
+                        y + logoPadding,
+                        logoSize,
+                        logoSize
+                    );
+
+                    graphics.DrawImage(logoBitmap, logoRect);
+                }
+
+                step = "SaveQrWithLogoToPng";
+                using var outputStream = new MemoryStream();
+                writableQrBitmap.Save(outputStream, ImageFormat.Png);
+
+                return outputStream.ToArray();
+            }
+            catch (Exception ex)
+            {
+                WriteDockerErrorLog(
+                    "PATIENT_QR_GENERATE_ERROR",
+                    ex,
+                    new
+                    {
+                        TraceId = traceId,
+                        Step = step,
+                        PayloadLength = payload?.Length ?? 0,
+                        LogoPath = logoPath,
+                        LogoExists = !string.IsNullOrWhiteSpace(logoPath) && System.IO.File.Exists(logoPath),
+                        OS = RuntimeInformation.OSDescription,
+                        Framework = RuntimeInformation.FrameworkDescription
+                    }
+                );
+
+                throw new InvalidOperationException(
+                    $"Gagal generate PNG QR Code pada step {step}.",
+                    ex
+                );
+            }
         }
 
         private static GraphicsPath BuildRoundedRectanglePath(Rectangle rectangle, int radius)
@@ -1035,6 +1344,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             if (System.IO.File.Exists(physicalPath))
             {
                 System.IO.File.Delete(physicalPath);
+            }
+        }
+
+        private static void EnsureDirectoryWritable(string directoryPath)
+        {
+            var probeFilePath = Path.Combine(
+                directoryPath,
+                $".write-test-{Guid.NewGuid():N}.tmp"
+            );
+
+            System.IO.File.WriteAllText(probeFilePath, "ok");
+            System.IO.File.Delete(probeFilePath);
+        }
+
+        private static void WriteDockerInfoLog(string marker, object? context = null)
+        {
+            try
+            {
+                Console.WriteLine($"===== {marker} =====");
+
+                if (context != null)
+                {
+                    Console.WriteLine(JsonSerializer.Serialize(context));
+                }
+
+                Console.WriteLine($"===== END {marker} =====");
+            }
+            catch
+            {
+                // Jangan sampai logging membuat proses utama gagal.
+            }
+        }
+
+        private static void WriteDockerErrorLog(
+            string marker,
+            Exception exception,
+            object? context = null)
+        {
+            try
+            {
+                Console.Error.WriteLine($"===== {marker} =====");
+
+                if (context != null)
+                {
+                    Console.Error.WriteLine(JsonSerializer.Serialize(context));
+                }
+
+                Console.Error.WriteLine(exception.ToString());
+                Console.Error.WriteLine($"===== END {marker} =====");
+            }
+            catch
+            {
+                // Jangan sampai logging membuat proses utama gagal.
             }
         }
 
