@@ -52,6 +52,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpGet("filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<KioskScanSessionFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -60,7 +61,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("KioskScanSession", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new KioskScanSessionFilterMetadataResponse
@@ -243,6 +243,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpGet("options")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<KioskScanSessionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -251,7 +252,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("KioskScanSession", "Read")]
         public async Task<IActionResult> GetSessionOptions(
             [FromQuery] bool onlyUsableForRegistration = false,
             [FromQuery] Guid? kioskDeviceId = null,
