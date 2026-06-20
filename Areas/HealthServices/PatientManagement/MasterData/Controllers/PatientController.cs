@@ -1919,10 +1919,72 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 .ToList();
         }
 
-        private static string BuildEnumLabel<TEnum>(TEnum value)
-            where TEnum : Enum
+        private static string BuildEnumLabel<TEnum>(TEnum value) where TEnum : Enum
         {
-            return SplitPascalCase(value.ToString());
+            return value switch
+            {
+                // Patient Type
+                PatientType.General => "Umum",
+                PatientType.Mother => "Ibu",
+                PatientType.Newborn => "Bayi Baru Lahir",
+                PatientType.Child => "Anak",
+                PatientType.Employee => "Karyawan",
+                PatientType.Corporate => "Perusahaan",
+                PatientType.Other => "Lainnya",
+
+                // Patient Status
+                PatientStatus.Active => "Aktif",
+                PatientStatus.Inactive => "Tidak Aktif",
+                PatientStatus.Deceased => "Meninggal",
+                PatientStatus.Blacklisted => "Daftar Hitam",
+                PatientStatus.Merged => "Digabung",
+
+                // Registration Source
+                PatientRegistrationSource.Unknown => "Tidak Diketahui",
+                PatientRegistrationSource.Kiosk => "Kiosk",
+                PatientRegistrationSource.OutpatientAdmission => "Pendaftaran Rawat Jalan",
+                PatientRegistrationSource.InpatientAdmission => "Pendaftaran Rawat Inap",
+                PatientRegistrationSource.EmergencyAdmission => "Pendaftaran IGD",
+                PatientRegistrationSource.Marketing => "Marketing",
+                PatientRegistrationSource.Migration => "Migrasi",
+                PatientRegistrationSource.Other => "Lainnya",
+
+                // Gender
+                Gender.Male => "Laki-laki",
+                Gender.Female => "Perempuan",
+
+                // Religion
+                Religion.Unknown => "Tidak Diketahui",
+                Religion.Islam => "Islam",
+                Religion.ProtestantChristian => "Kristen Protestan",
+                Religion.CatholicChristian => "Katolik",
+                Religion.Hindu => "Hindu",
+                Religion.Buddhist => "Buddha",
+                Religion.Confucian => "Konghucu",
+                Religion.Other => "Lainnya",
+
+                // Marital Status
+                MaritalStatus.Unknown => "Tidak Diketahui",
+                MaritalStatus.Single => "Belum Menikah",
+                MaritalStatus.Married => "Menikah",
+                MaritalStatus.Divorced => "Cerai Hidup",
+                MaritalStatus.Widowed => "Cerai Mati",
+                MaritalStatus.Separated => "Berpisah",
+
+                // Blood Type
+                BloodType.Unknown => "Tidak Diketahui",
+                BloodType.APositive => "A+",
+                BloodType.ANegative => "A-",
+                BloodType.BPositive => "B+",
+                BloodType.BNegative => "B-",
+                BloodType.ABPositive => "AB+",
+                BloodType.ABNegative => "AB-",
+                BloodType.OPositive => "O+",
+                BloodType.ONegative => "O-",
+                BloodType.NotDisclosed => "Tidak Diungkapkan",
+
+                _ => SplitPascalCase(value.ToString())
+            };
         }
 
         private static string SplitPascalCase(string value)
