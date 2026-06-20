@@ -32,6 +32,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
     public class PatientIdentityDocumentController : ControllerBase
     {
         private const string LogCategory = "HealthServices.PatientManagement.MasterData";
+        private const string KioskReadPolicy = "KioskRead";
 
         private static readonly List<string> CommonIdentityTypes = new()
         {
@@ -335,6 +336,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpPost]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientIdentityDocumentCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
@@ -344,7 +346,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Create,
             SortOrder = 2
         )]
-        [AccessPermission("PatientIdentityDocument", "Create")]
         public async Task<IActionResult> CreatePatientIdentityDocument(
             [FromBody] CreatePatientIdentityDocumentRequest request)
         {

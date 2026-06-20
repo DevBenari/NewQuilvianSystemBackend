@@ -39,6 +39,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     public class PatientEncounterController : ControllerBase
     {
         private const string LogCategory = "HealthServices.RegistrationManagement";
+        private const string KioskReadPolicy = "KioskRead";
         private const string EncounterCodePrefix = "ENC-RSMMC-";
         private const string EncounterGuarantorCodePrefix = "EGT-RSMMC-";
         private const int CodeNumberLength = 5;
@@ -281,10 +282,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien beserta penjamin", AccessType = AccessTypes.Create, SortOrder = 2)]
-        [AccessPermission("PatientEncounter", "Create")]
+        [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien beserta penjamin", AccessType = AccessTypes.Create, SortOrder = 2)]        
         public async Task<IActionResult> CreateEncounter([FromBody] PatientEncounterCreateRequest request)
         {
             var validation = await ValidateCreateRequestAsync(request);

@@ -36,6 +36,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     public class KioskScanSessionController : ControllerBase
     {
         private const string LogCategory = "HealthServices.RegistrationManagement";
+        private const string KioskReadPolicy = "KioskRead";
         private const string CodePrefix = "KSC-RSMMC-";
         private const int CodeNumberLength = 5;
 
@@ -348,6 +349,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("scan-result")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<KioskScanSessionCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
@@ -357,7 +359,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             AccessType = AccessTypes.Create,
             SortOrder = 2
         )]
-        [AccessPermission("KioskScanSession", "Create")]
         public async Task<IActionResult> CreateFromScanResult([FromBody] CreateKioskScanSessionRequest request)
         {
             var validation = await ValidateRequestAsync(request);

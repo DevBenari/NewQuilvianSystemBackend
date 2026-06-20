@@ -33,6 +33,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     public class QueueController : ControllerBase
     {
         private const string LogCategory = "HealthServices.RegistrationManagement";
+        private const string KioskReadPolicy = "KioskRead";
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
 
@@ -181,8 +182,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("{id:guid}/call-nurse")]
-        [AccessAction("Update", "Call Nurse Queue", Description = "Memanggil pasien untuk screening perawat", AccessType = AccessTypes.Update, SortOrder = 2)]
-        [AccessPermission("Queue", "Update")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [AccessAction("Update", "Call Nurse Queue", Description = "Memanggil pasien untuk screening perawat", AccessType = AccessTypes.Update, SortOrder = 2)]        
         public async Task<IActionResult> CallNurse(Guid id)
         {
             var queue = await GetQueueWithEncounterAsync(id);

@@ -33,6 +33,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
     public class PatientInsuranceController : ControllerBase
     {
         private const string LogCategory = "HealthServices.PatientManagement.MasterData";
+        private const string KioskReadPolicy = "KioskRead";
 
         private static readonly HashSet<string> AllowedHolderRelationships = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -346,6 +347,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpPost]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientInsuranceCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
@@ -355,7 +357,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Create,
             SortOrder = 2
         )]
-        [AccessPermission("PatientInsurance", "Create")]
         public async Task<IActionResult> CreatePatientInsurance(
             [FromBody] CreatePatientInsuranceRequest request)
         {

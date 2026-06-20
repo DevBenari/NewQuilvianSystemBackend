@@ -34,6 +34,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
     public class PatientMembershipController : ControllerBase
     {
         private const string LogCategory = "HealthServices.PatientManagement.MasterData";
+        private const string KioskReadPolicy = "KioskRead";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -315,6 +316,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpPost]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientMembershipCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
@@ -324,7 +326,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Create,
             SortOrder = 2
         )]
-        [AccessPermission("PatientMembership", "Create")]
         public async Task<IActionResult> CreatePatientMembership([FromBody] CreatePatientMembershipRequest request)
         {
             var validation = await ValidateRequestAsync(

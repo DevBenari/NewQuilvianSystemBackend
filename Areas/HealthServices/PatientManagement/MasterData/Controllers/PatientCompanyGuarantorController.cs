@@ -33,6 +33,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
     public class PatientCompanyGuarantorController : ControllerBase
     {
         private const string LogCategory = "HealthServices.PatientManagement.MasterData";
+        private const string KioskReadPolicy = "KioskRead";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -332,6 +333,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpPost]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
@@ -341,7 +343,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Create,
             SortOrder = 2
         )]
-        [AccessPermission("PatientCompanyGuarantor", "Create")]
         public async Task<IActionResult> CreatePatientCompanyGuarantor(
             [FromBody] CreatePatientCompanyGuarantorRequest request)
         {

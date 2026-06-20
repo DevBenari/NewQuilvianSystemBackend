@@ -37,6 +37,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
     public class PatientController : ControllerBase
     {
         private const string LogCategory = "HealthServices.PatientManagement.MasterData";
+        private const string KioskReadPolicy = "KioskRead";
         private const string CodePrefix = "PAT-RSMMC-";
         private const int CodeNumberLength = 5;
 
@@ -321,6 +322,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpPost]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
@@ -329,8 +331,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             Description = "Membuat data patient",
             AccessType = AccessTypes.Create,
             SortOrder = 2
-        )]
-        [AccessPermission("Patient", "Create")]
+        )]        
         public async Task<IActionResult> CreatePatient([FromBody] CreatePatientRequest request)
         {
             var validation = await ValidateRequestAsync(
