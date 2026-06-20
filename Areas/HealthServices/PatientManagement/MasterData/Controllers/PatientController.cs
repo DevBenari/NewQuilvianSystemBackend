@@ -16,9 +16,6 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using QRCoder;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
 using System.Security.Claims;
 
 using ResponsePatientPagedResult =
@@ -26,6 +23,10 @@ using ResponsePatientPagedResult =
         QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs.PatientResponse>;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats.Png;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Controllers
 {
@@ -977,9 +978,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         private static byte[] GenerateQrCodePngBytes(
-            string payload,
-            string? logoPath,
-            string? traceId = null)
+             string payload,
+             string? logoPath,
+             string? traceId = null)
         {
             string step = "Start";
 
@@ -1044,64 +1045,64 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     }
                 );
 
-                step = "LoadQrBitmap";
-                using var qrStream = new MemoryStream(qrCodeBytes);
-                using var qrBitmap = new Bitmap(qrStream);
+                step = "LoadQrImage";
+                using var qrImage = Image.Load<Rgba32>(qrCodeBytes);
 
-                step = "CreateWritableQrBitmap";
-                using var writableQrBitmap = new Bitmap(
-                    qrBitmap.Width,
-                    qrBitmap.Height,
-                    PixelFormat.Format32bppArgb
+                step = "LoadLogoImage";
+                using var originalLogoImage = Image.Load<Rgba32>(logoPath);
+
+                step = "PrepareLogoImage";
+
+                var logoSize = Math.Max(1, qrImage.Width / 5);
+                var logoPadding = Math.Max(8, logoSize / 8);
+                var backgroundSize = logoSize + (logoPadding * 2);
+
+                using var logoImage = originalLogoImage.Clone(ctx =>
+                    ctx.Resize(new ResizeOptions
+                    {
+                        Size = new SixLabors.ImageSharp.Size(logoSize, logoSize),
+                        Mode = ResizeMode.Max
+                    })
                 );
 
-                step = "DrawQrToWritableBitmap";
-                using (var graphics = Graphics.FromImage(writableQrBitmap))
+                step = "PrepareLogoCanvas";
+
+                using var logoCanvas = new Image<Rgba32>(
+                    backgroundSize,
+                    backgroundSize,
+                    SixLabors.ImageSharp.Color.White
+                );
+
+                var logoXInCanvas = (backgroundSize - logoImage.Width) / 2;
+                var logoYInCanvas = (backgroundSize - logoImage.Height) / 2;
+
+                logoCanvas.Mutate(ctx =>
                 {
-                    graphics.Clear(Color.White);
-                    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                    graphics.SmoothingMode = SmoothingMode.HighQuality;
-                    graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                    graphics.DrawImage(qrBitmap, 0, 0, qrBitmap.Width, qrBitmap.Height);
-                }
+                    ctx.DrawImage(
+                        logoImage,
+                        new SixLabors.ImageSharp.Point(logoXInCanvas, logoYInCanvas),
+                        1f
+                    );
+                });
 
-                step = "LoadLogoBitmap";
-                using var logoBitmap = new Bitmap(logoPath);
+                step = "DrawLogoCanvasToQr";
 
-                step = "DrawLogoToQr";
-                using (var graphics = Graphics.FromImage(writableQrBitmap))
+                var x = (qrImage.Width - backgroundSize) / 2;
+                var y = (qrImage.Height - backgroundSize) / 2;
+
+                qrImage.Mutate(ctx =>
                 {
-                    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                    graphics.SmoothingMode = SmoothingMode.HighQuality;
-                    graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-
-                    var logoSize = Math.Max(1, writableQrBitmap.Width / 5);
-                    var logoPadding = Math.Max(8, logoSize / 8);
-                    var backgroundSize = logoSize + (logoPadding * 2);
-                    var x = (writableQrBitmap.Width - backgroundSize) / 2;
-                    var y = (writableQrBitmap.Height - backgroundSize) / 2;
-
-                    using var backgroundBrush = new SolidBrush(Color.White);
-                    using var backgroundPath = BuildRoundedRectanglePath(
-                        new Rectangle(x, y, backgroundSize, backgroundSize),
-                        Math.Max(8, backgroundSize / 8)
+                    ctx.DrawImage(
+                        logoCanvas,
+                        new SixLabors.ImageSharp.Point(x, y),
+                        1f
                     );
-
-                    graphics.FillPath(backgroundBrush, backgroundPath);
-
-                    var logoRect = new Rectangle(
-                        x + logoPadding,
-                        y + logoPadding,
-                        logoSize,
-                        logoSize
-                    );
-
-                    graphics.DrawImage(logoBitmap, logoRect);
-                }
+                });
 
                 step = "SaveQrWithLogoToPng";
+
                 using var outputStream = new MemoryStream();
-                writableQrBitmap.Save(outputStream, ImageFormat.Png);
+                qrImage.Save(outputStream, new PngEncoder());
 
                 return outputStream.ToArray();
             }
@@ -1127,28 +1128,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     ex
                 );
             }
-        }
-
-        private static GraphicsPath BuildRoundedRectanglePath(Rectangle rectangle, int radius)
-        {
-            var path = new GraphicsPath();
-            var diameter = radius * 2;
-            var arc = new Rectangle(rectangle.Location, new Size(diameter, diameter));
-
-            path.AddArc(arc, 180, 90);
-
-            arc.X = rectangle.Right - diameter;
-            path.AddArc(arc, 270, 90);
-
-            arc.Y = rectangle.Bottom - diameter;
-            path.AddArc(arc, 0, 90);
-
-            arc.X = rectangle.Left;
-            path.AddArc(arc, 90, 90);
-
-            path.CloseFigure();
-            return path;
-        }
+        }        
 
         private string? ResolveQrLogoPath()
         {
