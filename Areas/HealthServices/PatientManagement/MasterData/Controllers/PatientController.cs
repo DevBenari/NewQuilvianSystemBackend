@@ -24,9 +24,14 @@ using ResponsePatientPagedResult =
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Formats.Png;
+
+using ImageSharpImage = SixLabors.ImageSharp.Image;
+using ImageSharpColor = SixLabors.ImageSharp.Color;
+using ImageSharpPoint = SixLabors.ImageSharp.Point;
+using ImageSharpSize = SixLabors.ImageSharp.Size;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Controllers
 {
@@ -496,7 +501,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     FullName = entity.FullName,
                     PhotoPath = entity.PhotoPath,
                     QrCodePath = savedQrCode?.FilePath,
-                    QrCodePayload = entity.MedicalRecordNumber,
+                    QrCodePayload = BuildPatientQrPayload(entity.MedicalRecordNumber),
                     PatientType = entity.PatientType,
                     PatientTypeName = BuildEnumLabel(entity.PatientType),
                     PatientStatus = entity.PatientStatus,
@@ -832,8 +837,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         private (string FilePath, string PhysicalPath) SavePatientQrCodeFile(
-            string medicalRecordNumber,
-            string? traceId = null)
+     string medicalRecordNumber,
+     string? traceId = null)
         {
             string step = "Start";
             string? storageRootPath = null;
@@ -843,6 +848,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             string? absoluteFolder = null;
             string? physicalPath = null;
             string? logoPath = null;
+            string? qrPayload = null;
             int qrPngByteLength = 0;
 
             try
@@ -904,9 +910,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     }
                 );
 
+                step = "BuildQrPayload";
+                qrPayload = BuildPatientQrPayload(medicalRecordNumber);
+
+                WriteDockerInfoLog(
+                    "PATIENT_QR_STEP",
+                    new
+                    {
+                        TraceId = traceId,
+                        Step = step,
+                        MedicalRecordNumber = medicalRecordNumber,
+                        QrPayload = qrPayload
+                    }
+                );
+
                 step = "GenerateQrCodePngBytes";
                 var qrPngBytes = GenerateQrCodePngBytes(
-                    medicalRecordNumber,
+                    qrPayload,
                     logoPath,
                     traceId
                 );
@@ -937,6 +957,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         Step = "QrCodeSaved",
                         PublicPath = publicPath,
                         PhysicalPath = physicalPath,
+                        QrPayload = qrPayload,
                         QrPngByteLength = qrPngByteLength
                     }
                 );
@@ -953,6 +974,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         TraceId = traceId,
                         Step = step,
                         MedicalRecordNumber = medicalRecordNumber,
+                        QrPayload = qrPayload,
                         StorageRootPath = storageRootPath,
                         PublicRequestPath = publicRequestPath,
                         QrFolderName = qrFolderName,
@@ -977,10 +999,60 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             }
         }
 
+        private static string BuildPatientQrPayload(string medicalRecordNumber)
+        {
+            if (string.IsNullOrWhiteSpace(medicalRecordNumber))
+            {
+                throw new InvalidOperationException("Nomor rekam medis tidak tersedia untuk payload QR.");
+            }
+
+            var rawNumber = NormalizeMedicalRecordNumberToRawDigits(medicalRecordNumber);
+
+            if (!string.IsNullOrWhiteSpace(rawNumber))
+            {
+                return FormatMedicalRecordNumber(rawNumber);
+            }
+
+            return medicalRecordNumber.Trim();
+        }
+
+        private async Task<string> GenerateMedicalRecordNumberAsync()
+        {
+            var existingNumbers = await _dbContext.Set<MstPatient>()
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(x => x.MedicalRecordNumber != null && x.MedicalRecordNumber != string.Empty)
+                .Select(x => x.MedicalRecordNumber)
+                .ToListAsync();
+
+            var usedNumbers = existingNumbers
+                .Select(NormalizeMedicalRecordNumberToRawDigits)
+                .Where(x => x != null)
+                .Select(x => int.Parse(x!))
+                .Where(x => x > 0)
+                .ToHashSet();
+
+            var nextNumber = 1;
+
+            while (usedNumbers.Contains(nextNumber))
+            {
+                nextNumber++;
+            }
+
+            if (nextNumber > 99999999)
+            {
+                throw new InvalidOperationException("Nomor rekam medis sudah mencapai batas maksimum 99-99-99-99.");
+            }
+
+            var rawNumber = nextNumber.ToString().PadLeft(8, '0');
+
+            return FormatMedicalRecordNumber(rawNumber);
+        }
+
         private static byte[] GenerateQrCodePngBytes(
-             string payload,
-             string? logoPath,
-             string? traceId = null)
+    string payload,
+    string? logoPath,
+    string? traceId = null)
         {
             string step = "Start";
 
@@ -1046,10 +1118,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 );
 
                 step = "LoadQrImage";
-                using var qrImage = Image.Load<Rgba32>(qrCodeBytes);
+                using var qrImage = ImageSharpImage.Load<Rgba32>(qrCodeBytes);
 
                 step = "LoadLogoImage";
-                using var originalLogoImage = Image.Load<Rgba32>(logoPath);
+                using var originalLogoImage = ImageSharpImage.Load<Rgba32>(logoPath);
 
                 step = "PrepareLogoImage";
 
@@ -1060,17 +1132,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 using var logoImage = originalLogoImage.Clone(ctx =>
                     ctx.Resize(new ResizeOptions
                     {
-                        Size = new SixLabors.ImageSharp.Size(logoSize, logoSize),
+                        Size = new ImageSharpSize(logoSize, logoSize),
                         Mode = ResizeMode.Max
                     })
                 );
 
                 step = "PrepareLogoCanvas";
 
-                using var logoCanvas = new Image<Rgba32>(
+                using var logoCanvas = new SixLabors.ImageSharp.Image<Rgba32>(
                     backgroundSize,
                     backgroundSize,
-                    SixLabors.ImageSharp.Color.White
+                    ImageSharpColor.White
                 );
 
                 var logoXInCanvas = (backgroundSize - logoImage.Width) / 2;
@@ -1080,7 +1152,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 {
                     ctx.DrawImage(
                         logoImage,
-                        new SixLabors.ImageSharp.Point(logoXInCanvas, logoYInCanvas),
+                        new ImageSharpPoint(logoXInCanvas, logoYInCanvas),
                         1f
                     );
                 });
@@ -1094,7 +1166,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 {
                     ctx.DrawImage(
                         logoCanvas,
-                        new SixLabors.ImageSharp.Point(x, y),
+                        new ImageSharpPoint(x, y),
                         1f
                     );
                 });
@@ -1115,6 +1187,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     {
                         TraceId = traceId,
                         Step = step,
+                        Payload = payload,
                         PayloadLength = payload?.Length ?? 0,
                         LogoPath = logoPath,
                         LogoExists = !string.IsNullOrWhiteSpace(logoPath) && System.IO.File.Exists(logoPath),
@@ -1128,7 +1201,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     ex
                 );
             }
-        }        
+        }
+
+        private static string? NormalizeMedicalRecordNumberToRawDigits(string? medicalRecordNumber)
+        {
+            if (string.IsNullOrWhiteSpace(medicalRecordNumber))
+            {
+                return null;
+            }
+
+            var digits = new string(medicalRecordNumber.Where(char.IsDigit).ToArray());
+
+            return string.IsNullOrWhiteSpace(digits)
+                ? null
+                : digits;
+        }
+
+        private static string FormatMedicalRecordNumber(string rawNumber)
+        {
+            if (string.IsNullOrWhiteSpace(rawNumber))
+            {
+                return rawNumber;
+            }
+
+            var digits = new string(rawNumber.Where(char.IsDigit).ToArray());
+
+            if (digits.Length == 8)
+            {
+                return $"{digits[..2]}-{digits.Substring(2, 2)}-{digits.Substring(4, 2)}-{digits.Substring(6, 2)}";
+            }
+
+            if (digits.Length == 6)
+            {
+                return $"{digits[..2]}-{digits.Substring(2, 2)}-{digits.Substring(4, 2)}";
+            }
+
+            return rawNumber;
+        }
 
         private string? ResolveQrLogoPath()
         {
@@ -1966,62 +2075,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 selector: x => x.PatientCode,
                 prefix: CodePrefix
             );
-        }
-
-        private async Task<string> GenerateMedicalRecordNumberAsync()
-        {
-            var existingNumbers = await _dbContext.Set<MstPatient>()
-                .IgnoreQueryFilters()
-                .AsNoTracking()
-                .Where(x => x.MedicalRecordNumber != null && x.MedicalRecordNumber != string.Empty)
-                .Select(x => x.MedicalRecordNumber)
-                .ToListAsync();
-
-            var usedNumbers = existingNumbers
-                .Select(NormalizeMedicalRecordNumberToRawDigits)
-                .Where(x => x != null)
-                .Select(x => int.Parse(x!))
-                .Where(x => x > 0)
-                .ToHashSet();
-
-            var nextNumber = 1;
-
-            while (usedNumbers.Contains(nextNumber))
-            {
-                nextNumber++;
-            }
-
-            if (nextNumber > 99999999)
-            {
-                throw new InvalidOperationException("Nomor rekam medis sudah mencapai batas maksimum 99-99-99-99.");
-            }
-
-            var rawNumber = nextNumber.ToString().PadLeft(8, '0');
-
-            return FormatMedicalRecordNumber(rawNumber);
-        }
-
-        private static string? NormalizeMedicalRecordNumberToRawDigits(string? medicalRecordNumber)
-        {
-            if (string.IsNullOrWhiteSpace(medicalRecordNumber))
-            {
-                return null;
-            }
-
-            var rawNumber = medicalRecordNumber.Replace("-", string.Empty).Trim();
-
-            if (rawNumber.Length != 8 || !rawNumber.All(char.IsDigit))
-            {
-                return null;
-            }
-
-            return rawNumber;
-        }
-
-        private static string FormatMedicalRecordNumber(string rawNumber)
-        {
-            return $"{rawNumber[..2]}-{rawNumber.Substring(2, 2)}-{rawNumber.Substring(4, 2)}-{rawNumber.Substring(6, 2)}";
-        }
+        }       
 
         private async Task<string> GenerateRunningCodeAsync(
             System.Linq.Expressions.Expression<Func<MstPatient, string>> selector,
