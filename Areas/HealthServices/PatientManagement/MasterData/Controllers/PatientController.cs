@@ -1069,7 +1069,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
                 step = "CheckLogoPath";
 
-                if (string.IsNullOrWhiteSpace(logoPath))
+                if (string.IsNullOrWhiteSpace(logoPath) || !System.IO.File.Exists(logoPath))
                 {
                     WriteDockerInfoLog(
                         "PATIENT_QR_GENERATE_STEP",
@@ -1077,24 +1077,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         {
                             TraceId = traceId,
                             Step = step,
-                            Message = "LogoPath kosong. QR dibuat tanpa logo.",
-                            PlainQrByteLength = qrCodeBytes.Length
-                        }
-                    );
-
-                    return qrCodeBytes;
-                }
-
-                if (!System.IO.File.Exists(logoPath))
-                {
-                    WriteDockerInfoLog(
-                        "PATIENT_QR_GENERATE_STEP",
-                        new
-                        {
-                            TraceId = traceId,
-                            Step = step,
-                            Message = "LogoPath tidak ditemukan. QR dibuat tanpa logo.",
+                            Message = "LogoPath kosong/tidak ditemukan. QR dibuat tanpa logo.",
                             LogoPath = logoPath,
+                            Payload = payload,
                             PlainQrByteLength = qrCodeBytes.Length
                         }
                     );
@@ -1108,6 +1093,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     {
                         TraceId = traceId,
                         Step = "BeforeOverlayLogo",
+                        Payload = payload,
                         LogoPath = logoPath,
                         LogoExists = true,
                         LogoFileLength = new FileInfo(logoPath).Length,
@@ -1121,32 +1107,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 using var qrImage = ImageSharpImage.Load<Rgba32>(qrCodeBytes);
 
                 step = "LoadLogoImage";
-                using var originalLogoImage = ImageSharpImage.Load<Rgba32>(logoPath);
+                using var sourceLogoImage = ImageSharpImage.Load<Rgba32>(logoPath);
 
-                step = "PrepareLogoImage";
+                step = "PrepareLogoSize";
 
-                var logoSize = Math.Max(1, qrImage.Width / 5);
-                var logoPadding = Math.Max(8, logoSize / 8);
-                var backgroundSize = logoSize + (logoPadding * 2);
+                var qrWidth = qrImage.Width;
+                var qrHeight = qrImage.Height;
 
-                using var logoImage = originalLogoImage.Clone(ctx =>
+                // Logo dibuat cukup besar agar warna terlihat, tapi tetap aman discan.
+                var logoMaxWidth = Math.Max(1, qrWidth / 4);
+                var logoMaxHeight = Math.Max(1, qrHeight / 6);
+
+                using var logoImage = sourceLogoImage.Clone(ctx =>
                     ctx.Resize(new ResizeOptions
                     {
-                        Size = new ImageSharpSize(logoSize, logoSize),
+                        Size = new ImageSharpSize(logoMaxWidth, logoMaxHeight),
                         Mode = ResizeMode.Max
                     })
                 );
 
                 step = "PrepareLogoCanvas";
 
+                var logoPaddingX = Math.Max(8, logoImage.Width / 5);
+                var logoPaddingY = Math.Max(8, logoImage.Height / 4);
+
+                var canvasWidth = logoImage.Width + (logoPaddingX * 2);
+                var canvasHeight = logoImage.Height + (logoPaddingY * 2);
+
                 using var logoCanvas = new SixLabors.ImageSharp.Image<Rgba32>(
-                    backgroundSize,
-                    backgroundSize,
+                    canvasWidth,
+                    canvasHeight,
                     ImageSharpColor.White
                 );
 
-                var logoXInCanvas = (backgroundSize - logoImage.Width) / 2;
-                var logoYInCanvas = (backgroundSize - logoImage.Height) / 2;
+                var logoXInCanvas = (canvasWidth - logoImage.Width) / 2;
+                var logoYInCanvas = (canvasHeight - logoImage.Height) / 2;
 
                 logoCanvas.Mutate(ctx =>
                 {
@@ -1159,14 +1154,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
                 step = "DrawLogoCanvasToQr";
 
-                var x = (qrImage.Width - backgroundSize) / 2;
-                var y = (qrImage.Height - backgroundSize) / 2;
+                var qrLogoX = (qrImage.Width - logoCanvas.Width) / 2;
+                var qrLogoY = (qrImage.Height - logoCanvas.Height) / 2;
 
                 qrImage.Mutate(ctx =>
                 {
                     ctx.DrawImage(
                         logoCanvas,
-                        new ImageSharpPoint(x, y),
+                        new ImageSharpPoint(qrLogoX, qrLogoY),
                         1f
                     );
                 });
@@ -1174,9 +1169,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 step = "SaveQrWithLogoToPng";
 
                 using var outputStream = new MemoryStream();
-                qrImage.Save(outputStream, new PngEncoder());
 
-                return outputStream.ToArray();
+                qrImage.Save(outputStream, new PngEncoder
+                {
+                    ColorType = PngColorType.RgbWithAlpha
+                });
+
+                var resultBytes = outputStream.ToArray();
+
+                WriteDockerInfoLog(
+                    "PATIENT_QR_GENERATE_STEP",
+                    new
+                    {
+                        TraceId = traceId,
+                        Step = "QrWithLogoGenerated",
+                        Payload = payload,
+                        LogoPath = logoPath,
+                        QrWidth = qrImage.Width,
+                        QrHeight = qrImage.Height,
+                        LogoWidth = logoImage.Width,
+                        LogoHeight = logoImage.Height,
+                        LogoCanvasWidth = logoCanvas.Width,
+                        LogoCanvasHeight = logoCanvas.Height,
+                        ResultByteLength = resultBytes.Length
+                    }
+                );
+
+                return resultBytes;
             }
             catch (Exception ex)
             {
