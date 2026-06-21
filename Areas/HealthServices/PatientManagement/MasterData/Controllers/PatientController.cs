@@ -1152,16 +1152,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     );
                 });
 
-                step = "DrawLogoCanvasToQr";
+                step = "DrawTransparentLogoToQr";
 
-                var qrLogoX = (qrImage.Width - logoCanvas.Width) / 2;
-                var qrLogoY = (qrImage.Height - logoCanvas.Height) / 2;
+                var logoX = (qrImage.Width - logoImage.Width) / 2;
+                var logoY = (qrImage.Height - logoImage.Height) / 2;
 
                 qrImage.Mutate(ctx =>
                 {
                     ctx.DrawImage(
-                        logoCanvas,
-                        new ImageSharpPoint(qrLogoX, qrLogoY),
+                        logoImage,
+                        new ImageSharpPoint(logoX, logoY),
                         1f
                     );
                 });
@@ -1182,15 +1182,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     new
                     {
                         TraceId = traceId,
-                        Step = "QrWithLogoGenerated",
+                        Step = "QrWithTransparentLogoGenerated",
                         Payload = payload,
                         LogoPath = logoPath,
                         QrWidth = qrImage.Width,
                         QrHeight = qrImage.Height,
                         LogoWidth = logoImage.Width,
                         LogoHeight = logoImage.Height,
-                        LogoCanvasWidth = logoCanvas.Width,
-                        LogoCanvasHeight = logoCanvas.Height,
                         ResultByteLength = resultBytes.Length
                     }
                 );
