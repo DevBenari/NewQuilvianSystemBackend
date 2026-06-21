@@ -1115,8 +1115,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 var qrHeight = qrImage.Height;
 
                 // Logo dibuat cukup besar agar warna terlihat, tapi tetap aman discan.
-                var logoMaxWidth = Math.Max(1, qrWidth / 4);
-                var logoMaxHeight = Math.Max(1, qrHeight / 6);
+                var logoMaxWidth = Math.Max(1, (int)Math.Round(qrWidth * 0.25));
+                var logoMaxHeight = Math.Max(1, (int)Math.Round(qrHeight * 0.16));
 
                 using var logoImage = sourceLogoImage.Clone(ctx =>
                     ctx.Resize(new ResizeOptions
