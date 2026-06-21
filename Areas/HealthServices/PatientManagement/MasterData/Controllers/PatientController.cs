@@ -1286,12 +1286,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             var candidates = new[]
             {
-                Path.Combine(storage.RootPath, "system-assets", "logo.png"),
-                Path.Combine(storage.RootPath, "system-assets", "logo_mmc.png"),
-                Path.Combine(webRootPath, "Images", "logo.png"),
-                Path.Combine(webRootPath, "images", "logo.png"),
-                Path.Combine(webRootPath, "Images", "logo_mmc.png"),
-                Path.Combine(webRootPath, "images", "logo_mmc.png")
+                Path.Combine(storage.RootPath, "system-assets", "logo-rsmmc.png"),
+                Path.Combine(storage.RootPath, "system-assets", "logo_mmc.png"),              
             };
 
             return candidates.FirstOrDefault(System.IO.File.Exists);
