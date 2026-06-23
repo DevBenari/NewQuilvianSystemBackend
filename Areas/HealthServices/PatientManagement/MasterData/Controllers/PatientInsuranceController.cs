@@ -59,6 +59,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientInsuranceFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -67,7 +68,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientInsurance", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new PatientInsuranceFilterMetadataResponse
@@ -181,6 +181,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientInsurancePagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -189,7 +190,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientInsurance", "Read")]
         public async Task<IActionResult> GetPatientInsurances(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -246,6 +246,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("options")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientInsuranceOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -254,7 +255,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientInsurance", "Read")]
         public async Task<IActionResult> GetPatientInsuranceOptions(
             [FromQuery] bool onlyActive = true,
             [FromQuery] Guid? patientId = null,

@@ -48,6 +48,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientMembershipFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -56,7 +57,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientMembership", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new PatientMembershipFilterMetadataResponse
@@ -157,6 +157,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientMembershipPagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -165,7 +166,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientMembership", "Read")]
         public async Task<IActionResult> GetPatientMemberships(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -222,6 +222,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("options")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientMembershipOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -230,7 +231,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientMembership", "Read")]
         public async Task<IActionResult> GetPatientMembershipOptions(
             [FromQuery] bool onlyActive = true,
             [FromQuery] Guid? patientId = null,
