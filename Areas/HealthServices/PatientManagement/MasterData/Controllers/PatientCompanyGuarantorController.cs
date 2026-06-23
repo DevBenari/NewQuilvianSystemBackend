@@ -47,6 +47,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -55,7 +56,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientCompanyGuarantor", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new PatientCompanyGuarantorFilterMetadataResponse
@@ -167,6 +167,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientCompanyGuarantorPagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -175,7 +176,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientCompanyGuarantor", "Read")]
         public async Task<IActionResult> GetPatientCompanyGuarantors(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -232,6 +232,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("options")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -240,7 +241,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientCompanyGuarantor", "Read")]
         public async Task<IActionResult> GetPatientCompanyGuarantorOptions(
             [FromQuery] bool onlyActive = true,
             [FromQuery] Guid? patientId = null,

@@ -46,6 +46,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientEmergencyContactFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -54,7 +55,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientEmergencyContact", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new PatientEmergencyContactFilterMetadataResponse
@@ -145,6 +145,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientEmergencyContactPagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -153,7 +154,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientEmergencyContact", "Read")]
         public async Task<IActionResult> GetPatientEmergencyContacts(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -209,6 +209,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("options")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientEmergencyContactOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -217,7 +218,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientEmergencyContact", "Read")]
         public async Task<IActionResult> GetPatientEmergencyContactOptions(
             [FromQuery] bool onlyActive = true,
             [FromQuery] Guid? patientId = null,

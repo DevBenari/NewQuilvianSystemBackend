@@ -58,6 +58,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientIdentityDocumentFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -66,7 +67,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientIdentityDocument", "Read")]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new PatientIdentityDocumentFilterMetadataResponse
@@ -162,6 +162,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientIdentityDocumentPagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -170,7 +171,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientIdentityDocument", "Read")]
         public async Task<IActionResult> GetPatientIdentityDocuments(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
@@ -228,6 +228,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("options")]
+        [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientIdentityDocumentOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -236,7 +237,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        [AccessPermission("PatientIdentityDocument", "Read")]
         public async Task<IActionResult> GetPatientIdentityDocumentOptions(
             [FromQuery] bool onlyActive = true,
             [FromQuery] Guid? patientId = null,
