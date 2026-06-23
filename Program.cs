@@ -302,6 +302,18 @@ var app = builder.Build();
 var uploadRootPath = builder.Configuration["FileStorage:UploadRootPath"];
 var publicRequestPath = builder.Configuration["FileStorage:PublicRequestPath"] ?? "/uploads";
 
+if (!string.IsNullOrWhiteSpace(publicRequestPath))
+{
+    publicRequestPath = publicRequestPath.Replace("\\", "/").Trim();
+
+    if (!publicRequestPath.StartsWith('/'))
+    {
+        publicRequestPath = "/" + publicRequestPath;
+    }
+
+    publicRequestPath = publicRequestPath.TrimEnd('/');
+}
+
 if (!string.IsNullOrWhiteSpace(uploadRootPath))
 {
     Directory.CreateDirectory(uploadRootPath);

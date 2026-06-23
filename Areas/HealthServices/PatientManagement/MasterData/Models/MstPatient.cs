@@ -78,6 +78,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [MaxLength(500)]
         public string? PhotoPath { get; set; }
 
+        [MaxLength(500)]
+        public string? QrCodePath { get; set; }
+
         public bool IsMember { get; set; } = true;
 
         public Guid? DefaultMembershipTierId { get; set; }

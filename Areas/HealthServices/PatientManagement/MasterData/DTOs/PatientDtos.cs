@@ -94,6 +94,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         public string? PhotoPath { get; set; }
 
+        public string? QrCodePath { get; set; }
+
         public bool IsMember { get; set; }
 
         public Guid? DefaultMembershipTierId { get; set; }
@@ -354,6 +356,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [MaxLength(500)]
         public string? PhotoPath { get; set; }
+        [MaxLength(100)]
+        public string? PhotoFileName { get; set; }
+
+        public string? PhotoBase64 { get; set; }
 
         public bool IsMember { get; set; } = false;
 
@@ -416,6 +422,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string FullName { get; set; } = string.Empty;
 
         public string? PhotoPath { get; set; }
+
+        public string? QrCodePath { get; set; }
 
         public PatientType PatientType { get; set; } = PatientType.General;
 

@@ -56,6 +56,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private const int CodeNumberLength = 5;
         private const string PatientQrCodeFolderName = "patient-qrcodes";
         private const string DefaultPublicRequestPath = "/uploads";
+        private const string PatientPhotoFolderName = "patient-photos";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -376,6 +377,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
             (string FilePath, string PhysicalPath)? savedQrCode = null;
+            (string FilePath, string PhysicalPath)? savedPatientPhoto = null;
 
             try
             {
@@ -409,7 +411,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     CityId = NormalizeNullableGuid(request.CityId),
                     DistrictId = NormalizeNullableGuid(request.DistrictId),
                     PostalCodeId = NormalizeNullableGuid(request.PostalCodeId),
-                    PhotoPath = NormalizeNullableString(request.PhotoPath),
+                    PhotoPath = null,
                     IsMember = request.IsMember,
                     DefaultMembershipTierId = NormalizeNullableGuid(request.DefaultMembershipTierId),
                     ActivePatientMembershipId = NormalizeNullableGuid(request.ActivePatientMembershipId),
@@ -452,13 +454,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     savedQrCode = SavePatientQrCodeFile(
                         entity.MedicalRecordNumber,
                         HttpContext.TraceIdentifier
+                    );                    
+
+                    savedPatientPhoto = SavePatientPhotoFileFromRequest(
+                        entity.Id,
+                        request,
+                        HttpContext.TraceIdentifier
                     );
+
+                    entity.QrCodePath = savedQrCode?.FilePath;
+                    entity.PhotoPath =
+                        savedPatientPhoto?.FilePath
+                        ?? NormalizePublicUploadPath(request.PhotoPath);
                 }
-                catch (Exception qrEx)
+                catch (Exception mediaEx)
                 {
                     WriteDockerErrorLog(
-                        "PATIENT_CREATE_QR_ERROR",
-                        qrEx,
+                        "PATIENT_CREATE_MEDIA_ERROR",
+                        mediaEx,
                         new
                         {
                             TraceId = HttpContext.TraceIdentifier,
@@ -470,9 +483,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
                     await _loggerService.ErrorAsync(
                         LogCategory,
-                        "Patient.CreatePatient.GenerateQrCode",
-                        $"Gagal generate QR Code pasien. TraceId: {HttpContext.TraceIdentifier}, MRN: {entity.MedicalRecordNumber}",
-                        qrEx
+                        "Patient.CreatePatient.GenerateMedia",
+                        $"Gagal generate QR/foto pasien. TraceId: {HttpContext.TraceIdentifier}, MRN: {entity.MedicalRecordNumber}",
+                        mediaEx
                     );
 
                     throw;
@@ -500,7 +513,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     MedicalRecordNumber = entity.MedicalRecordNumber,
                     FullName = entity.FullName,
                     PhotoPath = entity.PhotoPath,
-                    QrCodePath = savedQrCode?.FilePath,
+                    QrCodePath = entity.QrCodePath,
                     QrCodePayload = BuildPatientQrPayload(entity.MedicalRecordNumber),
                     PatientType = entity.PatientType,
                     PatientTypeName = BuildEnumLabel(entity.PatientType),
@@ -543,7 +556,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
                 try
                 {
-                    DeletePhysicalFileIfExists(savedQrCode?.PhysicalPath);
+                    DeletePhysicalFileIfExists(savedQrCode?.PhysicalPath);                    
                 }
                 catch (Exception deleteFileEx)
                 {
@@ -554,6 +567,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         {
                             TraceId = HttpContext.TraceIdentifier,
                             QrPhysicalPath = savedQrCode?.PhysicalPath
+                        }
+                    );                    
+                }
+
+                try
+                {                    
+                    DeletePhysicalFileIfExists(savedPatientPhoto?.PhysicalPath);
+                }
+                catch (Exception deletePhotoEx)
+                {                  
+                    WriteDockerErrorLog(
+                        "PATIENT_CREATE_DELETE_PHOTO_ERROR",
+                        deletePhotoEx,
+                        new
+                        {
+                            TraceId = HttpContext.TraceIdentifier,
+                            PatientPhotoPhysicalPath = savedPatientPhoto?.PhysicalPath
                         }
                     );
                 }
@@ -658,7 +688,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             entity.CityId = NormalizeNullableGuid(request.CityId);
             entity.DistrictId = NormalizeNullableGuid(request.DistrictId);
             entity.PostalCodeId = NormalizeNullableGuid(request.PostalCodeId);
-            entity.PhotoPath = NormalizeNullableString(request.PhotoPath);
             entity.IsMember = request.IsMember;
             entity.DefaultMembershipTierId = NormalizeNullableGuid(request.DefaultMembershipTierId);
             entity.ActivePatientMembershipId = NormalizeNullableGuid(request.ActivePatientMembershipId);
@@ -677,6 +706,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
+
+            var savedPatientPhoto = SavePatientPhotoFileFromRequest(
+                entity.Id,
+                request,
+                HttpContext.TraceIdentifier
+            );
+
+            if (savedPatientPhoto.HasValue)
+            {
+                entity.PhotoPath = savedPatientPhoto.Value.FilePath;
+            }
+            else
+            {
+                var publicPhotoPath = NormalizePublicUploadPath(request.PhotoPath);
+
+                if (!string.IsNullOrWhiteSpace(publicPhotoPath))
+                {
+                    entity.PhotoPath = publicPhotoPath;
+                }
+            }
 
             await _dbContext.SaveChangesAsync();
 
@@ -997,6 +1046,183 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     ex
                 );
             }
+        }
+
+        private (string FilePath, string PhysicalPath)? SavePatientPhotoFileFromRequest(
+    Guid patientId,
+    CreatePatientRequest request,
+    string? traceId = null)
+        {
+            if (string.IsNullOrWhiteSpace(request.PhotoBase64))
+            {
+                return null;
+            }
+
+            string step = "Start";
+            string? absoluteFolder = null;
+            string? physicalPath = null;
+
+            try
+            {
+                step = "DecodeBase64";
+
+                var cleanBase64 = NormalizeBase64Image(request.PhotoBase64);
+                var fileBytes = Convert.FromBase64String(cleanBase64);
+
+                var maxSizeMb = _configuration.GetValue<int?>("FileStorage:MaxProfilePhotoSizeMb") ?? 2;
+                var maxBytes = maxSizeMb * 1024 * 1024;
+
+                if (fileBytes.Length > maxBytes)
+                {
+                    throw new InvalidOperationException(
+                        $"Ukuran foto pasien melebihi batas {maxSizeMb} MB."
+                    );
+                }
+
+                step = "ValidateImage";
+
+                using var image = ImageSharpImage.Load<Rgba32>(fileBytes);
+
+                step = "PrepareStorage";
+
+                var storage = GetFileStoragePaths();
+
+                var patientFolderName = SanitizePathSegment(patientId.ToString("N"));
+                var relativeFolder = Path.Combine(PatientPhotoFolderName, patientFolderName);
+                absoluteFolder = Path.Combine(storage.RootPath, relativeFolder);
+
+                Directory.CreateDirectory(absoluteFolder);
+                EnsureDirectoryWritable(absoluteFolder);
+
+                var fileName = $"photo-{DateTime.UtcNow:yyyyMMddHHmmssfff}.png";
+                physicalPath = Path.Combine(absoluteFolder, fileName);
+
+                step = "SaveImage";
+
+                image.Save(physicalPath, new PngEncoder
+                {
+                    ColorType = PngColorType.RgbWithAlpha
+                });
+
+                if (!System.IO.File.Exists(physicalPath))
+                {
+                    throw new IOException($"File foto pasien tidak ditemukan setelah ditulis: {physicalPath}");
+                }
+
+                var publicPath = CombineUrlPath(
+                    storage.PublicRequestPath,
+                    relativeFolder.Replace("\\", "/"),
+                    fileName
+                );
+
+                WriteDockerInfoLog(
+                    "PATIENT_PHOTO_SAVED",
+                    new
+                    {
+                        TraceId = traceId,
+                        PatientId = patientId,
+                        PublicPath = publicPath,
+                        PhysicalPath = physicalPath
+                    }
+                );
+
+                return (publicPath, physicalPath);
+            }
+            catch (Exception ex)
+            {
+                WriteDockerErrorLog(
+                    "PATIENT_PHOTO_SAVE_ERROR",
+                    ex,
+                    new
+                    {
+                        TraceId = traceId,
+                        PatientId = patientId,
+                        Step = step,
+                        AbsoluteFolder = absoluteFolder,
+                        PhysicalPath = physicalPath
+                    }
+                );
+
+                throw new InvalidOperationException(
+                    $"Gagal menyimpan foto pasien pada step {step}.",
+                    ex
+                );
+            }
+        }
+
+        private static string NormalizeBase64Image(string photoBase64)
+        {
+            var text = photoBase64.Trim();
+
+            var commaIndex = text.IndexOf(',');
+            if (
+                text.StartsWith("data:", StringComparison.OrdinalIgnoreCase) &&
+                commaIndex >= 0
+            )
+            {
+                return text[(commaIndex + 1)..].Trim();
+            }
+
+            return text;
+        }
+
+        private string? NormalizePublicUploadPath(string? value)
+        {
+            var text = NormalizeNullableString(value);
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            text = text.Replace("\\", "/").Trim();
+
+            // Jangan pernah simpan path lokal Windows/Linux server/agent ke database.
+            if (
+                text.Contains(":/", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("//", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/app/", StringComparison.OrdinalIgnoreCase) ||
+                text.StartsWith("/Program Files/", StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                return null;
+            }
+
+            var publicRequestPath =
+                _configuration["FileStorage:PublicRequestPath"] ?? DefaultPublicRequestPath;
+
+            publicRequestPath = publicRequestPath.Replace("\\", "/").Trim();
+
+            if (!publicRequestPath.StartsWith('/'))
+            {
+                publicRequestPath = "/" + publicRequestPath;
+            }
+
+            publicRequestPath = publicRequestPath.TrimEnd('/');
+
+            if (Uri.TryCreate(text, UriKind.Absolute, out var uri))
+            {
+                var absolutePath = uri.AbsolutePath;
+
+                return absolutePath.StartsWith(
+                    publicRequestPath + "/",
+                    StringComparison.OrdinalIgnoreCase
+                )
+                    ? absolutePath
+                    : null;
+            }
+
+            if (!text.StartsWith('/'))
+            {
+                text = "/" + text.TrimStart('/');
+            }
+
+            return text.StartsWith(
+                publicRequestPath + "/",
+                StringComparison.OrdinalIgnoreCase
+            )
+                ? text
+                : null;
         }
 
         private static string BuildPatientQrPayload(string medicalRecordNumber)
@@ -2188,6 +2414,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 PostalCodeId = entity.PostalCodeId,
                 PostalCode = entity.PostalCode?.PostalCode,
                 PhotoPath = entity.PhotoPath,
+                QrCodePath = entity.QrCodePath,
                 IsMember = entity.IsMember,
                 DefaultMembershipTierId = entity.DefaultMembershipTierId,
                 DefaultMembershipTierName = entity.DefaultMembershipTier?.TierName,
@@ -2256,6 +2483,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 PostalCodeId = entity.PostalCodeId,
                 PostalCode = entity.PostalCode?.PostalCode,
                 PhotoPath = entity.PhotoPath,
+                QrCodePath = entity.QrCodePath,
                 IsMember = entity.IsMember,
                 DefaultMembershipTierId = entity.DefaultMembershipTierId,
                 DefaultMembershipTierName = entity.DefaultMembershipTier?.TierName,
