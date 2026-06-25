@@ -37,6 +37,11 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstDistrict> MstDistricts { get; set; }
         public DbSet<MstPostalCode> MstPostalCodes { get; set; }
         public DbSet<MstBank> MstBanks { get; set; }
+
+        public DbSet<MstNurseStationCluster> MstNurseStationClusters { get; set; }
+        public DbSet<MstNurseStationClusterClinic> MstNurseStationClusterClinics { get; set; }
+        public DbSet<MstNurseStationClusterStaff> MstNurseStationClusterStaffs { get; set; }
+        public DbSet<MstQueueDisplayDevice> MstQueueDisplayDevices { get; set; }
         #endregion GLOBAL
 
         #region CORPORATE
