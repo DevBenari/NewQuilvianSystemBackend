@@ -353,9 +353,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private IQueryable<TrxQueue> BuildQueueBaseQuery(DateTime? queueDate, List<Guid> clinicIds)
         {
             var selectedDate = queueDate?.Date ?? DateTime.UtcNow.Date;
+            var startDate = selectedDate.Date;
+            var endDate = startDate.AddDays(1);
+
             return _dbContext.Set<TrxQueue>()
                 .AsNoTracking()
-                .Where(x => !x.IsDelete && x.IsActive && x.QueueDate.Date == selectedDate && x.ClinicId.HasValue && clinicIds.Contains(x.ClinicId.Value));
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.QueueDate >= startDate &&
+                    x.QueueDate < endDate &&
+                    x.ClinicId.HasValue &&
+                    clinicIds.Contains(x.ClinicId.Value));
         }
 
         private static IQueryable<TrxQueue> ApplyStandardFilter(IQueryable<TrxQueue> query, QueueStatus? queueStatus, string? search)
@@ -448,12 +457,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private async Task<Dictionary<Guid, (Guid ClusterId, string ClusterName)>> GetClusterMapByClinicIdsAsync(List<Guid> clinicIds)
         {
-            return await _dbContext.Set<MstNurseStationClusterClinic>()
+            if (clinicIds == null || clinicIds.Count == 0)
+            {
+                return new Dictionary<Guid, (Guid ClusterId, string ClusterName)>();
+            }
+
+            var mappings = await _dbContext.Set<MstNurseStationClusterClinic>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive && clinicIds.Contains(x.ClinicId))
-                .Select(x => new { x.ClinicId, x.NurseStationClusterId, ClusterName = x.NurseStationCluster != null ? x.NurseStationCluster.ClusterName : string.Empty })
+                .Select(x => new
+                {
+                    x.ClinicId,
+                    x.NurseStationClusterId,
+                    ClusterName = x.NurseStationCluster != null
+                        ? x.NurseStationCluster.ClusterName
+                        : string.Empty
+                })
+                .ToListAsync();
+
+            return mappings
                 .GroupBy(x => x.ClinicId)
-                .ToDictionaryAsync(x => x.Key, x => (x.First().NurseStationClusterId, x.First().ClusterName));
+                .ToDictionary(
+                    x => x.Key,
+                    x =>
+                    {
+                        var first = x.First();
+                        return (first.NurseStationClusterId, first.ClusterName);
+                    });
         }
 
         private async Task<TrxQueue?> GetAllowedQueueWithEncounterAsync(Guid id)
