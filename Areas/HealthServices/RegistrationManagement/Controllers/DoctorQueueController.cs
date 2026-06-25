@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -301,7 +302,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private IQueryable<TrxQueue> BuildQueueBaseQuery(DateTime? queueDate, Guid? allowedDoctorId)
         {
-            var selectedDate = queueDate?.Date ?? DateTime.UtcNow.Date;
+            var selectedDate = AppDateTimeHelper.ResolveOperationalDate(queueDate);
 
             var query = _dbContext.Set<TrxQueue>()
                 .AsNoTracking()

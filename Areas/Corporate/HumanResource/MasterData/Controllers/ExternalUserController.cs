@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Enums;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
@@ -2036,7 +2037,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             string? period)
         {
             var selectedPeriod = period?.Trim().ToLower();
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             DateTime? start = null;
             DateTime? endExclusive = null;

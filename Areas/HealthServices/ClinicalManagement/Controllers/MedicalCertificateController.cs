@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Mo
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -1291,7 +1292,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 entity.CertificateStatus = MedicalCertificateStatus.Issued;
 
             if (entity.ExpiredDate.HasValue &&
-                entity.ExpiredDate.Value.Date < DateTime.UtcNow.Date &&
+                entity.ExpiredDate.Value.Date < AppDateTimeHelper.OperationalDate() &&
                 entity.CertificateStatus != MedicalCertificateStatus.Cancelled &&
                 entity.CertificateStatus != MedicalCertificateStatus.EnteredInError &&
                 entity.CertificateStatus != MedicalCertificateStatus.Revoked)

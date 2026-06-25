@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -105,7 +106,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("DrugUnitConversion", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             var query = _dbContext.Set<MstDrugUnitConversion>()
                 .AsNoTracking()
@@ -1012,7 +1013,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 return BuildDateRange(startDate, endDate);
             }
 
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             return customPeriod.Trim().ToLowerInvariant() switch
             {

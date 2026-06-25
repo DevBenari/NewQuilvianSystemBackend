@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -1387,7 +1388,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             string? customPeriod)
         {
             var period = customPeriod?.Trim().ToLowerInvariant();
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             DateTime? start = null;
             DateTime? endExclusive = null;

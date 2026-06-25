@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Mo
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -1474,7 +1475,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 entity.ConsentStatus = PatientConsentStatus.Signed;
 
             if (entity.ExpiredDate.HasValue &&
-                entity.ExpiredDate.Value.Date < DateTime.UtcNow.Date &&
+                entity.ExpiredDate.Value.Date < AppDateTimeHelper.OperationalDate() &&
                 entity.ConsentStatus != PatientConsentStatus.Cancelled &&
                 entity.ConsentStatus != PatientConsentStatus.EnteredInError &&
                 entity.ConsentStatus != PatientConsentStatus.Withdrawn)

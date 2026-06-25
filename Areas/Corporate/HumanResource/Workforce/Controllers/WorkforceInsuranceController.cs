@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -137,7 +138,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             }
 
             var query = BuildBaseQuery(workforceProfileId);
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             var result = new WorkforceInsuranceSummaryResponse
             {
@@ -679,7 +680,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             DateTime? endDate,
             string? customPeriod)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             DateTime? effectiveStartDate = startDate?.Date;
             DateTime? effectiveEndDate = endDate?.Date;
 
@@ -731,7 +732,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             bool? isCurrentlyValid,
             string? search)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             if (!string.IsNullOrWhiteSpace(coverageType))
             {
@@ -902,7 +903,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             MstWorkforceProfile profile,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var isExpired = entity.EffectiveEndDate.HasValue && entity.EffectiveEndDate.Value.Date < today;
             var hasCoverage = entity.IsBpjsKesehatanEnabled || entity.IsBpjsKetenagakerjaanEnabled || entity.IsPrivateInsuranceEnabled;
             var providerName = entity.PrivateInsuranceProvider?.InsuranceProviderName;
@@ -981,7 +982,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
         private static WorkforceInsuranceOptionResponse MapOptionResponse(WfpInsurance entity)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var isExpired = entity.EffectiveEndDate.HasValue && entity.EffectiveEndDate.Value.Date < today;
             var hasCoverage = entity.IsBpjsKesehatanEnabled || entity.IsBpjsKetenagakerjaanEnabled || entity.IsPrivateInsuranceEnabled;
             var labels = new List<string>();

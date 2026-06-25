@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -147,7 +148,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var query = BuildBaseQuery(workforceProfileId);
 
             var result = new WorkforceCredentialLicenseSummaryResponse
@@ -298,7 +299,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 search: search
             );
 
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             var totalData = await query.CountAsync();
 
@@ -709,7 +710,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            if (entity.ExpiredDate.Date < DateTime.UtcNow.Date)
+            if (entity.ExpiredDate.Date < AppDateTimeHelper.OperationalDate())
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
@@ -800,7 +801,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            if (entity.ExpiredDate.Date < DateTime.UtcNow.Date)
+            if (entity.ExpiredDate.Date < AppDateTimeHelper.OperationalDate())
             {
                 entity.IsVerified = false;
                 entity.IsPrimary = false;
@@ -1127,7 +1128,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             bool? isExpired,
             string? search)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             if (licenseType.HasValue)
             {
@@ -1456,7 +1457,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             MstWorkforceProfile profile,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var hasFile = !string.IsNullOrWhiteSpace(entity.FilePath);
             var runtimeStatus = ResolveRuntimeStatus(entity.VerificationStatus, entity.ExpiredDate, entity.IsVerified);
 
@@ -1691,7 +1692,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 return status;
             }
 
-            if (expiredDate.Date < DateTime.UtcNow.Date)
+            if (expiredDate.Date < AppDateTimeHelper.OperationalDate())
             {
                 return CredentialVerificationStatus.Expired;
             }
@@ -1794,7 +1795,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             string? customPeriod)
         {
             var period = customPeriod?.Trim().ToLowerInvariant();
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             DateTime? start = null;
             DateTime? endExclusive = null;

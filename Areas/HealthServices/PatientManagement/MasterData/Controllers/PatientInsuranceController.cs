@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DT
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -144,7 +145,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [AccessPermission("PatientInsurance", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var query = BuildBaseQuery();
 
             var result = new PatientInsuranceSummaryResponse
@@ -746,7 +747,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 !endDate.HasValue &&
                 !string.IsNullOrWhiteSpace(customPeriod))
             {
-                var today = DateTime.UtcNow.Date;
+                var today = AppDateTimeHelper.OperationalDate();
 
                 switch (customPeriod.Trim().ToLowerInvariant())
                 {

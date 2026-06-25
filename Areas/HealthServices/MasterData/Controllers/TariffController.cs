@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -940,7 +941,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             DateTime? endDate,
             string? customPeriod)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             DateTime? start = startDate?.Date;
             DateTime? endExclusive = endDate?.Date.AddDays(1);
 

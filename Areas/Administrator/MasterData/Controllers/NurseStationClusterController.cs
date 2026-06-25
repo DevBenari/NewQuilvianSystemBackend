@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -308,7 +309,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             if (endDate.HasValue) query = query.Where(x => x.CreateDateTime < DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc));
             if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
             {
-                var today = DateTime.UtcNow.Date;
+                var today = AppDateTimeHelper.OperationalDate();
                 switch (customPeriod.Trim().ToLowerInvariant())
                 {
                     case "today": query = query.Where(x => x.CreateDateTime >= today && x.CreateDateTime < today.AddDays(1)); break;

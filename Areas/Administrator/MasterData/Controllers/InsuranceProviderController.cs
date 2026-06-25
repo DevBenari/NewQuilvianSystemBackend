@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -148,7 +149,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [AccessPermission("InsuranceProvider", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var query = BuildBaseQuery();
 
             var result = new InsuranceProviderSummaryResponse
@@ -907,7 +908,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             }
 
             var normalizedStatus = NormalizeContractStatus(contractStatus);
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             return normalizedStatus switch
             {
@@ -1215,7 +1216,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var contractStatus = ResolveContractStatus(
                 entity.ContractStartDate,
                 entity.ContractEndDate,
-                DateTime.UtcNow.Date
+                AppDateTimeHelper.OperationalDate()
             );
 
             return new InsuranceProviderResponse
@@ -1265,7 +1266,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var contractStatus = ResolveContractStatus(
                 entity.ContractStartDate,
                 entity.ContractEndDate,
-                DateTime.UtcNow.Date
+                AppDateTimeHelper.OperationalDate()
             );
 
             return new InsuranceProviderDetailResponse
@@ -1320,7 +1321,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var contractStatus = ResolveContractStatus(
                 entity.ContractStartDate,
                 entity.ContractEndDate,
-                DateTime.UtcNow.Date
+                AppDateTimeHelper.OperationalDate()
             );
 
             return new InsuranceProviderOptionResponse
@@ -1393,7 +1394,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             string? customPeriod)
         {
             var period = customPeriod?.Trim().ToLowerInvariant();
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             DateTime? start = null;
             DateTime? endExclusive = null;

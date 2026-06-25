@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Enums;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
@@ -124,7 +125,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var query = BuildBaseQuery(workforceProfileId);
 
             var result = new WorkforceOrganizationAssignmentSummaryResponse
@@ -916,7 +917,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 !startDate.HasValue &&
                 !endDate.HasValue)
             {
-                var today = DateTime.UtcNow.Date;
+                var today = AppDateTimeHelper.OperationalDate();
 
                 switch (customPeriod.Trim().ToLowerInvariant())
                 {
@@ -989,7 +990,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             if (isExpired.HasValue)
             {
-                var today = DateTime.UtcNow.Date;
+                var today = AppDateTimeHelper.OperationalDate();
 
                 query = isExpired.Value
                     ? query.Where(x => x.EffectiveEndDate.HasValue && x.EffectiveEndDate.Value.Date < today)
@@ -1288,7 +1289,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             MstWorkforceProfile profile,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var isExpired = entity.EffectiveEndDate.HasValue &&
                 entity.EffectiveEndDate.Value.Date < today;
 

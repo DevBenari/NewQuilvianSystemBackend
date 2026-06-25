@@ -75,7 +75,6 @@
     <Folder Include="Areas\SelfServices\Models\" />
     <Folder Include="Areas\SelfServices\Views\" />
     <Folder Include="Logs\" />
-    <Folder Include="Helpers\" />
     <Folder Include="SeedData\ICD10\" />
   </ItemGroup>
 

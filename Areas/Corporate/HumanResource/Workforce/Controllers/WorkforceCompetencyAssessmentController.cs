@@ -12,6 +12,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Enums;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -141,7 +142,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var query = BuildBaseQuery(workforceProfileId);
 
             var result = new WorkforceCompetencyAssessmentSummaryResponse
@@ -300,7 +301,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             query = ApplyStandardFilter(query, competencyId, competencyCategory, competencyLevel: null, resultStatus, assessedByUserId: null, isVerified, onlyActive ? true : null, isExpired: null, search);
 
             var totalData = await query.CountAsync();
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             var items = await query
                 .OrderByDescending(x => x.AssessmentDate)
@@ -773,7 +774,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             var requirements = await _dbContext.MstPositionCompetencyRequirements
                 .AsNoTracking()
@@ -919,7 +920,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
             {
-                var today = DateTime.UtcNow.Date;
+                var today = AppDateTimeHelper.OperationalDate();
 
                 switch (customPeriod.Trim().ToLowerInvariant())
                 {
@@ -956,7 +957,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             bool? isExpired,
             string? search)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             if (competencyId.HasValue && competencyId.Value != Guid.Empty)
                 query = query.Where(x => x.CompetencyId == competencyId.Value);
@@ -1292,7 +1293,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             WorkforceProfileHeader profile,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var hasFile = !string.IsNullOrWhiteSpace(row.FilePath);
 
             return new WorkforceCompetencyAssessmentResponse

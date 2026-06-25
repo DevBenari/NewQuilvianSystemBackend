@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -148,7 +149,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var query = BuildBaseQuery(workforceProfileId);
 
             var result = new WorkforceClinicalPrivilegeSummaryResponse
@@ -282,7 +283,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             query = ApplyStandardFilter(query, privilegeType, privilegeStatus, credentialLicenseId, departmentId, onlyActive ? true : null, search);
 
             var totalData = await query.CountAsync();
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             var items = await query
                 .OrderByDescending(x => x.PrivilegeStatus == ClinicalPrivilegeStatus.Active)
@@ -1062,7 +1063,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                     : (false, "CredentialLicenseId wajib dipilih untuk clinical privilege reguler. Kosong hanya diperbolehkan jika IsEmergencyPrivilege = true.");
             }
 
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             var validSelectedLicense = await _dbContext.Set<WfpCredentialLicense>()
                 .AsNoTracking()
@@ -1168,7 +1169,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            if (entity.EffectiveEndDate.HasValue && entity.EffectiveEndDate.Value.Date < DateTime.UtcNow.Date && targetStatus == ClinicalPrivilegeStatus.Active)
+            if (entity.EffectiveEndDate.HasValue && entity.EffectiveEndDate.Value.Date < AppDateTimeHelper.OperationalDate() && targetStatus == ClinicalPrivilegeStatus.Active)
             {
                 entity.PrivilegeStatus = ClinicalPrivilegeStatus.Expired;
                 entity.IsActive = false;
@@ -1444,7 +1445,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             MstWorkforceProfile profile,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var hasFile = !string.IsNullOrWhiteSpace(entity.SupportingFilePath);
             var runtimeStatus = ResolveRuntimeStatus(entity.PrivilegeStatus, entity.EffectiveEndDate);
 
@@ -1685,7 +1686,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 return status;
             }
 
-            if (effectiveEndDate.HasValue && effectiveEndDate.Value.Date < DateTime.UtcNow.Date)
+            if (effectiveEndDate.HasValue && effectiveEndDate.Value.Date < AppDateTimeHelper.OperationalDate())
             {
                 return ClinicalPrivilegeStatus.Expired;
             }

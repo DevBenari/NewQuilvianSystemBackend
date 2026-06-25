@@ -17,6 +17,7 @@ using System.Security.Claims;
 using ResponseWorkforceCertificationPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
         QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.DTOs.WorkforceCertificationResponse>;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controllers
 {
@@ -153,7 +154,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var query = BuildBaseQuery(workforceProfileId);
 
             var result = new WorkforceCertificationSummaryResponse
@@ -277,7 +278,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             query = ApplyStandardFilter(query, certificationType, isVerified, onlyActive ? true : null, search);
 
             var totalData = await query.CountAsync();
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             var items = await query
                 .OrderByDescending(x => x.IsVerified)
@@ -767,7 +768,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
 
             if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
             {
-                var today = DateTime.UtcNow.Date;
+                var today = AppDateTimeHelper.OperationalDate();
 
                 switch (customPeriod.Trim().ToLowerInvariant())
                 {
@@ -1069,7 +1070,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             MstWorkforceProfile profile,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var hasFile = !string.IsNullOrWhiteSpace(entity.FilePath);
 
             return new WorkforceCertificationResponse

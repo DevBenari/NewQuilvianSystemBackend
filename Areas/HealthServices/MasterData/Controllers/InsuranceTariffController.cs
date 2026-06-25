@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -101,7 +102,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("InsuranceTariff", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             var query = _dbContext.Set<MstInsuranceTariff>()
                 .AsNoTracking()
@@ -897,7 +898,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             DateTime? endDate,
             string? customPeriod)
         {
-            var now = DateTime.UtcNow.Date;
+            var now = AppDateTimeHelper.OperationalDate();
 
             if (!string.IsNullOrWhiteSpace(customPeriod))
             {

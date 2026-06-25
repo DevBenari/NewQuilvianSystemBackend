@@ -32,6 +32,7 @@ using ImageSharpImage = SixLabors.ImageSharp.Image;
 using ImageSharpColor = SixLabors.ImageSharp.Color;
 using ImageSharpPoint = SixLabors.ImageSharp.Point;
 using ImageSharpSize = SixLabors.ImageSharp.Size;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Controllers
 {
@@ -1764,7 +1765,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 !endDate.HasValue &&
                 !string.IsNullOrWhiteSpace(customPeriod))
             {
-                var today = DateTime.UtcNow.Date;
+                var today = AppDateTimeHelper.OperationalDate();
 
                 switch (customPeriod.Trim().ToLowerInvariant())
                 {

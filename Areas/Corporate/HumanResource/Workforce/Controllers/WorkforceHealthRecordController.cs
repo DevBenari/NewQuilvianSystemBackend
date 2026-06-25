@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -172,7 +173,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var query = BuildBaseQuery(workforceProfileId);
 
             var result = new WorkforceHealthRecordSummaryResponse
@@ -311,7 +312,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             );
 
             var totalData = await query.CountAsync();
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             var items = await query
                 .OrderByDescending(x => x.IsVerified)
@@ -663,7 +664,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
                 ));
             }
 
-            if (entity.ExpiredDate.HasValue && entity.ExpiredDate.Value.Date < DateTime.UtcNow.Date)
+            if (entity.ExpiredDate.HasValue && entity.ExpiredDate.Value.Date < AppDateTimeHelper.OperationalDate())
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
@@ -914,7 +915,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             DateTime? endDate,
             string? customPeriod)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             DateTime? effectiveStartDate = startDate?.Date;
             DateTime? effectiveEndDate = endDate?.Date;
 
@@ -967,7 +968,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             bool? isExpired,
             string? search)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             if (healthRecordType.HasValue)
             {
@@ -1334,7 +1335,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Controll
             MstWorkforceProfile profile,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
             var hasFile = !string.IsNullOrWhiteSpace(entity.FilePath);
             var isExpired = entity.ExpiredDate.HasValue && entity.ExpiredDate.Value.Date < today;
             var isCurrentlyValid = entity.IsActive && entity.IsVerified && !isExpired;

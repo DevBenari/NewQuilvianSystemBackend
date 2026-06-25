@@ -30,6 +30,7 @@ using ResponseDistrictPagedResult =
 using ResponsePostalCodePagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
         QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs.PostalCodeResponse>;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 {
@@ -2748,7 +2749,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             string? customPeriod)
         {
             var period = customPeriod?.Trim().ToLowerInvariant();
-            var today = DateTime.UtcNow.Date;
+            var today = AppDateTimeHelper.OperationalDate();
 
             DateTime? start = null;
             DateTime? endExclusive = null;

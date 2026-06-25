@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -64,7 +65,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             pageNumber = pageNumber <= 0 ? 1 : pageNumber;
             pageSize = pageSize <= 0 ? 25 : Math.Min(pageSize, 100);
 
-            var selectedDate = queueDate?.Date ?? DateTime.UtcNow.Date;
+            var selectedDate = AppDateTimeHelper.ResolveOperationalDate(queueDate);
 
             var query = _dbContext.Set<TrxQueue>()
                 .AsNoTracking()

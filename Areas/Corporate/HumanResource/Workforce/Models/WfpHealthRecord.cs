@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Enums;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models
 {
@@ -58,14 +59,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models
         [NotMapped]
         public bool IsExpired =>
             ExpiredDate.HasValue &&
-            DateTime.UtcNow.Date > ExpiredDate.Value.Date;
+            AppDateTimeHelper.OperationalDate() > ExpiredDate.Value.Date;
 
         [NotMapped]
         public bool IsCurrentlyValid =>
             IsActive &&
             !IsDelete &&
             IsVerified &&
-            (!ExpiredDate.HasValue || DateTime.UtcNow.Date <= ExpiredDate.Value.Date);
+            (!ExpiredDate.HasValue || AppDateTimeHelper.OperationalDate() <= ExpiredDate.Value.Date);
 
         [NotMapped]
         public bool IsCompliantForWork =>

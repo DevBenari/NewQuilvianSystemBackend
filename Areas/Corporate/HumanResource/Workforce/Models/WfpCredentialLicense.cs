@@ -1,5 +1,6 @@
 ﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Enums;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -78,7 +79,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models
         public string? Description { get; set; }
 
         [NotMapped]
-        public bool IsExpired => DateTime.UtcNow.Date > ExpiredDate.Date;
+        public bool IsExpired => AppDateTimeHelper.OperationalDate() > ExpiredDate.Date;
 
         [NotMapped]
         public bool IsCurrentlyValid =>
@@ -86,7 +87,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models
             !IsDelete &&
             IsVerified &&
             VerificationStatus == CredentialVerificationStatus.Verified &&
-            DateTime.UtcNow.Date <= ExpiredDate.Date;
+            AppDateTimeHelper.OperationalDate() <= ExpiredDate.Date;
 
         public MstWorkforceProfile? WorkforceProfile { get; set; }
 

@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Enums;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models
 {
@@ -112,14 +113,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models
         [NotMapped]
         public bool IsExpired =>
             EffectiveEndDate.HasValue &&
-            DateTime.UtcNow.Date > EffectiveEndDate.Value.Date;
+            AppDateTimeHelper.OperationalDate() > EffectiveEndDate.Value.Date;
 
         [NotMapped]
         public bool IsCurrentlyValid =>
             IsActive &&
             !IsDelete &&
             PrivilegeStatus == ClinicalPrivilegeStatus.Active &&
-            (!EffectiveEndDate.HasValue || DateTime.UtcNow.Date <= EffectiveEndDate.Value.Date);
+            (!EffectiveEndDate.HasValue || AppDateTimeHelper.OperationalDate() <= EffectiveEndDate.Value.Date);
 
         public MstWorkforceProfile? WorkforceProfile { get; set; }
 
