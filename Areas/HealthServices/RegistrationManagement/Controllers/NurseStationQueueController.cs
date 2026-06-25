@@ -477,12 +477,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private async Task<Dictionary<Guid, (Guid ClusterId, string ClusterName)>> GetClusterMapByClinicIdsAsync(List<Guid> clinicIds)
         {
-            return await _dbContext.Set<MstNurseStationClusterClinic>()
+            if (!clinicIds.Any())
+            {
+                return new Dictionary<Guid, (Guid ClusterId, string ClusterName)>();
+            }
+
+            var clusterClinicRows = await _dbContext.Set<MstNurseStationClusterClinic>()
                 .AsNoTracking()
-                .Where(x => !x.IsDelete && x.IsActive && clinicIds.Contains(x.ClinicId))
-                .Select(x => new { x.ClinicId, x.NurseStationClusterId, ClusterName = x.NurseStationCluster != null ? x.NurseStationCluster.ClusterName : string.Empty })
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    clinicIds.Contains(x.ClinicId))
+                .Select(x => new
+                {
+                    x.ClinicId,
+                    x.NurseStationClusterId,
+                    ClusterName = x.NurseStationCluster != null
+                        ? x.NurseStationCluster.ClusterName
+                        : string.Empty
+                })
+                .ToListAsync();
+
+            return clusterClinicRows
                 .GroupBy(x => x.ClinicId)
-                .ToDictionaryAsync(x => x.Key, x => (x.First().NurseStationClusterId, x.First().ClusterName));
+                .ToDictionary(
+                    x => x.Key,
+                    x =>
+                    {
+                        var first = x.First();
+                        return (first.NurseStationClusterId, first.ClusterName);
+                    });
         }
 
         private async Task<TrxQueue?> GetAllowedQueueWithEncounterAsync(Guid id)
