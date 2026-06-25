@@ -14,6 +14,7 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.ComponentModel.DataAnnotations;
 using System.Linq.Expressions;
 using System.Security.Claims;
 
@@ -56,7 +57,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [HttpGet("filters/metadata")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat metadata filter patient encounter", AccessType = AccessTypes.Read, SortOrder = 1)]        
+        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat metadata filter patient encounter", AccessType = AccessTypes.Read, SortOrder = 1)]
         public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new PatientEncounterFilterMetadataResponse
@@ -207,7 +208,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [HttpGet("options")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterOptionPagedResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat data pilihan patient encounter", AccessType = AccessTypes.Read, SortOrder = 1)]        
+        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat data pilihan patient encounter", AccessType = AccessTypes.Read, SortOrder = 1)]
         public async Task<IActionResult> GetEncounterOptions(
             [FromQuery] Guid? patientId = null,
             [FromQuery] Guid? serviceUnitId = null,
@@ -285,7 +286,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien beserta penjamin", AccessType = AccessTypes.Create, SortOrder = 2)]        
+        [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien beserta penjamin", AccessType = AccessTypes.Create, SortOrder = 2)]
         public async Task<IActionResult> CreateEncounter([FromBody] PatientEncounterCreateRequest request)
         {
             var validation = await ValidateCreateRequestAsync(request);
@@ -1414,6 +1415,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private static string BuildEnumLabel<TEnum>(TEnum value) where TEnum : Enum
         {
+            var memberInfo = typeof(TEnum).GetMember(value.ToString()).FirstOrDefault();
+            var displayAttribute = memberInfo?
+                .GetCustomAttributes(typeof(DisplayAttribute), false)
+                .OfType<DisplayAttribute>()
+                .FirstOrDefault();
+
+            var displayName = displayAttribute?.GetName();
+
+            if (!string.IsNullOrWhiteSpace(displayName))
+            {
+                return displayName;
+            }
+
             return SplitPascalCase(value.ToString());
         }
 
