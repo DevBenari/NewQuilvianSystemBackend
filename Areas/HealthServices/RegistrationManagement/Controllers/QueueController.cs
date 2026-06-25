@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 using ResponseQueuePagedResult =
@@ -34,6 +35,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     {
         private const string LogCategory = "HealthServices.RegistrationManagement";
         private const string KioskReadPolicy = "KioskRead";
+        private const int MaxNurseCallAttemptCount = 2;
+        private const int NurseCallDurationSeconds = 60;
+
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
 
@@ -141,6 +145,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     QueueNumber = x.QueueNumber,
                     QueueCode = x.QueueCode,
                     QueueStatus = x.QueueStatus,
+                    QueueStatusName = BuildEnumLabel(x.QueueStatus),
                     NurseCallAttemptCount = x.NurseCallAttemptCount,
                     NurseCallExpiresAt = x.NurseCallExpiresAt,
                     DoctorCallAttemptCount = x.DoctorCallAttemptCount,
@@ -183,29 +188,50 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         [HttpPost("{id:guid}/call-nurse")]
         [Authorize(Policy = KioskReadPolicy)]
-        [AccessAction("Update", "Call Nurse Queue", Description = "Memanggil pasien untuk screening perawat", AccessType = AccessTypes.Update, SortOrder = 2)]        
+        [AccessAction("Update", "Call Nurse Queue", Description = "Memanggil pasien untuk screening perawat", AccessType = AccessTypes.Update, SortOrder = 2)]
         public async Task<IActionResult> CallNurse(Guid id)
         {
             var queue = await GetQueueWithEncounterAsync(id);
             if (queue == null) return QueueNotFound();
 
             if (queue.QueueStatus != QueueStatus.WaitingForNurse && queue.QueueStatus != QueueStatus.CalledByNurse)
-                return BadRequest(ApiResponse<object>.Fail(400, "Antrean tidak dalam status menunggu perawat."));
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Antrean tidak dalam status menunggu perawat."));
 
             var now = DateTime.UtcNow;
+
+            if (queue.QueueStatus == QueueStatus.CalledByNurse &&
+                queue.NurseCallExpiresAt.HasValue &&
+                queue.NurseCallExpiresAt.Value > now)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Timer panggilan perawat masih berjalan. Tunggu sampai timer selesai sebelum memanggil ulang."
+                ));
+            }
+
+            if (queue.NurseCallAttemptCount >= MaxNurseCallAttemptCount)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien sudah dipanggil 2 kali oleh perawat. Silakan lakukan lewati jika pasien belum datang."
+                ));
+            }
+
+            var actorUserId = GetCurrentUserId();
+
             queue.QueueStatus = QueueStatus.CalledByNurse;
             queue.NurseCallAttemptCount += 1;
             queue.LastNurseCalledAt = now;
-            queue.LastNurseCalledByUserId = GetCurrentUserId();
-            queue.NurseCallExpiresAt = now.AddMinutes(2);
+            queue.LastNurseCalledByUserId = actorUserId;
+            queue.NurseCallExpiresAt = now.AddSeconds(NurseCallDurationSeconds);
             queue.UpdateDateTime = now;
-            queue.UpdateBy = GetCurrentUserId();
+            queue.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
             return Ok(ApiResponse<QueueActionResponse>.Ok(
-                BuildActionResponse(queue, "Pasien berhasil dipanggil oleh perawat."),
-                "Pasien berhasil dipanggil oleh perawat."
+                BuildActionResponse(queue, $"Pasien berhasil dipanggil oleh perawat. Panggilan ke-{queue.NurseCallAttemptCount}, timer {NurseCallDurationSeconds} detik."),
+                $"Pasien berhasil dipanggil oleh perawat. Panggilan ke-{queue.NurseCallAttemptCount}, timer {NurseCallDurationSeconds} detik."
             ));
         }
 
@@ -349,20 +375,65 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             if (queue == null) return QueueNotFound();
 
             var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
 
-            if (queue.QueueStatus != QueueStatus.CalledByDoctor || queue.DoctorCallAttemptCount < 2)
-                return BadRequest(ApiResponse<object>.Fail(400, "Pasien hanya bisa di-skip setelah 2 kali panggilan dokter."));
+            var isNurseCall = queue.QueueStatus == QueueStatus.CalledByNurse;
+            var isDoctorCall = queue.QueueStatus == QueueStatus.CalledByDoctor;
 
-            if (queue.DoctorCallExpiresAt.HasValue && queue.DoctorCallExpiresAt.Value > now)
-                return BadRequest(ApiResponse<object>.Fail(400, "Timer panggilan dokter masih berjalan."));
+            if (!isNurseCall && !isDoctorCall)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien hanya bisa dilewati setelah berada dalam status dipanggil."
+                ));
+            }
+
+            if (isNurseCall)
+            {
+                if (queue.NurseCallAttemptCount < MaxNurseCallAttemptCount)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Pasien hanya bisa dilewati setelah 2 kali panggilan perawat."
+                    ));
+                }
+
+                if (queue.NurseCallExpiresAt.HasValue && queue.NurseCallExpiresAt.Value > now)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Timer panggilan perawat masih berjalan."
+                    ));
+                }
+            }
+
+            if (isDoctorCall)
+            {
+                if (queue.DoctorCallAttemptCount < 2)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Pasien hanya bisa dilewati setelah 2 kali panggilan dokter."
+                    ));
+                }
+
+                if (queue.DoctorCallExpiresAt.HasValue && queue.DoctorCallExpiresAt.Value > now)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Timer panggilan dokter masih berjalan."
+                    ));
+                }
+            }
 
             queue.QueueStatus = QueueStatus.Skipped;
             queue.SkipCount += 1;
             queue.LastSkippedAt = now;
-            queue.LastSkippedByUserId = GetCurrentUserId();
-            queue.SkipReason = NormalizeNullableText(request.Reason) ?? "Tidak hadir saat dipanggil dokter.";
+            queue.LastSkippedByUserId = actorUserId;
+            queue.SkipReason = NormalizeNullableText(request.Reason)
+                ?? (isNurseCall ? "Tidak hadir saat dipanggil perawat." : "Tidak hadir saat dipanggil dokter.");
             queue.UpdateDateTime = now;
-            queue.UpdateBy = GetCurrentUserId();
+            queue.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
@@ -438,6 +509,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 QueueNumber = x.QueueNumber,
                 QueueCode = x.QueueCode,
                 QueueStatus = x.QueueStatus,
+                QueueStatusName = BuildEnumLabel(x.QueueStatus),
                 NurseCallAttemptCount = x.NurseCallAttemptCount,
                 NurseCallExpiresAt = x.NurseCallExpiresAt,
                 DoctorCallAttemptCount = x.DoctorCallAttemptCount,
@@ -458,13 +530,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 QueueId = queue.Id,
                 EncounterId = queue.EncounterId,
                 QueueStatus = queue.QueueStatus,
+                QueueStatusName = BuildEnumLabel(queue.QueueStatus),
                 EncounterStatus = queue.Encounter?.EncounterStatus ?? EncounterStatus.Registered,
+                EncounterStatusName = BuildEnumLabel(queue.Encounter?.EncounterStatus ?? EncounterStatus.Registered),
                 NurseCallAttemptCount = queue.NurseCallAttemptCount,
                 NurseCallExpiresAt = queue.NurseCallExpiresAt,
                 DoctorCallAttemptCount = queue.DoctorCallAttemptCount,
                 DoctorCallExpiresAt = queue.DoctorCallExpiresAt,
                 Message = message
             };
+        }
+
+        private static string BuildEnumLabel<TEnum>(TEnum value) where TEnum : Enum
+        {
+            var memberInfo = typeof(TEnum).GetMember(value.ToString()).FirstOrDefault();
+            var displayAttribute = memberInfo?
+                .GetCustomAttributes(typeof(DisplayAttribute), false)
+                .OfType<DisplayAttribute>()
+                .FirstOrDefault();
+
+            return displayAttribute?.Name ?? SplitPascalCase(value.ToString());
+        }
+
+        private static string SplitPascalCase(string value)
+        {
+            return string.Concat(value.Select((x, i) => i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
         }
 
         private static string? NormalizeNullableText(string? value)

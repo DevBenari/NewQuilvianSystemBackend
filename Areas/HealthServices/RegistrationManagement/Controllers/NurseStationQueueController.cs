@@ -11,6 +11,7 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 using ResponseNurseStationQueuePagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs.NurseStationQueueResponse>;
@@ -33,6 +34,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     public class NurseStationQueueController : ControllerBase
     {
         private const string LogCategory = "HealthServices.RegistrationManagement";
+        private const int MaxNurseCallAttemptCount = 2;
+        private const int NurseCallDurationSeconds = 60;
+
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
 
@@ -75,9 +79,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [AccessPermission("NurseStationQueue", "Read")]
         public async Task<IActionResult> GetSummary([FromQuery] DateTime? queueDate, [FromQuery] Guid? nurseStationClusterId)
         {
-            var isSuperAdmin = await IsCurrentUserSuperAdminAsync();
             var clusterIds = await GetAllowedClusterIdsAsync(nurseStationClusterId);
-            if (!isSuperAdmin && !clusterIds.Any()) return Forbid();
+            if (!clusterIds.Any()) return Forbid();
 
             var clinicIds = await GetClinicIdsByClusterIdsAsync(clusterIds);
             var query = BuildQueueBaseQuery(queueDate, clinicIds);
@@ -116,9 +119,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var isSuperAdmin = await IsCurrentUserSuperAdminAsync();
             var clusterIds = await GetAllowedClusterIdsAsync(nurseStationClusterId);
-            if (!isSuperAdmin && !clusterIds.Any()) return Forbid();
+            if (!clusterIds.Any()) return Forbid();
 
             var clinicIds = await GetClinicIdsByClusterIdsAsync(clusterIds);
             var clusterMap = await GetClusterMapByClinicIdsAsync(clinicIds);
@@ -155,19 +157,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Antrean tidak dalam status menunggu perawat."));
 
             var now = DateTime.UtcNow;
+
+            if (queue.QueueStatus == QueueStatus.CalledByNurse &&
+                queue.NurseCallExpiresAt.HasValue &&
+                queue.NurseCallExpiresAt.Value > now)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Timer panggilan perawat masih berjalan. Tunggu sampai timer selesai sebelum memanggil ulang."
+                ));
+            }
+
+            if (queue.NurseCallAttemptCount >= MaxNurseCallAttemptCount)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien sudah dipanggil 2 kali oleh perawat. Silakan lakukan lewati jika pasien belum datang."
+                ));
+            }
+
             var actorUserId = GetCurrentUserId();
 
             queue.QueueStatus = QueueStatus.CalledByNurse;
             queue.NurseCallAttemptCount += 1;
             queue.LastNurseCalledAt = now;
             queue.LastNurseCalledByUserId = actorUserId;
-            queue.NurseCallExpiresAt = now.AddMinutes(2);
+            queue.NurseCallExpiresAt = now.AddSeconds(NurseCallDurationSeconds);
             queue.UpdateDateTime = now;
             queue.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<NurseStationQueueActionResponse>.Ok(BuildActionResponse(queue, "Pasien berhasil dipanggil ke nurse station."), "Pasien berhasil dipanggil ke nurse station."));
+            return Ok(ApiResponse<NurseStationQueueActionResponse>.Ok(
+                BuildActionResponse(queue, $"Pasien berhasil dipanggil ke nurse station. Panggilan ke-{queue.NurseCallAttemptCount}, timer {NurseCallDurationSeconds} detik."),
+                $"Pasien berhasil dipanggil ke nurse station. Panggilan ke-{queue.NurseCallAttemptCount}, timer {NurseCallDurationSeconds} detik."
+            ));
         }
 
         [HttpPost("{id:guid}/start-screening")]
@@ -241,6 +265,58 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return Ok(ApiResponse<NurseStationQueueActionResponse>.Ok(BuildActionResponse(queue, "Screening perawat selesai dan pasien dikirim ke dokter."), "Screening perawat selesai dan pasien dikirim ke dokter."));
         }
 
+        [HttpPost("{id:guid}/skip")]
+        [AccessAction("Update", "Skip Nurse Station Queue", Description = "Melewati pasien yang tidak hadir setelah 2 kali panggilan perawat", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("NurseStationQueue", "Update")]
+        public async Task<IActionResult> Skip(Guid id, [FromBody] NurseStationQueueActionRequest? request = null)
+        {
+            var queue = await GetAllowedQueueWithEncounterAsync(id);
+            if (queue == null) return QueueNotFound();
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            if (queue.QueueStatus != QueueStatus.CalledByNurse)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien hanya bisa dilewati setelah berada dalam status dipanggil perawat."
+                ));
+            }
+
+            if (queue.NurseCallAttemptCount < MaxNurseCallAttemptCount)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien hanya bisa dilewati setelah 2 kali panggilan perawat."
+                ));
+            }
+
+            if (queue.NurseCallExpiresAt.HasValue && queue.NurseCallExpiresAt.Value > now)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Timer panggilan perawat masih berjalan."
+                ));
+            }
+
+            queue.QueueStatus = QueueStatus.Skipped;
+            queue.SkipCount += 1;
+            queue.LastSkippedAt = now;
+            queue.LastSkippedByUserId = actorUserId;
+            queue.SkipReason = NormalizeNullableText(request?.Reason) ?? "Tidak hadir saat dipanggil perawat.";
+            queue.Notes = MergeNotes(queue.Notes, request?.Notes);
+            queue.UpdateDateTime = now;
+            queue.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(ApiResponse<NurseStationQueueActionResponse>.Ok(
+                BuildActionResponse(queue, "Pasien berhasil dilewati."),
+                "Pasien berhasil dilewati."
+            ));
+        }
+
         [HttpPost("{id:guid}/no-show")]
         [AccessAction("Update", "No Show Nurse Station Queue", Description = "Menandai pasien tidak hadir di nurse station", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("NurseStationQueue", "Update")]
@@ -277,17 +353,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private IQueryable<TrxQueue> BuildQueueBaseQuery(DateTime? queueDate, List<Guid> clinicIds)
         {
             var selectedDate = queueDate?.Date ?? DateTime.UtcNow.Date;
-
-            var query = _dbContext.Set<TrxQueue>()
+            return _dbContext.Set<TrxQueue>()
                 .AsNoTracking()
-                .Where(x => !x.IsDelete && x.IsActive && x.QueueDate.Date == selectedDate);
-
-            if (clinicIds.Any())
-            {
-                query = query.Where(x => x.ClinicId.HasValue && clinicIds.Contains(x.ClinicId.Value));
-            }
-
-            return query;
+                .Where(x => !x.IsDelete && x.IsActive && x.QueueDate.Date == selectedDate && x.ClinicId.HasValue && clinicIds.Contains(x.ClinicId.Value));
         }
 
         private static IQueryable<TrxQueue> ApplyStandardFilter(IQueryable<TrxQueue> query, QueueStatus? queueStatus, string? search)
@@ -324,123 +392,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private async Task<List<Guid>> GetAllowedClusterIdsAsync(Guid? requestedClusterId)
         {
-            if (await IsCurrentUserSuperAdminAsync())
+            if (User.IsInRole("SuperAdmin"))
             {
-                var query = _dbContext.Set<MstNurseStationCluster>()
-                    .AsNoTracking()
-                    .Where(x => !x.IsDelete && x.IsActive);
-
-                if (requestedClusterId.HasValue && requestedClusterId.Value != Guid.Empty)
-                {
-                    query = query.Where(x => x.Id == requestedClusterId.Value);
-                }
-
-                return await query
-                    .Select(x => x.Id)
-                    .Distinct()
-                    .ToListAsync();
+                var query = _dbContext.Set<MstNurseStationCluster>().AsNoTracking().Where(x => !x.IsDelete && x.IsActive);
+                if (requestedClusterId.HasValue && requestedClusterId.Value != Guid.Empty) query = query.Where(x => x.Id == requestedClusterId.Value);
+                return await query.Select(x => x.Id).ToListAsync();
             }
 
             var employee = await ResolveCurrentEmployeeAsync();
-            if (employee == null)
-            {
-                return new List<Guid>();
-            }
+            if (employee == null) return new List<Guid>();
 
             var clusterQuery = _dbContext.Set<MstNurseStationClusterStaff>()
                 .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.IsActive &&
-                    x.EmployeeId == employee.Id &&
-                    x.NurseStationCluster != null &&
-                    !x.NurseStationCluster.IsDelete &&
-                    x.NurseStationCluster.IsActive);
+                .Where(x => !x.IsDelete && x.IsActive && x.EmployeeId == employee.Id);
 
             if (requestedClusterId.HasValue && requestedClusterId.Value != Guid.Empty)
             {
                 clusterQuery = clusterQuery.Where(x => x.NurseStationClusterId == requestedClusterId.Value);
             }
 
-            return await clusterQuery
-                .Select(x => x.NurseStationClusterId)
-                .Distinct()
-                .ToListAsync();
-        }
-
-        private async Task<bool> IsCurrentUserSuperAdminAsync()
-        {
-            if (User.IsInRole("SuperAdmin"))
-            {
-                return true;
-            }
-
-            var roleClaims = User.FindAll(ClaimTypes.Role)
-                .Concat(User.FindAll("role"))
-                .Concat(User.FindAll("roles"))
-                .Select(x => x.Value);
-
-            if (roleClaims.Any(x => x.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)))
-            {
-                return true;
-            }
-
-            var userTypeClaim =
-                User.FindFirstValue("user_type") ??
-                User.FindFirstValue("UserType") ??
-                User.FindFirstValue("userType");
-
-            if (IsSuperAdminValue(userTypeClaim))
-            {
-                return true;
-            }
-
-            var currentUserId = GetCurrentUserId();
-            if (currentUserId == Guid.Empty)
-            {
-                return false;
-            }
-
-            var currentUser = await _dbContext.Users
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == currentUserId && x.IsActive);
-
-            if (currentUser == null)
-            {
-                return false;
-            }
-
-            var userTypeProperty = currentUser.GetType().GetProperty("UserType");
-            var userTypeValue = userTypeProperty?.GetValue(currentUser);
-
-            return IsSuperAdminValue(userTypeValue);
-        }
-
-        private static bool IsSuperAdminValue(object? value)
-        {
-            if (value == null)
-            {
-                return false;
-            }
-
-            if (value is int intValue)
-            {
-                return intValue == 1;
-            }
-
-            if (value is long longValue)
-            {
-                return longValue == 1;
-            }
-
-            var valueType = value.GetType();
-            if (valueType.IsEnum && Enum.TryParse(valueType, "SuperAdmin", true, out var superAdminValue))
-            {
-                return Equals(value, superAdminValue);
-            }
-
-            var text = value.ToString();
-            return text == "1" || text?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) == true;
+            return await clusterQuery.Select(x => x.NurseStationClusterId).Distinct().ToListAsync();
         }
 
         private async Task<MstEmployee?> ResolveCurrentEmployeeAsync()
@@ -477,59 +448,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private async Task<Dictionary<Guid, (Guid ClusterId, string ClusterName)>> GetClusterMapByClinicIdsAsync(List<Guid> clinicIds)
         {
-            if (!clinicIds.Any())
-            {
-                return new Dictionary<Guid, (Guid ClusterId, string ClusterName)>();
-            }
-
-            var clusterClinicRows = await _dbContext.Set<MstNurseStationClusterClinic>()
+            return await _dbContext.Set<MstNurseStationClusterClinic>()
                 .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.IsActive &&
-                    clinicIds.Contains(x.ClinicId))
-                .Select(x => new
-                {
-                    x.ClinicId,
-                    x.NurseStationClusterId,
-                    ClusterName = x.NurseStationCluster != null
-                        ? x.NurseStationCluster.ClusterName
-                        : string.Empty
-                })
-                .ToListAsync();
-
-            return clusterClinicRows
+                .Where(x => !x.IsDelete && x.IsActive && clinicIds.Contains(x.ClinicId))
+                .Select(x => new { x.ClinicId, x.NurseStationClusterId, ClusterName = x.NurseStationCluster != null ? x.NurseStationCluster.ClusterName : string.Empty })
                 .GroupBy(x => x.ClinicId)
-                .ToDictionary(
-                    x => x.Key,
-                    x =>
-                    {
-                        var first = x.First();
-                        return (first.NurseStationClusterId, first.ClusterName);
-                    });
+                .ToDictionaryAsync(x => x.Key, x => (x.First().NurseStationClusterId, x.First().ClusterName));
         }
 
         private async Task<TrxQueue?> GetAllowedQueueWithEncounterAsync(Guid id)
         {
-            var query = _dbContext.Set<TrxQueue>()
-                .Include(x => x.Encounter)
-                .Where(x => x.Id == id && !x.IsDelete && x.IsActive);
-
-            if (await IsCurrentUserSuperAdminAsync())
-            {
-                return await query.FirstOrDefaultAsync();
-            }
-
             var clusterIds = await GetAllowedClusterIdsAsync(null);
             var clinicIds = await GetClinicIdsByClusterIdsAsync(clusterIds);
-
-            if (!clinicIds.Any())
-            {
-                return null;
-            }
-
-            return await query
-                .FirstOrDefaultAsync(x => x.ClinicId.HasValue && clinicIds.Contains(x.ClinicId.Value));
+            return await _dbContext.Set<TrxQueue>()
+                .Include(x => x.Encounter)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete && x.IsActive && x.ClinicId.HasValue && clinicIds.Contains(x.ClinicId.Value));
         }
 
         private static NurseStationQueueResponse MapResponse(TrxQueue x, IReadOnlyDictionary<Guid, (Guid ClusterId, string ClusterName)> clusterMap)
@@ -562,7 +495,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 QueueNumber = x.QueueNumber,
                 QueueCode = x.QueueCode,
                 QueueStatus = x.QueueStatus,
-                QueueStatusName = x.QueueStatus.ToString(),
+                QueueStatusName = BuildEnumLabel(x.QueueStatus),
                 NurseCallAttemptCount = x.NurseCallAttemptCount,
                 LastNurseCalledAt = x.LastNurseCalledAt,
                 NurseCallExpiresAt = x.NurseCallExpiresAt,
@@ -586,9 +519,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 QueueId = queue.Id,
                 EncounterId = queue.EncounterId,
                 QueueStatus = queue.QueueStatus,
-                QueueStatusName = queue.QueueStatus.ToString(),
+                QueueStatusName = BuildEnumLabel(queue.QueueStatus),
                 EncounterStatus = queue.Encounter?.EncounterStatus ?? EncounterStatus.Registered,
-                EncounterStatusName = (queue.Encounter?.EncounterStatus ?? EncounterStatus.Registered).ToString(),
+                EncounterStatusName = BuildEnumLabel(queue.Encounter?.EncounterStatus ?? EncounterStatus.Registered),
                 NurseCallAttemptCount = queue.NurseCallAttemptCount,
                 NurseCallExpiresAt = queue.NurseCallExpiresAt,
                 ScreeningStartedAt = queue.ScreeningStartedAt,
@@ -600,8 +533,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private static List<NurseStationQueueStatusOptionResponse> BuildQueueStatusOptions()
         {
             return Enum.GetValues<QueueStatus>()
-                .Select(x => new NurseStationQueueStatusOptionResponse { Value = Convert.ToInt32(x), Name = x.ToString(), Label = x.ToString() })
+                .Select(x => new NurseStationQueueStatusOptionResponse { Value = Convert.ToInt32(x), Name = x.ToString(), Label = BuildEnumLabel(x) })
                 .ToList();
+        }
+
+        private static string BuildEnumLabel<TEnum>(TEnum value) where TEnum : Enum
+        {
+            var memberInfo = typeof(TEnum).GetMember(value.ToString()).FirstOrDefault();
+            var displayAttribute = memberInfo?
+                .GetCustomAttributes(typeof(DisplayAttribute), false)
+                .OfType<DisplayAttribute>()
+                .FirstOrDefault();
+
+            return displayAttribute?.Name ?? SplitPascalCase(value.ToString());
+        }
+
+        private static string SplitPascalCase(string value)
+        {
+            return string.Concat(value.Select((x, i) => i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
         }
 
         private IActionResult QueueNotFound()

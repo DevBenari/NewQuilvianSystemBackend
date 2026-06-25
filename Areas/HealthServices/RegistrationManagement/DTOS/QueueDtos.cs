@@ -22,6 +22,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public int QueueNumber { get; set; }
         public string QueueCode { get; set; } = string.Empty;
         public QueueStatus QueueStatus { get; set; }
+        public string QueueStatusName { get; set; } = string.Empty;
         public int NurseCallAttemptCount { get; set; }
         public DateTime? NurseCallExpiresAt { get; set; }
         public int DoctorCallAttemptCount { get; set; }
@@ -68,7 +69,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public Guid QueueId { get; set; }
         public Guid EncounterId { get; set; }
         public QueueStatus QueueStatus { get; set; }
+        public string QueueStatusName { get; set; } = string.Empty;
         public EncounterStatus EncounterStatus { get; set; }
+        public string EncounterStatusName { get; set; } = string.Empty;
         public int NurseCallAttemptCount { get; set; }
         public DateTime? NurseCallExpiresAt { get; set; }
         public int DoctorCallAttemptCount { get; set; }
