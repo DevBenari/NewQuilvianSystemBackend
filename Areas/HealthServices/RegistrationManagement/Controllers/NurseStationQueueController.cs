@@ -358,6 +358,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             return _dbContext.Set<TrxQueue>()
                 .AsNoTracking()
+                .Include(x => x.Encounter)
+                .Include(x => x.Patient)
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.Clinic)
+                .Include(x => x.Doctor)
                 .Where(x =>
                     !x.IsDelete &&
                     x.IsActive &&
