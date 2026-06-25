@@ -73,10 +73,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [AccessPermission("DoctorQueue", "Read")]
         public async Task<IActionResult> GetSummary([FromQuery] DateTime? queueDate, [FromQuery] Guid? doctorId)
         {
-            var allowedDoctorId = await ResolveAllowedDoctorIdAsync(doctorId);
-            if (!allowedDoctorId.HasValue) return Forbid();
+            var isSuperAdmin = await IsCurrentUserSuperAdminAsync();
+            var allowedDoctorId = isSuperAdmin && (!doctorId.HasValue || doctorId.Value == Guid.Empty)
+                ? null
+                : await ResolveAllowedDoctorIdAsync(doctorId);
 
-            var query = BuildQueueBaseQuery(queueDate, allowedDoctorId.Value);
+            if (!isSuperAdmin && !allowedDoctorId.HasValue) return Forbid();
+
+            var query = BuildQueueBaseQuery(queueDate, allowedDoctorId);
 
             var result = new DoctorQueueSummaryResponse
             {
@@ -111,10 +115,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var allowedDoctorId = await ResolveAllowedDoctorIdAsync(doctorId);
-            if (!allowedDoctorId.HasValue) return Forbid();
+            var isSuperAdmin = await IsCurrentUserSuperAdminAsync();
+            var allowedDoctorId = isSuperAdmin && (!doctorId.HasValue || doctorId.Value == Guid.Empty)
+                ? null
+                : await ResolveAllowedDoctorIdAsync(doctorId);
 
-            var query = BuildQueueBaseQuery(queueDate, allowedDoctorId.Value);
+            if (!isSuperAdmin && !allowedDoctorId.HasValue) return Forbid();
+
+            var query = BuildQueueBaseQuery(queueDate, allowedDoctorId);
             query = ApplyStandardFilter(query, queueStatus, search);
 
             var totalData = await query.CountAsync();
@@ -291,12 +299,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(BuildActionResponse(queue, "Pasien berhasil dikembalikan ke antrean dokter."), "Pasien berhasil dikembalikan ke antrean dokter."));
         }
 
-        private IQueryable<TrxQueue> BuildQueueBaseQuery(DateTime? queueDate, Guid doctorId)
+        private IQueryable<TrxQueue> BuildQueueBaseQuery(DateTime? queueDate, Guid? allowedDoctorId)
         {
             var selectedDate = queueDate?.Date ?? DateTime.UtcNow.Date;
-            return _dbContext.Set<TrxQueue>()
+
+            var query = _dbContext.Set<TrxQueue>()
                 .AsNoTracking()
-                .Where(x => !x.IsDelete && x.IsActive && x.QueueDate.Date == selectedDate && x.DoctorId == doctorId);
+                .Where(x => !x.IsDelete && x.IsActive && x.QueueDate.Date == selectedDate);
+
+            if (allowedDoctorId.HasValue && allowedDoctorId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.DoctorId == allowedDoctorId.Value);
+            }
+
+            return query;
         }
 
         private static IQueryable<TrxQueue> ApplyStandardFilter(IQueryable<TrxQueue> query, QueueStatus? queueStatus, string? search)
@@ -329,11 +345,88 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             };
         }
 
+        private async Task<bool> IsCurrentUserSuperAdminAsync()
+        {
+            if (User.IsInRole("SuperAdmin"))
+            {
+                return true;
+            }
+
+            var roleClaims = User.FindAll(ClaimTypes.Role)
+                .Concat(User.FindAll("role"))
+                .Concat(User.FindAll("roles"))
+                .Select(x => x.Value);
+
+            if (roleClaims.Any(x => x.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            var userTypeClaim =
+                User.FindFirstValue("user_type") ??
+                User.FindFirstValue("UserType") ??
+                User.FindFirstValue("userType");
+
+            if (IsSuperAdminValue(userTypeClaim))
+            {
+                return true;
+            }
+
+            var currentUserId = GetCurrentUserId();
+            if (currentUserId == Guid.Empty)
+            {
+                return false;
+            }
+
+            var currentUser = await _dbContext.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == currentUserId && x.IsActive);
+
+            if (currentUser == null)
+            {
+                return false;
+            }
+
+            var userTypeProperty = currentUser.GetType().GetProperty("UserType");
+            var userTypeValue = userTypeProperty?.GetValue(currentUser);
+
+            return IsSuperAdminValue(userTypeValue);
+        }
+
+        private static bool IsSuperAdminValue(object? value)
+        {
+            if (value == null)
+            {
+                return false;
+            }
+
+            if (value is int intValue)
+            {
+                return intValue == 1;
+            }
+
+            if (value is long longValue)
+            {
+                return longValue == 1;
+            }
+
+            var valueType = value.GetType();
+            if (valueType.IsEnum && Enum.TryParse(valueType, "SuperAdmin", true, out var superAdminValue))
+            {
+                return Equals(value, superAdminValue);
+            }
+
+            var text = value.ToString();
+            return text == "1" || text?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) == true;
+        }
+
         private async Task<Guid?> ResolveAllowedDoctorIdAsync(Guid? requestedDoctorId)
         {
-            if (User.IsInRole("SuperAdmin") && requestedDoctorId.HasValue && requestedDoctorId.Value != Guid.Empty)
+            if (await IsCurrentUserSuperAdminAsync())
             {
-                return requestedDoctorId.Value;
+                return requestedDoctorId.HasValue && requestedDoctorId.Value != Guid.Empty
+                    ? requestedDoctorId.Value
+                    : null;
             }
 
             var doctorIdClaim = User.FindFirstValue("doctor_id") ?? User.FindFirstValue("DoctorId");
@@ -376,12 +469,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private async Task<TrxQueue?> GetAllowedQueueWithEncounterAsync(Guid id)
         {
-            var allowedDoctorId = await ResolveAllowedDoctorIdAsync(null);
-            if (!allowedDoctorId.HasValue) return null;
-
-            return await _dbContext.Set<TrxQueue>()
+            var query = _dbContext.Set<TrxQueue>()
                 .Include(x => x.Encounter)
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete && x.IsActive && x.DoctorId == allowedDoctorId.Value);
+                .Where(x => x.Id == id && !x.IsDelete && x.IsActive);
+
+            if (await IsCurrentUserSuperAdminAsync())
+            {
+                return await query.FirstOrDefaultAsync();
+            }
+
+            var allowedDoctorId = await ResolveAllowedDoctorIdAsync(null);
+            if (!allowedDoctorId.HasValue)
+            {
+                return null;
+            }
+
+            return await query.FirstOrDefaultAsync(x => x.DoctorId == allowedDoctorId.Value);
         }
 
         private static DoctorQueueResponse MapResponse(TrxQueue x)

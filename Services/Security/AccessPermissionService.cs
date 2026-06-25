@@ -51,9 +51,7 @@ namespace QuilvianSystemBackend.Services.Security
 
             var roles = await _userManager.GetRolesAsync(user);
 
-            var isSuperAdmin = roles.Any(x => x.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase));
-
-            if (isSuperAdmin)
+            if (IsSuperAdminUser(user, roles))
             {
                 return true;
             }
@@ -114,6 +112,42 @@ namespace QuilvianSystemBackend.Services.Security
             ).AnyAsync();
 
             return hasAccess;
+        }
+
+        private static bool IsSuperAdminUser(ApplicationUser user, IEnumerable<string> roles)
+        {
+            if (roles.Any(x => x.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            var userTypeProperty = user.GetType().GetProperty("UserType");
+            var userTypeValue = userTypeProperty?.GetValue(user);
+
+            if (userTypeValue == null)
+            {
+                return false;
+            }
+
+            if (userTypeValue is int userTypeInt)
+            {
+                return userTypeInt == 1;
+            }
+
+            if (userTypeValue is long userTypeLong)
+            {
+                return userTypeLong == 1;
+            }
+
+            var valueType = userTypeValue.GetType();
+            if (valueType.IsEnum && Enum.TryParse(valueType, "SuperAdmin", true, out var superAdminValue))
+            {
+                return Equals(userTypeValue, superAdminValue);
+            }
+
+            var text = userTypeValue.ToString();
+            return text == "1" ||
+                   text?.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) == true;
         }
     }
 }
