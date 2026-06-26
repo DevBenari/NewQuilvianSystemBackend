@@ -344,7 +344,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return _dbContext.Set<TrxQueue>()
                 .AsNoTracking()
                 .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentMethod)
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.EncounterGuarantors)
+                        .ThenInclude(x => x.PaymentMethod)
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.EncounterGuarantors)
+                        .ThenInclude(x => x.InsuranceProvider)
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.EncounterGuarantors)
+                        .ThenInclude(x => x.CompanyGuarantor)
                 .Include(x => x.Patient)
+                    .ThenInclude(x => x.Country)
+                .Include(x => x.Patient)
+                    .ThenInclude(x => x.Province)
+                .Include(x => x.Patient)
+                    .ThenInclude(x => x.City)
+                .Include(x => x.Patient)
+                    .ThenInclude(x => x.District)
+                .Include(x => x.Patient)
+                    .ThenInclude(x => x.PostalCode)
+                .Include(x => x.Patient)
+                    .ThenInclude(x => x.DefaultMembershipTier)
+                .Include(x => x.Patient)
+                    .ThenInclude(x => x.MotherPatient)
                 .Include(x => x.ServiceUnit)
                 .Include(x => x.Clinic)
                 .Include(x => x.Doctor)
@@ -563,14 +586,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 clusterName = cluster.ClusterName;
             }
 
+            var encounter = x.Encounter;
+            var patient = x.Patient;
+            var guarantors = encounter?.EncounterGuarantors?
+                .Where(g => !g.IsDelete)
+                .OrderBy(g => g.CoveragePriority)
+                .ThenByDescending(g => g.IsPrimary)
+                .Select(MapGuarantorResponse)
+                .ToList() ?? new List<NurseStationQueueGuarantorResponse>();
+
             return new NurseStationQueueResponse
             {
                 Id = x.Id,
                 EncounterId = x.EncounterId,
-                EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : string.Empty,
+                EncounterNumber = encounter != null ? encounter.EncounterNumber : string.Empty,
                 PatientId = x.PatientId,
-                PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
-                MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
+                PatientName = patient != null ? patient.FullName : string.Empty,
+                MedicalRecordNumber = patient != null ? patient.MedicalRecordNumber : string.Empty,
                 ServiceUnitId = x.ServiceUnitId,
                 ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
                 ClinicId = x.ClinicId,
@@ -596,7 +628,90 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 IsScreeningRequired = x.IsScreeningRequired,
                 IsDoctorRequired = x.IsDoctorRequired,
                 Notes = x.Notes,
-                CreateDateTime = x.CreateDateTime
+                CreateDateTime = x.CreateDateTime,
+
+                ChiefComplaint = encounter?.ChiefComplaint,
+                EncounterDate = encounter?.EncounterDate ?? default,
+                RegisteredAt = encounter?.RegisteredAt ?? default,
+                EncounterType = encounter?.EncounterType ?? default,
+                EncounterTypeName = encounter != null ? BuildEnumLabel(encounter.EncounterType) : string.Empty,
+                VisitType = encounter?.VisitType ?? default,
+                VisitTypeName = encounter != null ? BuildEnumLabel(encounter.VisitType) : string.Empty,
+                RegistrationSource = encounter?.RegistrationSource ?? default,
+                RegistrationSourceName = encounter != null ? BuildEnumLabel(encounter.RegistrationSource) : string.Empty,
+                EncounterStatus = encounter?.EncounterStatus ?? EncounterStatus.Registered,
+                EncounterStatusName = encounter != null ? BuildEnumLabel(encounter.EncounterStatus) : string.Empty,
+                PaymentType = encounter?.PaymentType ?? EncounterPaymentType.Cash,
+                PaymentTypeName = encounter != null ? BuildEnumLabel(encounter.PaymentType) : string.Empty,
+                IsInsurancePatient = encounter?.IsInsurancePatient ?? false,
+                IsCompanyPatient = encounter?.IsCompanyPatient ?? false,
+                IsMembershipPatient = encounter?.IsMembershipPatient ?? false,
+                IsMixedPayment = encounter?.IsMixedPayment ?? false,
+                PrimaryGuarantorNameSnapshot = encounter?.PrimaryGuarantorNameSnapshot,
+                PrimaryGuarantorTypeSnapshot = encounter?.PrimaryGuarantorTypeSnapshot,
+                IsEligibilityRequired = encounter?.IsEligibilityRequired ?? false,
+                IsEligibilityCompleted = encounter?.IsEligibilityCompleted ?? false,
+                IsReferral = encounter?.IsReferral ?? false,
+                ReferralNumber = encounter?.ReferralNumber,
+                EligibilityReferenceNumber = encounter?.EligibilityReferenceNumber,
+                Guarantors = guarantors,
+
+                PatientCode = patient?.PatientCode ?? string.Empty,
+                NickName = patient?.NickName,
+                BirthPlace = patient?.BirthPlace,
+                BirthDate = patient?.BirthDate,
+                GenderName = BuildOptionalLabel(patient?.Gender),
+                ReligionName = BuildOptionalLabel(patient?.Religion),
+                MaritalStatusName = BuildOptionalLabel(patient?.MaritalStatus),
+                BloodTypeName = BuildOptionalLabel(patient?.BloodType),
+                IdentityTypeName = BuildOptionalLabel(patient?.IdentityType),
+                IdentityNumber = patient?.IdentityNumber,
+                PhoneNumber = patient?.PhoneNumber,
+                WhatsAppNumber = patient?.WhatsAppNumber,
+                Email = patient?.Email,
+                CountryName = patient?.Country?.CountryName,
+                ProvinceName = patient?.Province?.ProvinceName,
+                CityName = patient?.City?.CityName,
+                DistrictName = patient?.District?.DistrictName,
+                PostalCode = patient?.PostalCode?.PostalCode,
+                IsMember = patient?.IsMember ?? false,
+                ActivePatientMembershipId = patient?.ActivePatientMembershipId,
+                DefaultMembershipTierId = patient?.DefaultMembershipTierId,
+                DefaultMembershipTierName = patient?.DefaultMembershipTier?.TierName,
+                IsNewborn = patient?.IsNewborn ?? false,
+                MotherPatientId = patient?.MotherPatientId,
+                MotherMedicalRecordNumber = patient?.MotherPatient?.MedicalRecordNumber,
+                MotherPatientName = patient?.MotherPatient?.FullName
+            };
+        }
+
+        private static NurseStationQueueGuarantorResponse MapGuarantorResponse(TrxPatientEncounterGuarantor guarantor)
+        {
+            return new NurseStationQueueGuarantorResponse
+            {
+                Id = guarantor.Id,
+                EncounterGuarantorNumber = guarantor.EncounterGuarantorNumber,
+                GuarantorType = guarantor.GuarantorType,
+                GuarantorTypeName = BuildEnumLabel(guarantor.GuarantorType),
+                GuarantorRole = guarantor.GuarantorRole,
+                GuarantorRoleName = BuildEnumLabel(guarantor.GuarantorRole),
+                GuarantorStatus = guarantor.GuarantorStatus,
+                GuarantorStatusName = BuildEnumLabel(guarantor.GuarantorStatus),
+                CoveragePriority = guarantor.CoveragePriority,
+                IsPrimary = guarantor.IsPrimary,
+                GuarantorNameSnapshot = guarantor.GuarantorNameSnapshot,
+                PolicyNumberSnapshot = guarantor.PolicyNumberSnapshot,
+                CardNumberSnapshot = guarantor.CardNumberSnapshot,
+                MemberNumberSnapshot = guarantor.MemberNumberSnapshot,
+                PlanNameSnapshot = guarantor.PlanNameSnapshot,
+                ClassNameSnapshot = guarantor.ClassNameSnapshot,
+                PaymentMethodName = guarantor.PaymentMethod?.PaymentMethodName,
+                InsuranceProviderName = guarantor.InsuranceProvider?.InsuranceProviderName,
+                CompanyGuarantorName = guarantor.CompanyGuarantor?.CompanyGuarantorName,
+                IsEligibilityRequired = guarantor.IsEligibilityRequired,
+                IsEligible = guarantor.IsEligible,
+                IsVerified = guarantor.IsVerified,
+                IsActive = guarantor.IsActive
             };
         }
 
@@ -623,6 +738,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return Enum.GetValues<QueueStatus>()
                 .Select(x => new NurseStationQueueStatusOptionResponse { Value = Convert.ToInt32(x), Name = x.ToString(), Label = BuildEnumLabel(x) })
                 .ToList();
+        }
+
+        private static string? BuildOptionalLabel(object? value)
+        {
+            if (value == null) return null;
+            if (value is Enum enumValue) return BuildEnumLabel(enumValue);
+            var text = value.ToString();
+            return string.IsNullOrWhiteSpace(text) ? null : text;
         }
 
         private static string BuildEnumLabel<TEnum>(TEnum value) where TEnum : Enum
