@@ -346,6 +346,81 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ));
         }
 
+        [HttpGet("active-by-encounter/{encounterId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<PatientVitalSignDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Patient Vital Sign", Description = "Melihat draft/record tanda vital aktif berdasarkan encounter", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientVitalSign", "Read")]
+        public async Task<IActionResult> GetActiveByEncounter(Guid encounterId, [FromQuery] Guid? queueId = null)
+        {
+            var query = BuildBaseQuery()
+                .AsNoTracking()
+                .Where(x =>
+                    x.EncounterId == encounterId &&
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.VitalSignStatus != PatientVitalSignStatus.Cancelled &&
+                    x.VitalSignStatus != PatientVitalSignStatus.EnteredInError);
+
+            if (queueId.HasValue && queueId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.QueueId == queueId.Value);
+            }
+
+            var entity = await query
+                .OrderByDescending(x => x.VitalSignStatus == PatientVitalSignStatus.Draft)
+                .ThenByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
+                .ThenByDescending(x => x.ObservationDateTime)
+                .FirstOrDefaultAsync();
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Draft/catatan tanda vital aktif untuk encounter ini tidak ditemukan."
+                ));
+            }
+
+            return Ok(ApiResponse<PatientVitalSignDetailResponse>.Ok(
+                ToDetailResponse(entity),
+                "Draft/catatan tanda vital aktif berhasil diambil."
+            ));
+        }
+
+        [HttpGet("active-by-queue/{queueId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<PatientVitalSignDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Patient Vital Sign", Description = "Melihat draft/record tanda vital aktif berdasarkan antrean", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientVitalSign", "Read")]
+        public async Task<IActionResult> GetActiveByQueue(Guid queueId)
+        {
+            var entity = await BuildBaseQuery()
+                .AsNoTracking()
+                .Where(x =>
+                    x.QueueId == queueId &&
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.VitalSignStatus != PatientVitalSignStatus.Cancelled &&
+                    x.VitalSignStatus != PatientVitalSignStatus.EnteredInError)
+                .OrderByDescending(x => x.VitalSignStatus == PatientVitalSignStatus.Draft)
+                .ThenByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
+                .ThenByDescending(x => x.ObservationDateTime)
+                .FirstOrDefaultAsync();
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Draft/catatan tanda vital aktif untuk antrean ini tidak ditemukan."
+                ));
+            }
+
+            return Ok(ApiResponse<PatientVitalSignDetailResponse>.Ok(
+                ToDetailResponse(entity),
+                "Draft/catatan tanda vital aktif berhasil diambil."
+            ));
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<PatientVitalSignCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -521,9 +596,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             entity.ObservationDateTime = request.ObservationDateTime ?? entity.ObservationDateTime;
             entity.VitalSignSource = request.VitalSignSource;
-            entity.VitalSignStatus = request.VitalSignStatus == PatientVitalSignStatus.Draft
-                ? PatientVitalSignStatus.Corrected
-                : request.VitalSignStatus;
+            // Untuk kebutuhan autosave screening perawat, status Draft harus tetap bisa disimpan.
+            // Jika user mengirim Draft, record tetap Draft agar bisa dilanjutkan setelah refresh/mati listrik.
+            entity.VitalSignStatus = request.VitalSignStatus;
             entity.ObservationLocation = NormalizeNullableText(request.ObservationLocation);
             entity.PatientPosition = request.PatientPosition;
             entity.MeasurementMethod = NormalizeNullableText(request.MeasurementMethod);

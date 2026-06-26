@@ -165,6 +165,81 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ));
         }
 
+        [HttpGet("active-by-encounter/{encounterId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<PatientAssessmentDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Patient Assessment", Description = "Melihat draft/assessment aktif berdasarkan encounter", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientAssessment", "Read")]
+        public async Task<IActionResult> GetActiveByEncounter(Guid encounterId, [FromQuery] Guid? queueId = null)
+        {
+            var query = _dbContext.Set<TrxPatientAssessment>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.EncounterId == encounterId &&
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.AssessmentStatus != PatientAssessmentStatus.Cancelled);
+
+            if (queueId.HasValue && queueId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.QueueId == queueId.Value);
+            }
+
+            var result = await query
+                .OrderByDescending(x => x.AssessmentStatus == PatientAssessmentStatus.InProgress)
+                .ThenByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
+                .ThenByDescending(x => x.AssessmentDateTime)
+                .Select(x => ToDetailResponse(x))
+                .FirstOrDefaultAsync();
+
+            if (result == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Draft/assessment aktif untuk encounter ini tidak ditemukan."
+                ));
+            }
+
+            return Ok(ApiResponse<PatientAssessmentDetailResponse>.Ok(
+                result,
+                "Draft/assessment aktif berhasil diambil."
+            ));
+        }
+
+        [HttpGet("active-by-queue/{queueId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<PatientAssessmentDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Patient Assessment", Description = "Melihat draft/assessment aktif berdasarkan antrean", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientAssessment", "Read")]
+        public async Task<IActionResult> GetActiveByQueue(Guid queueId)
+        {
+            var result = await _dbContext.Set<TrxPatientAssessment>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.QueueId == queueId &&
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.AssessmentStatus != PatientAssessmentStatus.Cancelled)
+                .OrderByDescending(x => x.AssessmentStatus == PatientAssessmentStatus.InProgress)
+                .ThenByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
+                .ThenByDescending(x => x.AssessmentDateTime)
+                .Select(x => ToDetailResponse(x))
+                .FirstOrDefaultAsync();
+
+            if (result == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Draft/assessment aktif untuk antrean ini tidak ditemukan."
+                ));
+            }
+
+            return Ok(ApiResponse<PatientAssessmentDetailResponse>.Ok(
+                result,
+                "Draft/assessment aktif berhasil diambil."
+            ));
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<PatientAssessmentCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

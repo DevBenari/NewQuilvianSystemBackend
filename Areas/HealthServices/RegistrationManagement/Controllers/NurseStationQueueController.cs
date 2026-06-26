@@ -35,8 +35,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     public class NurseStationQueueController : ControllerBase
     {
         private const string LogCategory = "HealthServices.RegistrationManagement";
-        private const int MaxNurseCallAttemptCount = 2;
-        private const int NurseCallDurationSeconds = 60;
+        private const int NurseCallDurationSeconds = 30;
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -85,10 +84,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             var clinicIds = await GetClinicIdsByClusterIdsAsync(clusterIds);
             var query = BuildQueueBaseQuery(queueDate, clinicIds);
+            var operationalQuery = ApplyNurseOperationalStatusFilter(query);
 
             var result = new NurseStationQueueSummaryResponse
             {
-                TotalQueue = await query.CountAsync(),
+                TotalQueue = await operationalQuery.CountAsync(),
                 WaitingForNurseQueue = await query.CountAsync(x => x.QueueStatus == QueueStatus.WaitingForNurse),
                 CalledByNurseQueue = await query.CountAsync(x => x.QueueStatus == QueueStatus.CalledByNurse),
                 InNurseScreeningQueue = await query.CountAsync(x => x.QueueStatus == QueueStatus.InNurseScreening),
@@ -96,7 +96,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 CompletedQueue = await query.CountAsync(x => x.QueueStatus == QueueStatus.Completed || x.CompletedAt.HasValue),
                 SkippedQueue = await query.CountAsync(x => x.QueueStatus == QueueStatus.Skipped),
                 NoShowQueue = await query.CountAsync(x => x.NoShowAt.HasValue),
-                PriorityQueue = await query.CountAsync(x => x.IsPriorityQueue)
+                PriorityQueue = await operationalQuery.CountAsync(x => x.IsPriorityQueue)
             };
 
             return Ok(ApiResponse<NurseStationQueueSummaryResponse>.Ok(result, "Ringkasan antrean nurse station berhasil diambil."));
@@ -166,14 +166,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     "Timer panggilan perawat masih berjalan. Tunggu sampai timer selesai sebelum memanggil ulang."
-                ));
-            }
-
-            if (queue.NurseCallAttemptCount >= MaxNurseCallAttemptCount)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Pasien sudah dipanggil 2 kali oleh perawat. Silakan lakukan lewati jika pasien belum datang."
                 ));
             }
 
@@ -267,7 +259,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("{id:guid}/skip")]
-        [AccessAction("Update", "Skip Nurse Station Queue", Description = "Melewati pasien yang tidak hadir setelah 2 kali panggilan perawat", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessAction("Update", "Skip Nurse Station Queue", Description = "Melewati pasien dari daftar panggilan perawat", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("NurseStationQueue", "Update")]
         public async Task<IActionResult> Skip(Guid id, [FromBody] NurseStationQueueActionRequest? request = null)
         {
@@ -282,14 +274,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     "Pasien hanya bisa dilewati setelah berada dalam status dipanggil perawat."
-                ));
-            }
-
-            if (queue.NurseCallAttemptCount < MaxNurseCallAttemptCount)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Pasien hanya bisa dilewati setelah 2 kali panggilan perawat."
                 ));
             }
 
@@ -375,7 +359,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private static IQueryable<TrxQueue> ApplyStandardFilter(IQueryable<TrxQueue> query, QueueStatus? queueStatus, string? search)
         {
-            if (queueStatus.HasValue) query = query.Where(x => x.QueueStatus == queueStatus.Value);
+            query = queueStatus.HasValue
+                ? query.Where(x => x.QueueStatus == queueStatus.Value)
+                : ApplyNurseOperationalStatusFilter(query);
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -388,6 +375,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     (x.Doctor != null && x.Doctor.FullName.ToLower().Contains(keyword)));
             }
             return query;
+        }
+
+        private static IQueryable<TrxQueue> ApplyNurseOperationalStatusFilter(IQueryable<TrxQueue> query)
+        {
+            return query.Where(x =>
+                x.QueueStatus == QueueStatus.WaitingForNurse ||
+                x.QueueStatus == QueueStatus.CalledByNurse ||
+                x.QueueStatus == QueueStatus.InNurseScreening);
         }
 
         private static IOrderedQueryable<TrxQueue> ApplySorting(IQueryable<TrxQueue> query, string? sortBy, string? sortDirection)
