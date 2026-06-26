@@ -393,15 +393,72 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private static IOrderedQueryable<TrxQueue> ApplySorting(IQueryable<TrxQueue> query, string? sortBy, string? sortDirection)
         {
             var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
             return (sortBy ?? "queueNumber").Trim().ToLowerInvariant() switch
             {
-                "queuedate" => isDescending ? query.OrderByDescending(x => x.QueueDate) : query.OrderBy(x => x.QueueDate),
-                "queuestatus" => isDescending ? query.OrderByDescending(x => x.QueueStatus).ThenBy(x => x.QueueNumber) : query.OrderBy(x => x.QueueStatus).ThenBy(x => x.QueueNumber),
-                "patientname" => isDescending ? query.OrderByDescending(x => x.Patient!.FullName) : query.OrderBy(x => x.Patient!.FullName),
-                "clinicname" => isDescending ? query.OrderByDescending(x => x.Clinic!.ClinicName).ThenBy(x => x.QueueNumber) : query.OrderBy(x => x.Clinic!.ClinicName).ThenBy(x => x.QueueNumber),
-                "doctorname" => isDescending ? query.OrderByDescending(x => x.Doctor!.FullName).ThenBy(x => x.QueueNumber) : query.OrderBy(x => x.Doctor!.FullName).ThenBy(x => x.QueueNumber),
-                "createdatetime" => isDescending ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime),
-                _ => isDescending ? query.OrderByDescending(x => x.IsPriorityQueue).ThenByDescending(x => x.QueueNumber) : query.OrderByDescending(x => x.IsPriorityQueue).ThenBy(x => x.QueueNumber)
+                "queuedate" => isDescending
+                    ? query.OrderByDescending(x => x.QueueDate)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenByDescending(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenByDescending(x => x.QueueNumber)
+                    : query.OrderBy(x => x.QueueDate)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber),
+
+                "queuestatus" => isDescending
+                    ? query.OrderByDescending(x => x.QueueStatus)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber)
+                    : query.OrderBy(x => x.QueueStatus)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber),
+
+                "patientname" => isDescending
+                    ? query.OrderByDescending(x => x.Patient!.FullName)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber)
+                    : query.OrderBy(x => x.Patient!.FullName)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber),
+
+                "clinicname" => isDescending
+                    ? query.OrderByDescending(x => x.Clinic!.ClinicName)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber)
+                    : query.OrderBy(x => x.Clinic!.ClinicName)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber),
+
+                "doctorname" => isDescending
+                    ? query.OrderByDescending(x => x.Doctor!.FullName)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber)
+                    : query.OrderBy(x => x.Doctor!.FullName)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber),
+
+                "createdatetime" => isDescending
+                    ? query.OrderByDescending(x => x.CreateDateTime)
+                        .ThenByDescending(x => x.QueueNumber)
+                    : query.OrderBy(x => x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber),
+
+                _ => isDescending
+                    ? query.OrderByDescending(x => x.IsPriorityQueue)
+                        .ThenByDescending(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenByDescending(x => x.QueueNumber)
+                    : query.OrderByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber)
             };
         }
 

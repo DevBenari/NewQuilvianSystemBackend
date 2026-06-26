@@ -298,6 +298,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             }
 
             var now = DateTime.UtcNow;
+            var operationalDate = AppDateTimeHelper.OperationalDate();
             var actorUserId = GetCurrentUserId();
 
             var serviceUnit = await _dbContext.Set<MstServiceUnit>().AsNoTracking().FirstAsync(x => x.Id == request.ServiceUnitId);
@@ -330,7 +331,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     PatientClassId = NormalizeNullableGuid(request.PatientClassId),
                     PaymentMethodId = NormalizeNullableGuid(request.PaymentMethodId),
                     KioskScanSessionId = NormalizeNullableGuid(request.KioskScanSessionId),
-                    EncounterDate = now,
+                    EncounterDate = operationalDate,
                     EncounterType = request.EncounterType,
                     VisitType = request.VisitType,
                     RegistrationSource = request.RegistrationSource,
@@ -379,7 +380,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
                 if (isQueueRequired)
                 {
-                    var queueNumber = await GenerateQueueNumberAsync(now, request.ServiceUnitId, request.ClinicId, request.DoctorId);
+                    var queueNumber = await GenerateQueueNumberAsync(operationalDate, request.ServiceUnitId, request.ClinicId, request.DoctorId);
 
                     queue = new TrxQueue
                     {
@@ -390,9 +391,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         ClinicId = NormalizeNullableGuid(request.ClinicId),
                         DoctorId = NormalizeNullableGuid(request.DoctorId),
                         DoctorScheduleId = NormalizeNullableGuid(request.DoctorScheduleId),
-                        QueueDate = now.Date,
+                        QueueDate = operationalDate.Date,
                         QueueNumber = queueNumber,
-                        QueueCode = GenerateQueueCode(now, clinic, queueNumber),
+                        QueueCode = GenerateQueueCode(operationalDate, clinic, queueNumber),
                         QueueStatus = isScreeningRequired ? QueueStatus.WaitingForNurse : QueueStatus.WaitingForDoctor,
                         IsFromKiosk = encounter.IsFromKiosk,
                         IsWalkIn = request.IsWalkIn,
@@ -632,17 +633,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         {
             if (startDate.HasValue)
             {
-                query = query.Where(x => x.EncounterDate >= DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc));
+                var start = startDate.Value.Date;
+                query = query.Where(x => x.EncounterDate >= start);
             }
 
             if (endDate.HasValue)
             {
-                query = query.Where(x => x.EncounterDate < DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc));
+                var endExclusive = endDate.Value.Date.AddDays(1);
+                query = query.Where(x => x.EncounterDate < endExclusive);
             }
 
             if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
             {
-                var today = AppDateTimeHelper.OperationalDate();
+                var today = AppDateTimeHelper.OperationalDate().Date;
 
                 switch (customPeriod.Trim().ToLowerInvariant())
                 {
@@ -653,11 +656,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         query = query.Where(x => x.EncounterDate >= today.AddDays(-6) && x.EncounterDate < today.AddDays(1));
                         break;
                     case "thismonth":
-                        var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        var thisMonthStart = new DateTime(today.Year, today.Month, 1);
                         query = query.Where(x => x.EncounterDate >= thisMonthStart && x.EncounterDate < thisMonthStart.AddMonths(1));
                         break;
                     case "lastmonth":
-                        var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                        var currentMonthStart = new DateTime(today.Year, today.Month, 1);
                         var lastMonthStart = currentMonthStart.AddMonths(-1);
                         query = query.Where(x => x.EncounterDate >= lastMonthStart && x.EncounterDate < currentMonthStart);
                         break;
@@ -1112,18 +1115,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return prefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
         }
 
-        private async Task<int> GenerateQueueNumberAsync(DateTime now, Guid serviceUnitId, Guid? clinicId, Guid? doctorId)
+        private async Task<int> GenerateQueueNumberAsync(DateTime operationalDate, Guid serviceUnitId, Guid? clinicId, Guid? doctorId)
         {
             var normalizedClinicId = NormalizeNullableGuid(clinicId);
             var normalizedDoctorId = NormalizeNullableGuid(doctorId);
+            var queueDate = operationalDate.Date;
 
-            return await _dbContext.Set<TrxQueue>().CountAsync(x => x.QueueDate == now.Date && x.ServiceUnitId == serviceUnitId && x.ClinicId == normalizedClinicId && x.DoctorId == normalizedDoctorId && !x.IsDelete) + 1;
+            return await _dbContext.Set<TrxQueue>()
+                .CountAsync(x =>
+                    x.QueueDate == queueDate &&
+                    x.ServiceUnitId == serviceUnitId &&
+                    x.ClinicId == normalizedClinicId &&
+                    x.DoctorId == normalizedDoctorId &&
+                    !x.IsDelete) + 1;
         }
 
-        private static string GenerateQueueCode(DateTime now, MstClinic? clinic, int queueNumber)
+        private static string GenerateQueueCode(DateTime operationalDate, MstClinic? clinic, int queueNumber)
         {
             var prefix = !string.IsNullOrWhiteSpace(clinic?.ShortName) ? clinic.ShortName.Trim().ToUpperInvariant() : "Q";
-            return $"{prefix}-{now:yyyyMMdd}-{queueNumber:D3}";
+            return $"{prefix}-{operationalDate:yyyyMMdd}-{queueNumber:D3}";
         }
 
         private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
