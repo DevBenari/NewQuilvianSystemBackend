@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
@@ -669,6 +670,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 PhoneNumber = patient?.PhoneNumber,
                 WhatsAppNumber = patient?.WhatsAppNumber,
                 Email = patient?.Email,
+                Address = BuildPatientAddress(patient),
                 CountryName = patient?.Country?.CountryName,
                 ProvinceName = patient?.Province?.ProvinceName,
                 CityName = patient?.City?.CityName,
@@ -738,6 +740,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return Enum.GetValues<QueueStatus>()
                 .Select(x => new NurseStationQueueStatusOptionResponse { Value = Convert.ToInt32(x), Name = x.ToString(), Label = BuildEnumLabel(x) })
                 .ToList();
+        }
+
+
+        private static string? BuildPatientAddress(MstPatient? patient)
+        {
+            if (patient == null) return null;
+
+            string? directAddress = patient.Address;
+            if (!string.IsNullOrWhiteSpace(directAddress))
+            {
+                return directAddress.Trim();
+            }
+
+            var parts = new[]
+            {
+                patient.District?.DistrictName,
+                patient.City?.CityName,
+                patient.Province?.ProvinceName,
+                patient.Country?.CountryName,
+                patient.PostalCode?.PostalCode
+            }
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!.Trim());
+
+            var result = string.Join(", ", parts);
+            return string.IsNullOrWhiteSpace(result) ? null : result;
         }
 
         private static string? BuildOptionalLabel(object? value)
