@@ -1,17 +1,18 @@
 ﻿using System.Reflection;
+using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Services.Logging
 {
     public class LoggerService
     {
-        private readonly IWebHostEnvironment _environment;
+        private readonly Microsoft.Extensions.Logging.ILogger<LoggerService> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public LoggerService(
-            IWebHostEnvironment environment,
+            Microsoft.Extensions.Logging.ILogger<LoggerService> logger,
             IHttpContextAccessor httpContextAccessor)
         {
-            _environment = environment;
+            _logger = logger;
             _httpContextAccessor = httpContextAccessor;
         }
 
@@ -35,28 +36,30 @@ namespace QuilvianSystemBackend.Services.Logging
             return WriteAsync("AUD", module, action, message, null, data);
         }
 
-        private async Task WriteAsync(
-    string level,
-    string module,
-    string action,
-    string message,
-    Exception? exception,
-    object? data)
+        private Task WriteAsync(
+            string level,
+            string module,
+            string action,
+            string message,
+            Exception? exception,
+            object? data)
         {
             var now = DateTime.Now;
-            var fileDateText = now.ToString("dd_MM_yyyy");
-
-            var rootPath = _environment.ContentRootPath;
-            var logDirectory = Path.Combine(rootPath, "Logs");
-
-            Directory.CreateDirectory(logDirectory);
-
-            var filePath = Path.Combine(logDirectory, $"LogActivity_{fileDateText}.txt");
-
             var httpContext = _httpContextAccessor.HttpContext;
 
-            var path = httpContext?.Request.Path.ToString() ?? "-";
-            var ipAddress = GetIpAddress(httpContext);
+            var requestPath =
+                GetValueFromData(data, "Path", "RequestPath") ??
+                httpContext?.Request.Path.ToString() ??
+                "-";
+
+            var requestMethod =
+                GetValueFromData(data, "Method", "RequestMethod") ??
+                httpContext?.Request.Method ??
+                "-";
+
+            var ipAddress =
+                GetValueFromData(data, "Ip", "IpAddress", "RemoteIpAddress") ??
+                GetIpAddress(httpContext);
 
             var userAgent = httpContext?.Request.Headers["User-Agent"].FirstOrDefault() ?? "-";
             var acceptLanguage = httpContext?.Request.Headers["Accept-Language"].FirstOrDefault() ?? "-";
@@ -64,17 +67,17 @@ namespace QuilvianSystemBackend.Services.Logging
             var browserInfo = ParseBrowser(userAgent);
             var osInfo = ParseOperatingSystem(userAgent);
             var deviceInfo = ParseDevice(userAgent);
+            var clientInfo = $"{browserInfo} / {osInfo} / {deviceInfo}";
 
-            var userId = GetClaimValue(httpContext, "user_id", ClaimTypesNameIdentifier());
-            var username = GetClaimValue(httpContext, "username", ClaimTypesName());
-            var email = GetClaimValue(httpContext, "email", ClaimTypesEmail());
+            var userId = GetClaimValue(httpContext, "user_id", ClaimTypes.NameIdentifier);
+            var username = GetClaimValue(httpContext, "username", ClaimTypes.Name);
+            var email = GetClaimValue(httpContext, "email", ClaimTypes.Email);
 
             userId = GetValueFromData(data, "UserId", "Id") ?? userId;
-            username = GetValueFromData(data, "Username", "UserName") ?? username;
+            username = GetValueFromData(data, "Username", "UserName", "Name") ?? username;
             email = GetValueFromData(data, "Email") ?? email;
 
             var eventName = BuildEventName(module, action, level);
-            var clientInfo = $"{browserInfo} / {osInfo} / {deviceInfo}";
 
             var cleanMessage = message;
 
@@ -83,8 +86,6 @@ namespace QuilvianSystemBackend.Services.Logging
                 cleanMessage = $"{message} | Exception={exception.GetType().Name}: {exception.Message}";
             }
 
-            var separator = new string('=', 120);
-
             var firstLine =
                 $"{now:yyyy-MM-dd HH:mm:ss} " +
                 $"[{level}] " +
@@ -92,10 +93,9 @@ namespace QuilvianSystemBackend.Services.Logging
                 $"Module=\"{Sanitize(module)}\" " +
                 $"Action=\"{Sanitize(action)}\" " +
                 $"Message=\"{Sanitize(cleanMessage)}\" " +
-                $"Path=\"{Sanitize(path)}\"";
+                $"Path=\"{Sanitize(requestPath)}\"";
 
             var secondLine =
-                $"------> " +
                 $"UserId=\"{Sanitize(userId)}\" " +
                 $"User=\"{Sanitize(username)}\" " +
                 $"Email=\"{Sanitize(email)}\" " +
@@ -103,12 +103,90 @@ namespace QuilvianSystemBackend.Services.Logging
                 $"Client=\"{Sanitize(clientInfo)}\" " +
                 $"Lang=\"{Sanitize(acceptLanguage)}\"";
 
-            var logText =
-                firstLine + Environment.NewLine +
-                secondLine + Environment.NewLine +
-                separator + Environment.NewLine;
+            // Satu baris agar enak dibaca di Grafana Loki.
+            // Formatnya tetap mengikuti LogActivity_*.txt lama.
+            var displayMessage = $"{firstLine} | ------> {secondLine}";
 
-            await File.AppendAllTextAsync(filePath, logText);
+            var traceId = httpContext?.TraceIdentifier ?? "-";
+            var logType = ResolveLogType(level, module, action);
+
+            var scopeProperties = new Dictionary<string, object?>
+            {
+                ["DisplayMessage"] = displayMessage,
+                ["LogType"] = logType,
+                ["LogLevelCode"] = level,
+                ["EventCode"] = eventName,
+                ["Module"] = module,
+                ["Action"] = action,
+                ["LogMessage"] = cleanMessage,
+                ["Path"] = requestPath,
+                ["Method"] = requestMethod,
+                ["UserId"] = userId,
+                ["UserName"] = username,
+                ["Email"] = email,
+                ["Ip"] = ipAddress,
+                ["Client"] = clientInfo,
+                ["Browser"] = browserInfo,
+                ["OperatingSystem"] = osInfo,
+                ["Device"] = deviceInfo,
+                ["Lang"] = acceptLanguage,
+                ["TraceId"] = traceId
+            };
+
+            if (exception != null)
+            {
+                scopeProperties["ExceptionType"] = exception.GetType().Name;
+                scopeProperties["ExceptionMessage"] = exception.Message;
+            }
+
+            using var scope = _logger.BeginScope(scopeProperties);
+
+            if (level == "ERR")
+            {
+                if (exception != null)
+                {
+                    _logger.LogError(exception, "{DisplayMessage}", displayMessage);
+                }
+                else
+                {
+                    _logger.LogError("{DisplayMessage}", displayMessage);
+                }
+            }
+            else if (level == "WRN")
+            {
+                _logger.LogWarning("{DisplayMessage}", displayMessage);
+            }
+            else
+            {
+                _logger.LogInformation("{DisplayMessage}", displayMessage);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private static string ResolveLogType(string level, string module, string action)
+        {
+            if (level == "ERR")
+            {
+                return "SystemError";
+            }
+
+            if (level == "AUD")
+            {
+                return "Audit";
+            }
+
+            if (string.Equals(module, "Auth", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Auth";
+            }
+
+            if (string.Equals(action, "Login", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Auth";
+            }
+
+            return "UserAction";
         }
 
         private static string BuildEventName(string module, string action, string level)
@@ -171,6 +249,27 @@ namespace QuilvianSystemBackend.Services.Logging
             if (data == null)
             {
                 return null;
+            }
+
+            if (data is IDictionary<string, object?> dictionary)
+            {
+                foreach (var propertyName in propertyNames)
+                {
+                    foreach (var item in dictionary)
+                    {
+                        if (!string.Equals(item.Key, propertyName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        var text = item.Value?.ToString();
+
+                        if (!string.IsNullOrWhiteSpace(text))
+                        {
+                            return text;
+                        }
+                    }
+                }
             }
 
             var dataType = data.GetType();
@@ -347,21 +446,6 @@ namespace QuilvianSystemBackend.Services.Logging
                 .Replace("\r", " ")
                 .Replace("\n", " ")
                 .Trim();
-        }
-
-        private static string ClaimTypesNameIdentifier()
-        {
-            return System.Security.Claims.ClaimTypes.NameIdentifier;
-        }
-
-        private static string ClaimTypesName()
-        {
-            return System.Security.Claims.ClaimTypes.Name;
-        }
-
-        private static string ClaimTypesEmail()
-        {
-            return System.Security.Claims.ClaimTypes.Email;
         }
     }
 }
