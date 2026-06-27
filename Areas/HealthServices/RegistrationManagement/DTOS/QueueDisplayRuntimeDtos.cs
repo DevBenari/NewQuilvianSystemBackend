@@ -49,6 +49,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime? DoctorCallExpiresAt { get; set; }
         public string DisplayText { get; set; } = string.Empty;
         public string? VoiceText { get; set; }
+        public string? VoiceAudioUrl { get; set; }
+        public string? VoiceAudioDownloadUrl { get; set; }
+        public string? VoiceAudioFileName { get; set; }
+        public string? VoiceDateKey { get; set; }
+        public string? VoiceContentType { get; set; }
     }
 
     public class QueueDisplayRuntimeCalledResponse
@@ -62,6 +67,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime? CalledAt { get; set; }
         public string? DisplayText { get; set; }
         public string? VoiceText { get; set; }
+        public string? VoiceAudioUrl { get; set; }
+        public string? VoiceAudioDownloadUrl { get; set; }
+        public string? VoiceAudioFileName { get; set; }
+        public string? VoiceDateKey { get; set; }
+        public string? VoiceContentType { get; set; }
     }
 
     public class QueueDisplayRuntimeSummaryResponse

@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Middlewares;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
@@ -227,6 +228,7 @@ try
     builder.Services.AddScoped<LanguageService>();
     builder.Services.AddScoped<LoggerService>();
     builder.Services.AddScoped<AccessPermissionService>();
+    builder.Services.AddScoped<QueueVoiceService>();
 
     builder.Services.AddAuthorization(options =>
     {

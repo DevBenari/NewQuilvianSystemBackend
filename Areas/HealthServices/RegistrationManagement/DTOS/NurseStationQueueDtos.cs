@@ -155,6 +155,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime? ScreeningStartedAt { get; set; }
         public DateTime? ScreeningCompletedAt { get; set; }
         public string Message { get; set; } = string.Empty;
+        public bool VoiceEnabled { get; set; }
+        public bool VoiceGenerated { get; set; }
+        public bool VoiceFromCache { get; set; }
+        public string? VoiceText { get; set; }
+        public string? VoiceAudioUrl { get; set; }
+        public string? VoiceAudioDownloadUrl { get; set; }
+        public string? VoiceAudioFileName { get; set; }
+        public string? VoiceDateKey { get; set; }
+        public string? VoiceContentType { get; set; }
+        public string? VoiceErrorMessage { get; set; }
     }
 
     public class NurseStationQueueFilterMetadataResponse

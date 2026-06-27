@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
@@ -35,11 +36,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private const string LogCategory = "HealthServices.RegistrationManagement";
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly QueueVoiceService _queueVoiceService;
 
-        public DoctorQueueController(ApplicationDbContext dbContext, LoggerService loggerService)
+        public DoctorQueueController(
+            ApplicationDbContext dbContext,
+            LoggerService loggerService,
+            QueueVoiceService queueVoiceService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _queueVoiceService = queueVoiceService;
         }
 
         [HttpGet("filters/metadata")]
@@ -174,7 +180,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(BuildActionResponse(queue, "Pasien berhasil dipanggil oleh dokter."), "Pasien berhasil dipanggil oleh dokter."));
+            var voiceResult = await _queueVoiceService.GetOrCreateQueueCallAudioAsync(queue, QueueVoiceCallTypes.Doctor);
+
+            return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(
+                BuildActionResponse(queue, "Pasien berhasil dipanggil oleh dokter.", voiceResult),
+                "Pasien berhasil dipanggil oleh dokter."
+            ));
         }
 
         [HttpPost("{id:guid}/start-consultation")]
@@ -472,6 +483,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         {
             var query = _dbContext.Set<TrxQueue>()
                 .Include(x => x.Encounter)
+                .Include(x => x.Patient)
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.Clinic)
+                .Include(x => x.Doctor)
                 .Where(x => x.Id == id && !x.IsDelete && x.IsActive);
 
             if (await IsCurrentUserSuperAdminAsync())
@@ -524,7 +539,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             };
         }
 
-        private static DoctorQueueActionResponse BuildActionResponse(TrxQueue queue, string message)
+        private static DoctorQueueActionResponse BuildActionResponse(TrxQueue queue, string message, QueueVoiceGenerateResponse? voiceResult = null)
         {
             return new DoctorQueueActionResponse
             {
@@ -538,7 +553,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 DoctorCallExpiresAt = queue.DoctorCallExpiresAt,
                 ConsultationStartedAt = queue.ConsultationStartedAt,
                 ConsultationCompletedAt = queue.ConsultationCompletedAt,
-                Message = message
+                Message = message,
+                VoiceEnabled = voiceResult?.Enabled ?? false,
+                VoiceGenerated = voiceResult?.Generated ?? false,
+                VoiceFromCache = voiceResult?.FromCache ?? false,
+                VoiceText = voiceResult?.Text,
+                VoiceAudioUrl = voiceResult?.AudioUrl,
+                VoiceAudioDownloadUrl = voiceResult?.DownloadUrl,
+                VoiceAudioFileName = voiceResult?.FileName,
+                VoiceDateKey = voiceResult?.DateKey,
+                VoiceContentType = voiceResult?.ContentType,
+                VoiceErrorMessage = voiceResult?.ErrorMessage
             };
         }
 

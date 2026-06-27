@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -37,14 +38,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     {
         private const string LogCategory = "HealthServices.RegistrationManagement";
         private const int NurseCallDurationSeconds = 30;
-
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly QueueVoiceService _queueVoiceService;
 
-        public NurseStationQueueController(ApplicationDbContext dbContext, LoggerService loggerService)
+        public NurseStationQueueController(
+            ApplicationDbContext dbContext,
+            LoggerService loggerService,
+            QueueVoiceService queueVoiceService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _queueVoiceService = queueVoiceService;
         }
 
         [HttpGet("filters/metadata")]
@@ -182,9 +187,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             await _dbContext.SaveChangesAsync();
 
+            var message = $"Pasien berhasil dipanggil ke nurse station. Panggilan ke-{queue.NurseCallAttemptCount}, timer {NurseCallDurationSeconds} detik.";
+            var voiceResult = await _queueVoiceService.GetOrCreateQueueCallAudioAsync(queue, QueueVoiceCallTypes.Nurse);
+
             return Ok(ApiResponse<NurseStationQueueActionResponse>.Ok(
-                BuildActionResponse(queue, $"Pasien berhasil dipanggil ke nurse station. Panggilan ke-{queue.NurseCallAttemptCount}, timer {NurseCallDurationSeconds} detik."),
-                $"Pasien berhasil dipanggil ke nurse station. Panggilan ke-{queue.NurseCallAttemptCount}, timer {NurseCallDurationSeconds} detik."
+                BuildActionResponse(queue, message, voiceResult),
+                message
             ));
         }
 
@@ -574,6 +582,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var clinicIds = await GetClinicIdsByClusterIdsAsync(clusterIds);
             return await _dbContext.Set<TrxQueue>()
                 .Include(x => x.Encounter)
+                .Include(x => x.Patient)
+                .Include(x => x.Clinic)
+                .Include(x => x.Doctor)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete && x.IsActive && x.ClinicId.HasValue && clinicIds.Contains(x.ClinicId.Value));
         }
 
@@ -717,7 +728,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             };
         }
 
-        private static NurseStationQueueActionResponse BuildActionResponse(TrxQueue queue, string message)
+        private static NurseStationQueueActionResponse BuildActionResponse(TrxQueue queue, string message, QueueVoiceGenerateResponse? voiceResult = null)
         {
             return new NurseStationQueueActionResponse
             {
@@ -731,7 +742,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 NurseCallExpiresAt = queue.NurseCallExpiresAt,
                 ScreeningStartedAt = queue.ScreeningStartedAt,
                 ScreeningCompletedAt = queue.ScreeningCompletedAt,
-                Message = message
+                Message = message,
+                VoiceEnabled = voiceResult?.Enabled ?? false,
+                VoiceGenerated = voiceResult?.Generated ?? false,
+                VoiceFromCache = voiceResult?.FromCache ?? false,
+                VoiceText = voiceResult?.Text,
+                VoiceAudioUrl = voiceResult?.AudioUrl,
+                VoiceAudioDownloadUrl = voiceResult?.DownloadUrl,
+                VoiceAudioFileName = voiceResult?.FileName,
+                VoiceDateKey = voiceResult?.DateKey,
+                VoiceContentType = voiceResult?.ContentType,
+                VoiceErrorMessage = voiceResult?.ErrorMessage
             };
         }
 
