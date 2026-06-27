@@ -298,7 +298,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             }
 
             var now = DateTime.UtcNow;
-            var operationalDate = AppDateTimeHelper.OperationalDate();
+            var operationalDate = ToUtcDate(AppDateTimeHelper.OperationalDate());
             var actorUserId = GetCurrentUserId();
 
             var serviceUnit = await _dbContext.Set<MstServiceUnit>().AsNoTracking().FirstAsync(x => x.Id == request.ServiceUnitId);
@@ -391,7 +391,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         ClinicId = NormalizeNullableGuid(request.ClinicId),
                         DoctorId = NormalizeNullableGuid(request.DoctorId),
                         DoctorScheduleId = NormalizeNullableGuid(request.DoctorScheduleId),
-                        QueueDate = operationalDate.Date,
+                        QueueDate = operationalDate,
                         QueueNumber = queueNumber,
                         QueueCode = GenerateQueueCode(operationalDate, clinic, queueNumber),
                         QueueStatus = isScreeningRequired ? QueueStatus.WaitingForNurse : QueueStatus.WaitingForDoctor,
@@ -633,19 +633,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         {
             if (startDate.HasValue)
             {
-                var start = startDate.Value.Date;
+                var start = ToUtcDate(startDate.Value);
                 query = query.Where(x => x.EncounterDate >= start);
             }
 
             if (endDate.HasValue)
             {
-                var endExclusive = endDate.Value.Date.AddDays(1);
+                var endExclusive = ToUtcDate(endDate.Value).AddDays(1);
                 query = query.Where(x => x.EncounterDate < endExclusive);
             }
 
             if (!startDate.HasValue && !endDate.HasValue && !string.IsNullOrWhiteSpace(customPeriod))
             {
-                var today = AppDateTimeHelper.OperationalDate().Date;
+                var today = ToUtcDate(AppDateTimeHelper.OperationalDate());
 
                 switch (customPeriod.Trim().ToLowerInvariant())
                 {
@@ -656,11 +656,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         query = query.Where(x => x.EncounterDate >= today.AddDays(-6) && x.EncounterDate < today.AddDays(1));
                         break;
                     case "thismonth":
-                        var thisMonthStart = new DateTime(today.Year, today.Month, 1);
+                        var thisMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
                         query = query.Where(x => x.EncounterDate >= thisMonthStart && x.EncounterDate < thisMonthStart.AddMonths(1));
                         break;
                     case "lastmonth":
-                        var currentMonthStart = new DateTime(today.Year, today.Month, 1);
+                        var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
                         var lastMonthStart = currentMonthStart.AddMonths(-1);
                         query = query.Where(x => x.EncounterDate >= lastMonthStart && x.EncounterDate < currentMonthStart);
                         break;
@@ -1119,7 +1119,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         {
             var normalizedClinicId = NormalizeNullableGuid(clinicId);
             var normalizedDoctorId = NormalizeNullableGuid(doctorId);
-            var queueDate = operationalDate.Date;
+            var queueDate = ToUtcDate(operationalDate);
 
             return await _dbContext.Set<TrxQueue>()
                 .CountAsync(x =>
@@ -1451,6 +1451,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         {
             if (actorId == Guid.Empty) return null;
             return actorNames.TryGetValue(actorId, out var actorName) ? actorName : null;
+        }
+
+        private static DateTime ToUtcDate(DateTime value)
+        {
+            return DateTime.SpecifyKind(value.Date, DateTimeKind.Utc);
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
