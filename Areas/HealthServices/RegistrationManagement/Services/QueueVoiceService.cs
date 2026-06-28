@@ -223,7 +223,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         private string BuildQueueCallText(TrxQueue queue, string callType)
         {
-            var defaultTemplate = "Nomor antrean {queueCode}, atas nama {patientName}, silakan menuju nurse station.";
+            var defaultTemplate = "Nomor antrian untuk poli {queueCode}, atas nama {patientName}, silakan menuju ruang perawat.";
             var templateKey = callType switch
             {
                 QueueVoiceCallTypes.Nurse => "NurseCallTemplate",
