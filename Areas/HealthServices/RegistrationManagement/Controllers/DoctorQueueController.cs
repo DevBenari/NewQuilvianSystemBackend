@@ -37,15 +37,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly QueueVoiceService _queueVoiceService;
+        private readonly QueueRealtimeService _queueRealtimeService;
 
         public DoctorQueueController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            QueueVoiceService queueVoiceService)
+            QueueVoiceService queueVoiceService,
+            QueueRealtimeService queueRealtimeService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _queueVoiceService = queueVoiceService;
+            _queueRealtimeService = queueRealtimeService;
         }
 
         [HttpGet("filters/metadata")]
@@ -179,6 +182,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             queue.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
+            await _queueRealtimeService.NotifyQueueCalledByDoctorAsync(queue, actorUserId, "Pasien berhasil dipanggil oleh dokter.");
 
             var voiceResult = await _queueVoiceService.GetOrCreateQueueCallAudioAsync(queue, QueueVoiceCallTypes.Doctor);
 
@@ -215,6 +219,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             }
 
             await _dbContext.SaveChangesAsync();
+            await _queueRealtimeService.NotifyQueueConsultationStartedAsync(queue, actorUserId, "Konsultasi dokter dimulai.");
 
             return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(BuildActionResponse(queue, "Konsultasi dokter dimulai."), "Konsultasi dokter dimulai."));
         }
@@ -250,6 +255,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             }
 
             await _dbContext.SaveChangesAsync();
+            await _queueRealtimeService.NotifyQueueConsultationFinishedAsync(queue, actorUserId, "Konsultasi dokter selesai.");
 
             return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(BuildActionResponse(queue, "Konsultasi dokter selesai."), "Konsultasi dokter selesai."));
         }
@@ -279,6 +285,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             queue.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
+            await _queueRealtimeService.NotifyQueueSkippedByDoctorAsync(queue, actorUserId, "Pasien berhasil dilewati.");
 
             return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(BuildActionResponse(queue, "Pasien berhasil dilewati."), "Pasien berhasil dilewati."));
         }
@@ -307,6 +314,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             queue.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
+            await _queueRealtimeService.NotifyQueueRequeuedToDoctorAsync(queue, actorUserId, "Pasien berhasil dikembalikan ke antrean dokter.");
 
             return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(BuildActionResponse(queue, "Pasien berhasil dikembalikan ke antrean dokter."), "Pasien berhasil dikembalikan ke antrean dokter."));
         }

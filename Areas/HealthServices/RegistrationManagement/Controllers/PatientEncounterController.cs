@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Mo
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
@@ -48,11 +49,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly QueueRealtimeService _queueRealtimeService;
 
-        public PatientEncounterController(ApplicationDbContext dbContext, LoggerService loggerService)
+        public PatientEncounterController(
+            ApplicationDbContext dbContext,
+            LoggerService loggerService,
+            QueueRealtimeService queueRealtimeService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _queueRealtimeService = queueRealtimeService;
         }
 
         [HttpGet("filters/metadata")]
@@ -426,6 +432,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                if (queue != null)
+                {
+                    await _queueRealtimeService.NotifyQueueCreatedAsync(queue, actorUserId, "Antrean pasien baru dibuat.");
+                }
+
                 var response = new PatientEncounterCreateResponse
                 {
                     EncounterId = encounter.Id,
@@ -556,8 +567,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
-            await CancelQueuesByEncounterAsync(entity.Id, now, actorUserId, request.CancelReason.Trim());
+            var cancelledQueues = await CancelQueuesByEncounterAsync(entity.Id, now, actorUserId, request.CancelReason.Trim());
             await _dbContext.SaveChangesAsync();
+
+            foreach (var queue in cancelledQueues)
+            {
+                await _queueRealtimeService.NotifyQueueCancelledAsync(queue, actorUserId, "Patient encounter dibatalkan.");
+            }
 
             return Ok(ApiResponse<object>.Ok(null, "Patient encounter berhasil dibatalkan."));
         }
@@ -608,8 +624,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 guarantor.UpdateBy = actorUserId;
             }
 
-            await CancelQueuesByEncounterAsync(entity.Id, now, actorUserId, request?.DeleteReason ?? "Encounter deleted.");
+            var cancelledQueues = await CancelQueuesByEncounterAsync(entity.Id, now, actorUserId, request?.DeleteReason ?? "Encounter deleted.");
             await _dbContext.SaveChangesAsync();
+
+            foreach (var queue in cancelledQueues)
+            {
+                await _queueRealtimeService.NotifyQueueCancelledAsync(queue, actorUserId, "Patient encounter dihapus.");
+            }
 
             return Ok(ApiResponse<object>.Ok(null, "Patient encounter berhasil dihapus."));
         }
@@ -1076,7 +1097,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             encounter.UpdateBy = actorUserId;
         }
 
-        private async Task CancelQueuesByEncounterAsync(Guid encounterId, DateTime now, Guid actorUserId, string reason)
+        private async Task<List<TrxQueue>> CancelQueuesByEncounterAsync(Guid encounterId, DateTime now, Guid actorUserId, string reason)
         {
             var queues = await _dbContext.Set<TrxQueue>().Where(x => x.EncounterId == encounterId && !x.IsDelete && !x.CompletedAt.HasValue && !x.CancelledAt.HasValue).ToListAsync();
 
@@ -1092,6 +1113,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 queue.UpdateDateTime = now;
                 queue.UpdateBy = actorUserId;
             }
+
+            return queues;
         }
 
         private async Task<string> GenerateEncounterNumberAsync()

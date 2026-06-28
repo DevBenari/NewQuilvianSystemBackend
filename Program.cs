@@ -9,6 +9,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
+using QuilvianSystemBackend.Hubs;
 using QuilvianSystemBackend.Middlewares;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
@@ -114,6 +115,12 @@ try
     // Add services to the container.
     builder.Services.AddControllers();
 
+    // SignalR untuk realtime antrean nurse station dan doctor queue.
+    builder.Services.AddSignalR(options =>
+    {
+        options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    });
+
     // Database PostgreSQL
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
     {
@@ -198,9 +205,20 @@ try
             {
                 OnMessageReceived = context =>
                 {
-                    if (context.Request.Cookies.TryGetValue(jwtCookieName, out var token))
+                    if (context.Request.Cookies.TryGetValue(jwtCookieName, out var token) &&
+                        !string.IsNullOrWhiteSpace(token))
                     {
                         context.Token = token;
+                        return Task.CompletedTask;
+                    }
+
+                    var accessToken = context.Request.Query["access_token"].FirstOrDefault();
+                    var requestPath = context.HttpContext.Request.Path;
+
+                    if (!string.IsNullOrWhiteSpace(accessToken) &&
+                        requestPath.StartsWithSegments("/hubs/queues"))
+                    {
+                        context.Token = accessToken;
                     }
 
                     return Task.CompletedTask;
@@ -229,6 +247,7 @@ try
     builder.Services.AddScoped<LoggerService>();
     builder.Services.AddScoped<AccessPermissionService>();
     builder.Services.AddScoped<QueueVoiceService>();
+    builder.Services.AddScoped<QueueRealtimeService>();
 
     builder.Services.AddAuthorization(options =>
     {
@@ -467,7 +486,7 @@ try
 
             options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
             {
-                var endpoint = httpContext.GetEndpoint();                
+                var endpoint = httpContext.GetEndpoint();
 
                 var userId =
                     httpContext.User.FindFirst("user_id")?.Value ??
@@ -630,6 +649,7 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
+    app.MapHub<QueueHub>("/hubs/queues");
 
     app.Run();
 
@@ -940,35 +960,35 @@ static string BuildRedocHtml(
     var safeSpecUrl = System.Net.WebUtility.HtmlEncode(specUrl);
 
     return @"<!doctype html>
-<html>
-<head>
-    <title>{{TITLE}}</title>
-    <meta charset=""utf-8""/>
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1"">
-    <meta name=""description"" content=""{{DESCRIPTION}}"">
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-        }
+                <html>
+                <head>
+                    <title>{{TITLE}}</title>
+                    <meta charset=""utf-8""/>
+                    <meta name=""viewport"" content=""width=device-width, initial-scale=1"">
+                    <meta name=""description"" content=""{{DESCRIPTION}}"">
+                    <style>
+                        body {
+                            margin: 0;
+                            padding: 0;
+                        }
 
-        redoc {
-            display: block;
-        }
-    </style>
-</head>
-<body>
-    <redoc
-        spec-url=""{{SPEC_URL}}""
-        required-props-first=""true""
-        sort-props-alphabetically=""true""
-        hide-download-button=""false""
-        expand-responses=""200,201"">
-    </redoc>
+                        redoc {
+                            display: block;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <redoc
+                        spec-url=""{{SPEC_URL}}""
+                        required-props-first=""true""
+                        sort-props-alphabetically=""true""
+                        hide-download-button=""false""
+                        expand-responses=""200,201"">
+                    </redoc>
 
-    <script src=""https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js""></script>
-</body>
-</html>"
+                    <script src=""https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js""></script>
+                </body>
+                </html>"
         .Replace("{{TITLE}}", safeTitle)
         .Replace("{{DESCRIPTION}}", safeDescription)
         .Replace("{{SPEC_URL}}", safeSpecUrl);
