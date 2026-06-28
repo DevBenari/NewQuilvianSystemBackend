@@ -8,19 +8,26 @@ ENV LD_LIBRARY_PATH=/opt/piper:${LD_LIBRARY_PATH}
 
 EXPOSE 80
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        ca-certificates \
-        ffmpeg \
-        espeak-ng \
-        libespeak-ng1 \
-    && mkdir -p \
-        /opt/piper \
-        /app/Storage/PiperVoices/id_ID \
-        /app/Storage/QueueVoiceCache \
-    && chmod -R 755 /opt/piper \
-    && chmod -R 775 /app/Storage \
-    && rm -rf /var/lib/apt/lists/*
+RUN set -eux; \
+    sed -i 's|http://deb.debian.org/debian|http://deb.debian.org/debian|g' /etc/apt/sources.list || true; \
+    sed -i 's|http://security.debian.org/debian-security|http://deb.debian.org/debian-security|g' /etc/apt/sources.list || true; \
+    apt-get update \
+      -o Acquire::Retries=5 \
+      -o Acquire::http::Timeout=30 \
+      -o Acquire::https::Timeout=30; \
+    apt-get install -y --no-install-recommends \
+      -o Acquire::Retries=5 \
+      ca-certificates \
+      ffmpeg \
+      espeak-ng \
+      libespeak-ng1; \
+    mkdir -p \
+      /opt/piper \
+      /app/Storage/PiperVoices/id_ID \
+      /app/Storage/QueueVoiceCache; \
+    chmod -R 755 /opt/piper; \
+    chmod -R 775 /app/Storage; \
+    rm -rf /var/lib/apt/lists/*
 
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
