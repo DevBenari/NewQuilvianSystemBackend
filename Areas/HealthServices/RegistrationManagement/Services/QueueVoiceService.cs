@@ -223,7 +223,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         private string BuildQueueCallText(TrxQueue queue, string callType)
         {
-            var defaultTemplate = "Nomor antrian untuk poli {queueCode}, atas nama {patientName}, silakan menuju ruang perawat.";
+            var defaultTemplate = "Nomor antrian untuk, {queueCode}, atas nama {patientName}, silakan menuju ruang perawat.";
             var templateKey = callType switch
             {
                 QueueVoiceCallTypes.Nurse => "NurseCallTemplate",
@@ -235,7 +235,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var template = GetSetting(templateKey, GetSetting("CallTemplate", defaultTemplate));
 
             var patientName = CleanVoiceText(queue.Patient?.FullName) ?? "pasien";
-            var queueCode = CleanVoiceText(queue.QueueCode) ?? $"nomor {queue.QueueNumber}";
+
+            // QueueCode khusus suara dibuat pendek.
+            // Contoh:
+            // INTERNA-20260625-003 => INTERNA nol nol tiga
+            // UMUM-20260625-001 => UMUM nol nol satu
+            var queueCode = BuildVoiceQueueCode(queue.QueueCode)
+                ?? BuildVoiceQueueNumber(queue.QueueNumber);
+
             var clinicName = CleanVoiceText(queue.Clinic?.ClinicName) ?? "poli tujuan";
             var doctorName = CleanVoiceText(queue.Doctor?.FullName) ?? "dokter";
             var serviceUnitName = CleanVoiceText(queue.ServiceUnit?.ServiceUnitName) ?? "unit layanan";
@@ -422,6 +429,95 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var text = Regex.Replace(value, @"[\u0000-\u001F\u007F]+", " ");
             text = Regex.Replace(text, @"\s+", " ").Trim();
             return string.IsNullOrWhiteSpace(text) ? null : text;
+        }
+
+        private static string? BuildVoiceQueueCode(string? queueCode)
+        {
+            var cleanCode = CleanVoiceText(queueCode);
+            if (string.IsNullOrWhiteSpace(cleanCode))
+            {
+                return null;
+            }
+
+            var parts = cleanCode
+                .Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToList();
+
+            // Format utama:
+            // INTERNA-20260625-003
+            // UMUM-20260625-001
+            // MATA-20260625-008
+            if (parts.Count >= 2)
+            {
+                var lastPart = parts[^1];
+
+                if (Regex.IsMatch(lastPart, @"^\d{1,6}$"))
+                {
+                    var prefixParts = parts
+                        .Take(parts.Count - 1)
+                        .Where(x => !Regex.IsMatch(x, @"^\d{8}$"))
+                        .ToList();
+
+                    var prefix = CleanVoiceText(string.Join(" ", prefixParts));
+                    var spokenNumber = SpeakDigits(lastPart);
+
+                    if (!string.IsNullOrWhiteSpace(prefix) &&
+                        !string.IsNullOrWhiteSpace(spokenNumber))
+                    {
+                        return $"{prefix} {spokenNumber}";
+                    }
+                }
+            }
+
+            // Fallback untuk format seperti A001.
+            var compactMatch = Regex.Match(cleanCode, @"^([a-zA-Z]+)[\s-]?(\d{1,6})$");
+            if (compactMatch.Success)
+            {
+                var prefix = compactMatch.Groups[1].Value;
+                var number = compactMatch.Groups[2].Value;
+
+                return $"{prefix} {SpeakDigits(number)}";
+            }
+
+            return cleanCode;
+        }
+
+        private static string BuildVoiceQueueNumber(int queueNumber)
+        {
+            if (queueNumber <= 0)
+            {
+                return "nomor antrian";
+            }
+
+            return $"nomor {SpeakDigits(queueNumber.ToString("000"))}";
+        }
+
+        private static string SpeakDigits(string value)
+        {
+            var digits = Regex.Replace(value ?? string.Empty, @"\D", string.Empty);
+
+            if (string.IsNullOrWhiteSpace(digits))
+            {
+                return string.Empty;
+            }
+
+            var words = digits.Select(digit => digit switch
+            {
+                '0' => "nol",
+                '1' => "satu",
+                '2' => "dua",
+                '3' => "tiga",
+                '4' => "empat",
+                '5' => "lima",
+                '6' => "enam",
+                '7' => "tujuh",
+                '8' => "delapan",
+                '9' => "sembilan",
+                _ => string.Empty
+            });
+
+            return string.Join(" ", words.Where(x => !string.IsNullOrWhiteSpace(x)));
         }
 
         private static string BuildShortSha256Hash(string value)
