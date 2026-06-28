@@ -21,7 +21,7 @@ env:
   CONTAINER_NAME: quilviandeveloper-container
 
   # Queue voice persistent host paths.
-  # These paths are stored permanently on the Linux server and will be mounted by deploy.sh.
+  # These paths are stored permanently on the Linux server and mounted by /opt/QuilvianDeveloper/deploy.sh.
   QUEUE_VOICE_PIPER_HOST_PATH: /opt/quilvian/piper
   QUEUE_VOICE_PIPER_VOICES_HOST_PATH: /opt/quilvian/piper-voices
   QUEUE_VOICE_CACHE_HOST_PATH: /opt/quilvian/queue-voice-cache
@@ -63,35 +63,6 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
-
-      - name: Prepare queue voice folders on server
-        run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "QUEUE_VOICE_PIPER_HOST_PATH='${{ env.QUEUE_VOICE_PIPER_HOST_PATH }}' \
-             QUEUE_VOICE_PIPER_VOICES_HOST_PATH='${{ env.QUEUE_VOICE_PIPER_VOICES_HOST_PATH }}' \
-             QUEUE_VOICE_CACHE_HOST_PATH='${{ env.QUEUE_VOICE_CACHE_HOST_PATH }}' \
-             bash -s" <<'REMOTE_SCRIPT'
-          set -euo pipefail
-
-          sudo mkdir -p "${QUEUE_VOICE_PIPER_HOST_PATH}"
-          sudo mkdir -p "${QUEUE_VOICE_PIPER_VOICES_HOST_PATH}/id_ID"
-          sudo mkdir -p "${QUEUE_VOICE_CACHE_HOST_PATH}"
-
-          # Do not fail deployment if ownership cannot be changed because of server user differences.
-          sudo chown -R deploydev:deploydev "${QUEUE_VOICE_PIPER_HOST_PATH}" "${QUEUE_VOICE_PIPER_VOICES_HOST_PATH}" "${QUEUE_VOICE_CACHE_HOST_PATH}" || true
-
-          sudo chmod -R 755 "${QUEUE_VOICE_PIPER_HOST_PATH}"
-          sudo chmod -R 755 "${QUEUE_VOICE_PIPER_VOICES_HOST_PATH}"
-          sudo chmod -R 775 "${QUEUE_VOICE_CACHE_HOST_PATH}"
-
-          if [ ! -x "${QUEUE_VOICE_PIPER_HOST_PATH}/piper" ]; then
-            echo "WARNING: ${QUEUE_VOICE_PIPER_HOST_PATH}/piper was not found or is not executable. The backend can still deploy, but queue voice generation will fail until Piper is present."
-          fi
-
-          if [ ! -f "${QUEUE_VOICE_PIPER_VOICES_HOST_PATH}/id_ID/default.onnx" ] || [ ! -f "${QUEUE_VOICE_PIPER_VOICES_HOST_PATH}/id_ID/default.onnx.json" ]; then
-            echo "WARNING: default Piper voice files were not found in ${QUEUE_VOICE_PIPER_VOICES_HOST_PATH}/id_ID. The backend can still deploy, but queue voice generation will fail until model files are present."
-          fi
-          REMOTE_SCRIPT
 
       - name: Deploy to server
         run: |
