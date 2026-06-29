@@ -198,6 +198,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public Guid QueueDisplayDeviceId { get; set; }
         public string DisplayCode { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
+
+        public Guid DeviceId { get; set; }
+        public string DeviceCode { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
+
         public Guid NurseStationClusterId { get; set; }
         public string? ClusterName { get; set; }
         public Guid? ServiceUnitId { get; set; }
@@ -252,6 +257,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public Guid QueueDisplayDeviceId { get; set; }
         public string DisplayCode { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
+
+        // Alias kompatibilitas agar frontend yang sudah memakai pola KioskDevice
+        // tetap bisa membaca deviceId/deviceCode/deviceName secara generik.
+        public Guid DeviceId { get; set; }
+        public string DeviceCode { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
+
         public Guid LoginUserId { get; set; }
         public string LoginUserCode { get; set; } = string.Empty;
         public string LoginUserName { get; set; } = string.Empty;
@@ -275,6 +287,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public Guid QueueDisplayDeviceId { get; set; }
         public string DisplayCode { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
+
+        public Guid DeviceId { get; set; }
+        public string DeviceCode { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
+
         public Guid LoginUserId { get; set; }
         public string LoginUserName { get; set; } = string.Empty;
         public string NewPassword { get; set; } = string.Empty;
@@ -296,6 +313,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public Guid QueueDisplayDeviceId { get; set; }
         public string DisplayCode { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
+
+        public Guid DeviceId { get; set; }
+        public string DeviceCode { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
+
         public Guid? LoginUserId { get; set; }
         public string? LoginUserName { get; set; }
         public bool IsLoginCreated { get; set; }
@@ -319,6 +341,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
 
         [MaxLength(50)]
         public string? DisplayCode { get; set; }
+
+        // Alias kompatibilitas bila frontend mengirim field generik seperti KioskDevice.
+        [MaxLength(50)]
+        public string? DeviceCode { get; set; }
     }
 
     public class QueueDisplayDeviceLoginResponse
@@ -328,12 +354,20 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public Guid? QueueDisplayDeviceId { get; set; }
         public string? DisplayCode { get; set; }
         public string? DisplayName { get; set; }
+
+        // Alias kompatibilitas agar pola response login mirip KioskDevice.
+        public Guid? DeviceId { get; set; }
+        public string? DeviceCode { get; set; }
+        public string? DeviceName { get; set; }
+
         public Guid? NurseStationClusterId { get; set; }
         public string? ClusterName { get; set; }
         public Guid? ServiceUnitId { get; set; }
         public string? ServiceUnitName { get; set; }
         public QueueDisplayDeviceType? DisplayDeviceType { get; set; }
+        public string? DisplayDeviceTypeName { get; set; }
         public QueueDisplayLayoutType? LayoutType { get; set; }
+        public string? LayoutTypeName { get; set; }
         public bool EnableVoiceCalling { get; set; }
         public bool ShowPatientName { get; set; }
         public bool ShowDoctorName { get; set; }
@@ -344,6 +378,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsLoginEnabled { get; set; }
         public bool IsLoginLocked { get; set; }
         public DateTimeOffset? LockoutEnd { get; set; }
+
+        public string LoginContext { get; set; } = "QueueDisplay";
+        public string FrontendRouteName { get; set; } = "QUEUE_DISPLAY";
+        public string? RedirectPath { get; set; }
     }
 
 }

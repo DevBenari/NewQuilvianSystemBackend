@@ -375,6 +375,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 QueueDisplayDeviceId = device.Id,
                 DisplayCode = device.DisplayCode,
                 DisplayName = device.DisplayName,
+                DeviceId = device.Id,
+                DeviceCode = device.DisplayCode,
+                DeviceName = device.DisplayName,
                 LoginUserId = user.Id,
                 LoginUserCode = user.UserCode,
                 LoginUserName = user.UserName ?? string.Empty,
@@ -440,6 +443,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 QueueDisplayDeviceId = device.Id,
                 DisplayCode = device.DisplayCode,
                 DisplayName = device.DisplayName,
+                DeviceId = device.Id,
+                DeviceCode = device.DisplayCode,
+                DeviceName = device.DisplayName,
                 LoginUserId = user.Id,
                 LoginUserName = user.UserName ?? string.Empty,
                 NewPassword = newPassword,
@@ -507,6 +513,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 QueueDisplayDeviceId = device.Id,
                 DisplayCode = device.DisplayCode,
                 DisplayName = device.DisplayName,
+                DeviceId = device.Id,
+                DeviceCode = device.DisplayCode,
+                DeviceName = device.DisplayName,
                 LoginUserId = user.Id,
                 LoginUserName = user.UserName,
                 IsLoginCreated = true,
@@ -556,14 +565,15 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             }
 
             await _userManager.ResetAccessFailedCountAsync(user);
-            var loginUserCode = user.UserCode ?? user.UserName ?? string.Empty;
+            var loginUserCode = ResolveDisplayCodeFromLoginUser(user);
 
             var deviceQuery = BuildBaseQuery().Where(x => x.DisplayCode == loginUserCode);
 
-            if (!string.IsNullOrWhiteSpace(request.DisplayCode))
+            var requestedDisplayCode = ResolveRequestedDisplayCode(request);
+
+            if (!string.IsNullOrWhiteSpace(requestedDisplayCode))
             {
-                var displayCode = request.DisplayCode.Trim().ToUpperInvariant();
-                deviceQuery = deviceQuery.Where(x => x.DisplayCode == displayCode);
+                deviceQuery = deviceQuery.Where(x => x.DisplayCode == requestedDisplayCode);
             }
 
             var device = await deviceQuery.FirstOrDefaultAsync();
@@ -575,7 +585,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
             if (!device.IsActive)
             {
-                return Ok(ApiResponse<QueueDisplayDeviceLoginResponse>.Ok(new QueueDisplayDeviceLoginResponse { IsSuccess = false, Message = "Display antrian tidak aktif.", QueueDisplayDeviceId = device.Id, DisplayCode = device.DisplayCode, DisplayName = device.DisplayName, NurseStationClusterId = device.NurseStationClusterId, ClusterName = device.NurseStationCluster?.ClusterName, LoginUserId = user.Id, LoginUserName = user.UserName, IsLoginEnabled = true, IsLoginLocked = false }, "Login display antrian gagal."));
+                return Ok(ApiResponse<QueueDisplayDeviceLoginResponse>.Ok(new QueueDisplayDeviceLoginResponse { IsSuccess = false, Message = "Display antrian tidak aktif.", QueueDisplayDeviceId = device.Id, DisplayCode = device.DisplayCode, DisplayName = device.DisplayName, DeviceId = device.Id, DeviceCode = device.DisplayCode, DeviceName = device.DisplayName, NurseStationClusterId = device.NurseStationClusterId, ClusterName = device.NurseStationCluster?.ClusterName, ServiceUnitId = device.ServiceUnitId, ServiceUnitName = device.ServiceUnit?.ServiceUnitName, DisplayDeviceType = device.DisplayDeviceType, DisplayDeviceTypeName = BuildDisplayDeviceTypeLabel(device.DisplayDeviceType), LayoutType = device.LayoutType, LayoutTypeName = BuildLayoutTypeLabel(device.LayoutType), LoginUserId = user.Id, LoginUserName = user.UserName, IsLoginEnabled = true, IsLoginLocked = false }, "Login display antrian gagal."));
             }
 
             var now = DateTime.UtcNow;
@@ -594,12 +604,17 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 QueueDisplayDeviceId = device.Id,
                 DisplayCode = device.DisplayCode,
                 DisplayName = device.DisplayName,
+                DeviceId = device.Id,
+                DeviceCode = device.DisplayCode,
+                DeviceName = device.DisplayName,
                 NurseStationClusterId = device.NurseStationClusterId,
                 ClusterName = device.NurseStationCluster?.ClusterName,
                 ServiceUnitId = device.ServiceUnitId,
                 ServiceUnitName = device.ServiceUnit?.ServiceUnitName,
                 DisplayDeviceType = device.DisplayDeviceType,
+                DisplayDeviceTypeName = BuildDisplayDeviceTypeLabel(device.DisplayDeviceType),
                 LayoutType = device.LayoutType,
+                LayoutTypeName = BuildLayoutTypeLabel(device.LayoutType),
                 EnableVoiceCalling = device.EnableVoiceCalling,
                 ShowPatientName = device.ShowPatientName,
                 ShowDoctorName = device.ShowDoctorName,
@@ -609,7 +624,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 LoginUserName = user.UserName,
                 IsLoginEnabled = true,
                 IsLoginLocked = false,
-                LockoutEnd = await _userManager.GetLockoutEndDateAsync(user)
+                LockoutEnd = await _userManager.GetLockoutEndDateAsync(user),
+                RedirectPath = BuildQueueDisplayRedirectPath(device)
             };
 
             return Ok(ApiResponse<QueueDisplayDeviceLoginResponse>.Ok(response, "Login display antrian berhasil."));
@@ -735,6 +751,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 QueueDisplayDeviceId = device.Id,
                 DisplayCode = device.DisplayCode,
                 DisplayName = device.DisplayName,
+                DeviceId = device.Id,
+                DeviceCode = device.DisplayCode,
+                DeviceName = device.DisplayName,
                 NurseStationClusterId = device.NurseStationClusterId,
                 ClusterName = device.NurseStationCluster?.ClusterName,
                 ServiceUnitId = device.ServiceUnitId,
@@ -760,6 +779,58 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 AccessFailedCount = user?.AccessFailedCount ?? 0,
                 CanLogin = device.IsActive && isLoginCreated && !isLoginLocked
             };
+        }
+
+        private static string ResolveDisplayCodeFromLoginUser(ApplicationUser user)
+        {
+            if (!string.IsNullOrWhiteSpace(user.UserCode))
+            {
+                return user.UserCode.Trim().ToUpperInvariant();
+            }
+
+            var userName = user.UserName?.Trim();
+
+            if (string.IsNullOrWhiteSpace(userName))
+            {
+                return string.Empty;
+            }
+
+            const string defaultPrefix = "queue-display.";
+
+            if (userName.StartsWith(defaultPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return userName[defaultPrefix.Length..].Trim().ToUpperInvariant();
+            }
+
+            return userName.ToUpperInvariant();
+        }
+
+        private static string? ResolveRequestedDisplayCode(QueueDisplayDeviceLoginRequest request)
+        {
+            var displayCode = !string.IsNullOrWhiteSpace(request.DisplayCode)
+                ? request.DisplayCode
+                : request.DeviceCode;
+
+            return string.IsNullOrWhiteSpace(displayCode)
+                ? null
+                : displayCode.Trim().ToUpperInvariant();
+        }
+
+        private static string BuildQueueDisplayRedirectPath(MstQueueDisplayDevice device)
+        {
+            var query = new List<string>
+            {
+                $"queueDisplayDeviceId={Uri.EscapeDataString(device.Id.ToString())}",
+                $"displayCode={Uri.EscapeDataString(device.DisplayCode)}",
+                $"nurseStationClusterId={Uri.EscapeDataString(device.NurseStationClusterId.ToString())}"
+            };
+
+            if (device.ServiceUnitId.HasValue && device.ServiceUnitId.Value != Guid.Empty)
+            {
+                query.Add($"serviceUnitId={Uri.EscapeDataString(device.ServiceUnitId.Value.ToString())}");
+            }
+
+            return "/queue-display?" + string.Join("&", query);
         }
 
         private static string NormalizeLoginUserName(string? userName, string displayCode)
