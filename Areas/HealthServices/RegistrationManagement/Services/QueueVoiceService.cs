@@ -158,7 +158,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 QueueNumber = 1
             };
 
-            var text = NormalizeVoiceText(request.Text) ?? "Perhatian. Nomor antrean A satu. Silakan menuju ruang pemeriksaan perawat. Terima kasih.";
+            var text = NormalizeVoiceText(request.Text) ?? "Perhatian. Nomor antrian A satu. Silakan menuju ruang pemeriksaan perawat. Terima kasih.";
             return await GetOrCreateQueueCallAudioAsync(
                 previewQueue,
                 request.CallType ?? QueueVoiceCallTypes.Preview,
@@ -437,19 +437,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var defaultTemplate = callType switch
             {
                 QueueVoiceCallTypes.Nurse =>
-                    "Perhatian. Nomor antrean {queueCode}. Atas nama {patientName}. Silakan menuju ruang pemeriksaan perawat. Terima kasih.",
+                    "Perhatian. Nomor antrian {queueCode}. Atas nama {patientName}. Silakan menuju ruang pemeriksaan perawat. Terima kasih.",
 
                 QueueVoiceCallTypes.Doctor =>
-                    "Perhatian. Nomor antrean {queueCode}. Atas nama {patientName}. Silakan menuju {clinicName}. {doctorName} telah siap melayani Anda. Terima kasih.",
+                    "Perhatian. Nomor antrian {queueCode}. Atas nama {patientName}. Silakan menuju {clinicName}. {doctorName} telah siap melayani Anda. Terima kasih.",
 
                 QueueVoiceCallTypes.Display =>
-                    "Perhatian. Nomor antrean {queueCode}. Silakan menuju {serviceUnitName}. Terima kasih.",
+                    "Perhatian. Nomor antrian {queueCode}. Silakan menuju {serviceUnitName}. Terima kasih.",
 
                 QueueVoiceCallTypes.Preview =>
-                    "Perhatian. Nomor antrean {queueCode}. Silakan menuju {serviceUnitName}. Terima kasih.",
+                    "Perhatian. Nomor antrian {queueCode}. Silakan menuju {serviceUnitName}. Terima kasih.",
 
                 _ =>
-                    "Perhatian. Nomor antrean {queueCode}. Atas nama {patientName}. Silakan menuju {serviceUnitName}. Terima kasih."
+                    "Perhatian. Nomor antrian {queueCode}. Atas nama {patientName}. Silakan menuju {serviceUnitName}. Terima kasih."
             };
 
             var templateKey = callType switch
@@ -464,9 +464,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var template = GetSetting(templateKey, GetSetting("CallTemplate", defaultTemplate));
 
             var patientName = NormalizeNameForSpeech(queue.Patient?.FullName) ?? "pasien";
-            var queueCode = BuildVoiceQueueCode(queue.QueueCode) ?? BuildVoiceQueueNumber(queue.QueueNumber);
-            var queueNumber = queue.QueueNumber > 0 ? NumberToIndonesianWords(queue.QueueNumber) : string.Empty;
             var clinicName = NormalizeMedicalTerm(queue.Clinic?.ClinicName) ?? "poli tujuan";
+            var queueCode = BuildVoiceQueueCode(queue.QueueCode, clinicName) ?? BuildVoiceQueueNumber(queue.QueueNumber);
+            var queueNumber = queue.QueueNumber > 0 ? NumberToIndonesianWords(queue.QueueNumber) : string.Empty;
             var doctorName = NormalizeDoctorName(queue.Doctor?.FullName) ?? "dokter";
             var serviceUnitName = NormalizeMedicalTerm(queue.ServiceUnit?.ServiceUnitName) ?? "unit layanan";
             var medicalRecordNumber = SpeakDigits(queue.Patient?.MedicalRecordNumber ?? string.Empty);
@@ -764,7 +764,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return text.Trim();
         }
 
-        private static string? BuildVoiceQueueCode(string? queueCode)
+        private static string? BuildVoiceQueueCode(string? queueCode, string? clinicName = null)
         {
             var cleanCode = CleanVoiceText(queueCode);
             if (string.IsNullOrWhiteSpace(cleanCode)) return null;
@@ -784,12 +784,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                         .Where(x => !Regex.IsMatch(x, @"^\d{8}$"))
                         .ToList();
 
+                    var normalizedClinicName = NormalizeMedicalTerm(clinicName);
                     var prefix = NormalizeMedicalTerm(string.Join(" ", prefixParts));
                     var spokenNumber = SpeakQueueNumericPart(lastPart);
 
+                    // Untuk kode seperti OBGYN-20260629-001 atau BEDAH-20260629-001,
+                    // voice announcement lebih jelas jika memakai nama klinik dari relasi data,
+                    // lalu hanya mengambil nomor urut terakhir dari QueueCode.
+                    // Contoh: OBGYN-20260629-001 -> Poli Kandungan nomor satu.
+                    if (!string.IsNullOrWhiteSpace(normalizedClinicName) &&
+                        !string.Equals(normalizedClinicName, "poli tujuan", StringComparison.OrdinalIgnoreCase) &&
+                        !string.IsNullOrWhiteSpace(spokenNumber))
+                    {
+                        return $"{normalizedClinicName} nomor {spokenNumber}";
+                    }
+
                     if (!string.IsNullOrWhiteSpace(prefix) && !string.IsNullOrWhiteSpace(spokenNumber))
                     {
-                        return $"{prefix} {spokenNumber}";
+                        return $"{prefix} nomor {spokenNumber}";
                     }
                 }
             }
