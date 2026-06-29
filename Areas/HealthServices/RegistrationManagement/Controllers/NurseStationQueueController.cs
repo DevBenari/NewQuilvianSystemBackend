@@ -615,6 +615,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .ThenByDescending(g => g.IsPrimary)
                 .Select(MapGuarantorResponse)
                 .ToList() ?? new List<NurseStationQueueGuarantorResponse>();
+            var serverNowUtc = DateTime.UtcNow;
 
             return new NurseStationQueueResponse
             {
@@ -640,6 +641,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 NurseCallAttemptCount = x.NurseCallAttemptCount,
                 LastNurseCalledAt = x.LastNurseCalledAt,
                 NurseCallExpiresAt = x.NurseCallExpiresAt,
+                ServerNowUtc = serverNowUtc,
+                NurseCallRemainingSeconds = CalculateNurseCallRemainingSeconds(x.NurseCallExpiresAt, serverNowUtc),
                 ScreeningStartedAt = x.ScreeningStartedAt,
                 ScreeningCompletedAt = x.ScreeningCompletedAt,
                 SkipCount = x.SkipCount,
@@ -739,6 +742,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private static NurseStationQueueActionResponse BuildActionResponse(TrxQueue queue, string message, QueueVoiceGenerateResponse? voiceResult = null)
         {
+            var serverNowUtc = DateTime.UtcNow;
+
             return new NurseStationQueueActionResponse
             {
                 QueueId = queue.Id,
@@ -749,6 +754,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 EncounterStatusName = BuildEnumLabel(queue.Encounter?.EncounterStatus ?? EncounterStatus.Registered),
                 NurseCallAttemptCount = queue.NurseCallAttemptCount,
                 NurseCallExpiresAt = queue.NurseCallExpiresAt,
+                ServerNowUtc = serverNowUtc,
+                NurseCallRemainingSeconds = CalculateNurseCallRemainingSeconds(queue.NurseCallExpiresAt, serverNowUtc),
                 ScreeningStartedAt = queue.ScreeningStartedAt,
                 ScreeningCompletedAt = queue.ScreeningCompletedAt,
                 Message = message,
@@ -763,6 +770,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 VoiceContentType = voiceResult?.ContentType,
                 VoiceErrorMessage = voiceResult?.ErrorMessage
             };
+        }
+
+        private static int CalculateNurseCallRemainingSeconds(DateTime? expiresAt, DateTime serverNowUtc)
+        {
+            if (!expiresAt.HasValue) return 0;
+
+            var remainingSeconds = (int)Math.Ceiling((expiresAt.Value - serverNowUtc).TotalSeconds);
+
+            if (remainingSeconds <= 0) return 0;
+            return Math.Min(NurseCallDurationSeconds, remainingSeconds);
         }
 
         private static List<NurseStationQueueStatusOptionResponse> BuildQueueStatusOptions()

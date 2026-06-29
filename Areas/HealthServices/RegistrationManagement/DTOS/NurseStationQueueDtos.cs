@@ -40,6 +40,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public int NurseCallAttemptCount { get; set; }
         public DateTime? LastNurseCalledAt { get; set; }
         public DateTime? NurseCallExpiresAt { get; set; }
+        public DateTime ServerNowUtc { get; set; }
+        public int NurseCallRemainingSeconds { get; set; }
         public DateTime? ScreeningStartedAt { get; set; }
         public DateTime? ScreeningCompletedAt { get; set; }
         public int SkipCount { get; set; }
@@ -152,6 +154,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string EncounterStatusName { get; set; } = string.Empty;
         public int NurseCallAttemptCount { get; set; }
         public DateTime? NurseCallExpiresAt { get; set; }
+        public DateTime ServerNowUtc { get; set; }
+        public int NurseCallRemainingSeconds { get; set; }
         public DateTime? ScreeningStartedAt { get; set; }
         public DateTime? ScreeningCompletedAt { get; set; }
         public string Message { get; set; } = string.Empty;
