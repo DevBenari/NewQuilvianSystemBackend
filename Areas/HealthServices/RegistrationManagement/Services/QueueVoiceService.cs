@@ -158,7 +158,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 QueueNumber = 1
             };
 
-            var text = NormalizeVoiceText(request.Text) ?? "Nomor antrean A nol nol satu. Silakan menuju ruang pemeriksaan perawat. Terima kasih.";
+            var text = NormalizeVoiceText(request.Text) ?? "Perhatian. Nomor antrean A satu. Silakan menuju ruang pemeriksaan perawat. Terima kasih.";
             return await GetOrCreateQueueCallAudioAsync(
                 previewQueue,
                 request.CallType ?? QueueVoiceCallTypes.Preview,
@@ -426,12 +426,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         private string BuildQueueCallText(TrxQueue queue, string callType)
         {
+            /*
+             * Announcement Builder
+             * Dibuat lebih natural untuk speaker rumah sakit:
+             * - Ada pembuka "Perhatian" agar display/TV terdengar seperti pengumuman.
+             * - Kalimat dipisah pendek supaya Piper memberi jeda lebih baik.
+             * - Nomor antrean tidak dibaca mentah dari database.
+             * - Istilah medis/singkatan dokter dinormalisasi sebelum masuk Piper.
+             */
             var defaultTemplate = callType switch
             {
-                QueueVoiceCallTypes.Nurse => "Nomor antrean {queueCode}. Atas nama {patientName}. Silakan menuju ruang pemeriksaan perawat. Terima kasih.",
-                QueueVoiceCallTypes.Doctor => "Nomor antrean {queueCode}. Atas nama {patientName}. Silakan menuju {clinicName}. {doctorName} telah siap melayani Anda. Terima kasih.",
-                QueueVoiceCallTypes.Display => "Nomor antrean {queueCode}. Silakan menuju {serviceUnitName}. Terima kasih.",
-                _ => "Nomor antrean {queueCode}. Atas nama {patientName}. Silakan menuju {serviceUnitName}. Terima kasih."
+                QueueVoiceCallTypes.Nurse =>
+                    "Perhatian. Nomor antrean {queueCode}. Atas nama {patientName}. Silakan menuju ruang pemeriksaan perawat. Terima kasih.",
+
+                QueueVoiceCallTypes.Doctor =>
+                    "Perhatian. Nomor antrean {queueCode}. Atas nama {patientName}. Silakan menuju {clinicName}. {doctorName} telah siap melayani Anda. Terima kasih.",
+
+                QueueVoiceCallTypes.Display =>
+                    "Perhatian. Nomor antrean {queueCode}. Silakan menuju {serviceUnitName}. Terima kasih.",
+
+                QueueVoiceCallTypes.Preview =>
+                    "Perhatian. Nomor antrean {queueCode}. Silakan menuju {serviceUnitName}. Terima kasih.",
+
+                _ =>
+                    "Perhatian. Nomor antrean {queueCode}. Atas nama {patientName}. Silakan menuju {serviceUnitName}. Terima kasih."
             };
 
             var templateKey = callType switch
@@ -439,24 +457,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 QueueVoiceCallTypes.Nurse => "NurseCallTemplate",
                 QueueVoiceCallTypes.Doctor => "DoctorCallTemplate",
                 QueueVoiceCallTypes.Display => "DisplayCallTemplate",
+                QueueVoiceCallTypes.Preview => "PreviewCallTemplate",
                 _ => "CallTemplate"
             };
 
             var template = GetSetting(templateKey, GetSetting("CallTemplate", defaultTemplate));
+
             var patientName = NormalizeNameForSpeech(queue.Patient?.FullName) ?? "pasien";
             var queueCode = BuildVoiceQueueCode(queue.QueueCode) ?? BuildVoiceQueueNumber(queue.QueueNumber);
+            var queueNumber = queue.QueueNumber > 0 ? NumberToIndonesianWords(queue.QueueNumber) : string.Empty;
             var clinicName = NormalizeMedicalTerm(queue.Clinic?.ClinicName) ?? "poli tujuan";
             var doctorName = NormalizeDoctorName(queue.Doctor?.FullName) ?? "dokter";
             var serviceUnitName = NormalizeMedicalTerm(queue.ServiceUnit?.ServiceUnitName) ?? "unit layanan";
+            var medicalRecordNumber = SpeakDigits(queue.Patient?.MedicalRecordNumber ?? string.Empty);
 
-            return NormalizeVoiceText(template
+            var announcementText = template
                 .Replace("{queueCode}", queueCode, StringComparison.OrdinalIgnoreCase)
-                .Replace("{queueNumber}", NumberToIndonesianWords(queue.QueueNumber), StringComparison.OrdinalIgnoreCase)
+                .Replace("{queueNumber}", queueNumber, StringComparison.OrdinalIgnoreCase)
                 .Replace("{patientName}", patientName, StringComparison.OrdinalIgnoreCase)
-                .Replace("{medicalRecordNumber}", SpeakDigits(queue.Patient?.MedicalRecordNumber ?? string.Empty), StringComparison.OrdinalIgnoreCase)
+                .Replace("{medicalRecordNumber}", medicalRecordNumber, StringComparison.OrdinalIgnoreCase)
                 .Replace("{clinicName}", clinicName, StringComparison.OrdinalIgnoreCase)
                 .Replace("{doctorName}", doctorName, StringComparison.OrdinalIgnoreCase)
-                .Replace("{serviceUnitName}", serviceUnitName, StringComparison.OrdinalIgnoreCase)) ?? defaultTemplate;
+                .Replace("{serviceUnitName}", serviceUnitName, StringComparison.OrdinalIgnoreCase);
+
+            return NormalizeVoiceText(announcementText) ?? defaultTemplate;
         }
 
         private async Task GenerateWavWithPiperAsync(
@@ -636,10 +660,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         {
             var text = CleanVoiceText(value);
             if (string.IsNullOrWhiteSpace(text)) return null;
+
+            text = NormalizeDoctorName(text) ?? text;
             text = NormalizeMedicalTerm(text) ?? text;
+
+            // Bantu Piper memberi jeda yang lebih manusiawi.
             text = Regex.Replace(text, @"\s*\.\s*", ". ");
             text = Regex.Replace(text, @"\s*,\s*", ", ");
+            text = Regex.Replace(text, @"\s*;\s*", ". ");
+            text = Regex.Replace(text, @"\s*:\s*", ". ");
+
+            // Hindari pengulangan tanda baca yang membuat TTS terbata-bata.
+            text = Regex.Replace(text, @"\.{2,}", ". ");
+            text = Regex.Replace(text, @",{2,}", ", ");
+
+            // Bersihkan spasi akhir.
             text = Regex.Replace(text, @"\s+", " ").Trim();
+
+            // Pastikan kalimat berakhir dengan titik agar Piper berhenti dengan natural.
+            if (!Regex.IsMatch(text, @"[.!?]$"))
+            {
+                text += ".";
+            }
+
             return text.Length > 600 ? text[..600] : text;
         }
 
@@ -667,13 +710,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         {
             var text = CleanVoiceText(value);
             if (string.IsNullOrWhiteSpace(text)) return null;
+
             text = Regex.Replace(text, @"\bdrg\.?\b", "dokter gigi", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bdr\.?\b", "dokter", RegexOptions.IgnoreCase);
+
+            // Gelar spesialis umum di rumah sakit. Ditulis natural agar Piper tidak membaca huruf secara aneh.
             text = Regex.Replace(text, @"\bSp\.?\s*A\b", "Spesialis Anak", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bSp\.?\s*PD\b", "Spesialis Penyakit Dalam", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bSp\.?\s*OG\b", "Spesialis Obstetri dan Ginekologi", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bSp\.?\s*M\b", "Spesialis Mata", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*THT\s*-?\s*KL\b", "Spesialis T H T K L", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bSp\.?\s*THT\b", "Spesialis T H T", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*S\b", "Spesialis Saraf", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*KJ\b", "Spesialis Kedokteran Jiwa", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*KK\b", "Spesialis Kulit dan Kelamin", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*JP\b", "Spesialis Jantung dan Pembuluh Darah", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*B\b", "Spesialis Bedah", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*Rad\b", "Spesialis Radiologi", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*PK\b", "Spesialis Patologi Klinik", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*An\b", "Spesialis Anestesi", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*U\b", "Spesialis Urologi", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*Ort\b", "Spesialis Ortopedi", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*GK\b", "Spesialis Gizi Klinik", RegexOptions.IgnoreCase);
+
             return NormalizeMedicalTerm(text) ?? text;
         }
 
@@ -681,14 +740,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         {
             var text = CleanVoiceText(value);
             if (string.IsNullOrWhiteSpace(text)) return null;
+
             text = Regex.Replace(text, @"\bantrian\b", "antrean", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bno\.?\b", "nomor", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bIGD\b", "Instalasi Gawat Darurat", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bUGD\b", "Unit Gawat Darurat", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bICU\b", "I C U", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bNICU\b", "N I C U", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bPICU\b", "P I C U", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bHCU\b", "H C U", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bTHT\b", "T H T", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bBPJS\b", "B P J S", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bJKN\b", "J K N", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bKIA\b", "K I A", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bMCU\b", "M C U", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bEKG\b", "E K G", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bUSG\b", "U S G", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bMRI\b", "M R I", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bCT\s*Scan\b", "C T Scan", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bRS\b", "Rumah Sakit", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bPoli\b", "Poli", RegexOptions.IgnoreCase);
+
             return text.Trim();
         }
 
@@ -707,9 +779,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 var lastPart = parts[^1];
                 if (Regex.IsMatch(lastPart, @"^\d{1,6}$"))
                 {
-                    var prefixParts = parts.Take(parts.Count - 1).Where(x => !Regex.IsMatch(x, @"^\d{8}$")).ToList();
+                    var prefixParts = parts
+                        .Take(parts.Count - 1)
+                        .Where(x => !Regex.IsMatch(x, @"^\d{8}$"))
+                        .ToList();
+
                     var prefix = NormalizeMedicalTerm(string.Join(" ", prefixParts));
-                    var spokenNumber = SpeakDigits(lastPart);
+                    var spokenNumber = SpeakQueueNumericPart(lastPart);
+
                     if (!string.IsNullOrWhiteSpace(prefix) && !string.IsNullOrWhiteSpace(spokenNumber))
                     {
                         return $"{prefix} {spokenNumber}";
@@ -722,10 +799,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             {
                 var prefix = compactMatch.Groups[1].Value.ToUpperInvariant();
                 var number = compactMatch.Groups[2].Value;
-                return $"{SpeakLetters(prefix)} {SpeakDigits(number)}";
+                return $"{SpeakLetters(prefix)} {SpeakQueueNumericPart(number)}";
             }
 
-            return cleanCode;
+            return NormalizeMedicalTerm(cleanCode) ?? cleanCode;
+        }
+
+        private static string SpeakQueueNumericPart(string value)
+        {
+            var digits = Regex.Replace(value ?? string.Empty, @"\D", string.Empty);
+            if (string.IsNullOrWhiteSpace(digits)) return string.Empty;
+
+            // Untuk antrean rumah sakit, A021 lebih natural dibaca "A dua puluh satu",
+            // bukan "A nol dua satu". Tapi nomor panjang tetap dibaca digit per digit.
+            if (digits.Length <= 3 && int.TryParse(digits, out var number))
+            {
+                return NumberToIndonesianWords(number);
+            }
+
+            return SpeakDigits(digits);
         }
 
         private static string BuildVoiceQueueNumber(int queueNumber)
