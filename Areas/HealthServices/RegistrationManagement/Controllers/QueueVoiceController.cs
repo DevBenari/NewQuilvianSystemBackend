@@ -48,7 +48,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var filePath = _queueVoiceService.ResolveAudioPath(dateKey, fileName);
             if (filePath == null || !System.IO.File.Exists(filePath))
             {
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "File audio panggilan tidak ditemukan atau sudah dibersihkan oleh sistem."));
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "File audio panggilan tidak ditemukan atau sudah dibersihkan oleh sistem."));
             }
 
             return PhysicalFile(filePath, "audio/mpeg", enableRangeProcessing: true);
@@ -65,26 +67,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var filePath = _queueVoiceService.ResolveAudioPath(dateKey, fileName);
             if (filePath == null || !System.IO.File.Exists(filePath))
             {
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "File audio panggilan tidak ditemukan atau sudah dibersihkan oleh sistem."));
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "File audio panggilan tidak ditemukan atau sudah dibersihkan oleh sistem."));
             }
 
             return PhysicalFile(filePath, "audio/mpeg", fileDownloadName: fileName, enableRangeProcessing: true);
         }
 
+        [HttpGet("profiles")]
+        [ProducesResponseType(typeof(ApiResponse<List<QueueVoiceProfileResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Queue Voice Profiles", Description = "Melihat daftar profil suara panggilan antrean", AccessType = AccessTypes.Read, SortOrder = 3)]
+        [AccessPermission("QueueVoice", "Read")]
+        public async Task<IActionResult> GetProfiles()
+        {
+            var result = await _queueVoiceService.GetAvailableVoiceProfilesAsync();
+            return Ok(ApiResponse<List<QueueVoiceProfileResponse>>.Ok(result, "Daftar profil suara berhasil diambil."));
+        }
+
         [HttpPost("preview")]
         [ProducesResponseType(typeof(ApiResponse<QueueVoiceGenerateResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Create", "Preview Queue Voice", Description = "Membuat preview audio suara panggilan antrean", AccessType = AccessTypes.Create, SortOrder = 3)]
+        [AccessAction("Create", "Preview Queue Voice", Description = "Membuat preview audio suara panggilan antrean", AccessType = AccessTypes.Create, SortOrder = 4)]
         [AccessPermission("QueueVoice", "Create")]
         public async Task<IActionResult> Preview([FromBody] QueueVoicePreviewRequest request)
         {
             var result = await _queueVoiceService.GeneratePreviewAudioAsync(request ?? new QueueVoicePreviewRequest());
-            return Ok(ApiResponse<QueueVoiceGenerateResponse>.Ok(result, result.ErrorMessage ?? "Preview audio panggilan berhasil dibuat."));
+            return Ok(ApiResponse<QueueVoiceGenerateResponse>.Ok(
+                result,
+                result.ErrorMessage ?? "Preview audio panggilan berhasil dibuat."));
         }
 
         [HttpPost("queues/{queueId:guid}/regenerate")]
         [ProducesResponseType(typeof(ApiResponse<QueueVoiceGenerateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Regenerate Queue Voice", Description = "Generate ulang audio panggilan antrean", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessAction("Update", "Regenerate Queue Voice", Description = "Generate ulang audio panggilan antrean", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("QueueVoice", "Update")]
         public async Task<IActionResult> RegenerateQueueVoice(Guid queueId, [FromBody] QueueVoiceRegenerateRequest? request = null)
         {
@@ -102,9 +118,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             var callType = string.IsNullOrWhiteSpace(request?.CallType) ? QueueVoiceCallTypes.General : request!.CallType!;
             var forceRegenerate = request?.ForceRegenerate ?? true;
-            var result = await _queueVoiceService.GetOrCreateQueueCallAudioAsync(queue, callType, forceRegenerate);
+            var result = await _queueVoiceService.GetOrCreateQueueCallAudioAsync(
+                queue,
+                callType,
+                forceRegenerate,
+                overrideVoiceCode: request?.VoiceCode);
 
-            return Ok(ApiResponse<QueueVoiceGenerateResponse>.Ok(result, result.ErrorMessage ?? "Audio panggilan berhasil dibuat ulang."));
+            return Ok(ApiResponse<QueueVoiceGenerateResponse>.Ok(
+                result,
+                result.ErrorMessage ?? "Audio panggilan berhasil dibuat ulang."));
         }
     }
 }

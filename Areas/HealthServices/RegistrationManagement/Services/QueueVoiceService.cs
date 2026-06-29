@@ -1,9 +1,13 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Repositories;
 using System.Diagnostics;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -21,15 +25,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _environment;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ApplicationDbContext _dbContext;
 
         public QueueVoiceService(
             IConfiguration configuration,
             IWebHostEnvironment environment,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            ApplicationDbContext dbContext)
         {
             _configuration = configuration;
             _environment = environment;
             _httpContextAccessor = httpContextAccessor;
+            _dbContext = dbContext;
         }
 
         public async Task<QueueVoiceGenerateResponse> GetOrCreateQueueCallAudioAsync(
@@ -42,7 +49,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var normalizedCallType = NormalizeCallType(callType);
             var enabled = GetBoolean("Enabled", false);
             var voiceText = NormalizeVoiceText(overrideText) ?? BuildQueueCallText(queue, normalizedCallType);
-            var voiceCode = SanitizeFileToken(overrideVoiceCode ?? GetSetting("DefaultVoiceCode", "id_ID_default"));
+            var voiceProfile = await ResolveVoiceProfileAsync(overrideVoiceCode);
 
             var result = new QueueVoiceGenerateResponse
             {
@@ -50,7 +57,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 Generated = false,
                 FromCache = false,
                 CallType = normalizedCallType,
-                VoiceCode = voiceCode,
+                VoiceCode = voiceProfile.VoiceCode,
+                VoiceName = voiceProfile.VoiceName,
+                Gender = voiceProfile.Gender,
+                Language = voiceProfile.Language,
+                LengthScale = voiceProfile.LengthScale,
+                NoiseScale = voiceProfile.NoiseScale,
+                NoiseW = voiceProfile.NoiseW,
+                Volume = voiceProfile.Volume,
                 Text = voiceText,
                 ContentType = AudioContentType
             };
@@ -64,24 +78,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             try
             {
                 var piperExecutablePath = ResolveExecutableOrFilePath(GetSetting("PiperExecutablePath"));
-                var piperModelPath = ResolveFilePath(GetSetting("PiperModelPath"));
+                var piperModelPath = ResolveFilePath(voiceProfile.ModelPath);
                 var ffmpegExecutablePath = ResolveExecutableOrFilePath(GetSetting("FfmpegExecutablePath", "ffmpeg"));
 
                 if (string.IsNullOrWhiteSpace(piperExecutablePath) || !CanUseExecutableOrFile(piperExecutablePath))
                 {
-                    result.ErrorMessage = "PiperExecutablePath belum valid. Pastikan executable Piper sudah tersedia dan path sudah benar.";
+                    result.ErrorMessage = "PiperExecutablePath belum valid. Pastikan executable Piper tersedia dan path benar.";
                     return result;
                 }
 
                 if (string.IsNullOrWhiteSpace(piperModelPath) || !File.Exists(piperModelPath))
                 {
-                    result.ErrorMessage = "PiperModelPath belum valid. Pastikan model Piper voice Indonesia sudah tersedia dan path sudah benar.";
+                    result.ErrorMessage = $"Model voice '{voiceProfile.VoiceCode}' belum valid atau belum tersedia di server: {voiceProfile.ModelPath}.";
                     return result;
                 }
 
                 if (string.IsNullOrWhiteSpace(ffmpegExecutablePath) || !CanUseExecutableOrFile(ffmpegExecutablePath))
                 {
-                    result.ErrorMessage = "FfmpegExecutablePath belum valid. Pastikan FFmpeg sudah terinstall atau path sudah benar.";
+                    result.ErrorMessage = "FfmpegExecutablePath belum valid. Pastikan FFmpeg terinstall atau path benar.";
                     return result;
                 }
 
@@ -89,9 +103,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 var audioDirectory = ResolveCacheDirectory(cacheDateKey);
                 Directory.CreateDirectory(audioDirectory);
 
-                var textHash = BuildShortSha256Hash($"{normalizedCallType}|{voiceCode}|{voiceText}");
+                var safeVoiceCode = SanitizeFileToken(voiceProfile.VoiceCode);
+                var textHash = BuildShortSha256Hash($"{normalizedCallType}|{safeVoiceCode}|{voiceText}|{voiceProfile.LengthScale}|{voiceProfile.NoiseScale}|{voiceProfile.NoiseW}|{voiceProfile.Volume}");
                 var filePrefix = queue.Id == Guid.Empty ? "preview" : queue.Id.ToString("N");
-                var fileName = $"{filePrefix}-{voiceCode}-{textHash}{Mp3Extension}";
+                var fileName = $"{filePrefix}-{safeVoiceCode}-{textHash}{Mp3Extension}";
                 var mp3Path = Path.Combine(audioDirectory, fileName);
 
                 result.FileName = fileName;
@@ -111,8 +126,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
                 try
                 {
-                    await GenerateWavWithPiperAsync(piperExecutablePath, piperModelPath, voiceText, tempWavPath);
-                    await ConvertWavToMp3Async(ffmpegExecutablePath, tempWavPath, tempMp3Path);
+                    await GenerateWavWithPiperAsync(piperExecutablePath, piperModelPath, voiceProfile, voiceText, tempWavPath);
+                    await ConvertWavToMp3Async(ffmpegExecutablePath, tempWavPath, tempMp3Path, voiceProfile.Volume);
 
                     if (File.Exists(mp3Path)) File.Delete(mp3Path);
                     File.Move(tempMp3Path, mp3Path);
@@ -139,16 +154,57 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var previewQueue = new TrxQueue
             {
                 Id = Guid.Empty,
-                QueueCode = "A001"
+                QueueCode = "A001",
+                QueueNumber = 1
             };
 
-            var text = NormalizeVoiceText(request.Text) ?? "Nomor antrean A nol nol satu, silakan menuju nurse station.";
+            var text = NormalizeVoiceText(request.Text) ?? "Nomor antrean A nol nol satu. Silakan menuju ruang pemeriksaan perawat. Terima kasih.";
             return await GetOrCreateQueueCallAudioAsync(
                 previewQueue,
                 request.CallType ?? QueueVoiceCallTypes.Preview,
                 forceRegenerate: true,
                 overrideText: text,
                 overrideVoiceCode: request.VoiceCode);
+        }
+
+        public async Task<List<QueueVoiceProfileResponse>> GetAvailableVoiceProfilesAsync()
+        {
+            var dbProfiles = await _dbContext.Set<MstQueueVoiceProfile>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete)
+                .OrderByDescending(x => x.IsDefault)
+                .ThenBy(x => x.SortOrder)
+                .ThenBy(x => x.VoiceName)
+                .Select(x => new QueueVoiceProfileResponse
+                {
+                    Id = x.Id,
+                    VoiceCode = x.VoiceCode,
+                    VoiceName = x.VoiceName,
+                    Gender = x.Gender,
+                    Language = x.Language,
+                    ModelPath = x.ModelPath,
+                    LengthScale = x.LengthScale,
+                    NoiseScale = x.NoiseScale,
+                    NoiseW = x.NoiseW,
+                    Volume = x.Volume,
+                    IsDefault = x.IsDefault,
+                    IsActive = x.IsActive,
+                    SortOrder = x.SortOrder,
+                    Description = x.Description,
+                    Source = "Database"
+                })
+                .ToListAsync();
+
+            if (dbProfiles.Count > 0)
+            {
+                return dbProfiles;
+            }
+
+            return GetConfigVoiceProfiles()
+                .OrderByDescending(x => x.IsDefault)
+                .ThenBy(x => x.SortOrder)
+                .ThenBy(x => x.VoiceName)
+                .ToList();
         }
 
         public string? ResolveAudioPath(string dateKey, string fileName)
@@ -189,7 +245,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 }
                 catch
                 {
-                    // Abaikan file yang sedang terkunci agar job cleanup tidak menggagalkan proses lain.
+                    // Abaikan file terkunci agar cleanup tidak mengganggu proses panggilan.
                 }
             }
 
@@ -221,9 +277,163 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return !string.IsNullOrWhiteSpace(dateKey) && Regex.IsMatch(dateKey, "^[0-9]{8}$");
         }
 
+        private async Task<QueueVoiceProfileResponse> ResolveVoiceProfileAsync(string? requestedVoiceCode)
+        {
+            var sanitizedRequestedCode = string.IsNullOrWhiteSpace(requestedVoiceCode)
+                ? null
+                : SanitizeFileToken(requestedVoiceCode);
+
+            var defaultVoiceCode = SanitizeFileToken(GetSetting("DefaultVoiceCode", "id_ID_default"));
+            var targetVoiceCode = sanitizedRequestedCode ?? defaultVoiceCode;
+
+            var dbProfile = await _dbContext.Set<MstQueueVoiceProfile>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive)
+                .Where(x => x.VoiceCode == targetVoiceCode)
+                .Select(x => new QueueVoiceProfileResponse
+                {
+                    Id = x.Id,
+                    VoiceCode = x.VoiceCode,
+                    VoiceName = x.VoiceName,
+                    Gender = x.Gender,
+                    Language = x.Language,
+                    ModelPath = x.ModelPath,
+                    LengthScale = x.LengthScale,
+                    NoiseScale = x.NoiseScale,
+                    NoiseW = x.NoiseW,
+                    Volume = x.Volume,
+                    IsDefault = x.IsDefault,
+                    IsActive = x.IsActive,
+                    SortOrder = x.SortOrder,
+                    Description = x.Description,
+                    Source = "Database"
+                })
+                .FirstOrDefaultAsync();
+
+            if (dbProfile != null)
+            {
+                return dbProfile;
+            }
+
+            if (string.IsNullOrWhiteSpace(sanitizedRequestedCode))
+            {
+                dbProfile = await _dbContext.Set<MstQueueVoiceProfile>()
+                    .AsNoTracking()
+                    .Where(x => !x.IsDelete && x.IsActive && x.IsDefault)
+                    .OrderBy(x => x.SortOrder)
+                    .Select(x => new QueueVoiceProfileResponse
+                    {
+                        Id = x.Id,
+                        VoiceCode = x.VoiceCode,
+                        VoiceName = x.VoiceName,
+                        Gender = x.Gender,
+                        Language = x.Language,
+                        ModelPath = x.ModelPath,
+                        LengthScale = x.LengthScale,
+                        NoiseScale = x.NoiseScale,
+                        NoiseW = x.NoiseW,
+                        Volume = x.Volume,
+                        IsDefault = x.IsDefault,
+                        IsActive = x.IsActive,
+                        SortOrder = x.SortOrder,
+                        Description = x.Description,
+                        Source = "Database"
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (dbProfile != null)
+                {
+                    return dbProfile;
+                }
+            }
+
+            var configProfiles = GetConfigVoiceProfiles();
+            return configProfiles.FirstOrDefault(x => x.VoiceCode == targetVoiceCode && x.IsActive)
+                ?? configProfiles.FirstOrDefault(x => x.IsDefault && x.IsActive)
+                ?? new QueueVoiceProfileResponse
+                {
+                    VoiceCode = defaultVoiceCode,
+                    VoiceName = "Default Voice",
+                    Gender = "Unknown",
+                    Language = "id-ID",
+                    ModelPath = GetSetting("PiperModelPath", "Storage/PiperVoices/id_ID/default.onnx"),
+                    LengthScale = 1.08m,
+                    NoiseScale = 0.65m,
+                    NoiseW = 0.80m,
+                    Volume = 1.15m,
+                    IsDefault = true,
+                    IsActive = true,
+                    Source = "Fallback"
+                };
+        }
+
+        private List<QueueVoiceProfileResponse> GetConfigVoiceProfiles()
+        {
+            var profiles = new List<QueueVoiceProfileResponse>();
+            var defaultVoiceCode = SanitizeFileToken(GetSetting("DefaultVoiceCode", "id_ID_default"));
+            var section = _configuration.GetSection($"{ConfigSection}:Voices");
+
+            foreach (var child in section.GetChildren())
+            {
+                var voiceCode = SanitizeFileToken(child["VoiceCode"] ?? string.Empty);
+                if (string.IsNullOrWhiteSpace(voiceCode)) continue;
+
+                profiles.Add(new QueueVoiceProfileResponse
+                {
+                    VoiceCode = voiceCode,
+                    VoiceName = CleanVoiceText(child["DisplayName"]) ?? voiceCode,
+                    Gender = CleanVoiceText(child["Gender"]) ?? "Unknown",
+                    Language = CleanVoiceText(child["Language"]) ?? "id-ID",
+                    ModelPath = child["ModelPath"] ?? string.Empty,
+                    LengthScale = ClampDecimal(ParseDecimal(child["LengthScale"], 1.08m), 0.70m, 1.50m),
+                    NoiseScale = ClampDecimal(ParseDecimal(child["NoiseScale"], 0.65m), 0.10m, 1.50m),
+                    NoiseW = ClampDecimal(ParseDecimal(child["NoiseW"], 0.80m), 0.10m, 1.50m),
+                    Volume = ClampDecimal(ParseDecimal(child["Volume"], 1.15m), 0.50m, 2.00m),
+                    IsDefault = string.Equals(voiceCode, defaultVoiceCode, StringComparison.OrdinalIgnoreCase),
+                    IsActive = true,
+                    SortOrder = profiles.Count,
+                    Source = "Configuration"
+                });
+            }
+
+            if (profiles.Count == 0)
+            {
+                profiles.Add(new QueueVoiceProfileResponse
+                {
+                    VoiceCode = defaultVoiceCode,
+                    VoiceName = "Default Voice",
+                    Gender = "Unknown",
+                    Language = "id-ID",
+                    ModelPath = GetSetting("PiperModelPath", "Storage/PiperVoices/id_ID/default.onnx"),
+                    LengthScale = 1.08m,
+                    NoiseScale = 0.65m,
+                    NoiseW = 0.80m,
+                    Volume = 1.15m,
+                    IsDefault = true,
+                    IsActive = true,
+                    SortOrder = 0,
+                    Source = "LegacyConfiguration"
+                });
+            }
+
+            if (!profiles.Any(x => x.IsDefault))
+            {
+                profiles[0].IsDefault = true;
+            }
+
+            return profiles;
+        }
+
         private string BuildQueueCallText(TrxQueue queue, string callType)
         {
-            var defaultTemplate = "Nomor antrian untuk, {queueCode}, atas nama {patientName}, silakan menuju ruang perawat.";
+            var defaultTemplate = callType switch
+            {
+                QueueVoiceCallTypes.Nurse => "Nomor antrean {queueCode}. Atas nama {patientName}. Silakan menuju ruang pemeriksaan perawat. Terima kasih.",
+                QueueVoiceCallTypes.Doctor => "Nomor antrean {queueCode}. Atas nama {patientName}. Silakan menuju {clinicName}. {doctorName} telah siap melayani Anda. Terima kasih.",
+                QueueVoiceCallTypes.Display => "Nomor antrean {queueCode}. Silakan menuju {serviceUnitName}. Terima kasih.",
+                _ => "Nomor antrean {queueCode}. Atas nama {patientName}. Silakan menuju {serviceUnitName}. Terima kasih."
+            };
+
             var templateKey = callType switch
             {
                 QueueVoiceCallTypes.Nurse => "NurseCallTemplate",
@@ -233,39 +443,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             };
 
             var template = GetSetting(templateKey, GetSetting("CallTemplate", defaultTemplate));
+            var patientName = NormalizeNameForSpeech(queue.Patient?.FullName) ?? "pasien";
+            var queueCode = BuildVoiceQueueCode(queue.QueueCode) ?? BuildVoiceQueueNumber(queue.QueueNumber);
+            var clinicName = NormalizeMedicalTerm(queue.Clinic?.ClinicName) ?? "poli tujuan";
+            var doctorName = NormalizeDoctorName(queue.Doctor?.FullName) ?? "dokter";
+            var serviceUnitName = NormalizeMedicalTerm(queue.ServiceUnit?.ServiceUnitName) ?? "unit layanan";
 
-            var patientName = CleanVoiceText(queue.Patient?.FullName) ?? "pasien";
-
-            // QueueCode khusus suara dibuat pendek.
-            // Contoh:
-            // INTERNA-20260625-003 => INTERNA nol nol tiga
-            // UMUM-20260625-001 => UMUM nol nol satu
-            var queueCode = BuildVoiceQueueCode(queue.QueueCode)
-                ?? BuildVoiceQueueNumber(queue.QueueNumber);
-
-            var clinicName = CleanVoiceText(queue.Clinic?.ClinicName) ?? "poli tujuan";
-            var doctorName = CleanVoiceText(queue.Doctor?.FullName) ?? "dokter";
-            var serviceUnitName = CleanVoiceText(queue.ServiceUnit?.ServiceUnitName) ?? "unit layanan";
-
-            return template
+            return NormalizeVoiceText(template
                 .Replace("{queueCode}", queueCode, StringComparison.OrdinalIgnoreCase)
-                .Replace("{queueNumber}", queue.QueueNumber.ToString(), StringComparison.OrdinalIgnoreCase)
+                .Replace("{queueNumber}", NumberToIndonesianWords(queue.QueueNumber), StringComparison.OrdinalIgnoreCase)
                 .Replace("{patientName}", patientName, StringComparison.OrdinalIgnoreCase)
-                .Replace("{medicalRecordNumber}", CleanVoiceText(queue.Patient?.MedicalRecordNumber) ?? string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Replace("{medicalRecordNumber}", SpeakDigits(queue.Patient?.MedicalRecordNumber ?? string.Empty), StringComparison.OrdinalIgnoreCase)
                 .Replace("{clinicName}", clinicName, StringComparison.OrdinalIgnoreCase)
                 .Replace("{doctorName}", doctorName, StringComparison.OrdinalIgnoreCase)
-                .Replace("{serviceUnitName}", serviceUnitName, StringComparison.OrdinalIgnoreCase);
+                .Replace("{serviceUnitName}", serviceUnitName, StringComparison.OrdinalIgnoreCase)) ?? defaultTemplate;
         }
 
-        private async Task GenerateWavWithPiperAsync(string piperExecutablePath, string piperModelPath, string text, string outputWavPath)
+        private async Task GenerateWavWithPiperAsync(
+            string piperExecutablePath,
+            string piperModelPath,
+            QueueVoiceProfileResponse voiceProfile,
+            string text,
+            string outputWavPath)
         {
             var timeoutSeconds = GetInteger("ProcessTimeoutSeconds", 30);
+            var args = new StringBuilder();
+            args.Append("-m ").Append(QuoteArgument(piperModelPath));
+            args.Append(" -f ").Append(QuoteArgument(outputWavPath));
+            args.Append(" --length_scale ").Append(ToInvariantDecimal(voiceProfile.LengthScale));
+            args.Append(" --noise_scale ").Append(ToInvariantDecimal(voiceProfile.NoiseScale));
+            args.Append(" --noise_w ").Append(ToInvariantDecimal(voiceProfile.NoiseW));
+
             using var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = piperExecutablePath,
-                    Arguments = $"-m {QuoteArgument(piperModelPath)} -f {QuoteArgument(outputWavPath)}",
+                    Arguments = args.ToString(),
                     RedirectStandardInput = true,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -296,17 +510,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             }
         }
 
-        private async Task ConvertWavToMp3Async(string ffmpegExecutablePath, string wavPath, string mp3Path)
+        private async Task ConvertWavToMp3Async(string ffmpegExecutablePath, string wavPath, string mp3Path, decimal volume)
         {
             var timeoutSeconds = GetInteger("ProcessTimeoutSeconds", 30);
-            var bitrate = GetSetting("Mp3Bitrate", "128k");
+            var bitrate = SanitizeBitrate(GetSetting("Mp3Bitrate", "128k"));
+            var safeVolume = ClampDecimal(volume, 0.50m, 2.00m);
+            var audioFilter = $"volume={ToInvariantDecimal(safeVolume)},acompressor=threshold=-18dB:ratio=2:attack=20:release=250";
 
             using var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = ffmpegExecutablePath,
-                    Arguments = $"-y -i {QuoteArgument(wavPath)} -codec:a libmp3lame -b:a {QuoteArgument(bitrate)} {QuoteArgument(mp3Path)}",
+                    Arguments = $"-y -i {QuoteArgument(wavPath)} -af {QuoteArgument(audioFilter)} -codec:a libmp3lame -b:a {QuoteArgument(bitrate)} {QuoteArgument(mp3Path)}",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -420,6 +636,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         {
             var text = CleanVoiceText(value);
             if (string.IsNullOrWhiteSpace(text)) return null;
+            text = NormalizeMedicalTerm(text) ?? text;
+            text = Regex.Replace(text, @"\s*\.\s*", ". ");
+            text = Regex.Replace(text, @"\s*,\s*", ", ");
+            text = Regex.Replace(text, @"\s+", " ").Trim();
             return text.Length > 600 ? text[..600] : text;
         }
 
@@ -427,57 +647,82 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         {
             if (string.IsNullOrWhiteSpace(value)) return null;
             var text = Regex.Replace(value, @"[\u0000-\u001F\u007F]+", " ");
+            text = Regex.Replace(text, @"<[^>]*>", " ");
             text = Regex.Replace(text, @"\s+", " ").Trim();
             return string.IsNullOrWhiteSpace(text) ? null : text;
+        }
+
+        private static string? NormalizeNameForSpeech(string? value)
+        {
+            var text = CleanVoiceText(value);
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            text = Regex.Replace(text, @"\bTn\.?\b", "Tuan", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bNy\.?\b", "Nyonya", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bNn\.?\b", "Nona", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bAn\.?\b", "Anak", RegexOptions.IgnoreCase);
+            return text.Trim();
+        }
+
+        private static string? NormalizeDoctorName(string? value)
+        {
+            var text = CleanVoiceText(value);
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            text = Regex.Replace(text, @"\bdrg\.?\b", "dokter gigi", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bdr\.?\b", "dokter", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*A\b", "Spesialis Anak", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*PD\b", "Spesialis Penyakit Dalam", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*OG\b", "Spesialis Obstetri dan Ginekologi", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*M\b", "Spesialis Mata", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bSp\.?\s*THT\b", "Spesialis T H T", RegexOptions.IgnoreCase);
+            return NormalizeMedicalTerm(text) ?? text;
+        }
+
+        private static string? NormalizeMedicalTerm(string? value)
+        {
+            var text = CleanVoiceText(value);
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            text = Regex.Replace(text, @"\bantrian\b", "antrean", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bIGD\b", "Instalasi Gawat Darurat", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bICU\b", "I C U", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bNICU\b", "N I C U", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bPICU\b", "P I C U", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bTHT\b", "T H T", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bBPJS\b", "B P J S", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bRS\b", "Rumah Sakit", RegexOptions.IgnoreCase);
+            return text.Trim();
         }
 
         private static string? BuildVoiceQueueCode(string? queueCode)
         {
             var cleanCode = CleanVoiceText(queueCode);
-            if (string.IsNullOrWhiteSpace(cleanCode))
-            {
-                return null;
-            }
+            if (string.IsNullOrWhiteSpace(cleanCode)) return null;
 
             var parts = cleanCode
                 .Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .ToList();
 
-            // Format utama:
-            // INTERNA-20260625-003
-            // UMUM-20260625-001
-            // MATA-20260625-008
             if (parts.Count >= 2)
             {
                 var lastPart = parts[^1];
-
                 if (Regex.IsMatch(lastPart, @"^\d{1,6}$"))
                 {
-                    var prefixParts = parts
-                        .Take(parts.Count - 1)
-                        .Where(x => !Regex.IsMatch(x, @"^\d{8}$"))
-                        .ToList();
-
-                    var prefix = CleanVoiceText(string.Join(" ", prefixParts));
+                    var prefixParts = parts.Take(parts.Count - 1).Where(x => !Regex.IsMatch(x, @"^\d{8}$")).ToList();
+                    var prefix = NormalizeMedicalTerm(string.Join(" ", prefixParts));
                     var spokenNumber = SpeakDigits(lastPart);
-
-                    if (!string.IsNullOrWhiteSpace(prefix) &&
-                        !string.IsNullOrWhiteSpace(spokenNumber))
+                    if (!string.IsNullOrWhiteSpace(prefix) && !string.IsNullOrWhiteSpace(spokenNumber))
                     {
                         return $"{prefix} {spokenNumber}";
                     }
                 }
             }
 
-            // Fallback untuk format seperti A001.
             var compactMatch = Regex.Match(cleanCode, @"^([a-zA-Z]+)[\s-]?(\d{1,6})$");
             if (compactMatch.Success)
             {
-                var prefix = compactMatch.Groups[1].Value;
+                var prefix = compactMatch.Groups[1].Value.ToUpperInvariant();
                 var number = compactMatch.Groups[2].Value;
-
-                return $"{prefix} {SpeakDigits(number)}";
+                return $"{SpeakLetters(prefix)} {SpeakDigits(number)}";
             }
 
             return cleanCode;
@@ -485,22 +730,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         private static string BuildVoiceQueueNumber(int queueNumber)
         {
-            if (queueNumber <= 0)
-            {
-                return "nomor antrian";
-            }
+            if (queueNumber <= 0) return "nomor antrean";
+            return $"nomor {NumberToIndonesianWords(queueNumber)}";
+        }
 
-            return $"nomor {SpeakDigits(queueNumber.ToString("000"))}";
+        private static string SpeakLetters(string value)
+        {
+            var letters = Regex.Replace(value ?? string.Empty, @"[^a-zA-Z]", string.Empty).ToUpperInvariant();
+            return string.Join(" ", letters.Select(x => x.ToString()));
         }
 
         private static string SpeakDigits(string value)
         {
             var digits = Regex.Replace(value ?? string.Empty, @"\D", string.Empty);
-
-            if (string.IsNullOrWhiteSpace(digits))
-            {
-                return string.Empty;
-            }
+            if (string.IsNullOrWhiteSpace(digits)) return string.Empty;
 
             var words = digits.Select(digit => digit switch
             {
@@ -520,6 +763,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return string.Join(" ", words.Where(x => !string.IsNullOrWhiteSpace(x)));
         }
 
+        private static string NumberToIndonesianWords(int number)
+        {
+            if (number == 0) return "nol";
+            if (number < 0) return "minus " + NumberToIndonesianWords(Math.Abs(number));
+
+            string[] units = { "", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas" };
+
+            if (number < 12) return units[number];
+            if (number < 20) return units[number - 10] + " belas";
+            if (number < 100) return units[number / 10] + " puluh" + (number % 10 == 0 ? "" : " " + units[number % 10]);
+            if (number < 200) return "seratus" + (number % 100 == 0 ? "" : " " + NumberToIndonesianWords(number % 100));
+            if (number < 1000) return units[number / 100] + " ratus" + (number % 100 == 0 ? "" : " " + NumberToIndonesianWords(number % 100));
+            if (number < 2000) return "seribu" + (number % 1000 == 0 ? "" : " " + NumberToIndonesianWords(number % 1000));
+            if (number < 1000000) return NumberToIndonesianWords(number / 1000) + " ribu" + (number % 1000 == 0 ? "" : " " + NumberToIndonesianWords(number % 1000));
+
+            return SpeakDigits(number.ToString(CultureInfo.InvariantCulture));
+        }
+
         private static string BuildShortSha256Hash(string value)
         {
             var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
@@ -532,6 +793,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return string.IsNullOrWhiteSpace(token) ? "voice" : token;
         }
 
+        private static string SanitizeBitrate(string value)
+        {
+            var bitrate = Regex.Replace(value ?? "128k", @"[^0-9kKmM]", string.Empty);
+            return string.IsNullOrWhiteSpace(bitrate) ? "128k" : bitrate;
+        }
+
         private static string QuoteArgument(string value)
         {
             return "\"" + value.Replace("\"", "\\\"") + "\"";
@@ -542,6 +809,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var text = string.IsNullOrWhiteSpace(stdErr) ? stdOut : stdErr;
             text = Regex.Replace(text ?? string.Empty, @"\s+", " ").Trim();
             return string.IsNullOrWhiteSpace(text) ? "Tidak ada detail error dari proses TTS." : text;
+        }
+
+        private static decimal ParseDecimal(string? value, decimal fallback)
+        {
+            if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed)) return parsed;
+            if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out parsed)) return parsed;
+            return fallback;
+        }
+
+        private static decimal ClampDecimal(decimal value, decimal min, decimal max)
+        {
+            if (value < min) return min;
+            if (value > max) return max;
+            return value;
+        }
+
+        private static string ToInvariantDecimal(decimal value)
+        {
+            return value.ToString("0.##", CultureInfo.InvariantCulture);
         }
 
         private static void SafeDelete(string path)

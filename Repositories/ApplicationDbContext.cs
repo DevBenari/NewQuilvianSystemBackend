@@ -42,6 +42,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstNurseStationClusterClinic> MstNurseStationClusterClinics { get; set; }
         public DbSet<MstNurseStationClusterStaff> MstNurseStationClusterStaffs { get; set; }
         public DbSet<MstQueueDisplayDevice> MstQueueDisplayDevices { get; set; }
+
+        public DbSet<MstQueueVoiceProfile> MstQueueVoiceProfiles { get; set; }
         #endregion GLOBAL
 
         #region CORPORATE
