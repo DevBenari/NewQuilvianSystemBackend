@@ -210,6 +210,7 @@ namespace QuilvianSystemBackend.Controllers
             }
 
             var kioskContext = await ResolveKioskLoginContextAsync(user);
+            var queueDisplayContext = await ResolveQueueDisplayLoginContextAsync(user);
 
             if (kioskContext.IsKioskAccount && !kioskContext.CanLogin)
             {
@@ -239,8 +240,44 @@ namespace QuilvianSystemBackend.Controllers
                 ));
             }
 
-            var geofenceValidation = kioskContext.IsKioskAccount
-                ? GeofenceValidationResult.Bypassed("Kiosk account bypass geolocation.")
+            if (queueDisplayContext.IsQueueDisplayAccount && !queueDisplayContext.CanLogin)
+            {
+                await _loggerService.WarningAsync(
+                    "Auth",
+                    "Login",
+                    "Login display antrian gagal. Akun/perangkat display tidak dapat digunakan.",
+                    new
+                    {
+                        user.Id,
+                        user.Email,
+                        user.UserName,
+                        queueDisplayContext.QueueDisplayDeviceId,
+                        queueDisplayContext.DisplayCode,
+                        queueDisplayContext.DisplayName,
+                        queueDisplayContext.NurseStationClusterId,
+                        queueDisplayContext.ClusterName,
+                        queueDisplayContext.ServiceUnitId,
+                        queueDisplayContext.ServiceUnitName,
+                        queueDisplayContext.IsDeviceActive,
+                        queueDisplayContext.IsLoginCreated,
+                        queueDisplayContext.IsLoginEnabled,
+                        queueDisplayContext.IsLoginLocked,
+                        queueDisplayContext.BlockReason
+                    }
+                );
+
+                return Unauthorized(ApiResponse<object>.Fail(
+                    StatusCodes.Status401Unauthorized,
+                    queueDisplayContext.BlockReason ?? "Akun display antrian tidak dapat digunakan."
+                ));
+            }
+
+            var isDeviceLoginAccount =
+                kioskContext.IsKioskAccount ||
+                queueDisplayContext.IsQueueDisplayAccount;
+
+            var geofenceValidation = isDeviceLoginAccount
+                ? GeofenceValidationResult.Bypassed("Device account bypass geolocation.")
                 : ValidateLoginGeofence(user, request);
 
             if (!geofenceValidation.IsValid)
@@ -273,8 +310,8 @@ namespace QuilvianSystemBackend.Controllers
 
             try
             {
-                var attendanceResult = kioskContext.IsKioskAccount
-                    ? LoginAttendanceResult.Skipped("Login kiosk tidak mencatat attendance.")
+                var attendanceResult = isDeviceLoginAccount
+                    ? LoginAttendanceResult.Skipped("Login device tidak mencatat attendance.")
                     : await RecordAttendanceOnLoginAsync(
                         user,
                         request,
@@ -315,7 +352,7 @@ namespace QuilvianSystemBackend.Controllers
                 }
 
                 var roles = await _userManager.GetRolesAsync(user);
-                var token = GenerateJwtToken(user, roles, kioskContext);
+                var token = GenerateJwtToken(user, roles, kioskContext, queueDisplayContext);
 
                 SetAuthCookie(token, user);
 
@@ -343,7 +380,7 @@ namespace QuilvianSystemBackend.Controllers
                     {
                         Auth = BuildAuthInfoResponse(user),
                         Endpoints = new AuthEndpointResponse(),
-                        User = BuildUserResponse(user, roles, kioskContext)
+                        User = BuildUserResponse(user, roles, kioskContext, queueDisplayContext)
                     },
                     _languageService.GetMessage(MessageKeys.AuthLoginSuccess)
                 ));
@@ -540,7 +577,8 @@ namespace QuilvianSystemBackend.Controllers
 
             var roles = await _userManager.GetRolesAsync(user);
             var kioskContext = await ResolveKioskLoginContextAsync(user);
-            var token = GenerateJwtToken(user, roles, kioskContext);
+            var queueDisplayContext = await ResolveQueueDisplayLoginContextAsync(user);
+            var token = GenerateJwtToken(user, roles, kioskContext, queueDisplayContext);
 
             SetAuthCookie(token, user);
 
@@ -567,7 +605,7 @@ namespace QuilvianSystemBackend.Controllers
                 {
                     Auth = BuildAuthInfoResponse(user),
                     Endpoints = new AuthEndpointResponse(),
-                    User = BuildUserResponse(user, roles, kioskContext)
+                    User = BuildUserResponse(user, roles, kioskContext, queueDisplayContext)
                 },
                 "Login fingerprint berhasil."
             ));
@@ -642,6 +680,7 @@ namespace QuilvianSystemBackend.Controllers
 
             var roles = await _userManager.GetRolesAsync(user);
             var kioskContext = await ResolveKioskLoginContextAsync(user);
+            var queueDisplayContext = await ResolveQueueDisplayLoginContextAsync(user);
 
             await _loggerService.InfoAsync(
                 "Auth",
@@ -661,7 +700,7 @@ namespace QuilvianSystemBackend.Controllers
             );
 
             return Ok(ApiResponse<UserLoginResponse>.Ok(
-                BuildUserResponse(user, roles, kioskContext),
+                BuildUserResponse(user, roles, kioskContext, queueDisplayContext),
                 "User profile berhasil diambil."
             ));
         }
@@ -756,8 +795,9 @@ namespace QuilvianSystemBackend.Controllers
 
             var roles = await _userManager.GetRolesAsync(user);
             var kioskContext = await ResolveKioskLoginContextAsync(user);
-            var newToken = GenerateJwtToken(user, roles, kioskContext);
-            
+            var queueDisplayContext = await ResolveQueueDisplayLoginContextAsync(user);
+            var newToken = GenerateJwtToken(user, roles, kioskContext, queueDisplayContext);
+
             SetAuthCookie(newToken, user);
 
             await _loggerService.InfoAsync(
@@ -777,7 +817,7 @@ namespace QuilvianSystemBackend.Controllers
                 {
                     Auth = BuildAuthInfoResponse(user),
                     Endpoints = new AuthEndpointResponse(),
-                    User = BuildUserResponse(user, roles, kioskContext)
+                    User = BuildUserResponse(user, roles, kioskContext, queueDisplayContext)
                 },
                 _languageService.GetMessage(MessageKeys.AuthSessionRefreshed)
             ));
@@ -1705,6 +1745,167 @@ namespace QuilvianSystemBackend.Controllers
             };
         }
 
+        private async Task<QueueDisplayLoginContext> ResolveQueueDisplayLoginContextAsync(ApplicationUser user)
+        {
+            if (user == null)
+            {
+                return QueueDisplayLoginContext.None();
+            }
+
+            var userCode = (user.UserCode ?? string.Empty).Trim();
+            var email = (user.Email ?? string.Empty).Trim();
+            var userName = (user.UserName ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(userCode) &&
+                string.IsNullOrWhiteSpace(email) &&
+                string.IsNullOrWhiteSpace(userName))
+            {
+                return QueueDisplayLoginContext.None();
+            }
+
+            MstQueueDisplayDevice? displayDevice = null;
+
+            if (!string.IsNullOrWhiteSpace(userCode))
+            {
+                var normalizedUserCode = userCode.Trim().ToUpperInvariant();
+
+                displayDevice = await _dbContext.Set<MstQueueDisplayDevice>()
+                    .AsNoTracking()
+                    .Include(x => x.NurseStationCluster)
+                    .Include(x => x.ServiceUnit)
+                    .FirstOrDefaultAsync(x =>
+                        x.DisplayCode.ToUpper() == normalizedUserCode
+                    );
+            }
+
+            if (displayDevice == null && !string.IsNullOrWhiteSpace(email))
+            {
+                var loweredEmail = email.ToLowerInvariant();
+
+                if (loweredEmail.StartsWith("queue-display.") &&
+                    loweredEmail.EndsWith("@queue-display.local"))
+                {
+                    var emailDisplayCode = loweredEmail
+                        .Replace("queue-display.", string.Empty)
+                        .Replace("@queue-display.local", string.Empty)
+                        .ToUpperInvariant();
+
+                    displayDevice = await _dbContext.Set<MstQueueDisplayDevice>()
+                        .AsNoTracking()
+                        .Include(x => x.NurseStationCluster)
+                        .Include(x => x.ServiceUnit)
+                        .FirstOrDefaultAsync(x =>
+                            x.DisplayCode.ToUpper() == emailDisplayCode
+                        );
+                }
+            }
+
+            if (displayDevice == null && !string.IsNullOrWhiteSpace(userName))
+            {
+                var loweredUserName = userName.ToLowerInvariant();
+
+                if (loweredUserName.StartsWith("queue-display."))
+                {
+                    var userNameDisplayCode = loweredUserName
+                        .Replace("queue-display.", string.Empty)
+                        .ToUpperInvariant();
+
+                    displayDevice = await _dbContext.Set<MstQueueDisplayDevice>()
+                        .AsNoTracking()
+                        .Include(x => x.NurseStationCluster)
+                        .Include(x => x.ServiceUnit)
+                        .FirstOrDefaultAsync(x =>
+                            x.DisplayCode.ToUpper() == userNameDisplayCode
+                        );
+                }
+            }
+
+            if (displayDevice == null)
+            {
+                return QueueDisplayLoginContext.None();
+            }
+
+            var isDeviceActive = displayDevice.IsActive;
+            var isLoginCreated = true;
+            var isLoginEnabled = user.IsActive;
+
+            var isLoginLocked =
+                user.LockoutEnd.HasValue &&
+                user.LockoutEnd.Value > DateTimeOffset.UtcNow;
+
+            var canLogin =
+                isDeviceActive &&
+                isLoginCreated &&
+                isLoginEnabled &&
+                !isLoginLocked;
+
+            var blockReason = canLogin
+                ? null
+                : !isDeviceActive
+                    ? "Perangkat display antrian tidak aktif."
+                    : !isLoginCreated
+                        ? "Akun login display antrian belum dibuat."
+                        : !isLoginEnabled
+                            ? "Login display antrian sedang dinonaktifkan."
+                            : isLoginLocked
+                                ? "Login display antrian sedang terkunci."
+                                : "Akun display antrian tidak dapat digunakan.";
+
+            return new QueueDisplayLoginContext
+            {
+                IsQueueDisplayAccount = true,
+
+                QueueDisplayDeviceId = displayDevice.Id,
+                DisplayCode = displayDevice.DisplayCode,
+                DisplayName = displayDevice.DisplayName,
+
+                NurseStationClusterId = displayDevice.NurseStationClusterId,
+                ClusterName = displayDevice.NurseStationCluster?.ClusterName,
+
+                ServiceUnitId = displayDevice.ServiceUnitId,
+                ServiceUnitName = displayDevice.ServiceUnit?.ServiceUnitName,
+
+                DisplayDeviceTypeName = displayDevice.DisplayDeviceType.ToString(),
+                LayoutTypeName = displayDevice.LayoutType.ToString(),
+
+                LocationName = displayDevice.LocationName,
+                FloorName = displayDevice.FloorName,
+                RoomName = displayDevice.RoomName,
+
+                EnableVoiceCalling = displayDevice.EnableVoiceCalling,
+                ShowPatientName = displayDevice.ShowPatientName,
+                ShowDoctorName = displayDevice.ShowDoctorName,
+                ShowClinicName = displayDevice.ShowClinicName,
+                RefreshIntervalSeconds = displayDevice.RefreshIntervalSeconds,
+
+                IsDeviceActive = isDeviceActive,
+                IsLoginCreated = isLoginCreated,
+                IsLoginEnabled = isLoginEnabled,
+                IsLoginLocked = isLoginLocked,
+                CanLogin = canLogin,
+                BlockReason = blockReason,
+
+                RedirectPath = BuildQueueDisplayRedirectPath(displayDevice)
+            };
+        }
+
+        private static string BuildQueueDisplayRedirectPath(MstQueueDisplayDevice device)
+        {
+            var query = new List<string>
+            {
+                $"queueDisplayDeviceId={Uri.EscapeDataString(device.Id.ToString())}",
+                $"displayCode={Uri.EscapeDataString(device.DisplayCode)}",
+                $"nurseStationClusterId={Uri.EscapeDataString(device.NurseStationClusterId.ToString())}"
+            };
+
+            if (device.ServiceUnitId.HasValue && device.ServiceUnitId.Value != Guid.Empty)
+            {
+                query.Add($"serviceUnitId={Uri.EscapeDataString(device.ServiceUnitId.Value.ToString())}");
+            }
+
+            return "/queue-display?" + string.Join("&", query);
+        }
+
         private static double CalculateDistanceMeters(
             double latitude1,
             double longitude1,
@@ -1734,7 +1935,11 @@ namespace QuilvianSystemBackend.Controllers
             return degrees * Math.PI / 180;
         }
 
-        private string GenerateJwtToken(ApplicationUser user, IList<string> roles, KioskLoginContext? kioskContext = null)
+        private string GenerateJwtToken(
+            ApplicationUser user,
+            IList<string> roles,
+            KioskLoginContext? kioskContext = null,
+            QueueDisplayLoginContext? queueDisplayContext = null)
         {
             var jwtKey = _configuration["Jwt:Key"];
             var jwtIssuer = _configuration["Jwt:Issuer"];
@@ -1766,6 +1971,7 @@ namespace QuilvianSystemBackend.Controllers
                 new Claim("full_name", user.DisplayName ?? string.Empty),
                 new Claim("user_type", user.UserType.ToString()),
                 new Claim("user_type_id", ((int)user.UserType).ToString()),
+                new Claim("user_code", user.UserCode ?? string.Empty),
                 new Claim("is_kiosk", IsKioskUser(user) ? "true" : "false"),
 
                 new Claim("department_id", user.PrimaryDepartmentId?.ToString() ?? string.Empty),
@@ -1798,7 +2004,39 @@ namespace QuilvianSystemBackend.Controllers
                 claims.Add(new Claim("is_kiosk_account", "false"));
             }
 
-            foreach (var role in roles)
+            if (queueDisplayContext?.IsQueueDisplayAccount == true)
+            {
+                claims.Add(new Claim("is_queue_display_account", "true"));
+                claims.Add(new Claim("profile_type", "QueueDisplayDevice"));
+                claims.Add(new Claim("queue_display_device_id", queueDisplayContext.QueueDisplayDeviceId?.ToString() ?? string.Empty));
+                claims.Add(new Claim("display_device_id", queueDisplayContext.QueueDisplayDeviceId?.ToString() ?? string.Empty));
+                claims.Add(new Claim("queue_display_code", queueDisplayContext.DisplayCode));
+                claims.Add(new Claim("display_code", queueDisplayContext.DisplayCode));
+                claims.Add(new Claim("queue_display_name", queueDisplayContext.DisplayName));
+                claims.Add(new Claim("display_name", queueDisplayContext.DisplayName));
+                claims.Add(new Claim("nurse_station_cluster_id", queueDisplayContext.NurseStationClusterId?.ToString() ?? string.Empty));
+                claims.Add(new Claim("nurse_station_cluster_name", queueDisplayContext.ClusterName ?? string.Empty));
+                claims.Add(new Claim("service_unit_id", queueDisplayContext.ServiceUnitId?.ToString() ?? string.Empty));
+                claims.Add(new Claim("service_unit_name", queueDisplayContext.ServiceUnitName ?? string.Empty));
+            }
+            else
+            {
+                claims.Add(new Claim("is_queue_display_account", "false"));
+            }
+
+            var effectiveRoles = roles
+                .Where(role => !string.IsNullOrWhiteSpace(role))
+                .Select(role => role.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (queueDisplayContext?.IsQueueDisplayAccount == true &&
+                !effectiveRoles.Any(role => role.Equals("QueueDisplayDevice", StringComparison.OrdinalIgnoreCase)))
+            {
+                effectiveRoles.Add("QueueDisplayDevice");
+            }
+
+            foreach (var role in effectiveRoles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
                 claims.Add(new Claim("role", role));
@@ -1953,12 +2191,27 @@ namespace QuilvianSystemBackend.Controllers
         private UserLoginResponse BuildUserResponse(
     ApplicationUser user,
     IList<string> roles,
-    KioskLoginContext? kioskContext = null)
+    KioskLoginContext? kioskContext = null,
+    QueueDisplayLoginContext? queueDisplayContext = null)
         {
             var hasWorkforceProfile = user.WorkforceProfileId.HasValue;
             var isKioskAccount = kioskContext?.IsKioskAccount == true;
+            var isQueueDisplayAccount = queueDisplayContext?.IsQueueDisplayAccount == true;
+
+            var effectiveRoles = roles
+                .Where(role => !string.IsNullOrWhiteSpace(role))
+                .Select(role => role.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (isQueueDisplayAccount &&
+                !effectiveRoles.Any(role => role.Equals("QueueDisplayDevice", StringComparison.OrdinalIgnoreCase)))
+            {
+                effectiveRoles.Add("QueueDisplayDevice");
+            }
 
             var profileType =
+                isQueueDisplayAccount ? "QueueDisplayDevice" :
                 isKioskAccount ? "KioskDevice" :
                 user.EmployeeId.HasValue ? "Employee" :
                 user.DoctorId.HasValue ? "Doctor" :
@@ -1976,7 +2229,7 @@ namespace QuilvianSystemBackend.Controllers
                 Email = user.Email ?? string.Empty,
                 FullName = user.DisplayName,
                 UserType = user.UserType.ToString(),
-                Roles = roles.ToList(),
+                Roles = effectiveRoles,
                 IsActive = user.IsActive,
                 MustChangePassword = user.MustChangePassword,
 
@@ -1998,6 +2251,7 @@ namespace QuilvianSystemBackend.Controllers
                 ProfileType = profileType,
 
                 IsKioskAccount = isKioskAccount,
+                IsQueueDisplayAccount = isQueueDisplayAccount,
 
                 WorkforceContext = new UserWorkforceContextResponse
                 {
@@ -2029,6 +2283,39 @@ namespace QuilvianSystemBackend.Controllers
                         IsAllowWalkIn = kioskContext.IsAllowWalkIn,
                         IsAllowAppointment = kioskContext.IsAllowAppointment,
                         IsAllowInsuranceRegistration = kioskContext.IsAllowInsuranceRegistration
+                    }
+                    : null,
+
+                QueueDisplayContext = isQueueDisplayAccount && queueDisplayContext?.QueueDisplayDeviceId.HasValue == true
+                    ? new UserQueueDisplayContextResponse
+                    {
+                        UserId = user.Id,
+                        QueueDisplayDeviceId = queueDisplayContext.QueueDisplayDeviceId.Value,
+                        DeviceId = queueDisplayContext.QueueDisplayDeviceId.Value,
+                        DisplayCode = queueDisplayContext.DisplayCode,
+                        DeviceCode = queueDisplayContext.DisplayCode,
+                        DisplayName = queueDisplayContext.DisplayName,
+                        DeviceName = queueDisplayContext.DisplayName,
+                        NurseStationClusterId = queueDisplayContext.NurseStationClusterId ?? Guid.Empty,
+                        ClusterName = queueDisplayContext.ClusterName,
+                        ServiceUnitId = queueDisplayContext.ServiceUnitId,
+                        ServiceUnitName = queueDisplayContext.ServiceUnitName,
+                        DisplayDeviceTypeName = queueDisplayContext.DisplayDeviceTypeName,
+                        LayoutTypeName = queueDisplayContext.LayoutTypeName,
+                        LocationName = queueDisplayContext.LocationName,
+                        FloorName = queueDisplayContext.FloorName,
+                        RoomName = queueDisplayContext.RoomName,
+                        EnableVoiceCalling = queueDisplayContext.EnableVoiceCalling,
+                        ShowPatientName = queueDisplayContext.ShowPatientName,
+                        ShowDoctorName = queueDisplayContext.ShowDoctorName,
+                        ShowClinicName = queueDisplayContext.ShowClinicName,
+                        RefreshIntervalSeconds = queueDisplayContext.RefreshIntervalSeconds,
+                        IsDeviceActive = queueDisplayContext.IsDeviceActive,
+                        IsLoginCreated = queueDisplayContext.IsLoginCreated,
+                        IsLoginEnabled = queueDisplayContext.IsLoginEnabled,
+                        IsLoginLocked = queueDisplayContext.IsLoginLocked,
+                        CanLogin = queueDisplayContext.CanLogin,
+                        RedirectPath = queueDisplayContext.RedirectPath
                     }
                     : null
             };
@@ -2098,6 +2385,71 @@ namespace QuilvianSystemBackend.Controllers
                     IsValid = false,
                     Message = message,
                     DistanceMeters = distanceMeters
+                };
+            }
+        }
+
+        private class QueueDisplayLoginContext
+        {
+            public bool IsQueueDisplayAccount { get; set; }
+
+            public Guid? QueueDisplayDeviceId { get; set; }
+
+            public string DisplayCode { get; set; } = string.Empty;
+
+            public string DisplayName { get; set; } = string.Empty;
+
+            public Guid? NurseStationClusterId { get; set; }
+
+            public string? ClusterName { get; set; }
+
+            public Guid? ServiceUnitId { get; set; }
+
+            public string? ServiceUnitName { get; set; }
+
+            public string? DisplayDeviceTypeName { get; set; }
+
+            public string? LayoutTypeName { get; set; }
+
+            public string? LocationName { get; set; }
+
+            public string? FloorName { get; set; }
+
+            public string? RoomName { get; set; }
+
+            public bool EnableVoiceCalling { get; set; }
+
+            public bool ShowPatientName { get; set; }
+
+            public bool ShowDoctorName { get; set; }
+
+            public bool ShowClinicName { get; set; }
+
+            public int RefreshIntervalSeconds { get; set; }
+
+            public bool IsDeviceActive { get; set; }
+
+            public bool IsLoginCreated { get; set; }
+
+            public bool IsLoginEnabled { get; set; }
+
+            public bool IsLoginLocked { get; set; }
+
+            public bool CanLogin { get; set; }
+
+            public string RedirectPath { get; set; } = "/queue-display";
+
+            public string? BlockReason { get; set; }
+
+            public static QueueDisplayLoginContext None()
+            {
+                return new QueueDisplayLoginContext
+                {
+                    IsQueueDisplayAccount = false,
+                    IsLoginCreated = false,
+                    IsLoginEnabled = false,
+                    IsLoginLocked = false,
+                    CanLogin = false
                 };
             }
         }

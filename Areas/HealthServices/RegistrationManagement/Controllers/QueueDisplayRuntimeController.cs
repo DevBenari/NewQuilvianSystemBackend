@@ -136,13 +136,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     x.QueueStatus == QueueStatus.InConsultation);
             }
 
-            var items = await query
+            var entities = await query
+                .Include(x => x.Encounter)
+                .Include(x => x.Patient)
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.Clinic)
+                .Include(x => x.Doctor)
                 .OrderByDescending(x => x.QueueStatus == QueueStatus.CalledByNurse || x.QueueStatus == QueueStatus.CalledByDoctor)
                 .ThenByDescending(x => x.IsPriorityQueue)
                 .ThenBy(x => x.QueueNumber)
                 .Take(take)
-                .Select(x => MapItemResponse(x, device))
                 .ToListAsync();
+
+            var items = entities.Select(x => MapItemResponse(x, device)).ToList();
 
             return Ok(ApiResponse<List<QueueDisplayRuntimeItemResponse>>.Ok(items, "Data item display antrian berhasil diambil."));
         }
@@ -161,6 +167,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .Where(x => x.QueueStatus == QueueStatus.CalledByNurse || x.QueueStatus == QueueStatus.CalledByDoctor);
 
             var entity = await query
+                .Include(x => x.Clinic)
+                .Include(x => x.Doctor)
                 .OrderByDescending(x => x.LastDoctorCalledAt ?? x.LastNurseCalledAt ?? x.CreateDateTime)
                 .FirstOrDefaultAsync();
 
@@ -199,7 +207,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private async Task<MstQueueDisplayDevice?> ResolveCurrentDisplayDeviceAsync()
         {
-            var displayDeviceIdClaim = User.FindFirstValue("display_device_id") ?? User.FindFirstValue("DisplayDeviceId");
+            var displayDeviceIdClaim =
+                User.FindFirstValue("queue_display_device_id") ??
+                User.FindFirstValue("QueueDisplayDeviceId") ??
+                User.FindFirstValue("queueDisplayDeviceId") ??
+                User.FindFirstValue("display_device_id") ??
+                User.FindFirstValue("DisplayDeviceId") ??
+                User.FindFirstValue("displayDeviceId");
             if (Guid.TryParse(displayDeviceIdClaim, out var displayDeviceId))
             {
                 return await _dbContext.Set<MstQueueDisplayDevice>()
@@ -208,7 +222,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     .FirstOrDefaultAsync(x => x.Id == displayDeviceId && !x.IsDelete && x.IsActive);
             }
 
-            var displayCodeClaim = User.FindFirstValue("display_code") ?? User.FindFirstValue("DisplayCode") ?? User.FindFirstValue("user_code") ?? User.FindFirstValue("UserCode");
+            var displayCodeClaim =
+                User.FindFirstValue("queue_display_code") ??
+                User.FindFirstValue("QueueDisplayCode") ??
+                User.FindFirstValue("queueDisplayCode") ??
+                User.FindFirstValue("display_code") ??
+                User.FindFirstValue("DisplayCode") ??
+                User.FindFirstValue("displayCode") ??
+                User.FindFirstValue("user_code") ??
+                User.FindFirstValue("UserCode") ??
+                User.FindFirstValue("userCode");
             if (!string.IsNullOrWhiteSpace(displayCodeClaim))
             {
                 var displayCode = displayCodeClaim.Trim().ToUpper();
