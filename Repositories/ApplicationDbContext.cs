@@ -31,6 +31,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<ApplicationUserFingerprintCredential> ApplicationUserFingerprintCredentials { get; set; }
         public DbSet<ApplicationUserOrganization> ApplicationUserOrganizations { get; set; }
 
+        public DbSet<MstKioskDevice> MstKioskDevices { get; set; }
+        public DbSet<MstIdentityScannerProfile> MstIdentityScannerProfiles { get; set; }
+
         public DbSet<MstCountry> MstCountries { get; set; }
         public DbSet<MstProvince> MstProvinces { get; set; }
         public DbSet<MstCity> MstCities { get; set; }
@@ -96,9 +99,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<WfpShiftSwapRequest> WfpShiftSwapRequests { get; set; }
         #endregion CORPORATE
 
-        #region HEALTH SERVICE
-        public DbSet<MstKioskDevice> MstKioskDevices { get; set; }
-        public DbSet<MstIdentityScannerProfile> MstIdentityScannerProfiles { get; set; }
+        #region HEALTH SERVICE        
+        public DbSet<MstAgeCategory> MstAgeCategories { get; set; }
         public DbSet<MstServiceUnit> MstServiceUnits { get; set; }
         public DbSet<MstClinic> MstClinics { get; set; }
         public DbSet<MstPatientClass> MstPatientClasses { get; set; }

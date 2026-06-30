@@ -41,6 +41,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public Guid? KioskScanSessionId { get; set; }
 
         // =========================
+        // AGE CATEGORY SNAPSHOT
+        // =========================
+        // Nilai ini dihitung saat kunjungan dibuat berdasarkan BirthDate pasien
+        // dan EncounterDate/OperationalDate. Disimpan sebagai snapshot agar histori
+        // kunjungan tidak berubah walaupun aturan MstAgeCategory berubah di kemudian hari.
+
+        public Guid? AgeCategoryId { get; set; }
+
+        public int? AgeYearAtEncounter { get; set; }
+
+        public int? AgeMonthAtEncounter { get; set; }
+
+        public int? AgeDayAtEncounter { get; set; }
+
+        public int? TotalAgeDaysAtEncounter { get; set; }
+
+        [MaxLength(100)]
+        public string? AgeTextAtEncounter { get; set; }
+
+        [MaxLength(50)]
+        public string? AgeCategoryCodeSnapshot { get; set; }
+
+        [MaxLength(150)]
+        public string? AgeCategoryNameSnapshot { get; set; }
+
+        public DateTime? AgeReferenceDate { get; set; }
+
+        public DateTime? AgeCalculatedAt { get; set; }
+
+        // =========================
         // ENCOUNTER INFORMATION
         // =========================
 
@@ -172,6 +202,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public MstDoctorServiceRule? DoctorServiceRule { get; set; }
 
         public MstPatientClass? PatientClass { get; set; }
+
+        public MstAgeCategory? AgeCategory { get; set; }
 
         public MstPaymentMethod? PaymentMethod { get; set; }
 

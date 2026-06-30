@@ -56,6 +56,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public string? PatientClassName { get; set; }
 
+        public Guid? AgeCategoryId { get; set; }
+
+        public string? AgeCategoryCode { get; set; }
+
+        public string? AgeCategoryName { get; set; }
+
+        public int? AgeYearAtEncounter { get; set; }
+
+        public int? AgeMonthAtEncounter { get; set; }
+
+        public int? AgeDayAtEncounter { get; set; }
+
+        public int? TotalAgeDaysAtEncounter { get; set; }
+
+        public string? AgeTextAtEncounter { get; set; }
+
+        public DateTime? AgeReferenceDate { get; set; }
+
+        public DateTime? AgeCalculatedAt { get; set; }
+
         public Guid? PaymentMethodId { get; set; }
 
         public string? PaymentMethodName { get; set; }
@@ -199,6 +219,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public Guid? DoctorId { get; set; }
 
         public string? DoctorName { get; set; }
+
+        public Guid? AgeCategoryId { get; set; }
+
+        public string? AgeCategoryName { get; set; }
+
+        public string? AgeTextAtEncounter { get; set; }
 
         public EncounterStatus EncounterStatus { get; set; }
 
@@ -422,6 +448,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public bool IsDoctorRequired { get; set; }
 
         public bool IsQueueRequired { get; set; }
+
+        public Guid? AgeCategoryId { get; set; }
+
+        public string? AgeCategoryCode { get; set; }
+
+        public string? AgeCategoryName { get; set; }
+
+        public int? AgeYearAtEncounter { get; set; }
+
+        public int? AgeMonthAtEncounter { get; set; }
+
+        public int? AgeDayAtEncounter { get; set; }
+
+        public int? TotalAgeDaysAtEncounter { get; set; }
+
+        public string? AgeTextAtEncounter { get; set; }
+
+        public DateTime? AgeReferenceDate { get; set; }
+
+        public DateTime? AgeCalculatedAt { get; set; }
 
         public int GuarantorCount { get; set; }
 

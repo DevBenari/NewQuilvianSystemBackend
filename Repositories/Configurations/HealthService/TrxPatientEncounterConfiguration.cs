@@ -45,6 +45,42 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.KioskScanSessionId)
                 .IsRequired(false);
 
+            // =========================
+            // AGE CATEGORY SNAPSHOT
+            // =========================
+
+            entity.Property(x => x.AgeCategoryId)
+                .IsRequired(false);
+
+            entity.Property(x => x.AgeYearAtEncounter)
+                .IsRequired(false);
+
+            entity.Property(x => x.AgeMonthAtEncounter)
+                .IsRequired(false);
+
+            entity.Property(x => x.AgeDayAtEncounter)
+                .IsRequired(false);
+
+            entity.Property(x => x.TotalAgeDaysAtEncounter)
+                .IsRequired(false);
+
+            entity.Property(x => x.AgeTextAtEncounter)
+                .HasMaxLength(100);
+
+            entity.Property(x => x.AgeCategoryCodeSnapshot)
+                .HasMaxLength(50);
+
+            entity.Property(x => x.AgeCategoryNameSnapshot)
+                .HasMaxLength(150);
+
+            entity.Property(x => x.AgeReferenceDate)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired(false);
+
+            entity.Property(x => x.AgeCalculatedAt)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired(false);
+
             entity.Property(x => x.EncounterDate)
                 .HasColumnType("timestamp with time zone")
                 .IsRequired();
@@ -267,6 +303,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasForeignKey(x => x.PatientClassId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.AgeCategory)
+                .WithMany()
+                .HasForeignKey(x => x.AgeCategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(x => x.PaymentMethod)
                 .WithMany()
                 .HasForeignKey(x => x.PaymentMethodId)
@@ -317,6 +358,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.HasIndex(x => x.DoctorServiceRuleId);
 
             entity.HasIndex(x => x.PatientClassId);
+
+            entity.HasIndex(x => x.AgeCategoryId);
 
             entity.HasIndex(x => x.PaymentMethodId);
 
@@ -372,6 +415,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             {
                 x.RegisteredAt,
                 x.EncounterStatus,
+                x.IsDelete
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.AgeCategoryId,
+                x.AgeCategoryCodeSnapshot,
                 x.IsDelete
             });
         }

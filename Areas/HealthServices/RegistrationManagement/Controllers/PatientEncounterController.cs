@@ -320,6 +320,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var isDoctorRequired = clinic?.IsDoctorRequired ?? serviceUnit.IsDoctorRequired;
             var guarantorRequests = BuildDefaultGuarantorsIfEmpty(request);
 
+            var patient = await _dbContext.Set<MstPatient>()
+                .AsNoTracking()
+                .FirstAsync(x => x.Id == request.PatientId && x.IsActive && !x.IsDelete);
+
+            var ageSnapshot = await BuildAgeSnapshotAsync(patient.BirthDate, operationalDate, now);
+
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             try
@@ -337,6 +343,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     PatientClassId = NormalizeNullableGuid(request.PatientClassId),
                     PaymentMethodId = NormalizeNullableGuid(request.PaymentMethodId),
                     KioskScanSessionId = NormalizeNullableGuid(request.KioskScanSessionId),
+                    AgeCategoryId = ageSnapshot.AgeCategoryId,
+                    AgeYearAtEncounter = ageSnapshot.AgeYear,
+                    AgeMonthAtEncounter = ageSnapshot.AgeMonth,
+                    AgeDayAtEncounter = ageSnapshot.AgeDay,
+                    TotalAgeDaysAtEncounter = ageSnapshot.TotalAgeDays,
+                    AgeTextAtEncounter = ageSnapshot.AgeText,
+                    AgeCategoryCodeSnapshot = ageSnapshot.AgeCategoryCode,
+                    AgeCategoryNameSnapshot = ageSnapshot.AgeCategoryName,
+                    AgeReferenceDate = ageSnapshot.AgeReferenceDate,
+                    AgeCalculatedAt = ageSnapshot.AgeCalculatedAt,
                     EncounterDate = operationalDate,
                     EncounterType = request.EncounterType,
                     VisitType = request.VisitType,
@@ -452,6 +468,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     IsScreeningRequired = isScreeningRequired,
                     IsDoctorRequired = isDoctorRequired,
                     IsQueueRequired = isQueueRequired,
+                    AgeCategoryId = encounter.AgeCategoryId,
+                    AgeCategoryCode = encounter.AgeCategoryCodeSnapshot,
+                    AgeCategoryName = encounter.AgeCategoryNameSnapshot,
+                    AgeYearAtEncounter = encounter.AgeYearAtEncounter,
+                    AgeMonthAtEncounter = encounter.AgeMonthAtEncounter,
+                    AgeDayAtEncounter = encounter.AgeDayAtEncounter,
+                    TotalAgeDaysAtEncounter = encounter.TotalAgeDaysAtEncounter,
+                    AgeTextAtEncounter = encounter.AgeTextAtEncounter,
+                    AgeReferenceDate = encounter.AgeReferenceDate,
+                    AgeCalculatedAt = encounter.AgeCalculatedAt,
                     GuarantorCount = guarantors.Count,
                     Guarantors = guarantors.Select(MapGuarantorCreateResponse).ToList()
                 };
@@ -643,6 +669,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .Include(x => x.Clinic)
                 .Include(x => x.Doctor)
                 .Include(x => x.PatientClass)
+                .Include(x => x.AgeCategory)
                 .Include(x => x.PaymentMethod)
                 .Include(x => x.RegisteredByUser)
                 .Include(x => x.CancelledByUser)
@@ -738,6 +765,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)) ||
                     (x.Doctor != null && x.Doctor.FullName.ToLower().Contains(keyword)) ||
                     (x.PaymentMethod != null && x.PaymentMethod.PaymentMethodName.ToLower().Contains(keyword)) ||
+                    (x.AgeCategoryCodeSnapshot != null && x.AgeCategoryCodeSnapshot.ToLower().Contains(keyword)) ||
+                    (x.AgeCategoryNameSnapshot != null && x.AgeCategoryNameSnapshot.ToLower().Contains(keyword)) ||
+                    (x.AgeTextAtEncounter != null && x.AgeTextAtEncounter.ToLower().Contains(keyword)) ||
                     (x.PrimaryGuarantorNameSnapshot != null && x.PrimaryGuarantorNameSnapshot.ToLower().Contains(keyword)) ||
                     (x.ReferralNumber != null && x.ReferralNumber.ToLower().Contains(keyword)) ||
                     (x.EligibilityReferenceNumber != null && x.EligibilityReferenceNumber.ToLower().Contains(keyword)));
@@ -1159,6 +1189,109 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return $"{prefix}-{operationalDate:yyyyMMdd}-{queueNumber:D3}";
         }
 
+        private async Task<PatientEncounterAgeSnapshot> BuildAgeSnapshotAsync(
+            DateTime? birthDate,
+            DateTime encounterDate,
+            DateTime calculatedAt)
+        {
+            if (!birthDate.HasValue)
+            {
+                return PatientEncounterAgeSnapshot.Empty;
+            }
+
+            var birth = birthDate.Value.Date;
+            var referenceDate = encounterDate.Date;
+
+            if (referenceDate < birth)
+            {
+                return PatientEncounterAgeSnapshot.Empty;
+            }
+
+            var ageParts = CalculateAgeParts(birth, referenceDate);
+            var ageReferenceDate = DateTime.SpecifyKind(referenceDate, DateTimeKind.Utc);
+            var ageCalculatedAt = DateTime.SpecifyKind(calculatedAt, DateTimeKind.Utc);
+
+            var category = await _dbContext.Set<MstAgeCategory>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.MinAgeDays <= ageParts.TotalDays &&
+                    (x.MaxAgeDays == null || x.MaxAgeDays >= ageParts.TotalDays) &&
+                    (x.EffectiveStartDate == null || x.EffectiveStartDate <= ageReferenceDate) &&
+                    (x.EffectiveEndDate == null || x.EffectiveEndDate >= ageReferenceDate))
+                .OrderByDescending(x => x.IsDefault)
+                .ThenBy(x => x.SortOrder)
+                .ThenBy(x => x.MinAgeDays)
+                .FirstOrDefaultAsync();
+
+            return new PatientEncounterAgeSnapshot
+            {
+                AgeCategoryId = category?.Id,
+                AgeCategoryCode = category?.AgeCategoryCode,
+                AgeCategoryName = category?.AgeCategoryName,
+                AgeYear = ageParts.Years,
+                AgeMonth = ageParts.Months,
+                AgeDay = ageParts.Days,
+                TotalAgeDays = ageParts.TotalDays,
+                AgeText = BuildAgeText(ageParts.Years, ageParts.Months, ageParts.Days),
+                AgeReferenceDate = ageReferenceDate,
+                AgeCalculatedAt = ageCalculatedAt
+            };
+        }
+
+        private static PatientEncounterAgeParts CalculateAgeParts(DateTime birthDate, DateTime referenceDate)
+        {
+            var years = referenceDate.Year - birthDate.Year;
+            var months = referenceDate.Month - birthDate.Month;
+            var days = referenceDate.Day - birthDate.Day;
+
+            if (days < 0)
+            {
+                var previousMonth = referenceDate.AddMonths(-1);
+                days += DateTime.DaysInMonth(previousMonth.Year, previousMonth.Month);
+                months--;
+            }
+
+            if (months < 0)
+            {
+                months += 12;
+                years--;
+            }
+
+            var totalDays = (referenceDate - birthDate).Days;
+
+            return new PatientEncounterAgeParts
+            {
+                Years = years,
+                Months = months,
+                Days = days,
+                TotalDays = totalDays
+            };
+        }
+
+        private static string BuildAgeText(int years, int months, int days)
+        {
+            var parts = new List<string>();
+
+            if (years > 0)
+            {
+                parts.Add($"{years} tahun");
+            }
+
+            if (months > 0)
+            {
+                parts.Add($"{months} bulan");
+            }
+
+            if (days > 0 || parts.Count == 0)
+            {
+                parts.Add($"{days} hari");
+            }
+
+            return string.Join(" ", parts);
+        }
+
         private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
         {
             var ids = actorIds.Where(x => x != Guid.Empty).Distinct().ToList();
@@ -1187,6 +1320,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 DoctorServiceRuleId = entity.DoctorServiceRuleId,
                 PatientClassId = entity.PatientClassId,
                 PatientClassName = entity.PatientClass?.PatientClassName,
+                AgeCategoryId = entity.AgeCategoryId,
+                AgeCategoryCode = entity.AgeCategoryCodeSnapshot ?? entity.AgeCategory?.AgeCategoryCode,
+                AgeCategoryName = entity.AgeCategoryNameSnapshot ?? entity.AgeCategory?.AgeCategoryName,
+                AgeYearAtEncounter = entity.AgeYearAtEncounter,
+                AgeMonthAtEncounter = entity.AgeMonthAtEncounter,
+                AgeDayAtEncounter = entity.AgeDayAtEncounter,
+                TotalAgeDaysAtEncounter = entity.TotalAgeDaysAtEncounter,
+                AgeTextAtEncounter = entity.AgeTextAtEncounter,
+                AgeReferenceDate = entity.AgeReferenceDate,
+                AgeCalculatedAt = entity.AgeCalculatedAt,
                 PaymentMethodId = entity.PaymentMethodId,
                 PaymentMethodName = entity.PaymentMethod?.PaymentMethodName,
                 EncounterDate = entity.EncounterDate,
@@ -1255,6 +1398,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 DoctorServiceRuleId = entity.DoctorServiceRuleId,
                 PatientClassId = entity.PatientClassId,
                 PatientClassName = entity.PatientClass?.PatientClassName,
+                AgeCategoryId = entity.AgeCategoryId,
+                AgeCategoryCode = entity.AgeCategoryCodeSnapshot ?? entity.AgeCategory?.AgeCategoryCode,
+                AgeCategoryName = entity.AgeCategoryNameSnapshot ?? entity.AgeCategory?.AgeCategoryName,
+                AgeYearAtEncounter = entity.AgeYearAtEncounter,
+                AgeMonthAtEncounter = entity.AgeMonthAtEncounter,
+                AgeDayAtEncounter = entity.AgeDayAtEncounter,
+                TotalAgeDaysAtEncounter = entity.TotalAgeDaysAtEncounter,
+                AgeTextAtEncounter = entity.AgeTextAtEncounter,
+                AgeReferenceDate = entity.AgeReferenceDate,
+                AgeCalculatedAt = entity.AgeCalculatedAt,
                 PaymentMethodId = entity.PaymentMethodId,
                 PaymentMethodName = entity.PaymentMethod?.PaymentMethodName,
                 KioskScanSessionId = entity.KioskScanSessionId,
@@ -1333,6 +1486,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ClinicName = entity.Clinic?.ClinicName,
                 DoctorId = entity.DoctorId,
                 DoctorName = entity.Doctor?.FullName,
+                AgeCategoryId = entity.AgeCategoryId,
+                AgeCategoryName = entity.AgeCategoryNameSnapshot ?? entity.AgeCategory?.AgeCategoryName,
+                AgeTextAtEncounter = entity.AgeTextAtEncounter,
                 EncounterStatus = entity.EncounterStatus,
                 EncounterStatusName = BuildEnumLabel(entity.EncounterStatus),
                 EncounterDate = entity.EncounterDate,
@@ -1505,5 +1661,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("user_id");
             return Guid.TryParse(userIdValue, out var userId) ? userId : Guid.Empty;
         }
+
+        private class PatientEncounterAgeSnapshot
+        {
+            public static PatientEncounterAgeSnapshot Empty => new();
+            public Guid? AgeCategoryId { get; set; }
+            public string? AgeCategoryCode { get; set; }
+            public string? AgeCategoryName { get; set; }
+            public int? AgeYear { get; set; }
+            public int? AgeMonth { get; set; }
+            public int? AgeDay { get; set; }
+            public int? TotalAgeDays { get; set; }
+            public string? AgeText { get; set; }
+            public DateTime? AgeReferenceDate { get; set; }
+            public DateTime? AgeCalculatedAt { get; set; }
+        }
+
+        private class PatientEncounterAgeParts
+        {
+            public int Years { get; set; }
+            public int Months { get; set; }
+            public int Days { get; set; }
+            public int TotalDays { get; set; }
+        }
+
     }
 }
