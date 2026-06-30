@@ -274,6 +274,66 @@ try
                     user.HasClaim("profile_type", "KioskDevice");
             });
         });
+
+        // Policy khusus akun display antrian.
+        // Dipakai untuk endpoint runtime display supaya akun QueueDisplayDevice
+        // tidak perlu lewat AccessPermission role/menu aplikasi umum.
+        options.AddPolicy("QueueDisplayRuntimeRead", policy =>
+        {
+            policy.RequireAuthenticatedUser();
+
+            policy.RequireAssertion(context =>
+            {
+                var user = context.User;
+
+                return
+                    user.IsInRole("SuperAdmin") ||
+                    user.IsInRole("Administrator") ||
+                    user.IsInRole("QueueDisplayDevice") ||
+                    user.IsInRole("QueueDisplay") ||
+                    user.IsInRole("DisplayQueue") ||
+
+                    // Claim khusus dari AuthController saat login akun display antrian.
+                    user.HasClaim("is_queue_display_account", "true") ||
+                    user.HasClaim("profile_type", "QueueDisplayDevice") ||
+                    user.HasClaim("queue_display_runtime_read", "true") ||
+                    user.HasClaim("queue_display_read", "true") ||
+                    user.HasClaim("can_access_queue_display_runtime", "true") ||
+
+                    // Fallback claim identitas perangkat display.
+                    user.HasClaim(claim => claim.Type == "queue_display_device_id" && !string.IsNullOrWhiteSpace(claim.Value)) ||
+                    user.HasClaim(claim => claim.Type == "display_device_id" && !string.IsNullOrWhiteSpace(claim.Value)) ||
+                    user.HasClaim(claim => claim.Type == "queue_display_code" && !string.IsNullOrWhiteSpace(claim.Value)) ||
+                    user.HasClaim(claim => claim.Type == "display_code" && !string.IsNullOrWhiteSpace(claim.Value));
+            });
+        });
+
+        // Alias jika nanti ada controller lain yang ingin memakai nama policy lebih umum.
+        options.AddPolicy("QueueDisplayRead", policy =>
+        {
+            policy.RequireAuthenticatedUser();
+
+            policy.RequireAssertion(context =>
+            {
+                var user = context.User;
+
+                return
+                    user.IsInRole("SuperAdmin") ||
+                    user.IsInRole("Administrator") ||
+                    user.IsInRole("QueueDisplayDevice") ||
+                    user.IsInRole("QueueDisplay") ||
+                    user.IsInRole("DisplayQueue") ||
+                    user.HasClaim("is_queue_display_account", "true") ||
+                    user.HasClaim("profile_type", "QueueDisplayDevice") ||
+                    user.HasClaim("queue_display_runtime_read", "true") ||
+                    user.HasClaim("queue_display_read", "true") ||
+                    user.HasClaim("can_access_queue_display_runtime", "true") ||
+                    user.HasClaim(claim => claim.Type == "queue_display_device_id" && !string.IsNullOrWhiteSpace(claim.Value)) ||
+                    user.HasClaim(claim => claim.Type == "display_device_id" && !string.IsNullOrWhiteSpace(claim.Value)) ||
+                    user.HasClaim(claim => claim.Type == "queue_display_code" && !string.IsNullOrWhiteSpace(claim.Value)) ||
+                    user.HasClaim(claim => claim.Type == "display_code" && !string.IsNullOrWhiteSpace(claim.Value));
+            });
+        });
     });
 
     builder.Services.AddDistributedMemoryCache();

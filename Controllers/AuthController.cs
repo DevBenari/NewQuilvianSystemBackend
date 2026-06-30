@@ -2018,10 +2018,20 @@ namespace QuilvianSystemBackend.Controllers
                 claims.Add(new Claim("nurse_station_cluster_name", queueDisplayContext.ClusterName ?? string.Empty));
                 claims.Add(new Claim("service_unit_id", queueDisplayContext.ServiceUnitId?.ToString() ?? string.Empty));
                 claims.Add(new Claim("service_unit_name", queueDisplayContext.ServiceUnitName ?? string.Empty));
+
+                // Claim policy khusus agar endpoint runtime display bisa memakai
+                // [Authorize(Policy = "QueueDisplayRuntimeRead")]
+                // tanpa harus melewati AccessPermission role/menu dashboard.
+                claims.Add(new Claim("queue_display_runtime_read", "true"));
+                claims.Add(new Claim("queue_display_read", "true"));
+                claims.Add(new Claim("can_access_queue_display_runtime", "true"));
             }
             else
             {
                 claims.Add(new Claim("is_queue_display_account", "false"));
+                claims.Add(new Claim("queue_display_runtime_read", "false"));
+                claims.Add(new Claim("queue_display_read", "false"));
+                claims.Add(new Claim("can_access_queue_display_runtime", "false"));
             }
 
             var effectiveRoles = roles

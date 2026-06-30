@@ -31,6 +31,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     public class QueueDisplayRuntimeController : ControllerBase
     {
         private const string LogCategory = "HealthServices.RegistrationManagement";
+        private const string QueueDisplayRuntimeReadPolicy = "QueueDisplayRuntimeRead";
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
 
@@ -41,10 +42,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpGet("current")]
+        [Authorize(Policy = QueueDisplayRuntimeReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<QueueDisplayRuntimeCurrentResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat informasi display antrian login", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("QueueDisplayRuntime", "Read")]
+        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat informasi display antrian login", AccessType = AccessTypes.Read, SortOrder = 1)]        
         public async Task<IActionResult> GetCurrent()
         {
             var device = await ResolveCurrentDisplayDeviceAsync();
@@ -78,9 +79,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpGet("summary")]
+        [Authorize(Policy = QueueDisplayRuntimeReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<QueueDisplayRuntimeSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat ringkasan display antrian", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("QueueDisplayRuntime", "Read")]
+        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat ringkasan display antrian", AccessType = AccessTypes.Read, SortOrder = 1)]        
         public async Task<IActionResult> GetSummary([FromQuery] DateTime? queueDate)
         {
             var device = await ResolveCurrentDisplayDeviceAsync();
@@ -105,9 +106,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpGet("items")]
+        [Authorize(Policy = QueueDisplayRuntimeReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<List<QueueDisplayRuntimeItemResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat item antrian untuk display", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("QueueDisplayRuntime", "Read")]
+        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat item antrian untuk display", AccessType = AccessTypes.Read, SortOrder = 1)]        
         public async Task<IActionResult> GetItems(
             [FromQuery] DateTime? queueDate,
             [FromQuery] QueueStatus? queueStatus,
@@ -154,9 +155,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpGet("called")]
+        [Authorize(Policy = QueueDisplayRuntimeReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<QueueDisplayRuntimeCalledResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat panggilan antrean terakhir", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("QueueDisplayRuntime", "Read")]
+        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat panggilan antrean terakhir", AccessType = AccessTypes.Read, SortOrder = 1)]        
         public async Task<IActionResult> GetCalled([FromQuery] DateTime? queueDate)
         {
             var device = await ResolveCurrentDisplayDeviceAsync();
