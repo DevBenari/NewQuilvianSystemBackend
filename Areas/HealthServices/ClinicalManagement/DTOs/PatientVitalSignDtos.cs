@@ -57,6 +57,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public decimal? OxygenFlowRate { get; set; }
         public decimal? Weight { get; set; }
         public decimal? Height { get; set; }
+        public decimal? HeadCircumference { get; set; }
         public decimal? BMI { get; set; }
         public ConsciousnessStatus ConsciousnessStatus { get; set; }
         public int? GcsTotal { get; set; }
@@ -251,6 +252,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [MaxLength(100)] public string? OxygenSupportNote { get; set; }
         public decimal? Weight { get; set; }
         public decimal? Height { get; set; }
+        public decimal? HeadCircumference { get; set; }
         [MaxLength(100)] public string? WeightMeasurementNote { get; set; }
         public ConsciousnessStatus ConsciousnessStatus { get; set; } = ConsciousnessStatus.Unknown;
         public int? GcsEye { get; set; }
@@ -295,6 +297,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [MaxLength(100)] public string? OxygenSupportNote { get; set; }
         public decimal? Weight { get; set; }
         public decimal? Height { get; set; }
+        public decimal? HeadCircumference { get; set; }
         [MaxLength(100)] public string? WeightMeasurementNote { get; set; }
         public ConsciousnessStatus ConsciousnessStatus { get; set; } = ConsciousnessStatus.Unknown;
         public int? GcsEye { get; set; }
@@ -323,6 +326,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public DateTime ObservationDateTime { get; set; }
         public PatientVitalSignSource VitalSignSource { get; set; }
         public PatientVitalSignStatus VitalSignStatus { get; set; }
+        public decimal? HeadCircumference { get; set; }
         public decimal? BMI { get; set; }
         public decimal? MeanArterialPressure { get; set; }
         public MapStatus MapStatus { get; set; }

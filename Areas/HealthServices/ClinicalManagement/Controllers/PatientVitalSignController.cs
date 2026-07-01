@@ -502,6 +502,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 OxygenSupportNote = NormalizeNullableText(request.OxygenSupportNote),
                 Weight = request.Weight,
                 Height = request.Height,
+                HeadCircumference = request.HeadCircumference,
                 BMI = calculated.BMI,
                 WeightMeasurementNote = NormalizeNullableText(request.WeightMeasurementNote),
                 ConsciousnessStatus = request.ConsciousnessStatus,
@@ -623,6 +624,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.OxygenSupportNote = NormalizeNullableText(request.OxygenSupportNote);
             entity.Weight = request.Weight;
             entity.Height = request.Height;
+            entity.HeadCircumference = request.HeadCircumference;
             entity.BMI = calculated.BMI;
             entity.WeightMeasurementNote = NormalizeNullableText(request.WeightMeasurementNote);
             entity.ConsciousnessStatus = request.ConsciousnessStatus;
@@ -948,6 +950,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 request.OxygenFlowRate,
                 request.Weight,
                 request.Height,
+                request.HeadCircumference,
                 request.GcsEye,
                 request.GcsVerbal,
                 request.GcsMotor,
@@ -967,6 +970,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 request.OxygenFlowRate,
                 request.Weight,
                 request.Height,
+                request.HeadCircumference,
                 request.GcsEye,
                 request.GcsVerbal,
                 request.GcsMotor,
@@ -984,6 +988,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             decimal? oxygenFlowRate,
             decimal? weight,
             decimal? height,
+            decimal? headCircumference,
             int? gcsEye,
             int? gcsVerbal,
             int? gcsMotor,
@@ -1019,6 +1024,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (height.HasValue && height.Value <= 0)
                 return (false, "Tinggi badan harus lebih dari 0.");
+
+            if (headCircumference.HasValue && (headCircumference.Value <= 0 || headCircumference.Value > 100))
+                return (false, "Lingkar kepala harus berada pada rentang 1-100 cm.");
 
             if (gcsEye.HasValue && (gcsEye.Value < 1 || gcsEye.Value > 4))
                 return (false, "GCS Eye harus berada pada rentang 1-4.");
@@ -1517,6 +1525,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 OxygenFlowRate = x.OxygenFlowRate,
                 Weight = x.Weight,
                 Height = x.Height,
+                HeadCircumference = x.HeadCircumference,
                 BMI = x.BMI,
                 ConsciousnessStatus = x.ConsciousnessStatus,
                 GcsTotal = x.GcsTotal,
@@ -1589,6 +1598,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 OxygenSupportNote = x.OxygenSupportNote,
                 Weight = x.Weight,
                 Height = x.Height,
+                HeadCircumference = x.HeadCircumference,
                 BMI = x.BMI,
                 WeightMeasurementNote = x.WeightMeasurementNote,
                 ConsciousnessStatus = x.ConsciousnessStatus,
@@ -1640,6 +1650,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ObservationDateTime = x.ObservationDateTime,
                 VitalSignSource = x.VitalSignSource,
                 VitalSignStatus = x.VitalSignStatus,
+                HeadCircumference = x.HeadCircumference,
                 BMI = x.BMI,
                 MeanArterialPressure = x.MeanArterialPressure,
                 MapStatus = x.MapStatus,
@@ -1667,6 +1678,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ObservationDateTime = x.ObservationDateTime,
                 VitalSignSource = x.VitalSignSource,
                 VitalSignStatus = x.VitalSignStatus,
+                HeadCircumference = x.HeadCircumference,
                 BMI = x.BMI,
                 MeanArterialPressure = x.MeanArterialPressure,
                 MapStatus = x.MapStatus,

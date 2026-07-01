@@ -93,6 +93,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             builder.Property(x => x.Height)
                 .HasPrecision(8, 2);
 
+            builder.Property(x => x.HeadCircumference)
+                .HasPrecision(8, 2);
+
             builder.Property(x => x.BMI)
                 .HasPrecision(6, 2);
 

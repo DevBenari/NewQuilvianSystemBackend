@@ -127,6 +127,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public decimal? Height { get; set; }
 
+        public decimal? HeadCircumference { get; set; }
+        // Khusus bayi/anak sesuai kebutuhan klinis. Satuan: cm.
+
         public decimal? BMI { get; set; }
 
         [MaxLength(100)]
