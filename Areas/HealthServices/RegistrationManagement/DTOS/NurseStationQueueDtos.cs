@@ -83,6 +83,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string? NickName { get; set; }
         public string? BirthPlace { get; set; }
         public DateTime? BirthDate { get; set; }
+
+        public Guid? AgeCategoryId { get; set; }
+        public int? AgeYearAtEncounter { get; set; }
+        public int? AgeMonthAtEncounter { get; set; }
+        public int? AgeDayAtEncounter { get; set; }
+        public int? TotalAgeDaysAtEncounter { get; set; }
+        public string? AgeTextAtEncounter { get; set; }
+        public string? AgeCategoryCodeSnapshot { get; set; }
+        public string? AgeCategoryNameSnapshot { get; set; }
+        public DateTime? AgeReferenceDate { get; set; }
+        public DateTime? AgeCalculatedAt { get; set; }
         public string? GenderName { get; set; }
         public string? ReligionName { get; set; }
         public string? MaritalStatusName { get; set; }
