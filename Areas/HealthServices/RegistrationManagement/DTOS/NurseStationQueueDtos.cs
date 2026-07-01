@@ -169,6 +169,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public int NurseCallRemainingSeconds { get; set; }
         public DateTime? ScreeningStartedAt { get; set; }
         public DateTime? ScreeningCompletedAt { get; set; }
+        public bool AssessmentCompleted { get; set; }
+        public bool VitalSignRecorded { get; set; }
+        public bool RoutedToDoctor { get; set; }
+        public Guid? DoctorId { get; set; }
+        public string? DoctorName { get; set; }
         public string Message { get; set; } = string.Empty;
         public bool VoiceEnabled { get; set; }
         public bool VoiceGenerated { get; set; }

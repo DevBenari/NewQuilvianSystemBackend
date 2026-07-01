@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
@@ -239,39 +241,99 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
             if (queue == null) return QueueNotFound();
+
             if (queue.QueueStatus != QueueStatus.InNurseScreening)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Screening belum dimulai."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Screening belum dimulai atau sudah selesai."
+                ));
+            }
+
+            if (queue.IsDoctorRequired && (!queue.DoctorId.HasValue || queue.DoctorId.Value == Guid.Empty))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Dokter tujuan belum ditentukan. Lengkapi dokter pada antrean sebelum menyelesaikan screening."
+                ));
+            }
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+            var assessmentCompleted = false;
+            var vitalSignRecorded = false;
 
-            queue.ScreeningCompletedAt = now;
-            queue.QueueStatus = queue.IsDoctorRequired ? QueueStatus.WaitingForDoctor : QueueStatus.Completed;
-            queue.Notes = MergeNotes(queue.Notes, request?.Notes);
-            queue.UpdateDateTime = now;
-            queue.UpdateBy = actorUserId;
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            if (!queue.IsDoctorRequired)
+            try
             {
-                queue.CompletedAt = now;
-                queue.CompletedByUserId = actorUserId;
-            }
+                assessmentCompleted = await CompleteActiveAssessmentByQueueAsync(queue.Id, now, actorUserId, request?.Notes);
+                vitalSignRecorded = await RecordActiveVitalSignByQueueAsync(queue.Id, now, actorUserId);
 
-            if (queue.Encounter != null)
-            {
-                queue.Encounter.EncounterStatus = queue.IsDoctorRequired ? EncounterStatus.WaitingForDoctor : EncounterStatus.Completed;
-                queue.Encounter.UpdateDateTime = now;
-                queue.Encounter.UpdateBy = actorUserId;
+                queue.ScreeningCompletedAt = now;
+                queue.QueueStatus = queue.IsDoctorRequired ? QueueStatus.WaitingForDoctor : QueueStatus.Completed;
+                queue.Notes = MergeNotes(queue.Notes, request?.Notes);
+                queue.UpdateDateTime = now;
+                queue.UpdateBy = actorUserId;
+
                 if (!queue.IsDoctorRequired)
                 {
-                    queue.Encounter.CompletedAt = now;
+                    queue.CompletedAt = now;
+                    queue.CompletedByUserId = actorUserId;
                 }
+
+                if (queue.Encounter != null)
+                {
+                    queue.Encounter.EncounterStatus = queue.IsDoctorRequired
+                        ? EncounterStatus.WaitingForDoctor
+                        : EncounterStatus.Completed;
+                    queue.Encounter.UpdateDateTime = now;
+                    queue.Encounter.UpdateBy = actorUserId;
+
+                    if (!queue.IsDoctorRequired)
+                    {
+                        queue.Encounter.CompletedAt = now;
+                    }
+                }
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "NurseStationQueue.FinishScreening",
+                    "Gagal menyelesaikan screening perawat.",
+                    ex
+                );
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat menyelesaikan screening perawat."
+                    )
+                );
             }
 
-            await _dbContext.SaveChangesAsync();
-            await _queueRealtimeService.NotifyQueueScreeningFinishedAsync(queue, actorUserId, "Screening perawat selesai.");
+            var message = queue.IsDoctorRequired
+                ? "Screening perawat selesai dan pasien dikirim ke dokter."
+                : "Screening perawat selesai dan kunjungan diselesaikan.";
 
-            return Ok(ApiResponse<NurseStationQueueActionResponse>.Ok(BuildActionResponse(queue, "Screening perawat selesai dan pasien dikirim ke dokter."), "Screening perawat selesai dan pasien dikirim ke dokter."));
+            await _queueRealtimeService.NotifyQueueScreeningFinishedAsync(queue, actorUserId, message);
+
+            return Ok(ApiResponse<NurseStationQueueActionResponse>.Ok(
+                BuildActionResponse(
+                    queue,
+                    message,
+                    assessmentCompleted: assessmentCompleted,
+                    vitalSignRecorded: vitalSignRecorded
+                ),
+                message
+            ));
         }
 
         [HttpPost("{id:guid}/skip")]
@@ -496,6 +558,80 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
                         .ThenBy(x => x.QueueNumber)
             };
+        }
+
+        private async Task<bool> CompleteActiveAssessmentByQueueAsync(
+            Guid queueId,
+            DateTime now,
+            Guid actorUserId,
+            string? nurseNote)
+        {
+            var assessment = await _dbContext.Set<TrxPatientAssessment>()
+                .Where(x =>
+                    x.QueueId == queueId &&
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.AssessmentStatus != PatientAssessmentStatus.Cancelled)
+                .OrderByDescending(x => x.AssessmentStatus == PatientAssessmentStatus.InProgress)
+                .ThenByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
+                .ThenByDescending(x => x.AssessmentDateTime)
+                .FirstOrDefaultAsync();
+
+            if (assessment == null)
+            {
+                return false;
+            }
+
+            if (assessment.AssessmentStatus != PatientAssessmentStatus.Completed)
+            {
+                assessment.AssessmentStatus = PatientAssessmentStatus.Completed;
+                assessment.CompletedAt = now;
+                assessment.CompletedByUserId = actorUserId;
+            }
+
+            var normalizedNurseNote = NormalizeNullableText(nurseNote);
+            if (!string.IsNullOrWhiteSpace(normalizedNurseNote))
+            {
+                assessment.NurseNote = MergeNotes(assessment.NurseNote, normalizedNurseNote);
+            }
+
+            assessment.UpdateDateTime = now;
+            assessment.UpdateBy = actorUserId;
+
+            return true;
+        }
+
+        private async Task<bool> RecordActiveVitalSignByQueueAsync(
+            Guid queueId,
+            DateTime now,
+            Guid actorUserId)
+        {
+            var vitalSign = await _dbContext.Set<TrxPatientVitalSign>()
+                .Where(x =>
+                    x.QueueId == queueId &&
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.VitalSignStatus != PatientVitalSignStatus.Cancelled &&
+                    x.VitalSignStatus != PatientVitalSignStatus.EnteredInError)
+                .OrderByDescending(x => x.VitalSignStatus == PatientVitalSignStatus.Draft)
+                .ThenByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
+                .ThenByDescending(x => x.ObservationDateTime)
+                .FirstOrDefaultAsync();
+
+            if (vitalSign == null)
+            {
+                return false;
+            }
+
+            if (vitalSign.VitalSignStatus == PatientVitalSignStatus.Draft)
+            {
+                vitalSign.VitalSignStatus = PatientVitalSignStatus.Recorded;
+            }
+
+            vitalSign.UpdateDateTime = now;
+            vitalSign.UpdateBy = actorUserId;
+
+            return true;
         }
 
         private async Task<List<Guid>> GetAllowedClusterIdsAsync(Guid? requestedClusterId)
@@ -751,7 +887,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             };
         }
 
-        private static NurseStationQueueActionResponse BuildActionResponse(TrxQueue queue, string message, QueueVoiceGenerateResponse? voiceResult = null)
+        private static NurseStationQueueActionResponse BuildActionResponse(
+            TrxQueue queue,
+            string message,
+            QueueVoiceGenerateResponse? voiceResult = null,
+            bool assessmentCompleted = false,
+            bool vitalSignRecorded = false)
         {
             var serverNowUtc = DateTime.UtcNow;
 
@@ -769,6 +910,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 NurseCallRemainingSeconds = CalculateNurseCallRemainingSeconds(queue.NurseCallExpiresAt, serverNowUtc),
                 ScreeningStartedAt = queue.ScreeningStartedAt,
                 ScreeningCompletedAt = queue.ScreeningCompletedAt,
+                AssessmentCompleted = assessmentCompleted,
+                VitalSignRecorded = vitalSignRecorded,
+                RoutedToDoctor = queue.IsDoctorRequired && queue.QueueStatus == QueueStatus.WaitingForDoctor,
+                DoctorId = queue.DoctorId,
+                DoctorName = queue.Doctor?.FullName,
                 Message = message,
                 VoiceEnabled = voiceResult?.Enabled ?? false,
                 VoiceGenerated = voiceResult?.Generated ?? false,

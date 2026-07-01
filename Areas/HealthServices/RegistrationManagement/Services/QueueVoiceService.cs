@@ -158,7 +158,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 QueueNumber = 1
             };
 
-            var text = NormalizeVoiceText(request.Text) ?? "Perhatian. Nomor antrian A satu. Silakan menuju ruang pemeriksaan perawat. Terima kasih.";
+            var text = NormalizeVoiceText(request.Text) ?? "Nomor antrian A satu. Silakan menuju ruang pemeriksaan perawat. Terima kasih.";
             return await GetOrCreateQueueCallAudioAsync(
                 previewQueue,
                 request.CallType ?? QueueVoiceCallTypes.Preview,
@@ -741,7 +741,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var text = CleanVoiceText(value);
             if (string.IsNullOrWhiteSpace(text)) return null;
 
-            text = Regex.Replace(text, @"\bantrian\b", "antrean", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\bantrian\b", "antrian", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bno\.?\b", "nomor", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bIGD\b", "Instalasi Gawat Darurat", RegexOptions.IgnoreCase);
             text = Regex.Replace(text, @"\bUGD\b", "Unit Gawat Darurat", RegexOptions.IgnoreCase);
@@ -834,7 +834,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         private static string BuildVoiceQueueNumber(int queueNumber)
         {
-            if (queueNumber <= 0) return "nomor antrean";
+            if (queueNumber <= 0) return "nomor antrian";
             return $"nomor {NumberToIndonesianWords(queueNumber)}";
         }
 

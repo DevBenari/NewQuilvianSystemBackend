@@ -359,27 +359,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             _dbContext.Set<TrxPatientAssessment>().Add(entity);
 
-            queue.QueueStatus = request.CompleteImmediately
-                ? QueueStatus.WaitingForDoctor
-                : QueueStatus.InNurseScreening;
-
-            queue.ScreeningStartedAt ??= now;
-
-            if (request.CompleteImmediately)
-                queue.ScreeningCompletedAt = now;
-
-            queue.UpdateDateTime = now;
-            queue.UpdateBy = actorUserId;
-
-            if (queue.Encounter != null)
-            {
-                queue.Encounter.EncounterStatus = request.CompleteImmediately
-                    ? EncounterStatus.WaitingForDoctor
-                    : EncounterStatus.InNurseScreening;
-
-                queue.Encounter.UpdateDateTime = now;
-                queue.Encounter.UpdateBy = actorUserId;
-            }
+            // Assessment adalah dokumen klinis. Perubahan status antrean/encounter
+            // dikendalikan oleh workflow NurseStationQueueController.FinishScreening
+            // agar tidak terjadi double finalization antara assessment dan queue.
 
             await _dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -520,16 +502,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         }
 
         [HttpPatch("{id:guid}/complete")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<PatientAssessmentCompleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Complete Patient Assessment", Description = "Menyelesaikan assessment pasien", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessAction("Update", "Complete Patient Assessment", Description = "Menyelesaikan dokumen assessment pasien tanpa mengubah status antrean", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("PatientAssessment", "Update")]
         public async Task<IActionResult> CompleteAssessment(Guid id, [FromBody] CompletePatientAssessmentRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientAssessment>()
-                .Include(x => x.Queue)
-                .Include(x => x.Encounter)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
@@ -542,8 +522,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (entity.AssessmentStatus == PatientAssessmentStatus.Completed)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
+                var completedResponse = new PatientAssessmentCompleteResponse
+                {
+                    Id = entity.Id,
+                    AssessmentNumber = entity.AssessmentNumber,
+                    EncounterId = entity.EncounterId,
+                    QueueId = entity.QueueId,
+                    AssessmentStatus = entity.AssessmentStatus,
+                    CompletedAt = entity.CompletedAt,
+                    CompletedByUserId = entity.CompletedByUserId,
+                    IsAlreadyCompleted = true
+                };
+
+                return Ok(ApiResponse<PatientAssessmentCompleteResponse>.Ok(
+                    completedResponse,
                     "Assessment pasien sudah completed."
                 ));
             }
@@ -558,31 +550,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
-            if (entity.Queue != null)
-            {
-                entity.Queue.QueueStatus = entity.Queue.IsDoctorRequired
-                    ? QueueStatus.WaitingForDoctor
-                    : QueueStatus.Completed;
-
-                entity.Queue.ScreeningCompletedAt = now;
-                entity.Queue.UpdateDateTime = now;
-                entity.Queue.UpdateBy = actorUserId;
-            }
-
-            if (entity.Encounter != null)
-            {
-                entity.Encounter.EncounterStatus = entity.Queue != null && entity.Queue.IsDoctorRequired
-                    ? EncounterStatus.WaitingForDoctor
-                    : EncounterStatus.Completed;
-
-                entity.Encounter.UpdateDateTime = now;
-                entity.Encounter.UpdateBy = actorUserId;
-            }
+            // Tidak mengubah QueueStatus/EncounterStatus di sini.
+            // Finalisasi perjalanan pasien dilakukan oleh endpoint:
+            // POST /nurse-station-queues/{id}/finish-screening
 
             await _dbContext.SaveChangesAsync();
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
+            var response = new PatientAssessmentCompleteResponse
+            {
+                Id = entity.Id,
+                AssessmentNumber = entity.AssessmentNumber,
+                EncounterId = entity.EncounterId,
+                QueueId = entity.QueueId,
+                AssessmentStatus = entity.AssessmentStatus,
+                CompletedAt = entity.CompletedAt,
+                CompletedByUserId = entity.CompletedByUserId,
+                IsAlreadyCompleted = false
+            };
+
+            return Ok(ApiResponse<PatientAssessmentCompleteResponse>.Ok(
+                response,
                 "Assessment pasien berhasil diselesaikan."
             ));
         }

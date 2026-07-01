@@ -391,6 +391,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? NurseNote { get; set; }
     }
 
+    public class PatientAssessmentCompleteResponse
+    {
+        public Guid Id { get; set; }
+        public string AssessmentNumber { get; set; } = string.Empty;
+        public Guid EncounterId { get; set; }
+        public Guid QueueId { get; set; }
+        public PatientAssessmentStatus AssessmentStatus { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public Guid? CompletedByUserId { get; set; }
+        public bool IsAlreadyCompleted { get; set; }
+    }
+
     public class CancelPatientAssessmentRequest
     {
         [Required]
