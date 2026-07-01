@@ -88,6 +88,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
     {
         public string? CurrentIllnessHistory { get; set; }
 
+        public string? MedicationHistory { get; set; }
+
         public string? OxygenSupportNote { get; set; }
 
         public string? EwsMonitoringRecommendation { get; set; }
@@ -138,6 +140,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         [MaxLength(1000)]
         public string? CurrentIllnessHistory { get; set; }
+
+        [MaxLength(1000)]
+        public string? MedicationHistory { get; set; }
 
         public int? BloodPressureSystolic { get; set; }
 
@@ -253,6 +258,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         [MaxLength(1000)]
         public string? CurrentIllnessHistory { get; set; }
+
+        [MaxLength(1000)]
+        public string? MedicationHistory { get; set; }
 
         public int? BloodPressureSystolic { get; set; }
 

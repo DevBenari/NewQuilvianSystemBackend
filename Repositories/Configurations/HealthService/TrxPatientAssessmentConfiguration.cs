@@ -53,6 +53,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.CurrentIllnessHistory)
                 .HasMaxLength(1000);
 
+            entity.Property(x => x.MedicationHistory)
+                .HasMaxLength(1000);
+
             entity.Property(x => x.BloodPressureSystolic)
                 .IsRequired(false);
 

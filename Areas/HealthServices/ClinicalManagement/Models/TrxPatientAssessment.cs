@@ -48,6 +48,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         [MaxLength(1000)]
         public string? CurrentIllnessHistory { get; set; }
 
+        [MaxLength(1000)]
+        public string? MedicationHistory { get; set; }
+
         // =========================
         // VITAL SIGN
         // =========================

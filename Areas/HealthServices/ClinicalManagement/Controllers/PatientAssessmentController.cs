@@ -286,6 +286,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
                 ChiefComplaint = NormalizeNullableText(request.ChiefComplaint),
                 CurrentIllnessHistory = NormalizeNullableText(request.CurrentIllnessHistory),
+                MedicationHistory = NormalizeNullableText(request.MedicationHistory),
 
                 BloodPressureSystolic = request.BloodPressureSystolic,
                 BloodPressureDiastolic = request.BloodPressureDiastolic,
@@ -331,7 +332,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 NutritionRiskScore = request.NutritionRiskScore,
                 NutritionNote = NormalizeNullableText(request.NutritionNote),
 
-                HasFallRisk = request.HasFallRisk,
+                HasFallRisk = request.HasFallRisk || request.HasAtaxia || request.HasPosturalInstability,
                 HasAtaxia = request.HasAtaxia,
                 HasPosturalInstability = request.HasPosturalInstability,
                 FallRiskStatus = calculated.FallRiskStatus,
@@ -446,6 +447,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             entity.ChiefComplaint = NormalizeNullableText(request.ChiefComplaint);
             entity.CurrentIllnessHistory = NormalizeNullableText(request.CurrentIllnessHistory);
+            entity.MedicationHistory = NormalizeNullableText(request.MedicationHistory);
 
             entity.BloodPressureSystolic = request.BloodPressureSystolic;
             entity.BloodPressureDiastolic = request.BloodPressureDiastolic;
@@ -491,7 +493,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.NutritionRiskScore = request.NutritionRiskScore;
             entity.NutritionNote = NormalizeNullableText(request.NutritionNote);
 
-            entity.HasFallRisk = request.HasFallRisk;
+            entity.HasFallRisk = request.HasFallRisk || request.HasAtaxia || request.HasPosturalInstability;
             entity.HasAtaxia = request.HasAtaxia;
             entity.HasPosturalInstability = request.HasPosturalInstability;
             entity.FallRiskStatus = calculated.FallRiskStatus;
@@ -683,8 +685,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var ewsRiskLevel = CalculateEwsRiskLevel(ewsScore);
             var ewsMonitoringRecommendation = GetEwsMonitoringRecommendation(ewsRiskLevel, ewsScore);
 
-            var fallRiskScore = CalculateFallRiskScore(request.HasFallRisk, request.HasAtaxia, request.HasPosturalInstability);
-            var fallRiskStatus = CalculateFallRiskStatus(request.HasFallRisk, fallRiskScore);
+            var hasFallRisk = request.HasFallRisk || request.HasAtaxia || request.HasPosturalInstability;
+            var fallRiskScore = CalculateFallRiskScore(hasFallRisk, request.HasAtaxia, request.HasPosturalInstability);
+            var fallRiskStatus = CalculateFallRiskStatus(hasFallRisk, fallRiskScore);
 
             return new CalculatedAssessmentValue
             {
@@ -715,8 +718,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var ewsRiskLevel = CalculateEwsRiskLevel(ewsScore);
             var ewsMonitoringRecommendation = GetEwsMonitoringRecommendation(ewsRiskLevel, ewsScore);
 
-            var fallRiskScore = CalculateFallRiskScore(request.HasFallRisk, request.HasAtaxia, request.HasPosturalInstability);
-            var fallRiskStatus = CalculateFallRiskStatus(request.HasFallRisk, fallRiskScore);
+            var hasFallRisk = request.HasFallRisk || request.HasAtaxia || request.HasPosturalInstability;
+            var fallRiskScore = CalculateFallRiskScore(hasFallRisk, request.HasAtaxia, request.HasPosturalInstability);
+            var fallRiskStatus = CalculateFallRiskStatus(hasFallRisk, fallRiskScore);
 
             return new CalculatedAssessmentValue
             {
@@ -1054,6 +1058,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 AssessmentByUserName = x.AssessmentByUser != null ? x.AssessmentByUser.DisplayName : null,
                 ChiefComplaint = x.ChiefComplaint,
                 CurrentIllnessHistory = x.CurrentIllnessHistory,
+                MedicationHistory = x.MedicationHistory,
 
                 BloodPressureSystolic = x.BloodPressureSystolic,
                 BloodPressureDiastolic = x.BloodPressureDiastolic,
