@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
@@ -34,18 +35,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private const string QueueDisplayRuntimeReadPolicy = "QueueDisplayRuntimeRead";
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly QueueVoiceService _queueVoiceService;
 
-        public QueueDisplayRuntimeController(ApplicationDbContext dbContext, LoggerService loggerService)
+        public QueueDisplayRuntimeController(
+            ApplicationDbContext dbContext,
+            LoggerService loggerService,
+            QueueVoiceService queueVoiceService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _queueVoiceService = queueVoiceService;
         }
 
         [HttpGet("current")]
         [Authorize(Policy = QueueDisplayRuntimeReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<QueueDisplayRuntimeCurrentResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat informasi display antrian login", AccessType = AccessTypes.Read, SortOrder = 1)]        
+        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat informasi display antrian login", AccessType = AccessTypes.Read, SortOrder = 1)]
         public async Task<IActionResult> GetCurrent()
         {
             var device = await ResolveCurrentDisplayDeviceAsync();
@@ -81,7 +87,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [HttpGet("summary")]
         [Authorize(Policy = QueueDisplayRuntimeReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<QueueDisplayRuntimeSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat ringkasan display antrian", AccessType = AccessTypes.Read, SortOrder = 1)]        
+        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat ringkasan display antrian", AccessType = AccessTypes.Read, SortOrder = 1)]
         public async Task<IActionResult> GetSummary([FromQuery] DateTime? queueDate)
         {
             var device = await ResolveCurrentDisplayDeviceAsync();
@@ -108,7 +114,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [HttpGet("items")]
         [Authorize(Policy = QueueDisplayRuntimeReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<List<QueueDisplayRuntimeItemResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat item antrian untuk display", AccessType = AccessTypes.Read, SortOrder = 1)]        
+        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat item antrian untuk display", AccessType = AccessTypes.Read, SortOrder = 1)]
         public async Task<IActionResult> GetItems(
             [FromQuery] DateTime? queueDate,
             [FromQuery] QueueStatus? queueStatus,
@@ -149,7 +155,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .Take(take)
                 .ToListAsync();
 
-            var items = entities.Select(x => MapItemResponse(x, device)).ToList();
+            var items = new List<QueueDisplayRuntimeItemResponse>();
+
+            foreach (var entity in entities)
+            {
+                var voiceResult = await BuildDisplayVoiceResultAsync(entity, device);
+                items.Add(MapItemResponse(entity, device, voiceResult));
+            }
 
             return Ok(ApiResponse<List<QueueDisplayRuntimeItemResponse>>.Ok(items, "Data item display antrian berhasil diambil."));
         }
@@ -157,7 +169,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [HttpGet("called")]
         [Authorize(Policy = QueueDisplayRuntimeReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<QueueDisplayRuntimeCalledResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat panggilan antrean terakhir", AccessType = AccessTypes.Read, SortOrder = 1)]        
+        [AccessAction("Read", "Read Queue Display Runtime", Description = "Melihat panggilan antrean terakhir", AccessType = AccessTypes.Read, SortOrder = 1)]
         public async Task<IActionResult> GetCalled([FromQuery] DateTime? queueDate)
         {
             var device = await ResolveCurrentDisplayDeviceAsync();
@@ -168,25 +180,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .Where(x => x.QueueStatus == QueueStatus.CalledByNurse || x.QueueStatus == QueueStatus.CalledByDoctor);
 
             var entity = await query
+                .Include(x => x.Encounter)
+                .Include(x => x.Patient)
+                .Include(x => x.ServiceUnit)
                 .Include(x => x.Clinic)
                 .Include(x => x.Doctor)
                 .OrderByDescending(x => x.LastDoctorCalledAt ?? x.LastNurseCalledAt ?? x.CreateDateTime)
                 .FirstOrDefaultAsync();
 
-            var result = entity == null
-                ? new QueueDisplayRuntimeCalledResponse()
-                : new QueueDisplayRuntimeCalledResponse
-                {
-                    QueueId = entity.Id,
-                    QueueCode = entity.QueueCode,
-                    QueueStatus = entity.QueueStatus,
-                    QueueStatusName = entity.QueueStatus.ToString(),
-                    ClinicName = entity.Clinic != null ? entity.Clinic.ClinicName : null,
-                    DoctorName = device.ShowDoctorName && entity.Doctor != null ? entity.Doctor.FullName : null,
-                    CalledAt = entity.LastDoctorCalledAt ?? entity.LastNurseCalledAt,
-                    DisplayText = BuildDisplayText(entity, device),
-                    VoiceText = device.EnableVoiceCalling ? BuildVoiceText(entity, device) : null
-                };
+            if (entity == null)
+            {
+                return Ok(ApiResponse<QueueDisplayRuntimeCalledResponse>.Ok(
+                    new QueueDisplayRuntimeCalledResponse(),
+                    "Data panggilan antrean terakhir berhasil diambil."
+                ));
+            }
+
+            var voiceResult = await BuildDisplayVoiceResultAsync(entity, device);
+
+            var result = new QueueDisplayRuntimeCalledResponse
+            {
+                QueueId = entity.Id,
+                QueueCode = entity.QueueCode,
+                QueueStatus = entity.QueueStatus,
+                QueueStatusName = entity.QueueStatus.ToString(),
+                ClinicName = entity.Clinic != null ? entity.Clinic.ClinicName : null,
+                DoctorName = device.ShowDoctorName && entity.Doctor != null ? entity.Doctor.FullName : null,
+                CalledAt = entity.LastDoctorCalledAt ?? entity.LastNurseCalledAt,
+                DisplayText = BuildDisplayText(entity, device),
+                VoiceText = voiceResult?.Text ?? (device.EnableVoiceCalling ? BuildVoiceText(entity, device) : null),
+                VoiceAudioUrl = voiceResult?.AudioUrl,
+                VoiceAudioDownloadUrl = voiceResult?.DownloadUrl,
+                VoiceAudioFileName = voiceResult?.FileName,
+                VoiceDateKey = voiceResult?.DateKey,
+                VoiceContentType = voiceResult?.ContentType
+            };
 
             return Ok(ApiResponse<QueueDisplayRuntimeCalledResponse>.Ok(result, "Data panggilan antrean terakhir berhasil diambil."));
         }
@@ -267,7 +295,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .ToListAsync();
         }
 
-        private static QueueDisplayRuntimeItemResponse MapItemResponse(TrxQueue x, MstQueueDisplayDevice device)
+        private async Task<QueueVoiceGenerateResponse?> BuildDisplayVoiceResultAsync(TrxQueue queue, MstQueueDisplayDevice device)
+        {
+            if (!device.EnableVoiceCalling)
+            {
+                return null;
+            }
+
+            var callType = queue.QueueStatus switch
+            {
+                QueueStatus.CalledByDoctor => QueueVoiceCallTypes.Doctor,
+                QueueStatus.CalledByNurse => QueueVoiceCallTypes.Nurse,
+                _ => QueueVoiceCallTypes.Display
+            };
+
+            if (queue.QueueStatus != QueueStatus.CalledByNurse &&
+                queue.QueueStatus != QueueStatus.CalledByDoctor)
+            {
+                return null;
+            }
+
+            return await _queueVoiceService.GetOrCreateQueueCallAudioAsync(queue, callType);
+        }
+
+        private static QueueDisplayRuntimeItemResponse MapItemResponse(
+            TrxQueue x,
+            MstQueueDisplayDevice device,
+            QueueVoiceGenerateResponse? voiceResult = null)
         {
             var patientName = x.Patient != null ? x.Patient.FullName : string.Empty;
             return new QueueDisplayRuntimeItemResponse
@@ -296,7 +350,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 NurseCallExpiresAt = x.NurseCallExpiresAt,
                 DoctorCallExpiresAt = x.DoctorCallExpiresAt,
                 DisplayText = BuildDisplayText(x, device),
-                VoiceText = device.EnableVoiceCalling ? BuildVoiceText(x, device) : null
+                VoiceText = voiceResult?.Text ?? (device.EnableVoiceCalling ? BuildVoiceText(x, device) : null),
+                VoiceAudioUrl = voiceResult?.AudioUrl,
+                VoiceAudioDownloadUrl = voiceResult?.DownloadUrl,
+                VoiceAudioFileName = voiceResult?.FileName,
+                VoiceDateKey = voiceResult?.DateKey,
+                VoiceContentType = voiceResult?.ContentType
             };
         }
 
