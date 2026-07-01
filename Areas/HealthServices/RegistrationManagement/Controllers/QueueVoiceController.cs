@@ -28,6 +28,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly QueueVoiceService _queueVoiceService;
+        private const string QueueDisplayRuntimeReadPolicy = "QueueDisplayRuntimeRead";
 
         public QueueVoiceController(
             ApplicationDbContext dbContext,
@@ -38,11 +39,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpGet("audio/{dateKey}/{fileName}")]
+        [Authorize(Policy = QueueDisplayRuntimeReadPolicy)]
         [Produces("audio/mpeg")]
         [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Queue Voice Audio", Description = "Memutar audio panggilan antrean", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("QueueVoice", "Read")]
+        [AccessAction("Read", "Read Queue Voice Audio", Description = "Memutar audio panggilan antrean", AccessType = AccessTypes.Read, SortOrder = 1)]       
         public IActionResult GetAudio(string dateKey, string fileName)
         {
             var filePath = _queueVoiceService.ResolveAudioPath(dateKey, fileName);
