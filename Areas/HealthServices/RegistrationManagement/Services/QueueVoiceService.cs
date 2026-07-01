@@ -437,19 +437,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var defaultTemplate = callType switch
             {
                 QueueVoiceCallTypes.Nurse =>
-                    "Perhatian. Nomor antrian {queueCode}. Atas nama {patientName}. Silakan menuju ruang pemeriksaan perawat. Terima kasih.",
+                    "Nomor antrian {queueCode}. Atas nama {patientName}. Silakan menuju ruang pemeriksaan perawat. Terima kasih.",
 
                 QueueVoiceCallTypes.Doctor =>
-                    "Perhatian. Nomor antrian {queueCode}. Atas nama {patientName}. Silakan menuju {clinicName}. {doctorName} telah siap melayani Anda. Terima kasih.",
+                    "Nomor antrian {queueCode}. Atas nama {patientName}. Silakan menuju {clinicName}. Terima kasih.",
 
                 QueueVoiceCallTypes.Display =>
-                    "Perhatian. Nomor antrian {queueCode}. Silakan menuju {serviceUnitName}. Terima kasih.",
+                    "Nomor antrian {queueCode}. Silakan menuju {serviceUnitName}. Terima kasih.",
 
                 QueueVoiceCallTypes.Preview =>
-                    "Perhatian. Nomor antrian {queueCode}. Silakan menuju {serviceUnitName}. Terima kasih.",
+                    "Nomor antrian {queueCode}. Silakan menuju {serviceUnitName}. Terima kasih.",
 
                 _ =>
-                    "Perhatian. Nomor antrian {queueCode}. Atas nama {patientName}. Silakan menuju {serviceUnitName}. Terima kasih."
+                    "Nomor antrian {queueCode}. Atas nama {patientName}. Silakan menuju {serviceUnitName}. Terima kasih."
             };
 
             var templateKey = callType switch
