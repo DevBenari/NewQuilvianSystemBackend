@@ -378,6 +378,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public Guid? KioskScanSessionId { get; set; }
 
+        /// <summary>
+        /// Tanggal kunjungan yang diminta.
+        /// Jika kosong, backend memakai tanggal operasional hari ini.
+        /// Untuk booking/appointment jadwal mingguan, field ini wajib dikirim.
+        /// </summary>
+        public DateTime? VisitDate { get; set; }
+
         public EncounterType EncounterType { get; set; } = EncounterType.Outpatient;
 
         public VisitType VisitType { get; set; } = VisitType.NewVisit;
@@ -440,6 +447,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public QueueStatus? QueueStatus { get; set; }
 
         public string? QueueStatusName { get; set; }
+
+        public DateTime EncounterDate { get; set; }
+
+        public DateTime? QueueDate { get; set; }
+
+        public bool IsFutureVisit { get; set; }
 
         public bool IsQueueCreated { get; set; }
 

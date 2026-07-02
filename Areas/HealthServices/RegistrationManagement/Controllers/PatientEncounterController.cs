@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -296,15 +297,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien beserta penjamin", AccessType = AccessTypes.Create, SortOrder = 2)]
         public async Task<IActionResult> CreateEncounter([FromBody] PatientEncounterCreateRequest request)
         {
-            var validation = await ValidateCreateRequestAsync(request);
+            var now = DateTime.UtcNow;
+            var operationalDate = ToUtcDate(AppDateTimeHelper.OperationalDate());
+
+            var targetDateResult = await ResolveTargetEncounterDateAsync(request, operationalDate);
+
+            if (!targetDateResult.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    targetDateResult.ErrorMessage ?? "Tanggal kunjungan tidak valid."));
+            }
+
+            var targetEncounterDate = targetDateResult.TargetDate;
+            var validation = await ValidateCreateRequestAsync(request, targetEncounterDate, operationalDate);
 
             if (!validation.IsValid)
             {
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validation.ErrorMessage ?? "Data kunjungan pasien tidak valid."));
             }
 
-            var now = DateTime.UtcNow;
-            var operationalDate = ToUtcDate(AppDateTimeHelper.OperationalDate());
             var actorUserId = GetCurrentUserId();
 
             var serviceUnit = await _dbContext.Set<MstServiceUnit>().AsNoTracking().FirstAsync(x => x.Id == request.ServiceUnitId);
@@ -324,7 +336,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .AsNoTracking()
                 .FirstAsync(x => x.Id == request.PatientId && x.IsActive && !x.IsDelete);
 
-            var ageSnapshot = await BuildAgeSnapshotAsync(patient.BirthDate, operationalDate, now);
+            var ageSnapshot = await BuildAgeSnapshotAsync(patient.BirthDate, targetEncounterDate, now);
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
@@ -353,7 +365,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     AgeCategoryNameSnapshot = ageSnapshot.AgeCategoryName,
                     AgeReferenceDate = ageSnapshot.AgeReferenceDate,
                     AgeCalculatedAt = ageSnapshot.AgeCalculatedAt,
-                    EncounterDate = operationalDate,
+                    EncounterDate = targetEncounterDate,
                     EncounterType = request.EncounterType,
                     VisitType = request.VisitType,
                     RegistrationSource = request.RegistrationSource,
@@ -402,7 +414,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
                 if (isQueueRequired)
                 {
-                    var queueNumber = await GenerateQueueNumberAsync(operationalDate, request.ServiceUnitId, request.ClinicId, request.DoctorId);
+                    var queueNumber = await GenerateQueueNumberAsync(targetEncounterDate, request.ServiceUnitId, request.ClinicId, request.DoctorId);
 
                     queue = new TrxQueue
                     {
@@ -413,9 +425,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         ClinicId = NormalizeNullableGuid(request.ClinicId),
                         DoctorId = NormalizeNullableGuid(request.DoctorId),
                         DoctorScheduleId = NormalizeNullableGuid(request.DoctorScheduleId),
-                        QueueDate = operationalDate,
+                        QueueDate = targetEncounterDate,
                         QueueNumber = queueNumber,
-                        QueueCode = GenerateQueueCode(operationalDate, clinic, queueNumber),
+                        QueueCode = GenerateQueueCode(targetEncounterDate, clinic, queueNumber),
                         QueueStatus = isScreeningRequired ? QueueStatus.WaitingForNurse : QueueStatus.WaitingForDoctor,
                         IsFromKiosk = encounter.IsFromKiosk,
                         IsWalkIn = request.IsWalkIn,
@@ -464,6 +476,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     QueueNumber = queue?.QueueNumber,
                     QueueStatus = queue?.QueueStatus,
                     QueueStatusName = queue?.QueueStatus != null ? BuildEnumLabel(queue.QueueStatus) : null,
+                    EncounterDate = encounter.EncounterDate,
+                    QueueDate = queue?.QueueDate,
+                    IsFutureVisit = encounter.EncounterDate > operationalDate,
                     IsQueueCreated = queue != null,
                     IsScreeningRequired = isScreeningRequired,
                     IsDoctorRequired = isDoctorRequired,
@@ -776,7 +791,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return query;
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(PatientEncounterCreateRequest request)
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(PatientEncounterCreateRequest request, DateTime targetEncounterDate, DateTime operationalDate)
         {
             if (request.PatientId == Guid.Empty) return (false, "Pasien wajib dipilih.");
             if (request.ServiceUnitId == Guid.Empty) return (false, "Service unit wajib dipilih.");
@@ -804,17 +819,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 if (!doctorExists) return (false, "Dokter tidak valid atau tidak aktif.");
             }
 
+            if (targetEncounterDate < operationalDate)
+            {
+                return (false, "Tanggal kunjungan tidak boleh lebih kecil dari tanggal operasional.");
+            }
+
+            if (request.IsAppointment && !request.VisitDate.HasValue && request.DoctorScheduleId.HasValue)
+            {
+                var scheduleType = await _dbContext.Set<MstDoctorSchedule>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == request.DoctorScheduleId.Value && !x.IsDelete)
+                    .Select(x => x.ScheduleType)
+                    .FirstOrDefaultAsync();
+
+                if (scheduleType == DoctorScheduleType.WeeklyRecurring)
+                {
+                    return (false, "Tanggal kunjungan wajib diisi untuk booking jadwal dokter mingguan.");
+                }
+            }
+
             if (request.DoctorScheduleId.HasValue && request.DoctorScheduleId.Value != Guid.Empty)
             {
-                var scheduleExists = await _dbContext.Set<MstDoctorSchedule>().AsNoTracking().AnyAsync(x =>
-                    x.Id == request.DoctorScheduleId.Value &&
-                    x.IsActive &&
-                    !x.IsDelete &&
-                    (!request.DoctorId.HasValue || x.DoctorId == request.DoctorId.Value) &&
-                    x.ServiceUnitId == request.ServiceUnitId &&
-                    (!request.ClinicId.HasValue || x.ClinicId == request.ClinicId.Value));
+                var scheduleValidation = await ValidateDoctorScheduleForEncounterAsync(
+                    request,
+                    targetEncounterDate);
 
-                if (!scheduleExists) return (false, "Jadwal dokter tidak valid, tidak aktif, atau tidak sesuai dokter/service unit/clinic.");
+                if (!scheduleValidation.IsValid)
+                {
+                    return scheduleValidation;
+                }
             }
 
             if (request.DoctorServiceRuleId.HasValue && request.DoctorServiceRuleId.Value != Guid.Empty)
@@ -921,6 +954,172 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             if (request.GuarantorType == PatientEncounterGuarantorType.Company && !request.PatientCompanyGuarantorId.HasValue && !request.CompanyGuarantorId.HasValue)
             {
                 return (false, "Penjamin company wajib memiliki PatientCompanyGuarantorId atau CompanyGuarantorId.");
+            }
+
+            return (true, null);
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage, DateTime TargetDate)> ResolveTargetEncounterDateAsync(
+            PatientEncounterCreateRequest request,
+            DateTime operationalDate)
+        {
+            var requestedVisitDate = request.VisitDate;
+
+            if (requestedVisitDate.HasValue)
+            {
+                return (true, null, ToUtcDate(requestedVisitDate.Value));
+            }
+
+            if (request.IsAppointment && request.DoctorScheduleId.HasValue && request.DoctorScheduleId.Value != Guid.Empty)
+            {
+                var schedule = await _dbContext.Set<MstDoctorSchedule>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x =>
+                        x.Id == request.DoctorScheduleId.Value &&
+                        !x.IsDelete);
+
+                if (schedule == null)
+                {
+                    return (false, "Jadwal dokter tidak ditemukan.", operationalDate);
+                }
+
+                if (schedule.ScheduleType != DoctorScheduleType.WeeklyRecurring && schedule.PracticeDate.HasValue)
+                {
+                    return (true, null, ToUtcDate(schedule.PracticeDate.Value));
+                }
+
+                return (false, "Tanggal kunjungan wajib diisi untuk booking jadwal dokter mingguan.", operationalDate);
+            }
+
+            return (true, null, operationalDate);
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateDoctorScheduleForEncounterAsync(
+            PatientEncounterCreateRequest request,
+            DateTime targetEncounterDate)
+        {
+            var schedule = await _dbContext.Set<MstDoctorSchedule>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == request.DoctorScheduleId!.Value &&
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    x.ScheduleStatus == DoctorScheduleStatus.Active &&
+                    (!request.DoctorId.HasValue || x.DoctorId == request.DoctorId.Value) &&
+                    x.ServiceUnitId == request.ServiceUnitId &&
+                    (!request.ClinicId.HasValue || x.ClinicId == request.ClinicId.Value));
+
+            if (schedule == null)
+            {
+                return (false, "Jadwal dokter tidak valid, tidak aktif, tidak berstatus active, atau tidak sesuai dokter/service unit/clinic.");
+            }
+
+            if (request.IsFromKiosk && !schedule.IsAllowKioskRegistration)
+            {
+                return (false, "Jadwal dokter tidak tersedia untuk registrasi kiosk.");
+            }
+
+            if (request.IsWalkIn && !schedule.IsAllowWalkIn)
+            {
+                return (false, "Jadwal dokter tidak menerima pasien walk-in.");
+            }
+
+            if (request.IsAppointment && !schedule.IsAllowAppointment)
+            {
+                return (false, "Jadwal dokter tidak menerima appointment.");
+            }
+
+            var visitDate = ToUtcDate(targetEncounterDate);
+
+            if (!IsDoctorScheduleValidForVisitDate(schedule, visitDate))
+            {
+                return (false, "Jadwal dokter tidak sesuai dengan tanggal kunjungan.");
+            }
+
+            var quotaValidation = await ValidateDoctorScheduleQuotaAsync(
+                schedule,
+                request,
+                visitDate);
+
+            if (!quotaValidation.IsValid)
+            {
+                return quotaValidation;
+            }
+
+            return (true, null);
+        }
+
+        private static bool IsDoctorScheduleValidForVisitDate(
+            MstDoctorSchedule schedule,
+            DateTime visitDate)
+        {
+            var normalizedVisitDate = ToUtcDate(visitDate);
+
+            if (schedule.EffectiveStartDate.HasValue &&
+                ToUtcDate(schedule.EffectiveStartDate.Value) > normalizedVisitDate)
+            {
+                return false;
+            }
+
+            if (schedule.EffectiveEndDate.HasValue &&
+                ToUtcDate(schedule.EffectiveEndDate.Value) < normalizedVisitDate)
+            {
+                return false;
+            }
+
+            if (schedule.ScheduleType == DoctorScheduleType.WeeklyRecurring)
+            {
+                return schedule.PracticeDay == normalizedVisitDate.DayOfWeek;
+            }
+
+            return schedule.PracticeDate.HasValue &&
+                ToUtcDate(schedule.PracticeDate.Value) == normalizedVisitDate;
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateDoctorScheduleQuotaAsync(
+            MstDoctorSchedule schedule,
+            PatientEncounterCreateRequest request,
+            DateTime visitDate)
+        {
+            var normalizedVisitDate = ToUtcDate(visitDate);
+
+            var queueQuery = _dbContext.Set<TrxQueue>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.QueueDate == normalizedVisitDate &&
+                    x.DoctorScheduleId == schedule.Id &&
+                    !x.IsDelete &&
+                    !x.IsCancel &&
+                    !x.CancelledAt.HasValue);
+
+            if (schedule.MaxPatientQuota > 0)
+            {
+                var totalQueue = await queueQuery.CountAsync();
+
+                if (totalQueue >= schedule.MaxPatientQuota)
+                {
+                    return (false, "Kuota pasien pada jadwal dokter sudah penuh.");
+                }
+            }
+
+            if (request.IsAppointment && schedule.MaxAppointmentQuota > 0)
+            {
+                var appointmentQueue = await queueQuery.CountAsync(x => x.IsAppointment);
+
+                if (appointmentQueue >= schedule.MaxAppointmentQuota)
+                {
+                    return (false, "Kuota appointment pada jadwal dokter sudah penuh.");
+                }
+            }
+
+            if (request.IsWalkIn && schedule.MaxWalkInQuota > 0)
+            {
+                var walkInQueue = await queueQuery.CountAsync(x => x.IsWalkIn);
+
+                if (walkInQueue >= schedule.MaxWalkInQuota)
+                {
+                    return (false, "Kuota walk-in pada jadwal dokter sudah penuh.");
+                }
             }
 
             return (true, null);

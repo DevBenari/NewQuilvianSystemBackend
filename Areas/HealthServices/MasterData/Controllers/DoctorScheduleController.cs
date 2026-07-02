@@ -203,7 +203,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         public async Task<IActionResult> GetDoctorScheduleOptions(
             [FromQuery] Guid? doctorId,
             [FromQuery] Guid? clinicId,
+            [FromQuery] Guid? serviceUnitId,
             [FromQuery] bool onlyActive = true,
+            [FromQuery] bool onlyKioskAvailableNow = false,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
@@ -217,7 +219,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (onlyActive)
                 query = query.Where(x => x.IsActive);
 
-            query = ApplyFilters(query, doctorId, clinicId, null, search);
+            query = ApplyFilters(query, doctorId, clinicId, null, search, serviceUnitId);
+
+            if (onlyKioskAvailableNow)
+                query = ApplyKioskAvailableNowFilter(query);
 
             var totalData = await query.CountAsync();
 
@@ -705,13 +710,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             Guid? doctorId,
             Guid? clinicId,
             bool? isActive,
-            string? search)
+            string? search,
+            Guid? serviceUnitId = null)
         {
             if (doctorId.HasValue && doctorId.Value != Guid.Empty)
                 query = query.Where(x => x.DoctorId == doctorId.Value);
 
             if (clinicId.HasValue && clinicId.Value != Guid.Empty)
                 query = query.Where(x => x.ClinicId == clinicId.Value);
+
+            if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
+                query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
 
             if (isActive.HasValue)
                 query = query.Where(x => x.IsActive == isActive.Value);
@@ -740,6 +749,122 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }
 
             return query;
+        }
+
+        private static IQueryable<MstDoctorSchedule> ApplyKioskAvailableNowFilter(
+            IQueryable<MstDoctorSchedule> query)
+        {
+            var now = GetOperationalNow();
+            var today = now.Date;
+            var yesterday = today.AddDays(-1);
+            var tomorrow = today.AddDays(1);
+            var currentDay = today.DayOfWeek;
+            var previousDay = yesterday.DayOfWeek;
+            var currentTime = now.TimeOfDay;
+
+            query = query.Where(x =>
+                x.IsActive &&
+                !x.IsDelete &&
+                x.ScheduleStatus == DoctorScheduleStatus.Active &&
+                x.IsAllowKioskRegistration &&
+                x.Doctor != null &&
+                x.Doctor.IsActive &&
+                !x.Doctor.IsDelete &&
+                x.ServiceUnit != null &&
+                x.ServiceUnit.IsActive &&
+                !x.ServiceUnit.IsDelete &&
+                x.Clinic != null &&
+                x.Clinic.IsActive &&
+                !x.Clinic.IsDelete);
+
+            query = query.Where(x =>
+                (
+                    !x.IsOvernight &&
+                    (
+                        (
+                            x.ScheduleType == DoctorScheduleType.WeeklyRecurring &&
+                            x.PracticeDay == currentDay
+                        ) ||
+                        (
+                            x.ScheduleType != DoctorScheduleType.WeeklyRecurring &&
+                            x.PracticeDate.HasValue &&
+                            x.PracticeDate.Value >= today &&
+                            x.PracticeDate.Value < tomorrow
+                        )
+                    ) &&
+                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= today) &&
+                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today) &&
+                    x.StartTime <= currentTime &&
+                    currentTime < x.EndTime
+                ) ||
+                (
+                    x.IsOvernight &&
+                    (
+                        (
+                            (
+                                (
+                                    x.ScheduleType == DoctorScheduleType.WeeklyRecurring &&
+                                    x.PracticeDay == currentDay
+                                ) ||
+                                (
+                                    x.ScheduleType != DoctorScheduleType.WeeklyRecurring &&
+                                    x.PracticeDate.HasValue &&
+                                    x.PracticeDate.Value >= today &&
+                                    x.PracticeDate.Value < tomorrow
+                                )
+                            ) &&
+                            (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= today) &&
+                            (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today) &&
+                            currentTime >= x.StartTime
+                        ) ||
+                        (
+                            (
+                                (
+                                    x.ScheduleType == DoctorScheduleType.WeeklyRecurring &&
+                                    x.PracticeDay == previousDay
+                                ) ||
+                                (
+                                    x.ScheduleType != DoctorScheduleType.WeeklyRecurring &&
+                                    x.PracticeDate.HasValue &&
+                                    x.PracticeDate.Value >= yesterday &&
+                                    x.PracticeDate.Value < today
+                                )
+                            ) &&
+                            (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= yesterday) &&
+                            (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= yesterday) &&
+                            currentTime < x.EndTime
+                        )
+                    )
+                ));
+
+            return query;
+        }
+
+        private static DateTime GetOperationalNow()
+        {
+            var utcNow = DateTime.UtcNow;
+
+            try
+            {
+                var jakartaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Jakarta");
+                return TimeZoneInfo.ConvertTimeFromUtc(utcNow, jakartaTimeZone);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                try
+                {
+                    var windowsTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                    return TimeZoneInfo.ConvertTimeFromUtc(utcNow, windowsTimeZone);
+                }
+                catch
+                {
+                    return utcNow.AddHours(7);
+                }
+            }
+            catch (InvalidTimeZoneException)
+            {
+                return utcNow.AddHours(7);
+            }
         }
 
         private static IOrderedQueryable<MstDoctorSchedule> ApplySorting(
@@ -1407,7 +1532,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "customPeriod", Type = "string", Description = "today, last7days, last30days, thismonth, thisyear, all." },
                 new() { Name = "doctorId", Type = "Guid?", Description = "Filter relasi dokter." },
                 new() { Name = "clinicId", Type = "Guid?", Description = "Filter relasi clinic." },
+                new() { Name = "serviceUnitId", Type = "Guid?", Description = "Filter relasi service unit untuk endpoint options/kiosk." },
                 new() { Name = "isActive", Type = "bool?", Description = "Filter status aktif." },
+                new() { Name = "onlyKioskAvailableNow", Type = "bool", Description = "Jika true, endpoint options hanya menampilkan jadwal dokter yang aktif untuk kiosk pada hari dan jam operasional berjalan." },
                 new() { Name = "search", Type = "string", Description = "Pencarian teks." },
                 new() { Name = "sortBy", Type = "string", Description = "Kolom sorting." },
                 new() { Name = "sortDirection", Type = "string", Description = "asc atau desc." },
