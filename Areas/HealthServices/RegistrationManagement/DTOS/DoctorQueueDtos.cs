@@ -29,6 +29,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string? ClinicName { get; set; }
         public Guid? DoctorId { get; set; }
         public string? DoctorName { get; set; }
+        public string? DoctorCode { get; set; }
+        public string? DoctorNumber { get; set; }
+        public Guid? DoctorWorkforceProfileId { get; set; }
+        public string? DoctorSpecialistName { get; set; }
+        public string? DoctorSubSpecialistName { get; set; }
+
+        public Guid? DoctorStrCredentialLicenseId { get; set; }
+        public string? DoctorStrNumber { get; set; }
+        public DateTime? DoctorStrIssueDate { get; set; }
+        public DateTime? DoctorStrExpiredDate { get; set; }
+        public bool DoctorStrIsVerified { get; set; }
+        public bool DoctorStrIsCurrentlyValid { get; set; }
+
+        public Guid? DoctorSipCredentialLicenseId { get; set; }
+        public string? DoctorSipNumber { get; set; }
+        public DateTime? DoctorSipIssueDate { get; set; }
+        public DateTime? DoctorSipExpiredDate { get; set; }
+        public string? DoctorSipPracticeLocation { get; set; }
+        public bool DoctorSipIsVerified { get; set; }
+        public bool DoctorSipIsCurrentlyValid { get; set; }
+
+        public string? DoctorRegistrationNumber { get; set; }
+        public string? DoctorLicenseNumber { get; set; }
+        public string? DoctorCredentialLicenseType { get; set; }
+        public string? DoctorCredentialLicenseNumber { get; set; }
+        public DateTime? DoctorCredentialLicenseExpiredDate { get; set; }
+        public bool DoctorCredentialLicenseIsVerified { get; set; }
+        public bool DoctorCredentialLicenseIsCurrentlyValid { get; set; }
+
+        public string? DoctorProfilePhotoPath { get; set; }
+        public string? DoctorProfilePhotoUrl { get; set; }
+        public string? DoctorPhotoPath { get; set; }
+        public string? DoctorPhotoUrl { get; set; }
         public DateTime QueueDate { get; set; }
         public int QueueNumber { get; set; }
         public string QueueCode { get; set; } = string.Empty;
@@ -44,6 +77,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public int RequeueCount { get; set; }
         public bool IsPriorityQueue { get; set; }
         public bool IsDoctorRequired { get; set; }
+
+        public EncounterPaymentType PaymentType { get; set; }
+        public string PaymentTypeName { get; set; } = string.Empty;
+        public Guid? PaymentMethodId { get; set; }
+        public string? PaymentMethodName { get; set; }
+        public string? PrimaryGuarantorNameSnapshot { get; set; }
+        public string? PrimaryGuarantorTypeSnapshot { get; set; }
+
+        public int PatientTotalVisitCount { get; set; }
+        public int PatientVisitNumber { get; set; }
+
+        public string? ChiefComplaint { get; set; }
+        public string? AgeTextAtEncounter { get; set; }
+        public string? AgeCategoryCodeSnapshot { get; set; }
+        public string? AgeCategoryNameSnapshot { get; set; }
         public string? Notes { get; set; }
         public DateTime CreateDateTime { get; set; }
     }

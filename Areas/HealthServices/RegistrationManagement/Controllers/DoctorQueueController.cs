@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Enums;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -34,6 +36,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     public class DoctorQueueController : ControllerBase
     {
         private const string LogCategory = "HealthServices.RegistrationManagement";
+        private const string DefaultDoctorProfilePhotoPathFallback = "/uploads/default-profile-photos/dokter.png";
+
+        private static readonly QueueStatus[] DoctorWorkflowStatuses =
+        {
+            QueueStatus.WaitingForDoctor,
+            QueueStatus.CalledByDoctor,
+            QueueStatus.InConsultation,
+            QueueStatus.Skipped,
+            QueueStatus.NoShow,
+            QueueStatus.Cancelled,
+            QueueStatus.Completed
+        };
+
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly QueueVoiceService _queueVoiceService;
@@ -136,11 +151,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             query = ApplyStandardFilter(query, queueStatus, search);
 
             var totalData = await query.CountAsync();
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var queues = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => MapResponse(x))
                 .ToListAsync();
+
+            var items = await MapResponsesAsync(queues);
 
             var result = new ResponseDoctorQueuePagedResult
             {
@@ -325,7 +341,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             var query = _dbContext.Set<TrxQueue>()
                 .AsNoTracking()
-                .Where(x => !x.IsDelete && x.IsActive && x.QueueDate.Date == selectedDate);
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentMethod)
+                .Include(x => x.Patient)
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.Clinic)
+                .Include(x => x.Doctor)
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.IsDoctorRequired &&
+                    x.DoctorId.HasValue &&
+                    x.QueueDate.Date == selectedDate &&
+                    DoctorWorkflowStatuses.Contains(x.QueueStatus));
 
             if (allowedDoctorId.HasValue && allowedDoctorId.Value != Guid.Empty)
             {
@@ -511,13 +539,97 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return await query.FirstOrDefaultAsync(x => x.DoctorId == allowedDoctorId.Value);
         }
 
-        private static DoctorQueueResponse MapResponse(TrxQueue x)
+        private async Task<List<DoctorQueueResponse>> MapResponsesAsync(List<TrxQueue> queues)
         {
+            if (queues.Count == 0)
+            {
+                return new List<DoctorQueueResponse>();
+            }
+
+            var patientIds = queues
+                .Select(x => x.PatientId)
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            var visitCounts = await _dbContext.Set<TrxPatientEncounter>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && patientIds.Contains(x.PatientId))
+                .GroupBy(x => x.PatientId)
+                .Select(x => new
+                {
+                    PatientId = x.Key,
+                    Count = x.Count()
+                })
+                .ToDictionaryAsync(x => x.PatientId, x => x.Count);
+
+            var doctorIds = queues
+                .Where(x => x.DoctorId.HasValue && x.DoctorId.Value != Guid.Empty)
+                .Select(x => x.DoctorId!.Value)
+                .Distinct()
+                .ToList();
+
+            var doctorPhotoRows = doctorIds.Count == 0
+                ? new List<DoctorUserPhotoSnapshot>()
+                : await _dbContext.Users
+                    .AsNoTracking()
+                    .Where(x => x.DoctorId.HasValue && doctorIds.Contains(x.DoctorId.Value))
+                    .Select(x => new DoctorUserPhotoSnapshot
+                    {
+                        DoctorId = x.DoctorId!.Value,
+                        ProfilePhotoPath = x.ProfilePhotoPath,
+                        IsActive = x.IsActive,
+                        LastUpdatedAt = x.UpdateDateTime ?? x.CreateDateTime
+                    })
+                    .ToListAsync();
+
+            var doctorPhotoPaths = doctorPhotoRows
+                .GroupBy(x => x.DoctorId)
+                .ToDictionary(
+                    x => x.Key,
+                    x => NormalizeNullableText(
+                        x.OrderByDescending(y => y.IsActive)
+                            .ThenByDescending(y => y.LastUpdatedAt)
+                            .Select(y => y.ProfilePhotoPath)
+                            .FirstOrDefault()
+                    ) ?? DefaultDoctorProfilePhotoPathFallback
+                );
+
+            var workforceProfileIds = queues
+                .Select(x => x.Doctor?.WorkforceProfileId ?? Guid.Empty)
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            var doctorCredentialSnapshots = await BuildDoctorCredentialSnapshotsAsync(workforceProfileIds);
+
+            return queues
+                .Select(x => MapResponse(x, visitCounts, doctorPhotoPaths, doctorCredentialSnapshots))
+                .ToList();
+        }
+
+        private static DoctorQueueResponse MapResponse(
+            TrxQueue x,
+            IReadOnlyDictionary<Guid, int> visitCounts,
+            IReadOnlyDictionary<Guid, string> doctorPhotoPaths,
+            IReadOnlyDictionary<Guid, DoctorWorkforceCredentialSnapshot> doctorCredentialSnapshots)
+        {
+            var encounter = x.Encounter;
+            var doctorPhotoPath = ResolveDoctorPhotoPath(x.DoctorId, doctorPhotoPaths);
+            var paymentType = encounter?.PaymentType ?? EncounterPaymentType.Cash;
+            var primaryGuarantorName = NormalizeNullableText(encounter?.PrimaryGuarantorNameSnapshot);
+            var totalVisitCount = visitCounts.TryGetValue(x.PatientId, out var count) ? count : 0;
+            var workforceProfileId = x.Doctor?.WorkforceProfileId ?? Guid.Empty;
+            var doctorCredential = workforceProfileId != Guid.Empty && doctorCredentialSnapshots.TryGetValue(workforceProfileId, out var snapshot)
+                ? snapshot
+                : DoctorWorkforceCredentialSnapshot.Empty;
+            var primaryCredential = doctorCredential.Sip ?? doctorCredential.Str;
+
             return new DoctorQueueResponse
             {
                 Id = x.Id,
                 EncounterId = x.EncounterId,
-                EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : string.Empty,
+                EncounterNumber = encounter != null ? encounter.EncounterNumber : string.Empty,
                 PatientId = x.PatientId,
                 PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
                 MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
@@ -527,6 +639,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
                 DoctorId = x.DoctorId,
                 DoctorName = x.Doctor != null ? x.Doctor.FullName : null,
+                DoctorCode = x.Doctor != null ? x.Doctor.DoctorCode : null,
+                DoctorNumber = x.Doctor != null ? x.Doctor.DoctorNumber : null,
+                DoctorWorkforceProfileId = workforceProfileId == Guid.Empty ? null : workforceProfileId,
+                DoctorSpecialistName = x.Doctor != null ? x.Doctor.SpecialistName : null,
+                DoctorSubSpecialistName = x.Doctor != null ? x.Doctor.SubSpecialistName : null,
+
+                DoctorStrCredentialLicenseId = doctorCredential.Str?.Id,
+                DoctorStrNumber = doctorCredential.Str?.LicenseNumber,
+                DoctorStrIssueDate = doctorCredential.Str?.IssueDate,
+                DoctorStrExpiredDate = doctorCredential.Str?.ExpiredDate,
+                DoctorStrIsVerified = doctorCredential.Str?.IsVerified ?? false,
+                DoctorStrIsCurrentlyValid = doctorCredential.Str?.IsCurrentlyValid ?? false,
+
+                DoctorSipCredentialLicenseId = doctorCredential.Sip?.Id,
+                DoctorSipNumber = doctorCredential.Sip?.LicenseNumber,
+                DoctorSipIssueDate = doctorCredential.Sip?.IssueDate,
+                DoctorSipExpiredDate = doctorCredential.Sip?.ExpiredDate,
+                DoctorSipPracticeLocation = doctorCredential.Sip?.PracticeLocation,
+                DoctorSipIsVerified = doctorCredential.Sip?.IsVerified ?? false,
+                DoctorSipIsCurrentlyValid = doctorCredential.Sip?.IsCurrentlyValid ?? false,
+
+                DoctorRegistrationNumber = doctorCredential.Str?.LicenseNumber,
+                DoctorLicenseNumber = primaryCredential?.LicenseNumber,
+                DoctorCredentialLicenseType = primaryCredential?.LicenseType,
+                DoctorCredentialLicenseNumber = primaryCredential?.LicenseNumber,
+                DoctorCredentialLicenseExpiredDate = primaryCredential?.ExpiredDate,
+                DoctorCredentialLicenseIsVerified = primaryCredential?.IsVerified ?? false,
+                DoctorCredentialLicenseIsCurrentlyValid = primaryCredential?.IsCurrentlyValid ?? false,
+                DoctorProfilePhotoPath = doctorPhotoPath,
+                DoctorProfilePhotoUrl = doctorPhotoPath,
+                DoctorPhotoPath = doctorPhotoPath,
+                DoctorPhotoUrl = doctorPhotoPath,
                 QueueDate = x.QueueDate,
                 QueueNumber = x.QueueNumber,
                 QueueCode = x.QueueCode,
@@ -542,9 +686,171 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 RequeueCount = x.RequeueCount,
                 IsPriorityQueue = x.IsPriorityQueue,
                 IsDoctorRequired = x.IsDoctorRequired,
+                PaymentType = paymentType,
+                PaymentTypeName = BuildPaymentTypeDisplayName(paymentType, primaryGuarantorName, encounter?.PaymentMethod?.PaymentMethodName),
+                PaymentMethodId = encounter?.PaymentMethodId,
+                PaymentMethodName = encounter?.PaymentMethod?.PaymentMethodName,
+                PrimaryGuarantorNameSnapshot = encounter?.PrimaryGuarantorNameSnapshot,
+                PrimaryGuarantorTypeSnapshot = encounter?.PrimaryGuarantorTypeSnapshot,
+                PatientTotalVisitCount = totalVisitCount,
+                PatientVisitNumber = totalVisitCount,
+                ChiefComplaint = encounter?.ChiefComplaint,
+                AgeTextAtEncounter = null,
+                AgeCategoryCodeSnapshot = null,
+                AgeCategoryNameSnapshot = null,
                 Notes = x.Notes,
                 CreateDateTime = x.CreateDateTime
             };
+        }
+
+        private async Task<IReadOnlyDictionary<Guid, DoctorWorkforceCredentialSnapshot>> BuildDoctorCredentialSnapshotsAsync(List<Guid> workforceProfileIds)
+        {
+            if (workforceProfileIds.Count == 0)
+            {
+                return new Dictionary<Guid, DoctorWorkforceCredentialSnapshot>();
+            }
+
+            var credentialRows = await _dbContext.Set<WfpCredentialLicense>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    workforceProfileIds.Contains(x.WorkforceProfileId) &&
+                    (x.LicenseType == "STR" || x.LicenseType == "SIP"))
+                .Select(x => new DoctorCredentialLicenseSnapshot
+                {
+                    Id = x.Id,
+                    WorkforceProfileId = x.WorkforceProfileId,
+                    LicenseType = x.LicenseType,
+                    LicenseNumber = x.LicenseNumber,
+                    IssueDate = x.IssueDate,
+                    ExpiredDate = x.ExpiredDate,
+                    PracticeLocation = x.PracticeLocation,
+                    VerificationStatus = x.VerificationStatus,
+                    IsVerified = x.IsVerified,
+                    IsPrimary = x.IsPrimary,
+                    IsActive = x.IsActive,
+                    CreateDateTime = x.CreateDateTime
+                })
+                .ToListAsync();
+
+            var today = AppDateTimeHelper.OperationalDate().Date;
+
+            foreach (var item in credentialRows)
+            {
+                item.IsExpired = item.ExpiredDate.Date < today;
+                item.IsCurrentlyValid = item.IsActive &&
+                    item.IsVerified &&
+                    item.VerificationStatus == CredentialVerificationStatus.Verified &&
+                    item.ExpiredDate.Date >= today;
+            }
+
+            return credentialRows
+                .GroupBy(x => x.WorkforceProfileId)
+                .ToDictionary(
+                    x => x.Key,
+                    x => new DoctorWorkforceCredentialSnapshot
+                    {
+                        Str = SelectPreferredCredential(x, "STR"),
+                        Sip = SelectPreferredCredential(x, "SIP")
+                    });
+        }
+
+        private static DoctorCredentialLicenseSnapshot? SelectPreferredCredential(
+            IEnumerable<DoctorCredentialLicenseSnapshot> credentials,
+            string licenseType)
+        {
+            return credentials
+                .Where(x => x.LicenseType.Equals(licenseType, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(x => x.IsCurrentlyValid)
+                .ThenByDescending(x => x.IsPrimary)
+                .ThenByDescending(x => x.IsVerified)
+                .ThenBy(x => x.IsExpired)
+                .ThenByDescending(x => x.ExpiredDate)
+                .ThenByDescending(x => x.IssueDate)
+                .ThenByDescending(x => x.CreateDateTime)
+                .FirstOrDefault();
+        }
+
+        private static string ResolveDoctorPhotoPath(Guid? doctorId, IReadOnlyDictionary<Guid, string> doctorPhotoPaths)
+        {
+            if (doctorId.HasValue && doctorId.Value != Guid.Empty &&
+                doctorPhotoPaths.TryGetValue(doctorId.Value, out var photoPath) &&
+                !string.IsNullOrWhiteSpace(photoPath))
+            {
+                return photoPath.Trim();
+            }
+
+            return DefaultDoctorProfilePhotoPathFallback;
+        }
+
+        private static string BuildPaymentTypeDisplayName(
+            EncounterPaymentType paymentType,
+            string? primaryGuarantorName,
+            string? paymentMethodName)
+        {
+            var guarantorName = NormalizeNullableText(primaryGuarantorName);
+            if (guarantorName != null)
+            {
+                return guarantorName;
+            }
+
+            var methodName = NormalizeNullableText(paymentMethodName);
+            if (methodName != null)
+            {
+                return methodName;
+            }
+
+            var normalizedPaymentType = paymentType.ToString().Trim().ToLowerInvariant();
+
+            return normalizedPaymentType switch
+            {
+                "cash" => "Umum / Tunai",
+                "patientcash" => "Umum / Tunai",
+                "selfpay" => "Umum / Tunai",
+                "insurance" => "Asuransi",
+                "bpjs" => "BPJS",
+                "company" => "Perusahaan",
+                "corporate" => "Perusahaan",
+                "membership" => "Membership",
+                "mixed" => "Pembayaran Campuran",
+                "mixedpayment" => "Pembayaran Campuran",
+                _ => paymentType.ToString()
+            };
+        }
+
+        private sealed class DoctorUserPhotoSnapshot
+        {
+            public Guid DoctorId { get; set; }
+            public string? ProfilePhotoPath { get; set; }
+            public bool IsActive { get; set; }
+            public DateTime LastUpdatedAt { get; set; }
+        }
+
+        private sealed class DoctorWorkforceCredentialSnapshot
+        {
+            public static DoctorWorkforceCredentialSnapshot Empty { get; } = new();
+
+            public DoctorCredentialLicenseSnapshot? Str { get; set; }
+            public DoctorCredentialLicenseSnapshot? Sip { get; set; }
+        }
+
+        private sealed class DoctorCredentialLicenseSnapshot
+        {
+            public Guid Id { get; set; }
+            public Guid WorkforceProfileId { get; set; }
+            public string LicenseType { get; set; } = string.Empty;
+            public string LicenseNumber { get; set; } = string.Empty;
+            public DateTime IssueDate { get; set; }
+            public DateTime ExpiredDate { get; set; }
+            public string? PracticeLocation { get; set; }
+            public CredentialVerificationStatus VerificationStatus { get; set; }
+            public bool IsVerified { get; set; }
+            public bool IsPrimary { get; set; }
+            public bool IsActive { get; set; }
+            public bool IsExpired { get; set; }
+            public bool IsCurrentlyValid { get; set; }
+            public DateTime CreateDateTime { get; set; }
         }
 
         private static DoctorQueueActionResponse BuildActionResponse(TrxQueue queue, string message, QueueVoiceGenerateResponse? voiceResult = null)
@@ -577,7 +883,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private static List<DoctorQueueStatusOptionResponse> BuildQueueStatusOptions()
         {
-            return Enum.GetValues<QueueStatus>()
+            return DoctorWorkflowStatuses
                 .Select(x => new DoctorQueueStatusOptionResponse { Value = Convert.ToInt32(x), Name = x.ToString(), Label = x.ToString() })
                 .ToList();
         }
