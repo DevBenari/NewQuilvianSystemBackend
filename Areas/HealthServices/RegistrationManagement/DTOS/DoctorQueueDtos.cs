@@ -70,6 +70,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public int DoctorCallAttemptCount { get; set; }
         public DateTime? LastDoctorCalledAt { get; set; }
         public DateTime? DoctorCallExpiresAt { get; set; }
+        public DateTime ServerNowUtc { get; set; }
+        public int DoctorCallRemainingSeconds { get; set; }
         public DateTime? ScreeningCompletedAt { get; set; }
         public DateTime? ConsultationStartedAt { get; set; }
         public DateTime? ConsultationCompletedAt { get; set; }
@@ -115,6 +117,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string EncounterStatusName { get; set; } = string.Empty;
         public int DoctorCallAttemptCount { get; set; }
         public DateTime? DoctorCallExpiresAt { get; set; }
+        public DateTime ServerNowUtc { get; set; }
+        public int DoctorCallRemainingSeconds { get; set; }
         public DateTime? ConsultationStartedAt { get; set; }
         public DateTime? ConsultationCompletedAt { get; set; }
         public string Message { get; set; } = string.Empty;

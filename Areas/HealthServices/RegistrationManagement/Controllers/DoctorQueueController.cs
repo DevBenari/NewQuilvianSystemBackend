@@ -36,6 +36,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     public class DoctorQueueController : ControllerBase
     {
         private const string LogCategory = "HealthServices.RegistrationManagement";
+        private const int DoctorCallDurationSeconds = 30;
         private const string DefaultDoctorProfilePhotoPathFallback = "/uploads/default-profile-photos/dokter.png";
 
         private static readonly QueueStatus[] DoctorWorkflowStatuses =
@@ -193,18 +194,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             queue.DoctorCallAttemptCount += 1;
             queue.LastDoctorCalledAt = now;
             queue.LastDoctorCalledByUserId = actorUserId;
-            queue.DoctorCallExpiresAt = now.AddMinutes(2);
+            queue.DoctorCallExpiresAt = now.AddSeconds(DoctorCallDurationSeconds);
             queue.UpdateDateTime = now;
             queue.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync();
-            await _queueRealtimeService.NotifyQueueCalledByDoctorAsync(queue, actorUserId, "Pasien berhasil dipanggil oleh dokter.");
+
+            var message = $"Pasien berhasil dipanggil oleh dokter. Panggilan ke-{queue.DoctorCallAttemptCount}, timer {DoctorCallDurationSeconds} detik.";
+            await _queueRealtimeService.NotifyQueueCalledByDoctorAsync(queue, actorUserId, message);
 
             var voiceResult = await _queueVoiceService.GetOrCreateQueueCallAudioAsync(queue, QueueVoiceCallTypes.Doctor);
 
             return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(
-                BuildActionResponse(queue, "Pasien berhasil dipanggil oleh dokter.", voiceResult),
-                "Pasien berhasil dipanggil oleh dokter."
+                BuildActionResponse(queue, message, voiceResult),
+                message
             ));
         }
 
@@ -603,8 +606,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             var doctorCredentialSnapshots = await BuildDoctorCredentialSnapshotsAsync(workforceProfileIds);
 
+            var serverNowUtc = DateTime.UtcNow;
+
             return queues
-                .Select(x => MapResponse(x, visitCounts, doctorPhotoPaths, doctorCredentialSnapshots))
+                .Select(x => MapResponse(x, visitCounts, doctorPhotoPaths, doctorCredentialSnapshots, serverNowUtc))
                 .ToList();
         }
 
@@ -612,7 +617,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             TrxQueue x,
             IReadOnlyDictionary<Guid, int> visitCounts,
             IReadOnlyDictionary<Guid, string> doctorPhotoPaths,
-            IReadOnlyDictionary<Guid, DoctorWorkforceCredentialSnapshot> doctorCredentialSnapshots)
+            IReadOnlyDictionary<Guid, DoctorWorkforceCredentialSnapshot> doctorCredentialSnapshots,
+            DateTime serverNowUtc)
         {
             var encounter = x.Encounter;
             var doctorPhotoPath = ResolveDoctorPhotoPath(x.DoctorId, doctorPhotoPaths);
@@ -679,6 +685,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 DoctorCallAttemptCount = x.DoctorCallAttemptCount,
                 LastDoctorCalledAt = x.LastDoctorCalledAt,
                 DoctorCallExpiresAt = x.DoctorCallExpiresAt,
+                ServerNowUtc = serverNowUtc,
+                DoctorCallRemainingSeconds = CalculateDoctorCallRemainingSeconds(x.DoctorCallExpiresAt, serverNowUtc),
                 ScreeningCompletedAt = x.ScreeningCompletedAt,
                 ConsultationStartedAt = x.ConsultationStartedAt,
                 ConsultationCompletedAt = x.ConsultationCompletedAt,
@@ -855,6 +863,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private static DoctorQueueActionResponse BuildActionResponse(TrxQueue queue, string message, QueueVoiceGenerateResponse? voiceResult = null)
         {
+            var serverNowUtc = DateTime.UtcNow;
+
             return new DoctorQueueActionResponse
             {
                 QueueId = queue.Id,
@@ -865,6 +875,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 EncounterStatusName = (queue.Encounter?.EncounterStatus ?? EncounterStatus.Registered).ToString(),
                 DoctorCallAttemptCount = queue.DoctorCallAttemptCount,
                 DoctorCallExpiresAt = queue.DoctorCallExpiresAt,
+                ServerNowUtc = serverNowUtc,
+                DoctorCallRemainingSeconds = CalculateDoctorCallRemainingSeconds(queue.DoctorCallExpiresAt, serverNowUtc),
                 ConsultationStartedAt = queue.ConsultationStartedAt,
                 ConsultationCompletedAt = queue.ConsultationCompletedAt,
                 Message = message,
@@ -879,6 +891,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 VoiceContentType = voiceResult?.ContentType,
                 VoiceErrorMessage = voiceResult?.ErrorMessage
             };
+        }
+
+        private static int CalculateDoctorCallRemainingSeconds(DateTime? expiresAt, DateTime serverNowUtc)
+        {
+            if (!expiresAt.HasValue) return 0;
+
+            var remainingSeconds = (int)Math.Ceiling((expiresAt.Value - serverNowUtc).TotalSeconds);
+
+            if (remainingSeconds <= 0) return 0;
+            return Math.Min(DoctorCallDurationSeconds, remainingSeconds);
         }
 
         private static List<DoctorQueueStatusOptionResponse> BuildQueueStatusOptions()
