@@ -141,6 +141,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         public string? AllergyNote { get; set; }
 
         // =========================
+        // IMMUNIZATION HISTORY (PEDIATRIC / BABY)
+        // =========================
+        public bool HasBcgImmunization { get; set; } = false;
+
+        public bool HasHepatitisBImmunization { get; set; } = false;
+
+        public bool HasPolioImmunization { get; set; } = false;
+
+        public bool HasDptImmunization { get; set; } = false;
+
+        public bool HasMeaslesImmunization { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? ImmunizationNote { get; set; }
+
+        // =========================
         // NUTRITION
         // =========================
         public AppetiteStatus AppetiteStatus { get; set; } = AppetiteStatus.Unknown;

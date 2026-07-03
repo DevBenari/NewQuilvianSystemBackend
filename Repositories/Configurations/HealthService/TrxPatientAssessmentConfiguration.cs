@@ -170,6 +170,24 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.AllergyNote)
                 .HasMaxLength(500);
 
+            entity.Property(x => x.HasBcgImmunization)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.HasHepatitisBImmunization)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.HasPolioImmunization)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.HasDptImmunization)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.HasMeaslesImmunization)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.ImmunizationNote)
+                .HasMaxLength(500);
+
             entity.Property(x => x.AppetiteStatus)
                 .HasConversion<int>()
                 .HasDefaultValue(AppetiteStatus.Unknown)
@@ -319,11 +337,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .IsUnique();
 
             entity.HasIndex(x => x.EncounterId)
-                .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
 
             entity.HasIndex(x => x.QueueId)
-                .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
 
             entity.HasIndex(x => x.PatientId);

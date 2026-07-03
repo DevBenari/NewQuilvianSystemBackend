@@ -67,6 +67,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public bool HasAllergy { get; set; }
         public string? AllergyType { get; set; }
 
+        public bool HasBcgImmunization { get; set; }
+        public bool HasHepatitisBImmunization { get; set; }
+        public bool HasPolioImmunization { get; set; }
+        public bool HasDptImmunization { get; set; }
+        public bool HasMeaslesImmunization { get; set; }
+
         public AppetiteStatus AppetiteStatus { get; set; }
         public bool HasNausea { get; set; }
         public bool HasVomiting { get; set; }
@@ -104,6 +110,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? HereditaryDiseaseNote { get; set; }
 
         public string? AllergyNote { get; set; }
+
+        public string? ImmunizationNote { get; set; }
 
         public int? NutritionRiskScore { get; set; }
         public string? NutritionNote { get; set; }
@@ -207,6 +215,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         [MaxLength(500)]
         public string? AllergyNote { get; set; }
+
+        public bool HasBcgImmunization { get; set; } = false;
+
+        public bool HasHepatitisBImmunization { get; set; } = false;
+
+        public bool HasPolioImmunization { get; set; } = false;
+
+        public bool HasDptImmunization { get; set; } = false;
+
+        public bool HasMeaslesImmunization { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? ImmunizationNote { get; set; }
 
         public AppetiteStatus AppetiteStatus { get; set; } = AppetiteStatus.Unknown;
 
@@ -325,6 +346,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         [MaxLength(500)]
         public string? AllergyNote { get; set; }
+
+        public bool HasBcgImmunization { get; set; } = false;
+
+        public bool HasHepatitisBImmunization { get; set; } = false;
+
+        public bool HasPolioImmunization { get; set; } = false;
+
+        public bool HasDptImmunization { get; set; } = false;
+
+        public bool HasMeaslesImmunization { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? ImmunizationNote { get; set; }
 
         public AppetiteStatus AppetiteStatus { get; set; } = AppetiteStatus.Unknown;
 

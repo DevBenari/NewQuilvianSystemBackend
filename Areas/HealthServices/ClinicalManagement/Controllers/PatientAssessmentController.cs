@@ -325,6 +325,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 AllergyType = NormalizeNullableText(request.AllergyType),
                 AllergyNote = NormalizeNullableText(request.AllergyNote),
 
+                HasBcgImmunization = request.HasBcgImmunization,
+                HasHepatitisBImmunization = request.HasHepatitisBImmunization,
+                HasPolioImmunization = request.HasPolioImmunization,
+                HasDptImmunization = request.HasDptImmunization,
+                HasMeaslesImmunization = request.HasMeaslesImmunization,
+                ImmunizationNote = NormalizeNullableText(request.ImmunizationNote),
+
                 AppetiteStatus = request.AppetiteStatus,
                 HasNausea = request.HasNausea,
                 HasVomiting = request.HasVomiting,
@@ -467,6 +474,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.HasAllergy = request.HasAllergy;
             entity.AllergyType = NormalizeNullableText(request.AllergyType);
             entity.AllergyNote = NormalizeNullableText(request.AllergyNote);
+
+            entity.HasBcgImmunization = request.HasBcgImmunization;
+            entity.HasHepatitisBImmunization = request.HasHepatitisBImmunization;
+            entity.HasPolioImmunization = request.HasPolioImmunization;
+            entity.HasDptImmunization = request.HasDptImmunization;
+            entity.HasMeaslesImmunization = request.HasMeaslesImmunization;
+            entity.ImmunizationNote = NormalizeNullableText(request.ImmunizationNote);
 
             entity.AppetiteStatus = request.AppetiteStatus;
             entity.HasNausea = request.HasNausea;
@@ -629,20 +643,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (!queue.IsScreeningRequired)
                 return (false, "Antrean ini tidak membutuhkan screening.");
 
-            if (queue.QueueStatus != QueueStatus.CalledByNurse &&
-                queue.QueueStatus != QueueStatus.InNurseScreening &&
-                queue.QueueStatus != QueueStatus.WaitingForNurse)
+            var isNurseScreeningStatus =
+                queue.QueueStatus == QueueStatus.CalledByNurse ||
+                queue.QueueStatus == QueueStatus.InNurseScreening ||
+                queue.QueueStatus == QueueStatus.WaitingForNurse;
+
+            var isDoctorAdditionalScreeningStatus =
+                request.CompleteImmediately &&
+                (queue.QueueStatus == QueueStatus.WaitingForDoctor ||
+                 queue.QueueStatus == QueueStatus.CalledByDoctor ||
+                 queue.QueueStatus == QueueStatus.InConsultation);
+
+            if (!isNurseScreeningStatus && !isDoctorAdditionalScreeningStatus)
             {
                 return (false, "Status antrean tidak valid untuk assessment.");
             }
 
-            var assessmentExists = await _dbContext.Set<TrxPatientAssessment>()
-                .AnyAsync(x =>
-                    x.EncounterId == request.EncounterId &&
-                    !x.IsDelete);
+            if (!isDoctorAdditionalScreeningStatus)
+            {
+                var assessmentExists = await _dbContext.Set<TrxPatientAssessment>()
+                    .AnyAsync(x =>
+                        x.EncounterId == request.EncounterId &&
+                        !x.IsDelete);
 
-            if (assessmentExists)
-                return (false, "Assessment untuk encounter ini sudah ada.");
+                if (assessmentExists)
+                    return (false, "Assessment untuk encounter ini sudah ada.");
+            }
 
             return (true, null);
         }
@@ -1004,6 +1030,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 HasAllergy = x.HasAllergy,
                 AllergyType = x.AllergyType,
 
+                HasBcgImmunization = x.HasBcgImmunization,
+                HasHepatitisBImmunization = x.HasHepatitisBImmunization,
+                HasPolioImmunization = x.HasPolioImmunization,
+                HasDptImmunization = x.HasDptImmunization,
+                HasMeaslesImmunization = x.HasMeaslesImmunization,
+
                 AppetiteStatus = x.AppetiteStatus,
                 HasNausea = x.HasNausea,
                 HasVomiting = x.HasVomiting,
@@ -1083,6 +1115,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 HasAllergy = x.HasAllergy,
                 AllergyType = x.AllergyType,
                 AllergyNote = x.AllergyNote,
+
+                HasBcgImmunization = x.HasBcgImmunization,
+                HasHepatitisBImmunization = x.HasHepatitisBImmunization,
+                HasPolioImmunization = x.HasPolioImmunization,
+                HasDptImmunization = x.HasDptImmunization,
+                HasMeaslesImmunization = x.HasMeaslesImmunization,
+                ImmunizationNote = x.ImmunizationNote,
 
                 AppetiteStatus = x.AppetiteStatus,
                 HasNausea = x.HasNausea,
