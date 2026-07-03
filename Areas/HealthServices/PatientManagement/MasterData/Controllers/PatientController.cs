@@ -77,6 +77,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("filters/metadata")]
+        [HttpGet("kiosk/filters/metadata")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
@@ -148,7 +149,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
+
+        [HttpGet("admin/filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<PatientFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessPermission("Patient", "Read")]
+        public async Task<IActionResult> GetFilterMetadataForAdmin()
+        {
+            return await GetFilterMetadata();
+        }
+
         [HttpGet("summary")]
+        [HttpGet("admin/summary")]
         [ProducesResponseType(typeof(ApiResponse<PatientSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -184,6 +195,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet]
+        [HttpGet("admin")]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientPagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -247,7 +259,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
+
+        [HttpGet("kiosk")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<ResponsePatientPagedResult>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPatientsForKiosk(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] Guid? defaultMembershipTierId,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "createDateTime",
+            [FromQuery] string? sortDirection = "desc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            return await GetPatients(
+                startDate,
+                endDate,
+                customPeriod,
+                defaultMembershipTierId,
+                true,
+                search,
+                sortBy,
+                sortDirection,
+                pageNumber,
+                pageSize
+            );
+        }
+
         [HttpGet("options")]
+        [HttpGet("kiosk/options")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction(
@@ -305,7 +347,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
+
+        [HttpGet("admin/options")]
+        [ProducesResponseType(typeof(ApiResponse<PatientOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessPermission("Patient", "Read")]
+        public async Task<IActionResult> GetPatientOptionsForAdmin(
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] Guid? defaultMembershipTierId = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            return await GetPatientOptions(
+                onlyActive,
+                defaultMembershipTierId,
+                search,
+                pageNumber,
+                pageSize
+            );
+        }
+
         [HttpGet("{id:guid}")]
+        [HttpGet("kiosk/{id:guid}")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -345,7 +408,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
+
+        [HttpGet("admin/{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<PatientDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessPermission("Patient", "Read")]
+        public async Task<IActionResult> GetPatientByIdForAdmin(Guid id)
+        {
+            return await GetPatientById(id);
+        }
+
         [HttpPost]
+        [HttpPost("kiosk")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -455,7 +529,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     savedQrCode = SavePatientQrCodeFile(
                         entity.MedicalRecordNumber,
                         HttpContext.TraceIdentifier
-                    );                    
+                    );
 
                     savedPatientPhoto = SavePatientPhotoFileFromRequest(
                         entity.Id,
@@ -557,7 +631,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
                 try
                 {
-                    DeletePhysicalFileIfExists(savedQrCode?.PhysicalPath);                    
+                    DeletePhysicalFileIfExists(savedQrCode?.PhysicalPath);
                 }
                 catch (Exception deleteFileEx)
                 {
@@ -569,15 +643,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                             TraceId = HttpContext.TraceIdentifier,
                             QrPhysicalPath = savedQrCode?.PhysicalPath
                         }
-                    );                    
+                    );
                 }
 
                 try
-                {                    
+                {
                     DeletePhysicalFileIfExists(savedPatientPhoto?.PhysicalPath);
                 }
                 catch (Exception deletePhotoEx)
-                {                  
+                {
                     WriteDockerErrorLog(
                         "PATIENT_CREATE_DELETE_PHOTO_ERROR",
                         deletePhotoEx,
@@ -622,7 +696,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             }
         }
 
+
+        [HttpPost("admin")]
+        [ProducesResponseType(typeof(ApiResponse<PatientCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessPermission("Patient", "Create")]
+        public async Task<IActionResult> CreatePatientForAdmin([FromBody] CreatePatientRequest request)
+        {
+            return await CreatePatient(request);
+        }
+
         [HttpPut("{id:guid}")]
+        [HttpPut("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -751,6 +836,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpPatch("{id:guid}/status")]
+        [HttpPatch("admin/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
@@ -792,6 +878,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpDelete("{id:guid}")]
+        [HttpDelete("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -1511,7 +1598,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             var candidates = new[]
             {
                 Path.Combine(storage.RootPath, "system-assets", "logo-rsmmc.png"),
-                Path.Combine(storage.RootPath, "system-assets", "logo_mmc.png"),              
+                Path.Combine(storage.RootPath, "system-assets", "logo_mmc.png"),
             };
 
             return candidates.FirstOrDefault(System.IO.File.Exists);
@@ -2314,7 +2401,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 selector: x => x.PatientCode,
                 prefix: CodePrefix
             );
-        }       
+        }
 
         private async Task<string> GenerateRunningCodeAsync(
             System.Linq.Expressions.Expression<Func<MstPatient, string>> selector,

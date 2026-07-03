@@ -48,6 +48,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("filters/metadata")]
+        [HttpGet("kiosk/filters/metadata")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
@@ -119,7 +120,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
+
+        [HttpGet("admin/filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessPermission("PatientCompanyGuarantor", "Read")]
+        public async Task<IActionResult> GetFilterMetadataForAdmin()
+        {
+            var actionResult = await GetFilterMetadata();
+
+            if (actionResult is OkObjectResult okResult &&
+                okResult.Value is ApiResponse<PatientCompanyGuarantorFilterMetadataResponse> response &&
+                response.Data != null)
+            {
+                foreach (var relationFilter in response.Data.RelationFilters)
+                {
+                    if (string.Equals(relationFilter.Value, "patientId", StringComparison.OrdinalIgnoreCase))
+                    {
+                        relationFilter.Endpoint = "/api/v1/health-services/patient-management/master-data/patients/admin/options";
+                    }
+                    else if (string.Equals(relationFilter.Value, "companyGuarantorId", StringComparison.OrdinalIgnoreCase))
+                    {
+                        relationFilter.Endpoint = "/api/v1/administrator/master-data/company-guarantors/admin/options";
+                    }
+                }
+            }
+
+            return actionResult;
+        }
+
         [HttpGet("summary")]
+        [HttpGet("admin/summary")]
         [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -168,6 +198,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet]
+        [HttpGet("kiosk")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientCompanyGuarantorPagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
@@ -232,7 +263,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
+
+        [HttpGet("admin")]
+        [ProducesResponseType(typeof(ApiResponse<ResponsePatientCompanyGuarantorPagedResult>), StatusCodes.Status200OK)]
+        [AccessPermission("PatientCompanyGuarantor", "Read")]
+        public async Task<IActionResult> GetPatientCompanyGuarantorsForAdmin(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] Guid? patientId,
+            [FromQuery] Guid? companyGuarantorId,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "createDateTime",
+            [FromQuery] string? sortDirection = "desc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            return await GetPatientCompanyGuarantors(
+                startDate,
+                endDate,
+                customPeriod,
+                patientId,
+                companyGuarantorId,
+                isActive,
+                search,
+                sortBy,
+                sortDirection,
+                pageNumber,
+                pageSize
+            );
+        }
+
         [HttpGet("options")]
+        [HttpGet("kiosk/options")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction(
@@ -293,7 +357,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
+
+        [HttpGet("admin/options")]
+        [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessPermission("PatientCompanyGuarantor", "Read")]
+        public async Task<IActionResult> GetPatientCompanyGuarantorOptionsForAdmin(
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] Guid? patientId = null,
+            [FromQuery] Guid? companyGuarantorId = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            return await GetPatientCompanyGuarantorOptions(
+                onlyActive,
+                patientId,
+                companyGuarantorId,
+                search,
+                pageNumber,
+                pageSize
+            );
+        }
+
         [HttpGet("{id:guid}")]
+        [HttpGet("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
@@ -334,6 +421,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpPost]
+        [HttpPost("kiosk")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -452,7 +540,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             }
         }
 
+
+        [HttpPost("admin")]
+        [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessPermission("PatientCompanyGuarantor", "Create")]
+        public async Task<IActionResult> CreatePatientCompanyGuarantorForAdmin(
+            [FromBody] CreatePatientCompanyGuarantorRequest request)
+        {
+            return await CreatePatientCompanyGuarantor(request);
+        }
+
         [HttpPut("{id:guid}")]
+        [HttpPut("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -591,6 +691,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpPatch("{id:guid}/status")]
+        [HttpPatch("admin/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
@@ -638,6 +739,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpDelete("{id:guid}")]
+        [HttpDelete("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(

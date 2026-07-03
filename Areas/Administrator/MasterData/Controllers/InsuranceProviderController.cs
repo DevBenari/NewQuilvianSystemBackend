@@ -81,8 +81,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             _loggerService = loggerService;
         }
 
-        [HttpGet("filters/metadata")]
-        [Authorize(Policy = KioskReadPolicy)]
+        [HttpGet("admin/filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -91,7 +90,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        public async Task<IActionResult> GetFilterMetadata()
+        [AccessPermission("InsuranceProvider", "Read")]
+        public async Task<IActionResult> GetFilterMetadataForAdmin()
         {
             var result = new InsuranceProviderFilterMetadataResponse
             {
@@ -137,6 +137,64 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpGet("filters/metadata")]
+        [HttpGet("kiosk/filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<InsuranceProviderFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction(
+            "Read",
+            "Read Insurance Provider",
+            Description = "Melihat metadata filter insurance provider",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        public async Task<IActionResult> GetFilterMetadataForKiosk()
+        {
+            var result = new InsuranceProviderFilterMetadataResponse
+            {
+                DefaultFilter = new InsuranceProviderDefaultFilterResponse(),
+                CustomPeriods = BuildCustomPeriodOptions(),
+                SortOptions = new List<InsuranceProviderSortOptionResponse>
+                {
+                    new() { Value = "sortOrder", Label = "Urutan" },
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "insuranceProviderCode", Label = "Kode insurance provider" },
+                    new() { Value = "insuranceProviderName", Label = "Nama insurance provider" },
+                    new() { Value = "insuranceGroupName", Label = "Group insurance" },
+                    new() { Value = "providerType", Label = "Tipe provider" },
+                    new() { Value = "claimMethod", Label = "Metode klaim" },
+                    new() { Value = "contractStartDate", Label = "Tanggal mulai kontrak" },
+                    new() { Value = "contractEndDate", Label = "Tanggal akhir kontrak" },
+                    new() { Value = "isUsingInsuranceTariffBook", Label = "Pakai tarif insurance" },
+                    new() { Value = "isNeedEligibilityCheck", Label = "Butuh eligibility check" },
+                    new() { Value = "isNeedGuaranteeLetter", Label = "Butuh guarantee letter" },
+                    new() { Value = "isActive", Label = "Status aktif" }
+                },
+                SortDirections = new List<string> { "asc", "desc" },
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                ProviderTypeOptions = BuildProviderTypeOptions(),
+                ClaimMethodOptions = BuildClaimMethodOptions(),
+                ContractStatusOptions = BuildContractStatusOptions(),
+                QueryParameters = BuildQueryParameterInfo(),
+                CreateFields = BuildCreateFieldMetadata(),
+                UpdateFields = BuildUpdateFieldMetadata(),
+                ResetButtonLabel = "Reset"
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InsuranceProvider.GetFilterMetadata",
+                "Mengambil metadata filter insurance provider.",
+                result
+            );
+
+            return Ok(ApiResponse<InsuranceProviderFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter insurance provider berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/summary")]
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction(
@@ -193,8 +251,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
-        [HttpGet]
-        [Authorize(Policy = KioskReadPolicy)]
+        [HttpGet("admin")]
         [ProducesResponseType(typeof(ApiResponse<ResponseInsuranceProviderPagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -203,7 +260,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        public async Task<IActionResult> GetInsuranceProviders(
+        [AccessPermission("InsuranceProvider", "Read")]
+        public async Task<IActionResult> GetInsuranceProvidersForAdmin(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
@@ -293,8 +351,108 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
-        [HttpGet("options")]
+        [HttpGet]
+        [HttpGet("kiosk")]
         [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<ResponseInsuranceProviderPagedResult>), StatusCodes.Status200OK)]
+        [AccessAction(
+            "Read",
+            "Read Insurance Provider",
+            Description = "Melihat data insurance provider",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        public async Task<IActionResult> GetInsuranceProvidersForKiosk(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] string? search,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? providerType,
+            [FromQuery] string? claimMethod,
+            [FromQuery] string? contractStatus,
+            [FromQuery] bool? isUsingInsuranceTariffBook,
+            [FromQuery] bool? isUsingHospitalTariff,
+            [FromQuery] bool? isNeedEligibilityCheck,
+            [FromQuery] bool? isNeedGuaranteeLetter,
+            [FromQuery] bool? isNeedReferralLetter,
+            [FromQuery] bool? isNeedApprovalForProcedure,
+            [FromQuery] bool? isNeedApprovalForDrug,
+            [FromQuery] bool? isCoverageLimitedByPlan,
+            [FromQuery] bool? isAllowExcessPaymentByPatient,
+            [FromQuery] string? sortBy = "sortOrder",
+            [FromQuery] string? sortDirection = "asc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
+            var query = BuildBaseQuery();
+
+            query = ApplyDateFilter(query, dateRange);
+            query = ApplyStandardFilter(
+                query,
+                search,
+                isActive,
+                providerType,
+                claimMethod,
+                contractStatus,
+                isUsingInsuranceTariffBook,
+                isUsingHospitalTariff,
+                isNeedEligibilityCheck,
+                isNeedGuaranteeLetter,
+                isNeedReferralLetter,
+                isNeedApprovalForProcedure,
+                isNeedApprovalForDrug,
+                isCoverageLimitedByPlan,
+                isAllowExcessPaymentByPatient
+            );
+
+            var totalData = await query.CountAsync();
+
+            var entities = await ApplySorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .Select(x => x.CreateBy)
+                    .Where(x => x != Guid.Empty)
+            );
+
+            var items = entities
+                .Select(x => MapResponse(x, actorNames))
+                .ToList();
+
+            var result = new ResponseInsuranceProviderPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<ResponseInsuranceProviderPagedResult>.Ok(
+                result,
+                "Data insurance provider berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/options")]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -303,7 +461,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        public async Task<IActionResult> GetInsuranceProviderOptions(
+        [AccessPermission("InsuranceProvider", "Read")]
+        public async Task<IActionResult> GetInsuranceProviderOptionsForAdmin(
             [FromQuery] bool onlyActive = true,
             [FromQuery] bool? activeOnly = null,
             [FromQuery] string? providerType = null,
@@ -376,6 +535,91 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpGet("options")]
+        [HttpGet("kiosk/options")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<InsuranceProviderOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction(
+            "Read",
+            "Read Insurance Provider",
+            Description = "Melihat data pilihan insurance provider",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        public async Task<IActionResult> GetInsuranceProviderOptionsForKiosk(
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] bool? activeOnly = null,
+            [FromQuery] string? providerType = null,
+            [FromQuery] string? claimMethod = null,
+            [FromQuery] string? contractStatus = null,
+            [FromQuery] bool? isUsingInsuranceTariffBook = null,
+            [FromQuery] bool? isUsingHospitalTariff = null,
+            [FromQuery] bool? isNeedEligibilityCheck = null,
+            [FromQuery] bool? isNeedGuaranteeLetter = null,
+            [FromQuery] bool? isNeedReferralLetter = null,
+            [FromQuery] bool? isNeedApprovalForProcedure = null,
+            [FromQuery] bool? isNeedApprovalForDrug = null,
+            [FromQuery] bool? isCoverageLimitedByPlan = null,
+            [FromQuery] bool? isAllowExcessPaymentByPatient = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var useOnlyActive = activeOnly ?? onlyActive;
+
+            var query = BuildBaseQuery();
+
+            query = ApplyStandardFilter(
+                query,
+                search,
+                useOnlyActive ? true : null,
+                providerType,
+                claimMethod,
+                contractStatus,
+                isUsingInsuranceTariffBook,
+                isUsingHospitalTariff,
+                isNeedEligibilityCheck,
+                isNeedGuaranteeLetter,
+                isNeedReferralLetter,
+                isNeedApprovalForProcedure,
+                isNeedApprovalForDrug,
+                isCoverageLimitedByPlan,
+                isAllowExcessPaymentByPatient
+            );
+
+            var totalData = await query.CountAsync();
+
+            var entities = await query
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.InsuranceProviderName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var items = entities
+                .Select(MapOptionResponse)
+                .ToList();
+
+            var result = new InsuranceProviderOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<InsuranceProviderOptionPagedResponse>.Ok(
+                result,
+                "Data pilihan insurance provider berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/{id:guid}")]
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -414,6 +658,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpPost("admin")]
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -520,6 +765,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpPut("admin/{id:guid}")]
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -627,6 +873,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpPatch("admin/{id:guid}/status")]
         [HttpPatch("{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -685,6 +932,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpDelete("admin/{id:guid}")]
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<InsuranceProviderDeleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

@@ -48,6 +48,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet("filters/metadata")]
+        [HttpGet("admin/filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<PatientRelationshipFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -118,7 +119,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
+        [HttpGet("kiosk/filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
+        public Task<IActionResult> GetFilterMetadataForKiosk()
+        {
+            return GetFilterMetadata();
+        }
+
+
         [HttpGet("summary")]
+        [HttpGet("admin/summary")]
         [ProducesResponseType(typeof(ApiResponse<PatientRelationshipSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -152,6 +162,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpGet]
+        [HttpGet("admin")]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientRelationshipPagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -216,7 +227,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
+        [HttpGet("kiosk")]
+        [Authorize(Policy = KioskReadPolicy)]
+        public Task<IActionResult> GetPatientRelationshipsForKiosk(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] Guid? patientId,
+            [FromQuery] Guid? relatedPatientId,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "createDateTime",
+            [FromQuery] string? sortDirection = "desc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            return GetPatientRelationships(startDate, endDate, customPeriod, patientId, relatedPatientId, isActive, search, sortBy, sortDirection, pageNumber, pageSize);
+        }
+
+
         [HttpGet("options")]
+        [HttpGet("admin/options")]
         [ProducesResponseType(typeof(ApiResponse<PatientRelationshipOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -274,7 +305,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
+        [HttpGet("kiosk/options")]
+        [Authorize(Policy = KioskReadPolicy)]
+        public Task<IActionResult> GetPatientRelationshipOptionsForKiosk(
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] Guid? patientId = null,
+            [FromQuery] Guid? relatedPatientId = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            return GetPatientRelationshipOptions(onlyActive, patientId, relatedPatientId, search, pageNumber, pageSize);
+        }
+
+
         [HttpGet("{id:guid}")]
+        [HttpGet("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientRelationshipDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
@@ -313,6 +359,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpPost]
+        [HttpPost("kiosk")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientRelationshipCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -414,7 +461,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
+        [HttpPost("admin")]
+        [AccessPermission("PatientRelationship", "Create")]
+        public Task<IActionResult> CreatePatientRelationshipForAdmin([FromBody] CreatePatientRelationshipRequest request)
+        {
+            return CreatePatientRelationship(request);
+        }
+
+
         [HttpPut("{id:guid}")]
+        [HttpPut("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -515,6 +571,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpPatch("{id:guid}/status")]
+        [HttpPatch("admin/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
@@ -556,6 +613,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         [HttpDelete("{id:guid}")]
+        [HttpDelete("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(

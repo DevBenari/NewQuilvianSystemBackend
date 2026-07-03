@@ -254,7 +254,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet("filters/metadata")]
+        [HttpGet("kiosk/filters/metadata")]
         [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<DoctorFilterMetadataResponse>), StatusCodes.Status200OK)]
+        public Task<IActionResult> GetFilterMetadataForKiosk()
+        {
+            return GetFilterMetadataForAdmin();
+        }
+
+        [HttpGet("admin/filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<DoctorFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -263,7 +271,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        public async Task<IActionResult> GetFilterMetadata()
+        [AccessPermission("Doctor", "Read")]
+        public async Task<IActionResult> GetFilterMetadataForAdmin()
         {
             var result = new DoctorFilterMetadataResponse
             {
@@ -323,6 +332,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet("summary")]
+        [HttpGet("admin/summary")]
         [ProducesResponseType(typeof(ApiResponse<DoctorSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -332,7 +342,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             SortOrder = 1
         )]
         [AccessPermission("Doctor", "Read")]
-        public async Task<IActionResult> GetSummary()
+        public async Task<IActionResult> GetSummaryForAdmin()
         {
             var doctorQuery = _dbContext.Set<MstDoctor>()
                 .AsNoTracking()
@@ -368,7 +378,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet]
+        [HttpGet("kiosk")]
         [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<ResponseDoctorPagedResult>), StatusCodes.Status200OK)]
+        public Task<IActionResult> GetDoctorsForKiosk(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? period,
+            [FromQuery] Guid? departmentId,
+            [FromQuery] Guid? positionId,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "createDateTime",
+            [FromQuery] string? sortDirection = "desc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            return GetDoctorsForAdmin(
+                startDate,
+                endDate,
+                period,
+                departmentId,
+                positionId,
+                true,
+                search,
+                sortBy,
+                sortDirection,
+                pageNumber,
+                pageSize);
+        }
+
+        [HttpGet("admin")]
         [ProducesResponseType(typeof(ApiResponse<ResponseDoctorPagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -377,7 +417,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        public async Task<IActionResult> GetDoctors(
+        [AccessPermission("Doctor", "Read")]
+        public async Task<IActionResult> GetDoctorsForAdmin(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? period,
@@ -577,7 +618,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet("options")]
+        [HttpGet("kiosk/options")]
         [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<DoctorOptionResponse>>), StatusCodes.Status200OK)]
+        public Task<IActionResult> GetDoctorOptionsForKiosk(
+            [FromQuery] Guid? departmentId,
+            [FromQuery] Guid? positionId,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            return GetDoctorOptionsForAdmin(
+                departmentId,
+                positionId,
+                true,
+                search,
+                pageNumber,
+                pageSize);
+        }
+
+        [HttpGet("admin/options")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<DoctorOptionResponse>>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -586,7 +647,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        public async Task<IActionResult> GetDoctorOptions(
+        [AccessPermission("Doctor", "Read")]
+        public async Task<IActionResult> GetDoctorOptionsForAdmin(
             [FromQuery] Guid? departmentId,
             [FromQuery] Guid? positionId,
             [FromQuery] bool onlyActive = true,
@@ -686,6 +748,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpGet("{id:guid}")]
+        [HttpGet("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<DoctorDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
@@ -696,7 +759,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             SortOrder = 1
         )]
         [AccessPermission("Doctor", "Read")]
-        public async Task<IActionResult> GetDoctorById(Guid id)
+        public async Task<IActionResult> GetDoctorByIdForAdmin(Guid id)
         {
             var defaultDoctorProfilePhotoPath = GetDefaultDoctorProfilePhotoPath();
 
@@ -817,6 +880,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpPost]
+        [HttpPost("admin")]
         [ProducesResponseType(typeof(ApiResponse<DoctorCreateResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Create",
@@ -826,7 +890,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             SortOrder = 2
         )]
         [AccessPermission("Doctor", "Create")]
-        public async Task<IActionResult> CreateDoctor([FromBody] CreateDoctorRequest request)
+        public async Task<IActionResult> CreateDoctorForAdmin([FromBody] CreateDoctorRequest request)
         {
             var requiredValidation = ValidateRequiredDoctorRequest(request);
 
@@ -1121,6 +1185,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpPut("{id:guid}")]
+        [HttpPut("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
@@ -1131,7 +1196,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             SortOrder = 3
         )]
         [AccessPermission("Doctor", "Update")]
-        public async Task<IActionResult> UpdateDoctor(
+        public async Task<IActionResult> UpdateDoctorForAdmin(
             Guid id,
             [FromBody] UpdateDoctorRequest request)
         {
@@ -1375,6 +1440,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpPatch("{id:guid}/status")]
+        [HttpPatch("admin/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
@@ -1385,7 +1451,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             SortOrder = 3
         )]
         [AccessPermission("Doctor", "Update")]
-        public async Task<IActionResult> UpdateDoctorStatus(
+        public async Task<IActionResult> UpdateDoctorStatusForAdmin(
             Guid id,
             [FromBody] UpdateDoctorStatusRequest request)
         {
@@ -1443,6 +1509,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpPatch("{id:guid}/user-account/geolocation-bypass")]
+        [HttpPatch("admin/{id:guid}/user-account/geolocation-bypass")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -1454,7 +1521,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             SortOrder = 3
         )]
         [AccessPermission("Doctor", "Update")]
-        public async Task<IActionResult> UpdateDoctorUserGeolocationBypass(
+        public async Task<IActionResult> UpdateDoctorUserGeolocationBypassForAdmin(
     Guid id,
     [FromBody] UpdateDoctorUserGeolocationBypassRequest request)
         {
@@ -1559,6 +1626,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpPatch("{id:guid}/user-account/fingerprint-registration")]
+        [HttpPatch("admin/{id:guid}/user-account/fingerprint-registration")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -1570,7 +1638,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             SortOrder = 3
         )]
         [AccessPermission("Doctor", "Update")]
-        public async Task<IActionResult> UpdateDoctorUserFingerprintRegistration(
+        public async Task<IActionResult> UpdateDoctorUserFingerprintRegistrationForAdmin(
             Guid id, [FromBody] UpdateDoctorUserFingerprintRegistrationRequest request)
         {
             var doctorExists = await _dbContext.Set<MstDoctor>()
@@ -1657,6 +1725,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
         }
 
         [HttpDelete("{id:guid}")]
+        [HttpDelete("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
@@ -1667,7 +1736,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Control
             SortOrder = 4
         )]
         [AccessPermission("Doctor", "Delete")]
-        public async Task<IActionResult> DeleteDoctor(Guid id)
+        public async Task<IActionResult> DeleteDoctorForAdmin(Guid id)
         {
             var entity = await _dbContext.Set<MstDoctor>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);

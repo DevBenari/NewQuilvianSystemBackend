@@ -62,11 +62,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             _queueRealtimeService = queueRealtimeService;
         }
 
+        [HttpGet("admin/filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<PatientEncounterFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessPermission("PatientEncounter", "Read")]
+        public async Task<IActionResult> GetFilterMetadataForAdmin()
+        {
+            return await GetFilterMetadataForKiosk();
+        }
+
         [HttpGet("filters/metadata")]
+        [HttpGet("kiosk/filters/metadata")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Patient Encounter", Description = "Melihat metadata filter patient encounter", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetFilterMetadata()
+        public async Task<IActionResult> GetFilterMetadataForKiosk()
         {
             var result = new PatientEncounterFilterMetadataResponse
             {
@@ -111,11 +120,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ResetButtonLabel = "Reset"
             };
 
-            await _loggerService.InfoAsync(LogCategory, "PatientEncounter.GetFilterMetadata", "Mengambil metadata filter patient encounter.", result);
+            await _loggerService.InfoAsync(LogCategory, "PatientEncounter.GetFilterMetadataForKiosk", "Mengambil metadata filter patient encounter.", result);
             return Ok(ApiResponse<PatientEncounterFilterMetadataResponse>.Ok(result, "Metadata filter patient encounter berhasil diambil."));
         }
 
         [HttpGet("summary")]
+        [HttpGet("admin/summary")]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Patient Encounter", Description = "Melihat ringkasan patient encounter", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PatientEncounter", "Read")]
@@ -158,6 +168,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpGet]
+        [HttpGet("admin")]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientEncounterPagedResult>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Patient Encounter", Description = "Melihat data kunjungan pasien", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PatientEncounter", "Read")]
@@ -213,11 +224,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return Ok(ApiResponse<ResponsePatientEncounterPagedResult>.Ok(result, "Data kunjungan pasien berhasil diambil."));
         }
 
+        [HttpGet("admin/options")]
+        [ProducesResponseType(typeof(ApiResponse<PatientEncounterOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessPermission("PatientEncounter", "Read")]
+        public async Task<IActionResult> GetEncounterOptionsForAdmin(
+            [FromQuery] Guid? patientId = null,
+            [FromQuery] Guid? serviceUnitId = null,
+            [FromQuery] EncounterStatus? encounterStatus = null,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            return await GetEncounterOptionsForKiosk(
+                patientId,
+                serviceUnitId,
+                encounterStatus,
+                onlyActive,
+                search,
+                pageNumber,
+                pageSize);
+        }
+
         [HttpGet("options")]
+        [HttpGet("kiosk/options")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Patient Encounter", Description = "Melihat data pilihan patient encounter", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetEncounterOptions(
+        public async Task<IActionResult> GetEncounterOptionsForKiosk(
             [FromQuery] Guid? patientId = null,
             [FromQuery] Guid? serviceUnitId = null,
             [FromQuery] EncounterStatus? encounterStatus = null,
@@ -264,6 +298,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpGet("{id:guid}")]
+        [HttpGet("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Read", "Read Patient Encounter", Description = "Melihat detail kunjungan pasien", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -290,12 +325,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return Ok(ApiResponse<PatientEncounterDetailResponse>.Ok(MapDetailResponse(entity, actorNames), "Detail kunjungan pasien berhasil diambil."));
         }
 
+        [HttpPost("admin")]
+        [ProducesResponseType(typeof(ApiResponse<PatientEncounterCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessPermission("PatientEncounter", "Create")]
+        public async Task<IActionResult> CreateEncounterForAdmin([FromBody] PatientEncounterCreateRequest request)
+        {
+            return await CreateEncounterForKiosk(request);
+        }
+
         [HttpPost]
+        [HttpPost("kiosk")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien beserta penjamin", AccessType = AccessTypes.Create, SortOrder = 2)]
-        public async Task<IActionResult> CreateEncounter([FromBody] PatientEncounterCreateRequest request)
+        public async Task<IActionResult> CreateEncounterForKiosk([FromBody] PatientEncounterCreateRequest request)
         {
             var now = DateTime.UtcNow;
             var operationalDate = ToUtcDate(AppDateTimeHelper.OperationalDate());
@@ -497,20 +542,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     Guarantors = guarantors.Select(MapGuarantorCreateResponse).ToList()
                 };
 
-                await _loggerService.InfoAsync(LogCategory, "PatientEncounter.CreateEncounter", "Membuat transaksi kunjungan pasien beserta penjamin.", response);
+                await _loggerService.InfoAsync(LogCategory, "PatientEncounter.CreateEncounterForKiosk", "Membuat transaksi kunjungan pasien beserta penjamin.", response);
 
                 return Ok(ApiResponse<PatientEncounterCreateResponse>.Ok(response, "Transaksi kunjungan pasien berhasil dibuat."));
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                await _loggerService.ErrorAsync(LogCategory, "PatientEncounter.CreateEncounter", "Gagal membuat transaksi kunjungan pasien.", ex);
+                await _loggerService.ErrorAsync(LogCategory, "PatientEncounter.CreateEncounterForKiosk", "Gagal membuat transaksi kunjungan pasien.", ex);
 
                 return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail(StatusCodes.Status500InternalServerError, "Terjadi kesalahan saat membuat transaksi kunjungan pasien."));
             }
         }
 
         [HttpPatch("{id:guid}/status")]
+        [HttpPatch("admin/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Patient Encounter Status", Description = "Mengubah status patient encounter", AccessType = AccessTypes.Update, SortOrder = 3)]
@@ -549,6 +595,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPatch("{id:guid}/check-in")]
+        [HttpPatch("admin/{id:guid}/check-in")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Check In Patient Encounter", Description = "Check-in patient encounter", AccessType = AccessTypes.Update, SortOrder = 3)]
@@ -577,6 +624,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPatch("{id:guid}/cancel")]
+        [HttpPatch("admin/{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Cancel Patient Encounter", Description = "Membatalkan patient encounter", AccessType = AccessTypes.Update, SortOrder = 3)]
@@ -620,6 +668,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpDelete("{id:guid}")]
+        [HttpDelete("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Patient Encounter", Description = "Menghapus patient encounter", AccessType = AccessTypes.Delete, SortOrder = 4)]

@@ -52,7 +52,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             _loggerService = loggerService;
         }
 
+        [HttpGet("admin/filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<KioskScanSessionFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessPermission("KioskScanSession", "Read")]
+        public async Task<IActionResult> GetFilterMetadataForAdmin()
+        {
+            return await GetFilterMetadataForKiosk();
+        }
+
         [HttpGet("filters/metadata")]
+        [HttpGet("kiosk/filters/metadata")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<KioskScanSessionFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
@@ -62,7 +71,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        public async Task<IActionResult> GetFilterMetadata()
+        public async Task<IActionResult> GetFilterMetadataForKiosk()
         {
             var result = new KioskScanSessionFilterMetadataResponse
             {
@@ -113,7 +122,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             await _loggerService.InfoAsync(
                 LogCategory,
-                "KioskScanSession.GetFilterMetadata",
+                "KioskScanSession.GetFilterMetadataForKiosk",
                 "Mengambil metadata filter kiosk scan session.",
                 result
             );
@@ -125,6 +134,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpGet("summary")]
+        [HttpGet("admin/summary")]
         [ProducesResponseType(typeof(ApiResponse<KioskScanSessionSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -167,6 +177,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpGet]
+        [HttpGet("admin")]
         [ProducesResponseType(typeof(ApiResponse<ResponseKioskScanSessionPagedResult>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -243,7 +254,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             ));
         }
 
+        [HttpGet("admin/options")]
+        [ProducesResponseType(typeof(ApiResponse<KioskScanSessionOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessPermission("KioskScanSession", "Read")]
+        public async Task<IActionResult> GetSessionOptionsForAdmin(
+            [FromQuery] bool onlyUsableForRegistration = false,
+            [FromQuery] Guid? kioskDeviceId = null,
+            [FromQuery] Guid? patientId = null,
+            [FromQuery] KioskScanSessionStatus? scanStatus = null,
+            [FromQuery] bool? isPatientFound = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            return await GetSessionOptionsForKiosk(
+                onlyUsableForRegistration,
+                kioskDeviceId,
+                patientId,
+                scanStatus,
+                isPatientFound,
+                search,
+                pageNumber,
+                pageSize);
+        }
+
         [HttpGet("options")]
+        [HttpGet("kiosk/options")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<KioskScanSessionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction(
@@ -253,7 +289,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        public async Task<IActionResult> GetSessionOptions(
+        public async Task<IActionResult> GetSessionOptionsForKiosk(
             [FromQuery] bool onlyUsableForRegistration = false,
             [FromQuery] Guid? kioskDeviceId = null,
             [FromQuery] Guid? patientId = null,
@@ -312,6 +348,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpGet("{id:guid}")]
+        [HttpGet("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<KioskScanSessionDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction(
@@ -350,6 +387,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("scan-result")]
+        [HttpPost("kiosk/scan-result")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<KioskScanSessionCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -360,7 +398,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             AccessType = AccessTypes.Create,
             SortOrder = 2
         )]
-        public async Task<IActionResult> CreateFromScanResult([FromBody] CreateKioskScanSessionRequest request)
+        public async Task<IActionResult> CreateFromScanResultForKiosk([FromBody] CreateKioskScanSessionRequest request)
         {
             var validation = await ValidateRequestAsync(request);
 
@@ -448,7 +486,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
                 await _loggerService.InfoAsync(
                     LogCategory,
-                    "KioskScanSession.CreateFromScanResult",
+                    "KioskScanSession.CreateFromScanResultForKiosk",
                     "Menerima hasil scan kartu pasien.",
                     response
                 );
@@ -466,7 +504,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
                 await _loggerService.ErrorAsync(
                     LogCategory,
-                    "KioskScanSession.CreateFromScanResult",
+                    "KioskScanSession.CreateFromScanResultForKiosk",
                     "Gagal menerima hasil scan kartu pasien.",
                     ex
                 );
@@ -482,6 +520,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPatch("{id:guid}/mark-used-for-registration")]
+        [HttpPatch("admin/{id:guid}/mark-used-for-registration")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -569,7 +608,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             ));
         }
 
+        [HttpPatch("kiosk/{id:guid}/mark-used-for-registration")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> MarkUsedForRegistrationForKiosk(
+            Guid id,
+            [FromBody] MarkKioskScanSessionUsedForRegistrationRequest? request = null)
+        {
+            return await MarkUsedForRegistration(id, request);
+        }
+
         [HttpPatch("{id:guid}/cancel")]
+        [HttpPatch("admin/{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -623,7 +675,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             ));
         }
 
+        [HttpPatch("kiosk/{id:guid}/cancel")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CancelSessionForKiosk(
+            Guid id,
+            [FromBody] CancelKioskScanSessionRequest? request = null)
+        {
+            return await CancelSession(id, request);
+        }
+
         [HttpDelete("{id:guid}")]
+        [HttpDelete("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

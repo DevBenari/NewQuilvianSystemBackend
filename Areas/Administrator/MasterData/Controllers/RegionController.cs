@@ -68,11 +68,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             _loggerService = loggerService;
         }
 
-        [HttpGet("filters/metadata")]
-        [Authorize(Policy = KioskReadPolicy)]
+        [HttpGet("admin/filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<RegionFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat data region", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetFilterMetadata()
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetFilterMetadataForAdmin()
         {
             var result = new RegionFilterMetadataResponse
             {
@@ -146,6 +146,86 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpGet("filters/metadata")]
+        [HttpGet("kiosk/filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<RegionFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Region", Description = "Melihat data region", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetFilterMetadataForKiosk()
+        {
+            var result = new RegionFilterMetadataResponse
+            {
+                CountryDefaultFilter = BuildDefaultFilter(),
+                ProvinceDefaultFilter = BuildDefaultFilter(),
+                CityDefaultFilter = BuildDefaultFilter(),
+                DistrictDefaultFilter = BuildDefaultFilter(),
+                PostalCodeDefaultFilter = BuildDefaultFilter(),
+                CustomPeriods = BuildCustomPeriodOptions(),
+                CountrySortOptions = new List<RegionSortOptionResponse>
+                {
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "countryCode", Label = "Kode country" },
+                    new() { Value = "countryName", Label = "Nama country" },
+                    new() { Value = "phoneCode", Label = "Kode telepon" },
+                    new() { Value = "isDefault", Label = "Default" },
+                    new() { Value = "isActive", Label = "Status aktif" }
+                },
+                ProvinceSortOptions = new List<RegionSortOptionResponse>
+                {
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "provinceCode", Label = "Kode province" },
+                    new() { Value = "provinceName", Label = "Nama province" },
+                    new() { Value = "countryName", Label = "Nama country" },
+                    new() { Value = "isActive", Label = "Status aktif" }
+                },
+                CitySortOptions = new List<RegionSortOptionResponse>
+                {
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "cityCode", Label = "Kode city" },
+                    new() { Value = "cityName", Label = "Nama city" },
+                    new() { Value = "cityType", Label = "Tipe city" },
+                    new() { Value = "provinceName", Label = "Nama province" },
+                    new() { Value = "countryName", Label = "Nama country" },
+                    new() { Value = "isActive", Label = "Status aktif" }
+                },
+                DistrictSortOptions = new List<RegionSortOptionResponse>
+                {
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "districtCode", Label = "Kode district" },
+                    new() { Value = "districtName", Label = "Nama district" },
+                    new() { Value = "cityName", Label = "Nama city" },
+                    new() { Value = "provinceName", Label = "Nama province" },
+                    new() { Value = "countryName", Label = "Nama country" },
+                    new() { Value = "isActive", Label = "Status aktif" }
+                },
+                PostalCodeSortOptions = new List<RegionSortOptionResponse>
+                {
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "postalCode", Label = "Kode pos" },
+                    new() { Value = "villageName", Label = "Kelurahan/Desa" },
+                    new() { Value = "districtName", Label = "Nama district" },
+                    new() { Value = "cityName", Label = "Nama city" },
+                    new() { Value = "provinceName", Label = "Nama province" },
+                    new() { Value = "isActive", Label = "Status aktif" }
+                },
+                SortDirections = new List<string> { "asc", "desc" },
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 }
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Region.GetFilterMetadata",
+                "Mengambil metadata filter region.",
+                result
+            );
+
+            return Ok(ApiResponse<RegionFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter region berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/summary")]
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<RegionSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat data region", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -192,12 +272,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         // COUNTRY
         // =========================================================
 
-        [HttpGet("countries")]
-        [Authorize(Policy = KioskReadPolicy)]
+        [HttpGet("admin/countries")]
         [ProducesResponseType(typeof(ApiResponse<ResponseCountryPagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data country", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetCountries(
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetCountriesForAdmin(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
@@ -270,11 +350,90 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
-        [HttpGet("countries/options")]
+        [HttpGet("countries")]
+        [HttpGet("kiosk/countries")]
         [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<ResponseCountryPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Region", Description = "Melihat data country", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetCountriesForKiosk(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] bool? isDefault,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "createDateTime",
+            [FromQuery] string? sortDirection = "desc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
+            var query = _dbContext.MstCountries
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            query = ApplyDateFilter(query, dateRange);
+
+            if (isDefault.HasValue)
+                query = query.Where(x => x.IsDefault == isDefault.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.CountryCode.ToLower().Contains(keyword) ||
+                    x.CountryName.ToLower().Contains(keyword) ||
+                    (x.PhoneCode != null && x.PhoneCode.ToLower().Contains(keyword)));
+            }
+
+            var totalData = await query.CountAsync();
+
+            var entities = await ApplyCountrySorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities.Select(x => x.CreateBy)
+            );
+
+            var result = new ResponseCountryPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = entities.Select(x => MapCountryResponse(x, actorNames)).ToList()
+            };
+
+            return Ok(ApiResponse<ResponseCountryPagedResult>.Ok(
+                result,
+                "Data country berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/countries/options")]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan country", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetCountryOptions(
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetCountryOptionsForAdmin(
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
@@ -328,6 +487,66 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpGet("countries/options")]
+        [HttpGet("kiosk/countries/options")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Region", Description = "Melihat pilihan country", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetCountryOptionsForKiosk(
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = _dbContext.MstCountries
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (onlyActive)
+                query = query.Where(x => x.IsActive);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.CountryCode.ToLower().Contains(keyword) ||
+                    x.CountryName.ToLower().Contains(keyword) ||
+                    (x.PhoneCode != null && x.PhoneCode.ToLower().Contains(keyword)));
+            }
+
+            var totalData = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(x => x.IsDefault)
+                .ThenBy(x => x.CountryName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new RegionOptionResponse
+                {
+                    Id = x.Id,
+                    Code = x.CountryCode,
+                    Name = x.CountryName,
+                    ParentId = null,
+                    ParentCode = null,
+                    ParentName = null,
+                    AdditionalInfo = x.PhoneCode,
+                    IsDefault = x.IsDefault,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponse<RegionOptionPagedResponse>.Ok(
+                BuildOptionPagedResponse(pageNumber, pageSize, totalData, items),
+                "Pilihan country berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/countries/{id:guid}")]
         [HttpGet("countries/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<CountryDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -359,6 +578,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpPost("admin/countries")]
         [HttpPost("countries")]
         [ProducesResponseType(typeof(ApiResponse<CountryDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -435,6 +655,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             }
         }
 
+        [HttpPut("admin/countries/{id:guid}")]
         [HttpPut("countries/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<CountryDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -523,6 +744,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             }
         }
 
+        [HttpPatch("admin/countries/{id:guid}/status")]
         [HttpPatch("countries/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<CountryDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -556,6 +778,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return await GetCountryById(entity.Id);
         }
 
+        [HttpDelete("admin/countries/{id:guid}")]
         [HttpDelete("countries/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -606,12 +829,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         // PROVINCE
         // =========================================================
 
-        [HttpGet("provinces")]
-        [Authorize(Policy = KioskReadPolicy)]
+        [HttpGet("admin/provinces")]
         [ProducesResponseType(typeof(ApiResponse<ResponseProvincePagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data province", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetProvinces(
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetProvincesForAdmin(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
@@ -686,11 +909,92 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
-        [HttpGet("provinces/options")]
+        [HttpGet("provinces")]
+        [HttpGet("kiosk/provinces")]
         [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<ResponseProvincePagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Region", Description = "Melihat data province", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetProvincesForKiosk(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] Guid? countryId,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "createDateTime",
+            [FromQuery] string? sortDirection = "desc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
+            var query = _dbContext.MstProvinces
+                .Include(x => x.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            query = ApplyDateFilter(query, dateRange);
+
+            if (countryId.HasValue && countryId.Value != Guid.Empty)
+                query = query.Where(x => x.CountryId == countryId.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.ProvinceCode.ToLower().Contains(keyword) ||
+                    x.ProvinceName.ToLower().Contains(keyword) ||
+                    (x.Country != null && x.Country.CountryCode.ToLower().Contains(keyword)) ||
+                    (x.Country != null && x.Country.CountryName.ToLower().Contains(keyword)));
+            }
+
+            var totalData = await query.CountAsync();
+
+            var entities = await ApplyProvinceSorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities.Select(x => x.CreateBy)
+            );
+
+            var result = new ResponseProvincePagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = entities.Select(x => MapProvinceResponse(x, actorNames)).ToList()
+            };
+
+            return Ok(ApiResponse<ResponseProvincePagedResult>.Ok(
+                result,
+                "Data province berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/provinces/options")]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan province", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetProvinceOptions(
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetProvinceOptionsForAdmin(
             [FromQuery] Guid? countryId,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null,
@@ -748,6 +1052,70 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpGet("provinces/options")]
+        [HttpGet("kiosk/provinces/options")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Region", Description = "Melihat pilihan province", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetProvinceOptionsForKiosk(
+            [FromQuery] Guid? countryId,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = _dbContext.MstProvinces
+                .Include(x => x.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (countryId.HasValue && countryId.Value != Guid.Empty)
+                query = query.Where(x => x.CountryId == countryId.Value);
+
+            if (onlyActive)
+                query = query.Where(x => x.IsActive && x.Country != null && x.Country.IsActive && !x.Country.IsDelete);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.ProvinceCode.ToLower().Contains(keyword) ||
+                    x.ProvinceName.ToLower().Contains(keyword) ||
+                    (x.Country != null && x.Country.CountryName.ToLower().Contains(keyword)));
+            }
+
+            var totalData = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(x => x.ProvinceName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new RegionOptionResponse
+                {
+                    Id = x.Id,
+                    Code = x.ProvinceCode,
+                    Name = x.ProvinceName,
+                    ParentId = x.CountryId,
+                    ParentCode = x.Country != null ? x.Country.CountryCode : null,
+                    ParentName = x.Country != null ? x.Country.CountryName : null,
+                    AdditionalInfo = null,
+                    IsDefault = false,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponse<RegionOptionPagedResponse>.Ok(
+                BuildOptionPagedResponse(pageNumber, pageSize, totalData, items),
+                "Pilihan province berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/provinces/{id:guid}")]
         [HttpGet("provinces/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<ProvinceDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -780,6 +1148,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpPost("admin/provinces")]
         [HttpPost("provinces")]
         [ProducesResponseType(typeof(ApiResponse<ProvinceDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -822,6 +1191,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return await GetProvinceById(entity.Id);
         }
 
+        [HttpPut("admin/provinces/{id:guid}")]
         [HttpPut("provinces/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<ProvinceDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -868,6 +1238,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return await GetProvinceById(entity.Id);
         }
 
+        [HttpPatch("admin/provinces/{id:guid}/status")]
         [HttpPatch("provinces/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<ProvinceDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -904,6 +1275,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return await GetProvinceById(entity.Id);
         }
 
+        [HttpDelete("admin/provinces/{id:guid}")]
         [HttpDelete("provinces/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -953,12 +1325,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         // CITY
         // =========================================================
 
-        [HttpGet("cities")]
-        [Authorize(Policy = KioskReadPolicy)]
+        [HttpGet("admin/cities")]
         [ProducesResponseType(typeof(ApiResponse<ResponseCityPagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data city", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetCities(
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetCitiesForAdmin(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
@@ -1039,11 +1411,98 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
-        [HttpGet("cities/options")]
+        [HttpGet("cities")]
+        [HttpGet("kiosk/cities")]
         [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<ResponseCityPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Region", Description = "Melihat data city", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetCitiesForKiosk(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] Guid? countryId,
+            [FromQuery] Guid? provinceId,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "createDateTime",
+            [FromQuery] string? sortDirection = "desc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
+            var query = _dbContext.MstCities
+                .Include(x => x.Province)
+                    .ThenInclude(x => x!.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            query = ApplyDateFilter(query, dateRange);
+
+            if (countryId.HasValue && countryId.Value != Guid.Empty)
+                query = query.Where(x => x.Province != null && x.Province.CountryId == countryId.Value);
+
+            if (provinceId.HasValue && provinceId.Value != Guid.Empty)
+                query = query.Where(x => x.ProvinceId == provinceId.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.CityCode.ToLower().Contains(keyword) ||
+                    x.CityName.ToLower().Contains(keyword) ||
+                    (x.CityType != null && x.CityType.ToLower().Contains(keyword)) ||
+                    (x.Province != null && x.Province.ProvinceName.ToLower().Contains(keyword)) ||
+                    (x.Province != null && x.Province.Country != null && x.Province.Country.CountryName.ToLower().Contains(keyword)));
+            }
+
+            var totalData = await query.CountAsync();
+
+            var entities = await ApplyCitySorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities.Select(x => x.CreateBy)
+            );
+
+            var result = new ResponseCityPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = entities.Select(x => MapCityResponse(x, actorNames)).ToList()
+            };
+
+            return Ok(ApiResponse<ResponseCityPagedResult>.Ok(
+                result,
+                "Data city berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/cities/options")]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan city", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetCityOptions(
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetCityOptionsForAdmin(
             [FromQuery] Guid? countryId,
             [FromQuery] Guid? provinceId,
             [FromQuery] bool onlyActive = true,
@@ -1107,6 +1566,76 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpGet("cities/options")]
+        [HttpGet("kiosk/cities/options")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Region", Description = "Melihat pilihan city", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetCityOptionsForKiosk(
+            [FromQuery] Guid? countryId,
+            [FromQuery] Guid? provinceId,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = _dbContext.MstCities
+                .Include(x => x.Province)
+                    .ThenInclude(x => x!.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (countryId.HasValue && countryId.Value != Guid.Empty)
+                query = query.Where(x => x.Province != null && x.Province.CountryId == countryId.Value);
+
+            if (provinceId.HasValue && provinceId.Value != Guid.Empty)
+                query = query.Where(x => x.ProvinceId == provinceId.Value);
+
+            if (onlyActive)
+                query = query.Where(x => x.IsActive && x.Province != null && x.Province.IsActive && !x.Province.IsDelete);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.CityCode.ToLower().Contains(keyword) ||
+                    x.CityName.ToLower().Contains(keyword) ||
+                    (x.CityType != null && x.CityType.ToLower().Contains(keyword)) ||
+                    (x.Province != null && x.Province.ProvinceName.ToLower().Contains(keyword)));
+            }
+
+            var totalData = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(x => x.CityName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new RegionOptionResponse
+                {
+                    Id = x.Id,
+                    Code = x.CityCode,
+                    Name = x.CityName,
+                    ParentId = x.ProvinceId,
+                    ParentCode = x.Province != null ? x.Province.ProvinceCode : null,
+                    ParentName = x.Province != null ? x.Province.ProvinceName : null,
+                    AdditionalInfo = x.CityType,
+                    IsDefault = false,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponse<RegionOptionPagedResponse>.Ok(
+                BuildOptionPagedResponse(pageNumber, pageSize, totalData, items),
+                "Pilihan city berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/cities/{id:guid}")]
         [HttpGet("cities/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<CityDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -1140,6 +1669,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpPost("admin/cities")]
         [HttpPost("cities")]
         [ProducesResponseType(typeof(ApiResponse<CityDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -1183,6 +1713,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return await GetCityById(entity.Id);
         }
 
+        [HttpPut("admin/cities/{id:guid}")]
         [HttpPut("cities/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<CityDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -1230,6 +1761,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return await GetCityById(entity.Id);
         }
 
+        [HttpPatch("admin/cities/{id:guid}/status")]
         [HttpPatch("cities/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<CityDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -1266,6 +1798,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return await GetCityById(entity.Id);
         }
 
+        [HttpDelete("admin/cities/{id:guid}")]
         [HttpDelete("cities/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -1315,12 +1848,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         // DISTRICT
         // =========================================================
 
-        [HttpGet("districts")]
-        [Authorize(Policy = KioskReadPolicy)]
+        [HttpGet("admin/districts")]
         [ProducesResponseType(typeof(ApiResponse<ResponseDistrictPagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data district", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetDistricts(
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetDistrictsForAdmin(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
@@ -1406,11 +1939,103 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
-        [HttpGet("districts/options")]
+        [HttpGet("districts")]
+        [HttpGet("kiosk/districts")]
         [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<ResponseDistrictPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Region", Description = "Melihat data district", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetDistrictsForKiosk(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] Guid? countryId,
+            [FromQuery] Guid? provinceId,
+            [FromQuery] Guid? cityId,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "createDateTime",
+            [FromQuery] string? sortDirection = "desc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
+            var query = _dbContext.MstDistricts
+                .Include(x => x.City)
+                    .ThenInclude(x => x!.Province)
+                        .ThenInclude(x => x!.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            query = ApplyDateFilter(query, dateRange);
+
+            if (countryId.HasValue && countryId.Value != Guid.Empty)
+                query = query.Where(x => x.City != null && x.City.Province != null && x.City.Province.CountryId == countryId.Value);
+
+            if (provinceId.HasValue && provinceId.Value != Guid.Empty)
+                query = query.Where(x => x.City != null && x.City.ProvinceId == provinceId.Value);
+
+            if (cityId.HasValue && cityId.Value != Guid.Empty)
+                query = query.Where(x => x.CityId == cityId.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.DistrictCode.ToLower().Contains(keyword) ||
+                    x.DistrictName.ToLower().Contains(keyword) ||
+                    (x.City != null && x.City.CityName.ToLower().Contains(keyword)) ||
+                    (x.City != null && x.City.Province != null && x.City.Province.ProvinceName.ToLower().Contains(keyword)) ||
+                    (x.City != null && x.City.Province != null && x.City.Province.Country != null && x.City.Province.Country.CountryName.ToLower().Contains(keyword)));
+            }
+
+            var totalData = await query.CountAsync();
+
+            var entities = await ApplyDistrictSorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities.Select(x => x.CreateBy)
+            );
+
+            var result = new ResponseDistrictPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = entities.Select(x => MapDistrictResponse(x, actorNames)).ToList()
+            };
+
+            return Ok(ApiResponse<ResponseDistrictPagedResult>.Ok(
+                result,
+                "Data district berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/districts/options")]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan district", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetDistrictOptions(
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetDistrictOptionsForAdmin(
             [FromQuery] Guid? countryId,
             [FromQuery] Guid? provinceId,
             [FromQuery] Guid? cityId,
@@ -1478,6 +2103,80 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpGet("districts/options")]
+        [HttpGet("kiosk/districts/options")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Region", Description = "Melihat pilihan district", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetDistrictOptionsForKiosk(
+            [FromQuery] Guid? countryId,
+            [FromQuery] Guid? provinceId,
+            [FromQuery] Guid? cityId,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = _dbContext.MstDistricts
+                .Include(x => x.City)
+                    .ThenInclude(x => x!.Province)
+                        .ThenInclude(x => x!.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (countryId.HasValue && countryId.Value != Guid.Empty)
+                query = query.Where(x => x.City != null && x.City.Province != null && x.City.Province.CountryId == countryId.Value);
+
+            if (provinceId.HasValue && provinceId.Value != Guid.Empty)
+                query = query.Where(x => x.City != null && x.City.ProvinceId == provinceId.Value);
+
+            if (cityId.HasValue && cityId.Value != Guid.Empty)
+                query = query.Where(x => x.CityId == cityId.Value);
+
+            if (onlyActive)
+                query = query.Where(x => x.IsActive && x.City != null && x.City.IsActive && !x.City.IsDelete);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.DistrictCode.ToLower().Contains(keyword) ||
+                    x.DistrictName.ToLower().Contains(keyword) ||
+                    (x.City != null && x.City.CityName.ToLower().Contains(keyword)));
+            }
+
+            var totalData = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(x => x.DistrictName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new RegionOptionResponse
+                {
+                    Id = x.Id,
+                    Code = x.DistrictCode,
+                    Name = x.DistrictName,
+                    ParentId = x.CityId,
+                    ParentCode = x.City != null ? x.City.CityCode : null,
+                    ParentName = x.City != null ? x.City.CityName : null,
+                    AdditionalInfo = null,
+                    IsDefault = false,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponse<RegionOptionPagedResponse>.Ok(
+                BuildOptionPagedResponse(pageNumber, pageSize, totalData, items),
+                "Pilihan district berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/districts/{id:guid}")]
         [HttpGet("districts/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<DistrictDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -1512,6 +2211,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpPost("admin/districts")]
         [HttpPost("districts")]
         [ProducesResponseType(typeof(ApiResponse<DistrictDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -1554,6 +2254,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return await GetDistrictById(entity.Id);
         }
 
+        [HttpPut("admin/districts/{id:guid}")]
         [HttpPut("districts/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<DistrictDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -1600,6 +2301,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return await GetDistrictById(entity.Id);
         }
 
+        [HttpPatch("admin/districts/{id:guid}/status")]
         [HttpPatch("districts/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<DistrictDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -1636,6 +2338,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return await GetDistrictById(entity.Id);
         }
 
+        [HttpDelete("admin/districts/{id:guid}")]
         [HttpDelete("districts/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -1685,12 +2388,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         // POSTAL CODE
         // =========================================================
 
-        [HttpGet("postal-codes")]
-        [Authorize(Policy = KioskReadPolicy)]
+        [HttpGet("admin/postal-codes")]
         [ProducesResponseType(typeof(ApiResponse<ResponsePostalCodePagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Region", Description = "Melihat data postal code", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetPostalCodes(
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetPostalCodesForAdmin(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
@@ -1781,11 +2484,108 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
-        [HttpGet("postal-codes/options")]
+        [HttpGet("postal-codes")]
+        [HttpGet("kiosk/postal-codes")]
         [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<ResponsePostalCodePagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Region", Description = "Melihat data postal code", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetPostalCodesForKiosk(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] Guid? countryId,
+            [FromQuery] Guid? provinceId,
+            [FromQuery] Guid? cityId,
+            [FromQuery] Guid? districtId,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "createDateTime",
+            [FromQuery] string? sortDirection = "desc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
+            var query = _dbContext.MstPostalCodes
+                .Include(x => x.District)
+                    .ThenInclude(x => x!.City)
+                        .ThenInclude(x => x!.Province)
+                            .ThenInclude(x => x!.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            query = ApplyDateFilter(query, dateRange);
+
+            if (countryId.HasValue && countryId.Value != Guid.Empty)
+                query = query.Where(x => x.District != null && x.District.City != null && x.District.City.Province != null && x.District.City.Province.CountryId == countryId.Value);
+
+            if (provinceId.HasValue && provinceId.Value != Guid.Empty)
+                query = query.Where(x => x.District != null && x.District.City != null && x.District.City.ProvinceId == provinceId.Value);
+
+            if (cityId.HasValue && cityId.Value != Guid.Empty)
+                query = query.Where(x => x.District != null && x.District.CityId == cityId.Value);
+
+            if (districtId.HasValue && districtId.Value != Guid.Empty)
+                query = query.Where(x => x.DistrictId == districtId.Value);
+
+            if (isActive.HasValue)
+                query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.PostalCode.ToLower().Contains(keyword) ||
+                    (x.VillageName != null && x.VillageName.ToLower().Contains(keyword)) ||
+                    (x.District != null && x.District.DistrictName.ToLower().Contains(keyword)) ||
+                    (x.District != null && x.District.City != null && x.District.City.CityName.ToLower().Contains(keyword)) ||
+                    (x.District != null && x.District.City != null && x.District.City.Province != null && x.District.City.Province.ProvinceName.ToLower().Contains(keyword)));
+            }
+
+            var totalData = await query.CountAsync();
+
+            var entities = await ApplyPostalCodeSorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities.Select(x => x.CreateBy)
+            );
+
+            var result = new ResponsePostalCodePagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = entities.Select(x => MapPostalCodeResponse(x, actorNames)).ToList()
+            };
+
+            return Ok(ApiResponse<ResponsePostalCodePagedResult>.Ok(
+                result,
+                "Data postal code berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/postal-codes/options")]
         [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Region", Description = "Melihat pilihan postal code", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetPostalCodeOptions(
+        [AccessPermission("Region", "Read")]
+        public async Task<IActionResult> GetPostalCodeOptionsForAdmin(
             [FromQuery] Guid? countryId,
             [FromQuery] Guid? provinceId,
             [FromQuery] Guid? cityId,
@@ -1859,6 +2659,86 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpGet("postal-codes/options")]
+        [HttpGet("kiosk/postal-codes/options")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<RegionOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Region", Description = "Melihat pilihan postal code", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetPostalCodeOptionsForKiosk(
+            [FromQuery] Guid? countryId,
+            [FromQuery] Guid? provinceId,
+            [FromQuery] Guid? cityId,
+            [FromQuery] Guid? districtId,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = _dbContext.MstPostalCodes
+                .Include(x => x.District)
+                    .ThenInclude(x => x!.City)
+                        .ThenInclude(x => x!.Province)
+                            .ThenInclude(x => x!.Country)
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (countryId.HasValue && countryId.Value != Guid.Empty)
+                query = query.Where(x => x.District != null && x.District.City != null && x.District.City.Province != null && x.District.City.Province.CountryId == countryId.Value);
+
+            if (provinceId.HasValue && provinceId.Value != Guid.Empty)
+                query = query.Where(x => x.District != null && x.District.City != null && x.District.City.ProvinceId == provinceId.Value);
+
+            if (cityId.HasValue && cityId.Value != Guid.Empty)
+                query = query.Where(x => x.District != null && x.District.CityId == cityId.Value);
+
+            if (districtId.HasValue && districtId.Value != Guid.Empty)
+                query = query.Where(x => x.DistrictId == districtId.Value);
+
+            if (onlyActive)
+                query = query.Where(x => x.IsActive && x.District != null && x.District.IsActive && !x.District.IsDelete);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.PostalCode.ToLower().Contains(keyword) ||
+                    (x.VillageName != null && x.VillageName.ToLower().Contains(keyword)) ||
+                    (x.District != null && x.District.DistrictName.ToLower().Contains(keyword)));
+            }
+
+            var totalData = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(x => x.VillageName)
+                .ThenBy(x => x.PostalCode)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new RegionOptionResponse
+                {
+                    Id = x.Id,
+                    Code = x.PostalCode,
+                    Name = x.VillageName ?? x.PostalCode,
+                    ParentId = x.DistrictId,
+                    ParentCode = x.District != null ? x.District.DistrictCode : null,
+                    ParentName = x.District != null ? x.District.DistrictName : null,
+                    AdditionalInfo = x.PostalCode,
+                    IsDefault = false,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponse<RegionOptionPagedResponse>.Ok(
+                BuildOptionPagedResponse(pageNumber, pageSize, totalData, items),
+                "Pilihan postal code berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/postal-codes/{id:guid}")]
         [HttpGet("postal-codes/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PostalCodeDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -1894,6 +2774,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpPost("admin/postal-codes")]
         [HttpPost("postal-codes")]
         [ProducesResponseType(typeof(ApiResponse<PostalCodeDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -1936,6 +2817,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return await GetPostalCodeById(entity.Id);
         }
 
+        [HttpPut("admin/postal-codes/{id:guid}")]
         [HttpPut("postal-codes/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PostalCodeDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -1983,6 +2865,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return await GetPostalCodeById(entity.Id);
         }
 
+        [HttpPatch("admin/postal-codes/{id:guid}/status")]
         [HttpPatch("postal-codes/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<PostalCodeDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -2019,6 +2902,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return await GetPostalCodeById(entity.Id);
         }
 
+        [HttpDelete("admin/postal-codes/{id:guid}")]
         [HttpDelete("postal-codes/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

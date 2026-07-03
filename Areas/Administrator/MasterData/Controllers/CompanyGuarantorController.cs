@@ -79,8 +79,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             _loggerService = loggerService;
         }
 
-        [HttpGet("filters/metadata")]
-        [Authorize(Policy = KioskReadPolicy)]
+        [HttpGet("admin/filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
@@ -89,7 +88,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        public async Task<IActionResult> GetFilterMetadata()
+        [AccessPermission("CompanyGuarantor", "Read")]
+        public async Task<IActionResult> GetFilterMetadataForAdmin()
         {
             var result = new CompanyGuarantorFilterMetadataResponse
             {
@@ -137,6 +137,66 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpGet("filters/metadata")]
+        [HttpGet("kiosk/filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction(
+            "Read",
+            "Read Company Guarantor",
+            Description = "Melihat metadata filter company guarantor",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        public async Task<IActionResult> GetFilterMetadataForKiosk()
+        {
+            var result = new CompanyGuarantorFilterMetadataResponse
+            {
+                DefaultFilter = new CompanyGuarantorDefaultFilterResponse(),
+                CustomPeriods = BuildCustomPeriodOptions(),
+                SortOptions = new List<CompanyGuarantorSortOptionResponse>
+                {
+                    new() { Value = "sortOrder", Label = "Urutan" },
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "companyGuarantorCode", Label = "Kode company guarantor" },
+                    new() { Value = "companyGuarantorName", Label = "Nama company guarantor" },
+                    new() { Value = "companyGroupName", Label = "Group company" },
+                    new() { Value = "guarantorType", Label = "Tipe guarantor" },
+                    new() { Value = "billingMethod", Label = "Metode billing" },
+                    new() { Value = "creditLimitAmount", Label = "Credit limit" },
+                    new() { Value = "currentOutstandingAmount", Label = "Outstanding" },
+                    new() { Value = "paymentDueDays", Label = "Payment due days" },
+                    new() { Value = "contractStartDate", Label = "Tanggal mulai kontrak" },
+                    new() { Value = "contractEndDate", Label = "Tanggal akhir kontrak" },
+                    new() { Value = "isUsingCompanyTariffBook", Label = "Pakai tarif company" },
+                    new() { Value = "isNeedGuaranteeLetter", Label = "Butuh guarantee letter" },
+                    new() { Value = "isActive", Label = "Status aktif" }
+                },
+                SortDirections = new List<string> { "asc", "desc" },
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                GuarantorTypeOptions = BuildAllowedStringOptions(AllowedGuarantorTypes),
+                BillingMethodOptions = BuildAllowedStringOptions(AllowedBillingMethods),
+                ContractStatusOptions = BuildContractStatusOptions(),
+                QueryParameters = BuildQueryParameterInfo(),
+                CreateFields = BuildCreateFieldMetadata(),
+                UpdateFields = BuildUpdateFieldMetadata(),
+                ResetButtonLabel = "Reset"
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "CompanyGuarantor.GetFilterMetadata",
+                "Mengambil metadata filter company guarantor.",
+                result
+            );
+
+            return Ok(ApiResponse<CompanyGuarantorFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter company guarantor berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/summary")]
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction(
@@ -191,8 +251,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
-        [HttpGet]
-        [Authorize(Policy = KioskReadPolicy)]
+        [HttpGet("admin")]
         [ProducesResponseType(typeof(ApiResponse<ResponseCompanyGuarantorPagedResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
@@ -202,7 +261,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        public async Task<IActionResult> GetCompanyGuarantors(
+        [AccessPermission("CompanyGuarantor", "Read")]
+        public async Task<IActionResult> GetCompanyGuarantorsForAdmin(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
@@ -304,8 +364,121 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
-        [HttpGet("options")]
+        [HttpGet]
+        [HttpGet("kiosk")]
         [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<ResponseCompanyGuarantorPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Read",
+            "Read Company Guarantor",
+            Description = "Melihat data company guarantor",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        public async Task<IActionResult> GetCompanyGuarantorsForKiosk(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] string? search,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? guarantorType,
+            [FromQuery] string? billingMethod,
+            [FromQuery] string? contractStatus,
+            [FromQuery] bool? isUsingCompanyTariffBook,
+            [FromQuery] bool? isUsingHospitalTariff,
+            [FromQuery] bool? isNeedGuaranteeLetter,
+            [FromQuery] bool? isNeedEmployeeVerification,
+            [FromQuery] bool? isNeedApprovalForProcedure,
+            [FromQuery] bool? isNeedApprovalForDrug,
+            [FromQuery] bool? isCoverageLimitedByEmployeeGrade,
+            [FromQuery] bool? isAllowExcessPaymentByPatient,
+            [FromQuery] bool? hasCreditLimit,
+            [FromQuery] bool? hasOutstanding,
+            [FromQuery] string? sortBy = "sortOrder",
+            [FromQuery] string? sortDirection = "asc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
+            var filterValidation = ValidateFilterValues(guarantorType, billingMethod, contractStatus);
+
+            if (!filterValidation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    filterValidation.ErrorMessage ?? "Filter company guarantor tidak valid."
+                ));
+            }
+
+            var query = BuildBaseQuery();
+
+            query = ApplyDateFilter(query, dateRange);
+            query = ApplyStandardFilter(
+                query,
+                search,
+                isActive,
+                guarantorType,
+                billingMethod,
+                contractStatus,
+                isUsingCompanyTariffBook,
+                isUsingHospitalTariff,
+                isNeedGuaranteeLetter,
+                isNeedEmployeeVerification,
+                isNeedApprovalForProcedure,
+                isNeedApprovalForDrug,
+                isCoverageLimitedByEmployeeGrade,
+                isAllowExcessPaymentByPatient,
+                hasCreditLimit,
+                hasOutstanding
+            );
+
+            var totalData = await query.CountAsync();
+
+            var entities = await ApplySorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .Select(x => x.CreateBy)
+                    .Where(x => x != Guid.Empty)
+            );
+
+            var items = entities
+                .Select(x => MapResponse(x, actorNames))
+                .ToList();
+
+            var result = new ResponseCompanyGuarantorPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<ResponseCompanyGuarantorPagedResult>.Ok(
+                result,
+                "Data company guarantor berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/options")]
         [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorOptionPagedResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction(
@@ -315,7 +488,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             AccessType = AccessTypes.Read,
             SortOrder = 1
         )]
-        public async Task<IActionResult> GetCompanyGuarantorOptions(
+        [AccessPermission("CompanyGuarantor", "Read")]
+        public async Task<IActionResult> GetCompanyGuarantorOptionsForAdmin(
             [FromQuery] bool onlyActive = true,
             [FromQuery] bool? activeOnly = null,
             [FromQuery] string? guarantorType = null,
@@ -399,6 +573,103 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpGet("options")]
+        [HttpGet("kiosk/options")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorOptionPagedResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Read",
+            "Read Company Guarantor",
+            Description = "Melihat data pilihan company guarantor",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        public async Task<IActionResult> GetCompanyGuarantorOptionsForKiosk(
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] bool? activeOnly = null,
+            [FromQuery] string? guarantorType = null,
+            [FromQuery] string? billingMethod = null,
+            [FromQuery] string? contractStatus = null,
+            [FromQuery] bool? isUsingCompanyTariffBook = null,
+            [FromQuery] bool? isUsingHospitalTariff = null,
+            [FromQuery] bool? isNeedGuaranteeLetter = null,
+            [FromQuery] bool? isNeedEmployeeVerification = null,
+            [FromQuery] bool? isNeedApprovalForProcedure = null,
+            [FromQuery] bool? isNeedApprovalForDrug = null,
+            [FromQuery] bool? isCoverageLimitedByEmployeeGrade = null,
+            [FromQuery] bool? isAllowExcessPaymentByPatient = null,
+            [FromQuery] bool? hasCreditLimit = null,
+            [FromQuery] bool? hasOutstanding = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var filterValidation = ValidateFilterValues(guarantorType, billingMethod, contractStatus);
+
+            if (!filterValidation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    filterValidation.ErrorMessage ?? "Filter company guarantor tidak valid."
+                ));
+            }
+
+            var useOnlyActive = activeOnly ?? onlyActive;
+
+            var query = BuildBaseQuery();
+            query = ApplyStandardFilter(
+                query,
+                search,
+                useOnlyActive ? true : null,
+                guarantorType,
+                billingMethod,
+                contractStatus,
+                isUsingCompanyTariffBook,
+                isUsingHospitalTariff,
+                isNeedGuaranteeLetter,
+                isNeedEmployeeVerification,
+                isNeedApprovalForProcedure,
+                isNeedApprovalForDrug,
+                isCoverageLimitedByEmployeeGrade,
+                isAllowExcessPaymentByPatient,
+                hasCreditLimit,
+                hasOutstanding
+            );
+
+            var totalData = await query.CountAsync();
+
+            var entities = await query
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.CompanyGuarantorName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var items = entities
+                .Select(MapOptionResponse)
+                .ToList();
+
+            var result = new CompanyGuarantorOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<CompanyGuarantorOptionPagedResponse>.Ok(
+                result,
+                "Data pilihan company guarantor berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/{id:guid}")]
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -437,6 +708,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpPost("admin")]
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -545,6 +817,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpPut("admin/{id:guid}")]
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -654,6 +927,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpPatch("admin/{id:guid}/status")]
         [HttpPatch("{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -719,6 +993,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             ));
         }
 
+        [HttpDelete("admin/{id:guid}")]
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<CompanyGuarantorDeleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

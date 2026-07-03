@@ -55,10 +55,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet("filters/metadata")]
+        [HttpGet("kiosk/filters/metadata")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetFilterMetadata()
+        public async Task<IActionResult> GetFilterMetadataForKiosk()
         {
             var result = new DoctorScheduleFilterMetadataResponse
             {
@@ -101,7 +102,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             await _loggerService.InfoAsync(
                 LogCategory,
-                "DoctorSchedule.GetFilterMetadata",
+                "DoctorSchedule.GetFilterMetadataForKiosk",
                 "Mengambil metadata filter doctor schedule.",
                 result
             );
@@ -112,11 +113,72 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+
+
+        [HttpGet("admin/filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<DoctorScheduleFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat metadata filter doctor schedule untuk halaman admin", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("DoctorSchedule", "Read")]
+        public async Task<IActionResult> GetFilterMetadataForAdmin()
+        {
+            var result = new DoctorScheduleFilterMetadataResponse
+            {
+                DefaultFilter = new DoctorScheduleDefaultFilterResponse(),
+                CustomPeriods = new List<DoctorScheduleCustomPeriodResponse>
+                {
+                    new() { Value = "today", Label = "Hari ini" },
+                    new() { Value = "last7days", Label = "7 hari terakhir" },
+                    new() { Value = "last30days", Label = "30 hari terakhir" },
+                    new() { Value = "thismonth", Label = "Bulan ini" },
+                    new() { Value = "thisyear", Label = "Tahun ini" },
+                    new() { Value = "all", Label = "Semua periode" }
+                },
+                SortOptions = new List<DoctorScheduleSortOptionResponse>
+                {
+                    new() { Value = "sortOrder", Label = "Urutan" },
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "scheduleCode", Label = "Kode jadwal" },
+                    new() { Value = "scheduleName", Label = "Nama jadwal" },
+                    new() { Value = "doctorName", Label = "Nama dokter" },
+                    new() { Value = "serviceUnitName", Label = "Nama service unit" },
+                    new() { Value = "clinicName", Label = "Nama clinic" },
+                    new() { Value = "practiceDay", Label = "Hari praktik" },
+                    new() { Value = "practiceDate", Label = "Tanggal praktik" },
+                    new() { Value = "startTime", Label = "Jam mulai" },
+                    new() { Value = "endTime", Label = "Jam selesai" },
+                    new() { Value = "scheduleType", Label = "Tipe jadwal" },
+                    new() { Value = "scheduleStatus", Label = "Status jadwal" },
+                    new() { Value = "isActive", Label = "Status aktif" }
+                },
+                SortDirections = new List<string> { "asc", "desc" },
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                ScheduleTypeOptions = BuildEnumOptions<DoctorScheduleType>(),
+                ScheduleStatusOptions = BuildEnumOptions<DoctorScheduleStatus>(),
+                PracticeDayOptions = BuildEnumOptions<DayOfWeek>(),
+                QueryParameters = BuildQueryParameters(),
+                CreateFields = BuildCreateFields(),
+                UpdateFields = BuildUpdateFields()
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "DoctorSchedule.GetFilterMetadataForAdmin",
+                "Mengambil metadata filter doctor schedule untuk halaman admin.",
+                result
+            );
+
+            return Ok(ApiResponse<DoctorScheduleFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter doctor schedule admin berhasil diambil."
+            ));
+        }
+
         [HttpGet("summary")]
+        [HttpGet("admin/summary")]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DoctorSchedule", "Read")]
-        public async Task<IActionResult> GetSummary()
+        public async Task<IActionResult> GetSummaryForAdmin()
         {
             var query = _dbContext.Set<MstDoctorSchedule>()
                 .AsNoTracking()
@@ -143,10 +205,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpGet]
+        [HttpGet("kiosk")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<ResponseDoctorSchedulePagedResult>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetDoctorSchedules(
+        public async Task<IActionResult> GetDoctorSchedulesForKiosk(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
@@ -196,11 +259,84 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+
+
+        [HttpGet("admin")]
+        [ProducesResponseType(typeof(ApiResponse<ResponseDoctorSchedulePagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data doctor schedule untuk halaman admin", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("DoctorSchedule", "Read")]
+        public async Task<IActionResult> GetDoctorSchedulesForAdmin(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] Guid? doctorId,
+            [FromQuery] Guid? serviceUnitId,
+            [FromQuery] Guid? clinicId,
+            [FromQuery] Guid? roomId,
+            [FromQuery] DoctorScheduleType? scheduleType,
+            [FromQuery] DoctorScheduleStatus? scheduleStatus,
+            [FromQuery] DayOfWeek? practiceDay,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "sortOrder",
+            [FromQuery] string? sortDirection = "asc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = BuildBaseQuery();
+
+            query = ApplyDateFilter(query, startDate, endDate, customPeriod);
+            query = ApplyFilters(
+                query,
+                doctorId,
+                clinicId,
+                isActive,
+                search,
+                serviceUnitId,
+                roomId,
+                scheduleType,
+                scheduleStatus,
+                practiceDay
+            );
+
+            var totalData = await query.CountAsync();
+
+            var entities = await ApplySorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var items = entities
+                .Select(ToResponse)
+                .ToList();
+
+            await EnrichDoctorSchedulePhotoFieldsAsync(items);
+
+            var result = new ResponseDoctorSchedulePagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<ResponseDoctorSchedulePagedResult>.Ok(
+                result,
+                "Data doctor schedule admin berhasil diambil."
+            ));
+        }
+
         [HttpGet("options")]
+        [HttpGet("kiosk/options")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data pilihan doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
-        public async Task<IActionResult> GetDoctorScheduleOptions(
+        public async Task<IActionResult> GetDoctorScheduleOptionsForKiosk(
             [FromQuery] Guid? doctorId,
             [FromQuery] Guid? clinicId,
             [FromQuery] Guid? serviceUnitId,
@@ -292,12 +428,126 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+
+
+        [HttpGet("admin/options")]
+        [ProducesResponseType(typeof(ApiResponse<DoctorScheduleOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data pilihan doctor schedule untuk halaman admin", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("DoctorSchedule", "Read")]
+        public async Task<IActionResult> GetDoctorScheduleOptionsForAdmin(
+            [FromQuery] Guid? doctorId,
+            [FromQuery] Guid? clinicId,
+            [FromQuery] Guid? serviceUnitId,
+            [FromQuery] Guid? roomId,
+            [FromQuery] DoctorScheduleType? scheduleType,
+            [FromQuery] DoctorScheduleStatus? scheduleStatus,
+            [FromQuery] DayOfWeek? practiceDay,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] bool onlyKioskAvailableNow = false,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = BuildBaseQuery();
+
+            if (onlyActive)
+                query = query.Where(x => x.IsActive);
+
+            query = ApplyFilters(
+                query,
+                doctorId,
+                clinicId,
+                null,
+                search,
+                serviceUnitId,
+                roomId,
+                scheduleType,
+                scheduleStatus,
+                practiceDay
+            );
+
+            if (onlyKioskAvailableNow)
+                query = ApplyKioskAvailableNowFilter(query);
+
+            var totalData = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.Doctor != null ? x.Doctor.FullName : string.Empty)
+                .ThenBy(x => x.PracticeDay)
+                .ThenBy(x => x.StartTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new DoctorScheduleOptionResponse
+                {
+                    Id = x.Id,
+
+                    DoctorId = x.DoctorId,
+                    DoctorName = x.Doctor != null ? x.Doctor.FullName : string.Empty,
+                    SpecialistName = x.Doctor != null ? x.Doctor.SpecialistName : null,
+
+                    ServiceUnitId = x.ServiceUnitId,
+                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
+
+                    ClinicId = x.ClinicId,
+                    ClinicName = x.Clinic != null ? x.Clinic.ClinicName : string.Empty,
+
+                    RoomId = x.RoomId,
+                    RoomMasterName = x.Room != null ? x.Room.RoomName : null,
+
+                    ScheduleCode = x.ScheduleCode,
+                    ScheduleName = x.ScheduleName,
+                    ScheduleType = x.ScheduleType,
+                    ScheduleStatus = x.ScheduleStatus,
+
+                    PracticeDay = x.PracticeDay,
+                    PracticeDate = x.PracticeDate,
+
+                    StartTime = x.StartTime,
+                    EndTime = x.EndTime,
+
+                    SessionName = x.SessionName,
+
+                    MaxPatientQuota = x.MaxPatientQuota,
+                    MaxAppointmentQuota = x.MaxAppointmentQuota,
+                    MaxWalkInQuota = x.MaxWalkInQuota,
+                    EstimatedServiceMinutes = x.EstimatedServiceMinutes,
+
+                    IsAllowWalkIn = x.IsAllowWalkIn,
+                    IsAllowAppointment = x.IsAllowAppointment,
+                    IsAllowKioskRegistration = x.IsAllowKioskRegistration,
+                    IsTelemedicineAvailable = x.IsTelemedicineAvailable
+                })
+                .ToListAsync();
+
+            await EnrichDoctorScheduleOptionPhotoFieldsAsync(items);
+
+            var result = new DoctorScheduleOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<DoctorScheduleOptionPagedResponse>.Ok(
+                result,
+                "Data pilihan doctor schedule admin berhasil diambil."
+            ));
+        }
+
         [HttpGet("{id:guid}")]
+        [HttpGet("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat detail doctor schedule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DoctorSchedule", "Read")]
-        public async Task<IActionResult> GetDoctorScheduleById(Guid id)
+        public async Task<IActionResult> GetDoctorScheduleByIdForAdmin(Guid id)
         {
             var entity = await BuildBaseQuery()
                 .FirstOrDefaultAsync(x => x.Id == id);
@@ -320,12 +570,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpPost]
+        [HttpPost("admin")]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Doctor Schedule", Description = "Membuat data doctor schedule", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("DoctorSchedule", "Create")]
-        public async Task<IActionResult> CreateDoctorSchedule([FromBody] CreateDoctorScheduleRequest request)
+        public async Task<IActionResult> CreateDoctorScheduleForAdmin([FromBody] CreateDoctorScheduleRequest request)
         {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Payload doctor schedule wajib diisi."
+                ));
+            }
+
             var validation = await ValidateRequestAsync(
                 excludeId: null,
                 request: request
@@ -418,13 +677,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpPut("{id:guid}")]
+        [HttpPut("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Update", "Update Doctor Schedule", Description = "Mengubah data doctor schedule", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("DoctorSchedule", "Update")]
-        public async Task<IActionResult> UpdateDoctorSchedule(Guid id, [FromBody] UpdateDoctorScheduleRequest request)
+        public async Task<IActionResult> UpdateDoctorScheduleForAdmin(Guid id, [FromBody] UpdateDoctorScheduleRequest request)
         {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Payload doctor schedule wajib diisi."
+                ));
+            }
+
             var entity = await _dbContext.Set<MstDoctorSchedule>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
@@ -511,21 +779,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpPatch("{id:guid}/activate")]
+        [HttpPatch("admin/{id:guid}/activate")]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleStatusResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Doctor Schedule", Description = "Mengaktifkan data doctor schedule", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("DoctorSchedule", "Update")]
-        public async Task<IActionResult> ActivateDoctorSchedule(Guid id)
+        public async Task<IActionResult> ActivateDoctorScheduleForAdmin(Guid id)
         {
             return await SetActiveStatusAsync(id, true, "Doctor schedule berhasil diaktifkan.");
         }
 
         [HttpPatch("{id:guid}/deactivate")]
+        [HttpPatch("admin/{id:guid}/deactivate")]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleStatusResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Doctor Schedule", Description = "Menonaktifkan data doctor schedule", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("DoctorSchedule", "Update")]
-        public async Task<IActionResult> DeactivateDoctorSchedule(Guid id)
+        public async Task<IActionResult> DeactivateDoctorScheduleForAdmin(Guid id)
         {
             return await SetActiveStatusAsync(id, false, "Doctor schedule berhasil dinonaktifkan.");
         }
@@ -533,12 +803,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
 
         [HttpPatch("{id:guid}/status")]
+        [HttpPatch("admin/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleStatusResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Doctor Schedule", Description = "Mengubah status doctor schedule", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("DoctorSchedule", "Update")]
-        public async Task<IActionResult> UpdateDoctorScheduleStatus(Guid id, [FromBody] UpdateDoctorScheduleStatusRequest request)
+        public async Task<IActionResult> UpdateDoctorScheduleStatusForAdmin(Guid id, [FromBody] UpdateDoctorScheduleStatusRequest request)
         {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Payload status doctor schedule wajib diisi."
+                ));
+            }
+
             return await SetActiveStatusAsync(
                 id,
                 request.IsActive,
@@ -549,11 +828,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         [HttpDelete("{id:guid}")]
+        [HttpDelete("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleDeleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Doctor Schedule", Description = "Menghapus data doctor schedule", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("DoctorSchedule", "Delete")]
-        public async Task<IActionResult> DeleteDoctorSchedule(Guid id, [FromBody] DeleteDoctorScheduleRequest? deleteRequest = null)
+        public async Task<IActionResult> DeleteDoctorScheduleForAdmin(Guid id, [FromBody] DeleteDoctorScheduleRequest? deleteRequest = null)
         {
             var entity = await _dbContext.Set<MstDoctorSchedule>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
@@ -711,7 +991,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             Guid? clinicId,
             bool? isActive,
             string? search,
-            Guid? serviceUnitId = null)
+            Guid? serviceUnitId = null,
+            Guid? roomId = null,
+            DoctorScheduleType? scheduleType = null,
+            DoctorScheduleStatus? scheduleStatus = null,
+            DayOfWeek? practiceDay = null)
         {
             if (doctorId.HasValue && doctorId.Value != Guid.Empty)
                 query = query.Where(x => x.DoctorId == doctorId.Value);
@@ -721,6 +1005,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
                 query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
+
+            if (roomId.HasValue && roomId.Value != Guid.Empty)
+                query = query.Where(x => x.RoomId == roomId.Value);
+
+            if (scheduleType.HasValue && Enum.IsDefined(typeof(DoctorScheduleType), scheduleType.Value))
+                query = query.Where(x => x.ScheduleType == scheduleType.Value);
+
+            if (scheduleStatus.HasValue && Enum.IsDefined(typeof(DoctorScheduleStatus), scheduleStatus.Value))
+                query = query.Where(x => x.ScheduleStatus == scheduleStatus.Value);
+
+            if (practiceDay.HasValue && Enum.IsDefined(typeof(DayOfWeek), practiceDay.Value))
+                query = query.Where(x => x.PracticeDay == practiceDay.Value);
 
             if (isActive.HasValue)
                 query = query.Where(x => x.IsActive == isActive.Value);

@@ -50,11 +50,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             _loggerService = loggerService;
         }
 
-        [HttpGet("filters/metadata")]
-        [Authorize(Policy = KioskReadPolicy)]
+        [HttpGet("admin/filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<ClinicFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Clinic", Description = "Melihat metadata filter clinic", AccessType = AccessTypes.Read, SortOrder = 1)]        
-        public async Task<IActionResult> GetFilterMetadata()
+        [AccessAction("Read", "Read Clinic", Description = "Melihat metadata filter clinic", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Clinic", "Read")]
+        public async Task<IActionResult> GetFilterMetadataForAdmin()
         {
             var result = new ClinicFilterMetadataResponse
             {
@@ -91,7 +91,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             await _loggerService.InfoAsync(
                 LogCategory,
-                "Clinic.GetFilterMetadata",
+                "Clinic.GetFilterMetadataForAdmin",
                 "Mengambil metadata filter clinic.",
                 result
             );
@@ -102,11 +102,65 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+        [HttpGet("kiosk/filters/metadata")]
+        [HttpGet("filters/metadata")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<ClinicFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Clinic", Description = "Melihat metadata filter clinic", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetFilterMetadataForKiosk()
+        {
+            var result = new ClinicFilterMetadataResponse
+            {
+                DefaultFilter = new ClinicDefaultFilterResponse(),
+                CustomPeriods = BuildCustomPeriodOptions(),
+                SortOptions = new List<ClinicSortOptionResponse>
+                {
+                    new() { Value = "sortOrder", Label = "Urutan" },
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "clinicCode", Label = "Kode clinic" },
+                    new() { Value = "clinicName", Label = "Nama clinic" },
+                    new() { Value = "clinicType", Label = "Tipe clinic" },
+                    new() { Value = "serviceUnitName", Label = "Nama service unit" },
+                    new() { Value = "shortName", Label = "Nama singkat" },
+                    new() { Value = "locationName", Label = "Lokasi" },
+                    new() { Value = "roomName", Label = "Nama ruang" },
+                    new() { Value = "defaultEstimatedServiceMinutes", Label = "Estimasi pelayanan" },
+                    new() { Value = "isAvailableForRegistration", Label = "Tersedia registrasi" },
+                    new() { Value = "isAvailableForKiosk", Label = "Tersedia kiosk" },
+                    new() { Value = "isAvailableForAppointment", Label = "Tersedia appointment" },
+                    new() { Value = "isDoctorRequired", Label = "Butuh dokter" },
+                    new() { Value = "isScreeningRequired", Label = "Butuh screening" },
+                    new() { Value = "isQueueRequired", Label = "Butuh antrian" },
+                    new() { Value = "isActive", Label = "Status aktif" }
+                },
+                SortDirections = new List<string> { "asc", "desc" },
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                ClinicTypeOptions = BuildEnumOptions<ClinicType>(),
+                QueryParameters = BuildQueryParameterInfo(),
+                CreateFields = BuildCreateFieldMetadata(),
+                UpdateFields = BuildUpdateFieldMetadata(),
+                ResetButtonLabel = "Reset"
+            };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Clinic.GetFilterMetadataForKiosk",
+                "Mengambil metadata filter clinic.",
+                result
+            );
+
+            return Ok(ApiResponse<ClinicFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter clinic berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/summary")]
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<ClinicSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Clinic", Description = "Melihat ringkasan clinic", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Clinic", "Read")]
-        public async Task<IActionResult> GetSummary()
+        public async Task<IActionResult> GetSummaryForAdmin()
         {
             var query = BuildBaseQuery();
 
@@ -129,11 +183,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
-        [HttpGet]
-        [Authorize(Policy = KioskReadPolicy)]
+        [HttpGet("admin")]
         [ProducesResponseType(typeof(ApiResponse<ResponseClinicPagedResult>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Clinic", Description = "Melihat data clinic", AccessType = AccessTypes.Read, SortOrder = 1)]        
-        public async Task<IActionResult> GetClinics(
+        [AccessAction("Read", "Read Clinic", Description = "Melihat data clinic", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Clinic", "Read")]
+        public async Task<IActionResult> GetClinicsForAdmin(
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
@@ -214,11 +268,97 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
-        [HttpGet("options")]
+        [HttpGet("kiosk")]
+        [HttpGet]
         [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<ResponseClinicPagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Clinic", Description = "Melihat data clinic", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetClinicsForKiosk(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] Guid? serviceUnitId,
+            [FromQuery] bool? isActive,
+            [FromQuery] ClinicType? clinicType,
+            [FromQuery] bool? isAvailableForRegistration,
+            [FromQuery] bool? isAvailableForKiosk,
+            [FromQuery] bool? isAvailableForAppointment,
+            [FromQuery] bool? isDoctorRequired,
+            [FromQuery] bool? isScreeningRequired,
+            [FromQuery] bool? isQueueRequired,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "sortOrder",
+            [FromQuery] string? sortDirection = "asc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? "Filter tanggal tidak valid."
+                ));
+            }
+
+            var query = BuildBaseQuery();
+            query = ApplyDateFilter(query, dateRange);
+            query = ApplyStandardFilter(
+                query,
+                serviceUnitId,
+                true,
+                clinicType,
+                isAvailableForRegistration,
+                true,
+                isAvailableForAppointment,
+                isDoctorRequired,
+                isScreeningRequired,
+                isQueueRequired,
+                search
+            );
+
+            var totalData = await query.CountAsync();
+
+            var entities = await ApplySorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities
+                    .Select(x => x.CreateBy)
+                    .Where(x => x != Guid.Empty)
+            );
+
+            var items = entities
+                .Select(x => MapResponse(x, actorNames))
+                .ToList();
+
+            var result = new ResponseClinicPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<ResponseClinicPagedResult>.Ok(
+                result,
+                "Data clinic berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/options")]
         [ProducesResponseType(typeof(ApiResponse<ClinicOptionPagedResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Clinic", Description = "Melihat data pilihan clinic", AccessType = AccessTypes.Read, SortOrder = 1)]        
-        public async Task<IActionResult> GetClinicOptions(
+        [AccessAction("Read", "Read Clinic", Description = "Melihat data pilihan clinic", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Clinic", "Read")]
+        public async Task<IActionResult> GetClinicOptionsForAdmin(
             [FromQuery] Guid? serviceUnitId,
             [FromQuery] ClinicType? clinicType,
             [FromQuery] bool? isAvailableForRegistration,
@@ -282,12 +422,80 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+        [HttpGet("kiosk/options")]
+        [HttpGet("options")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<ClinicOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Clinic", Description = "Melihat data pilihan clinic", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetClinicOptionsForKiosk(
+            [FromQuery] Guid? serviceUnitId,
+            [FromQuery] ClinicType? clinicType,
+            [FromQuery] bool? isAvailableForRegistration,
+            [FromQuery] bool? isAvailableForKiosk,
+            [FromQuery] bool? isAvailableForAppointment,
+            [FromQuery] bool? isDoctorRequired,
+            [FromQuery] bool? isScreeningRequired,
+            [FromQuery] bool? isQueueRequired,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] bool? activeOnly = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = BuildBaseQuery();
+            query = ApplyStandardFilter(
+                query,
+                serviceUnitId,
+                true,
+                clinicType,
+                isAvailableForRegistration,
+                true,
+                isAvailableForAppointment,
+                isDoctorRequired,
+                isScreeningRequired,
+                isQueueRequired,
+                search
+            );
+
+            var totalData = await query.CountAsync();
+
+            var entities = await query
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.ClinicName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var items = entities
+                .Select(MapOptionResponse)
+                .ToList();
+
+            var result = new ClinicOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<ClinicOptionPagedResponse>.Ok(
+                result,
+                "Data pilihan clinic berhasil diambil."
+            ));
+        }
+
+        [HttpGet("admin/{id:guid}")]
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<ClinicDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Read", "Read Clinic", Description = "Melihat detail clinic", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Clinic", "Read")]
-        public async Task<IActionResult> GetClinicById(Guid id)
+        public async Task<IActionResult> GetClinicByIdForAdmin(Guid id)
         {
             var entity = await BuildBaseQuery()
                 .FirstOrDefaultAsync(x => x.Id == id);
@@ -314,13 +522,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+        [HttpPost("admin")]
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<ClinicCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Clinic", Description = "Membuat data clinic", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("Clinic", "Create")]
-        public async Task<IActionResult> CreateClinic([FromBody] CreateClinicRequest request)
+        public async Task<IActionResult> CreateClinicForAdmin([FromBody] CreateClinicRequest request)
         {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Payload clinic wajib diisi."
+                ));
+            }
+
             var validation = await ValidateCreateUpdateRequestAsync(
                 excludeId: null,
                 serviceUnitId: request.ServiceUnitId,
@@ -413,14 +630,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+        [HttpPut("admin/{id:guid}")]
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<ClinicUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Clinic", Description = "Mengubah data clinic", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("Clinic", "Update")]
-        public async Task<IActionResult> UpdateClinic(Guid id, [FromBody] UpdateClinicRequest request)
+        public async Task<IActionResult> UpdateClinicForAdmin(Guid id, [FromBody] UpdateClinicRequest request)
         {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Payload clinic wajib diisi."
+                ));
+            }
+
             var entity = await _dbContext.Set<MstClinic>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
@@ -502,13 +728,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+        [HttpPatch("admin/{id:guid}/status")]
         [HttpPatch("{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<ClinicUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Clinic Status", Description = "Mengubah status clinic", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("Clinic", "Update")]
-        public async Task<IActionResult> UpdateClinicStatus(Guid id, [FromBody] UpdateClinicStatusRequest request)
+        public async Task<IActionResult> UpdateClinicStatusForAdmin(Guid id, [FromBody] UpdateClinicStatusRequest request)
         {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Payload status clinic wajib diisi."
+                ));
+            }
+
             var entity = await _dbContext.Set<MstClinic>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
@@ -566,13 +801,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+        [HttpDelete("admin/{id:guid}")]
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<ClinicDeleteResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Delete", "Delete Clinic", Description = "Menghapus data clinic", AccessType = AccessTypes.Delete, SortOrder = 4)]
         [AccessPermission("Clinic", "Delete")]
-        public async Task<IActionResult> DeleteClinic(Guid id, [FromBody] DeleteClinicRequest? request = null)
+        public async Task<IActionResult> DeleteClinicForAdmin(Guid id, [FromBody] DeleteClinicRequest? request = null)
         {
             var entity = await _dbContext.Set<MstClinic>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
