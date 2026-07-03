@@ -186,9 +186,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             if (queue.QueueStatus == QueueStatus.CalledByDoctor && queue.DoctorCallExpiresAt.HasValue && queue.DoctorCallExpiresAt.Value > now)
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Timer panggilan dokter masih berjalan."));
 
-            if (queue.DoctorCallAttemptCount >= 2)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Pasien sudah dipanggil 2 kali. Silakan lakukan skip."));
-
             var actorUserId = GetCurrentUserId();
             queue.QueueStatus = QueueStatus.CalledByDoctor;
             queue.DoctorCallAttemptCount += 1;
