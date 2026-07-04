@@ -59,6 +59,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
 
         public int RefreshIntervalSeconds { get; set; } = 5;
 
+        /// <summary>
+        /// Masa aktif session login display dalam menit.
+        /// Kosongkan untuk memakai fallback dari konfigurasi Jwt:DeviceDefaultExpireMinutes.
+        /// Contoh: 1440 = 1 hari, 43200 = 30 hari, 129600 = 90 hari, 525600 = 365 hari.
+        /// </summary>
+        public int? SessionExpireMinutes { get; set; }
+
         public DateTime? LastOnlineDateTime { get; set; }
 
         public DateTime? LastOfflineDateTime { get; set; }

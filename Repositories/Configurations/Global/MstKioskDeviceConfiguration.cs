@@ -55,6 +55,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
             entity.Property(x => x.IsAllowInsuranceRegistration)
                 .HasDefaultValue(true);
 
+            entity.Property(x => x.SessionExpireMinutes)
+                .IsRequired(false);
+
             entity.Property(x => x.LastOnlineAt)
                 .HasColumnType("timestamp with time zone")
                 .IsRequired(false);
@@ -143,6 +146,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
                 x.IsActive,
                 x.IsDelete
             });
+
+            entity.HasIndex(x => x.SessionExpireMinutes);
         }
     }
 }

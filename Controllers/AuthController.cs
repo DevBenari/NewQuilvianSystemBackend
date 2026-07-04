@@ -142,7 +142,13 @@ namespace QuilvianSystemBackend.Controllers
                 ));
             }
 
-            if (user.AccessValidUntil.HasValue && user.AccessValidUntil.Value < DateTime.UtcNow)
+            var kioskContext = await ResolveKioskLoginContextAsync(user);
+            var queueDisplayContext = await ResolveQueueDisplayLoginContextAsync(user);
+            var isDeviceLoginAccount =
+                kioskContext.IsKioskAccount ||
+                queueDisplayContext.IsQueueDisplayAccount;
+
+            if (!isDeviceLoginAccount && user.AccessValidUntil.HasValue && user.AccessValidUntil.Value < DateTime.UtcNow)
             {
                 await _loggerService.WarningAsync(
                     "Auth",
@@ -209,9 +215,6 @@ namespace QuilvianSystemBackend.Controllers
                 ));
             }
 
-            var kioskContext = await ResolveKioskLoginContextAsync(user);
-            var queueDisplayContext = await ResolveQueueDisplayLoginContextAsync(user);
-
             if (kioskContext.IsKioskAccount && !kioskContext.CanLogin)
             {
                 await _loggerService.WarningAsync(
@@ -271,10 +274,6 @@ namespace QuilvianSystemBackend.Controllers
                     queueDisplayContext.BlockReason ?? "Akun display antrian tidak dapat digunakan."
                 ));
             }
-
-            var isDeviceLoginAccount =
-                kioskContext.IsKioskAccount ||
-                queueDisplayContext.IsQueueDisplayAccount;
 
             var geofenceValidation = isDeviceLoginAccount
                 ? GeofenceValidationResult.Bypassed("Device account bypass geolocation.")
@@ -354,7 +353,7 @@ namespace QuilvianSystemBackend.Controllers
                 var roles = await _userManager.GetRolesAsync(user);
                 var token = GenerateJwtToken(user, roles, kioskContext, queueDisplayContext);
 
-                SetAuthCookie(token, user);
+                SetAuthCookie(token, user, kioskContext, queueDisplayContext);
 
                 await _loggerService.InfoAsync(
                     "Auth",
@@ -378,7 +377,7 @@ namespace QuilvianSystemBackend.Controllers
                 return Ok(ApiResponse<LoginDataResponse>.Ok(
                     new LoginDataResponse
                     {
-                        Auth = BuildAuthInfoResponse(user),
+                        Auth = BuildAuthInfoResponse(user, kioskContext, queueDisplayContext),
                         Endpoints = new AuthEndpointResponse(),
                         User = BuildUserResponse(user, roles, kioskContext, queueDisplayContext)
                     },
@@ -580,7 +579,7 @@ namespace QuilvianSystemBackend.Controllers
             var queueDisplayContext = await ResolveQueueDisplayLoginContextAsync(user);
             var token = GenerateJwtToken(user, roles, kioskContext, queueDisplayContext);
 
-            SetAuthCookie(token, user);
+            SetAuthCookie(token, user, kioskContext, queueDisplayContext);
 
             await _loggerService.InfoAsync(
                 "Auth",
@@ -603,7 +602,7 @@ namespace QuilvianSystemBackend.Controllers
             return Ok(ApiResponse<LoginDataResponse>.Ok(
                 new LoginDataResponse
                 {
-                    Auth = BuildAuthInfoResponse(user),
+                    Auth = BuildAuthInfoResponse(user, kioskContext, queueDisplayContext),
                     Endpoints = new AuthEndpointResponse(),
                     User = BuildUserResponse(user, roles, kioskContext, queueDisplayContext)
                 },
@@ -772,7 +771,13 @@ namespace QuilvianSystemBackend.Controllers
                 ));
             }
 
-            if (user.AccessValidUntil.HasValue && user.AccessValidUntil.Value < DateTime.UtcNow)
+            var kioskContext = await ResolveKioskLoginContextAsync(user);
+            var queueDisplayContext = await ResolveQueueDisplayLoginContextAsync(user);
+            var isDeviceLoginAccount =
+                kioskContext.IsKioskAccount ||
+                queueDisplayContext.IsQueueDisplayAccount;
+
+            if (!isDeviceLoginAccount && user.AccessValidUntil.HasValue && user.AccessValidUntil.Value < DateTime.UtcNow)
             {
                 await _loggerService.WarningAsync(
                     "Auth",
@@ -793,12 +798,26 @@ namespace QuilvianSystemBackend.Controllers
                 ));
             }
 
+            if (kioskContext.IsKioskAccount && !kioskContext.CanLogin)
+            {
+                return Unauthorized(ApiResponse<object>.Fail(
+                    StatusCodes.Status401Unauthorized,
+                    kioskContext.BlockReason ?? "Akun kiosk tidak dapat digunakan."
+                ));
+            }
+
+            if (queueDisplayContext.IsQueueDisplayAccount && !queueDisplayContext.CanLogin)
+            {
+                return Unauthorized(ApiResponse<object>.Fail(
+                    StatusCodes.Status401Unauthorized,
+                    queueDisplayContext.BlockReason ?? "Akun display antrian tidak dapat digunakan."
+                ));
+            }
+
             var roles = await _userManager.GetRolesAsync(user);
-            var kioskContext = await ResolveKioskLoginContextAsync(user);
-            var queueDisplayContext = await ResolveQueueDisplayLoginContextAsync(user);
             var newToken = GenerateJwtToken(user, roles, kioskContext, queueDisplayContext);
 
-            SetAuthCookie(newToken, user);
+            SetAuthCookie(newToken, user, kioskContext, queueDisplayContext);
 
             await _loggerService.InfoAsync(
                 "Auth",
@@ -815,7 +834,7 @@ namespace QuilvianSystemBackend.Controllers
             return Ok(ApiResponse<LoginDataResponse>.Ok(
                 new LoginDataResponse
                 {
-                    Auth = BuildAuthInfoResponse(user),
+                    Auth = BuildAuthInfoResponse(user, kioskContext, queueDisplayContext),
                     Endpoints = new AuthEndpointResponse(),
                     User = BuildUserResponse(user, roles, kioskContext, queueDisplayContext)
                 },
@@ -1741,7 +1760,8 @@ namespace QuilvianSystemBackend.Controllers
 
                 IsAllowWalkIn = kioskDevice.IsAllowWalkIn,
                 IsAllowAppointment = kioskDevice.IsAllowAppointment,
-                IsAllowInsuranceRegistration = kioskDevice.IsAllowInsuranceRegistration
+                IsAllowInsuranceRegistration = kioskDevice.IsAllowInsuranceRegistration,
+                SessionExpireMinutes = kioskDevice.SessionExpireMinutes
             };
         }
 
@@ -1877,6 +1897,7 @@ namespace QuilvianSystemBackend.Controllers
                 ShowDoctorName = displayDevice.ShowDoctorName,
                 ShowClinicName = displayDevice.ShowClinicName,
                 RefreshIntervalSeconds = displayDevice.RefreshIntervalSeconds,
+                SessionExpireMinutes = displayDevice.SessionExpireMinutes,
 
                 IsDeviceActive = isDeviceActive,
                 IsLoginCreated = isLoginCreated,
@@ -2058,7 +2079,7 @@ namespace QuilvianSystemBackend.Controllers
                 claims.Add(new Claim("role", role));
             }
 
-            var expires = DateTime.UtcNow.AddMinutes(ResolveJwtExpireMinutes(user));
+            var expires = DateTime.UtcNow.AddMinutes(ResolveJwtExpireMinutes(user, kioskContext, queueDisplayContext));
 
             var token = new JwtSecurityToken(
                 issuer: jwtIssuer,
@@ -2078,10 +2099,14 @@ namespace QuilvianSystemBackend.Controllers
             return expireMinutes <= 0 ? 60 : expireMinutes;
         }
 
-        private void SetAuthCookie(string token, ApplicationUser user)
+        private void SetAuthCookie(
+            string token,
+            ApplicationUser user,
+            KioskLoginContext? kioskContext = null,
+            QueueDisplayLoginContext? queueDisplayContext = null)
         {
             var cookieName = _configuration["Jwt:CookieName"] ?? "quilvian_access_token";
-            var expireMinutes = ResolveJwtExpireMinutes(user);
+            var expireMinutes = ResolveJwtExpireMinutes(user, kioskContext, queueDisplayContext);
 
             Response.Cookies.Append(
                 cookieName,
@@ -2090,18 +2115,60 @@ namespace QuilvianSystemBackend.Controllers
             );
         }
 
-        private int GetKioskJwtExpireMinutes()
+        private int GetDeviceDefaultExpireMinutes()
         {
-            var expireMinutes = _configuration.GetValue<int>("Jwt:KioskExpireMinutes");
+            var expireMinutes = _configuration.GetValue<int?>("Jwt:DeviceDefaultExpireMinutes")
+                ?? _configuration.GetValue<int?>("Jwt:KioskExpireMinutes")
+                ?? 129600;
+
+            return expireMinutes <= 0 ? 129600 : expireMinutes;
+        }
+
+        private int GetDeviceMinExpireMinutes()
+        {
+            var expireMinutes = _configuration.GetValue<int?>("Jwt:DeviceMinExpireMinutes") ?? 1440;
 
             return expireMinutes <= 0 ? 1440 : expireMinutes;
         }
 
-        private int ResolveJwtExpireMinutes(ApplicationUser user)
+        private int GetDeviceMaxExpireMinutes()
         {
-            return IsKioskUser(user)
-                ? GetKioskJwtExpireMinutes()
-                : GetJwtExpireMinutes();
+            var expireMinutes = _configuration.GetValue<int?>("Jwt:DeviceMaxExpireMinutes") ?? 525600;
+
+            return expireMinutes <= 0 ? 525600 : expireMinutes;
+        }
+
+        private int NormalizeDeviceExpireMinutes(int? deviceConfiguredMinutes)
+        {
+            var value = deviceConfiguredMinutes.GetValueOrDefault();
+
+            if (value <= 0)
+            {
+                value = GetDeviceDefaultExpireMinutes();
+            }
+
+            var min = GetDeviceMinExpireMinutes();
+            var max = Math.Max(min, GetDeviceMaxExpireMinutes());
+
+            return Math.Clamp(value, min, max);
+        }
+
+        private int ResolveJwtExpireMinutes(
+            ApplicationUser user,
+            KioskLoginContext? kioskContext = null,
+            QueueDisplayLoginContext? queueDisplayContext = null)
+        {
+            if (kioskContext?.IsKioskAccount == true)
+            {
+                return NormalizeDeviceExpireMinutes(kioskContext.SessionExpireMinutes);
+            }
+
+            if (queueDisplayContext?.IsQueueDisplayAccount == true)
+            {
+                return NormalizeDeviceExpireMinutes(queueDisplayContext.SessionExpireMinutes);
+            }
+
+            return GetJwtExpireMinutes();
         }
 
         private CookieOptions BuildAuthCookieOptions(int expireMinutes)
@@ -2182,12 +2249,15 @@ namespace QuilvianSystemBackend.Controllers
             );
         }
 
-        private AuthInfoResponse BuildAuthInfoResponse(ApplicationUser? user = null)
+        private AuthInfoResponse BuildAuthInfoResponse(
+            ApplicationUser? user = null,
+            KioskLoginContext? kioskContext = null,
+            QueueDisplayLoginContext? queueDisplayContext = null)
         {
             var cookieName = _configuration["Jwt:CookieName"] ?? "quilvian_access_token";
             var expireMinutes = user == null
                 ? GetJwtExpireMinutes()
-                : ResolveJwtExpireMinutes(user);
+                : ResolveJwtExpireMinutes(user, kioskContext, queueDisplayContext);
             var sameSite = GetConfiguredSameSiteMode();
             var secure = _configuration.GetValue<bool?>("AuthCookie:Secure") ?? true;
 
@@ -2449,6 +2519,8 @@ namespace QuilvianSystemBackend.Controllers
 
             public int RefreshIntervalSeconds { get; set; }
 
+            public int? SessionExpireMinutes { get; set; }
+
             public bool IsDeviceActive { get; set; }
 
             public bool IsLoginCreated { get; set; }
@@ -2509,6 +2581,8 @@ namespace QuilvianSystemBackend.Controllers
             public bool IsAllowAppointment { get; set; }
 
             public bool IsAllowInsuranceRegistration { get; set; }
+
+            public int? SessionExpireMinutes { get; set; }
 
             public string? BlockReason { get; set; }
 

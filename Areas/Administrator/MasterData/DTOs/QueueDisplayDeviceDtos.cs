@@ -40,6 +40,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool ShowDoctorName { get; set; }
         public bool ShowClinicName { get; set; }
         public int RefreshIntervalSeconds { get; set; }
+        public int? SessionExpireMinutes { get; set; }
+        public string SessionExpireDescription { get; set; } = string.Empty;
         public DateTime? LastOnlineDateTime { get; set; }
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
@@ -68,6 +70,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string DisplayDeviceTypeName { get; set; } = string.Empty;
         public QueueDisplayLayoutType LayoutType { get; set; }
         public string LayoutTypeName { get; set; } = string.Empty;
+        public int? SessionExpireMinutes { get; set; }
+        public string SessionExpireDescription { get; set; } = string.Empty;
         public int SortOrder { get; set; }
     }
 
@@ -154,6 +158,14 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool ShowDoctorName { get; set; } = true;
         public bool ShowClinicName { get; set; } = true;
         public int RefreshIntervalSeconds { get; set; } = 5;
+
+        /// <summary>
+        /// Masa aktif session display dalam menit. Kosongkan untuk fallback default device.
+        /// Contoh: 1440 = 1 hari, 43200 = 30 hari, 129600 = 90 hari.
+        /// </summary>
+        [Range(1, int.MaxValue)]
+        public int? SessionExpireMinutes { get; set; }
+
         public int SortOrder { get; set; } = 0;
         [MaxLength(250)]
         public string? Description { get; set; }
@@ -180,6 +192,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public Guid Id { get; set; }
         public string DisplayCode { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
+        public int? SessionExpireMinutes { get; set; }
+        public string SessionExpireDescription { get; set; } = string.Empty;
         public bool IsActive { get; set; }
     }
 
@@ -227,6 +241,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public DateTimeOffset? LockoutEnd { get; set; }
         public int AccessFailedCount { get; set; }
         public bool CanLogin { get; set; }
+        public int? SessionExpireMinutes { get; set; }
+        public string SessionExpireDescription { get; set; } = string.Empty;
     }
 
     public class QueueDisplayDeviceLoginInfoPagedResponse
