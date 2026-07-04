@@ -39,11 +39,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsAllowAppointment { get; set; }
         public bool IsAllowInsuranceRegistration { get; set; }
 
-        public int? SessionExpireMinutes { get; set; }
-        public string SessionExpireDescription { get; set; } = string.Empty;
-
         public DateTime? LastOnlineAt { get; set; }
         public DateTime? LastOfflineAt { get; set; }
+
+        public int? SessionExpireMinutes { get; set; }
 
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
@@ -84,7 +83,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsAllowInsuranceRegistration { get; set; }
 
         public int? SessionExpireMinutes { get; set; }
-        public string SessionExpireDescription { get; set; } = string.Empty;
 
         public int SortOrder { get; set; }
     }
@@ -133,8 +131,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public DateTimeOffset? LockoutEnd { get; set; }
         public int AccessFailedCount { get; set; }
         public bool CanLogin { get; set; }
-        public int? SessionExpireMinutes { get; set; }
-        public string SessionExpireDescription { get; set; } = string.Empty;
     }
 
     public class KioskDeviceLoginInfoPagedResponse
@@ -270,6 +266,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public List<KioskDeviceEnumMetadataResponse> EnumOptions { get; set; } = new();
         public List<KioskDeviceEnumOptionResponse> DeviceTypeOptions { get; set; } = new();
         public List<KioskDeviceEnumOptionResponse> DeviceStatusOptions { get; set; } = new();
+        public List<IdentityScannerProfileOptionResponse> IdentityScannerProfileOptions { get; set; } = new();
         public List<KioskDeviceQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<KioskDeviceFormFieldMetadataResponse> CreateFields { get; set; } = new();
         public List<KioskDeviceFormFieldMetadataResponse> UpdateFields { get; set; } = new();
@@ -377,14 +374,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsAllowAppointment { get; set; } = true;
         public bool IsAllowInsuranceRegistration { get; set; } = true;
 
-        /// <summary>
-        /// Masa aktif session kiosk dalam menit. Kosongkan untuk fallback default device.
-        /// Contoh: 1440 = 1 hari, 43200 = 30 hari, 129600 = 90 hari.
-        /// </summary>
-        [Range(1, int.MaxValue)]
         public int? SessionExpireMinutes { get; set; }
-
-        public int SortOrder { get; set; } = 0;
 
         [MaxLength(250)]
         public string? Description { get; set; }
@@ -423,7 +413,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string DeviceStatusName { get; set; } = string.Empty;
         public Guid? DefaultScannerProfileId { get; set; }
         public int? SessionExpireMinutes { get; set; }
-        public string SessionExpireDescription { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }
@@ -440,7 +429,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public KioskDeviceStatus DeviceStatus { get; set; }
         public string DeviceStatusName { get; set; } = string.Empty;
         public int? SessionExpireMinutes { get; set; }
-        public string SessionExpireDescription { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime? UpdateDateTime { get; set; }
         public Guid? UpdateBy { get; set; }

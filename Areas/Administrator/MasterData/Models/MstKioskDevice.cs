@@ -42,13 +42,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
 
         public bool IsAllowInsuranceRegistration { get; set; } = true;
 
-        /// <summary>
-        /// Masa aktif session login device dalam menit.
-        /// Kosongkan untuk memakai fallback dari konfigurasi Jwt:DeviceDefaultExpireMinutes.
-        /// Contoh: 1440 = 1 hari, 43200 = 30 hari, 129600 = 90 hari, 525600 = 365 hari.
-        /// </summary>
-        public int? SessionExpireMinutes { get; set; }
-
         public DateTime? LastOnlineAt { get; set; }
 
         public DateTime? LastOfflineAt { get; set; }
@@ -57,6 +50,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
         public string? LastErrorMessage { get; set; }
 
         public int SortOrder { get; set; } = 0;
+
+        public int? SessionExpireMinutes { get; set; }
 
         [MaxLength(250)]
         public string? Description { get; set; }

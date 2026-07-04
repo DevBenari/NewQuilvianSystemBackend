@@ -71,6 +71,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         {
             var deviceTypeOptions = BuildEnumOptions<KioskDeviceType>();
             var deviceStatusOptions = BuildEnumOptions<KioskDeviceStatus>();
+            var identityScannerProfileOptions = await GetIdentityScannerProfileOptionsAsync();
 
             var result = new KioskDeviceFilterMetadataResponse
             {
@@ -78,7 +79,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 CustomPeriods = BuildCustomPeriodOptions(),
                 SortOptions = new List<KioskDeviceSortOptionResponse>
                 {
-                    new() { Value = "sortOrder", Label = "Urutan" },
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
                     new() { Value = "deviceCode", Label = "Kode device" },
                     new() { Value = "deviceName", Label = "Nama device" },
@@ -101,6 +101,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 EnumOptions = BuildEnumMetadataOptions(deviceTypeOptions, deviceStatusOptions),
                 DeviceTypeOptions = deviceTypeOptions,
                 DeviceStatusOptions = deviceStatusOptions,
+                IdentityScannerProfileOptions = identityScannerProfileOptions,
                 QueryParameters = BuildQueryParameterInfo(),
                 CreateFields = BuildCreateFieldMetadata(),
                 UpdateFields = BuildUpdateFieldMetadata(),
@@ -403,8 +404,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     IsAllowWalkIn = request.IsAllowWalkIn,
                     IsAllowAppointment = request.IsAllowAppointment,
                     IsAllowInsuranceRegistration = request.IsAllowInsuranceRegistration,
-                    SessionExpireMinutes = NormalizeSessionExpireMinutes(request.SessionExpireMinutes),
-                    SortOrder = request.SortOrder,
+                    SortOrder = 0,
+                    SessionExpireMinutes = NormalizeNullablePositiveInt(request.SessionExpireMinutes),
                     Description = NormalizeNullableText(request.Description),
                     IsActive = true,
                     CreateDateTime = now,
@@ -430,7 +431,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                     DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
                     DefaultScannerProfileId = entity.DefaultScannerProfileId,
                     SessionExpireMinutes = entity.SessionExpireMinutes,
-                    SessionExpireDescription = FormatSessionExpireDescription(entity.SessionExpireMinutes),
                     IsActive = entity.IsActive,
                     CreateDateTime = entity.CreateDateTime,
                     CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
@@ -524,11 +524,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             entity.IsAllowWalkIn = request.IsAllowWalkIn;
             entity.IsAllowAppointment = request.IsAllowAppointment;
             entity.IsAllowInsuranceRegistration = request.IsAllowInsuranceRegistration;
-            entity.SessionExpireMinutes = NormalizeSessionExpireMinutes(request.SessionExpireMinutes);
             entity.LastOnlineAt = NormalizeNullableUtcDateTime(request.LastOnlineAt);
             entity.LastOfflineAt = NormalizeNullableUtcDateTime(request.LastOfflineAt);
             entity.LastErrorMessage = NormalizeNullableText(request.LastErrorMessage);
-            entity.SortOrder = request.SortOrder;
+            entity.SessionExpireMinutes = NormalizeNullablePositiveInt(request.SessionExpireMinutes);
             entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
@@ -548,7 +547,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 DeviceStatus = entity.DeviceStatus,
                 DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
                 SessionExpireMinutes = entity.SessionExpireMinutes,
-                SessionExpireDescription = FormatSessionExpireDescription(entity.SessionExpireMinutes),
                 IsActive = entity.IsActive,
                 UpdateDateTime = entity.UpdateDateTime,
                 UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
@@ -615,7 +613,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 DeviceStatus = entity.DeviceStatus,
                 DeviceStatusName = BuildEnumLabel(entity.DeviceStatus.ToString()),
                 SessionExpireMinutes = entity.SessionExpireMinutes,
-                SessionExpireDescription = FormatSessionExpireDescription(entity.SessionExpireMinutes),
                 IsActive = entity.IsActive,
                 UpdateDateTime = entity.UpdateDateTime,
                 UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
@@ -1552,16 +1549,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Status kiosk device tidak valid. Gunakan nilai dari endpoint filters/metadata.");
             }
 
-            if (request.SortOrder < 0)
-            {
-                return (false, "Urutan tidak boleh kurang dari 0.");
-            }
-
-            if (request.SessionExpireMinutes.HasValue && request.SessionExpireMinutes.Value <= 0)
-            {
-                return (false, "Masa aktif session kiosk harus lebih dari 0 menit atau dikosongkan untuk memakai fallback default.");
-            }
-
             var defaultScannerProfileId = NormalizeNullableGuid(request.DefaultScannerProfileId);
 
             if (defaultScannerProfileId.HasValue)
@@ -1753,10 +1740,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 IsAllowWalkIn = entity.IsAllowWalkIn,
                 IsAllowAppointment = entity.IsAllowAppointment,
                 IsAllowInsuranceRegistration = entity.IsAllowInsuranceRegistration,
-                SessionExpireMinutes = entity.SessionExpireMinutes,
-                SessionExpireDescription = FormatSessionExpireDescription(entity.SessionExpireMinutes),
                 LastOnlineAt = entity.LastOnlineAt,
                 LastOfflineAt = entity.LastOfflineAt,
+                SessionExpireMinutes = entity.SessionExpireMinutes,
                 SortOrder = entity.SortOrder,
                 IsActive = entity.IsActive,
                 CreateDateTime = entity.CreateDateTime,
@@ -1788,11 +1774,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 IsAllowWalkIn = entity.IsAllowWalkIn,
                 IsAllowAppointment = entity.IsAllowAppointment,
                 IsAllowInsuranceRegistration = entity.IsAllowInsuranceRegistration,
-                SessionExpireMinutes = entity.SessionExpireMinutes,
-                SessionExpireDescription = FormatSessionExpireDescription(entity.SessionExpireMinutes),
                 LastOnlineAt = entity.LastOnlineAt,
                 LastOfflineAt = entity.LastOfflineAt,
                 LastErrorMessage = entity.LastErrorMessage,
+                SessionExpireMinutes = entity.SessionExpireMinutes,
                 SortOrder = entity.SortOrder,
                 Description = entity.Description,
                 IsActive = entity.IsActive,
@@ -1825,7 +1810,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 IsAllowAppointment = entity.IsAllowAppointment,
                 IsAllowInsuranceRegistration = entity.IsAllowInsuranceRegistration,
                 SessionExpireMinutes = entity.SessionExpireMinutes,
-                SessionExpireDescription = FormatSessionExpireDescription(entity.SessionExpireMinutes),
                 SortOrder = entity.SortOrder
             };
         }
@@ -2023,7 +2007,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 new() { Name = "isAllowWalkIn", Type = "bool", Description = "Filter kiosk yang mengizinkan walk-in.", Example = "true" },
                 new() { Name = "isAllowAppointment", Type = "bool", Description = "Filter kiosk yang mengizinkan appointment.", Example = "true" },
                 new() { Name = "isAllowInsuranceRegistration", Type = "bool", Description = "Filter kiosk yang mengizinkan registrasi asuransi.", Example = "true" },
-                new() { Name = "sessionExpireMinutes", Type = "int?", Description = "Masa aktif session kiosk dalam menit. Kosong berarti memakai fallback konfigurasi default device.", Example = "129600" },
                 new() { Name = "sortBy", Type = "string", Description = "Kolom sorting.", Example = "sortOrder" },
                 new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
                 new() { Name = "pageNumber", Type = "int", Description = "Nomor halaman.", Example = "1" },
@@ -2057,9 +2040,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 new() { Name = "isAllowWalkIn", Label = "Izinkan Walk-In", Section = "Rule", InputType = "switch", SortOrder = 10 },
                 new() { Name = "isAllowAppointment", Label = "Izinkan Appointment", Section = "Rule", InputType = "switch", SortOrder = 11 },
                 new() { Name = "isAllowInsuranceRegistration", Label = "Izinkan Registrasi Asuransi", Section = "Rule", InputType = "switch", SortOrder = 12 },
-                new() { Name = "sessionExpireMinutes", Label = "Masa Aktif Session (menit)", Section = "Security", InputType = "number", Description = "Opsional. Kosongkan untuk memakai fallback default device dari backend. Contoh: 1440 = 1 hari, 43200 = 30 hari, 129600 = 90 hari, 525600 = 365 hari.", Example = "129600", SortOrder = 13 },
-                new() { Name = "sortOrder", Label = "Urutan", Section = "Display", InputType = "number", SortOrder = 14 },
-                new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 15 }
+                new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 13 },
+                new() { Name = "sessionExpireMinutes", Label = "Masa Aktif Session Device", Section = "Security", InputType = "number", Description = "Isi dalam menit. Kosongkan untuk memakai fallback backend. Contoh: 1440 = 1 hari, 43200 = 30 hari, 129600 = 90 hari, 525600 = 365 hari.", Example = "129600", SortOrder = 14 }
             };
 
             if (isUpdate)
@@ -2194,8 +2176,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 IsLoginEnabled = isLoginCreated && !isLoginLocked,
                 IsLoginLocked = isLoginLocked,
                 LockoutEnd = user?.LockoutEnd,
-                SessionExpireMinutes = device.SessionExpireMinutes,
-                SessionExpireDescription = FormatSessionExpireDescription(device.SessionExpireMinutes),
                 AccessFailedCount = user?.AccessFailedCount ?? 0,
                 CanLogin = device.IsActive && isLoginCreated && !isLoginLocked
             };
@@ -2255,33 +2235,46 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 : defaultMessage;
         }
 
-        private static int? NormalizeSessionExpireMinutes(int? value)
+
+        private async Task<List<IdentityScannerProfileOptionResponse>> GetIdentityScannerProfileOptionsAsync()
         {
-            return value.HasValue && value.Value > 0 ? value.Value : null;
+            return await _dbContext.Set<MstIdentityScannerProfile>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.ProfileName)
+                .Select(x => new IdentityScannerProfileOptionResponse
+                {
+                    Id = x.Id,
+                    ProfileCode = x.ProfileCode,
+                    ProfileName = x.ProfileName,
+                    ProfileType = x.ProfileType,
+                    ProfileTypeName = BuildEnumLabel(x.ProfileType.ToString()),
+                    ScannerVendorName = x.ScannerVendorName,
+                    ScannerModel = x.ScannerModel,
+                    IsForIdentityCard = x.IsForIdentityCard,
+                    IsForPatientCard = x.IsForPatientCard,
+                    IsForMembershipCard = x.IsForMembershipCard,
+                    IsForInsuranceCard = x.IsForInsuranceCard,
+                    IsOcrEnabled = x.IsOcrEnabled,
+                    IsBarcodeEnabled = x.IsBarcodeEnabled,
+                    IsQrEnabled = x.IsQrEnabled,
+                    IsManualInputAllowed = x.IsManualInputAllowed,
+                    IsAutoCreatePatientAllowed = x.IsAutoCreatePatientAllowed,
+                    IsVerificationRequired = x.IsVerificationRequired,
+                    SortOrder = x.SortOrder
+                })
+                .ToListAsync();
         }
 
-        private static string FormatSessionExpireDescription(int? minutes)
+        private static int? NormalizeNullablePositiveInt(int? value)
         {
-            if (!minutes.HasValue || minutes.Value <= 0)
+            if (!value.HasValue || value.Value <= 0)
             {
-                return "Menggunakan fallback default device dari konfigurasi backend";
+                return null;
             }
 
-            var totalMinutes = minutes.Value;
-
-            if (totalMinutes % 1440 == 0)
-            {
-                var days = totalMinutes / 1440;
-                return $"{totalMinutes} menit ({days} hari)";
-            }
-
-            if (totalMinutes % 60 == 0)
-            {
-                var hours = totalMinutes / 60;
-                return $"{totalMinutes} menit ({hours} jam)";
-            }
-
-            return $"{totalMinutes} menit";
+            return value.Value;
         }
 
         private static Guid? NormalizeNullableGuid(Guid? value)
