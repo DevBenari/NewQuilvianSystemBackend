@@ -2040,6 +2040,12 @@ namespace QuilvianSystemBackend.Controllers
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
+            if (kioskContext?.IsKioskAccount == true &&
+                !effectiveRoles.Any(role => role.Equals("KioskDevice", StringComparison.OrdinalIgnoreCase)))
+            {
+                effectiveRoles.Add("KioskDevice");
+            }
+
             if (queueDisplayContext?.IsQueueDisplayAccount == true &&
                 !effectiveRoles.Any(role => role.Equals("QueueDisplayDevice", StringComparison.OrdinalIgnoreCase)))
             {
@@ -2213,6 +2219,12 @@ namespace QuilvianSystemBackend.Controllers
                 .Select(role => role.Trim())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
+
+            if (isKioskAccount &&
+                !effectiveRoles.Any(role => role.Equals("KioskDevice", StringComparison.OrdinalIgnoreCase)))
+            {
+                effectiveRoles.Add("KioskDevice");
+            }
 
             if (isQueueDisplayAccount &&
                 !effectiveRoles.Any(role => role.Equals("QueueDisplayDevice", StringComparison.OrdinalIgnoreCase)))

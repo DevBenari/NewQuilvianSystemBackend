@@ -71,9 +71,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = _dbContext.Set<TrxPatientAssessment>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete);
+            var query = BuildBaseQuery()
+                .AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -117,11 +116,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             var totalData = await query.CountAsync();
 
-            var items = await ApplySorting(query, sortBy, sortDirection)
+            var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => ToResponse(x))
                 .ToListAsync();
+
+            var items = entities.Select(ToResponse).ToList();
 
             var result = new ResponsePatientAssessmentPagedResult
             {
@@ -145,11 +145,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [AccessPermission("PatientAssessment", "Read")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var result = await _dbContext.Set<TrxPatientAssessment>()
+            var entity = await BuildBaseQuery()
                 .AsNoTracking()
-                .Where(x => x.Id == id && !x.IsDelete)
-                .Select(x => ToDetailResponse(x))
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            var result = entity != null ? ToDetailResponse(entity) : null;
 
             if (result == null)
             {
@@ -172,11 +172,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [AccessPermission("PatientAssessment", "Read")]
         public async Task<IActionResult> GetActiveByEncounter(Guid encounterId, [FromQuery] Guid? queueId = null)
         {
-            var query = _dbContext.Set<TrxPatientAssessment>()
+            var query = BuildBaseQuery()
                 .AsNoTracking()
                 .Where(x =>
                     x.EncounterId == encounterId &&
-                    !x.IsDelete &&
                     x.IsActive &&
                     x.AssessmentStatus != PatientAssessmentStatus.Cancelled);
 
@@ -185,12 +184,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 query = query.Where(x => x.QueueId == queueId.Value);
             }
 
-            var result = await query
+            var entity = await query
                 .OrderByDescending(x => x.AssessmentStatus == PatientAssessmentStatus.InProgress)
+                .ThenByDescending(x => x.AssessmentStatus == PatientAssessmentStatus.Draft)
                 .ThenByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
                 .ThenByDescending(x => x.AssessmentDateTime)
-                .Select(x => ToDetailResponse(x))
                 .FirstOrDefaultAsync();
+
+            var result = entity != null ? ToDetailResponse(entity) : null;
 
             if (result == null)
             {
@@ -213,18 +214,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [AccessPermission("PatientAssessment", "Read")]
         public async Task<IActionResult> GetActiveByQueue(Guid queueId)
         {
-            var result = await _dbContext.Set<TrxPatientAssessment>()
+            var entity = await BuildBaseQuery()
                 .AsNoTracking()
                 .Where(x =>
                     x.QueueId == queueId &&
-                    !x.IsDelete &&
                     x.IsActive &&
                     x.AssessmentStatus != PatientAssessmentStatus.Cancelled)
                 .OrderByDescending(x => x.AssessmentStatus == PatientAssessmentStatus.InProgress)
+                .ThenByDescending(x => x.AssessmentStatus == PatientAssessmentStatus.Draft)
                 .ThenByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
                 .ThenByDescending(x => x.AssessmentDateTime)
-                .Select(x => ToDetailResponse(x))
                 .FirstOrDefaultAsync();
+
+            var result = entity != null ? ToDetailResponse(entity) : null;
 
             if (result == null)
             {
@@ -648,26 +650,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 queue.QueueStatus == QueueStatus.InNurseScreening ||
                 queue.QueueStatus == QueueStatus.WaitingForNurse;
 
-            var isDoctorAdditionalScreeningStatus =
-                request.CompleteImmediately &&
-                (queue.QueueStatus == QueueStatus.WaitingForDoctor ||
-                 queue.QueueStatus == QueueStatus.CalledByDoctor ||
-                 queue.QueueStatus == QueueStatus.InConsultation);
+            var isDoctorScreeningStatus =
+                queue.QueueStatus == QueueStatus.WaitingForDoctor ||
+                queue.QueueStatus == QueueStatus.CalledByDoctor ||
+                queue.QueueStatus == QueueStatus.InConsultation;
 
-            if (!isNurseScreeningStatus && !isDoctorAdditionalScreeningStatus)
+            if (!isNurseScreeningStatus && !isDoctorScreeningStatus)
             {
                 return (false, "Status antrean tidak valid untuk assessment.");
             }
 
-            if (!isDoctorAdditionalScreeningStatus)
+            if (isDoctorScreeningStatus && !request.CompleteImmediately)
             {
-                var assessmentExists = await _dbContext.Set<TrxPatientAssessment>()
+                var doctorDraftExists = await _dbContext.Set<TrxPatientAssessment>()
+                    .AnyAsync(x =>
+                        x.QueueId == request.QueueId &&
+                        !x.IsDelete &&
+                        x.IsActive &&
+                        (x.AssessmentStatus == PatientAssessmentStatus.Draft ||
+                         x.AssessmentStatus == PatientAssessmentStatus.InProgress));
+
+                if (doctorDraftExists)
+                    return (false, "Draft assessment dokter untuk antrean ini sudah ada. Lanjutkan draft tersebut, bukan membuat baru.");
+            }
+            else if (!isDoctorScreeningStatus)
+            {
+                var editableAssessmentExists = await _dbContext.Set<TrxPatientAssessment>()
                     .AnyAsync(x =>
                         x.EncounterId == request.EncounterId &&
-                        !x.IsDelete);
+                        !x.IsDelete &&
+                        x.IsActive &&
+                        (x.AssessmentStatus == PatientAssessmentStatus.Draft ||
+                         x.AssessmentStatus == PatientAssessmentStatus.InProgress));
 
-                if (assessmentExists)
-                    return (false, "Assessment untuk encounter ini sudah ada.");
+                if (editableAssessmentExists)
+                    return (false, "Draft assessment untuk encounter ini sudah ada. Lanjutkan draft tersebut, bukan membuat baru.");
             }
 
             return (true, null);
@@ -962,6 +979,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 entity.FallRiskStatus = FallRiskStatus.NoRisk;
                 entity.FallRiskNote = null;
             }
+        }
+
+        private IQueryable<TrxPatientAssessment> BuildBaseQuery()
+        {
+            return _dbContext.Set<TrxPatientAssessment>()
+                .Include(x => x.Encounter)
+                .Include(x => x.Queue)
+                    .ThenInclude(x => x.Doctor)
+                .Include(x => x.Patient)
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.Clinic)
+                .Include(x => x.AssessmentByUser)
+                .Include(x => x.CompletedByUser)
+                .Include(x => x.CancelledByUser)
+                .Where(x => !x.IsDelete);
         }
 
         private static IQueryable<TrxPatientAssessment> ApplySorting(
