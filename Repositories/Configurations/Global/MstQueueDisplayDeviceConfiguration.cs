@@ -87,9 +87,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
             entity.Property(x => x.LastErrorMessage)
                 .HasMaxLength(250);
 
-            entity.Property(x => x.SortOrder)
-                .HasDefaultValue(0);
-
             entity.Property(x => x.Description)
                 .HasMaxLength(250);
 

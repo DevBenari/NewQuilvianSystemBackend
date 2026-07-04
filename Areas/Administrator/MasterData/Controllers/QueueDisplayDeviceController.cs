@@ -47,15 +47,41 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [AccessPermission("QueueDisplayDevice", "Read")]
         public IActionResult GetFilterMetadata()
         {
+            var displayDeviceTypeOptions = BuildDisplayDeviceTypeOptions();
+            var layoutTypeOptions = BuildLayoutTypeOptions();
+
             var result = new QueueDisplayDeviceFilterMetadataResponse
             {
+                DefaultFilter = new QueueDisplayDeviceDefaultFilterResponse(),
+                CustomPeriods = BuildCustomPeriodOptions(),
                 SortOptions = new List<QueueDisplayDeviceSortOptionResponse>
                 {
-                    new() { Value = "sortOrder", Label = "Urutan" }, new() { Value = "createDateTime", Label = "Tanggal dibuat" }, new() { Value = "displayCode", Label = "Kode display" }, new() { Value = "displayName", Label = "Nama display" }, new() { Value = "clusterName", Label = "Nama cluster" }, new() { Value = "displayDeviceType", Label = "Tipe device" }, new() { Value = "layoutType", Label = "Tipe layout" }, new() { Value = "sessionExpireMinutes", Label = "Masa aktif session" }, new() { Value = "isActive", Label = "Status aktif" }
+                    new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+                    new() { Value = "displayCode", Label = "Kode display" },
+                    new() { Value = "displayName", Label = "Nama display" },
+                    new() { Value = "clusterName", Label = "Nama cluster" },
+                    new() { Value = "serviceUnitName", Label = "Unit layanan" },
+                    new() { Value = "displayDeviceType", Label = "Tipe device" },
+                    new() { Value = "layoutType", Label = "Tipe layout" },
+                    new() { Value = "locationName", Label = "Lokasi" },
+                    new() { Value = "floorName", Label = "Lantai" },
+                    new() { Value = "roomName", Label = "Ruangan" },
+                    new() { Value = "ipAddress", Label = "IP address" },
+                    new() { Value = "macAddress", Label = "MAC address" },
+                    new() { Value = "refreshIntervalSeconds", Label = "Interval refresh" },
+                    new() { Value = "sessionExpireMinutes", Label = "Masa aktif session" },
+                    new() { Value = "lastOnlineDateTime", Label = "Terakhir online" },
+                    new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                EnumOptions = BuildEnumMetadata()
+                EnumOptions = BuildEnumMetadata(displayDeviceTypeOptions, layoutTypeOptions),
+                DisplayDeviceTypeOptions = displayDeviceTypeOptions,
+                LayoutTypeOptions = layoutTypeOptions,
+                QueryParameters = BuildQueryParameterInfo(),
+                CreateFields = BuildCreateFieldMetadata(),
+                UpdateFields = BuildUpdateFieldMetadata(),
+                ResetButtonLabel = "Reset"
             };
             return Ok(ApiResponse<QueueDisplayDeviceFilterMetadataResponse>.Ok(result, "Metadata filter display antrian berhasil diambil."));
         }
@@ -75,10 +101,29 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
         [ProducesResponseType(typeof(ApiResponse<ResponseQueueDisplayDevicePagedResult>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Queue Display Device", Description = "Melihat data display antrian", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("QueueDisplayDevice", "Read")]
-        public async Task<IActionResult> GetQueueDisplayDevices([FromQuery] Guid? nurseStationClusterId, [FromQuery] Guid? serviceUnitId, [FromQuery] QueueDisplayDeviceType? displayDeviceType, [FromQuery] QueueDisplayLayoutType? layoutType, [FromQuery] bool? isActive, [FromQuery] string? search, [FromQuery] string? sortBy = "sortOrder", [FromQuery] string? sortDirection = "asc", [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 25)
+        public async Task<IActionResult> GetQueueDisplayDevices(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
+            [FromQuery] Guid? nurseStationClusterId,
+            [FromQuery] Guid? serviceUnitId,
+            [FromQuery] QueueDisplayDeviceType? displayDeviceType,
+            [FromQuery] QueueDisplayLayoutType? layoutType,
+            [FromQuery] bool? isActive,
+            [FromQuery] string? search,
+            [FromQuery] string? sortBy = "displayName",
+            [FromQuery] string? sortDirection = "asc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
         {
             var paging = NormalizePaging(pageNumber, pageSize); pageNumber = paging.PageNumber; pageSize = paging.PageSize;
-            var query = ApplyFilter(BuildBaseQuery(), nurseStationClusterId, serviceUnitId, displayDeviceType, layoutType, isActive, search);
+            var dateRange = ResolveDateRange(startDate, endDate, customPeriod);
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, dateRange.ErrorMessage ?? "Filter tanggal tidak valid."));
+            }
+            var query = ApplyDateFilter(BuildBaseQuery(), dateRange);
+            query = ApplyFilter(query, nurseStationClusterId, serviceUnitId, displayDeviceType, layoutType, isActive, search);
             var totalData = await query.CountAsync();
             var entities = await ApplySorting(query, sortBy, sortDirection).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
             var actorNames = await GetActorNameMapAsync(entities.Select(x => x.CreateBy).Where(x => x != Guid.Empty));
@@ -95,7 +140,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var paging = NormalizePaging(pageNumber, pageSize); pageNumber = paging.PageNumber; pageSize = paging.PageSize;
             var query = ApplyFilter(BuildBaseQuery(), nurseStationClusterId, null, null, null, onlyActive ? true : null, search);
             var totalData = await query.CountAsync();
-            var items = await query.OrderBy(x => x.SortOrder).ThenBy(x => x.DisplayName).Skip((pageNumber - 1) * pageSize).Take(pageSize).Select(x => MapOptionResponse(x)).ToListAsync();
+            var items = await query.OrderBy(x => x.DisplayName).ThenBy(x => x.DisplayCode).Skip((pageNumber - 1) * pageSize).Take(pageSize).Select(x => MapOptionResponse(x)).ToListAsync();
             return Ok(ApiResponse<QueueDisplayDeviceOptionPagedResponse>.Ok(new QueueDisplayDeviceOptionPagedResponse { PageNumber = pageNumber, PageSize = pageSize, TotalData = totalData, TotalPage = (int)Math.Ceiling(totalData / (double)pageSize), Items = items }, "Data pilihan display antrian berhasil diambil."));
         }
 
@@ -120,7 +165,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var validation = await ValidateRequestAsync(null, request);
             if (!validation.IsValid) return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validation.ErrorMessage ?? "Data display antrian tidak valid."));
             var now = DateTime.UtcNow; var actorUserId = GetCurrentUserId();
-            var entity = new MstQueueDisplayDevice { Id = Guid.NewGuid(), NurseStationClusterId = request.NurseStationClusterId, ServiceUnitId = request.ServiceUnitId, DisplayCode = await GenerateCodeAsync(), DisplayName = request.DisplayName.Trim(), DisplayDeviceType = request.DisplayDeviceType, LayoutType = request.LayoutType, LocationName = NormalizeNullableString(request.LocationName), FloorName = NormalizeNullableString(request.FloorName), RoomName = NormalizeNullableString(request.RoomName), IpAddress = NormalizeNullableString(request.IpAddress), MacAddress = NormalizeNullableString(request.MacAddress), PairingCode = NormalizeUpperNullableString(request.PairingCode), DeviceToken = NormalizeNullableString(request.DeviceToken), EnableVoiceCalling = request.EnableVoiceCalling, ShowPatientName = request.ShowPatientName, ShowDoctorName = request.ShowDoctorName, ShowClinicName = request.ShowClinicName, RefreshIntervalSeconds = NormalizeRefreshInterval(request.RefreshIntervalSeconds), SessionExpireMinutes = NormalizeSessionExpireMinutes(request.SessionExpireMinutes), SortOrder = request.SortOrder, Description = NormalizeNullableString(request.Description), IsActive = true, CreateDateTime = now, CreateBy = actorUserId, IsDelete = false, IsCancel = false };
+            var entity = new MstQueueDisplayDevice { Id = Guid.NewGuid(), NurseStationClusterId = request.NurseStationClusterId, ServiceUnitId = request.ServiceUnitId, DisplayCode = await GenerateCodeAsync(), DisplayName = request.DisplayName.Trim(), DisplayDeviceType = request.DisplayDeviceType, LayoutType = request.LayoutType, LocationName = NormalizeNullableString(request.LocationName), FloorName = NormalizeNullableString(request.FloorName), RoomName = NormalizeNullableString(request.RoomName), IpAddress = NormalizeNullableString(request.IpAddress), MacAddress = NormalizeNullableString(request.MacAddress), PairingCode = NormalizeUpperNullableString(request.PairingCode), DeviceToken = NormalizeNullableString(request.DeviceToken), EnableVoiceCalling = request.EnableVoiceCalling, ShowPatientName = request.ShowPatientName, ShowDoctorName = request.ShowDoctorName, ShowClinicName = request.ShowClinicName, RefreshIntervalSeconds = NormalizeRefreshInterval(request.RefreshIntervalSeconds), SessionExpireMinutes = NormalizeSessionExpireMinutes(request.SessionExpireMinutes), Description = NormalizeNullableString(request.Description), IsActive = true, CreateDateTime = now, CreateBy = actorUserId, IsDelete = false, IsCancel = false };
             _dbContext.Set<MstQueueDisplayDevice>().Add(entity); await _dbContext.SaveChangesAsync();
             var result = new QueueDisplayDeviceCreateResponse { Id = entity.Id, DisplayCode = entity.DisplayCode, DisplayName = entity.DisplayName, SessionExpireMinutes = entity.SessionExpireMinutes, SessionExpireDescription = FormatSessionExpireDescription(entity.SessionExpireMinutes), IsActive = entity.IsActive };
             await _loggerService.InfoAsync(LogCategory, "QueueDisplayDevice.Create", "Membuat display antrian.", result);
@@ -137,7 +182,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             if (entity == null) return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Display antrian tidak ditemukan."));
             var validation = await ValidateRequestAsync(id, request);
             if (!validation.IsValid) return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validation.ErrorMessage ?? "Data display antrian tidak valid."));
-            entity.NurseStationClusterId = request.NurseStationClusterId; entity.ServiceUnitId = request.ServiceUnitId; entity.DisplayName = request.DisplayName.Trim(); entity.DisplayDeviceType = request.DisplayDeviceType; entity.LayoutType = request.LayoutType; entity.LocationName = NormalizeNullableString(request.LocationName); entity.FloorName = NormalizeNullableString(request.FloorName); entity.RoomName = NormalizeNullableString(request.RoomName); entity.IpAddress = NormalizeNullableString(request.IpAddress); entity.MacAddress = NormalizeNullableString(request.MacAddress); entity.PairingCode = NormalizeUpperNullableString(request.PairingCode); entity.DeviceToken = NormalizeNullableString(request.DeviceToken); entity.EnableVoiceCalling = request.EnableVoiceCalling; entity.ShowPatientName = request.ShowPatientName; entity.ShowDoctorName = request.ShowDoctorName; entity.ShowClinicName = request.ShowClinicName; entity.RefreshIntervalSeconds = NormalizeRefreshInterval(request.RefreshIntervalSeconds); entity.SessionExpireMinutes = NormalizeSessionExpireMinutes(request.SessionExpireMinutes); entity.SortOrder = request.SortOrder; entity.Description = NormalizeNullableString(request.Description); entity.IsActive = request.IsActive; entity.UpdateDateTime = DateTime.UtcNow; entity.UpdateBy = GetCurrentUserId(); await _dbContext.SaveChangesAsync();
+            entity.NurseStationClusterId = request.NurseStationClusterId; entity.ServiceUnitId = request.ServiceUnitId; entity.DisplayName = request.DisplayName.Trim(); entity.DisplayDeviceType = request.DisplayDeviceType; entity.LayoutType = request.LayoutType; entity.LocationName = NormalizeNullableString(request.LocationName); entity.FloorName = NormalizeNullableString(request.FloorName); entity.RoomName = NormalizeNullableString(request.RoomName); entity.IpAddress = NormalizeNullableString(request.IpAddress); entity.MacAddress = NormalizeNullableString(request.MacAddress); entity.PairingCode = NormalizeUpperNullableString(request.PairingCode); entity.DeviceToken = NormalizeNullableString(request.DeviceToken); entity.EnableVoiceCalling = request.EnableVoiceCalling; entity.ShowPatientName = request.ShowPatientName; entity.ShowDoctorName = request.ShowDoctorName; entity.ShowClinicName = request.ShowClinicName; entity.RefreshIntervalSeconds = NormalizeRefreshInterval(request.RefreshIntervalSeconds); entity.SessionExpireMinutes = NormalizeSessionExpireMinutes(request.SessionExpireMinutes); entity.Description = NormalizeNullableString(request.Description); entity.IsActive = request.IsActive; entity.UpdateDateTime = DateTime.UtcNow; entity.UpdateBy = GetCurrentUserId(); await _dbContext.SaveChangesAsync();
             return Ok(ApiResponse<object>.Ok(null, "Display antrian berhasil diperbarui."));
         }
 
@@ -228,8 +273,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             }
 
             var devices = await query
-                .OrderBy(x => x.SortOrder)
-                .ThenBy(x => x.DisplayName)
+                .OrderBy(x => x.DisplayName)
+                .ThenBy(x => x.DisplayCode)
                 .ToListAsync();
 
             var users = await GetQueueDisplayLoginUsersAsync(devices.Select(x => x.DisplayCode));
@@ -645,13 +690,83 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
 
         private IQueryable<MstQueueDisplayDevice> BuildBaseQuery() => _dbContext.Set<MstQueueDisplayDevice>().AsNoTracking().Include(x => x.NurseStationCluster).Include(x => x.ServiceUnit).Where(x => !x.IsDelete);
         private static IQueryable<MstQueueDisplayDevice> ApplyFilter(IQueryable<MstQueueDisplayDevice> q, Guid? clusterId, Guid? serviceUnitId, QueueDisplayDeviceType? deviceType, QueueDisplayLayoutType? layoutType, bool? isActive, string? search) { if (clusterId.HasValue && clusterId.Value != Guid.Empty) q = q.Where(x => x.NurseStationClusterId == clusterId.Value); if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty) q = q.Where(x => x.ServiceUnitId == serviceUnitId.Value); if (deviceType.HasValue) q = q.Where(x => x.DisplayDeviceType == deviceType.Value); if (layoutType.HasValue) q = q.Where(x => x.LayoutType == layoutType.Value); if (isActive.HasValue) q = q.Where(x => x.IsActive == isActive.Value); if (!string.IsNullOrWhiteSpace(search)) { var k = search.Trim().ToLower(); q = q.Where(x => x.DisplayCode.ToLower().Contains(k) || x.DisplayName.ToLower().Contains(k) || x.NurseStationCluster!.ClusterName.ToLower().Contains(k) || (x.LocationName != null && x.LocationName.ToLower().Contains(k)) || (x.FloorName != null && x.FloorName.ToLower().Contains(k)) || (x.RoomName != null && x.RoomName.ToLower().Contains(k)) || (x.IpAddress != null && x.IpAddress.ToLower().Contains(k)) || (x.MacAddress != null && x.MacAddress.ToLower().Contains(k)) || (x.PairingCode != null && x.PairingCode.ToLower().Contains(k)) || (x.Description != null && x.Description.ToLower().Contains(k))); } return q; }
-        private static IOrderedQueryable<MstQueueDisplayDevice> ApplySorting(IQueryable<MstQueueDisplayDevice> q, string? sortBy, string? dir) { var d = string.Equals(dir, "desc", StringComparison.OrdinalIgnoreCase); return (sortBy ?? "sortOrder").Trim().ToLowerInvariant() switch { "createdatetime" => d ? q.OrderByDescending(x => x.CreateDateTime) : q.OrderBy(x => x.CreateDateTime), "displaycode" => d ? q.OrderByDescending(x => x.DisplayCode) : q.OrderBy(x => x.DisplayCode), "displayname" => d ? q.OrderByDescending(x => x.DisplayName) : q.OrderBy(x => x.DisplayName), "clustername" => d ? q.OrderByDescending(x => x.NurseStationCluster!.ClusterName) : q.OrderBy(x => x.NurseStationCluster!.ClusterName), "displaydevicetype" => d ? q.OrderByDescending(x => x.DisplayDeviceType) : q.OrderBy(x => x.DisplayDeviceType), "layouttype" => d ? q.OrderByDescending(x => x.LayoutType) : q.OrderBy(x => x.LayoutType), "sessionexpireminutes" => d ? q.OrderByDescending(x => x.SessionExpireMinutes) : q.OrderBy(x => x.SessionExpireMinutes), "isactive" => d ? q.OrderByDescending(x => x.IsActive) : q.OrderBy(x => x.IsActive), _ => d ? q.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.DisplayName) : q.OrderBy(x => x.SortOrder).ThenBy(x => x.DisplayName) }; }
+        private static IOrderedQueryable<MstQueueDisplayDevice> ApplySorting(IQueryable<MstQueueDisplayDevice> q, string? sortBy, string? dir)
+        {
+            var d = string.Equals(dir, "desc", StringComparison.OrdinalIgnoreCase);
+            return (sortBy ?? "displayName").Trim().ToLowerInvariant() switch
+            {
+                "createdatetime" => d ? q.OrderByDescending(x => x.CreateDateTime) : q.OrderBy(x => x.CreateDateTime),
+                "displaycode" => d ? q.OrderByDescending(x => x.DisplayCode) : q.OrderBy(x => x.DisplayCode),
+                "displayname" => d ? q.OrderByDescending(x => x.DisplayName) : q.OrderBy(x => x.DisplayName),
+                "clustername" => d ? q.OrderByDescending(x => x.NurseStationCluster!.ClusterName).ThenBy(x => x.DisplayName) : q.OrderBy(x => x.NurseStationCluster!.ClusterName).ThenBy(x => x.DisplayName),
+                "serviceunitname" => d ? q.OrderByDescending(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty).ThenBy(x => x.DisplayName) : q.OrderBy(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty).ThenBy(x => x.DisplayName),
+                "displaydevicetype" => d ? q.OrderByDescending(x => x.DisplayDeviceType).ThenBy(x => x.DisplayName) : q.OrderBy(x => x.DisplayDeviceType).ThenBy(x => x.DisplayName),
+                "layouttype" => d ? q.OrderByDescending(x => x.LayoutType).ThenBy(x => x.DisplayName) : q.OrderBy(x => x.LayoutType).ThenBy(x => x.DisplayName),
+                "locationname" => d ? q.OrderByDescending(x => x.LocationName).ThenBy(x => x.DisplayName) : q.OrderBy(x => x.LocationName).ThenBy(x => x.DisplayName),
+                "floorname" => d ? q.OrderByDescending(x => x.FloorName).ThenBy(x => x.DisplayName) : q.OrderBy(x => x.FloorName).ThenBy(x => x.DisplayName),
+                "roomname" => d ? q.OrderByDescending(x => x.RoomName).ThenBy(x => x.DisplayName) : q.OrderBy(x => x.RoomName).ThenBy(x => x.DisplayName),
+                "ipaddress" => d ? q.OrderByDescending(x => x.IpAddress).ThenBy(x => x.DisplayName) : q.OrderBy(x => x.IpAddress).ThenBy(x => x.DisplayName),
+                "macaddress" => d ? q.OrderByDescending(x => x.MacAddress).ThenBy(x => x.DisplayName) : q.OrderBy(x => x.MacAddress).ThenBy(x => x.DisplayName),
+                "refreshintervalseconds" => d ? q.OrderByDescending(x => x.RefreshIntervalSeconds).ThenBy(x => x.DisplayName) : q.OrderBy(x => x.RefreshIntervalSeconds).ThenBy(x => x.DisplayName),
+                "sessionexpireminutes" => d ? q.OrderByDescending(x => x.SessionExpireMinutes).ThenBy(x => x.DisplayName) : q.OrderBy(x => x.SessionExpireMinutes).ThenBy(x => x.DisplayName),
+                "lastonlinedatetime" => d ? q.OrderByDescending(x => x.LastOnlineDateTime).ThenBy(x => x.DisplayName) : q.OrderBy(x => x.LastOnlineDateTime).ThenBy(x => x.DisplayName),
+                "isactive" => d ? q.OrderByDescending(x => x.IsActive).ThenBy(x => x.DisplayName) : q.OrderBy(x => x.IsActive).ThenBy(x => x.DisplayName),
+                _ => d ? q.OrderByDescending(x => x.DisplayName).ThenByDescending(x => x.DisplayCode) : q.OrderBy(x => x.DisplayName).ThenBy(x => x.DisplayCode)
+            };
+        }
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(Guid? excludeId, CreateQueueDisplayDeviceRequest r) { if (r.NurseStationClusterId == Guid.Empty) return (false, "Cluster wajib diisi."); if (string.IsNullOrWhiteSpace(r.DisplayName)) return (false, "Nama display wajib diisi."); if (!Enum.IsDefined(typeof(QueueDisplayDeviceType), r.DisplayDeviceType)) return (false, "Tipe device tidak valid. Gunakan nilai dari endpoint filters/metadata."); if (!Enum.IsDefined(typeof(QueueDisplayLayoutType), r.LayoutType)) return (false, "Tipe layout tidak valid. Gunakan nilai dari endpoint filters/metadata."); if (!await _dbContext.Set<MstNurseStationCluster>().AnyAsync(x => x.Id == r.NurseStationClusterId && !x.IsDelete)) return (false, "Cluster tidak ditemukan."); if (r.ServiceUnitId.HasValue && r.ServiceUnitId.Value != Guid.Empty && !await _dbContext.Set<QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit>().AnyAsync(x => x.Id == r.ServiceUnitId.Value && !x.IsDelete)) return (false, "Unit layanan tidak ditemukan."); var n = r.DisplayName.Trim().ToLower(); var dup = _dbContext.Set<MstQueueDisplayDevice>().Where(x => !x.IsDelete && x.DisplayName.ToLower() == n); if (excludeId.HasValue) dup = dup.Where(x => x.Id != excludeId.Value); if (await dup.AnyAsync()) return (false, "Nama display sudah digunakan."); var pairing = NormalizeUpperNullableString(r.PairingCode); if (!string.IsNullOrWhiteSpace(pairing)) { var p = _dbContext.Set<MstQueueDisplayDevice>().Where(x => !x.IsDelete && x.PairingCode != null && x.PairingCode.ToLower() == pairing.ToLower()); if (excludeId.HasValue) p = p.Where(x => x.Id != excludeId.Value); if (await p.AnyAsync()) return (false, "Pairing code sudah digunakan."); } if (r.SessionExpireMinutes.HasValue && r.SessionExpireMinutes.Value <= 0) return (false, "Masa aktif session display harus lebih dari 0 menit atau dikosongkan untuk memakai fallback default."); return (true, null); }
         private async Task<string> GenerateCodeAsync() { var codes = await _dbContext.Set<MstQueueDisplayDevice>().IgnoreQueryFilters().AsNoTracking().Where(x => x.DisplayCode.StartsWith(CodePrefix)).Select(x => x.DisplayCode).ToListAsync(); var nums = codes.Select(x => x.Replace(CodePrefix, string.Empty)).Where(x => int.TryParse(x, out _)).Select(int.Parse).Where(x => x > 0).ToHashSet(); var next = 1; while (nums.Contains(next)) next++; return CodePrefix + next.ToString().PadLeft(CodeNumberLength, '0'); }
-        private static QueueDisplayDeviceResponse MapResponse(MstQueueDisplayDevice e, IReadOnlyDictionary<Guid, string?> names) => new() { Id = e.Id, NurseStationClusterId = e.NurseStationClusterId, ClusterCode = e.NurseStationCluster?.ClusterCode, ClusterName = e.NurseStationCluster?.ClusterName, ServiceUnitId = e.ServiceUnitId, ServiceUnitCode = e.ServiceUnit?.ServiceUnitCode, ServiceUnitName = e.ServiceUnit?.ServiceUnitName, DisplayCode = e.DisplayCode, DisplayName = e.DisplayName, DisplayDeviceType = e.DisplayDeviceType, DisplayDeviceTypeName = BuildDisplayDeviceTypeLabel(e.DisplayDeviceType), LayoutType = e.LayoutType, LayoutTypeName = BuildLayoutTypeLabel(e.LayoutType), LocationName = e.LocationName, FloorName = e.FloorName, RoomName = e.RoomName, IpAddress = e.IpAddress, MacAddress = e.MacAddress, PairingCode = e.PairingCode, EnableVoiceCalling = e.EnableVoiceCalling, ShowPatientName = e.ShowPatientName, ShowDoctorName = e.ShowDoctorName, ShowClinicName = e.ShowClinicName, RefreshIntervalSeconds = e.RefreshIntervalSeconds, SessionExpireMinutes = e.SessionExpireMinutes, SessionExpireDescription = FormatSessionExpireDescription(e.SessionExpireMinutes), LastOnlineDateTime = e.LastOnlineDateTime, SortOrder = e.SortOrder, IsActive = e.IsActive, CreateDateTime = e.CreateDateTime, CreateBy = e.CreateBy == Guid.Empty ? null : e.CreateBy, CreateByName = GetActorName(names, e.CreateBy) };
+        private static QueueDisplayDeviceResponse MapResponse(MstQueueDisplayDevice e, IReadOnlyDictionary<Guid, string?> names) => new() { Id = e.Id, NurseStationClusterId = e.NurseStationClusterId, ClusterCode = e.NurseStationCluster?.ClusterCode, ClusterName = e.NurseStationCluster?.ClusterName, ServiceUnitId = e.ServiceUnitId, ServiceUnitCode = e.ServiceUnit?.ServiceUnitCode, ServiceUnitName = e.ServiceUnit?.ServiceUnitName, DisplayCode = e.DisplayCode, DisplayName = e.DisplayName, DisplayDeviceType = e.DisplayDeviceType, DisplayDeviceTypeName = BuildDisplayDeviceTypeLabel(e.DisplayDeviceType), LayoutType = e.LayoutType, LayoutTypeName = BuildLayoutTypeLabel(e.LayoutType), LocationName = e.LocationName, FloorName = e.FloorName, RoomName = e.RoomName, IpAddress = e.IpAddress, MacAddress = e.MacAddress, PairingCode = e.PairingCode, EnableVoiceCalling = e.EnableVoiceCalling, ShowPatientName = e.ShowPatientName, ShowDoctorName = e.ShowDoctorName, ShowClinicName = e.ShowClinicName, RefreshIntervalSeconds = e.RefreshIntervalSeconds, SessionExpireMinutes = e.SessionExpireMinutes, SessionExpireDescription = FormatSessionExpireDescription(e.SessionExpireMinutes), LastOnlineDateTime = e.LastOnlineDateTime, IsActive = e.IsActive, CreateDateTime = e.CreateDateTime, CreateBy = e.CreateBy == Guid.Empty ? null : e.CreateBy, CreateByName = GetActorName(names, e.CreateBy) };
         private static QueueDisplayDeviceDetailResponse MapDetailResponse(MstQueueDisplayDevice e, IReadOnlyDictionary<Guid, string?> names) { var d = new QueueDisplayDeviceDetailResponse(); var b = MapResponse(e, names); foreach (var p in typeof(QueueDisplayDeviceResponse).GetProperties()) p.SetValue(d, p.GetValue(b)); d.DeviceToken = e.DeviceToken; d.Description = e.Description; d.UpdateDateTime = e.UpdateDateTime; d.UpdateBy = e.UpdateBy == Guid.Empty ? null : e.UpdateBy; d.UpdateByName = GetActorName(names, e.UpdateBy); return d; }
-        private static QueueDisplayDeviceOptionResponse MapOptionResponse(MstQueueDisplayDevice e) => new() { Id = e.Id, NurseStationClusterId = e.NurseStationClusterId, ClusterName = e.NurseStationCluster?.ClusterName, DisplayCode = e.DisplayCode, DisplayName = e.DisplayName, DisplayDeviceType = e.DisplayDeviceType, DisplayDeviceTypeName = BuildDisplayDeviceTypeLabel(e.DisplayDeviceType), LayoutType = e.LayoutType, LayoutTypeName = BuildLayoutTypeLabel(e.LayoutType), SessionExpireMinutes = e.SessionExpireMinutes, SessionExpireDescription = FormatSessionExpireDescription(e.SessionExpireMinutes), SortOrder = e.SortOrder };
-        private static List<QueueDisplayDeviceEnumMetadataResponse> BuildEnumMetadata() => new() { new QueueDisplayDeviceEnumMetadataResponse { EnumName = nameof(QueueDisplayDeviceType), FieldName = "displayDeviceType", Options = Enum.GetValues<QueueDisplayDeviceType>().Select(x => new QueueDisplayDeviceEnumOptionResponse { Value = Convert.ToInt32(x), Name = x.ToString(), Label = BuildDisplayDeviceTypeLabel(x) }).ToList() }, new QueueDisplayDeviceEnumMetadataResponse { EnumName = nameof(QueueDisplayLayoutType), FieldName = "layoutType", Options = Enum.GetValues<QueueDisplayLayoutType>().Select(x => new QueueDisplayDeviceEnumOptionResponse { Value = Convert.ToInt32(x), Name = x.ToString(), Label = BuildLayoutTypeLabel(x) }).ToList() } };
+        private static QueueDisplayDeviceOptionResponse MapOptionResponse(MstQueueDisplayDevice e) => new() { Id = e.Id, NurseStationClusterId = e.NurseStationClusterId, ClusterName = e.NurseStationCluster?.ClusterName, DisplayCode = e.DisplayCode, DisplayName = e.DisplayName, DisplayDeviceType = e.DisplayDeviceType, DisplayDeviceTypeName = BuildDisplayDeviceTypeLabel(e.DisplayDeviceType), LayoutType = e.LayoutType, LayoutTypeName = BuildLayoutTypeLabel(e.LayoutType), SessionExpireMinutes = e.SessionExpireMinutes, SessionExpireDescription = FormatSessionExpireDescription(e.SessionExpireMinutes) };
+        private static List<QueueDisplayDeviceEnumMetadataResponse> BuildEnumMetadata(
+            List<QueueDisplayDeviceEnumOptionResponse> displayDeviceTypeOptions,
+            List<QueueDisplayDeviceEnumOptionResponse> layoutTypeOptions)
+        {
+            return new List<QueueDisplayDeviceEnumMetadataResponse>
+            {
+                new()
+                {
+                    EnumName = nameof(QueueDisplayDeviceType),
+                    FieldName = "displayDeviceType",
+                    OptionsSource = "displayDeviceTypeOptions",
+                    Description = "Tipe perangkat layar antrian.",
+                    Options = displayDeviceTypeOptions
+                },
+                new()
+                {
+                    EnumName = nameof(QueueDisplayLayoutType),
+                    FieldName = "layoutType",
+                    OptionsSource = "layoutTypeOptions",
+                    Description = "Tipe tampilan/layout layar antrian.",
+                    Options = layoutTypeOptions
+                }
+            };
+        }
+
+        private static List<QueueDisplayDeviceEnumOptionResponse> BuildDisplayDeviceTypeOptions()
+        {
+            return Enum.GetValues<QueueDisplayDeviceType>()
+                .Select(x => new QueueDisplayDeviceEnumOptionResponse
+                {
+                    Value = Convert.ToInt32(x),
+                    Name = x.ToString(),
+                    Label = BuildDisplayDeviceTypeLabel(x)
+                })
+                .ToList();
+        }
+
+        private static List<QueueDisplayDeviceEnumOptionResponse> BuildLayoutTypeOptions()
+        {
+            return Enum.GetValues<QueueDisplayLayoutType>()
+                .Select(x => new QueueDisplayDeviceEnumOptionResponse
+                {
+                    Value = Convert.ToInt32(x),
+                    Name = x.ToString(),
+                    Label = BuildLayoutTypeLabel(x)
+                })
+                .ToList();
+        }
         private static string BuildDisplayDeviceTypeLabel(QueueDisplayDeviceType v) => v switch { QueueDisplayDeviceType.TvDisplay => "TV Display", QueueDisplayDeviceType.PlasmaDisplay => "Plasma Display", QueueDisplayDeviceType.TabletDisplay => "Tablet Display", QueueDisplayDeviceType.WebDisplay => "Web Display", QueueDisplayDeviceType.VoiceDisplay => "Voice Display", QueueDisplayDeviceType.Other => "Other", _ => v.ToString() };
         private static string BuildLayoutTypeLabel(QueueDisplayLayoutType v) => v switch { QueueDisplayLayoutType.ClusterBoard => "Cluster Board", QueueDisplayLayoutType.ClinicBoard => "Clinic Board", QueueDisplayLayoutType.DoctorBoard => "Doctor Board", QueueDisplayLayoutType.CallingBoard => "Calling Board", QueueDisplayLayoutType.SummaryBoard => "Summary Board", _ => v.ToString() };
 
@@ -885,6 +1000,182 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return errors.Any()
                 ? defaultMessage + " " + string.Join(" ", errors)
                 : defaultMessage;
+        }
+
+
+        private static IQueryable<MstQueueDisplayDevice> ApplyDateFilter(IQueryable<MstQueueDisplayDevice> query, DateRangeResolveResult dateRange)
+        {
+            if (dateRange.Start.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime >= dateRange.Start.Value);
+            }
+
+            if (dateRange.EndExclusive.HasValue)
+            {
+                query = query.Where(x => x.CreateDateTime < dateRange.EndExclusive.Value);
+            }
+
+            return query;
+        }
+
+        private static DateRangeResolveResult ResolveDateRange(DateTime? startDate, DateTime? endDate, string? customPeriod)
+        {
+            var period = customPeriod?.Trim().ToLowerInvariant();
+            var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+
+            DateTime? start = null;
+            DateTime? endExclusive = null;
+
+            switch (period)
+            {
+                case null:
+                case "":
+                case "custom":
+                    if (startDate.HasValue)
+                    {
+                        start = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                    }
+
+                    if (endDate.HasValue)
+                    {
+                        endExclusive = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                    }
+                    break;
+
+                case "today":
+                    start = today;
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "last7days":
+                    start = today.AddDays(-6);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "last30days":
+                    start = today.AddDays(-29);
+                    endExclusive = today.AddDays(1);
+                    break;
+
+                case "thismonth":
+                    start = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    endExclusive = start.Value.AddMonths(1);
+                    break;
+
+                case "lastmonth":
+                    var currentMonthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                    start = currentMonthStart.AddMonths(-1);
+                    endExclusive = currentMonthStart;
+                    break;
+
+                default:
+                    return DateRangeResolveResult.Invalid($"customPeriod '{customPeriod}' tidak valid.");
+            }
+
+            if (start.HasValue && endExclusive.HasValue && start.Value >= endExclusive.Value)
+            {
+                return DateRangeResolveResult.Invalid("startDate tidak boleh lebih besar atau sama dengan endDate.");
+            }
+
+            return DateRangeResolveResult.Valid(start, endExclusive);
+        }
+
+        private static List<QueueDisplayDeviceCustomPeriodOptionResponse> BuildCustomPeriodOptions()
+        {
+            return new List<QueueDisplayDeviceCustomPeriodOptionResponse>
+            {
+                new() { Value = "custom", Label = "Custom", Description = "Gunakan startDate dan endDate.", UsesStartDate = true, UsesEndDate = true },
+                new() { Value = "today", Label = "Hari ini", Description = "Data yang dibuat hari ini.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last7days", Label = "7 hari terakhir", Description = "Data yang dibuat dalam 7 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "last30days", Label = "30 hari terakhir", Description = "Data yang dibuat dalam 30 hari terakhir.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "thismonth", Label = "Bulan ini", Description = "Data yang dibuat pada bulan berjalan.", UsesStartDate = false, UsesEndDate = false },
+                new() { Value = "lastmonth", Label = "Bulan lalu", Description = "Data yang dibuat pada bulan sebelumnya.", UsesStartDate = false, UsesEndDate = false }
+            };
+        }
+
+        private static List<QueueDisplayDeviceQueryParameterInfoResponse> BuildQueryParameterInfo()
+        {
+            return new List<QueueDisplayDeviceQueryParameterInfoResponse>
+            {
+                new() { Name = "startDate", Type = "DateTime?", Description = "Tanggal awal filter berdasarkan CreateDateTime.", Example = "2026-06-01" },
+                new() { Name = "endDate", Type = "DateTime?", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-06-30" },
+                new() { Name = "customPeriod", Type = "string", Description = "Filter periode cepat: custom, today, last7days, last30days, thismonth, lastmonth.", Example = "thismonth" },
+                new() { Name = "nurseStationClusterId", Type = "Guid?", Description = "Filter berdasarkan cluster nurse station.", Example = "3fa85f64-5717-4562-b3fc-2c963f66afa6" },
+                new() { Name = "serviceUnitId", Type = "Guid?", Description = "Filter berdasarkan unit layanan.", Example = "3fa85f64-5717-4562-b3fc-2c963f66afa6" },
+                new() { Name = "displayDeviceType", Type = "enum", Description = "Filter berdasarkan tipe perangkat display.", Example = "1" },
+                new() { Name = "layoutType", Type = "enum", Description = "Filter berdasarkan tipe layout display.", Example = "1" },
+                new() { Name = "isActive", Type = "bool", Description = "Filter status aktif.", Example = "true" },
+                new() { Name = "search", Type = "string", Description = "Cari berdasarkan kode, nama, cluster, unit layanan, lokasi, lantai, ruangan, IP, MAC, pairing code, tipe, layout, atau deskripsi.", Example = "Lobby" },
+                new() { Name = "sortBy", Type = "string", Description = "Kolom sorting.", Example = "displayName" },
+                new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
+                new() { Name = "pageNumber", Type = "int", Description = "Nomor halaman.", Example = "1" },
+                new() { Name = "pageSize", Type = "int", Description = "Jumlah data per halaman, maksimal 100.", Example = "25" }
+            };
+        }
+
+        private static List<QueueDisplayDeviceFormFieldMetadataResponse> BuildCreateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: false);
+        }
+
+        private static List<QueueDisplayDeviceFormFieldMetadataResponse> BuildUpdateFieldMetadata()
+        {
+            return BuildFieldMetadata(isUpdate: true);
+        }
+
+        private static List<QueueDisplayDeviceFormFieldMetadataResponse> BuildFieldMetadata(bool isUpdate)
+        {
+            var fields = new List<QueueDisplayDeviceFormFieldMetadataResponse>
+            {
+                new() { Name = "displayCode", Label = "Kode Display", Section = "Basic", InputType = "readonly", IsRequiredOnCreate = false, IsRequiredOnUpdate = false, RequiredType = "AutoGenerated", MaxLength = 50, Description = "Digenerate otomatis oleh sistem dengan format QDD-RSMMC-00001.", Example = "QDD-RSMMC-00001", SortOrder = 1 },
+                new() { Name = "displayName", Label = "Nama Display", Section = "Basic", InputType = "text", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", MaxLength = 150, Example = "Display Lobby Utama", SortOrder = 2 },
+                new() { Name = "nurseStationClusterId", Label = "Cluster Nurse Station", Section = "Relasi", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", Description = "Cluster poli yang ditampilkan pada layar antrian.", SortOrder = 3 },
+                new() { Name = "serviceUnitId", Label = "Unit Layanan", Section = "Relasi", InputType = "select", Description = "Opsional. Batasi display ke unit layanan tertentu.", SortOrder = 4 },
+                new() { Name = "displayDeviceType", Label = "Tipe Device", Section = "Display", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "displayDeviceTypeOptions", SortOrder = 5 },
+                new() { Name = "layoutType", Label = "Tipe Layout", Section = "Display", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "layoutTypeOptions", SortOrder = 6 },
+                new() { Name = "locationName", Label = "Lokasi", Section = "Location", InputType = "text", MaxLength = 100, Example = "Lobby Utama", SortOrder = 7 },
+                new() { Name = "floorName", Label = "Lantai", Section = "Location", InputType = "text", MaxLength = 50, Example = "Lantai 1", SortOrder = 8 },
+                new() { Name = "roomName", Label = "Ruangan", Section = "Location", InputType = "text", MaxLength = 50, Example = "Ruang Tunggu Poli", SortOrder = 9 },
+                new() { Name = "ipAddress", Label = "IP Address", Section = "Network", InputType = "text", MaxLength = 50, Example = "192.168.1.80", SortOrder = 10 },
+                new() { Name = "macAddress", Label = "MAC Address", Section = "Network", InputType = "text", MaxLength = 100, Example = "A1:B2:C3:D4:E5:F6", SortOrder = 11 },
+                new() { Name = "pairingCode", Label = "Pairing Code", Section = "Security", InputType = "text", MaxLength = 100, Description = "Opsional. Kode pairing internal perangkat.", SortOrder = 12 },
+                new() { Name = "deviceToken", Label = "Device Token", Section = "Security", InputType = "text", MaxLength = 200, Description = "Opsional. Token device internal.", SortOrder = 13 },
+                new() { Name = "enableVoiceCalling", Label = "Aktifkan Panggilan Suara", Section = "Rule", InputType = "switch", SortOrder = 14 },
+                new() { Name = "showPatientName", Label = "Tampilkan Nama Pasien", Section = "Rule", InputType = "switch", SortOrder = 15 },
+                new() { Name = "showDoctorName", Label = "Tampilkan Nama Dokter", Section = "Rule", InputType = "switch", SortOrder = 16 },
+                new() { Name = "showClinicName", Label = "Tampilkan Nama Klinik", Section = "Rule", InputType = "switch", SortOrder = 17 },
+                new() { Name = "refreshIntervalSeconds", Label = "Interval Refresh", Section = "Runtime", InputType = "number", Description = "Isi dalam detik. Minimal 3 detik, maksimal 300 detik.", Example = "5", SortOrder = 18 },
+                new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 19 },
+                new() { Name = "sessionExpireMinutes", Label = "Masa Aktif Session Device", Section = "Security", InputType = "number", Description = "Isi dalam menit. Kosongkan untuk memakai fallback backend. Contoh: 1440 = 1 hari, 43200 = 30 hari, 129600 = 90 hari, 525600 = 365 hari.", Example = "129600", SortOrder = 20 }
+            };
+
+            if (isUpdate)
+            {
+                fields.Add(new QueueDisplayDeviceFormFieldMetadataResponse { Name = "isActive", Label = "Status Aktif", Section = "Status", InputType = "switch", SortOrder = 99 });
+            }
+
+            return fields.OrderBy(x => x.SortOrder).ToList();
+        }
+
+        private sealed class DateRangeResolveResult
+        {
+            public bool IsValid { get; private set; }
+            public DateTime? Start { get; private set; }
+            public DateTime? EndExclusive { get; private set; }
+            public string? ErrorMessage { get; private set; }
+
+            public static DateRangeResolveResult Valid(DateTime? start, DateTime? endExclusive) => new()
+            {
+                IsValid = true,
+                Start = start,
+                EndExclusive = endExclusive
+            };
+
+            public static DateRangeResolveResult Invalid(string errorMessage) => new()
+            {
+                IsValid = false,
+                ErrorMessage = errorMessage
+            };
         }
 
         private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> ids) { var list = ids.Where(x => x != Guid.Empty).Distinct().ToList(); if (!list.Any()) return new(); return await _dbContext.Users.AsNoTracking().Where(x => list.Contains(x.Id)).Select(x => new { x.Id, Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode }).ToDictionaryAsync(x => x.Id, x => x.Name); }

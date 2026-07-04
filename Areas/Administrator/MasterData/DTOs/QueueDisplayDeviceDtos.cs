@@ -43,7 +43,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public int? SessionExpireMinutes { get; set; }
         public string SessionExpireDescription { get; set; } = string.Empty;
         public DateTime? LastOnlineDateTime { get; set; }
-        public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }
@@ -72,7 +71,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string LayoutTypeName { get; set; } = string.Empty;
         public int? SessionExpireMinutes { get; set; }
         public string SessionExpireDescription { get; set; } = string.Empty;
-        public int SortOrder { get; set; }
     }
 
     public class QueueDisplayDeviceOptionPagedResponse
@@ -87,23 +85,34 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     public class QueueDisplayDeviceFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
+        public string CustomPeriodPriorityInfo { get; set; } =
+            "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
         public string ResetButtonLabel { get; set; } = "Reset";
         public QueueDisplayDeviceDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<QueueDisplayDeviceCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<QueueDisplayDeviceSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
         public List<QueueDisplayDeviceEnumMetadataResponse> EnumOptions { get; set; } = new();
+        public List<QueueDisplayDeviceEnumOptionResponse> DisplayDeviceTypeOptions { get; set; } = new();
+        public List<QueueDisplayDeviceEnumOptionResponse> LayoutTypeOptions { get; set; } = new();
+        public List<QueueDisplayDeviceQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+        public List<QueueDisplayDeviceFormFieldMetadataResponse> CreateFields { get; set; } = new();
+        public List<QueueDisplayDeviceFormFieldMetadataResponse> UpdateFields { get; set; } = new();
     }
 
     public class QueueDisplayDeviceDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? NurseStationClusterId { get; set; }
         public Guid? ServiceUnitId { get; set; }
         public string? Search { get; set; }
         public bool? IsActive { get; set; }
         public QueueDisplayDeviceType? DisplayDeviceType { get; set; }
         public QueueDisplayLayoutType? LayoutType { get; set; }
-        public string SortBy { get; set; } = "sortOrder";
+        public string SortBy { get; set; } = "displayName";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
@@ -115,10 +124,48 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string Label { get; set; } = string.Empty;
     }
 
+
+
+    public class QueueDisplayDeviceCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public bool UsesStartDate { get; set; }
+        public bool UsesEndDate { get; set; }
+    }
+
+    public class QueueDisplayDeviceQueryParameterInfoResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Required { get; set; } = "No";
+        public string Description { get; set; } = string.Empty;
+        public string? Example { get; set; }
+    }
+
+    public class QueueDisplayDeviceFormFieldMetadataResponse
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Section { get; set; } = string.Empty;
+        public string InputType { get; set; } = string.Empty;
+        public bool IsRequiredOnCreate { get; set; }
+        public bool IsRequiredOnUpdate { get; set; }
+        public string RequiredType { get; set; } = "Optional";
+        public int? MaxLength { get; set; }
+        public string? OptionsSource { get; set; }
+        public string? Description { get; set; }
+        public string? Example { get; set; }
+        public int SortOrder { get; set; }
+    }
+
     public class QueueDisplayDeviceEnumMetadataResponse
     {
         public string EnumName { get; set; } = string.Empty;
         public string FieldName { get; set; } = string.Empty;
+        public string OptionsSource { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
         public List<QueueDisplayDeviceEnumOptionResponse> Options { get; set; } = new();
     }
 
@@ -165,8 +212,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         /// </summary>
         [Range(1, int.MaxValue)]
         public int? SessionExpireMinutes { get; set; }
-
-        public int SortOrder { get; set; } = 0;
         [MaxLength(250)]
         public string? Description { get; set; }
     }

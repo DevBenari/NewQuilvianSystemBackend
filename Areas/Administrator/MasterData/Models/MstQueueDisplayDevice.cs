@@ -73,8 +73,6 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
         [MaxLength(250)]
         public string? LastErrorMessage { get; set; }
 
-        public int SortOrder { get; set; } = 0;
-
         [MaxLength(250)]
         public string? Description { get; set; }
 
