@@ -51,6 +51,21 @@ namespace QuilvianSystemBackend.Hubs
             );
         }
 
+        public async Task<List<Guid>> JoinAccessibleNurseStationClusters()
+        {
+            var clusterIds = await ResolveAccessibleNurseStationClusterIdsAsync();
+
+            foreach (var clusterId in clusterIds)
+            {
+                await Groups.AddToGroupAsync(
+                    Context.ConnectionId,
+                    QueueRealtimeService.BuildNurseStationClusterGroupName(clusterId)
+                );
+            }
+
+            return clusterIds;
+        }
+
         public async Task JoinDoctorQueue(Guid doctorId)
         {
             if (doctorId == Guid.Empty)
@@ -80,6 +95,21 @@ namespace QuilvianSystemBackend.Hubs
                 Context.ConnectionId,
                 QueueRealtimeService.BuildDoctorQueueDoctorGroupName(doctorId)
             );
+        }
+
+        public async Task<List<Guid>> JoinAccessibleDoctorQueues()
+        {
+            var doctorIds = await ResolveAccessibleDoctorIdsAsync();
+
+            foreach (var doctorId in doctorIds)
+            {
+                await Groups.AddToGroupAsync(
+                    Context.ConnectionId,
+                    QueueRealtimeService.BuildDoctorQueueDoctorGroupName(doctorId)
+                );
+            }
+
+            return doctorIds;
         }
 
         public async Task JoinDoctorClinicQueue(Guid clinicId)
@@ -113,63 +143,148 @@ namespace QuilvianSystemBackend.Hubs
             );
         }
 
-        private async Task<bool> CanAccessNurseStationClusterAsync(Guid nurseStationClusterId)
+        public async Task<List<Guid>> JoinAccessibleDoctorClinicQueues()
+        {
+            var clinicIds = await ResolveAccessibleDoctorClinicIdsAsync();
+
+            foreach (var clinicId in clinicIds)
+            {
+                await Groups.AddToGroupAsync(
+                    Context.ConnectionId,
+                    QueueRealtimeService.BuildDoctorQueueClinicGroupName(clinicId)
+                );
+            }
+
+            return clinicIds;
+        }
+
+        private async Task<List<Guid>> ResolveAccessibleNurseStationClusterIdsAsync()
         {
             if (IsCurrentUserSuperAdmin())
             {
                 return await _dbContext.Set<MstNurseStationCluster>()
                     .AsNoTracking()
-                    .AnyAsync(x => x.Id == nurseStationClusterId && !x.IsDelete && x.IsActive);
+                    .Where(x => !x.IsDelete && x.IsActive)
+                    .OrderBy(x => x.Id)
+                    .Select(x => x.Id)
+                    .Distinct()
+                    .ToListAsync();
             }
 
             var employee = await ResolveCurrentEmployeeAsync();
             if (employee == null)
             {
-                return false;
+                return new List<Guid>();
             }
 
-            return await _dbContext.Set<MstNurseStationClusterStaff>()
-                .AsNoTracking()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.IsActive &&
-                    x.EmployeeId == employee.Id &&
-                    x.NurseStationClusterId == nurseStationClusterId);
+            return await (
+                from staff in _dbContext.Set<MstNurseStationClusterStaff>().AsNoTracking()
+                join cluster in _dbContext.Set<MstNurseStationCluster>().AsNoTracking()
+                    on staff.NurseStationClusterId equals cluster.Id
+                where !staff.IsDelete &&
+                      staff.IsActive &&
+                      staff.EmployeeId == employee.Id &&
+                      !cluster.IsDelete &&
+                      cluster.IsActive
+                orderby cluster.Id
+                select staff.NurseStationClusterId
+            )
+            .Distinct()
+            .ToListAsync();
         }
 
-        private async Task<bool> CanAccessDoctorQueueAsync(Guid doctorId)
+        private async Task<List<Guid>> ResolveAccessibleDoctorIdsAsync()
         {
             if (IsCurrentUserSuperAdmin())
             {
                 return await _dbContext.Set<MstDoctor>()
                     .AsNoTracking()
-                    .AnyAsync(x => x.Id == doctorId && !x.IsDelete && x.IsActive);
+                    .Where(x => !x.IsDelete && x.IsActive)
+                    .OrderBy(x => x.Id)
+                    .Select(x => x.Id)
+                    .Distinct()
+                    .ToListAsync();
             }
 
             var allowedDoctorId = await ResolveCurrentDoctorIdAsync();
-            return allowedDoctorId.HasValue && allowedDoctorId.Value == doctorId;
+            if (!allowedDoctorId.HasValue || allowedDoctorId.Value == Guid.Empty)
+            {
+                return new List<Guid>();
+            }
+
+            var exists = await _dbContext.Set<MstDoctor>()
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == allowedDoctorId.Value && !x.IsDelete && x.IsActive);
+
+            return exists ? new List<Guid> { allowedDoctorId.Value } : new List<Guid>();
         }
 
-        private async Task<bool> CanAccessDoctorClinicQueueAsync(Guid clinicId)
+        private async Task<List<Guid>> ResolveAccessibleDoctorClinicIdsAsync()
         {
             if (IsCurrentUserSuperAdmin())
             {
-                return true;
+                return await _dbContext.Set<MstClinic>()
+                    .AsNoTracking()
+                    .Where(x => !x.IsDelete && x.IsActive)
+                    .OrderBy(x => x.Id)
+                    .Select(x => x.Id)
+                    .Distinct()
+                    .ToListAsync();
             }
 
             var allowedDoctorId = await ResolveCurrentDoctorIdAsync();
-            if (!allowedDoctorId.HasValue)
+            if (!allowedDoctorId.HasValue || allowedDoctorId.Value == Guid.Empty)
+            {
+                return new List<Guid>();
+            }
+
+            return await (
+                from schedule in _dbContext.Set<MstDoctorSchedule>().AsNoTracking()
+                join clinic in _dbContext.Set<MstClinic>().AsNoTracking()
+                    on schedule.ClinicId equals clinic.Id
+                where !schedule.IsDelete &&
+                      schedule.IsActive &&
+                      schedule.DoctorId == allowedDoctorId.Value &&
+                      !clinic.IsDelete &&
+                      clinic.IsActive
+                orderby clinic.Id
+                select schedule.ClinicId
+            )
+            .Distinct()
+            .ToListAsync();
+        }
+
+        private async Task<bool> CanAccessNurseStationClusterAsync(Guid nurseStationClusterId)
+        {
+            if (nurseStationClusterId == Guid.Empty)
             {
                 return false;
             }
 
-            return await _dbContext.Set<MstDoctorSchedule>()
-                .AsNoTracking()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.IsActive &&
-                    x.DoctorId == allowedDoctorId.Value &&
-                    x.ClinicId == clinicId);
+            var accessibleIds = await ResolveAccessibleNurseStationClusterIdsAsync();
+            return accessibleIds.Contains(nurseStationClusterId);
+        }
+
+        private async Task<bool> CanAccessDoctorQueueAsync(Guid doctorId)
+        {
+            if (doctorId == Guid.Empty)
+            {
+                return false;
+            }
+
+            var accessibleIds = await ResolveAccessibleDoctorIdsAsync();
+            return accessibleIds.Contains(doctorId);
+        }
+
+        private async Task<bool> CanAccessDoctorClinicQueueAsync(Guid clinicId)
+        {
+            if (clinicId == Guid.Empty)
+            {
+                return false;
+            }
+
+            var accessibleIds = await ResolveAccessibleDoctorClinicIdsAsync();
+            return accessibleIds.Contains(clinicId);
         }
 
         private bool IsCurrentUserSuperAdmin()
