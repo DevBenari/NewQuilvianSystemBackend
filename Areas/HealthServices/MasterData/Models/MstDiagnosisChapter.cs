@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         [Required]
         [MaxLength(50)]
         public string ChapterCode { get; set; } = string.Empty;
-        // Contoh ICD-10: I, II, III, IV, V
+        // Contoh: I, II, III, IV, V
 
         [Required]
         [MaxLength(250)]
@@ -27,13 +27,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public string? DiagnosisCodeRangeEnd { get; set; }
         // Contoh: B99
 
+        [Required]
         [MaxLength(100)]
         public string IcdVersion { get; set; } = "ICD-10";
 
-        public int SortOrder { get; set; } = 0;
-
-        [MaxLength(250)]
-        public string? Description { get; set; }
 
         public bool IsActive { get; set; } = true;
 

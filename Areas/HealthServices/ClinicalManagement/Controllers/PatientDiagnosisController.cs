@@ -117,9 +117,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
                 query = query.Where(x =>
                     x.DiagnosisCode.ToLower().Contains(keyword) ||
-                    x.DiagnosisName.ToLower().Contains(keyword) ||
-                    (x.DiagnosisNameEnglish != null && x.DiagnosisNameEnglish.ToLower().Contains(keyword)) ||
-                    (x.DiagnosisGroupName != null && x.DiagnosisGroupName.ToLower().Contains(keyword)));
+                    x.DiagnosisName.ToLower().Contains(keyword));
             }
 
             var data = await query
@@ -130,17 +128,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     Id = x.Id,
                     DiagnosisCode = x.DiagnosisCode,
                     DiagnosisName = x.DiagnosisName,
-                    DiagnosisGroupName = x.DiagnosisGroupName,
                     DiagnosisType = x.DiagnosisType,
                     IcdVersion = x.IcdVersion,
                     IsSelectableForClinicalUse = x.IsSelectableForClinicalUse,
                     IsPrimaryDiagnosisAllowed = x.IsPrimaryDiagnosisAllowed,
-                    IsSecondaryDiagnosisAllowed = x.IsSecondaryDiagnosisAllowed,
-                    IsChronicDisease = x.IsChronicDisease,
-                    IsInfectiousDisease = x.IsInfectiousDisease,
-                    IsExternalCause = x.IsExternalCause,
-                    IsPregnancyRelated = x.IsPregnancyRelated,
-                    IsMentalHealthRelated = x.IsMentalHealthRelated
+                    IsSecondaryDiagnosisAllowed = x.IsSecondaryDiagnosisAllowed
                 })
                 .ToListAsync();
 
@@ -342,7 +334,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 request.DiagnosisName,
                 request.DiagnosisMasterType,
                 request.IcdVersion,
-                request.DiagnosisType
+                request.IsPrimary ? PatientDiagnosisType.Primary : request.DiagnosisType
             );
 
             if (!diagnosisSnapshot.IsValid)
@@ -377,7 +369,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 DiagnosisType = request.IsPrimary ? PatientDiagnosisType.Primary : request.DiagnosisType,
                 DiagnosisStatus = PatientDiagnosisStatus.Active,
                 IsPrimary = request.IsPrimary,
-                IsChronic = request.IsChronic || diagnosisSnapshot.IsChronicDisease,
+                IsChronic = request.IsChronic,
                 IsNewCase = request.IsNewCase,
                 IsConfirmed = request.IsConfirmed,
                 IsFromMasterDiagnosis = diagnosisSnapshot.IsFromMasterDiagnosis,
@@ -476,7 +468,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 request.DiagnosisName,
                 request.DiagnosisMasterType,
                 request.IcdVersion,
-                request.DiagnosisType
+                request.IsPrimary ? PatientDiagnosisType.Primary : request.DiagnosisType
             );
 
             if (!diagnosisSnapshot.IsValid)
@@ -519,7 +511,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.IcdVersion = diagnosisSnapshot.IcdVersion;
             entity.DiagnosisType = request.IsPrimary ? PatientDiagnosisType.Primary : request.DiagnosisType;
             entity.IsPrimary = request.IsPrimary;
-            entity.IsChronic = request.IsChronic || diagnosisSnapshot.IsChronicDisease;
+            entity.IsChronic = request.IsChronic;
             entity.IsNewCase = request.IsNewCase;
             entity.IsConfirmed = request.IsConfirmed;
             entity.IsFromMasterDiagnosis = diagnosisSnapshot.IsFromMasterDiagnosis;
@@ -848,7 +840,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 request.DiagnosisName,
                 request.DiagnosisMasterType,
                 request.IcdVersion,
-                request.DiagnosisType
+                request.IsPrimary ? PatientDiagnosisType.Primary : request.DiagnosisType
             );
 
             if (!snapshot.IsValid)
@@ -948,8 +940,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     diagnosisName: master.DiagnosisName.Trim(),
                     diagnosisMasterType: master.DiagnosisType,
                     icdVersion: master.IcdVersion,
-                    isFromMasterDiagnosis: true,
-                    isChronicDisease: master.IsChronicDisease
+                    isFromMasterDiagnosis: true
                 );
             }
 
@@ -967,8 +958,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     ? "Manual"
                     : diagnosisMasterType.Trim(),
                 icdVersion: NormalizeNullableText(icdVersion),
-                isFromMasterDiagnosis: false,
-                isChronicDisease: false
+                isFromMasterDiagnosis: false
             );
         }
 
@@ -1237,16 +1227,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             public string DiagnosisMasterType { get; set; } = string.Empty;
             public string? IcdVersion { get; set; }
             public bool IsFromMasterDiagnosis { get; set; }
-            public bool IsChronicDisease { get; set; }
-
             public static DiagnosisSnapshotResult Ok(
                 Guid? diagnosisId,
                 string diagnosisCode,
                 string diagnosisName,
                 string diagnosisMasterType,
                 string? icdVersion,
-                bool isFromMasterDiagnosis,
-                bool isChronicDisease)
+                bool isFromMasterDiagnosis)
             {
                 return new DiagnosisSnapshotResult
                 {
@@ -1256,8 +1243,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     DiagnosisName = diagnosisName,
                     DiagnosisMasterType = diagnosisMasterType,
                     IcdVersion = icdVersion,
-                    IsFromMasterDiagnosis = isFromMasterDiagnosis,
-                    IsChronicDisease = isChronicDisease
+                    IsFromMasterDiagnosis = isFromMasterDiagnosis
                 };
             }
 

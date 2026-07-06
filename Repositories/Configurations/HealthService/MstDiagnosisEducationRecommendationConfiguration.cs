@@ -4,33 +4,28 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 {
-    public class MstDiagnosisChapterConfiguration : IEntityTypeConfiguration<MstDiagnosisChapter>
+    public class MstDiagnosisEducationRecommendationConfiguration : IEntityTypeConfiguration<MstDiagnosisEducationRecommendation>
     {
-        public void Configure(EntityTypeBuilder<MstDiagnosisChapter> entity)
+        public void Configure(EntityTypeBuilder<MstDiagnosisEducationRecommendation> entity)
         {
-            entity.ToTable("MstDiagnosisChapter", "public");
+            entity.ToTable("MstDiagnosisEducationRecommendation", "public");
 
             entity.HasKey(x => x.Id);
 
-            entity.Property(x => x.ChapterCode)
-                .HasMaxLength(50)
+            entity.Property(x => x.DiagnosisId)
                 .IsRequired();
 
-            entity.Property(x => x.ChapterName)
+            entity.Property(x => x.EducationType)
+                .HasMaxLength(50)
+                .HasDefaultValue("General")
+                .IsRequired();
+
+            entity.Property(x => x.EducationTitle)
                 .HasMaxLength(250)
                 .IsRequired();
 
-            entity.Property(x => x.DiagnosisCodeRangeStart)
-                .HasMaxLength(50)
-                .IsRequired(false);
-
-            entity.Property(x => x.DiagnosisCodeRangeEnd)
-                .HasMaxLength(50)
-                .IsRequired(false);
-
-            entity.Property(x => x.IcdVersion)
-                .HasMaxLength(100)
-                .HasDefaultValue("ICD-10")
+            entity.Property(x => x.EducationText)
+                .HasMaxLength(2000)
                 .IsRequired();
             entity.Property(x => x.IsActive)
                 .HasDefaultValue(true);
@@ -57,22 +52,21 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.IsCancel)
                 .HasDefaultValue(false);
 
-            entity.HasIndex(x => new { x.IcdVersion, x.ChapterCode })
-                .IsUnique();
+            entity.HasOne(x => x.Diagnosis)
+                .WithMany(x => x.EducationRecommendations)
+                .HasForeignKey(x => x.DiagnosisId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(x => x.ChapterName);
+            entity.HasIndex(x => x.DiagnosisId);
+
+            entity.HasIndex(x => x.EducationTitle);
 
             entity.HasIndex(x => new
             {
-                x.IcdVersion,
+                x.DiagnosisId,
+                x.EducationType,
                 x.IsActive,
                 x.IsDelete
-            });
-
-            entity.HasIndex(x => new
-            {
-                x.DiagnosisCodeRangeStart,
-                x.DiagnosisCodeRangeEnd
             });
         }
     }

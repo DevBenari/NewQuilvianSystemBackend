@@ -89,17 +89,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid Id { get; set; }
         public string DiagnosisCode { get; set; } = string.Empty;
         public string DiagnosisName { get; set; } = string.Empty;
-        public string? DiagnosisGroupName { get; set; }
         public string DiagnosisType { get; set; } = string.Empty;
         public string IcdVersion { get; set; } = string.Empty;
         public bool IsSelectableForClinicalUse { get; set; }
         public bool IsPrimaryDiagnosisAllowed { get; set; }
         public bool IsSecondaryDiagnosisAllowed { get; set; }
-        public bool IsChronicDisease { get; set; }
-        public bool IsInfectiousDisease { get; set; }
-        public bool IsExternalCause { get; set; }
-        public bool IsPregnancyRelated { get; set; }
-        public bool IsMentalHealthRelated { get; set; }
     }
 
     public class PatientDiagnosisFilterMetadataResponse

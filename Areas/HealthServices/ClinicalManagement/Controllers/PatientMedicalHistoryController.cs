@@ -1047,6 +1047,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             {
                 var diagnosis = await _dbContext.Set<MstDiagnosis>()
                     .AsNoTracking()
+                    .Include(x => x.DiagnosisChapter)
                     .FirstOrDefaultAsync(x => x.Id == normalizedDiagnosisId.Value && !x.IsDelete);
 
                 if (diagnosis == null)
@@ -1058,14 +1059,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     DiagnosisId = diagnosis.Id,
                     ConditionCode = diagnosis.DiagnosisCode,
                     ConditionName = diagnosis.DiagnosisName,
-                    ConditionGroupName = diagnosis.DiagnosisGroupName,
-                    ConditionMasterType = "ICD10",
+                    ConditionGroupName = diagnosis.DiagnosisChapter != null ? diagnosis.DiagnosisChapter.ChapterName : null,
+                    ConditionMasterType = diagnosis.DiagnosisType,
                     IcdVersion = diagnosis.IcdVersion,
                     IsFromMasterDiagnosis = true,
-                    IsChronicDisease = diagnosis.IsChronicDisease,
-                    IsInfectiousDisease = diagnosis.IsInfectiousDisease,
-                    IsPregnancyRelated = diagnosis.IsPregnancyRelated,
-                    IsMentalHealthRelated = diagnosis.IsMentalHealthRelated
+                    IsChronicDisease = false,
+                    IsInfectiousDisease = false,
+                    IsPregnancyRelated = false,
+                    IsMentalHealthRelated = false
                 };
             }
 

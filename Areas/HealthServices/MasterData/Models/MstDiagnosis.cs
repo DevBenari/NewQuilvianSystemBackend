@@ -10,9 +10,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         public Guid? DiagnosisChapterId { get; set; }
+        // Optional background grouping berdasarkan chapter ICD.
 
         public Guid? ParentDiagnosisId { get; set; }
-        // Opsional untuk grouping diagnosis, contoh A00 sebagai parent A00.0
+        // Contoh: A00 sebagai parent dari A00.0, A00.1, A00.9.
 
         [Required]
         [MaxLength(50)]
@@ -23,66 +24,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         [MaxLength(500)]
         public string DiagnosisName { get; set; } = string.Empty;
 
-        [MaxLength(500)]
-        public string? DiagnosisNameEnglish { get; set; }
-
-        [MaxLength(200)]
-        public string? ShortName { get; set; }
-
-        [MaxLength(300)]
-        public string? DiagnosisGroupName { get; set; }
-
-        [MaxLength(300)]
-        public string? DiagnosisCategoryName { get; set; }
-
         [Required]
         [MaxLength(50)]
         public string DiagnosisType { get; set; } = "ICD10";
         // ICD10, Local, Custom
 
+        [Required]
         [MaxLength(100)]
         public string IcdVersion { get; set; } = "ICD-10";
 
         public bool IsSelectableForClinicalUse { get; set; } = true;
-        // Jika false, kode hanya untuk group/category, bukan dipilih dokter.
-
-        public bool IsBillable { get; set; } = true;
-        // Untuk kebutuhan billing/claim/reporting.
+        // Jika false, data hanya sebagai parent/group dan tidak dipilih dokter.
 
         public bool IsPrimaryDiagnosisAllowed { get; set; } = true;
 
         public bool IsSecondaryDiagnosisAllowed { get; set; } = true;
 
-        public bool IsChronicDisease { get; set; } = false;
-
-        public bool IsInfectiousDisease { get; set; } = false;
-
-        public bool IsExternalCause { get; set; } = false;
-
-        public bool IsPregnancyRelated { get; set; } = false;
-
-        public bool IsMentalHealthRelated { get; set; } = false;
-
-        public bool IsRareDisease { get; set; } = false;
-
-        [MaxLength(50)]
-        public string? GenderRestriction { get; set; }
-        // None, Male, Female
-
-        public int? MinimumAgeYear { get; set; }
-
-        public int? MaximumAgeYear { get; set; }
-
-        [MaxLength(50)]
-        public string? ExternalDiagnosisCode { get; set; }
-
-        [MaxLength(50)]
-        public string? IntegrationCode { get; set; }
-
-        public int SortOrder { get; set; } = 0;
-
-        [MaxLength(250)]
-        public string? Description { get; set; }
 
         public bool IsActive { get; set; } = true;
 
@@ -91,5 +48,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public MstDiagnosis? ParentDiagnosis { get; set; }
 
         public ICollection<MstDiagnosis> ChildDiagnoses { get; set; } = new List<MstDiagnosis>();
+
+        public ICollection<MstDiagnosisDrugRecommendation> DrugRecommendations { get; set; } = new List<MstDiagnosisDrugRecommendation>();
+
+        public ICollection<MstDiagnosisProcedureRecommendation> ProcedureRecommendations { get; set; } = new List<MstDiagnosisProcedureRecommendation>();
+
+        public ICollection<MstDiagnosisEducationRecommendation> EducationRecommendations { get; set; } = new List<MstDiagnosisEducationRecommendation>();
     }
 }
