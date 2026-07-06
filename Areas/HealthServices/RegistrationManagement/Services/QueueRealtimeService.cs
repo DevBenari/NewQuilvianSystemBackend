@@ -61,15 +61,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         public Task NotifyQueueCreatedAsync(TrxQueue queue, Guid actorUserId, string? message = null)
         {
-            var notifyNurseStation = IsNurseStationQueueStatus(queue.QueueStatus);
-            var notifyDoctorQueue = IsDoctorQueueStatus(queue.QueueStatus);
+            // Display antrian bekerja berdasarkan nurse station cluster.
+            // Karena itu event pembuatan antrean tetap dikirim ke group cluster,
+            // termasuk untuk antrean yang langsung masuk dokter tanpa screening.
+            var notifyDoctorQueue = queue.IsDoctorRequired || IsDoctorQueueStatus(queue.QueueStatus);
 
             return NotifyQueueChangedAsync(
                 eventType: "QueueCreated",
                 queue: queue,
                 actorUserId: actorUserId,
                 message: message,
-                notifyNurseStation: notifyNurseStation,
+                notifyNurseStation: true,
                 notifyDoctorQueue: notifyDoctorQueue
             );
         }
@@ -141,7 +143,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 queue: queue,
                 actorUserId: actorUserId,
                 message: message,
-                notifyNurseStation: false,
+                notifyNurseStation: true,
                 notifyDoctorQueue: true
             );
         }
@@ -153,7 +155,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 queue: queue,
                 actorUserId: actorUserId,
                 message: message,
-                notifyNurseStation: false,
+                notifyNurseStation: true,
                 notifyDoctorQueue: true
             );
         }
@@ -165,7 +167,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 queue: queue,
                 actorUserId: actorUserId,
                 message: message,
-                notifyNurseStation: false,
+                notifyNurseStation: true,
                 notifyDoctorQueue: true
             );
         }
@@ -177,7 +179,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 queue: queue,
                 actorUserId: actorUserId,
                 message: message,
-                notifyNurseStation: false,
+                notifyNurseStation: true,
                 notifyDoctorQueue: true
             );
         }
@@ -189,7 +191,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 queue: queue,
                 actorUserId: actorUserId,
                 message: message,
-                notifyNurseStation: false,
+                notifyNurseStation: true,
                 notifyDoctorQueue: true
             );
         }

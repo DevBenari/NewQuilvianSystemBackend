@@ -6,6 +6,9 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Repositories;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Hubs
@@ -13,6 +16,22 @@ namespace QuilvianSystemBackend.Hubs
     [Authorize]
     public class QueueHub : Hub
     {
+        private static readonly HashSet<string> NurseStationClusterClaimTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "nurse_station_cluster_id",
+            "nurseStationClusterId",
+            "NurseStationClusterId",
+            "cluster_id",
+            "clusterId",
+            "ClusterId",
+            "queue_display_cluster_id",
+            "queueDisplayClusterId",
+            "QueueDisplayClusterId",
+            "queue_display_nurse_station_cluster_id",
+            "queueDisplayNurseStationClusterId",
+            "QueueDisplayNurseStationClusterId"
+        };
+
         private readonly ApplicationDbContext _dbContext;
 
         public QueueHub(ApplicationDbContext dbContext)
@@ -285,6 +304,11 @@ namespace QuilvianSystemBackend.Hubs
                 return false;
             }
 
+            if (HasNurseStationClusterClaim(nurseStationClusterId))
+            {
+                return true;
+            }
+
             var accessibleIds = await ResolveAccessibleNurseStationClusterIdsAsync();
             return accessibleIds.Contains(nurseStationClusterId);
         }
@@ -309,6 +333,45 @@ namespace QuilvianSystemBackend.Hubs
 
             var accessibleIds = await ResolveAccessibleDoctorClinicIdsAsync();
             return accessibleIds.Contains(clinicId);
+        }
+
+        private bool HasNurseStationClusterClaim(Guid nurseStationClusterId)
+        {
+            if (nurseStationClusterId == Guid.Empty || Context.User == null)
+            {
+                return false;
+            }
+
+            foreach (var claim in Context.User.Claims)
+            {
+                if (!NurseStationClusterClaimTypes.Contains(claim.Type))
+                {
+                    continue;
+                }
+
+                foreach (var token in SplitClaimGuidTokens(claim.Value))
+                {
+                    if (Guid.TryParse(token, out var claimClusterId) && claimClusterId == nurseStationClusterId)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static IEnumerable<string> SplitClaimGuidTokens(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return Enumerable.Empty<string>();
+            }
+
+            return value
+                .Split(new[] { ',', ';', '|', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x));
         }
 
         private bool IsCurrentUserSuperAdmin()
