@@ -55,6 +55,14 @@ namespace QuilvianSystemBackend.Hubs
         {
             var clusterIds = await ResolveAccessibleNurseStationClusterIdsAsync();
 
+            if (IsCurrentUserSuperAdmin())
+            {
+                await Groups.AddToGroupAsync(
+                    Context.ConnectionId,
+                    QueueRealtimeService.BuildNurseStationAllGroupName()
+                );
+            }
+
             foreach (var clusterId in clusterIds)
             {
                 await Groups.AddToGroupAsync(
@@ -101,6 +109,14 @@ namespace QuilvianSystemBackend.Hubs
         {
             var doctorIds = await ResolveAccessibleDoctorIdsAsync();
 
+            if (IsCurrentUserSuperAdmin())
+            {
+                await Groups.AddToGroupAsync(
+                    Context.ConnectionId,
+                    QueueRealtimeService.BuildDoctorQueueAllGroupName()
+                );
+            }
+
             foreach (var doctorId in doctorIds)
             {
                 await Groups.AddToGroupAsync(
@@ -146,6 +162,14 @@ namespace QuilvianSystemBackend.Hubs
         public async Task<List<Guid>> JoinAccessibleDoctorClinicQueues()
         {
             var clinicIds = await ResolveAccessibleDoctorClinicIdsAsync();
+
+            if (IsCurrentUserSuperAdmin())
+            {
+                await Groups.AddToGroupAsync(
+                    Context.ConnectionId,
+                    QueueRealtimeService.BuildDoctorQueueAllGroupName()
+                );
+            }
 
             foreach (var clinicId in clinicIds)
             {

@@ -17,6 +17,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private const string NurseStationClusterGroupPrefix = "nurse-station-cluster";
         private const string DoctorQueueDoctorGroupPrefix = "doctor-queue-doctor";
         private const string DoctorQueueClinicGroupPrefix = "doctor-queue-clinic";
+        private const string NurseStationAllGroupName = "nurse-station:all";
+        private const string DoctorQueueAllGroupName = "doctor-queue:all";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly IHubContext<QueueHub> _hubContext;
@@ -35,6 +37,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         public static string BuildNurseStationClusterGroupName(Guid nurseStationClusterId)
         {
             return $"{NurseStationClusterGroupPrefix}:{nurseStationClusterId:D}";
+        }
+
+        public static string BuildNurseStationAllGroupName()
+        {
+            return NurseStationAllGroupName;
+        }
+
+        public static string BuildDoctorQueueAllGroupName()
+        {
+            return DoctorQueueAllGroupName;
         }
 
         public static string BuildDoctorQueueDoctorGroupName(Guid doctorId)
@@ -210,6 +222,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
                 if (notifyNurseStation)
                 {
+                    sendTasks.Add(_hubContext.Clients
+                        .Group(BuildNurseStationAllGroupName())
+                        .SendAsync(RealtimeEventName, payload));
+
                     foreach (var nurseStationClusterId in nurseStationClusterIds)
                     {
                         sendTasks.Add(_hubContext.Clients
@@ -220,6 +236,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
                 if (notifyDoctorQueue)
                 {
+                    sendTasks.Add(_hubContext.Clients
+                        .Group(BuildDoctorQueueAllGroupName())
+                        .SendAsync(RealtimeEventName, payload));
+
                     if (queue.DoctorId.HasValue && queue.DoctorId.Value != Guid.Empty)
                     {
                         sendTasks.Add(_hubContext.Clients
