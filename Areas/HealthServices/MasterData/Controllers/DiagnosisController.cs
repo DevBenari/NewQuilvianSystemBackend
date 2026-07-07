@@ -36,6 +36,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         private static readonly string[] IcdVersionOptions = { "ICD-9", "ICD-10" };
         private static readonly string[] DiagnosisTypeOptions = { "ICD9", "ICD10", "Local", "Custom" };
+        private static readonly string[] UsageScopeOptions = { "All", "ClinicalDiagnosis", "ProcedureCode" };
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -61,6 +62,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
                 DiagnosisTypeOptions = DiagnosisTypeOptions.Select(x => new DiagnosisStringOptionResponse { Value = x, Label = BuildDiagnosisTypeLabel(x) }).ToList(),
                 IcdVersionOptions = IcdVersionOptions.Select(x => new DiagnosisStringOptionResponse { Value = x, Label = x }).ToList(),
+                UsageScopeOptions = BuildUsageScopeOptions(),
                 DiagnosisChapterOptions = await GetActiveChapterOptionsAsync(),
                 QueryParameters = BuildQueryParameterInfo(),
                 CreateFields = BuildCreateFieldMetadata(),
@@ -115,6 +117,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] Guid? parentDiagnosisId,
             [FromQuery] string? diagnosisType,
             [FromQuery] string? icdVersion,
+            [FromQuery] string? usageScope,
             [FromQuery] bool? isActive,
             [FromQuery] bool? isSelectableForClinicalUse,
             [FromQuery] bool? isPrimaryDiagnosisAllowed,
@@ -136,7 +139,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var query = BuildBaseQuery();
             query = ApplyDateFilter(query, dateRange);
-            query = ApplyStandardFilter(query, search, diagnosisChapterId, parentDiagnosisId, diagnosisType, icdVersion, isActive, isSelectableForClinicalUse, isPrimaryDiagnosisAllowed, isSecondaryDiagnosisAllowed);
+            query = ApplyStandardFilter(query, search, diagnosisChapterId, parentDiagnosisId, diagnosisType, icdVersion, usageScope, isActive, isSelectableForClinicalUse, isPrimaryDiagnosisAllowed, isSecondaryDiagnosisAllowed);
 
             var totalData = await query.CountAsync();
             var entities = await ApplySorting(query, sortBy, sortDirection)
@@ -167,6 +170,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] Guid? parentDiagnosisId,
             [FromQuery] string? diagnosisType,
             [FromQuery] string? icdVersion,
+            [FromQuery] string? usageScope,
             [FromQuery] bool onlyActive = true,
             [FromQuery] bool onlySelectable = true,
             [FromQuery] string? sortBy = "diagnosisCode",
@@ -179,7 +183,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             pageSize = paging.PageSize;
 
             var query = BuildBaseQuery();
-            query = ApplyStandardFilter(query, search, diagnosisChapterId, parentDiagnosisId, diagnosisType, icdVersion, null, null, null, null);
+            query = ApplyStandardFilter(query, search, diagnosisChapterId, parentDiagnosisId, diagnosisType, icdVersion, usageScope, null, null, null, null);
             if (onlyActive) query = query.Where(x => x.IsActive);
             if (onlySelectable) query = query.Where(x => x.IsSelectableForClinicalUse);
 
@@ -198,6 +202,110 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
                 Items = items
             }, "Data pilihan diagnosis berhasil diambil."));
+        }
+
+        [HttpGet("clinical-options")]
+        [ProducesResponseType(typeof(ApiResponse<DiagnosisOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Diagnosis", Description = "Melihat pilihan diagnosis klinis ICD-10 untuk SOAP dokter", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Diagnosis", "Read")]
+        public async Task<IActionResult> GetClinicalDiagnosisOptions(
+            [FromQuery] string? search,
+            [FromQuery] Guid? diagnosisChapterId,
+            [FromQuery] Guid? parentDiagnosisId,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] bool onlySelectable = true,
+            [FromQuery] bool? onlyPrimaryAllowed = null,
+            [FromQuery] bool? onlySecondaryAllowed = null,
+            [FromQuery] string? sortBy = "diagnosisCode",
+            [FromQuery] string? sortDirection = "asc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 100)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = BuildBaseQuery();
+            query = ApplyStandardFilter(
+                query,
+                search,
+                diagnosisChapterId,
+                parentDiagnosisId,
+                "ICD10",
+                "ICD-10",
+                "ClinicalDiagnosis",
+                onlyActive ? true : null,
+                onlySelectable ? true : null,
+                onlyPrimaryAllowed,
+                onlySecondaryAllowed);
+
+            var totalData = await query.CountAsync();
+            var optionEntities = await ApplySorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var items = optionEntities.Select(MapOptionResponse).ToList();
+
+            return Ok(ApiResponse<DiagnosisOptionPagedResponse>.Ok(new DiagnosisOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            }, "Data pilihan diagnosis klinis ICD-10 berhasil diambil."));
+        }
+
+        [HttpGet("icd9-procedure-options")]
+        [ProducesResponseType(typeof(ApiResponse<DiagnosisOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Diagnosis", Description = "Melihat pilihan kode prosedur ICD-9 CM", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Diagnosis", "Read")]
+        public async Task<IActionResult> GetIcd9ProcedureOptions(
+            [FromQuery] string? search,
+            [FromQuery] Guid? diagnosisChapterId,
+            [FromQuery] Guid? parentDiagnosisId,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] bool onlySelectable = false,
+            [FromQuery] string? sortBy = "diagnosisCode",
+            [FromQuery] string? sortDirection = "asc",
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 100)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = BuildBaseQuery();
+            query = ApplyStandardFilter(
+                query,
+                search,
+                diagnosisChapterId,
+                parentDiagnosisId,
+                "ICD9",
+                "ICD-9",
+                "ProcedureCode",
+                onlyActive ? true : null,
+                onlySelectable ? true : null,
+                null,
+                null);
+
+            var totalData = await query.CountAsync();
+            var optionEntities = await ApplySorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var items = optionEntities.Select(MapOptionResponse).ToList();
+
+            return Ok(ApiResponse<DiagnosisOptionPagedResponse>.Ok(new DiagnosisOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            }, "Data pilihan kode prosedur ICD-9 berhasil diambil."));
         }
 
         [HttpGet("{id:guid}")]
@@ -392,6 +500,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             Guid? parentDiagnosisId,
             string? diagnosisType,
             string? icdVersion,
+            string? usageScope,
             bool? isActive,
             bool? isSelectableForClinicalUse,
             bool? isPrimaryDiagnosisAllowed,
@@ -405,6 +514,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             if (!string.IsNullOrWhiteSpace(diagnosisType)) query = query.Where(x => x.DiagnosisType == NormalizeDiagnosisType(diagnosisType));
             if (!string.IsNullOrWhiteSpace(icdVersion)) query = query.Where(x => x.IcdVersion == NormalizeIcdVersion(icdVersion));
+
+            var normalizedUsageScope = NormalizeUsageScope(usageScope);
+            if (normalizedUsageScope == "ClinicalDiagnosis") query = query.Where(x => x.IcdVersion == "ICD-10" && x.DiagnosisType == "ICD10");
+            if (normalizedUsageScope == "ProcedureCode") query = query.Where(x => x.IcdVersion == "ICD-9" && x.DiagnosisType == "ICD9");
+
             if (isActive.HasValue) query = query.Where(x => x.IsActive == isActive.Value);
             if (isSelectableForClinicalUse.HasValue) query = query.Where(x => x.IsSelectableForClinicalUse == isSelectableForClinicalUse.Value);
             if (isPrimaryDiagnosisAllowed.HasValue) query = query.Where(x => x.IsPrimaryDiagnosisAllowed == isPrimaryDiagnosisAllowed.Value);
@@ -597,22 +711,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (!DiagnosisTypeOptions.Contains(request.DiagnosisType, StringComparer.OrdinalIgnoreCase)) return (false, "Tipe diagnosis tidak valid.");
             if (!IcdVersionOptions.Contains(request.IcdVersion, StringComparer.OrdinalIgnoreCase)) return (false, "Versi ICD tidak valid.");
 
+            if (request.DiagnosisType == "ICD10" && request.IcdVersion != "ICD-10")
+                return (false, "DiagnosisType ICD10 harus memakai IcdVersion ICD-10.");
+
+            if (request.DiagnosisType == "ICD9" && request.IcdVersion != "ICD-9")
+                return (false, "DiagnosisType ICD9 harus memakai IcdVersion ICD-9.");
+
             var duplicate = await _dbContext.Set<MstDiagnosis>()
-                .AnyAsync(x => !x.IsDelete && x.IcdVersion == request.IcdVersion && x.DiagnosisCode == request.DiagnosisCode && (!currentId.HasValue || x.Id != currentId.Value));
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    x.IcdVersion == request.IcdVersion &&
+                    x.DiagnosisCode == request.DiagnosisCode &&
+                    (!currentId.HasValue || x.Id != currentId.Value));
+
             if (duplicate) return (false, "Kode diagnosis untuk versi ICD tersebut sudah digunakan.");
 
             if (request.DiagnosisChapterId.HasValue)
             {
-                var chapterExists = await _dbContext.Set<MstDiagnosisChapter>().AnyAsync(x => !x.IsDelete && x.IsActive && x.Id == request.DiagnosisChapterId.Value);
-                if (!chapterExists) return (false, "Diagnosis chapter tidak valid atau tidak aktif.");
+                var chapter = await _dbContext.Set<MstDiagnosisChapter>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => !x.IsDelete && x.IsActive && x.Id == request.DiagnosisChapterId.Value);
+
+                if (chapter == null) return (false, "Diagnosis chapter tidak valid atau tidak aktif.");
+                if (chapter.IcdVersion != request.IcdVersion) return (false, "Versi ICD pada diagnosis chapter harus sama dengan versi ICD diagnosis.");
             }
 
             if (request.ParentDiagnosisId.HasValue)
             {
-                if (currentId.HasValue && request.ParentDiagnosisId.Value == currentId.Value) return (false, "Parent diagnosis tidak boleh sama dengan diagnosis yang sedang diubah.");
+                if (currentId.HasValue && request.ParentDiagnosisId.Value == currentId.Value)
+                    return (false, "Parent diagnosis tidak boleh sama dengan diagnosis yang sedang diubah.");
 
-                var parentExists = await _dbContext.Set<MstDiagnosis>().AnyAsync(x => !x.IsDelete && x.IsActive && x.Id == request.ParentDiagnosisId.Value);
-                if (!parentExists) return (false, "Parent diagnosis tidak valid atau tidak aktif.");
+                var parent = await _dbContext.Set<MstDiagnosis>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => !x.IsDelete && x.IsActive && x.Id == request.ParentDiagnosisId.Value);
+
+                if (parent == null) return (false, "Parent diagnosis tidak valid atau tidak aktif.");
+                if (parent.IcdVersion != request.IcdVersion) return (false, "Versi ICD pada parent diagnosis harus sama dengan versi ICD diagnosis.");
+                if (parent.DiagnosisType != request.DiagnosisType) return (false, "Tipe diagnosis pada parent diagnosis harus sama dengan tipe diagnosis.");
             }
 
             return (true, null);
@@ -723,6 +858,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             };
         }
 
+
+        private static List<DiagnosisStringOptionResponse> BuildUsageScopeOptions()
+        {
+            return new List<DiagnosisStringOptionResponse>
+            {
+                new() { Value = "All", Label = "Semua" },
+                new() { Value = "ClinicalDiagnosis", Label = "Diagnosis klinis ICD-10" },
+                new() { Value = "ProcedureCode", Label = "Kode prosedur ICD-9" }
+            };
+        }
+
         private static List<DiagnosisQueryParameterInfoResponse> BuildQueryParameterInfo()
         {
             return new List<DiagnosisQueryParameterInfoResponse>
@@ -735,6 +881,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "parentDiagnosisId", Type = "Guid?", Description = "Filter berdasarkan parent diagnosis." },
                 new() { Name = "diagnosisType", Type = "string", Description = "Filter tipe diagnosis.", Example = "ICD10" },
                 new() { Name = "icdVersion", Type = "string", Description = "Filter versi ICD.", Example = "ICD-10" },
+                new() { Name = "usageScope", Type = "string", Description = "Filter scope penggunaan: All, ClinicalDiagnosis, ProcedureCode.", Example = "ClinicalDiagnosis" },
                 new() { Name = "isActive", Type = "bool?", Description = "Filter status aktif.", Example = "true" },
                 new() { Name = "isSelectableForClinicalUse", Type = "bool?", Description = "Filter diagnosis yang dapat dipilih dokter.", Example = "true" },
                 new() { Name = "isPrimaryDiagnosisAllowed", Type = "bool?", Description = "Filter diagnosis yang boleh menjadi diagnosis primer.", Example = "true" },
@@ -770,6 +917,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }
 
             return fields.OrderBy(x => x.SortOrder).ToList();
+        }
+
+
+        private static string NormalizeUsageScope(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return "All";
+
+            var normalized = value.Trim().Replace("-", string.Empty).Replace("_", string.Empty).Replace(" ", string.Empty).ToUpperInvariant();
+            return normalized switch
+            {
+                "ALL" => "All",
+                "CLINICAL" => "ClinicalDiagnosis",
+                "CLINICALDIAGNOSIS" => "ClinicalDiagnosis",
+                "ICD10" => "ClinicalDiagnosis",
+                "DIAGNOSIS" => "ClinicalDiagnosis",
+                "PROCEDURE" => "ProcedureCode",
+                "PROCEDURECODE" => "ProcedureCode",
+                "ICD9" => "ProcedureCode",
+                _ => "All"
+            };
         }
 
         private static string BuildDiagnosisTypeLabel(string value)

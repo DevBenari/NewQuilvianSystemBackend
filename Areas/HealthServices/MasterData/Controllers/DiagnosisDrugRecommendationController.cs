@@ -33,7 +33,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
     public class DiagnosisDrugRecommendationController : ControllerBase
     {
         private const string LogCategory = "HealthServices.MasterData";
-        private static readonly string[] RecommendationTypeOptions = { "FirstLine", "Alternative", "Symptomatic", "Supportive", "Conditional" };
+        private const string ReviewStatusDraft = "DraftFromLiterature";
+        private const string ReviewStatusDoctorReviewed = "DoctorReviewed";
+        private const string ReviewStatusActiveForSoap = "ActiveForSoap";
+        private const string ReviewStatusInactive = "Inactive";
+
+        private static readonly string[] RecommendationTypeOptionsValues = { "FirstLine", "Alternative", "Symptomatic", "Supportive", "Conditional" };
+        private static readonly string[] ReviewStatusOptions = { ReviewStatusDraft, ReviewStatusDoctorReviewed, ReviewStatusActiveForSoap, ReviewStatusInactive };
+        private static readonly string[] SourceTypeOptions = { "PNPK", "Fornas", "PPK_RS", "ManualDoctorInput", "Other" };
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
@@ -57,7 +64,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 SortOptions = BuildSortOptions(),
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                RecommendationTypeOptions = RecommendationTypeOptions.Select(x => new DiagnosisDrugRecommendationStringOptionResponse { Value = x, Label = BuildLabel(x) }).ToList(),
+                RecommendationTypeOptions = RecommendationTypeOptionsValues.Select(x => new DiagnosisDrugRecommendationStringOptionResponse { Value = x, Label = BuildLabel(x) }).ToList(),
+                ReviewStatusOptions = ReviewStatusOptions.Select(x => new DiagnosisDrugRecommendationStringOptionResponse { Value = x, Label = BuildReviewStatusLabel(x) }).ToList(),
+                SourceTypeOptions = SourceTypeOptions.Select(x => new DiagnosisDrugRecommendationStringOptionResponse { Value = x, Label = BuildSourceTypeLabel(x) }).ToList(),
                 QueryParameters = BuildQueryParameterInfo(),
                 CreateFields = BuildCreateFieldMetadata(),
                 UpdateFields = BuildUpdateFieldMetadata(),
@@ -80,6 +89,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 TotalRecommendation = await query.CountAsync(),
                 ActiveRecommendation = await query.CountAsync(x => x.IsActive),
                 InactiveRecommendation = await query.CountAsync(x => !x.IsActive),
+                DraftFromLiteratureRecommendation = await query.CountAsync(x => x.ReviewStatus == ReviewStatusDraft),
+                DoctorReviewedRecommendation = await query.CountAsync(x => x.ReviewStatus == ReviewStatusDoctorReviewed),
+                ActiveForSoapRecommendation = await query.CountAsync(x => x.ReviewStatus == ReviewStatusActiveForSoap),
                 FirstLineRecommendation = await query.CountAsync(x => x.RecommendationType == "FirstLine"),
                 AlternativeRecommendation = await query.CountAsync(x => x.RecommendationType == "Alternative"),
                 SymptomaticRecommendation = await query.CountAsync(x => x.RecommendationType == "Symptomatic"),
@@ -99,10 +111,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] DateTime? endDate,
             [FromQuery] string? customPeriod,
             [FromQuery] string? search,
-            [FromQuery] Guid? diagnosisId,
-            [FromQuery] Guid? drugId,
-            [FromQuery] string? recommendationType,
-            [FromQuery] bool? isActive,
+            [FromQuery] Guid? diagnosisId, [FromQuery] Guid? drugId, [FromQuery] string? recommendationType, [FromQuery] string? reviewStatus, [FromQuery] string? sourceType, [FromQuery] bool? isActive,
             [FromQuery] string? sortBy = "diagnosisCode",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -118,7 +127,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var query = BuildBaseQuery();
             query = ApplyDateFilter(query, dateRange);
-            query = ApplyStandardFilter(query, search, diagnosisId, drugId, recommendationType, isActive);
+            query = ApplyStandardFilter(query, search, diagnosisId, drugId, recommendationType, reviewStatus, sourceType, isActive);
 
             var totalData = await query.CountAsync();
             var entities = await ApplySorting(query, sortBy, sortDirection)
@@ -126,7 +135,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 .Take(pageSize)
                 .ToListAsync();
 
-            var actorNames = await GetActorNameMapAsync(entities.Select(x => x.CreateBy));
+            var actorNames = await GetActorNameMapAsync(BuildActorIds(entities));
             var items = entities.Select(x => MapResponse(x, actorNames)).ToList();
 
             return Ok(ApiResponse<ResponseDiagnosisDrugRecommendationPagedResult>.Ok(new ResponseDiagnosisDrugRecommendationPagedResult
@@ -143,19 +152,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [ProducesResponseType(typeof(ApiResponse<List<DiagnosisDrugRecommendationOptionResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Diagnosis Drug Recommendation", Description = "Melihat pilihan rekomendasi obat diagnosis", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DiagnosisDrugRecommendation", "Read")]
-        public async Task<IActionResult> GetRecommendationOptions(
-            [FromQuery] Guid? diagnosisId,
-            [FromQuery] Guid? drugId,
-            [FromQuery] string? recommendationType,
-            [FromQuery] bool onlyActive = true,
-            [FromQuery] string? search = null,
-            [FromQuery] int take = 100)
+        public async Task<IActionResult> GetRecommendationOptions([FromQuery] Guid? diagnosisId, [FromQuery] Guid? drugId, [FromQuery] string? recommendationType, [FromQuery] string? reviewStatus, [FromQuery] bool onlyActive = true, [FromQuery] string? search = null, [FromQuery] int take = 100)
         {
             if (take <= 0) take = 100;
             if (take > 200) take = 200;
 
             var query = BuildBaseQuery();
-            query = ApplyStandardFilter(query, search, diagnosisId, drugId, recommendationType, onlyActive ? true : null);
+            query = ApplyStandardFilter(query, search, diagnosisId, drugId, recommendationType, reviewStatus, null, onlyActive ? true : null);
 
             var optionEntities = await ApplySorting(query, "diagnosisCode", "asc")
                 .Take(take)
@@ -167,13 +170,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 DiagnosisId = x.DiagnosisId,
                 DiagnosisCode = x.Diagnosis?.DiagnosisCode ?? string.Empty,
                 DiagnosisName = x.Diagnosis?.DiagnosisName ?? string.Empty,
+
                 DrugId = x.DrugId,
                 RecommendationType = x.RecommendationType,
                 RecommendationTypeName = BuildLabel(x.RecommendationType),
+                IndicationText = x.IndicationText,
                 DoseText = x.DoseText,
                 Route = x.Route,
                 Frequency = x.Frequency,
                 DurationText = x.DurationText,
+                CautionNote = x.CautionNote,
+                ReviewStatus = x.ReviewStatus,
+                ReviewStatusName = BuildReviewStatusLabel(x.ReviewStatus),
                 IsActive = x.IsActive
             }).ToList();
 
@@ -191,7 +199,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Rekomendasi obat diagnosis tidak ditemukan."));
 
-            var actorNames = await GetActorNameMapAsync(new[] { entity.CreateBy, entity.UpdateBy });
+            var actorNames = await GetActorNameMapAsync(BuildActorIds(new[] { entity }));
             return Ok(ApiResponse<DiagnosisDrugRecommendationDetailResponse>.Ok(MapDetailResponse(entity, actorNames), "Detail rekomendasi obat diagnosis berhasil diambil."));
         }
 
@@ -211,6 +219,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var entity = new MstDiagnosisDrugRecommendation
             {
                 Id = Guid.NewGuid(),
+
                 DiagnosisId = normalized.DiagnosisId,
                 DrugId = normalized.DrugId,
                 RecommendationType = normalized.RecommendationType,
@@ -220,6 +229,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 Frequency = normalized.Frequency,
                 DurationText = normalized.DurationText,
                 CautionNote = normalized.CautionNote,
+                ReviewStatus = ReviewStatusDraft,
+                SourceType = normalized.SourceType,
+                SourceTitle = normalized.SourceTitle,
+                SourceYear = normalized.SourceYear,
+                SourceUrl = normalized.SourceUrl,
+                SourceNote = normalized.SourceNote,
                 IsActive = true,
                 CreateDateTime = DateTime.UtcNow,
                 CreateBy = actorUserId
@@ -229,7 +244,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             await _dbContext.SaveChangesAsync();
 
             var loaded = await BuildBaseQuery().FirstAsync(x => x.Id == entity.Id);
-            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
+            var actorNames = await GetActorNameMapAsync(BuildActorIds(new[] { loaded }));
             var result = ToCreateResponse(loaded, actorNames);
             await _loggerService.InfoAsync(LogCategory, "DiagnosisDrugRecommendation.CreateRecommendation", "Membuat rekomendasi obat diagnosis.", result);
 
@@ -254,6 +269,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validation.ErrorMessage ?? "Data rekomendasi obat diagnosis tidak valid."));
 
             var actorUserId = GetCurrentUserId();
+
             entity.DiagnosisId = normalized.DiagnosisId;
             entity.DrugId = normalized.DrugId;
             entity.RecommendationType = normalized.RecommendationType;
@@ -263,6 +279,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.Frequency = normalized.Frequency;
             entity.DurationText = normalized.DurationText;
             entity.CautionNote = normalized.CautionNote;
+            entity.SourceType = normalized.SourceType;
+            entity.SourceTitle = normalized.SourceTitle;
+            entity.SourceYear = normalized.SourceYear;
+            entity.SourceUrl = normalized.SourceUrl;
+            entity.SourceNote = normalized.SourceNote;
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = actorUserId;
@@ -270,7 +291,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             await _dbContext.SaveChangesAsync();
 
             var loaded = await BuildBaseQuery().FirstAsync(x => x.Id == entity.Id);
-            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
+            var actorNames = await GetActorNameMapAsync(BuildActorIds(new[] { loaded }));
             var result = ToUpdateResponse(loaded, actorNames);
             await _loggerService.InfoAsync(LogCategory, "DiagnosisDrugRecommendation.UpdateRecommendation", "Mengubah rekomendasi obat diagnosis.", result);
 
@@ -280,7 +301,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpPatch("{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<DiagnosisDrugRecommendationUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Diagnosis Drug Recommendation", Description = "Mengubah status rekomendasi obat diagnosis", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Update", "Update Diagnosis Drug Recommendation", Description = "Mengubah status aktif rekomendasi obat diagnosis", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("DiagnosisDrugRecommendation", "Update")]
         public async Task<IActionResult> UpdateRecommendationStatus(Guid id, [FromBody] UpdateDiagnosisDrugRecommendationStatusRequest request)
         {
@@ -290,13 +311,80 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var actorUserId = GetCurrentUserId();
             entity.IsActive = request.IsActive;
+            if (!request.IsActive && entity.ReviewStatus == ReviewStatusActiveForSoap)
+            {
+                entity.ReviewStatus = ReviewStatusInactive;
+            }
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = actorUserId;
             await _dbContext.SaveChangesAsync();
 
             var loaded = await BuildBaseQuery().FirstAsync(x => x.Id == entity.Id);
-            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
-            return Ok(ApiResponse<DiagnosisDrugRecommendationUpdateResponse>.Ok(ToUpdateResponse(loaded, actorNames), "Status rekomendasi obat diagnosis berhasil diubah."));
+            var actorNames = await GetActorNameMapAsync(BuildActorIds(new[] { loaded }));
+            return Ok(ApiResponse<DiagnosisDrugRecommendationUpdateResponse>.Ok(ToUpdateResponse(loaded, actorNames), "Status aktif rekomendasi obat diagnosis berhasil diubah."));
+        }
+
+        [HttpPatch("{id:guid}/review-status")]
+        [ProducesResponseType(typeof(ApiResponse<DiagnosisDrugRecommendationUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Diagnosis Drug Recommendation", Description = "Mengubah status review rekomendasi obat diagnosis", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("DiagnosisDrugRecommendation", "Update")]
+        public async Task<IActionResult> UpdateRecommendationReviewStatus(Guid id, [FromBody] UpdateDiagnosisDrugRecommendationReviewStatusRequest request)
+        {
+            if (request == null || !ModelState.IsValid)
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Data status review tidak valid."));
+
+            var normalizedStatus = NormalizeReviewStatus(request.ReviewStatus);
+            if (!ReviewStatusOptions.Contains(normalizedStatus, StringComparer.OrdinalIgnoreCase))
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Status review tidak valid."));
+
+            var entity = await _dbContext.Set<MstDiagnosisDrugRecommendation>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            if (entity == null)
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Rekomendasi obat diagnosis tidak ditemukan."));
+
+            if (normalizedStatus == ReviewStatusActiveForSoap && entity.ReviewStatus != ReviewStatusDoctorReviewed && entity.ReviewStatus != ReviewStatusActiveForSoap)
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Rekomendasi harus berstatus DoctorReviewed sebelum diaktifkan untuk SOAP."));
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+            var note = NormalizeNullableText(request.Note);
+
+            entity.ReviewStatus = normalizedStatus;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            if (normalizedStatus == ReviewStatusDraft)
+            {
+                entity.IsActive = true;
+            }
+            else if (normalizedStatus == ReviewStatusDoctorReviewed)
+            {
+                entity.IsActive = true;
+                entity.ReviewedAt = now;
+                entity.ReviewedByUserId = actorUserId;
+                entity.ReviewNote = note;
+            }
+            else if (normalizedStatus == ReviewStatusActiveForSoap)
+            {
+                entity.IsActive = true;
+                entity.ActivatedAt = now;
+                entity.ActivatedByUserId = actorUserId;
+                entity.ActivationNote = note;
+            }
+            else if (normalizedStatus == ReviewStatusInactive)
+            {
+                entity.IsActive = false;
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            var loaded = await BuildBaseQuery().FirstAsync(x => x.Id == entity.Id);
+            var actorNames = await GetActorNameMapAsync(BuildActorIds(new[] { loaded }));
+            var result = ToUpdateResponse(loaded, actorNames);
+            await _loggerService.InfoAsync(LogCategory, "DiagnosisDrugRecommendation.UpdateRecommendationReviewStatus", "Mengubah status review rekomendasi obat diagnosis.", result);
+
+            return Ok(ApiResponse<DiagnosisDrugRecommendationUpdateResponse>.Ok(result, "Status review rekomendasi obat diagnosis berhasil diubah."));
         }
 
         [HttpDelete("{id:guid}")]
@@ -313,6 +401,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var actorUserId = GetCurrentUserId();
             entity.IsDelete = true;
             entity.IsActive = false;
+            entity.ReviewStatus = ReviewStatusInactive;
             entity.DeleteDateTime = DateTime.UtcNow;
             entity.DeleteBy = actorUserId;
             entity.UpdateDateTime = entity.DeleteDateTime;
@@ -351,21 +440,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return query;
         }
 
-        private static IQueryable<MstDiagnosisDrugRecommendation> ApplyStandardFilter(IQueryable<MstDiagnosisDrugRecommendation> query, string? search, Guid? diagnosisId, Guid? drugId, string? recommendationType, bool? isActive)
+        private static IQueryable<MstDiagnosisDrugRecommendation> ApplyStandardFilter(IQueryable<MstDiagnosisDrugRecommendation> query, string? search, Guid? diagnosisId, Guid? drugId, string? recommendationType, string? reviewStatus, string? sourceType, bool? isActive)
         {
             var normalizedDiagnosisId = NormalizeNullableGuid(diagnosisId);
             if (normalizedDiagnosisId.HasValue) query = query.Where(x => x.DiagnosisId == normalizedDiagnosisId.Value);
+
 
             var normalizedDrugId = NormalizeNullableGuid(drugId);
             if (normalizedDrugId.HasValue) query = query.Where(x => x.DrugId == normalizedDrugId.Value);
 
             if (!string.IsNullOrWhiteSpace(recommendationType)) query = query.Where(x => x.RecommendationType == NormalizeRecommendationType(recommendationType));
+
+            if (!string.IsNullOrWhiteSpace(reviewStatus)) query = query.Where(x => x.ReviewStatus == NormalizeReviewStatus(reviewStatus));
+            if (!string.IsNullOrWhiteSpace(sourceType)) query = query.Where(x => x.SourceType != null && x.SourceType == NormalizeSourceType(sourceType));
             if (isActive.HasValue) query = query.Where(x => x.IsActive == isActive.Value);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
                 query = query.Where(x =>
+
                     x.RecommendationType.ToLower().Contains(keyword) ||
                     (x.IndicationText != null && x.IndicationText.ToLower().Contains(keyword)) ||
                     (x.DoseText != null && x.DoseText.ToLower().Contains(keyword)) ||
@@ -373,6 +467,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.Frequency != null && x.Frequency.ToLower().Contains(keyword)) ||
                     (x.DurationText != null && x.DurationText.ToLower().Contains(keyword)) ||
                     (x.CautionNote != null && x.CautionNote.ToLower().Contains(keyword)) ||
+                    x.ReviewStatus.ToLower().Contains(keyword) ||
+                    (x.SourceType != null && x.SourceType.ToLower().Contains(keyword)) ||
+                    (x.SourceTitle != null && x.SourceTitle.ToLower().Contains(keyword)) ||
+                    (x.SourceYear != null && x.SourceYear.ToLower().Contains(keyword)) ||
+                    (x.SourceNote != null && x.SourceNote.ToLower().Contains(keyword)) ||
                     (x.Diagnosis != null && x.Diagnosis.DiagnosisCode.ToLower().Contains(keyword)) ||
                     (x.Diagnosis != null && x.Diagnosis.DiagnosisName.ToLower().Contains(keyword)));
             }
@@ -388,9 +487,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 "createdatetime" => isDesc ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime),
                 "diagnosiscode" => isDesc ? query.OrderByDescending(x => x.Diagnosis != null ? x.Diagnosis.DiagnosisCode : string.Empty) : query.OrderBy(x => x.Diagnosis != null ? x.Diagnosis.DiagnosisCode : string.Empty),
                 "diagnosisname" => isDesc ? query.OrderByDescending(x => x.Diagnosis != null ? x.Diagnosis.DiagnosisName : string.Empty) : query.OrderBy(x => x.Diagnosis != null ? x.Diagnosis.DiagnosisName : string.Empty),
+
                 "recommendationtype" => isDesc ? query.OrderByDescending(x => x.RecommendationType) : query.OrderBy(x => x.RecommendationType),
+                "reviewstatus" => isDesc ? query.OrderByDescending(x => x.ReviewStatus) : query.OrderBy(x => x.ReviewStatus),
+                "sourcetype" => isDesc ? query.OrderByDescending(x => x.SourceType) : query.OrderBy(x => x.SourceType),
                 "isactive" => isDesc ? query.OrderByDescending(x => x.IsActive) : query.OrderBy(x => x.IsActive),
-                _ => isDesc ? query.OrderByDescending(x => x.Diagnosis != null ? x.Diagnosis.DiagnosisCode : string.Empty).ThenByDescending(x => x.RecommendationType) : query.OrderBy(x => x.Diagnosis != null ? x.Diagnosis.DiagnosisCode : string.Empty).ThenBy(x => x.RecommendationType)
+                _ => isDesc ? query.OrderByDescending(x => x.Diagnosis != null ? x.Diagnosis.DiagnosisCode : string.Empty) : query.OrderBy(x => x.Diagnosis != null ? x.Diagnosis.DiagnosisCode : string.Empty)
             };
         }
 
@@ -402,6 +504,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 DiagnosisId = entity.DiagnosisId,
                 DiagnosisCode = entity.Diagnosis?.DiagnosisCode ?? string.Empty,
                 DiagnosisName = entity.Diagnosis?.DiagnosisName ?? string.Empty,
+
                 DrugId = entity.DrugId,
                 RecommendationType = entity.RecommendationType,
                 RecommendationTypeName = BuildLabel(entity.RecommendationType),
@@ -411,6 +514,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 Frequency = entity.Frequency,
                 DurationText = entity.DurationText,
                 CautionNote = entity.CautionNote,
+                ReviewStatus = entity.ReviewStatus,
+                ReviewStatusName = BuildReviewStatusLabel(entity.ReviewStatus),
+                SourceType = entity.SourceType,
+                SourceTypeName = entity.SourceType == null ? null : BuildSourceTypeLabel(entity.SourceType),
+                SourceTitle = entity.SourceTitle,
+                SourceYear = entity.SourceYear,
+                SourceUrl = entity.SourceUrl,
+                SourceNote = entity.SourceNote,
+                ReviewedByUserId = entity.ReviewedByUserId,
+                ReviewedByUserName = GetActorName(actorNames, entity.ReviewedByUserId),
+                ReviewedAt = entity.ReviewedAt,
+                ReviewNote = entity.ReviewNote,
+                ActivatedByUserId = entity.ActivatedByUserId,
+                ActivatedByUserName = GetActorName(actorNames, entity.ActivatedByUserId),
+                ActivatedAt = entity.ActivatedAt,
+                ActivationNote = entity.ActivationNote,
                 IsActive = entity.IsActive,
                 CreateDateTime = entity.CreateDateTime,
                 CreateBy = entity.CreateBy == Guid.Empty ? null : entity.CreateBy,
@@ -420,26 +539,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         private static DiagnosisDrugRecommendationDetailResponse MapDetailResponse(MstDiagnosisDrugRecommendation entity, IReadOnlyDictionary<Guid, string?> actorNames)
         {
-            var baseResponse = MapResponse(entity, actorNames);
+            var response = MapResponse(entity, actorNames);
             return new DiagnosisDrugRecommendationDetailResponse
             {
-                Id = baseResponse.Id,
-                DiagnosisId = baseResponse.DiagnosisId,
-                DiagnosisCode = baseResponse.DiagnosisCode,
-                DiagnosisName = baseResponse.DiagnosisName,
-                DrugId = baseResponse.DrugId,
-                RecommendationType = baseResponse.RecommendationType,
-                RecommendationTypeName = baseResponse.RecommendationTypeName,
-                IndicationText = baseResponse.IndicationText,
-                DoseText = baseResponse.DoseText,
-                Route = baseResponse.Route,
-                Frequency = baseResponse.Frequency,
-                DurationText = baseResponse.DurationText,
-                CautionNote = baseResponse.CautionNote,
-                IsActive = baseResponse.IsActive,
-                CreateDateTime = baseResponse.CreateDateTime,
-                CreateBy = baseResponse.CreateBy,
-                CreateByName = baseResponse.CreateByName,
+                Id = response.Id,
+                DiagnosisId = response.DiagnosisId,
+                DiagnosisCode = response.DiagnosisCode,
+                DiagnosisName = response.DiagnosisName,
+
+                DrugId = response.DrugId,
+                RecommendationType = response.RecommendationType,
+                RecommendationTypeName = response.RecommendationTypeName,
+                IndicationText = response.IndicationText,
+                DoseText = response.DoseText,
+                Route = response.Route,
+                Frequency = response.Frequency,
+                DurationText = response.DurationText,
+                CautionNote = response.CautionNote,
+                ReviewStatus = response.ReviewStatus,
+                ReviewStatusName = response.ReviewStatusName,
+                SourceType = response.SourceType,
+                SourceTypeName = response.SourceTypeName,
+                SourceTitle = response.SourceTitle,
+                SourceYear = response.SourceYear,
+                SourceUrl = response.SourceUrl,
+                SourceNote = response.SourceNote,
+                ReviewedByUserId = response.ReviewedByUserId,
+                ReviewedByUserName = response.ReviewedByUserName,
+                ReviewedAt = response.ReviewedAt,
+                ReviewNote = response.ReviewNote,
+                ActivatedByUserId = response.ActivatedByUserId,
+                ActivatedByUserName = response.ActivatedByUserName,
+                ActivatedAt = response.ActivatedAt,
+                ActivationNote = response.ActivationNote,
+                IsActive = response.IsActive,
+                CreateDateTime = response.CreateDateTime,
+                CreateBy = response.CreateBy,
+                CreateByName = response.CreateByName,
                 UpdateDateTime = entity.UpdateDateTime,
                 UpdateBy = entity.UpdateBy == Guid.Empty ? null : entity.UpdateBy,
                 UpdateByName = GetActorName(actorNames, entity.UpdateBy)
@@ -455,6 +591,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 DiagnosisId = response.DiagnosisId,
                 DiagnosisCode = response.DiagnosisCode,
                 DiagnosisName = response.DiagnosisName,
+
                 DrugId = response.DrugId,
                 RecommendationType = response.RecommendationType,
                 RecommendationTypeName = response.RecommendationTypeName,
@@ -464,6 +601,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 Frequency = response.Frequency,
                 DurationText = response.DurationText,
                 CautionNote = response.CautionNote,
+                ReviewStatus = response.ReviewStatus,
+                ReviewStatusName = response.ReviewStatusName,
+                SourceType = response.SourceType,
+                SourceTypeName = response.SourceTypeName,
+                SourceTitle = response.SourceTitle,
+                SourceYear = response.SourceYear,
+                SourceUrl = response.SourceUrl,
+                SourceNote = response.SourceNote,
+                ReviewedByUserId = response.ReviewedByUserId,
+                ReviewedByUserName = response.ReviewedByUserName,
+                ReviewedAt = response.ReviewedAt,
+                ReviewNote = response.ReviewNote,
+                ActivatedByUserId = response.ActivatedByUserId,
+                ActivatedByUserName = response.ActivatedByUserName,
+                ActivatedAt = response.ActivatedAt,
+                ActivationNote = response.ActivationNote,
                 IsActive = response.IsActive,
                 CreateDateTime = response.CreateDateTime,
                 CreateBy = response.CreateBy,
@@ -480,6 +633,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 DiagnosisId = response.DiagnosisId,
                 DiagnosisCode = response.DiagnosisCode,
                 DiagnosisName = response.DiagnosisName,
+
                 DrugId = response.DrugId,
                 RecommendationType = response.RecommendationType,
                 RecommendationTypeName = response.RecommendationTypeName,
@@ -489,6 +643,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 Frequency = response.Frequency,
                 DurationText = response.DurationText,
                 CautionNote = response.CautionNote,
+                ReviewStatus = response.ReviewStatus,
+                ReviewStatusName = response.ReviewStatusName,
+                SourceType = response.SourceType,
+                SourceTypeName = response.SourceTypeName,
+                SourceTitle = response.SourceTitle,
+                SourceYear = response.SourceYear,
+                SourceUrl = response.SourceUrl,
+                SourceNote = response.SourceNote,
+                ReviewedByUserId = response.ReviewedByUserId,
+                ReviewedByUserName = response.ReviewedByUserName,
+                ReviewedAt = response.ReviewedAt,
+                ReviewNote = response.ReviewNote,
+                ActivatedByUserId = response.ActivatedByUserId,
+                ActivatedByUserName = response.ActivatedByUserName,
+                ActivatedAt = response.ActivatedAt,
+                ActivationNote = response.ActivationNote,
                 IsActive = response.IsActive,
                 CreateDateTime = response.CreateDateTime,
                 CreateBy = response.CreateBy,
@@ -503,6 +673,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         {
             return new CreateDiagnosisDrugRecommendationRequest
             {
+
                 DiagnosisId = request.DiagnosisId,
                 DrugId = request.DrugId,
                 RecommendationType = NormalizeRecommendationType(request.RecommendationType),
@@ -511,18 +682,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 Route = NormalizeNullableText(request.Route),
                 Frequency = NormalizeNullableText(request.Frequency),
                 DurationText = NormalizeNullableText(request.DurationText),
-                CautionNote = NormalizeNullableText(request.CautionNote)
+                CautionNote = NormalizeNullableText(request.CautionNote),
+                SourceType = NormalizeSourceType(request.SourceType),
+                SourceTitle = NormalizeNullableText(request.SourceTitle),
+                SourceYear = NormalizeNullableText(request.SourceYear),
+                SourceUrl = NormalizeNullableText(request.SourceUrl),
+                SourceNote = NormalizeNullableText(request.SourceNote)
             };
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(Guid? currentId, CreateDiagnosisDrugRecommendationRequest request)
         {
             if (request.DiagnosisId == Guid.Empty) return (false, "Diagnosis wajib diisi.");
-            if (request.DrugId == Guid.Empty) return (false, "Obat wajib diisi.");
-            if (!RecommendationTypeOptions.Contains(request.RecommendationType, StringComparer.OrdinalIgnoreCase)) return (false, "Tipe rekomendasi tidak valid.");
 
-            var diagnosisExists = await _dbContext.Set<MstDiagnosis>().AnyAsync(x => !x.IsDelete && x.IsActive && x.Id == request.DiagnosisId);
-            if (!diagnosisExists) return (false, "Diagnosis tidak valid atau tidak aktif.");
+            var diagnosis = await _dbContext.Set<MstDiagnosis>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => !x.IsDelete && x.IsActive && x.Id == request.DiagnosisId);
+
+            if (diagnosis == null) return (false, "Diagnosis tidak valid atau tidak aktif.");
+            if (diagnosis.IcdVersion != "ICD-10" || diagnosis.DiagnosisType != "ICD10")
+                return (false, "Rekomendasi hanya boleh dibuat untuk diagnosis klinis ICD-10.");
+
+
+            if (request.DrugId == Guid.Empty) return (false, "Obat wajib diisi.");
+            if (!RecommendationTypeOptionsValues.Contains(request.RecommendationType, StringComparer.OrdinalIgnoreCase)) return (false, "Tipe rekomendasi tidak valid.");
 
             var drugExists = await _dbContext.Set<MstDrug>().AnyAsync(x => !x.IsDelete && x.Id == request.DrugId);
             if (!drugExists) return (false, "Obat tidak valid.");
@@ -531,13 +714,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 .AnyAsync(x => !x.IsDelete && x.DiagnosisId == request.DiagnosisId && x.DrugId == request.DrugId && x.RecommendationType == request.RecommendationType && (!currentId.HasValue || x.Id != currentId.Value));
             if (duplicate) return (false, "Rekomendasi obat dengan diagnosis, obat, dan tipe yang sama sudah ada.");
 
+            if (!string.IsNullOrWhiteSpace(request.SourceType) && !SourceTypeOptions.Contains(request.SourceType, StringComparer.OrdinalIgnoreCase))
+                return (false, "Tipe sumber literatur tidak valid.");
+
             return (true, null);
         }
+
 
         private static string NormalizeRecommendationType(string? value)
         {
             if (string.IsNullOrWhiteSpace(value)) return "Supportive";
-            var normalized = value.Trim().Replace(" ", string.Empty).Replace("-", string.Empty).ToUpperInvariant();
+            var normalized = value.Trim().Replace(" ", string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToUpperInvariant();
             return normalized switch
             {
                 "FIRSTLINE" => "FirstLine",
@@ -545,6 +732,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 "SYMPTOMATIC" => "Symptomatic",
                 "SUPPORTIVE" => "Supportive",
                 "CONDITIONAL" => "Conditional",
+                _ => value.Trim()
+            };
+        }
+
+
+        private static string NormalizeReviewStatus(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return ReviewStatusDraft;
+            var normalized = value.Trim().Replace(" ", string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToUpperInvariant();
+            return normalized switch
+            {
+                "DRAFT" => ReviewStatusDraft,
+                "DRAFTFROMLITERATURE" => ReviewStatusDraft,
+                "DOCTORREVIEWED" => ReviewStatusDoctorReviewed,
+                "REVIEWED" => ReviewStatusDoctorReviewed,
+                "ACTIVE" => ReviewStatusActiveForSoap,
+                "ACTIVEFORSOAP" => ReviewStatusActiveForSoap,
+                "INACTIVE" => ReviewStatusInactive,
+                _ => value.Trim()
+            };
+        }
+
+        private static string? NormalizeSourceType(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            var normalized = value.Trim().Replace(" ", string.Empty).Replace("-", string.Empty).Replace("_", string.Empty).ToUpperInvariant();
+            return normalized switch
+            {
+                "PNPK" => "PNPK",
+                "FORNAS" => "Fornas",
+                "PPKRS" => "PPK_RS",
+                "MANUALDOCTORINPUT" => "ManualDoctorInput",
+                "OTHER" => "Other",
                 _ => value.Trim()
             };
         }
@@ -558,12 +778,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 "Symptomatic" => "Symptomatic",
                 "Supportive" => "Supportive",
                 "Conditional" => "Conditional",
+                "Procedure" => "Procedure",
+                "Lab" => "Laboratorium",
+                "Radiology" => "Radiologi",
+                "Monitoring" => "Monitoring",
+                "Referral" => "Rujukan",
+                "FollowUp" => "Follow Up",
+                "General" => "Umum",
+                "Diet" => "Diet",
+                "Activity" => "Aktivitas",
+                "MedicationUse" => "Penggunaan Obat",
+                "WarningSign" => "Tanda Bahaya",
+                "Prevention" => "Pencegahan",
+                _ => value
+            };
+        }
+
+        private static string BuildReviewStatusLabel(string value)
+        {
+            return value switch
+            {
+                ReviewStatusDraft => "Draft dari Literatur",
+                ReviewStatusDoctorReviewed => "Direview Dokter",
+                ReviewStatusActiveForSoap => "Aktif untuk SOAP",
+                ReviewStatusInactive => "Nonaktif",
+                _ => value
+            };
+        }
+
+        private static string BuildSourceTypeLabel(string value)
+        {
+            return value switch
+            {
+                "PNPK" => "PNPK Kemenkes",
+                "Fornas" => "Formularium Nasional",
+                "PPK_RS" => "PPK Internal RS",
+                "ManualDoctorInput" => "Input Manual Dokter",
+                "Other" => "Lainnya",
                 _ => value
             };
         }
 
         private static Guid? NormalizeNullableGuid(Guid? value) => !value.HasValue || value.Value == Guid.Empty ? null : value.Value;
         private static string? NormalizeNullableText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        private static string NormalizeRequiredText(string? value) => string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {
             if (pageNumber <= 0) pageNumber = 1;
@@ -572,14 +831,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return (pageNumber, pageSize);
         }
 
+        private static IEnumerable<Guid> BuildActorIds(IEnumerable<MstDiagnosisDrugRecommendation> entities)
+        {
+            return entities.SelectMany(x => new[]
+            {
+                x.CreateBy,
+                x.UpdateBy,
+                x.ReviewedByUserId ?? Guid.Empty,
+                x.ActivatedByUserId ?? Guid.Empty
+            }).Where(x => x != Guid.Empty).Distinct();
+        }
+
         private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
         {
             var ids = actorIds.Where(x => x != Guid.Empty).Distinct().ToList();
             if (!ids.Any()) return new Dictionary<Guid, string?>();
-            return await _dbContext.Users.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => new { x.Id, Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode }).ToDictionaryAsync(x => x.Id, x => x.Name);
+            return await _dbContext.Users.AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new { x.Id, Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode })
+                .ToDictionaryAsync(x => x.Id, x => x.Name);
         }
 
-        private static string? GetActorName(IReadOnlyDictionary<Guid, string?> actorNames, Guid actorId) => actorId == Guid.Empty ? null : actorNames.TryGetValue(actorId, out var actorName) ? actorName : null;
+        private static string? GetActorName(IReadOnlyDictionary<Guid, string?> actorNames, Guid actorId)
+            => actorId == Guid.Empty ? null : actorNames.TryGetValue(actorId, out var actorName) ? actorName : null;
+
+        private static string? GetActorName(IReadOnlyDictionary<Guid, string?> actorNames, Guid? actorId)
+            => !actorId.HasValue || actorId.Value == Guid.Empty ? null : actorNames.TryGetValue(actorId.Value, out var actorName) ? actorName : null;
+
         private Guid GetCurrentUserId()
         {
             var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("user_id");
@@ -622,7 +900,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             new() { Value = "createDateTime", Label = "Tanggal dibuat" },
             new() { Value = "diagnosisCode", Label = "Kode diagnosis" },
             new() { Value = "diagnosisName", Label = "Nama diagnosis" },
-            new() { Value = "recommendationType", Label = "Tipe rekomendasi" },
+            new() { Value = "reviewStatus", Label = "Status review" },
+            new() { Value = "sourceType", Label = "Sumber" },
             new() { Value = "isActive", Label = "Status aktif" }
         };
 
@@ -631,10 +910,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             new() { Name = "startDate", Type = "DateTime?", Description = "Tanggal awal filter berdasarkan CreateDateTime.", Example = "2026-06-01" },
             new() { Name = "endDate", Type = "DateTime?", Description = "Tanggal akhir filter berdasarkan CreateDateTime.", Example = "2026-06-30" },
             new() { Name = "customPeriod", Type = "string", Description = "Filter periode cepat: custom, today, last7days, last30days, thismonth, lastmonth.", Example = "thismonth" },
-            new() { Name = "search", Type = "string", Description = "Cari diagnosis, tipe rekomendasi, indikasi, dosis, rute, frekuensi, durasi, atau catatan." },
+            new() { Name = "search", Type = "string", Description = "Cari diagnosis, rekomendasi, status review, atau sumber literatur." },
             new() { Name = "diagnosisId", Type = "Guid?", Description = "Filter berdasarkan diagnosis." },
-            new() { Name = "drugId", Type = "Guid?", Description = "Filter berdasarkan obat." },
-            new() { Name = "recommendationType", Type = "string", Description = "Filter tipe rekomendasi.", Example = "FirstLine" },
+            new() { Name = "reviewStatus", Type = "string", Description = "Filter status review.", Example = "ActiveForSoap" },
+            new() { Name = "sourceType", Type = "string", Description = "Filter tipe sumber literatur.", Example = "PNPK" },
             new() { Name = "isActive", Type = "bool?", Description = "Filter status aktif.", Example = "true" }
         };
 
@@ -652,7 +931,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "route", Label = "Rute", Section = "Dose", InputType = "text", MaxLength = 100, Example = "Oral", SortOrder = 6 },
                 new() { Name = "frequency", Label = "Frekuensi", Section = "Dose", InputType = "text", MaxLength = 100, Example = "3x sehari", SortOrder = 7 },
                 new() { Name = "durationText", Label = "Durasi", Section = "Dose", InputType = "text", MaxLength = 100, Example = "3 hari", SortOrder = 8 },
-                new() { Name = "cautionNote", Label = "Catatan Kehati-hatian", Section = "Safety", InputType = "textarea", MaxLength = 500, SortOrder = 9 }
+                new() { Name = "cautionNote", Label = "Catatan Kehati-hatian", Section = "Safety", InputType = "textarea", MaxLength = 500, SortOrder = 9 },
+                new() { Name = "sourceType", Label = "Tipe Sumber", Section = "Source", InputType = "select", OptionsSource = "sourceTypeOptions", MaxLength = 50, SortOrder = 80 },
+                new() { Name = "sourceTitle", Label = "Judul Sumber", Section = "Source", InputType = "text", MaxLength = 300, SortOrder = 81 },
+                new() { Name = "sourceYear", Label = "Tahun Sumber", Section = "Source", InputType = "text", MaxLength = 20, SortOrder = 82 },
+                new() { Name = "sourceUrl", Label = "URL Sumber", Section = "Source", InputType = "text", MaxLength = 1000, SortOrder = 83 },
+                new() { Name = "sourceNote", Label = "Catatan Sumber", Section = "Source", InputType = "textarea", MaxLength = 1000, SortOrder = 84 }
             };
             if (isUpdate) fields.Add(new DiagnosisDrugRecommendationFormFieldMetadataResponse { Name = "isActive", Label = "Status Aktif", Section = "Status", InputType = "switch", SortOrder = 99 });
             return fields.OrderBy(x => x.SortOrder).ToList();

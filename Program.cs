@@ -622,6 +622,14 @@ try
 
     // await Icd10DiagnosisSeeder.SeedAsync(app.Services, icd10FolderPath);
 
+    var runIcdSeed = builder.Configuration.GetValue<bool>("Seeders:RunIcdSeed");
+    var icdSeedPath = builder.Configuration["Seeders:IcdFolderPath"];
+
+    if (runIcdSeed && !string.IsNullOrWhiteSpace(icdSeedPath))
+    {
+        await Icd10DiagnosisSeeder.SeedAsync(app.Services, icdSeedPath);
+    }
+
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();

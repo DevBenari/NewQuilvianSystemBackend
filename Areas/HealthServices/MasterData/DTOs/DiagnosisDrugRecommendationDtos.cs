@@ -7,6 +7,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int TotalRecommendation { get; set; }
         public int ActiveRecommendation { get; set; }
         public int InactiveRecommendation { get; set; }
+        public int DraftFromLiteratureRecommendation { get; set; }
+        public int DoctorReviewedRecommendation { get; set; }
+        public int ActiveForSoapRecommendation { get; set; }
+
         public int FirstLineRecommendation { get; set; }
         public int AlternativeRecommendation { get; set; }
         public int SymptomaticRecommendation { get; set; }
@@ -20,6 +24,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid DiagnosisId { get; set; }
         public string DiagnosisCode { get; set; } = string.Empty;
         public string DiagnosisName { get; set; } = string.Empty;
+
         public Guid DrugId { get; set; }
         public string RecommendationType { get; set; } = string.Empty;
         public string RecommendationTypeName { get; set; } = string.Empty;
@@ -29,6 +34,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? Frequency { get; set; }
         public string? DurationText { get; set; }
         public string? CautionNote { get; set; }
+
+        public string ReviewStatus { get; set; } = string.Empty;
+        public string ReviewStatusName { get; set; } = string.Empty;
+        public string? SourceType { get; set; }
+        public string? SourceTypeName { get; set; }
+        public string? SourceTitle { get; set; }
+        public string? SourceYear { get; set; }
+        public string? SourceUrl { get; set; }
+        public string? SourceNote { get; set; }
+        public Guid? ReviewedByUserId { get; set; }
+        public string? ReviewedByUserName { get; set; }
+        public DateTime? ReviewedAt { get; set; }
+        public string? ReviewNote { get; set; }
+        public Guid? ActivatedByUserId { get; set; }
+        public string? ActivatedByUserName { get; set; }
+        public DateTime? ActivatedAt { get; set; }
+        public string? ActivationNote { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }
@@ -48,29 +70,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid DiagnosisId { get; set; }
         public string DiagnosisCode { get; set; } = string.Empty;
         public string DiagnosisName { get; set; } = string.Empty;
+
         public Guid DrugId { get; set; }
         public string RecommendationType { get; set; } = string.Empty;
         public string RecommendationTypeName { get; set; } = string.Empty;
+        public string? IndicationText { get; set; }
         public string? DoseText { get; set; }
         public string? Route { get; set; }
         public string? Frequency { get; set; }
         public string? DurationText { get; set; }
+        public string? CautionNote { get; set; }
+        public string ReviewStatus { get; set; } = string.Empty;
+        public string ReviewStatusName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
     }
 
     public class DiagnosisDrugRecommendationFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
-        public string CustomPeriodPriorityInfo { get; set; } =
-            "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
+        public string CustomPeriodPriorityInfo { get; set; } = "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
         public string ResetButtonLabel { get; set; } = "Reset";
-
         public DiagnosisDrugRecommendationDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<DiagnosisDrugRecommendationCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<DiagnosisDrugRecommendationSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
         public List<DiagnosisDrugRecommendationStringOptionResponse> RecommendationTypeOptions { get; set; } = new();
+        public List<DiagnosisDrugRecommendationStringOptionResponse> ReviewStatusOptions { get; set; } = new();
+        public List<DiagnosisDrugRecommendationStringOptionResponse> SourceTypeOptions { get; set; } = new();
         public List<DiagnosisDrugRecommendationQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<DiagnosisDrugRecommendationFormFieldMetadataResponse> CreateFields { get; set; } = new();
         public List<DiagnosisDrugRecommendationFormFieldMetadataResponse> UpdateFields { get; set; } = new();
@@ -83,8 +110,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? CustomPeriod { get; set; }
         public string? Search { get; set; }
         public Guid? DiagnosisId { get; set; }
+
         public Guid? DrugId { get; set; }
         public string? RecommendationType { get; set; }
+        public string? ReviewStatus { get; set; }
+        public string? SourceType { get; set; }
         public bool? IsActive { get; set; }
         public string SortBy { get; set; } = "diagnosisCode";
         public string SortDirection { get; set; } = "asc";
@@ -140,6 +170,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
     public class CreateDiagnosisDrugRecommendationRequest
     {
+
         [Required]
         public Guid DiagnosisId { get; set; }
 
@@ -167,6 +198,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         [MaxLength(500)]
         public string? CautionNote { get; set; }
+
+
+        [MaxLength(50)]
+        public string? SourceType { get; set; }
+
+        [MaxLength(300)]
+        public string? SourceTitle { get; set; }
+
+        [MaxLength(20)]
+        public string? SourceYear { get; set; }
+
+        [MaxLength(1000)]
+        public string? SourceUrl { get; set; }
+
+        [MaxLength(1000)]
+        public string? SourceNote { get; set; }
     }
 
     public class UpdateDiagnosisDrugRecommendationRequest : CreateDiagnosisDrugRecommendationRequest
@@ -177,6 +224,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class UpdateDiagnosisDrugRecommendationStatusRequest
     {
         public bool IsActive { get; set; }
+    }
+
+    public class UpdateDiagnosisDrugRecommendationReviewStatusRequest
+    {
+        [Required]
+        [MaxLength(50)]
+        public string ReviewStatus { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Note { get; set; }
     }
 
     public class DeleteDiagnosisDrugRecommendationRequest
@@ -194,6 +251,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid DiagnosisId { get; set; }
         public string DiagnosisCode { get; set; } = string.Empty;
         public string DiagnosisName { get; set; } = string.Empty;
+
         public Guid DrugId { get; set; }
         public DateTime? DeleteDateTime { get; set; }
         public Guid? DeleteBy { get; set; }

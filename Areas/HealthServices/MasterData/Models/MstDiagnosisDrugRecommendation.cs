@@ -22,28 +22,57 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 
         [MaxLength(500)]
         public string? IndicationText { get; set; }
-        // Contoh: diberikan bila demam atau nyeri.
 
         [MaxLength(250)]
         public string? DoseText { get; set; }
-        // Contoh: 500 mg
 
         [MaxLength(100)]
         public string? Route { get; set; }
-        // Contoh: Oral, IV, IM
 
         [MaxLength(100)]
         public string? Frequency { get; set; }
-        // Contoh: 3x sehari
 
         [MaxLength(100)]
         public string? DurationText { get; set; }
-        // Contoh: 3 hari
 
         [MaxLength(500)]
         public string? CautionNote { get; set; }
-        // Catatan kehati-hatian singkat untuk dokter.
 
+
+        [Required]
+        [MaxLength(50)]
+        public string ReviewStatus { get; set; } = "DraftFromLiterature";
+        // DraftFromLiterature, DoctorReviewed, ActiveForSoap, Inactive
+
+        [MaxLength(50)]
+        public string? SourceType { get; set; }
+        // PNPK, Fornas, PPK_RS, ManualDoctorInput, Other
+
+        [MaxLength(300)]
+        public string? SourceTitle { get; set; }
+
+        [MaxLength(20)]
+        public string? SourceYear { get; set; }
+
+        [MaxLength(1000)]
+        public string? SourceUrl { get; set; }
+
+        [MaxLength(1000)]
+        public string? SourceNote { get; set; }
+
+        public Guid? ReviewedByUserId { get; set; }
+
+        public DateTime? ReviewedAt { get; set; }
+
+        [MaxLength(1000)]
+        public string? ReviewNote { get; set; }
+
+        public Guid? ActivatedByUserId { get; set; }
+
+        public DateTime? ActivatedAt { get; set; }
+
+        [MaxLength(1000)]
+        public string? ActivationNote { get; set; }
 
         public bool IsActive { get; set; } = true;
 

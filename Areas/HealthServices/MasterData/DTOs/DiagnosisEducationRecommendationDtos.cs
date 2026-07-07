@@ -7,6 +7,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int TotalRecommendation { get; set; }
         public int ActiveRecommendation { get; set; }
         public int InactiveRecommendation { get; set; }
+        public int DraftFromLiteratureRecommendation { get; set; }
+        public int DoctorReviewedRecommendation { get; set; }
+        public int ActiveForSoapRecommendation { get; set; }
+
         public int GeneralEducation { get; set; }
         public int DietEducation { get; set; }
         public int ActivityEducation { get; set; }
@@ -22,10 +26,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid DiagnosisId { get; set; }
         public string DiagnosisCode { get; set; } = string.Empty;
         public string DiagnosisName { get; set; } = string.Empty;
+
         public string EducationType { get; set; } = string.Empty;
         public string EducationTypeName { get; set; } = string.Empty;
         public string EducationTitle { get; set; } = string.Empty;
         public string EducationText { get; set; } = string.Empty;
+
+        public string ReviewStatus { get; set; } = string.Empty;
+        public string ReviewStatusName { get; set; } = string.Empty;
+        public string? SourceType { get; set; }
+        public string? SourceTypeName { get; set; }
+        public string? SourceTitle { get; set; }
+        public string? SourceYear { get; set; }
+        public string? SourceUrl { get; set; }
+        public string? SourceNote { get; set; }
+        public Guid? ReviewedByUserId { get; set; }
+        public string? ReviewedByUserName { get; set; }
+        public DateTime? ReviewedAt { get; set; }
+        public string? ReviewNote { get; set; }
+        public Guid? ActivatedByUserId { get; set; }
+        public string? ActivatedByUserName { get; set; }
+        public DateTime? ActivatedAt { get; set; }
+        public string? ActivationNote { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }
@@ -45,26 +67,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid DiagnosisId { get; set; }
         public string DiagnosisCode { get; set; } = string.Empty;
         public string DiagnosisName { get; set; } = string.Empty;
+
         public string EducationType { get; set; } = string.Empty;
         public string EducationTypeName { get; set; } = string.Empty;
         public string EducationTitle { get; set; } = string.Empty;
         public string EducationText { get; set; } = string.Empty;
+        public string ReviewStatus { get; set; } = string.Empty;
+        public string ReviewStatusName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
     }
 
     public class DiagnosisEducationRecommendationFilterMetadataResponse
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
-        public string CustomPeriodPriorityInfo { get; set; } =
-            "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
+        public string CustomPeriodPriorityInfo { get; set; } = "Jika customPeriod diisi selain custom, maka startDate dan endDate akan diabaikan.";
         public string ResetButtonLabel { get; set; } = "Reset";
-
         public DiagnosisEducationRecommendationDefaultFilterResponse DefaultFilter { get; set; } = new();
         public List<DiagnosisEducationRecommendationCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<DiagnosisEducationRecommendationSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
         public List<DiagnosisEducationRecommendationStringOptionResponse> EducationTypeOptions { get; set; } = new();
+        public List<DiagnosisEducationRecommendationStringOptionResponse> ReviewStatusOptions { get; set; } = new();
+        public List<DiagnosisEducationRecommendationStringOptionResponse> SourceTypeOptions { get; set; } = new();
         public List<DiagnosisEducationRecommendationQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<DiagnosisEducationRecommendationFormFieldMetadataResponse> CreateFields { get; set; } = new();
         public List<DiagnosisEducationRecommendationFormFieldMetadataResponse> UpdateFields { get; set; } = new();
@@ -77,7 +102,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? CustomPeriod { get; set; }
         public string? Search { get; set; }
         public Guid? DiagnosisId { get; set; }
+
         public string? EducationType { get; set; }
+        public string? ReviewStatus { get; set; }
+        public string? SourceType { get; set; }
         public bool? IsActive { get; set; }
         public string SortBy { get; set; } = "diagnosisCode";
         public string SortDirection { get; set; } = "asc";
@@ -133,6 +161,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
     public class CreateDiagnosisEducationRecommendationRequest
     {
+
         [Required]
         public Guid DiagnosisId { get; set; }
 
@@ -147,6 +176,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         [Required]
         [MaxLength(2000)]
         public string EducationText { get; set; } = string.Empty;
+
+
+        [MaxLength(50)]
+        public string? SourceType { get; set; }
+
+        [MaxLength(300)]
+        public string? SourceTitle { get; set; }
+
+        [MaxLength(20)]
+        public string? SourceYear { get; set; }
+
+        [MaxLength(1000)]
+        public string? SourceUrl { get; set; }
+
+        [MaxLength(1000)]
+        public string? SourceNote { get; set; }
     }
 
     public class UpdateDiagnosisEducationRecommendationRequest : CreateDiagnosisEducationRecommendationRequest
@@ -157,6 +202,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class UpdateDiagnosisEducationRecommendationStatusRequest
     {
         public bool IsActive { get; set; }
+    }
+
+    public class UpdateDiagnosisEducationRecommendationReviewStatusRequest
+    {
+        [Required]
+        [MaxLength(50)]
+        public string ReviewStatus { get; set; } = string.Empty;
+
+        [MaxLength(1000)]
+        public string? Note { get; set; }
     }
 
     public class DeleteDiagnosisEducationRecommendationRequest
@@ -174,6 +229,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid DiagnosisId { get; set; }
         public string DiagnosisCode { get; set; } = string.Empty;
         public string DiagnosisName { get; set; } = string.Empty;
+
         public string EducationTitle { get; set; } = string.Empty;
         public DateTime? DeleteDateTime { get; set; }
         public Guid? DeleteBy { get; set; }

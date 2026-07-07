@@ -96,6 +96,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public List<int> PageSizeOptions { get; set; } = new();
         public List<DiagnosisStringOptionResponse> DiagnosisTypeOptions { get; set; } = new();
         public List<DiagnosisStringOptionResponse> IcdVersionOptions { get; set; } = new();
+        public List<DiagnosisStringOptionResponse> UsageScopeOptions { get; set; } = new();
         public List<DiagnosisChapterOptionResponse> DiagnosisChapterOptions { get; set; } = new();
         public List<DiagnosisQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<DiagnosisFormFieldMetadataResponse> CreateFields { get; set; } = new();
@@ -112,6 +113,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid? ParentDiagnosisId { get; set; }
         public string? DiagnosisType { get; set; }
         public string? IcdVersion { get; set; }
+        public string? UsageScope { get; set; }
         public bool? IsActive { get; set; }
         public bool? IsSelectableForClinicalUse { get; set; }
         public bool? IsPrimaryDiagnosisAllowed { get; set; }
