@@ -76,9 +76,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime? ConsultationStartedAt { get; set; }
         public DateTime? ConsultationCompletedAt { get; set; }
         public int SkipCount { get; set; }
+        public DateTime? LastSkippedAt { get; set; }
+        public string? SkipReason { get; set; }
         public int RequeueCount { get; set; }
+        public DateTime? NoShowAt { get; set; }
+        public string? NoShowReason { get; set; }
         public bool IsPriorityQueue { get; set; }
         public bool IsDoctorRequired { get; set; }
+        public bool CanCall { get; set; }
+        public bool CanSkip { get; set; }
+        public bool CanNoShow { get; set; }
+        public bool CanStartConsultation { get; set; }
+        public bool CanFinishConsultation { get; set; }
 
         public EncounterPaymentType PaymentType { get; set; }
         public string PaymentTypeName { get; set; } = string.Empty;
@@ -119,6 +128,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime? DoctorCallExpiresAt { get; set; }
         public DateTime ServerNowUtc { get; set; }
         public int DoctorCallRemainingSeconds { get; set; }
+        public int SkipCount { get; set; }
+        public DateTime? LastSkippedAt { get; set; }
+        public DateTime? NoShowAt { get; set; }
+        public bool CanCall { get; set; }
+        public bool CanSkip { get; set; }
+        public bool CanNoShow { get; set; }
+        public bool CanStartConsultation { get; set; }
+        public bool CanFinishConsultation { get; set; }
         public DateTime? ConsultationStartedAt { get; set; }
         public DateTime? ConsultationCompletedAt { get; set; }
         public string Message { get; set; } = string.Empty;

@@ -45,11 +45,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime? ScreeningStartedAt { get; set; }
         public DateTime? ScreeningCompletedAt { get; set; }
         public int SkipCount { get; set; }
+        public DateTime? LastSkippedAt { get; set; }
+        public string? SkipReason { get; set; }
         public int RequeueCount { get; set; }
         public DateTime? NoShowAt { get; set; }
+        public string? NoShowReason { get; set; }
         public bool IsPriorityQueue { get; set; }
         public bool IsScreeningRequired { get; set; }
         public bool IsDoctorRequired { get; set; }
+        public bool CanCall { get; set; }
+        public bool CanSkip { get; set; }
+        public bool CanNoShow { get; set; }
+        public bool CanStartScreening { get; set; }
+        public bool CanFinishScreening { get; set; }
         public string? Notes { get; set; }
         public DateTime CreateDateTime { get; set; }
 
@@ -167,6 +175,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime? NurseCallExpiresAt { get; set; }
         public DateTime ServerNowUtc { get; set; }
         public int NurseCallRemainingSeconds { get; set; }
+        public int SkipCount { get; set; }
+        public DateTime? LastSkippedAt { get; set; }
+        public DateTime? NoShowAt { get; set; }
+        public bool CanCall { get; set; }
+        public bool CanSkip { get; set; }
+        public bool CanNoShow { get; set; }
+        public bool CanStartScreening { get; set; }
+        public bool CanFinishScreening { get; set; }
         public DateTime? ScreeningStartedAt { get; set; }
         public DateTime? ScreeningCompletedAt { get; set; }
         public bool AssessmentCompleted { get; set; }

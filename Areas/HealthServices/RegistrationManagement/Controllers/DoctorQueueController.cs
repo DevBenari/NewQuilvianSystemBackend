@@ -180,11 +180,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             if (queue == null) return QueueNotFound();
 
             var now = DateTime.UtcNow;
-            if (queue.QueueStatus != QueueStatus.WaitingForDoctor && queue.QueueStatus != QueueStatus.CalledByDoctor)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Antrean tidak dalam status menunggu dokter."));
+            if (queue.QueueStatus != QueueStatus.WaitingForDoctor &&
+                queue.QueueStatus != QueueStatus.CalledByDoctor &&
+                queue.QueueStatus != QueueStatus.Skipped)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Antrean tidak dalam status menunggu, dipanggil, atau dilewati dokter."
+                ));
+            }
 
-            if (queue.QueueStatus == QueueStatus.CalledByDoctor && queue.DoctorCallExpiresAt.HasValue && queue.DoctorCallExpiresAt.Value > now)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Timer panggilan dokter masih berjalan."));
+            if (IsDoctorCallTimerRunning(queue, now))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Timer panggilan dokter masih berjalan."
+                ));
+            }
 
             var actorUserId = GetCurrentUserId();
             queue.QueueStatus = QueueStatus.CalledByDoctor;
@@ -279,24 +291,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [HttpPost("{id:guid}/skip")]
         [AccessAction("Update", "Skip Doctor Queue", Description = "Melewati pasien yang tidak hadir saat dipanggil dokter", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("DoctorQueue", "Update")]
-        public async Task<IActionResult> Skip(Guid id, [FromBody] DoctorQueueActionRequest request)
+        public async Task<IActionResult> Skip(Guid id, [FromBody] DoctorQueueActionRequest? request = null)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
             if (queue == null) return QueueNotFound();
 
             var now = DateTime.UtcNow;
-            if (queue.QueueStatus != QueueStatus.CalledByDoctor || queue.DoctorCallAttemptCount < 2)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Pasien hanya bisa di-skip setelah 2 kali panggilan dokter."));
+            if (queue.QueueStatus != QueueStatus.CalledByDoctor)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien hanya bisa dilewati setelah berada dalam status dipanggil dokter."
+                ));
+            }
 
-            if (queue.DoctorCallExpiresAt.HasValue && queue.DoctorCallExpiresAt.Value > now)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Timer panggilan dokter masih berjalan."));
+            if (queue.DoctorCallAttemptCount <= 0 || !queue.LastDoctorCalledAt.HasValue)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien hanya bisa dilewati setelah pernah dipanggil dokter minimal satu kali."
+                ));
+            }
+
+            if (IsDoctorCallTimerRunning(queue, now))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Timer panggilan dokter masih berjalan."
+                ));
+            }
 
             var actorUserId = GetCurrentUserId();
             queue.QueueStatus = QueueStatus.Skipped;
             queue.SkipCount += 1;
             queue.LastSkippedAt = now;
             queue.LastSkippedByUserId = actorUserId;
-            queue.SkipReason = NormalizeNullableText(request.Reason) ?? "Tidak hadir saat dipanggil dokter.";
+            queue.SkipReason = NormalizeNullableText(request?.Reason) ?? "Tidak hadir saat dipanggil dokter.";
+            queue.DoctorCallExpiresAt = null;
+            queue.Notes = MergeNotes(queue.Notes, request?.Notes);
             queue.UpdateDateTime = now;
             queue.UpdateBy = actorUserId;
 
@@ -306,8 +338,70 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(BuildActionResponse(queue, "Pasien berhasil dilewati."), "Pasien berhasil dilewati."));
         }
 
+        [HttpPost("{id:guid}/no-show")]
+        [AccessAction("Update", "No Show Doctor Queue", Description = "Menandai pasien tidak hadir di antrean dokter", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("DoctorQueue", "Update")]
+        public async Task<IActionResult> NoShow(Guid id, [FromBody] DoctorQueueActionRequest? request = null)
+        {
+            var queue = await GetAllowedQueueWithEncounterAsync(id);
+            if (queue == null) return QueueNotFound();
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            if (queue.SkipCount <= 0 && !queue.LastSkippedAt.HasValue)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien hanya bisa ditandai tidak hadir setelah pernah dilewati minimal satu kali."
+                ));
+            }
+
+            if (queue.QueueStatus != QueueStatus.Skipped && queue.QueueStatus != QueueStatus.CalledByDoctor)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien hanya bisa ditandai tidak hadir dari status dilewati atau dipanggil dokter."
+                ));
+            }
+
+            if (IsDoctorCallTimerRunning(queue, now))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Timer panggilan dokter masih berjalan."
+                ));
+            }
+
+            queue.QueueStatus = QueueStatus.NoShow;
+            queue.NoShowAt = now;
+            queue.NoShowByUserId = actorUserId;
+            queue.NoShowReason = NormalizeNullableText(request?.Reason) ?? "Pasien tidak hadir setelah dipanggil dan dilewati di antrean dokter.";
+            queue.DoctorCallExpiresAt = null;
+            queue.Notes = MergeNotes(queue.Notes, request?.Notes);
+            queue.UpdateDateTime = now;
+            queue.UpdateBy = actorUserId;
+
+            if (queue.Encounter != null)
+            {
+                queue.Encounter.EncounterStatus = EncounterStatus.NoShow;
+                queue.Encounter.NoShowAt = now;
+                queue.Encounter.NoShowByUserId = actorUserId;
+                queue.Encounter.NoShowReason = queue.NoShowReason;
+                queue.Encounter.UpdateDateTime = now;
+                queue.Encounter.UpdateBy = actorUserId;
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(
+                BuildActionResponse(queue, "Pasien berhasil ditandai tidak hadir."),
+                "Pasien berhasil ditandai tidak hadir."
+            ));
+        }
+
         [HttpPost("{id:guid}/requeue")]
-        [AccessAction("Update", "Requeue Doctor Queue", Description = "Mengembalikan pasien ke antrean dokter", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessAction("Update", "Requeue Doctor Queue", Description = "Mengembalikan pasien ke antrean dokter", AccessType = AccessTypes.Update, SortOrder = 7)]
         [AccessPermission("DoctorQueue", "Update")]
         public async Task<IActionResult> Requeue(Guid id, [FromBody] DoctorQueueActionRequest request)
         {
@@ -365,7 +459,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private static IQueryable<TrxQueue> ApplyStandardFilter(IQueryable<TrxQueue> query, QueueStatus? queueStatus, string? search)
         {
-            if (queueStatus.HasValue) query = query.Where(x => x.QueueStatus == queueStatus.Value);
+            query = queueStatus.HasValue
+                ? query.Where(x => x.QueueStatus == queueStatus.Value)
+                : ApplyDoctorOperationalStatusFilter(query);
+
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -379,17 +476,74 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return query;
         }
 
+        private static IQueryable<TrxQueue> ApplyDoctorOperationalStatusFilter(IQueryable<TrxQueue> query)
+        {
+            return query.Where(x =>
+                x.QueueStatus == QueueStatus.WaitingForDoctor ||
+                x.QueueStatus == QueueStatus.CalledByDoctor ||
+                x.QueueStatus == QueueStatus.InConsultation ||
+                x.QueueStatus == QueueStatus.Skipped);
+        }
+
         private static IOrderedQueryable<TrxQueue> ApplySorting(IQueryable<TrxQueue> query, string? sortBy, string? sortDirection)
         {
             var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
             return (sortBy ?? "queueNumber").Trim().ToLowerInvariant() switch
             {
-                "queuedate" => isDescending ? query.OrderByDescending(x => x.QueueDate) : query.OrderBy(x => x.QueueDate),
-                "queuestatus" => isDescending ? query.OrderByDescending(x => x.QueueStatus).ThenBy(x => x.QueueNumber) : query.OrderBy(x => x.QueueStatus).ThenBy(x => x.QueueNumber),
-                "patientname" => isDescending ? query.OrderByDescending(x => x.Patient!.FullName) : query.OrderBy(x => x.Patient!.FullName),
-                "clinicname" => isDescending ? query.OrderByDescending(x => x.Clinic!.ClinicName).ThenBy(x => x.QueueNumber) : query.OrderBy(x => x.Clinic!.ClinicName).ThenBy(x => x.QueueNumber),
-                "createdatetime" => isDescending ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime),
-                _ => isDescending ? query.OrderByDescending(x => x.IsPriorityQueue).ThenByDescending(x => x.QueueNumber) : query.OrderByDescending(x => x.IsPriorityQueue).ThenBy(x => x.QueueNumber)
+                "queuedate" => isDescending
+                    ? query.OrderByDescending(x => x.QueueDate)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenByDescending(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenByDescending(x => x.QueueNumber)
+                    : query.OrderBy(x => x.QueueDate)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber),
+
+                "queuestatus" => isDescending
+                    ? query.OrderByDescending(x => x.QueueStatus)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber)
+                    : query.OrderBy(x => x.QueueStatus)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber),
+
+                "patientname" => isDescending
+                    ? query.OrderByDescending(x => x.Patient!.FullName)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber)
+                    : query.OrderBy(x => x.Patient!.FullName)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber),
+
+                "clinicname" => isDescending
+                    ? query.OrderByDescending(x => x.Clinic!.ClinicName)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber)
+                    : query.OrderBy(x => x.Clinic!.ClinicName)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber),
+
+                "createdatetime" => isDescending
+                    ? query.OrderByDescending(x => x.CreateDateTime)
+                        .ThenByDescending(x => x.QueueNumber)
+                    : query.OrderBy(x => x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber),
+
+                _ => isDescending
+                    ? query.OrderByDescending(x => x.IsPriorityQueue)
+                        .ThenByDescending(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenByDescending(x => x.QueueNumber)
+                    : query.OrderByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber)
             };
         }
 
@@ -688,9 +842,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ConsultationStartedAt = x.ConsultationStartedAt,
                 ConsultationCompletedAt = x.ConsultationCompletedAt,
                 SkipCount = x.SkipCount,
+                LastSkippedAt = x.LastSkippedAt,
+                SkipReason = x.SkipReason,
                 RequeueCount = x.RequeueCount,
+                NoShowAt = x.NoShowAt,
+                NoShowReason = x.NoShowReason,
                 IsPriorityQueue = x.IsPriorityQueue,
                 IsDoctorRequired = x.IsDoctorRequired,
+                CanCall = CanCallDoctor(x, serverNowUtc),
+                CanSkip = CanSkipDoctor(x, serverNowUtc),
+                CanNoShow = CanNoShowDoctor(x, serverNowUtc),
+                CanStartConsultation = CanStartConsultationDoctor(x),
+                CanFinishConsultation = CanFinishConsultationDoctor(x),
                 PaymentType = paymentType,
                 PaymentTypeName = BuildPaymentTypeDisplayName(paymentType, primaryGuarantorName, encounter?.PaymentMethod?.PaymentMethodName),
                 PaymentMethodId = encounter?.PaymentMethodId,
@@ -874,6 +1037,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 DoctorCallExpiresAt = queue.DoctorCallExpiresAt,
                 ServerNowUtc = serverNowUtc,
                 DoctorCallRemainingSeconds = CalculateDoctorCallRemainingSeconds(queue.DoctorCallExpiresAt, serverNowUtc),
+                SkipCount = queue.SkipCount,
+                LastSkippedAt = queue.LastSkippedAt,
+                NoShowAt = queue.NoShowAt,
+                CanCall = CanCallDoctor(queue, serverNowUtc),
+                CanSkip = CanSkipDoctor(queue, serverNowUtc),
+                CanNoShow = CanNoShowDoctor(queue, serverNowUtc),
+                CanStartConsultation = CanStartConsultationDoctor(queue),
+                CanFinishConsultation = CanFinishConsultationDoctor(queue),
                 ConsultationStartedAt = queue.ConsultationStartedAt,
                 ConsultationCompletedAt = queue.ConsultationCompletedAt,
                 Message = message,
@@ -888,6 +1059,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 VoiceContentType = voiceResult?.ContentType,
                 VoiceErrorMessage = voiceResult?.ErrorMessage
             };
+        }
+
+        private static bool IsDoctorCallTimerRunning(TrxQueue queue, DateTime serverNowUtc)
+        {
+            return queue.QueueStatus == QueueStatus.CalledByDoctor &&
+                   queue.DoctorCallExpiresAt.HasValue &&
+                   queue.DoctorCallExpiresAt.Value > serverNowUtc;
+        }
+
+        private static bool CanCallDoctor(TrxQueue queue, DateTime serverNowUtc)
+        {
+            return (queue.QueueStatus == QueueStatus.WaitingForDoctor ||
+                    queue.QueueStatus == QueueStatus.CalledByDoctor ||
+                    queue.QueueStatus == QueueStatus.Skipped) &&
+                   !IsDoctorCallTimerRunning(queue, serverNowUtc);
+        }
+
+        private static bool CanSkipDoctor(TrxQueue queue, DateTime serverNowUtc)
+        {
+            return queue.QueueStatus == QueueStatus.CalledByDoctor &&
+                   queue.DoctorCallAttemptCount > 0 &&
+                   queue.LastDoctorCalledAt.HasValue &&
+                   !IsDoctorCallTimerRunning(queue, serverNowUtc);
+        }
+
+        private static bool CanNoShowDoctor(TrxQueue queue, DateTime serverNowUtc)
+        {
+            return (queue.SkipCount > 0 || queue.LastSkippedAt.HasValue) &&
+                   (queue.QueueStatus == QueueStatus.Skipped || queue.QueueStatus == QueueStatus.CalledByDoctor) &&
+                   !IsDoctorCallTimerRunning(queue, serverNowUtc);
+        }
+
+        private static bool CanStartConsultationDoctor(TrxQueue queue)
+        {
+            return queue.QueueStatus == QueueStatus.WaitingForDoctor ||
+                   queue.QueueStatus == QueueStatus.CalledByDoctor;
+        }
+
+        private static bool CanFinishConsultationDoctor(TrxQueue queue)
+        {
+            return queue.QueueStatus == QueueStatus.InConsultation;
         }
 
         private static int CalculateDoctorCallRemainingSeconds(DateTime? expiresAt, DateTime serverNowUtc)

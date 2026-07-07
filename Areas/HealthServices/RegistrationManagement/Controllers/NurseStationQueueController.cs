@@ -165,14 +165,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
             if (queue == null) return QueueNotFound();
-            if (queue.QueueStatus != QueueStatus.WaitingForNurse && queue.QueueStatus != QueueStatus.CalledByNurse)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Antrean tidak dalam status menunggu perawat."));
-
             var now = DateTime.UtcNow;
 
-            if (queue.QueueStatus == QueueStatus.CalledByNurse &&
-                queue.NurseCallExpiresAt.HasValue &&
-                queue.NurseCallExpiresAt.Value > now)
+            if (queue.QueueStatus != QueueStatus.WaitingForNurse &&
+                queue.QueueStatus != QueueStatus.CalledByNurse &&
+                queue.QueueStatus != QueueStatus.Skipped)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Antrean tidak dalam status menunggu, dipanggil, atau dilewati perawat."
+                ));
+            }
+
+            if (IsNurseCallTimerRunning(queue, now))
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
@@ -355,7 +360,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ));
             }
 
-            if (queue.NurseCallExpiresAt.HasValue && queue.NurseCallExpiresAt.Value > now)
+            if (queue.NurseCallAttemptCount <= 0 || !queue.LastNurseCalledAt.HasValue)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien hanya bisa dilewati setelah pernah dipanggil perawat minimal satu kali."
+                ));
+            }
+
+            if (IsNurseCallTimerRunning(queue, now))
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
@@ -368,6 +381,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             queue.LastSkippedAt = now;
             queue.LastSkippedByUserId = actorUserId;
             queue.SkipReason = NormalizeNullableText(request?.Reason) ?? "Tidak hadir saat dipanggil perawat.";
+            queue.NurseCallExpiresAt = null;
             queue.Notes = MergeNotes(queue.Notes, request?.Notes);
             queue.UpdateDateTime = now;
             queue.UpdateBy = actorUserId;
@@ -382,9 +396,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("{id:guid}/no-show")]
-        [AccessAction("Update", "No Show Nurse Station Queue", Description = "Menandai pasien tidak hadir di nurse station", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessAction("Update", "No Show Nurse Station Queue", Description = "Menandai pasien tidak hadir di nurse station", AccessType = AccessTypes.Update, SortOrder = 6)]
         [AccessPermission("NurseStationQueue", "Update")]
-        public async Task<IActionResult> NoShow(Guid id, [FromBody] NurseStationQueueActionRequest request)
+        public async Task<IActionResult> NoShow(Guid id, [FromBody] NurseStationQueueActionRequest? request = null)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
             if (queue == null) return QueueNotFound();
@@ -392,10 +406,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            if (queue.SkipCount <= 0 && !queue.LastSkippedAt.HasValue)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien hanya bisa ditandai tidak hadir setelah pernah dilewati minimal satu kali."
+                ));
+            }
+
+            if (queue.QueueStatus != QueueStatus.Skipped && queue.QueueStatus != QueueStatus.CalledByNurse)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien hanya bisa ditandai tidak hadir dari status dilewati atau dipanggil perawat."
+                ));
+            }
+
+            if (IsNurseCallTimerRunning(queue, now))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Timer panggilan perawat masih berjalan."
+                ));
+            }
+
             queue.QueueStatus = QueueStatus.NoShow;
             queue.NoShowAt = now;
             queue.NoShowByUserId = actorUserId;
-            queue.NoShowReason = NormalizeNullableText(request.Reason) ?? "Pasien tidak hadir saat dipanggil nurse station.";
+            queue.NoShowReason = NormalizeNullableText(request?.Reason) ?? "Pasien tidak hadir setelah dipanggil dan dilewati di nurse station.";
+            queue.NurseCallExpiresAt = null;
+            queue.Notes = MergeNotes(queue.Notes, request?.Notes);
             queue.UpdateDateTime = now;
             queue.UpdateBy = actorUserId;
 
@@ -412,7 +452,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             await _dbContext.SaveChangesAsync();
             await _queueRealtimeService.NotifyQueueNoShowByNurseAsync(queue, actorUserId, "Pasien berhasil ditandai tidak hadir.");
 
-            return Ok(ApiResponse<NurseStationQueueActionResponse>.Ok(BuildActionResponse(queue, "Pasien berhasil ditandai tidak hadir."), "Pasien berhasil ditandai tidak hadir."));
+            return Ok(ApiResponse<NurseStationQueueActionResponse>.Ok(
+                BuildActionResponse(queue, "Pasien berhasil ditandai tidak hadir."),
+                "Pasien berhasil ditandai tidak hadir."
+            ));
         }
 
         private IQueryable<TrxQueue> BuildQueueBaseQuery(DateTime? queueDate, List<Guid> clinicIds)
@@ -485,7 +528,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return query.Where(x =>
                 x.QueueStatus == QueueStatus.WaitingForNurse ||
                 x.QueueStatus == QueueStatus.CalledByNurse ||
-                x.QueueStatus == QueueStatus.InNurseScreening);
+                x.QueueStatus == QueueStatus.InNurseScreening ||
+                x.QueueStatus == QueueStatus.Skipped);
         }
 
         private static IOrderedQueryable<TrxQueue> ApplySorting(IQueryable<TrxQueue> query, string? sortBy, string? sortDirection)
@@ -782,11 +826,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ScreeningStartedAt = x.ScreeningStartedAt,
                 ScreeningCompletedAt = x.ScreeningCompletedAt,
                 SkipCount = x.SkipCount,
+                LastSkippedAt = x.LastSkippedAt,
+                SkipReason = x.SkipReason,
                 RequeueCount = x.RequeueCount,
                 NoShowAt = x.NoShowAt,
+                NoShowReason = x.NoShowReason,
                 IsPriorityQueue = x.IsPriorityQueue,
                 IsScreeningRequired = x.IsScreeningRequired,
                 IsDoctorRequired = x.IsDoctorRequired,
+                CanCall = CanCallNurse(x, serverNowUtc),
+                CanSkip = CanSkipNurse(x, serverNowUtc),
+                CanNoShow = CanNoShowNurse(x, serverNowUtc),
+                CanStartScreening = CanStartScreeningNurse(x),
+                CanFinishScreening = CanFinishScreeningNurse(x),
                 Notes = x.Notes,
                 CreateDateTime = x.CreateDateTime,
 
@@ -908,6 +960,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 NurseCallExpiresAt = queue.NurseCallExpiresAt,
                 ServerNowUtc = serverNowUtc,
                 NurseCallRemainingSeconds = CalculateNurseCallRemainingSeconds(queue.NurseCallExpiresAt, serverNowUtc),
+                SkipCount = queue.SkipCount,
+                LastSkippedAt = queue.LastSkippedAt,
+                NoShowAt = queue.NoShowAt,
+                CanCall = CanCallNurse(queue, serverNowUtc),
+                CanSkip = CanSkipNurse(queue, serverNowUtc),
+                CanNoShow = CanNoShowNurse(queue, serverNowUtc),
+                CanStartScreening = CanStartScreeningNurse(queue),
+                CanFinishScreening = CanFinishScreeningNurse(queue),
                 ScreeningStartedAt = queue.ScreeningStartedAt,
                 ScreeningCompletedAt = queue.ScreeningCompletedAt,
                 AssessmentCompleted = assessmentCompleted,
@@ -927,6 +987,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 VoiceContentType = voiceResult?.ContentType,
                 VoiceErrorMessage = voiceResult?.ErrorMessage
             };
+        }
+
+        private static bool IsNurseCallTimerRunning(TrxQueue queue, DateTime serverNowUtc)
+        {
+            return queue.QueueStatus == QueueStatus.CalledByNurse &&
+                   queue.NurseCallExpiresAt.HasValue &&
+                   queue.NurseCallExpiresAt.Value > serverNowUtc;
+        }
+
+        private static bool CanCallNurse(TrxQueue queue, DateTime serverNowUtc)
+        {
+            return (queue.QueueStatus == QueueStatus.WaitingForNurse ||
+                    queue.QueueStatus == QueueStatus.CalledByNurse ||
+                    queue.QueueStatus == QueueStatus.Skipped) &&
+                   !IsNurseCallTimerRunning(queue, serverNowUtc);
+        }
+
+        private static bool CanSkipNurse(TrxQueue queue, DateTime serverNowUtc)
+        {
+            return queue.QueueStatus == QueueStatus.CalledByNurse &&
+                   queue.NurseCallAttemptCount > 0 &&
+                   queue.LastNurseCalledAt.HasValue &&
+                   !IsNurseCallTimerRunning(queue, serverNowUtc);
+        }
+
+        private static bool CanNoShowNurse(TrxQueue queue, DateTime serverNowUtc)
+        {
+            return (queue.SkipCount > 0 || queue.LastSkippedAt.HasValue) &&
+                   (queue.QueueStatus == QueueStatus.Skipped || queue.QueueStatus == QueueStatus.CalledByNurse) &&
+                   !IsNurseCallTimerRunning(queue, serverNowUtc);
+        }
+
+        private static bool CanStartScreeningNurse(TrxQueue queue)
+        {
+            return queue.QueueStatus == QueueStatus.WaitingForNurse ||
+                   queue.QueueStatus == QueueStatus.CalledByNurse;
+        }
+
+        private static bool CanFinishScreeningNurse(TrxQueue queue)
+        {
+            return queue.QueueStatus == QueueStatus.InNurseScreening;
         }
 
         private static int CalculateNurseCallRemainingSeconds(DateTime? expiresAt, DateTime serverNowUtc)
