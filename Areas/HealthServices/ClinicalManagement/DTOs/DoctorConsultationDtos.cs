@@ -341,6 +341,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? DoctorNote { get; set; }
     }
 
+    public class UpdateDoctorConsultationSoapRequest
+    {
+        [MaxLength(4000)]
+        public string? Subjective { get; set; }
+
+        [MaxLength(4000)]
+        public string? Objective { get; set; }
+
+        [MaxLength(4000)]
+        public string? Assessment { get; set; }
+
+        [MaxLength(4000)]
+        public string? Plan { get; set; }
+
+        [MaxLength(2000)]
+        public string? ProcedurePlan { get; set; }
+
+        [MaxLength(2000)]
+        public string? PrescriptionPlan { get; set; }
+
+        [MaxLength(2000)]
+        public string? SupportingExamPlan { get; set; }
+
+        [MaxLength(2000)]
+        public string? ReferralPlan { get; set; }
+
+        [MaxLength(2000)]
+        public string? EducationPlan { get; set; }
+
+        public DateTime? FollowUpDate { get; set; }
+
+        public bool ClearFollowUpDate { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? FollowUpNote { get; set; }
+
+        [MaxLength(1000)]
+        public string? DoctorNote { get; set; }
+    }
+
     public class DoctorConsultationCreateResponse
     {
         public Guid Id { get; set; }
@@ -373,6 +413,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
     public class DoctorConsultationUpdateResponse : DoctorConsultationCreateResponse
     {
+    }
+
+    public class DoctorConsultationSoapUpdateResponse : DoctorConsultationUpdateResponse
+    {
+        public string? Subjective { get; set; }
+        public string? Objective { get; set; }
+        public string? Assessment { get; set; }
+        public string? Plan { get; set; }
+
+        public string? ProcedurePlan { get; set; }
+        public string? PrescriptionPlan { get; set; }
+        public string? SupportingExamPlan { get; set; }
+        public string? ReferralPlan { get; set; }
+        public string? EducationPlan { get; set; }
+
+        public DateTime? FollowUpDate { get; set; }
+        public string? FollowUpNote { get; set; }
+        public string? DoctorNote { get; set; }
+
+        public DateTime SavedAt { get; set; }
     }
 
     public class CancelDoctorConsultationRequest

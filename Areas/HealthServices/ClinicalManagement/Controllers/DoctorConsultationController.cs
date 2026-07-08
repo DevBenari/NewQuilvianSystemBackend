@@ -182,6 +182,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ));
         }
 
+        [HttpGet("active-by-queue/{queueId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<DoctorConsultationDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Active Doctor Consultation", Description = "Melihat konsultasi dokter aktif berdasarkan antrean", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("DoctorConsultation", "Read")]
+        public async Task<IActionResult> GetActiveByQueue(Guid queueId)
+        {
+            if (queueId == Guid.Empty)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "QueueId wajib diisi."
+                ));
+            }
+
+            var entity = await BuildBaseQuery()
+                .AsNoTracking()
+                .Where(x =>
+                    x.QueueId == queueId &&
+                    x.IsActive &&
+                    x.ConsultationStatus != DoctorConsultationStatus.Cancelled)
+                .OrderByDescending(x => x.ConsultationStatus == DoctorConsultationStatus.InProgress)
+                .ThenByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
+                .ThenByDescending(x => x.ConsultationDateTime)
+                .FirstOrDefaultAsync();
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Konsultasi dokter aktif untuk antrean ini tidak ditemukan."
+                ));
+            }
+
+            return Ok(ApiResponse<DoctorConsultationDetailResponse>.Ok(
+                ToDetailResponse(entity),
+                "Konsultasi dokter aktif berhasil diambil."
+            ));
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<DoctorConsultationCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -431,6 +472,76 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             return Ok(ApiResponse<DoctorConsultationUpdateResponse>.Ok(
                 response,
                 "Konsultasi dokter berhasil diubah."
+            ));
+        }
+
+        [HttpPatch("{id:guid}/soap")]
+        [ProducesResponseType(typeof(ApiResponse<DoctorConsultationSoapUpdateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Autosave Doctor Consultation SOAP", Description = "Menyimpan otomatis SOAP konsultasi dokter tanpa mengubah field lain", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("DoctorConsultation", "Update")]
+        public async Task<IActionResult> UpdateSoap(Guid id, [FromBody] UpdateDoctorConsultationSoapRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Payload SOAP wajib diisi."
+                ));
+            }
+
+            var entity = await _dbContext.Set<TrxDoctorConsultation>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Konsultasi dokter tidak ditemukan."
+                ));
+            }
+
+            if (entity.ConsultationStatus == DoctorConsultationStatus.Completed)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "SOAP pada konsultasi yang sudah completed tidak dapat diubah."
+                ));
+            }
+
+            if (entity.ConsultationStatus == DoctorConsultationStatus.Cancelled)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "SOAP pada konsultasi yang sudah cancelled tidak dapat diubah."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            ApplySoapPatch(entity, request);
+
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            NormalizeConsultationData(entity);
+
+            await _dbContext.SaveChangesAsync();
+
+            var response = BuildSoapUpdateResponse(entity, now);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "DoctorConsultation.UpdateSoap",
+                "Menyimpan SOAP konsultasi dokter.",
+                response
+            );
+
+            return Ok(ApiResponse<DoctorConsultationSoapUpdateResponse>.Ok(
+                response,
+                "SOAP konsultasi dokter berhasil disimpan."
             ));
         }
 
@@ -1085,6 +1196,92 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 HasPrescription = entity.HasPrescription,
                 SupportingOrderCount = entity.SupportingOrderCount,
                 HasSupportingOrder = entity.HasSupportingOrder
+            };
+        }
+
+
+        private static void ApplySoapPatch(TrxDoctorConsultation entity, UpdateDoctorConsultationSoapRequest request)
+        {
+            if (request.Subjective != null)
+                entity.Subjective = NormalizeNullableText(request.Subjective);
+
+            if (request.Objective != null)
+                entity.Objective = NormalizeNullableText(request.Objective);
+
+            if (request.Assessment != null)
+                entity.Assessment = NormalizeNullableText(request.Assessment);
+
+            if (request.Plan != null)
+                entity.Plan = NormalizeNullableText(request.Plan);
+
+            if (request.ProcedurePlan != null)
+                entity.ProcedurePlan = NormalizeNullableText(request.ProcedurePlan);
+
+            if (request.PrescriptionPlan != null)
+                entity.PrescriptionPlan = NormalizeNullableText(request.PrescriptionPlan);
+
+            if (request.SupportingExamPlan != null)
+                entity.SupportingExamPlan = NormalizeNullableText(request.SupportingExamPlan);
+
+            if (request.ReferralPlan != null)
+                entity.ReferralPlan = NormalizeNullableText(request.ReferralPlan);
+
+            if (request.EducationPlan != null)
+                entity.EducationPlan = NormalizeNullableText(request.EducationPlan);
+
+            if (request.ClearFollowUpDate)
+            {
+                entity.FollowUpDate = null;
+            }
+            else if (request.FollowUpDate.HasValue)
+            {
+                entity.FollowUpDate = request.FollowUpDate.Value;
+            }
+
+            if (request.FollowUpNote != null)
+                entity.FollowUpNote = NormalizeNullableText(request.FollowUpNote);
+
+            if (request.DoctorNote != null)
+                entity.DoctorNote = NormalizeNullableText(request.DoctorNote);
+        }
+
+        private static DoctorConsultationSoapUpdateResponse BuildSoapUpdateResponse(
+            TrxDoctorConsultation entity,
+            DateTime savedAt)
+        {
+            return new DoctorConsultationSoapUpdateResponse
+            {
+                Id = entity.Id,
+                ConsultationNumber = entity.ConsultationNumber,
+                EncounterId = entity.EncounterId,
+                QueueId = entity.QueueId,
+                AssessmentId = entity.AssessmentId,
+                ConsultationStatus = entity.ConsultationStatus,
+                ConsultationDateTime = entity.ConsultationDateTime,
+                StartedAt = entity.StartedAt,
+                CompletedAt = entity.CompletedAt,
+                IsVitalSignCopiedFromAssessment = entity.IsVitalSignCopiedFromAssessment,
+                DiagnosisCount = entity.DiagnosisCount,
+                HasPrimaryDiagnosis = entity.HasPrimaryDiagnosis,
+                ProcedureCount = entity.ProcedureCount,
+                HasProcedure = entity.HasProcedure,
+                PrescriptionCount = entity.PrescriptionCount,
+                HasPrescription = entity.HasPrescription,
+                SupportingOrderCount = entity.SupportingOrderCount,
+                HasSupportingOrder = entity.HasSupportingOrder,
+                Subjective = entity.Subjective,
+                Objective = entity.Objective,
+                Assessment = entity.Assessment,
+                Plan = entity.Plan,
+                ProcedurePlan = entity.ProcedurePlan,
+                PrescriptionPlan = entity.PrescriptionPlan,
+                SupportingExamPlan = entity.SupportingExamPlan,
+                ReferralPlan = entity.ReferralPlan,
+                EducationPlan = entity.EducationPlan,
+                FollowUpDate = entity.FollowUpDate,
+                FollowUpNote = entity.FollowUpNote,
+                DoctorNote = entity.DoctorNote,
+                SavedAt = savedAt
             };
         }
 
