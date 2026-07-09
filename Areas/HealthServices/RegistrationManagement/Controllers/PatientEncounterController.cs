@@ -459,7 +459,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
                 if (isQueueRequired)
                 {
-                    var queueNumber = await GenerateQueueNumberAsync(targetEncounterDate, request.ServiceUnitId, request.ClinicId, request.DoctorId);
+                    var queueNumber = await GenerateQueueNumberAsync(targetEncounterDate, request.ServiceUnitId, request.ClinicId);
 
                     queue = new TrxQueue
                     {
@@ -472,7 +472,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         DoctorScheduleId = NormalizeNullableGuid(request.DoctorScheduleId),
                         QueueDate = targetEncounterDate,
                         QueueNumber = queueNumber,
-                        QueueCode = GenerateQueueCode(targetEncounterDate, clinic, queueNumber),
+                        QueueCode = GenerateQueueCode(clinic, queueNumber),
                         QueueStatus = isScreeningRequired ? QueueStatus.WaitingForNurse : QueueStatus.WaitingForDoctor,
                         IsFromKiosk = encounter.IsFromKiosk,
                         IsWalkIn = request.IsWalkIn,
@@ -1416,25 +1416,120 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return prefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
         }
 
-        private async Task<int> GenerateQueueNumberAsync(DateTime operationalDate, Guid serviceUnitId, Guid? clinicId, Guid? doctorId)
+        private async Task<int> GenerateQueueNumberAsync(DateTime operationalDate, Guid serviceUnitId, Guid? clinicId)
         {
             var normalizedClinicId = NormalizeNullableGuid(clinicId);
-            var normalizedDoctorId = NormalizeNullableGuid(doctorId);
             var queueDate = ToUtcDate(operationalDate);
 
-            return await _dbContext.Set<TrxQueue>()
-                .CountAsync(x =>
+            var baseQuery = _dbContext.Set<TrxQueue>()
+                .AsNoTracking()
+                .Where(x =>
                     x.QueueDate == queueDate &&
                     x.ServiceUnitId == serviceUnitId &&
-                    x.ClinicId == normalizedClinicId &&
-                    x.DoctorId == normalizedDoctorId &&
-                    !x.IsDelete) + 1;
+                    !x.IsDelete);
+
+            if (!normalizedClinicId.HasValue)
+            {
+                return await GetNextQueueNumberAsync(baseQuery);
+            }
+
+            var clusterIds = await _dbContext.Set<MstNurseStationClusterClinic>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.ClinicId == normalizedClinicId.Value)
+                .Select(x => x.NurseStationClusterId)
+                .Distinct()
+                .ToListAsync();
+
+            if (!clusterIds.Any())
+            {
+                var clinicOnlyQuery = baseQuery.Where(x => x.ClinicId == normalizedClinicId.Value);
+                return await GetNextQueueNumberAsync(clinicOnlyQuery);
+            }
+
+            var clinicIdsInCluster = await _dbContext.Set<MstNurseStationClusterClinic>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    clusterIds.Contains(x.NurseStationClusterId))
+                .Select(x => x.ClinicId)
+                .Distinct()
+                .ToListAsync();
+
+            if (!clinicIdsInCluster.Any())
+            {
+                clinicIdsInCluster.Add(normalizedClinicId.Value);
+            }
+
+            var clusterQueueQuery = baseQuery.Where(x =>
+                x.ClinicId.HasValue &&
+                clinicIdsInCluster.Contains(x.ClinicId.Value));
+
+            return await GetNextQueueNumberAsync(clusterQueueQuery);
         }
 
-        private static string GenerateQueueCode(DateTime operationalDate, MstClinic? clinic, int queueNumber)
+        private static async Task<int> GetNextQueueNumberAsync(IQueryable<TrxQueue> query)
         {
-            var prefix = !string.IsNullOrWhiteSpace(clinic?.ShortName) ? clinic.ShortName.Trim().ToUpperInvariant() : "Q";
-            return $"{prefix}-{operationalDate:yyyyMMdd}-{queueNumber:D3}";
+            var lastQueueNumber = await query
+                .Select(x => (int?)x.QueueNumber)
+                .MaxAsync();
+
+            return lastQueueNumber.GetValueOrDefault() + 1;
+        }
+
+        private static string GenerateQueueCode(MstClinic? clinic, int queueNumber)
+        {
+            var prefix = BuildQueueCodePrefix(clinic);
+            return $"{prefix}{queueNumber:D3}";
+        }
+
+        private static string BuildQueueCodePrefix(MstClinic? clinic)
+        {
+            var source = !string.IsNullOrWhiteSpace(clinic?.ShortName)
+                ? clinic.ShortName.Trim()
+                : BuildClinicNamePrefixSource(clinic?.ClinicName);
+
+            if (string.IsNullOrWhiteSpace(source))
+            {
+                return "Q";
+            }
+
+            foreach (var character in source.Trim().ToUpperInvariant())
+            {
+                if (character >= 'A' && character <= 'Z')
+                {
+                    return character.ToString();
+                }
+            }
+
+            return "Q";
+        }
+
+        private static string BuildClinicNamePrefixSource(string? clinicName)
+        {
+            if (string.IsNullOrWhiteSpace(clinicName))
+            {
+                return string.Empty;
+            }
+
+            var ignoredWords = new[] { "POLI", "POLIKLINIK", "KLINIK", "CLINIC" };
+
+            var tokens = clinicName
+                .Trim()
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            foreach (var token in tokens)
+            {
+                if (!ignoredWords.Contains(token.ToUpperInvariant()))
+                {
+                    return token;
+                }
+            }
+
+            return clinicName.Trim();
         }
 
         private async Task<PatientEncounterAgeSnapshot> BuildAgeSnapshotAsync(

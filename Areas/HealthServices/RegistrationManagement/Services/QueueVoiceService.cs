@@ -811,7 +811,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             {
                 var prefix = compactMatch.Groups[1].Value.ToUpperInvariant();
                 var number = compactMatch.Groups[2].Value;
-                return $"{SpeakLetters(prefix)} {SpeakQueueNumericPart(number)}";
+                var spokenNumber = SpeakQueueNumericPart(number);
+                var normalizedClinicName = NormalizeMedicalTerm(clinicName);
+
+                if (!string.IsNullOrWhiteSpace(normalizedClinicName) &&
+                    !string.Equals(normalizedClinicName, "poli tujuan", StringComparison.OrdinalIgnoreCase) &&
+                    !string.IsNullOrWhiteSpace(spokenNumber))
+                {
+                    return $"{normalizedClinicName} nomor {spokenNumber}";
+                }
+
+                return $"{SpeakLetters(prefix)} {spokenNumber}";
             }
 
             return NormalizeMedicalTerm(cleanCode) ?? cleanCode;
