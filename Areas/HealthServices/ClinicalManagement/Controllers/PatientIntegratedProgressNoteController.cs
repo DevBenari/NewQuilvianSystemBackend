@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -395,6 +396,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
             var draft = BuildRequestFromConsultation(consultation, request, actorUserId, now);
+            draft.VitalSignId = await ResolveVitalSignIdForConsultationAsync(consultation);
 
             var entity = new TrxPatientIntegratedProgressNote
             {
@@ -405,6 +407,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 QueueId = draft.QueueId,
                 ConsultationId = draft.ConsultationId,
                 AssessmentId = draft.AssessmentId,
+                VitalSignId = draft.VitalSignId,
                 DoctorId = draft.DoctorId,
                 ServiceUnitId = draft.ServiceUnitId,
                 ClinicId = draft.ClinicId,
@@ -478,6 +481,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 actorUserId,
                 DateTime.UtcNow
             );
+            result.VitalSignId = await ResolveVitalSignIdForConsultationAsync(consultation);
 
             return Ok(ApiResponse<CreatePatientIntegratedProgressNoteRequest>.Ok(
                 result,
@@ -896,6 +900,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             }
 
             return result.Ok();
+        }
+
+        private async Task<Guid?> ResolveVitalSignIdForConsultationAsync(TrxDoctorConsultation consultation)
+        {
+            if (consultation == null || consultation.PatientId == Guid.Empty)
+            {
+                return null;
+            }
+
+            var hasAssessmentId = consultation.AssessmentId.HasValue && consultation.AssessmentId.Value != Guid.Empty;
+            var hasQueueId = consultation.QueueId != Guid.Empty;
+            var hasEncounterId = consultation.EncounterId != Guid.Empty;
+
+            var query = _dbContext.Set<TrxPatientVitalSign>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.PatientId == consultation.PatientId &&
+                    x.VitalSignStatus != PatientVitalSignStatus.Cancelled &&
+                    x.VitalSignStatus != PatientVitalSignStatus.EnteredInError);
+
+            if (hasAssessmentId || hasQueueId || hasEncounterId)
+            {
+                query = query.Where(x =>
+                    (hasAssessmentId && x.AssessmentId == consultation.AssessmentId) ||
+                    (hasQueueId && x.QueueId == consultation.QueueId) ||
+                    (hasEncounterId && x.EncounterId == consultation.EncounterId));
+            }
+
+            var vitalSignId = await query
+                .OrderByDescending(x => hasAssessmentId && x.AssessmentId == consultation.AssessmentId)
+                .ThenByDescending(x => hasQueueId && x.QueueId == consultation.QueueId)
+                .ThenByDescending(x => hasEncounterId && x.EncounterId == consultation.EncounterId)
+                .ThenByDescending(x => x.ObservationDateTime)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Select(x => x.Id)
+                .FirstOrDefaultAsync();
+
+            return vitalSignId == Guid.Empty ? null : vitalSignId;
         }
 
         private async Task<string> GenerateProgressNoteNumberAsync(DateTime now)
