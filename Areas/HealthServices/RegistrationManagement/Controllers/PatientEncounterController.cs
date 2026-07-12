@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
@@ -397,6 +398,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien dengan satu sumber pembayaran", AccessType = AccessTypes.Create, SortOrder = 2)]
         public async Task<IActionResult> CreateEncounterForKiosk([FromBody] PatientEncounterCreateRequest request)
         {
+            var traceId = HttpContext.TraceIdentifier;
+            Response.Headers["X-Trace-Id"] = traceId;
+
             var now = DateTime.UtcNow;
             var operationalDate = ToUtcDate(AppDateTimeHelper.OperationalDate());
 
@@ -485,6 +489,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 now);
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            var transactionCommitted = false;
 
             try
             {
@@ -616,13 +621,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
+                transactionCommitted = true;
 
+                // Kegagalan notifikasi realtime tidak boleh mengubah transaksi database
+                // yang sudah berhasil commit menjadi response 500.
                 if (queue != null)
                 {
-                    await _queueRealtimeService.NotifyQueueCreatedAsync(
-                        queue,
-                        actorUserId,
-                        "Antrean pasien baru dibuat.");
+                    try
+                    {
+                        await _queueRealtimeService.NotifyQueueCreatedAsync(
+                            queue,
+                            actorUserId,
+                            "Antrean pasien baru dibuat.");
+                    }
+                    catch (Exception notificationException)
+                    {
+                        try
+                        {
+                            await _loggerService.ErrorAsync(
+                                LogCategory,
+                                "PatientEncounter.CreateEncounterForKiosk.QueueNotification",
+                                $"Encounter dan antrean berhasil disimpan, tetapi notifikasi realtime gagal. TraceId={traceId}; EncounterId={encounter.Id}; QueueId={queue.Id}.",
+                                notificationException);
+                        }
+                        catch
+                        {
+                            // Jangan menggagalkan response utama hanya karena pencatatan
+                            // kegagalan notifikasi juga mengalami masalah.
+                        }
+                    }
                 }
 
                 var response = new PatientEncounterCreateResponse
@@ -662,31 +689,141 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     Payment = MapPaymentSourceResponse(paymentSource)
                 };
 
-                await _loggerService.InfoAsync(
-                    LogCategory,
-                    "PatientEncounter.CreateEncounterForKiosk",
-                    "Membuat transaksi kunjungan pasien dengan satu sumber pembayaran.",
-                    response);
+                try
+                {
+                    await _loggerService.InfoAsync(
+                        LogCategory,
+                        "PatientEncounter.CreateEncounterForKiosk",
+                        $"Membuat transaksi kunjungan pasien dengan satu sumber pembayaran. TraceId={traceId}.",
+                        response);
+                }
+                catch
+                {
+                    // Data sudah commit. Kegagalan audit log tidak boleh mengubah
+                    // response transaksi yang sebenarnya berhasil.
+                }
 
                 return Ok(ApiResponse<PatientEncounterCreateResponse>.Ok(
                     response,
                     "Transaksi kunjungan pasien berhasil dibuat."));
             }
-            catch (Exception ex)
+            catch (DbUpdateException dbException)
             {
-                await transaction.RollbackAsync();
+                var rollbackError = string.Empty;
 
-                await _loggerService.ErrorAsync(
-                    LogCategory,
-                    "PatientEncounter.CreateEncounterForKiosk",
-                    "Gagal membuat transaksi kunjungan pasien.",
-                    ex);
+                if (!transactionCommitted)
+                {
+                    try
+                    {
+                        await transaction.RollbackAsync();
+                    }
+                    catch (Exception rollbackException)
+                    {
+                        rollbackError = rollbackException.GetBaseException().Message;
+                    }
+                }
+
+                var rootException = dbException.GetBaseException();
+                var postgresException = rootException as PostgresException;
+                var registrationMode = request.IsNewPatient
+                    ? "NEW_PATIENT"
+                    : "OLD_PATIENT";
+
+                var trackedEntities = string.Join(
+                    ", ",
+                    _dbContext.ChangeTracker
+                        .Entries()
+                        .Select(entry =>
+                            $"{entry.Metadata.ClrType.Name}:{entry.State}"));
+
+                var databaseErrorMessage =
+                    $"TraceId={traceId}; " +
+                    $"RegistrationMode={registrationMode}; " +
+                    $"PatientId={request.PatientId}; " +
+                    $"ServiceUnitId={request.ServiceUnitId}; " +
+                    $"ClinicId={request.ClinicId}; " +
+                    $"RoomId={request.RoomId}; " +
+                    $"DoctorId={request.DoctorId}; " +
+                    $"DoctorScheduleId={request.DoctorScheduleId}; " +
+                    $"DoctorServiceRuleId={request.DoctorServiceRuleId}; " +
+                    $"PaymentType={request.PaymentType}; " +
+                    $"PaymentMethodId={request.PaymentMethodId}; " +
+                    $"PatientInsuranceId={request.PatientInsuranceId}; " +
+                    $"KioskScanSessionId={request.KioskScanSessionId}; " +
+                    $"SqlState={postgresException?.SqlState ?? "-"}; " +
+                    $"Schema={postgresException?.SchemaName ?? "-"}; " +
+                    $"Table={postgresException?.TableName ?? "-"}; " +
+                    $"Column={postgresException?.ColumnName ?? "-"}; " +
+                    $"Constraint={postgresException?.ConstraintName ?? "-"}; " +
+                    $"DatabaseMessage={postgresException?.MessageText ?? rootException.Message}; " +
+                    $"Detail={postgresException?.Detail ?? "-"}; " +
+                    $"Hint={postgresException?.Hint ?? "-"}; " +
+                    $"TrackedEntities={trackedEntities}; " +
+                    $"RollbackError={(string.IsNullOrWhiteSpace(rollbackError) ? "-" : rollbackError)}";
+
+                try
+                {
+                    await _loggerService.ErrorAsync(
+                        LogCategory,
+                        "PatientEncounter.CreateEncounterForKiosk.Database",
+                        databaseErrorMessage,
+                        dbException);
+                }
+                catch
+                {
+                    // Response tetap harus dikembalikan meskipun logger bermasalah.
+                }
 
                 return StatusCode(
                     StatusCodes.Status500InternalServerError,
                     ApiResponse<object>.Fail(
                         StatusCodes.Status500InternalServerError,
-                        "Terjadi kesalahan saat membuat transaksi kunjungan pasien."));
+                        $"Database gagal menyimpan transaksi kunjungan pasien. Trace ID: {traceId}"));
+            }
+            catch (Exception ex)
+            {
+                var rollbackError = string.Empty;
+
+                if (!transactionCommitted)
+                {
+                    try
+                    {
+                        await transaction.RollbackAsync();
+                    }
+                    catch (Exception rollbackException)
+                    {
+                        rollbackError = rollbackException.GetBaseException().Message;
+                    }
+                }
+
+                var rootException = ex.GetBaseException();
+                var registrationMode = request.IsNewPatient
+                    ? "NEW_PATIENT"
+                    : "OLD_PATIENT";
+
+                try
+                {
+                    await _loggerService.ErrorAsync(
+                        LogCategory,
+                        "PatientEncounter.CreateEncounterForKiosk",
+                        $"TraceId={traceId}; " +
+                        $"RegistrationMode={registrationMode}; " +
+                        $"TransactionCommitted={transactionCommitted}; " +
+                        $"ExceptionType={rootException.GetType().FullName}; " +
+                        $"Message={rootException.Message}; " +
+                        $"RollbackError={(string.IsNullOrWhiteSpace(rollbackError) ? "-" : rollbackError)}",
+                        ex);
+                }
+                catch
+                {
+                    // Response tetap harus dikembalikan meskipun logger bermasalah.
+                }
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        $"Terjadi kesalahan saat membuat transaksi kunjungan pasien. Trace ID: {traceId}"));
             }
         }
 
