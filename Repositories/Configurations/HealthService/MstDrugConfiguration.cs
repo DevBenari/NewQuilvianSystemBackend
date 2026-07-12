@@ -45,12 +45,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.StrengthMeasurementId)
                 .IsRequired(false);
 
-            entity.Property(x => x.BaseUnit)
-                .HasMaxLength(50);
-
-            entity.Property(x => x.DispenseUnit)
-                .HasMaxLength(50);
-
             entity.Property(x => x.BaseUnitMeasurementId)
                 .IsRequired(false);
 
@@ -114,27 +108,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.IsNeedPrescription)
                 .HasDefaultValue(true);
 
-            entity.Property(x => x.IsCoveredByInsuranceDefault)
+            entity.Property(x => x.IsPrescribable)
                 .HasDefaultValue(true);
 
             entity.Property(x => x.IsNeedApproval)
                 .HasDefaultValue(false);
-
-            entity.Property(x => x.DefaultPrice)
-                .HasColumnType("numeric(18,2)")
-                .HasDefaultValue(0);
-
-            entity.Property(x => x.InsurancePrice)
-                .HasColumnType("numeric(18,2)")
-                .IsRequired(false);
-
-            entity.Property(x => x.MemberPrice)
-                .HasColumnType("numeric(18,2)")
-                .IsRequired(false);
-
-            entity.Property(x => x.CompanyPrice)
-                .HasColumnType("numeric(18,2)")
-                .IsRequired(false);
 
             entity.Property(x => x.Indication)
                 .HasMaxLength(1000);
@@ -334,7 +312,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 
             entity.HasIndex(x => new
             {
-                x.IsCoveredByInsuranceDefault,
                 x.IsNeedApproval,
                 x.IsActive,
                 x.IsDelete
@@ -343,6 +320,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.HasIndex(x => new
             {
                 x.IsNeedPrescription,
+                x.IsPrescribable,
                 x.IsActive,
                 x.IsDelete
             });

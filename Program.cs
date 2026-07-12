@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Hubs;
 using QuilvianSystemBackend.Middlewares;
@@ -248,6 +250,19 @@ try
     builder.Services.AddScoped<AccessPermissionService>();
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
+
+    builder.Services.AddScoped<EncounterInsuranceService>();
+    builder.Services.AddScoped<InsuranceCoverageService>();
+    builder.Services.AddScoped<PrescriptionNumberService>();
+    builder.Services.AddScoped<PrescriptionSummaryService>();
+    builder.Services.AddScoped<PrescriptionWorkflowService>();
+    builder.Services.AddScoped<PrescriptionWorkspaceService>();
+    builder.Services.AddScoped<PrescriptionTemplateService>();
+    builder.Services.AddScoped<PrescriptionValidationService>();
+    builder.Services.AddScoped<ConsultationValidationService>();
+    builder.Services.AddScoped<ConsultationFinalizationService>();
+    builder.Services.AddScoped<PrescriptionAggregateService>();
+    builder.Services.AddScoped<PrescriptionWorkflowService>();
 
     builder.Services.AddAuthorization(options =>
     {

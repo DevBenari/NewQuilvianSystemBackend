@@ -523,11 +523,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                      x.StockUnitMeasurementId == id ||
                      x.DefaultDoseUnitMeasurementId == id));
 
-            if (usedByConversion || usedByDrug)
+            var usedByDrugUnitConversion = await _dbContext.Set<MstDrugUnitConversion>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    (x.FromMeasurementId == id || x.ToMeasurementId == id));
+
+            if (usedByConversion || usedByDrug || usedByDrugUnitConversion)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    "Measurement tidak dapat dihapus karena sudah digunakan oleh conversion atau drug. Nonaktifkan saja jika masih dibutuhkan untuk histori."
+                    "Measurement tidak dapat dihapus karena sudah digunakan oleh measurement conversion, drug, atau drug unit conversion. Nonaktifkan saja jika masih dibutuhkan untuk histori."
                 ));
             }
 

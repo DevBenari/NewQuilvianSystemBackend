@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
@@ -449,6 +450,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
+            if (entity.ServiceUnitId != request.ServiceUnitId)
+            {
+                var isUsedByDoctorSchedule = await _dbContext.Set<MstDoctorSchedule>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.RoomId == id && !x.IsDelete);
+
+                var isUsedByEncounter = await _dbContext.Set<TrxPatientEncounter>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.RoomId == id && !x.IsDelete);
+
+                if (isUsedByDoctorSchedule || isUsedByEncounter)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Service unit room tidak dapat diubah karena room sudah digunakan oleh jadwal dokter atau encounter pasien."
+                    ));
+                }
+            }
+
             var validation = await ValidateCreateUpdateRequestAsync(
                 excludeId: id,
                 serviceUnitId: request.ServiceUnitId,
@@ -615,6 +635,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     "Room tidak dapat dihapus karena sudah digunakan oleh bed."
+                ));
+            }
+
+            var isUsedByDoctorSchedule = await _dbContext.Set<MstDoctorSchedule>()
+                .AsNoTracking()
+                .AnyAsync(x => x.RoomId == id && !x.IsDelete);
+
+            if (isUsedByDoctorSchedule)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Room tidak dapat dihapus karena sudah digunakan oleh jadwal dokter."
+                ));
+            }
+
+            var isUsedByEncounter = await _dbContext.Set<TrxPatientEncounter>()
+                .AsNoTracking()
+                .AnyAsync(x => x.RoomId == id && !x.IsDelete);
+
+            if (isUsedByEncounter)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Room tidak dapat dihapus karena sudah digunakan oleh encounter pasien."
                 ));
             }
 

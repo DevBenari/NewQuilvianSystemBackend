@@ -48,7 +48,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         public Guid? RoomId { get; set; }
         public string? RoomCode { get; set; }
-        public string? RoomMasterName { get; set; }
+        public string? RoomName { get; set; }
+        public string? RoomNumber { get; set; }
+        public string? RoomLocationName { get; set; }
+        public string? RoomFloorName { get; set; }
 
         public DayOfWeek PracticeDay { get; set; }
         public DateTime? PracticeDate { get; set; }
@@ -59,7 +62,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         public string? SessionName { get; set; }
         public string? PracticeLocation { get; set; }
-        public string? RoomName { get; set; }
 
         public int MaxPatientQuota { get; set; }
         public int MaxAppointmentQuota { get; set; }
@@ -113,7 +115,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string ClinicName { get; set; } = string.Empty;
 
         public Guid? RoomId { get; set; }
-        public string? RoomMasterName { get; set; }
+        public string? RoomCode { get; set; }
+        public string? RoomName { get; set; }
+        public string? RoomNumber { get; set; }
+        public string? RoomLocationName { get; set; }
+        public string? RoomFloorName { get; set; }
 
         public string ScheduleCode { get; set; } = string.Empty;
         public string ScheduleName { get; set; } = string.Empty;
@@ -254,9 +260,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         [MaxLength(100)]
         public string? PracticeLocation { get; set; }
-
-        [MaxLength(50)]
-        public string? RoomName { get; set; }
 
         public int MaxPatientQuota { get; set; } = 0;
 

@@ -28,6 +28,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string ServiceUnitName { get; set; } = string.Empty;
         public Guid? ClinicId { get; set; }
         public string? ClinicName { get; set; }
+        public Guid? RoomId { get; set; }
+        public string? RoomCode { get; set; }
+        public string? RoomName { get; set; }
+        public string? RoomNumber { get; set; }
+        public string? RoomLocationName { get; set; }
+        public string? RoomFloorName { get; set; }
         public Guid? DoctorId { get; set; }
         public string? DoctorName { get; set; }
         public Guid? NurseStationClusterId { get; set; }
@@ -74,18 +80,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string EncounterStatusName { get; set; } = string.Empty;
         public EncounterPaymentType PaymentType { get; set; }
         public string PaymentTypeName { get; set; } = string.Empty;
-        public bool IsInsurancePatient { get; set; }
-        public bool IsCompanyPatient { get; set; }
-        public bool IsMembershipPatient { get; set; }
-        public bool IsMixedPayment { get; set; }
-        public string? PrimaryGuarantorNameSnapshot { get; set; }
-        public string? PrimaryGuarantorTypeSnapshot { get; set; }
-        public bool IsEligibilityRequired { get; set; }
-        public bool IsEligibilityCompleted { get; set; }
+        public Guid? PaymentMethodId { get; set; }
+        public string? PaymentMethodName { get; set; }
+        public string? PaymentSourceNameSnapshot { get; set; }
+        public Guid? PatientInsuranceId { get; set; }
+        public Guid? InsuranceProviderId { get; set; }
+        public string? InsuranceProviderName { get; set; }
+        public bool IsInsuranceEligible { get; set; }
+        public bool IsInsurancePolicyActive { get; set; }
         public bool IsReferral { get; set; }
         public string? ReferralNumber { get; set; }
-        public string? EligibilityReferenceNumber { get; set; }
-        public List<NurseStationQueueGuarantorResponse> Guarantors { get; set; } = new();
 
         public string PatientCode { get; set; } = string.Empty;
         public string? NickName { get; set; }
@@ -125,33 +129,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public Guid? MotherPatientId { get; set; }
         public string? MotherMedicalRecordNumber { get; set; }
         public string? MotherPatientName { get; set; }
-    }
-
-    public class NurseStationQueueGuarantorResponse
-    {
-        public Guid Id { get; set; }
-        public string EncounterGuarantorNumber { get; set; } = string.Empty;
-        public PatientEncounterGuarantorType GuarantorType { get; set; }
-        public string GuarantorTypeName { get; set; } = string.Empty;
-        public PatientEncounterGuarantorRole GuarantorRole { get; set; }
-        public string GuarantorRoleName { get; set; } = string.Empty;
-        public PatientEncounterGuarantorStatus GuarantorStatus { get; set; }
-        public string GuarantorStatusName { get; set; } = string.Empty;
-        public int CoveragePriority { get; set; }
-        public bool IsPrimary { get; set; }
-        public string? GuarantorNameSnapshot { get; set; }
-        public string? PolicyNumberSnapshot { get; set; }
-        public string? CardNumberSnapshot { get; set; }
-        public string? MemberNumberSnapshot { get; set; }
-        public string? PlanNameSnapshot { get; set; }
-        public string? ClassNameSnapshot { get; set; }
-        public string? PaymentMethodName { get; set; }
-        public string? InsuranceProviderName { get; set; }
-        public string? CompanyGuarantorName { get; set; }
-        public bool IsEligibilityRequired { get; set; }
-        public bool IsEligible { get; set; }
-        public bool IsVerified { get; set; }
-        public bool IsActive { get; set; }
     }
 
     public class NurseStationQueueActionRequest

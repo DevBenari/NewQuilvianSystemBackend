@@ -43,14 +43,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public Guid? StrengthMeasurementId { get; set; }
         // contoh: mg, g, ml, mg/ml jika tersedia di MstMeasurement
 
-        [MaxLength(50)]
-        public string? BaseUnit { get; set; }
-        // Legacy/display: tablet, vial, ampoule, bottle, strip
-
-        [MaxLength(50)]
-        public string? DispenseUnit { get; set; }
-        // Legacy/display: tablet, pcs, bottle, vial
-
         public Guid? BaseUnitMeasurementId { get; set; }
         // Satuan terkecil untuk perhitungan stok/racikan.
         // Contoh: tablet, ml, vial, ampul.
@@ -110,17 +102,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 
         public bool IsNeedPrescription { get; set; } = true;
 
-        public bool IsCoveredByInsuranceDefault { get; set; } = true;
+        public bool IsPrescribable { get; set; } = true;
+        // Menentukan apakah obat dapat dipilih pada transaksi resep dokter.
 
         public bool IsNeedApproval { get; set; } = false;
-
-        public decimal DefaultPrice { get; set; } = 0;
-
-        public decimal? InsurancePrice { get; set; }
-
-        public decimal? MemberPrice { get; set; }
-
-        public decimal? CompanyPrice { get; set; }
 
         [MaxLength(1000)]
         public string? Indication { get; set; }

@@ -205,8 +205,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         [Range(typeof(decimal), "0.000001", "999999999999")]
         public decimal ToQuantity { get; set; } = 1;
 
-        [Range(typeof(decimal), "0.000001", "999999999999")]
-        public decimal ConversionFactor { get; set; } = 1;
 
         [Required]
         [MaxLength(50)]

@@ -145,6 +145,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             var entities = await query
                 .Include(x => x.Encounter)
+                    .ThenInclude(x => x!.Room)
                 .Include(x => x.Patient)
                 .Include(x => x.ServiceUnit)
                 .Include(x => x.Clinic)
@@ -181,6 +182,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             var entity = await query
                 .Include(x => x.Encounter)
+                    .ThenInclude(x => x!.Room)
                 .Include(x => x.Patient)
                 .Include(x => x.ServiceUnit)
                 .Include(x => x.Clinic)
@@ -206,6 +208,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 QueueStatusName = entity.QueueStatus.ToString(),
                 ClinicName = entity.Clinic != null ? entity.Clinic.ClinicName : null,
                 DoctorName = device.ShowDoctorName && entity.Doctor != null ? entity.Doctor.FullName : null,
+                RoomId = entity.Encounter?.RoomId,
+                RoomCode = entity.Encounter?.Room?.RoomCode,
+                RoomName = entity.Encounter?.Room?.RoomName,
+                RoomNumber = entity.Encounter?.Room?.RoomNumber,
+                RoomLocationName = entity.Encounter?.Room?.LocationName,
+                RoomFloorName = entity.Encounter?.Room?.FloorName,
                 CalledAt = entity.LastDoctorCalledAt ?? entity.LastNurseCalledAt,
                 DisplayText = BuildDisplayText(entity, device),
                 VoiceText = voiceResult?.Text ?? (device.EnableVoiceCalling ? BuildVoiceText(entity, device) : null),
@@ -339,6 +347,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ClinicName = device.ShowClinicName && x.Clinic != null ? x.Clinic.ClinicName : null,
                 DoctorId = x.DoctorId,
                 DoctorName = device.ShowDoctorName && x.Doctor != null ? x.Doctor.FullName : null,
+                RoomId = x.Encounter?.RoomId,
+                RoomCode = x.Encounter?.Room?.RoomCode,
+                RoomName = x.Encounter?.Room?.RoomName,
+                RoomNumber = x.Encounter?.Room?.RoomNumber,
+                RoomLocationName = x.Encounter?.Room?.LocationName,
+                RoomFloorName = x.Encounter?.Room?.FloorName,
                 QueueDate = x.QueueDate,
                 QueueNumber = x.QueueNumber,
                 QueueCode = x.QueueCode,
@@ -361,31 +375,138 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private static string BuildDisplayText(TrxQueue queue, MstQueueDisplayDevice device)
         {
+            var roomDisplayName = BuildRoomDisplayName(queue);
+
             var destination = queue.QueueStatus switch
             {
                 QueueStatus.CalledByNurse => "silakan ke nurse station",
-                QueueStatus.CalledByDoctor => device.ShowDoctorName && queue.Doctor != null ? $"silakan ke {queue.Doctor.FullName}" : "silakan ke dokter",
+                QueueStatus.CalledByDoctor => BuildDoctorDisplayDestination(queue, device, roomDisplayName),
                 QueueStatus.InNurseScreening => "sedang screening",
-                QueueStatus.WaitingForDoctor => "menunggu dokter",
-                QueueStatus.InConsultation => "sedang diperiksa dokter",
+                QueueStatus.WaitingForDoctor => !string.IsNullOrWhiteSpace(roomDisplayName)
+                    ? $"menunggu dokter di {roomDisplayName}"
+                    : "menunggu dokter",
+                QueueStatus.InConsultation => !string.IsNullOrWhiteSpace(roomDisplayName)
+                    ? $"sedang diperiksa di {roomDisplayName}"
+                    : "sedang diperiksa dokter",
                 _ => "menunggu panggilan"
             };
 
-            var clinic = device.ShowClinicName && queue.Clinic != null ? $" - {queue.Clinic.ClinicName}" : string.Empty;
+            var clinic = device.ShowClinicName && queue.Clinic != null
+                ? $" - {queue.Clinic.ClinicName}"
+                : string.Empty;
+
             return $"{queue.QueueCode}{clinic} {destination}".Trim();
         }
 
         private static string BuildVoiceText(TrxQueue queue, MstQueueDisplayDevice device)
         {
+            var roomVoiceName = BuildRoomVoiceName(queue);
+
             var destination = queue.QueueStatus switch
             {
                 QueueStatus.CalledByNurse => "silakan menuju nurse station",
-                QueueStatus.CalledByDoctor => device.ShowDoctorName && queue.Doctor != null ? $"silakan menuju ruang dokter {queue.Doctor.FullName}" : "silakan menuju ruang dokter",
+                QueueStatus.CalledByDoctor => BuildDoctorVoiceDestination(queue, device, roomVoiceName),
                 _ => "harap menunggu panggilan"
             };
 
-            var clinic = device.ShowClinicName && queue.Clinic != null ? $", {queue.Clinic.ClinicName}" : string.Empty;
+            var clinic = device.ShowClinicName && queue.Clinic != null
+                ? $", {queue.Clinic.ClinicName}"
+                : string.Empty;
+
             return $"Nomor antrean {queue.QueueCode}{clinic}, {destination}.";
+        }
+
+        private static string BuildDoctorDisplayDestination(
+            TrxQueue queue,
+            MstQueueDisplayDevice device,
+            string? roomDisplayName)
+        {
+            var doctorName = device.ShowDoctorName && queue.Doctor != null
+                ? queue.Doctor.FullName
+                : null;
+
+            if (!string.IsNullOrWhiteSpace(roomDisplayName) &&
+                !string.IsNullOrWhiteSpace(doctorName))
+            {
+                return $"silakan ke {roomDisplayName}, {doctorName}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(roomDisplayName))
+            {
+                return $"silakan ke {roomDisplayName}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(doctorName))
+            {
+                return $"silakan ke {doctorName}";
+            }
+
+            return "silakan ke ruang dokter";
+        }
+
+        private static string BuildDoctorVoiceDestination(
+            TrxQueue queue,
+            MstQueueDisplayDevice device,
+            string? roomVoiceName)
+        {
+            var doctorName = device.ShowDoctorName && queue.Doctor != null
+                ? queue.Doctor.FullName
+                : null;
+
+            if (!string.IsNullOrWhiteSpace(roomVoiceName) &&
+                !string.IsNullOrWhiteSpace(doctorName))
+            {
+                return $"silakan menuju {roomVoiceName}, {doctorName}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(roomVoiceName))
+            {
+                return $"silakan menuju {roomVoiceName}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(doctorName))
+            {
+                return $"silakan menuju ruang dokter {doctorName}";
+            }
+
+            return "silakan menuju ruang dokter";
+        }
+
+        private static string? BuildRoomDisplayName(TrxQueue queue)
+        {
+            var room = queue.Encounter?.Room;
+            if (room == null) return null;
+
+            var roomName = NormalizeDisplayValue(room.RoomName)
+                ?? NormalizeDisplayValue(room.RoomCode);
+
+            if (string.IsNullOrWhiteSpace(roomName)) return null;
+
+            var roomNumber = NormalizeDisplayValue(room.RoomNumber);
+            return string.IsNullOrWhiteSpace(roomNumber)
+                ? roomName
+                : $"{roomName} ({roomNumber})";
+        }
+
+        private static string? BuildRoomVoiceName(TrxQueue queue)
+        {
+            var room = queue.Encounter?.Room;
+            if (room == null) return null;
+
+            var roomName = NormalizeDisplayValue(room.RoomName)
+                ?? NormalizeDisplayValue(room.RoomCode);
+
+            if (string.IsNullOrWhiteSpace(roomName)) return null;
+
+            var roomNumber = NormalizeDisplayValue(room.RoomNumber);
+            return string.IsNullOrWhiteSpace(roomNumber)
+                ? roomName
+                : $"{roomName} nomor {roomNumber}";
+        }
+
+        private static string? NormalizeDisplayValue(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
         private static string MaskPatientName(string value)

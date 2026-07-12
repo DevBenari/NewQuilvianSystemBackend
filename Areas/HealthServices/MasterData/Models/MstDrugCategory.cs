@@ -31,8 +31,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public bool IsChronicDiseaseDrug { get; set; } = false;
         public bool IsVaccine { get; set; } = false;
         public bool IsConsumable { get; set; } = false;
-        public bool IsCoveredByInsuranceDefault { get; set; } = true;
-
         public int SortOrder { get; set; } = 0;
 
         [MaxLength(250)]

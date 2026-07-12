@@ -93,8 +93,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     new() { Value = "coveragePercent", Label = "Persentase coverage" },
                     new() { Value = "effectiveStartDate", Label = "Tanggal mulai berlaku" },
                     new() { Value = "effectiveEndDate", Label = "Tanggal akhir berlaku" },
-                    new() { Value = "isCovered", Label = "Ditanggung" },
-                    new() { Value = "isExcluded", Label = "Excluded" },
                     new() { Value = "isNeedApproval", Label = "Butuh approval" },
                     new() { Value = "isNeedGuaranteeLetter", Label = "Butuh guarantee letter" },
                     new() { Value = "isActive", Label = "Status aktif" }
@@ -153,7 +151,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 NotCoveredRule = await query.CountAsync(x => x.CoverageStatus == "NotCovered"),
                 PartialCoveredRule = await query.CountAsync(x => x.CoverageStatus == "PartialCovered"),
                 NeedApprovalStatusRule = await query.CountAsync(x => x.CoverageStatus == "NeedApproval"),
-                ExcludedRule = await query.CountAsync(x => x.IsExcluded),
                 NeedApprovalRule = await query.CountAsync(x => x.IsNeedApproval),
                 NeedGuaranteeLetterRule = await query.CountAsync(x => x.IsNeedGuaranteeLetter),
                 AllowExcessPaymentByPatientRule = await query.CountAsync(x => x.IsAllowExcessPaymentByPatient),
@@ -300,7 +297,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
                     BenefitPlanCode = x.BenefitPlanCode,
                     BenefitPlanName = x.BenefitPlanName,
-                    PatientClassName = x.PatientClassName,
+                    PatientClassId = x.PatientClassId,
+                    PatientClassCode = x.PatientClass != null ? x.PatientClass.PatientClassCode : null,
+                    PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : null,
 
                     CoverageStatus = x.CoverageStatus,
                     CoveragePercent = x.CoveragePercent,
@@ -308,8 +307,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     CoPaymentPercent = x.CoPaymentPercent,
                     CoPaymentAmount = x.CoPaymentAmount,
 
-                    IsCovered = x.IsCovered,
-                    IsExcluded = x.IsExcluded,
                     IsNeedApproval = x.IsNeedApproval,
                     IsNeedGuaranteeLetter = x.IsNeedGuaranteeLetter,
                     IsAllowExcessPaymentByPatient = x.IsAllowExcessPaymentByPatient
@@ -367,14 +364,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     TariffCategoryName = x.TariffCategory != null ? x.TariffCategory.TariffCategoryName : null,
                     BenefitPlanCode = x.BenefitPlanCode,
                     BenefitPlanName = x.BenefitPlanName,
-                    PatientClassName = x.PatientClassName,
+                    PatientClassId = x.PatientClassId,
+                    PatientClassCode = x.PatientClass != null ? x.PatientClass.PatientClassCode : null,
+                    PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : null,
                     CoverageStatus = x.CoverageStatus,
                     CoveragePercent = x.CoveragePercent,
                     MaxCoverageAmount = x.MaxCoverageAmount,
                     CoPaymentPercent = x.CoPaymentPercent,
                     CoPaymentAmount = x.CoPaymentAmount,
-                    IsCovered = x.IsCovered,
-                    IsExcluded = x.IsExcluded,
                     IsNeedApproval = x.IsNeedApproval,
                     IsNeedGuaranteeLetter = x.IsNeedGuaranteeLetter,
                     IsAllowExcessPaymentByPatient = x.IsAllowExcessPaymentByPatient,
@@ -387,6 +384,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     ApprovalInstruction = x.ApprovalInstruction,
                     BillingInstruction = x.BillingInstruction,
                     Description = x.Description,
+                    Priority = x.Priority,
                     SortOrder = x.SortOrder,
                     IsActive = x.IsActive,
                     CreateDateTime = x.CreateDateTime
@@ -442,14 +440,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 TariffCategoryId = itemType == "ServiceCategory" ? NormalizeNullableGuid(request.TariffCategoryId) : null,
                 BenefitPlanCode = NormalizeNullableString(request.BenefitPlanCode)?.ToUpperInvariant(),
                 BenefitPlanName = NormalizeNullableString(request.BenefitPlanName),
-                PatientClassName = NormalizeNullableString(request.PatientClassName),
+                PatientClassId = NormalizeNullableGuid(request.PatientClassId),
                 CoverageStatus = NormalizeCoverageStatus(request.CoverageStatus),
                 CoveragePercent = request.CoveragePercent,
                 MaxCoverageAmount = request.MaxCoverageAmount,
                 CoPaymentPercent = request.CoPaymentPercent,
                 CoPaymentAmount = request.CoPaymentAmount,
-                IsCovered = request.IsCovered,
-                IsExcluded = request.IsExcluded,
                 IsNeedApproval = request.IsNeedApproval,
                 IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter,
                 IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient,
@@ -462,6 +458,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ApprovalInstruction = NormalizeNullableString(request.ApprovalInstruction),
                 BillingInstruction = NormalizeNullableString(request.BillingInstruction),
                 Description = NormalizeNullableString(request.Description),
+                Priority = request.Priority,
                 SortOrder = request.SortOrder,
                 IsActive = true,
                 CreateDateTime = now,
@@ -539,14 +536,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.TariffCategoryId = itemType == "ServiceCategory" ? NormalizeNullableGuid(request.TariffCategoryId) : null;
             entity.BenefitPlanCode = NormalizeNullableString(request.BenefitPlanCode)?.ToUpperInvariant();
             entity.BenefitPlanName = NormalizeNullableString(request.BenefitPlanName);
-            entity.PatientClassName = NormalizeNullableString(request.PatientClassName);
+            entity.PatientClassId = NormalizeNullableGuid(request.PatientClassId);
             entity.CoverageStatus = NormalizeCoverageStatus(request.CoverageStatus);
             entity.CoveragePercent = request.CoveragePercent;
             entity.MaxCoverageAmount = request.MaxCoverageAmount;
             entity.CoPaymentPercent = request.CoPaymentPercent;
             entity.CoPaymentAmount = request.CoPaymentAmount;
-            entity.IsCovered = request.IsCovered;
-            entity.IsExcluded = request.IsExcluded;
             entity.IsNeedApproval = request.IsNeedApproval;
             entity.IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter;
             entity.IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient;
@@ -559,6 +554,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.ApprovalInstruction = NormalizeNullableString(request.ApprovalInstruction);
             entity.BillingInstruction = NormalizeNullableString(request.BillingInstruction);
             entity.Description = NormalizeNullableString(request.Description);
+            entity.Priority = request.Priority;
             entity.SortOrder = request.SortOrder;
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
@@ -734,6 +730,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 .Include(x => x.DrugCategory)
                 .Include(x => x.Procedure)
                 .Include(x => x.TariffCategory)
+                .Include(x => x.PatientClass)
                 .Where(x => !x.IsDelete);
         }
 
@@ -767,7 +764,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     x.CoverageStatus.ToLower().Contains(keyword) ||
                     (x.BenefitPlanCode != null && x.BenefitPlanCode.ToLower().Contains(keyword)) ||
                     (x.BenefitPlanName != null && x.BenefitPlanName.ToLower().Contains(keyword)) ||
-                    (x.PatientClassName != null && x.PatientClassName.ToLower().Contains(keyword)) ||
+                    (x.PatientClass != null && x.PatientClass.PatientClassName.ToLower().Contains(keyword)) ||
                     (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
                     (x.InsuranceProvider != null && x.InsuranceProvider.InsuranceProviderCode.ToLower().Contains(keyword)) ||
                     (x.InsuranceProvider != null && x.InsuranceProvider.InsuranceProviderName.ToLower().Contains(keyword)) ||
@@ -851,10 +848,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     ? query.OrderByDescending(x => x.RuleName)
                     : query.OrderBy(x => x.RuleName),
 
-                "insuranceProviderName" => isDescending
-                    ? query.OrderByDescending(x => x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderName : string.Empty)
-                    : query.OrderBy(x => x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderName : string.Empty),
-
                 "insuranceprovidername" => isDescending
                     ? query.OrderByDescending(x => x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderName : string.Empty)
                     : query.OrderBy(x => x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderName : string.Empty),
@@ -878,14 +871,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 "effectiveenddate" => isDescending
                     ? query.OrderByDescending(x => x.EffectiveEndDate)
                     : query.OrderBy(x => x.EffectiveEndDate),
-
-                "iscovered" => isDescending
-                    ? query.OrderByDescending(x => x.IsCovered)
-                    : query.OrderBy(x => x.IsCovered),
-
-                "isexcluded" => isDescending
-                    ? query.OrderByDescending(x => x.IsExcluded)
-                    : query.OrderBy(x => x.IsExcluded),
 
                 "isneedapproval" => isDescending
                     ? query.OrderByDescending(x => x.IsNeedApproval)
@@ -934,14 +919,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 TariffCategoryName = x.TariffCategory != null ? x.TariffCategory.TariffCategoryName : null,
                 BenefitPlanCode = x.BenefitPlanCode,
                 BenefitPlanName = x.BenefitPlanName,
-                PatientClassName = x.PatientClassName,
+                PatientClassId = x.PatientClassId,
+                PatientClassCode = x.PatientClass != null ? x.PatientClass.PatientClassCode : null,
+                PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : null,
                 CoverageStatus = x.CoverageStatus,
                 CoveragePercent = x.CoveragePercent,
                 MaxCoverageAmount = x.MaxCoverageAmount,
                 CoPaymentPercent = x.CoPaymentPercent,
                 CoPaymentAmount = x.CoPaymentAmount,
-                IsCovered = x.IsCovered,
-                IsExcluded = x.IsExcluded,
                 IsNeedApproval = x.IsNeedApproval,
                 IsNeedGuaranteeLetter = x.IsNeedGuaranteeLetter,
                 IsAllowExcessPaymentByPatient = x.IsAllowExcessPaymentByPatient,
@@ -951,6 +936,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 MaxAmountPerMonth = x.MaxAmountPerMonth,
                 EffectiveStartDate = x.EffectiveStartDate,
                 EffectiveEndDate = x.EffectiveEndDate,
+                Priority = x.Priority,
                 SortOrder = x.SortOrder,
                 IsActive = x.IsActive,
                 CreateDateTime = x.CreateDateTime
@@ -1094,7 +1080,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }
 
             var benefitPlanCode = NormalizeNullableString(request.BenefitPlanCode)?.ToUpperInvariant();
-            var patientClassName = NormalizeNullableString(request.PatientClassName)?.ToLowerInvariant();
+            var patientClassId = NormalizeNullableGuid(request.PatientClassId);
             var normalizedName = request.RuleName.Trim().ToLowerInvariant();
 
             var duplicateName = await _dbContext.Set<MstInsuranceCoverageRule>()
@@ -1109,7 +1095,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     x.ProcedureId == (itemType == "Procedure" ? procedureId : null) &&
                     x.TariffCategoryId == (itemType == "ServiceCategory" ? tariffCategoryId : null) &&
                     x.BenefitPlanCode == benefitPlanCode &&
-                    (x.PatientClassName == null ? patientClassName == null : x.PatientClassName.ToLower() == patientClassName) &&
+                    x.PatientClassId == patientClassId &&
                     x.RuleName.ToLower() == normalizedName &&
                     (!excludeId.HasValue || x.Id != excludeId.Value));
 

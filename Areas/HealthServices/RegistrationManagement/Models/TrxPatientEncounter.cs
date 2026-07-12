@@ -4,8 +4,8 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Models;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models
 {
@@ -30,6 +30,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
 
         public Guid? ClinicId { get; set; }
 
+        /// <summary>
+        /// Ruangan pelayanan yang digunakan pada encounter, misalnya ruang konsultasi dokter.
+        /// Disimpan pada encounter agar seluruh antrean dan proses klinis menggunakan konteks
+        /// ruangan yang sama tanpa menduplikasi RoomId pada TrxQueue.
+        /// </summary>
+        public Guid? RoomId { get; set; }
+
         public Guid? DoctorId { get; set; }
 
         public Guid? DoctorScheduleId { get; set; }
@@ -41,11 +48,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public Guid? KioskScanSessionId { get; set; }
 
         // =========================
-        // AGE CATEGORY SNAPSHOT
+        // AGE SNAPSHOT
         // =========================
-        // Nilai ini dihitung saat kunjungan dibuat berdasarkan BirthDate pasien
-        // dan EncounterDate/OperationalDate. Disimpan sebagai snapshot agar histori
-        // kunjungan tidak berubah walaupun aturan MstAgeCategory berubah di kemudian hari.
 
         public Guid? AgeCategoryId { get; set; }
 
@@ -91,41 +95,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         // =========================
         // PAYMENT SUMMARY
         // =========================
-        // Detail penjamin tidak lagi disimpan di encounter.
-        // Detailnya masuk ke TrxPatientEncounterGuarantor.
+        // Registrasi hanya menerima Cash atau satu Insurance.
+        // Detail dan snapshot sumber pembayaran disimpan satu-ke-satu pada
+        // TrxPatientEncounterGuarantor.
 
         public EncounterPaymentType PaymentType { get; set; } = EncounterPaymentType.Cash;
 
+        /// <summary>
+        /// Hanya diisi untuk Cash. Nilai yang sama juga disnapshot pada PaymentSource.
+        /// </summary>
         public Guid? PaymentMethodId { get; set; }
-
-        public bool IsInsurancePatient { get; set; } = false;
-
-        public bool IsCompanyPatient { get; set; } = false;
-
-        public bool IsMembershipPatient { get; set; } = false;
-
-        public bool IsMixedPayment { get; set; } = false;
-
-        [MaxLength(250)]
-        public string? PrimaryGuarantorNameSnapshot { get; set; }
-
-        [MaxLength(100)]
-        public string? PrimaryGuarantorTypeSnapshot { get; set; }
-
-        [MaxLength(250)]
-        public string? EligibilityReferenceNumber { get; set; }
-
-        public DateTime? EligibilityCheckedAt { get; set; }
-
-        public bool IsEligibilityRequired { get; set; } = false;
-
-        public bool IsEligibilityCompleted { get; set; } = false;
 
         // =========================
         // REFERRAL SUMMARY
         // =========================
-        // Detail rujukan nanti masuk ke TrxPatientReferral.
-        // Encounter cukup menyimpan snapshot cepat.
 
         public bool IsReferral { get; set; } = false;
 
@@ -195,6 +178,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
 
         public MstClinic? Clinic { get; set; }
 
+        public MstRoom? Room { get; set; }
+
         public MstDoctor? Doctor { get; set; }
 
         public MstDoctorSchedule? DoctorSchedule { get; set; }
@@ -215,7 +200,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
 
         public ApplicationUser? NoShowByUser { get; set; }
 
-        public ICollection<TrxPatientEncounterGuarantor> EncounterGuarantors { get; set; } =
-            new List<TrxPatientEncounterGuarantor>();
+        /// <summary>
+        /// Satu encounter wajib mempunyai tepat satu sumber pembayaran.
+        /// </summary>
+        public TrxPatientEncounterGuarantor? PaymentSource { get; set; }
     }
 }

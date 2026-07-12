@@ -30,6 +30,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.ClinicId)
                 .IsRequired(false);
 
+            entity.Property(x => x.RoomId)
+                .IsRequired(false);
+
             entity.Property(x => x.DoctorId)
                 .IsRequired(false);
 
@@ -81,6 +84,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasColumnType("timestamp with time zone")
                 .IsRequired(false);
 
+            // =========================
+            // ENCOUNTER INFORMATION
+            // =========================
+
             entity.Property(x => x.EncounterDate)
                 .HasColumnType("timestamp with time zone")
                 .IsRequired();
@@ -111,6 +118,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             // =========================
             // PAYMENT SUMMARY
             // =========================
+            // Detail dan snapshot sumber pembayaran berada pada relasi one-to-one
+            // TrxPatientEncounterGuarantor. Header encounter hanya menyimpan summary.
 
             entity.Property(x => x.PaymentType)
                 .HasConversion<int>()
@@ -119,37 +128,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 
             entity.Property(x => x.PaymentMethodId)
                 .IsRequired(false);
-
-            entity.Property(x => x.IsInsurancePatient)
-                .HasDefaultValue(false);
-
-            entity.Property(x => x.IsCompanyPatient)
-                .HasDefaultValue(false);
-
-            entity.Property(x => x.IsMembershipPatient)
-                .HasDefaultValue(false);
-
-            entity.Property(x => x.IsMixedPayment)
-                .HasDefaultValue(false);
-
-            entity.Property(x => x.PrimaryGuarantorNameSnapshot)
-                .HasMaxLength(250);
-
-            entity.Property(x => x.PrimaryGuarantorTypeSnapshot)
-                .HasMaxLength(100);
-
-            entity.Property(x => x.EligibilityReferenceNumber)
-                .HasMaxLength(250);
-
-            entity.Property(x => x.EligibilityCheckedAt)
-                .HasColumnType("timestamp with time zone")
-                .IsRequired(false);
-
-            entity.Property(x => x.IsEligibilityRequired)
-                .HasDefaultValue(false);
-
-            entity.Property(x => x.IsEligibilityCompleted)
-                .HasDefaultValue(false);
 
             // =========================
             // REFERRAL SUMMARY
@@ -283,6 +261,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasForeignKey(x => x.ClinicId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.Room)
+                .WithMany()
+                .HasForeignKey(x => x.RoomId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(x => x.Doctor)
                 .WithMany()
                 .HasForeignKey(x => x.DoctorId)
@@ -333,10 +316,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasForeignKey(x => x.NoShowByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasMany(x => x.EncounterGuarantors)
-                .WithOne(x => x.Encounter)
-                .HasForeignKey(x => x.EncounterId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // Relasi one-to-one PaymentSource dikonfigurasi pada
+            // TrxPatientEncounterGuarantorConfiguration karena foreign key berada
+            // pada tabel TrxPatientEncounterGuarantor.
 
             // =========================
             // INDEXES
@@ -350,6 +332,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.HasIndex(x => x.ServiceUnitId);
 
             entity.HasIndex(x => x.ClinicId);
+
+            entity.HasIndex(x => x.RoomId);
 
             entity.HasIndex(x => x.DoctorId);
 
@@ -376,6 +360,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             {
                 x.ServiceUnitId,
                 x.ClinicId,
+                x.RoomId,
                 x.DoctorId,
                 x.EncounterDate,
                 x.IsDelete
@@ -393,21 +378,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             {
                 x.PaymentType,
                 x.PaymentMethodId,
-                x.IsDelete
-            });
-
-            entity.HasIndex(x => new
-            {
-                x.IsInsurancePatient,
-                x.IsCompanyPatient,
-                x.IsMixedPayment,
-                x.IsDelete
-            });
-
-            entity.HasIndex(x => new
-            {
-                x.IsEligibilityRequired,
-                x.IsEligibilityCompleted,
                 x.IsDelete
             });
 

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -36,13 +37,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private const string LogCategory = "HealthServices.Clinical";
 
         private readonly ApplicationDbContext _dbContext;
+        private readonly EncounterInsuranceService _encounterInsuranceService;
+        private readonly InsuranceCoverageService _insuranceCoverageService;
         private readonly LoggerService _loggerService;
 
         public PatientProcedureController(
             ApplicationDbContext dbContext,
+            EncounterInsuranceService encounterInsuranceService,
+            InsuranceCoverageService insuranceCoverageService,
             LoggerService loggerService)
         {
             _dbContext = dbContext;
+            _encounterInsuranceService = encounterInsuranceService;
+            _insuranceCoverageService = insuranceCoverageService;
             _loggerService = loggerService;
         }
 
@@ -281,29 +288,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .AsNoTracking()
                 .FirstAsync(x => x.Id == request.ProcedureId && !x.IsDelete);
 
-            var tariffId = request.TariffId;
+            var serviceDate = request.ProcedureDateTime ?? now;
 
-            var tariff = tariffId.HasValue && tariffId.Value != Guid.Empty
-                ? await _dbContext.Set<MstTariff>()
+            var insuranceContext = await _encounterInsuranceService.GetContextAsync(
+                request.EncounterId,
+                serviceDate);
+
+            if (!insuranceContext.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    insuranceContext.ErrorMessage ?? "Konteks pembayaran encounter tidak valid."
+                ));
+            }
+
+            var pricing = await _insuranceCoverageService.ResolveProcedureAsync(
+                request.EncounterId,
+                request.ProcedureId,
+                request.Quantity,
+                serviceDate);
+
+            if (!pricing.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    pricing.ErrorMessage ?? "Tarif atau coverage tindakan tidak dapat ditentukan."
+                ));
+            }
+
+            MstInsuranceTariff? insuranceTariffSnapshot = null;
+
+            if (pricing.InsuranceTariffId.HasValue)
+            {
+                insuranceTariffSnapshot = await _dbContext.Set<MstInsuranceTariff>()
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Id == tariffId.Value && !x.IsDelete)
-                : null;
+                    .FirstOrDefaultAsync(x =>
+                        x.Id == pricing.InsuranceTariffId.Value &&
+                        !x.IsDelete);
+            }
 
-            var insuranceTariff = request.InsuranceTariffId.HasValue && request.InsuranceTariffId.Value != Guid.Empty
-                ? await _dbContext.Set<MstInsuranceTariff>()
-                    .AsNoTracking()
-                    .Include(x => x.InsuranceProvider)
-                    .FirstOrDefaultAsync(x => x.Id == request.InsuranceTariffId.Value && !x.IsDelete)
-                : null;
+            var needApproval = pricing.IsNeedApproval || procedure.IsNeedApproval;
 
-            var coverageRule = request.InsuranceCoverageRuleId.HasValue && request.InsuranceCoverageRuleId.Value != Guid.Empty
-                ? await _dbContext.Set<MstInsuranceCoverageRule>()
-                    .AsNoTracking()
-                    .Include(x => x.InsuranceProvider)
-                    .FirstOrDefaultAsync(x => x.Id == request.InsuranceCoverageRuleId.Value && !x.IsDelete)
-                : null;
-
-            var pricing = CalculatePricing(request, procedure, tariff, insuranceTariff, coverageRule);
+            if (request.ExecuteImmediately && needApproval)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tindakan membutuhkan approval dan tidak dapat langsung dieksekusi."
+                ));
+            }
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
@@ -322,9 +354,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ServiceUnitId = consultation.ServiceUnitId,
                 ClinicId = consultation.ClinicId,
                 ProcedureId = procedure.Id,
-                TariffId = tariff?.Id,
-                InsuranceTariffId = insuranceTariff?.Id,
-                InsuranceCoverageRuleId = coverageRule?.Id,
+                TariffId = pricing.TariffId,
+                InsuranceTariffId = pricing.InsuranceTariffId,
+                InsuranceCoverageRuleId = pricing.InsuranceCoverageRuleId,
 
                 ProcedureCodeSnapshot = procedure.ProcedureCode,
                 ProcedureNameSnapshot = procedure.ProcedureName,
@@ -338,13 +370,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 IsPackageProcedure = request.IsPackageProcedure,
 
                 PatientTypeSnapshot = null,
-                PaymentTypeSnapshot = insuranceTariff != null ? "Insurance" : "Cash",
-                PatientClassNameSnapshot = insuranceTariff?.PatientClassName,
-                InsuranceProviderNameSnapshot = insuranceTariff?.InsuranceProvider?.InsuranceProviderName
-                    ?? coverageRule?.InsuranceProvider?.InsuranceProviderName,
-                BenefitPlanNameSnapshot = insuranceTariff?.BenefitPlanName ?? coverageRule?.BenefitPlanName,
-                InsuranceTariffCodeSnapshot = insuranceTariff?.InsuranceTariffCode,
-                InsuranceTariffNameSnapshot = insuranceTariff?.InsuranceTariffName,
+                PaymentTypeSnapshot = insuranceContext.PaymentType.ToString(),
+                PatientClassNameSnapshot = insuranceContext.PatientClassName,
+                InsuranceProviderNameSnapshot = insuranceContext.InsuranceProviderName,
+                BenefitPlanNameSnapshot = insuranceContext.BenefitPlanName,
+                InsuranceTariffCodeSnapshot = insuranceTariffSnapshot?.InsuranceTariffCode,
+                InsuranceTariffNameSnapshot = insuranceTariffSnapshot?.InsuranceTariffName,
 
                 ProcedureSource = request.ProcedureSource,
                 ProcedureStatus = request.ExecuteImmediately
@@ -360,21 +391,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 UnitNameSnapshot = NormalizeNullableText(request.UnitNameSnapshot),
                 UnitPrice = pricing.UnitPrice,
                 TotalPrice = pricing.TotalPrice,
-                HospitalPriceSnapshot = pricing.HospitalPriceSnapshot,
-                InsuranceContractPrice = pricing.InsuranceContractPrice,
+                HospitalPriceSnapshot = pricing.HospitalUnitPrice,
+                InsuranceContractPrice = pricing.ContractUnitPrice,
 
                 IsFreeOfCharge = request.IsFreeOfCharge,
                 FreeOfChargeReason = NormalizeNullableText(request.FreeOfChargeReason),
-                IsBillable = pricing.IsBillable,
+                IsBillable = !request.IsFreeOfCharge,
 
-                IsCoveredByInsurance = pricing.IsCoveredByInsurance,
+                IsCoveredByInsurance = pricing.IsCovered,
                 CoverageStatus = pricing.CoverageStatus,
                 CoveragePercent = pricing.CoveragePercent,
                 CoveredAmount = pricing.CoveredAmount,
                 PatientPayAmount = pricing.PatientPayAmount,
-                CoverageNote = NormalizeNullableText(request.CoverageNote),
+                CoverageNote = pricing.CoverageNote,
 
-                IsNeedApproval = pricing.IsNeedApproval,
+                IsNeedApproval = needApproval,
                 IsApproved = false,
 
                 IsExecuted = request.ExecuteImmediately,
@@ -473,29 +504,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .AsNoTracking()
                 .FirstAsync(x => x.Id == entity.ProcedureId && !x.IsDelete);
 
-            var tariffId = request.TariffId;
+            var serviceDate = request.ProcedureDateTime ?? entity.ProcedureDateTime;
 
-            var tariff = tariffId.HasValue && tariffId.Value != Guid.Empty
-                ? await _dbContext.Set<MstTariff>()
+            var insuranceContext = await _encounterInsuranceService.GetContextAsync(
+                entity.EncounterId,
+                serviceDate);
+
+            if (!insuranceContext.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    insuranceContext.ErrorMessage ?? "Konteks pembayaran encounter tidak valid."
+                ));
+            }
+
+            var pricing = await _insuranceCoverageService.ResolveProcedureAsync(
+                entity.EncounterId,
+                entity.ProcedureId,
+                request.Quantity,
+                serviceDate);
+
+            if (!pricing.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    pricing.ErrorMessage ?? "Tarif atau coverage tindakan tidak dapat ditentukan."
+                ));
+            }
+
+            MstInsuranceTariff? insuranceTariffSnapshot = null;
+
+            if (pricing.InsuranceTariffId.HasValue)
+            {
+                insuranceTariffSnapshot = await _dbContext.Set<MstInsuranceTariff>()
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Id == tariffId.Value && !x.IsDelete)
-                : null;
+                    .FirstOrDefaultAsync(x =>
+                        x.Id == pricing.InsuranceTariffId.Value &&
+                        !x.IsDelete);
+            }
 
-            var insuranceTariff = request.InsuranceTariffId.HasValue && request.InsuranceTariffId.Value != Guid.Empty
-                ? await _dbContext.Set<MstInsuranceTariff>()
-                    .AsNoTracking()
-                    .Include(x => x.InsuranceProvider)
-                    .FirstOrDefaultAsync(x => x.Id == request.InsuranceTariffId.Value && !x.IsDelete)
-                : null;
-
-            var coverageRule = request.InsuranceCoverageRuleId.HasValue && request.InsuranceCoverageRuleId.Value != Guid.Empty
-                ? await _dbContext.Set<MstInsuranceCoverageRule>()
-                    .AsNoTracking()
-                    .Include(x => x.InsuranceProvider)
-                    .FirstOrDefaultAsync(x => x.Id == request.InsuranceCoverageRuleId.Value && !x.IsDelete)
-                : null;
-
-            var pricing = CalculatePricing(request, procedure, tariff, insuranceTariff, coverageRule);
+            var needApproval = pricing.IsNeedApproval || procedure.IsNeedApproval;
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
@@ -507,17 +555,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 await ClearPrimaryProcedureAsync(entity.ConsultationId, actorUserId, now, entity.Id);
             }
 
-            entity.TariffId = tariff?.Id;
-            entity.InsuranceTariffId = insuranceTariff?.Id;
-            entity.InsuranceCoverageRuleId = coverageRule?.Id;
+            entity.TariffId = pricing.TariffId;
+            entity.InsuranceTariffId = pricing.InsuranceTariffId;
+            entity.InsuranceCoverageRuleId = pricing.InsuranceCoverageRuleId;
 
-            entity.PaymentTypeSnapshot = insuranceTariff != null ? "Insurance" : "Cash";
-            entity.PatientClassNameSnapshot = insuranceTariff?.PatientClassName;
-            entity.InsuranceProviderNameSnapshot = insuranceTariff?.InsuranceProvider?.InsuranceProviderName
-                ?? coverageRule?.InsuranceProvider?.InsuranceProviderName;
-            entity.BenefitPlanNameSnapshot = insuranceTariff?.BenefitPlanName ?? coverageRule?.BenefitPlanName;
-            entity.InsuranceTariffCodeSnapshot = insuranceTariff?.InsuranceTariffCode;
-            entity.InsuranceTariffNameSnapshot = insuranceTariff?.InsuranceTariffName;
+            entity.PaymentTypeSnapshot = insuranceContext.PaymentType.ToString();
+            entity.PatientClassNameSnapshot = insuranceContext.PatientClassName;
+            entity.InsuranceProviderNameSnapshot = insuranceContext.InsuranceProviderName;
+            entity.BenefitPlanNameSnapshot = insuranceContext.BenefitPlanName;
+            entity.InsuranceTariffCodeSnapshot = insuranceTariffSnapshot?.InsuranceTariffCode;
+            entity.InsuranceTariffNameSnapshot = insuranceTariffSnapshot?.InsuranceTariffName;
 
             entity.ProcedureSource = request.ProcedureSource;
             entity.ProcedureDateTime = request.ProcedureDateTime ?? entity.ProcedureDateTime;
@@ -533,21 +580,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.UnitNameSnapshot = NormalizeNullableText(request.UnitNameSnapshot);
             entity.UnitPrice = pricing.UnitPrice;
             entity.TotalPrice = pricing.TotalPrice;
-            entity.HospitalPriceSnapshot = pricing.HospitalPriceSnapshot;
-            entity.InsuranceContractPrice = pricing.InsuranceContractPrice;
+            entity.HospitalPriceSnapshot = pricing.HospitalUnitPrice;
+            entity.InsuranceContractPrice = pricing.ContractUnitPrice;
 
             entity.IsFreeOfCharge = request.IsFreeOfCharge;
             entity.FreeOfChargeReason = NormalizeNullableText(request.FreeOfChargeReason);
-            entity.IsBillable = pricing.IsBillable;
+            entity.IsBillable = !request.IsFreeOfCharge;
 
-            entity.IsCoveredByInsurance = pricing.IsCoveredByInsurance;
+            entity.IsCoveredByInsurance = pricing.IsCovered;
             entity.CoverageStatus = pricing.CoverageStatus;
             entity.CoveragePercent = pricing.CoveragePercent;
             entity.CoveredAmount = pricing.CoveredAmount;
             entity.PatientPayAmount = pricing.PatientPayAmount;
-            entity.CoverageNote = NormalizeNullableText(request.CoverageNote);
+            entity.CoverageNote = pricing.CoverageNote;
 
-            entity.IsNeedApproval = pricing.IsNeedApproval;
+            entity.IsNeedApproval = needApproval;
 
             entity.ClinicalNote = NormalizeNullableText(request.ClinicalNote);
             entity.ResultNote = NormalizeNullableText(request.ResultNote);
@@ -963,155 +1010,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             };
         }
 
-        private static ProcedurePricingResult CalculatePricing(
-            CreatePatientProcedureRequest request,
-            MstProcedure procedure,
-            MstTariff? tariff,
-            MstInsuranceTariff? insuranceTariff,
-            MstInsuranceCoverageRule? coverageRule)
-        {
-            return CalculatePricingCore(
-                request.Quantity,
-                request.IsFreeOfCharge,
-                request.IsCoveredByInsurance,
-                request.CoverageStatus,
-                request.CoveragePercent,
-                request.IsNeedApproval,
-                procedure,
-                tariff,
-                insuranceTariff,
-                coverageRule
-            );
-        }
-
-        private static ProcedurePricingResult CalculatePricing(
-            UpdatePatientProcedureRequest request,
-            MstProcedure procedure,
-            MstTariff? tariff,
-            MstInsuranceTariff? insuranceTariff,
-            MstInsuranceCoverageRule? coverageRule)
-        {
-            return CalculatePricingCore(
-                request.Quantity,
-                request.IsFreeOfCharge,
-                request.IsCoveredByInsurance,
-                request.CoverageStatus,
-                request.CoveragePercent,
-                request.IsNeedApproval,
-                procedure,
-                tariff,
-                insuranceTariff,
-                coverageRule
-            );
-        }
-
-        private static ProcedurePricingResult CalculatePricingCore(
-            decimal quantity,
-            bool isFreeOfCharge,
-            bool requestIsCoveredByInsurance,
-            string requestCoverageStatus,
-            decimal requestCoveragePercent,
-            bool requestIsNeedApproval,
-            MstProcedure procedure,
-            MstTariff? tariff,
-            MstInsuranceTariff? insuranceTariff,
-            MstInsuranceCoverageRule? coverageRule)
-        {
-            if (quantity <= 0)
-                quantity = 1;
-
-            var unitPrice = insuranceTariff?.ContractPrice
-                ?? tariff?.NormalPrice
-                ?? 0;
-
-            var totalPrice = Math.Round(unitPrice * quantity, 2);
-
-            var hospitalPriceSnapshot = tariff?.NormalPrice;
-            var insuranceContractPrice = insuranceTariff?.ContractPrice;
-
-            var coverageStatus = coverageRule?.CoverageStatus
-                ?? NormalizeCoverageStatus(requestCoverageStatus);
-
-            var coveragePercent = coverageRule?.CoveragePercent
-                ?? requestCoveragePercent;
-
-            var isCoveredByInsurance = coverageRule?.IsCovered
-                ?? requestIsCoveredByInsurance;
-
-            var isNeedApproval =
-                requestIsNeedApproval ||
-                procedure.IsNeedApproval ||
-                (tariff?.IsNeedApproval ?? false) ||
-                (insuranceTariff?.IsNeedApproval ?? false) ||
-                (coverageRule?.IsNeedApproval ?? false);
-
-            if (isFreeOfCharge)
-            {
-                return new ProcedurePricingResult
-                {
-                    Quantity = quantity,
-                    UnitPrice = unitPrice,
-                    TotalPrice = totalPrice,
-                    HospitalPriceSnapshot = hospitalPriceSnapshot,
-                    InsuranceContractPrice = insuranceContractPrice,
-                    IsBillable = false,
-                    IsCoveredByInsurance = false,
-                    CoverageStatus = "FOC",
-                    CoveragePercent = 0,
-                    CoveredAmount = 0,
-                    PatientPayAmount = 0,
-                    IsNeedApproval = false
-                };
-            }
-
-            if (!isCoveredByInsurance || coverageStatus == "NotCovered")
-            {
-                return new ProcedurePricingResult
-                {
-                    Quantity = quantity,
-                    UnitPrice = unitPrice,
-                    TotalPrice = totalPrice,
-                    HospitalPriceSnapshot = hospitalPriceSnapshot,
-                    InsuranceContractPrice = insuranceContractPrice,
-                    IsBillable = true,
-                    IsCoveredByInsurance = false,
-                    CoverageStatus = "NotCovered",
-                    CoveragePercent = 0,
-                    CoveredAmount = 0,
-                    PatientPayAmount = totalPrice,
-                    IsNeedApproval = isNeedApproval
-                };
-            }
-
-            coveragePercent = Math.Clamp(coveragePercent, 0, 100);
-
-            var coveredAmount = Math.Round(totalPrice * coveragePercent / 100, 2);
-
-            if (coverageRule?.MaxCoverageAmount.HasValue == true &&
-                coveredAmount > coverageRule.MaxCoverageAmount.Value)
-            {
-                coveredAmount = coverageRule.MaxCoverageAmount.Value;
-            }
-
-            var patientPayAmount = totalPrice - coveredAmount;
-
-            return new ProcedurePricingResult
-            {
-                Quantity = quantity,
-                UnitPrice = unitPrice,
-                TotalPrice = totalPrice,
-                HospitalPriceSnapshot = hospitalPriceSnapshot,
-                InsuranceContractPrice = insuranceContractPrice,
-                IsBillable = true,
-                IsCoveredByInsurance = true,
-                CoverageStatus = coverageStatus,
-                CoveragePercent = coveragePercent,
-                CoveredAmount = coveredAmount,
-                PatientPayAmount = patientPayAmount < 0 ? 0 : patientPayAmount,
-                IsNeedApproval = isNeedApproval || coverageStatus == "NeedApproval"
-            };
-        }
-
         private static void NormalizeProcedureData(TrxPatientProcedure entity)
         {
             if (entity.Quantity <= 0)
@@ -1140,24 +1038,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             }
         }
 
-        private static string NormalizeCoverageStatus(string? coverageStatus)
-        {
-            if (string.IsNullOrWhiteSpace(coverageStatus))
-                return "Unknown";
-
-            var value = coverageStatus.Trim();
-
-            return value switch
-            {
-                "Covered" => "Covered",
-                "PartiallyCovered" => "PartiallyCovered",
-                "PartialCovered" => "PartiallyCovered",
-                "NotCovered" => "NotCovered",
-                "NeedApproval" => "NeedApproval",
-                "FOC" => "FOC",
-                _ => "Unknown"
-            };
-        }
 
         private static IQueryable<TrxPatientProcedure> ApplySorting(
             IQueryable<TrxPatientProcedure> query,
@@ -1469,20 +1349,5 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             public bool HasProcedure { get; set; }
         }
 
-        private class ProcedurePricingResult
-        {
-            public decimal Quantity { get; set; }
-            public decimal UnitPrice { get; set; }
-            public decimal TotalPrice { get; set; }
-            public decimal? HospitalPriceSnapshot { get; set; }
-            public decimal? InsuranceContractPrice { get; set; }
-            public bool IsBillable { get; set; }
-            public bool IsCoveredByInsurance { get; set; }
-            public string CoverageStatus { get; set; } = "Unknown";
-            public decimal CoveragePercent { get; set; }
-            public decimal CoveredAmount { get; set; }
-            public decimal PatientPayAmount { get; set; }
-            public bool IsNeedApproval { get; set; }
-        }
     }
 }

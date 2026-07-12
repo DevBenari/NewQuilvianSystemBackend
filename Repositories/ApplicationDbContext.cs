@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Mo
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories
 {
@@ -151,6 +152,15 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxMedicalCertificate> TrxMedicalCertificates { get; set; }
         public DbSet<TrxClinicalNoteAttachment> TrxClinicalNoteAttachments { get; set; }
         public DbSet<TrxPatientIntegratedProgressNote> TrxPatientIntegratedProgressNotes { get; set; }
+        public DbSet<TrxPrescription> TrxPrescriptions { get; set; }
+        public DbSet<TrxPrescriptionItem> TrxPrescriptionItems { get; set; }
+        public DbSet<TrxPrescriptionCompound> TrxPrescriptionCompounds { get; set; }
+        public DbSet<TrxPrescriptionCompoundItem> TrxPrescriptionCompoundItems { get; set; }
+        public DbSet<MstPrescriptionTemplate> MstPrescriptionTemplates { get; set; }
+        public DbSet<MstPrescriptionTemplateItem> MstPrescriptionTemplateItems { get; set; }
+        public DbSet<MstPrescriptionTemplateCompound> MstPrescriptionTemplateCompounds { get; set; }
+        public DbSet<MstPrescriptionTemplateCompoundItem> MstPrescriptionTemplateCompoundItems { get; set; }
+
         #endregion HEALTH SERVICE
 
         protected override void OnModelCreating(ModelBuilder builder)

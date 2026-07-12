@@ -360,7 +360,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 DrugId = NormalizeNullableGuid(request.DrugId),
                 ExternalServiceCode = NormalizeNullableText(request.ExternalServiceCode),
                 ExternalClassCode = NormalizeNullableText(request.ExternalClassCode),
-                ProviderName = NormalizeNullableText(request.ProviderName),
                 IsSurgeryRelated = request.IsSurgeryRelated,
                 IsRoomCharge = request.IsRoomCharge,
                 IsAdministrationFee = request.IsAdministrationFee,
@@ -370,9 +369,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsNeedDoctor = request.IsNeedDoctor,
                 IsNeedApproval = request.IsNeedApproval,
                 NormalPrice = request.NormalPrice,
-                MemberPrice = request.MemberPrice,
-                InsurancePrice = request.InsurancePrice,
-                CompanyPrice = request.CompanyPrice,
                 EffectiveStartDate = request.EffectiveStartDate,
                 EffectiveEndDate = request.EffectiveEndDate,
                 IsTaxable = request.IsTaxable,
@@ -444,7 +440,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.DrugId = NormalizeNullableGuid(request.DrugId);
             entity.ExternalServiceCode = NormalizeNullableText(request.ExternalServiceCode);
             entity.ExternalClassCode = NormalizeNullableText(request.ExternalClassCode);
-            entity.ProviderName = NormalizeNullableText(request.ProviderName);
             entity.IsSurgeryRelated = request.IsSurgeryRelated;
             entity.IsRoomCharge = request.IsRoomCharge;
             entity.IsAdministrationFee = request.IsAdministrationFee;
@@ -454,9 +449,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.IsNeedDoctor = request.IsNeedDoctor;
             entity.IsNeedApproval = request.IsNeedApproval;
             entity.NormalPrice = request.NormalPrice;
-            entity.MemberPrice = request.MemberPrice;
-            entity.InsurancePrice = request.InsurancePrice;
-            entity.CompanyPrice = request.CompanyPrice;
             entity.EffectiveStartDate = request.EffectiveStartDate;
             entity.EffectiveEndDate = request.EffectiveEndDate;
             entity.IsTaxable = request.IsTaxable;
@@ -696,7 +688,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     x.TariffName.ToLower().Contains(keyword) ||
                     (x.ExternalServiceCode != null && x.ExternalServiceCode.ToLower().Contains(keyword)) ||
                     (x.ExternalClassCode != null && x.ExternalClassCode.ToLower().Contains(keyword)) ||
-                    (x.ProviderName != null && x.ProviderName.ToLower().Contains(keyword)) ||
                     (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
                     (x.TariffCategory != null && x.TariffCategory.TariffCategoryCode.ToLower().Contains(keyword)) ||
                     (x.TariffCategory != null && x.TariffCategory.TariffCategoryName.ToLower().Contains(keyword)) ||
@@ -757,14 +748,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (request.NormalPrice < 0)
                 return (false, "Harga normal tidak boleh kurang dari 0.");
 
-            if (request.MemberPrice.HasValue && request.MemberPrice.Value < 0)
-                return (false, "Harga member tidak boleh kurang dari 0.");
+            return (false, "Harga member tidak boleh kurang dari 0.");
 
-            if (request.InsurancePrice.HasValue && request.InsurancePrice.Value < 0)
-                return (false, "Harga insurance tidak boleh kurang dari 0.");
+            return (false, "Harga insurance tidak boleh kurang dari 0.");
 
-            if (request.CompanyPrice.HasValue && request.CompanyPrice.Value < 0)
-                return (false, "Harga company tidak boleh kurang dari 0.");
+            return (false, "Harga company tidak boleh kurang dari 0.");
 
             if (request.EffectiveStartDate.HasValue && request.EffectiveEndDate.HasValue &&
                 request.EffectiveEndDate.Value < request.EffectiveStartDate.Value)
@@ -921,9 +909,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 "procedurename" => isDesc ? query.OrderByDescending(x => x.Procedure != null ? x.Procedure.ProcedureName : "") : query.OrderBy(x => x.Procedure != null ? x.Procedure.ProcedureName : ""),
                 "drugname" => isDesc ? query.OrderByDescending(x => x.Drug != null ? x.Drug.DrugName : "") : query.OrderBy(x => x.Drug != null ? x.Drug.DrugName : ""),
                 "normalprice" => isDesc ? query.OrderByDescending(x => x.NormalPrice) : query.OrderBy(x => x.NormalPrice),
-                "memberprice" => isDesc ? query.OrderByDescending(x => x.MemberPrice) : query.OrderBy(x => x.MemberPrice),
-                "insuranceprice" => isDesc ? query.OrderByDescending(x => x.InsurancePrice) : query.OrderBy(x => x.InsurancePrice),
-                "companyprice" => isDesc ? query.OrderByDescending(x => x.CompanyPrice) : query.OrderBy(x => x.CompanyPrice),
                 "effectivestartdate" => isDesc ? query.OrderByDescending(x => x.EffectiveStartDate) : query.OrderBy(x => x.EffectiveStartDate),
                 "effectiveenddate" => isDesc ? query.OrderByDescending(x => x.EffectiveEndDate) : query.OrderBy(x => x.EffectiveEndDate),
                 "isneeddoctor" => isDesc ? query.OrderByDescending(x => x.IsNeedDoctor) : query.OrderBy(x => x.IsNeedDoctor),
@@ -1142,7 +1127,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 DrugName = entity.Drug?.DrugName,
                 ExternalServiceCode = entity.ExternalServiceCode,
                 ExternalClassCode = entity.ExternalClassCode,
-                ProviderName = entity.ProviderName,
                 IsSurgeryRelated = entity.IsSurgeryRelated,
                 IsRoomCharge = entity.IsRoomCharge,
                 IsAdministrationFee = entity.IsAdministrationFee,
@@ -1152,9 +1136,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsNeedDoctor = entity.IsNeedDoctor,
                 IsNeedApproval = entity.IsNeedApproval,
                 NormalPrice = entity.NormalPrice,
-                MemberPrice = entity.MemberPrice,
-                InsurancePrice = entity.InsurancePrice,
-                CompanyPrice = entity.CompanyPrice,
                 EffectiveStartDate = entity.EffectiveStartDate,
                 EffectiveEndDate = entity.EffectiveEndDate,
                 IsTaxable = entity.IsTaxable,
@@ -1205,7 +1186,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             response.DrugName = baseResponse.DrugName;
             response.ExternalServiceCode = baseResponse.ExternalServiceCode;
             response.ExternalClassCode = baseResponse.ExternalClassCode;
-            response.ProviderName = baseResponse.ProviderName;
             response.IsSurgeryRelated = baseResponse.IsSurgeryRelated;
             response.IsRoomCharge = baseResponse.IsRoomCharge;
             response.IsAdministrationFee = baseResponse.IsAdministrationFee;
@@ -1215,9 +1195,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             response.IsNeedDoctor = baseResponse.IsNeedDoctor;
             response.IsNeedApproval = baseResponse.IsNeedApproval;
             response.NormalPrice = baseResponse.NormalPrice;
-            response.MemberPrice = baseResponse.MemberPrice;
-            response.InsurancePrice = baseResponse.InsurancePrice;
-            response.CompanyPrice = baseResponse.CompanyPrice;
             response.EffectiveStartDate = baseResponse.EffectiveStartDate;
             response.EffectiveEndDate = baseResponse.EffectiveEndDate;
             response.IsTaxable = baseResponse.IsTaxable;
@@ -1251,9 +1228,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 DrugId = entity.DrugId,
                 DrugName = entity.Drug?.DrugName,
                 NormalPrice = entity.NormalPrice,
-                MemberPrice = entity.MemberPrice,
-                InsurancePrice = entity.InsurancePrice,
-                CompanyPrice = entity.CompanyPrice,
                 IsNeedDoctor = entity.IsNeedDoctor,
                 IsNeedApproval = entity.IsNeedApproval,
                 IsTaxable = entity.IsTaxable,

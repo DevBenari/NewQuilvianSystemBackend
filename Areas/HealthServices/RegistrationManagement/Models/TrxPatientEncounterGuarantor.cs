@@ -1,13 +1,17 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Models;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
-using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models
 {
+    /// <summary>
+    /// Sumber pembayaran satu-ke-satu milik encounter. Nama tabel lama dipertahankan
+    /// agar perubahan tidak memerlukan rename table yang tidak perlu.
+    /// </summary>
     [Table("TrxPatientEncounterGuarantor", Schema = "public")]
     public class TrxPatientEncounterGuarantor : IdentityModel
     {
@@ -15,11 +19,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
 
         [Required]
         [MaxLength(50)]
-        public string EncounterGuarantorNumber { get; set; } = string.Empty;
-
-        // =========================
-        // PARENT CONTEXT
-        // =========================
+        public string PaymentSourceNumber { get; set; } = string.Empty;
 
         [Required]
         public Guid EncounterId { get; set; }
@@ -27,52 +27,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         [Required]
         public Guid PatientId { get; set; }
 
-        // =========================
-        // GUARANTOR CLASSIFICATION
-        // =========================
-
-        public PatientEncounterGuarantorType GuarantorType { get; set; } =
-            PatientEncounterGuarantorType.PatientCash;
-
-        public PatientEncounterGuarantorRole GuarantorRole { get; set; } =
-            PatientEncounterGuarantorRole.Primary;
-
-        public PatientEncounterGuarantorStatus GuarantorStatus { get; set; } =
-            PatientEncounterGuarantorStatus.Draft;
-
-        public PatientEncounterGuarantorCheckMethod CheckMethod { get; set; } =
-            PatientEncounterGuarantorCheckMethod.None;
-
-        public int CoveragePriority { get; set; } = 1;
-
-        public bool IsPrimary { get; set; } = true;
+        /// <summary>
+        /// Snapshot tipe pembayaran. Hanya Cash atau Insurance.
+        /// </summary>
+        public EncounterPaymentType PaymentType { get; set; } = EncounterPaymentType.Cash;
 
         public bool IsActive { get; set; } = true;
 
         // =========================
-        // PAYMENT / GUARANTOR REFERENCES
+        // PAYMENT REFERENCES
         // =========================
 
+        /// <summary>
+        /// Diisi untuk Cash dan harus null untuk Insurance.
+        /// </summary>
         public Guid? PaymentMethodId { get; set; }
 
+        /// <summary>
+        /// Wajib untuk Insurance dan harus null untuk Cash.
+        /// </summary>
         public Guid? PatientInsuranceId { get; set; }
 
+        /// <summary>
+        /// Wajib untuk Insurance dan harus null untuk Cash.
+        /// </summary>
         public Guid? InsuranceProviderId { get; set; }
 
-        public Guid? CompanyGuarantorId { get; set; }
-
-        public Guid? PatientCompanyGuarantorId { get; set; }
-
-        public Guid? PatientMembershipId { get; set; }
-
         // =========================
-        // SNAPSHOT INFORMATION
+        // REGISTRATION SNAPSHOT
         // =========================
-        // Snapshot penting supaya data encounter tidak berubah
-        // walaupun master insurance/company/patient insurance berubah.
 
         [MaxLength(250)]
-        public string? GuarantorNameSnapshot { get; set; }
+        public string? PaymentSourceNameSnapshot { get; set; }
 
         [MaxLength(100)]
         public string? PolicyNumberSnapshot { get; set; }
@@ -96,111 +82,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
 
         public DateTime? EffectiveEndDateSnapshot { get; set; }
 
-        // =========================
-        // ELIGIBILITY / VERIFICATION
-        // =========================
+        /// <summary>
+        /// Snapshot MstPatientInsurance.IsEligible pada waktu registrasi.
+        /// Cash selalu true.
+        /// </summary>
+        public bool IsEligible { get; set; } = true;
 
-        public bool IsEligibilityRequired { get; set; } = false;
-
-        public bool IsEligible { get; set; } = false;
-
-        public bool IsVerified { get; set; } = false;
-
-        public DateTime? VerifiedAt { get; set; }
-
-        public Guid? VerifiedByUserId { get; set; }
-
-        [MaxLength(250)]
-        public string? EligibilityReferenceNumber { get; set; }
-
-        public DateTime? EligibilityCheckedAt { get; set; }
-
-        [MaxLength(250)]
-        public string? VerificationReferenceNumber { get; set; }
-
-        [MaxLength(250)]
-        public string? VerificationOfficerName { get; set; }
-
-        [MaxLength(500)]
-        public string? VerificationNote { get; set; }
-
-        public bool IsNeedApproval { get; set; } = false;
-
-        public bool IsNeedGuaranteeLetter { get; set; } = false;
-
-        public bool IsNeedReferralLetter { get; set; } = false;
-
-        public bool IsAllowExcessPaymentByPatient { get; set; } = true;
-
-        // =========================
-        // BENEFIT / LIMIT SNAPSHOT
-        // =========================
-
-        public decimal? CoveragePercent { get; set; }
-
-        public decimal? AnnualLimitAmount { get; set; }
-
-        public decimal? RemainingLimitAmount { get; set; }
-
-        public decimal? UsedLimitAmount { get; set; }
-
-        public decimal? RoomLimitPerDayAmount { get; set; }
-
-        public decimal? DeductibleAmount { get; set; }
-
-        public decimal? CoPaymentPercent { get; set; }
-
-        public decimal? CoPaymentAmount { get; set; }
-
-        public decimal? EstimatedCoveredAmount { get; set; }
-
-        public decimal? EstimatedPatientPayAmount { get; set; }
-
-        // =========================
-        // RISK / SPECIAL CONDITION
-        // =========================
-
+        /// <summary>
+        /// True bila tanggal encounter berada dalam periode polis.
+        /// Cash selalu false karena bukan polis.
+        /// </summary>
         public bool IsPolicyActive { get; set; } = false;
-
-        public bool? IsPremiumPaid { get; set; }
-
-        public bool? IsCardActive { get; set; }
-
-        public bool? IsInWaitingPeriod { get; set; }
-
-        public DateTime? WaitingPeriodUntilDate { get; set; }
-
-        public bool? HasSpecialExclusion { get; set; }
-
-        [MaxLength(500)]
-        public string? SpecialExclusionNote { get; set; }
-
-        public bool? HasPreviousClaim { get; set; }
-
-        [MaxLength(500)]
-        public string? PreviousClaimNote { get; set; }
-
-        // =========================
-        // FLEXIBLE SNAPSHOT JSON
-        // =========================
-        // Untuk data benefit / hasil cek manual yang berbeda antar asuransi.
-
-        [MaxLength(4000)]
-        public string? BenefitSnapshotJson { get; set; }
-
-        [MaxLength(4000)]
-        public string? ManualCheckResultJson { get; set; }
-
-        // =========================
-        // CANCEL
-        // =========================
-
-        public DateTime? CancelledAt { get; set; }
-
-        public Guid? CancelledByUserId { get; set; }
-
-        [MaxLength(250)]
-        public string? CancelReason { get; set; }
 
         [MaxLength(500)]
         public string? Notes { get; set; }
@@ -218,15 +110,5 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public MstPatientInsurance? PatientInsurance { get; set; }
 
         public MstInsuranceProvider? InsuranceProvider { get; set; }
-
-        public MstCompanyGuarantor? CompanyGuarantor { get; set; }
-
-        public MstPatientCompanyGuarantor? PatientCompanyGuarantor { get; set; }
-
-        public MstPatientMembership? PatientMembership { get; set; }
-
-        public ApplicationUser? VerifiedByUser { get; set; }
-
-        public ApplicationUser? CancelledByUser { get; set; }
     }
 }

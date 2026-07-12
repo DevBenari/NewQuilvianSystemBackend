@@ -198,12 +198,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [Required]
         public Guid ProcedureId { get; set; }
 
-        public Guid? TariffId { get; set; }
-
-        public Guid? InsuranceTariffId { get; set; }
-
-        public Guid? InsuranceCoverageRuleId { get; set; }
-
         public PatientProcedureSource ProcedureSource { get; set; } = PatientProcedureSource.DoctorOrder;
 
         public DateTime? ProcedureDateTime { get; set; }
@@ -229,18 +223,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         [MaxLength(250)]
         public string? FreeOfChargeReason { get; set; }
-
-        public bool IsCoveredByInsurance { get; set; } = false;
-
-        [MaxLength(50)]
-        public string CoverageStatus { get; set; } = "Unknown";
-
-        public decimal CoveragePercent { get; set; } = 0;
-
-        [MaxLength(250)]
-        public string? CoverageNote { get; set; }
-
-        public bool IsNeedApproval { get; set; } = false;
 
         [MaxLength(1000)]
         public string? ClinicalNote { get; set; }
@@ -262,11 +244,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
     public class UpdatePatientProcedureRequest
     {
-        public Guid? TariffId { get; set; }
-
-        public Guid? InsuranceTariffId { get; set; }
-
-        public Guid? InsuranceCoverageRuleId { get; set; }
 
         public PatientProcedureSource ProcedureSource { get; set; } = PatientProcedureSource.DoctorOrder;
 
@@ -293,18 +270,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         [MaxLength(250)]
         public string? FreeOfChargeReason { get; set; }
-
-        public bool IsCoveredByInsurance { get; set; } = false;
-
-        [MaxLength(50)]
-        public string CoverageStatus { get; set; } = "Unknown";
-
-        public decimal CoveragePercent { get; set; } = 0;
-
-        [MaxLength(250)]
-        public string? CoverageNote { get; set; }
-
-        public bool IsNeedApproval { get; set; } = false;
 
         [MaxLength(1000)]
         public string? ClinicalNote { get; set; }

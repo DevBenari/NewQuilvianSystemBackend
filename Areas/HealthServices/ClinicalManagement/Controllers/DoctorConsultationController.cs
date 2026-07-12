@@ -4,8 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -38,13 +41,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly ConsultationValidationService _consultationValidationService;
+        private readonly ConsultationFinalizationService _consultationFinalizationService;
 
         public DoctorConsultationController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            ConsultationValidationService consultationValidationService,
+            ConsultationFinalizationService consultationFinalizationService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _consultationValidationService = consultationValidationService;
+            _consultationFinalizationService = consultationFinalizationService;
         }
 
         [HttpGet("filters/metadata")]
@@ -545,95 +554,82 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ));
         }
 
-        [HttpPatch("{id:guid}/complete")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Complete Doctor Consultation", Description = "Menyelesaikan konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("DoctorConsultation", "Update")]
-        public async Task<IActionResult> CompleteConsultation(Guid id, [FromBody] CompleteDoctorConsultationRequest request)
+        [HttpGet("{id:guid}/finalization-validation")]
+        [ProducesResponseType(typeof(ApiResponse<ConsultationFinalizationValidationResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Validate Doctor Consultation Finalization", Description = "Memvalidasi seluruh tab sebelum konsultasi diselesaikan", AccessType = AccessTypes.Read, SortOrder = 4)]
+        [AccessPermission("DoctorConsultation", "Read")]
+        public async Task<IActionResult> ValidateFinalization(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxDoctorConsultation>()
-                .Include(x => x.Queue)
-                .Include(x => x.Encounter)
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            var result = await _consultationValidationService.ValidateAsync(id, cancellationToken);
 
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Konsultasi dokter tidak ditemukan."
-                ));
-            }
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "DoctorConsultation.ValidateFinalization",
+                "Memvalidasi kesiapan finalisasi konsultasi dokter.",
+                result
+            );
 
-            if (entity.ConsultationStatus == DoctorConsultationStatus.Completed)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Konsultasi dokter sudah completed."
-                ));
-            }
+            return Ok(ApiResponse<ConsultationFinalizationValidationResponse>.Ok(
+                result,
+                result.CanFinalize
+                    ? "Konsultasi siap diselesaikan."
+                    : "Konsultasi masih memiliki data yang perlu diperbaiki."
+            ));
+        }
 
-            if (entity.ConsultationStatus == DoctorConsultationStatus.Cancelled)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Konsultasi dokter yang sudah cancelled tidak dapat diselesaikan."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
+        [HttpPatch("{id:guid}/complete")]
+        [ProducesResponseType(typeof(ApiResponse<ConsultationFinalizationResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<ConsultationFinalizationValidationResponse>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Complete Doctor Consultation", Description = "Memvalidasi dan menyelesaikan seluruh proses konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("DoctorConsultation", "Update")]
+        public async Task<IActionResult> CompleteConsultation(
+            Guid id,
+            [FromBody] FinalizeDoctorConsultationRequest request,
+            CancellationToken cancellationToken = default)
+        {
             var actorUserId = GetCurrentUserId();
+            var result = await _consultationFinalizationService.FinalizeAsync(
+                id,
+                request,
+                actorUserId,
+                cancellationToken
+            );
 
-            entity.ChiefComplaint = NormalizeNullableText(request.ChiefComplaint) ?? entity.ChiefComplaint;
-            entity.HistoryOfPresentIllness = NormalizeNullableText(request.HistoryOfPresentIllness) ?? entity.HistoryOfPresentIllness;
-            entity.PhysicalExamination = NormalizeNullableText(request.PhysicalExamination) ?? entity.PhysicalExamination;
-
-            entity.Subjective = NormalizeNullableText(request.Subjective) ?? entity.Subjective;
-            entity.Objective = NormalizeNullableText(request.Objective) ?? entity.Objective;
-            entity.Assessment = NormalizeNullableText(request.Assessment) ?? entity.Assessment;
-            entity.Plan = NormalizeNullableText(request.Plan) ?? entity.Plan;
-
-            entity.ProcedurePlan = NormalizeNullableText(request.ProcedurePlan) ?? entity.ProcedurePlan;
-            entity.PrescriptionPlan = NormalizeNullableText(request.PrescriptionPlan) ?? entity.PrescriptionPlan;
-            entity.SupportingExamPlan = NormalizeNullableText(request.SupportingExamPlan) ?? entity.SupportingExamPlan;
-            entity.ReferralPlan = NormalizeNullableText(request.ReferralPlan) ?? entity.ReferralPlan;
-            entity.EducationPlan = NormalizeNullableText(request.EducationPlan) ?? entity.EducationPlan;
-
-            entity.FollowUpDate = request.FollowUpDate ?? entity.FollowUpDate;
-            entity.FollowUpNote = NormalizeNullableText(request.FollowUpNote) ?? entity.FollowUpNote;
-            entity.DoctorNote = NormalizeNullableText(request.DoctorNote) ?? entity.DoctorNote;
-
-            NormalizeConsultationData(entity);
-
-            entity.ConsultationStatus = DoctorConsultationStatus.Completed;
-            entity.CompletedAt = now;
-            entity.CompletedByUserId = actorUserId;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            if (entity.Queue != null)
+            if (result.IsConflict)
             {
-                entity.Queue.QueueStatus = QueueStatus.Completed;
-                entity.Queue.ConsultationCompletedAt = now;
-                entity.Queue.CompletedAt = now;
-                entity.Queue.CompletedByUserId = actorUserId;
-                entity.Queue.UpdateDateTime = now;
-                entity.Queue.UpdateBy = actorUserId;
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    result.ErrorMessage ?? "Data konsultasi telah berubah."
+                ));
             }
 
-            if (entity.Encounter != null)
+            if (!result.IsSuccess)
             {
-                entity.Encounter.EncounterStatus = EncounterStatus.ConsultationCompleted;
-                entity.Encounter.UpdateDateTime = now;
-                entity.Encounter.UpdateBy = actorUserId;
+                if (result.Validation != null)
+                {
+                    return BadRequest(ApiResponse<ConsultationFinalizationValidationResponse>.Ok(
+                        result.Validation,
+                        result.ErrorMessage ?? "Konsultasi belum dapat diselesaikan."
+                    ));
+                }
+
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    result.ErrorMessage ?? "Konsultasi belum dapat diselesaikan."
+                ));
             }
 
-            await _dbContext.SaveChangesAsync();
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "DoctorConsultation.CompleteConsultation",
+                "Memvalidasi dan menyelesaikan konsultasi dokter.",
+                result.Data
+            );
 
-            return Ok(ApiResponse<object>.Ok(
-                null,
-                "Konsultasi dokter berhasil diselesaikan."
+            return Ok(ApiResponse<ConsultationFinalizationResponse>.Ok(
+                result.Data!,
+                "Konsultasi dokter berhasil diselesaikan dan transaksi klinis telah difinalkan."
             ));
         }
 

@@ -1,6 +1,6 @@
 ﻿using QuilvianSystemBackend.Models;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 {
@@ -9,21 +9,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
-        [Required]
-        [MaxLength(50)]
+        [Required, MaxLength(50)]
         public string TariffCode { get; set; } = string.Empty;
 
-        [Required]
-        [MaxLength(250)]
+        [Required, MaxLength(250)]
         public string TariffName { get; set; } = string.Empty;
 
         [Required]
         public Guid TariffCategoryId { get; set; }
 
         public Guid? ServiceUnitId { get; set; }
-
         public Guid? ClinicId { get; set; }
-
         public Guid? PatientClassId { get; set; }
         public Guid? ProcedureId { get; set; }
         public Guid? DrugId { get; set; }
@@ -34,40 +30,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         [MaxLength(50)]
         public string? ExternalClassCode { get; set; }
 
-        [MaxLength(100)]
-        public string? ProviderName { get; set; }
+        public bool IsSurgeryRelated { get; set; }
+        public bool IsRoomCharge { get; set; }
+        public bool IsAdministrationFee { get; set; }
+        public bool IsRegistrationFee { get; set; }
+        public bool IsConsultationFee { get; set; }
+        public bool IsPackageTariff { get; set; }
+        public bool IsNeedDoctor { get; set; }
+        public bool IsNeedApproval { get; set; }
 
-        public bool IsSurgeryRelated { get; set; } = false;
-
-        public bool IsRoomCharge { get; set; } = false;
-
-        public bool IsAdministrationFee { get; set; } = false;
-
-        public bool IsRegistrationFee { get; set; } = false;
-
-        public bool IsConsultationFee { get; set; } = false;
-
-        public bool IsPackageTariff { get; set; } = false;
-
-        public bool IsNeedDoctor { get; set; } = false;
-
-        public bool IsNeedApproval { get; set; } = false;
-
-        public decimal NormalPrice { get; set; } = 0;
-
-        public decimal? MemberPrice { get; set; }
-
-        public decimal? InsurancePrice { get; set; }
-
-        public decimal? CompanyPrice { get; set; }
+        public decimal NormalPrice { get; set; }
 
         public DateTime? EffectiveStartDate { get; set; }
-
         public DateTime? EffectiveEndDate { get; set; }
 
-        public bool IsTaxable { get; set; } = false;
-
-        public int SortOrder { get; set; } = 0;
+        public bool IsTaxable { get; set; }
+        public int SortOrder { get; set; }
 
         [MaxLength(250)]
         public string? Description { get; set; }
@@ -75,13 +53,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public bool IsActive { get; set; } = true;
 
         public MstTariffCategory? TariffCategory { get; set; }
-
         public MstServiceUnit? ServiceUnit { get; set; }
-
         public MstClinic? Clinic { get; set; }
-
         public MstPatientClass? PatientClass { get; set; }
-
         public MstProcedure? Procedure { get; set; }
         public MstDrug? Drug { get; set; }
     }

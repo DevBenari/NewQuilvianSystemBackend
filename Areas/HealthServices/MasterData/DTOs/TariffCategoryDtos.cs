@@ -17,7 +17,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int PharmacyCategory { get; set; }
         public int SurgeryCategory { get; set; }
         public int PackageCategory { get; set; }
-        public int InsuranceCoveredDefaultCategory { get; set; }
     }
 
     public class TariffCategoryResponse
@@ -36,7 +35,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsPharmacy { get; set; }
         public bool IsSurgery { get; set; }
         public bool IsPackage { get; set; }
-        public bool IsCoveredByInsuranceDefault { get; set; }
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
@@ -68,7 +66,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsPharmacy { get; set; }
         public bool IsSurgery { get; set; }
         public bool IsPackage { get; set; }
-        public bool IsCoveredByInsuranceDefault { get; set; }
         public int SortOrder { get; set; }
     }
 
@@ -114,7 +111,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool? IsPharmacy { get; set; }
         public bool? IsSurgery { get; set; }
         public bool? IsPackage { get; set; }
-        public bool? IsCoveredByInsuranceDefault { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
@@ -180,7 +176,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsPharmacy { get; set; } = false;
         public bool IsSurgery { get; set; } = false;
         public bool IsPackage { get; set; } = false;
-        public bool IsCoveredByInsuranceDefault { get; set; } = true;
         public int SortOrder { get; set; } = 0;
 
         [MaxLength(250)]
@@ -209,7 +204,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string TariffCategoryCode { get; set; } = string.Empty;
         public string TariffCategoryName { get; set; } = string.Empty;
         public string? TariffGroupName { get; set; }
-        public bool IsCoveredByInsuranceDefault { get; set; }
         public bool IsActive { get; set; }
     }
 

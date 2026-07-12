@@ -83,6 +83,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         public bool IsEligible { get; set; }
 
+        public bool IsCurrentlyEffective { get; set; }
+
+        public bool IsProviderActive { get; set; }
+
+        public bool IsProviderContractEffective { get; set; }
+
+        public bool IsUsableForEncounter { get; set; }
+
+        public string? UsabilityMessage { get; set; }
+
         public DateTime? LastEligibilityCheckAt { get; set; }
 
         public string? LastEligibilityReferenceNumber { get; set; }
@@ -162,6 +172,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public bool IsPrimary { get; set; }
 
         public bool IsEligible { get; set; }
+
+        public bool IsCurrentlyEffective { get; set; }
+
+        public bool IsProviderActive { get; set; }
+
+        public bool IsProviderContractEffective { get; set; }
+
+        public bool IsUsableForEncounter { get; set; }
+
+        public string? UsabilityMessage { get; set; }
 
         public bool IsNeedGuaranteeLetter { get; set; }
 

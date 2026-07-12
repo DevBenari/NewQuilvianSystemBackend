@@ -1,12 +1,13 @@
-﻿namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums
 {
     public enum EncounterPaymentType
     {
+        [Display(Name = "Tunai")]
         Cash = 1,
-        Company = 2,
-        Insurance = 3,
-        CompanyGuarantor = 4,
-        Membership = 5,
-        Mixed = 6
+
+        [Display(Name = "Asuransi")]
+        Insurance = 2
     }
 }

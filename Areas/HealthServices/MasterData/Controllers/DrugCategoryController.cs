@@ -86,7 +86,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     new() { Value = "isChronicDiseaseDrug", Label = "Obat penyakit kronis" },
                     new() { Value = "isVaccine", Label = "Vaksin" },
                     new() { Value = "isConsumable", Label = "Consumable" },
-                    new() { Value = "isCoveredByInsuranceDefault", Label = "Default ditanggung asuransi" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
@@ -129,8 +128,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 HighAlertDrugCategory = await query.CountAsync(x => x.IsHighAlert),
                 ChronicDiseaseDrugCategory = await query.CountAsync(x => x.IsChronicDiseaseDrug),
                 VaccineDrugCategory = await query.CountAsync(x => x.IsVaccine),
-                ConsumableDrugCategory = await query.CountAsync(x => x.IsConsumable),
-                CoveredByInsuranceDefaultDrugCategory = await query.CountAsync(x => x.IsCoveredByInsuranceDefault)
+                ConsumableDrugCategory = await query.CountAsync(x => x.IsConsumable)
             };
 
             return Ok(ApiResponse<DrugCategorySummaryResponse>.Ok(
@@ -157,7 +155,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] bool? isChronicDiseaseDrug,
             [FromQuery] bool? isVaccine,
             [FromQuery] bool? isConsumable,
-            [FromQuery] bool? isCoveredByInsuranceDefault,
             [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
@@ -190,7 +187,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 isChronicDiseaseDrug,
                 isVaccine,
                 isConsumable,
-                isCoveredByInsuranceDefault,
                 search
             );
 
@@ -274,7 +270,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsChronicDiseaseDrug = x.IsChronicDiseaseDrug,
                 IsVaccine = x.IsVaccine,
                 IsConsumable = x.IsConsumable,
-                IsCoveredByInsuranceDefault = x.IsCoveredByInsuranceDefault,
                 SortOrder = x.SortOrder
             }).ToList();
 
@@ -361,7 +356,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsChronicDiseaseDrug = request.IsChronicDiseaseDrug,
                 IsVaccine = request.IsVaccine,
                 IsConsumable = request.IsConsumable,
-                IsCoveredByInsuranceDefault = request.IsCoveredByInsuranceDefault,
                 SortOrder = request.SortOrder,
                 Description = NormalizeNullableText(request.Description),
                 IsActive = true,
@@ -437,7 +431,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.IsChronicDiseaseDrug = request.IsChronicDiseaseDrug;
             entity.IsVaccine = request.IsVaccine;
             entity.IsConsumable = request.IsConsumable;
-            entity.IsCoveredByInsuranceDefault = request.IsCoveredByInsuranceDefault;
             entity.SortOrder = request.SortOrder;
             entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
@@ -588,7 +581,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             bool? isChronicDiseaseDrug,
             bool? isVaccine,
             bool? isConsumable,
-            bool? isCoveredByInsuranceDefault,
             string? search)
         {
             if (isActive.HasValue)
@@ -620,9 +612,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             if (isConsumable.HasValue)
                 query = query.Where(x => x.IsConsumable == isConsumable.Value);
-
-            if (isCoveredByInsuranceDefault.HasValue)
-                query = query.Where(x => x.IsCoveredByInsuranceDefault == isCoveredByInsuranceDefault.Value);
 
             query = ApplySearch(query, search);
 
@@ -742,7 +731,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 "ischronicdiseasedrug" => isDescending ? query.OrderByDescending(x => x.IsChronicDiseaseDrug) : query.OrderBy(x => x.IsChronicDiseaseDrug),
                 "isvaccine" => isDescending ? query.OrderByDescending(x => x.IsVaccine) : query.OrderBy(x => x.IsVaccine),
                 "isconsumable" => isDescending ? query.OrderByDescending(x => x.IsConsumable) : query.OrderBy(x => x.IsConsumable),
-                "iscoveredbyinsurancedefault" => isDescending ? query.OrderByDescending(x => x.IsCoveredByInsuranceDefault) : query.OrderBy(x => x.IsCoveredByInsuranceDefault),
                 "isactive" => isDescending ? query.OrderByDescending(x => x.IsActive) : query.OrderBy(x => x.IsActive),
                 _ => isDescending
                     ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.DrugCategoryName)
@@ -767,7 +755,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsChronicDiseaseDrug = x.IsChronicDiseaseDrug,
                 IsVaccine = x.IsVaccine,
                 IsConsumable = x.IsConsumable,
-                IsCoveredByInsuranceDefault = x.IsCoveredByInsuranceDefault,
                 SortOrder = x.SortOrder,
                 IsActive = x.IsActive,
                 CreateDateTime = x.CreateDateTime,
@@ -793,7 +780,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsChronicDiseaseDrug = x.IsChronicDiseaseDrug,
                 IsVaccine = x.IsVaccine,
                 IsConsumable = x.IsConsumable,
-                IsCoveredByInsuranceDefault = x.IsCoveredByInsuranceDefault,
                 SortOrder = x.SortOrder,
                 Description = x.Description,
                 IsActive = x.IsActive,
@@ -1003,7 +989,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "isChronicDiseaseDrug", Label = "Obat penyakit kronis", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
                 new() { Name = "isVaccine", Label = "Vaksin", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
                 new() { Name = "isConsumable", Label = "Consumable", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
-                new() { Name = "isCoveredByInsuranceDefault", Label = "Default ditanggung asuransi", DataType = "boolean", InputType = "switch", Required = false, IsReadonly = false },
                 new() { Name = "sortOrder", Label = "Urutan", DataType = "integer", InputType = "number", Required = false, IsReadonly = false },
                 new() { Name = "description", Label = "Deskripsi", DataType = "string", InputType = "textarea", Required = false, IsReadonly = false }
             };

@@ -544,7 +544,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 .AnyAsync(x => x.ProcedureId == id && !x.IsDelete);
 
             var isUsedByInsuranceTariff = await _dbContext.Set<MstInsuranceTariff>()
-                .AnyAsync(x => x.ProcedureId == id && !x.IsDelete);
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    x.Tariff != null &&
+                    x.Tariff.ProcedureId == id);
 
             var isUsedByCoverageRule = await _dbContext.Set<MstInsuranceCoverageRule>()
                 .AnyAsync(x => x.ProcedureId == id && !x.IsDelete);

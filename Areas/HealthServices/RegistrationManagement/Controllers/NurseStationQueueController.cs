@@ -73,6 +73,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     new() { Value = "patientName", Label = "Nama pasien" },
                     new() { Value = "clinicName", Label = "Poli" },
                     new() { Value = "doctorName", Label = "Dokter" },
+                    new() { Value = "roomName", Label = "Ruangan" },
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
@@ -469,14 +470,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .Include(x => x.Encounter)
                     .ThenInclude(x => x.PaymentMethod)
                 .Include(x => x.Encounter)
-                    .ThenInclude(x => x.EncounterGuarantors)
+                    .ThenInclude(x => x.PaymentSource)
                         .ThenInclude(x => x.PaymentMethod)
                 .Include(x => x.Encounter)
-                    .ThenInclude(x => x.EncounterGuarantors)
+                    .ThenInclude(x => x.PaymentSource)
                         .ThenInclude(x => x.InsuranceProvider)
                 .Include(x => x.Encounter)
-                    .ThenInclude(x => x.EncounterGuarantors)
-                        .ThenInclude(x => x.CompanyGuarantor)
+                    .ThenInclude(x => x.Room)
                 .Include(x => x.Patient)
                     .ThenInclude(x => x.Country)
                 .Include(x => x.Patient)
@@ -518,7 +518,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
                     (x.Encounter != null && x.Encounter.EncounterNumber.ToLower().Contains(keyword)) ||
                     (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)) ||
-                    (x.Doctor != null && x.Doctor.FullName.ToLower().Contains(keyword)));
+                    (x.Doctor != null && x.Doctor.FullName.ToLower().Contains(keyword)) ||
+                    (x.Encounter != null && x.Encounter.Room != null && x.Encounter.Room.RoomName.ToLower().Contains(keyword)) ||
+                    (x.Encounter != null && x.Encounter.Room != null && x.Encounter.Room.RoomNumber != null && x.Encounter.Room.RoomNumber.ToLower().Contains(keyword)));
             }
             return query;
         }
@@ -584,6 +586,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
                         .ThenBy(x => x.QueueNumber)
                     : query.OrderBy(x => x.Doctor!.FullName)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber),
+
+                "roomname" => isDescending
+                    ? query.OrderByDescending(x => x.Encounter != null && x.Encounter.Room != null ? x.Encounter.Room.RoomName : string.Empty)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber)
+                    : query.OrderBy(x => x.Encounter != null && x.Encounter.Room != null ? x.Encounter.Room.RoomName : string.Empty)
                         .ThenByDescending(x => x.IsPriorityQueue)
                         .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
                         .ThenBy(x => x.QueueNumber),
@@ -771,6 +783,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var clinicIds = await GetClinicIdsByClusterIdsAsync(clusterIds);
             return await _dbContext.Set<TrxQueue>()
                 .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentMethod)
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentSource)
+                        .ThenInclude(x => x.InsuranceProvider)
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.Room)
                 .Include(x => x.Patient)
                 .Include(x => x.Clinic)
                 .Include(x => x.Doctor)
@@ -789,12 +807,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             var encounter = x.Encounter;
             var patient = x.Patient;
-            var guarantors = encounter?.EncounterGuarantors?
-                .Where(g => !g.IsDelete)
-                .OrderBy(g => g.CoveragePriority)
-                .ThenByDescending(g => g.IsPrimary)
-                .Select(MapGuarantorResponse)
-                .ToList() ?? new List<NurseStationQueueGuarantorResponse>();
+            var paymentSource = encounter?.PaymentSource;
             var serverNowUtc = DateTime.UtcNow;
 
             return new NurseStationQueueResponse
@@ -809,6 +822,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
                 ClinicId = x.ClinicId,
                 ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
+                RoomId = encounter?.RoomId,
+                RoomCode = encounter?.Room?.RoomCode,
+                RoomName = encounter?.Room?.RoomName,
+                RoomNumber = encounter?.Room?.RoomNumber,
+                RoomLocationName = encounter?.Room?.LocationName,
+                RoomFloorName = encounter?.Room?.FloorName,
                 DoctorId = x.DoctorId,
                 DoctorName = x.Doctor != null ? x.Doctor.FullName : null,
                 NurseStationClusterId = clusterId,
@@ -866,18 +885,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 EncounterStatusName = encounter != null ? BuildEnumLabel(encounter.EncounterStatus) : string.Empty,
                 PaymentType = encounter?.PaymentType ?? EncounterPaymentType.Cash,
                 PaymentTypeName = encounter != null ? BuildEnumLabel(encounter.PaymentType) : string.Empty,
-                IsInsurancePatient = encounter?.IsInsurancePatient ?? false,
-                IsCompanyPatient = encounter?.IsCompanyPatient ?? false,
-                IsMembershipPatient = encounter?.IsMembershipPatient ?? false,
-                IsMixedPayment = encounter?.IsMixedPayment ?? false,
-                PrimaryGuarantorNameSnapshot = encounter?.PrimaryGuarantorNameSnapshot,
-                PrimaryGuarantorTypeSnapshot = encounter?.PrimaryGuarantorTypeSnapshot,
-                IsEligibilityRequired = encounter?.IsEligibilityRequired ?? false,
-                IsEligibilityCompleted = encounter?.IsEligibilityCompleted ?? false,
+                PaymentMethodId = encounter?.PaymentMethodId,
+                PaymentMethodName = encounter?.PaymentMethod?.PaymentMethodName,
+                PaymentSourceNameSnapshot = paymentSource?.PaymentSourceNameSnapshot,
+                PatientInsuranceId = paymentSource?.PatientInsuranceId,
+                InsuranceProviderId = paymentSource?.InsuranceProviderId,
+                InsuranceProviderName = paymentSource?.InsuranceProvider?.InsuranceProviderName
+                    ?? paymentSource?.PaymentSourceNameSnapshot,
+                IsInsuranceEligible = paymentSource?.IsEligible ?? (encounter?.PaymentType == EncounterPaymentType.Cash),
+                IsInsurancePolicyActive = paymentSource?.IsPolicyActive ?? false,
                 IsReferral = encounter?.IsReferral ?? false,
                 ReferralNumber = encounter?.ReferralNumber,
-                EligibilityReferenceNumber = encounter?.EligibilityReferenceNumber,
-                Guarantors = guarantors,
 
                 PatientCode = patient?.PatientCode ?? string.Empty,
                 NickName = patient?.NickName,
@@ -906,36 +924,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 MotherPatientId = patient?.MotherPatientId,
                 MotherMedicalRecordNumber = patient?.MotherPatient?.MedicalRecordNumber,
                 MotherPatientName = patient?.MotherPatient?.FullName
-            };
-        }
-
-        private static NurseStationQueueGuarantorResponse MapGuarantorResponse(TrxPatientEncounterGuarantor guarantor)
-        {
-            return new NurseStationQueueGuarantorResponse
-            {
-                Id = guarantor.Id,
-                EncounterGuarantorNumber = guarantor.EncounterGuarantorNumber,
-                GuarantorType = guarantor.GuarantorType,
-                GuarantorTypeName = BuildEnumLabel(guarantor.GuarantorType),
-                GuarantorRole = guarantor.GuarantorRole,
-                GuarantorRoleName = BuildEnumLabel(guarantor.GuarantorRole),
-                GuarantorStatus = guarantor.GuarantorStatus,
-                GuarantorStatusName = BuildEnumLabel(guarantor.GuarantorStatus),
-                CoveragePriority = guarantor.CoveragePriority,
-                IsPrimary = guarantor.IsPrimary,
-                GuarantorNameSnapshot = guarantor.GuarantorNameSnapshot,
-                PolicyNumberSnapshot = guarantor.PolicyNumberSnapshot,
-                CardNumberSnapshot = guarantor.CardNumberSnapshot,
-                MemberNumberSnapshot = guarantor.MemberNumberSnapshot,
-                PlanNameSnapshot = guarantor.PlanNameSnapshot,
-                ClassNameSnapshot = guarantor.ClassNameSnapshot,
-                PaymentMethodName = guarantor.PaymentMethod?.PaymentMethodName,
-                InsuranceProviderName = guarantor.InsuranceProvider?.InsuranceProviderName,
-                CompanyGuarantorName = guarantor.CompanyGuarantor?.CompanyGuarantorName,
-                IsEligibilityRequired = guarantor.IsEligibilityRequired,
-                IsEligible = guarantor.IsEligible,
-                IsVerified = guarantor.IsVerified,
-                IsActive = guarantor.IsActive
             };
         }
 

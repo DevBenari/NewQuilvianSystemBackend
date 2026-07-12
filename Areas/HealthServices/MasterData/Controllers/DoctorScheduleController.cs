@@ -82,6 +82,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     new() { Value = "doctorName", Label = "Nama dokter" },
                     new() { Value = "serviceUnitName", Label = "Nama service unit" },
                     new() { Value = "clinicName", Label = "Nama clinic" },
+                    new() { Value = "roomName", Label = "Nama ruangan" },
                     new() { Value = "practiceDay", Label = "Hari praktik" },
                     new() { Value = "practiceDate", Label = "Tanggal praktik" },
                     new() { Value = "startTime", Label = "Jam mulai" },
@@ -142,6 +143,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     new() { Value = "doctorName", Label = "Nama dokter" },
                     new() { Value = "serviceUnitName", Label = "Nama service unit" },
                     new() { Value = "clinicName", Label = "Nama clinic" },
+                    new() { Value = "roomName", Label = "Nama ruangan" },
                     new() { Value = "practiceDay", Label = "Hari praktik" },
                     new() { Value = "practiceDate", Label = "Tanggal praktik" },
                     new() { Value = "startTime", Label = "Jam mulai" },
@@ -384,7 +386,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     ClinicName = x.Clinic != null ? x.Clinic.ClinicName : string.Empty,
 
                     RoomId = x.RoomId,
-                    RoomMasterName = x.Room != null ? x.Room.RoomName : null,
+                    RoomCode = x.Room != null ? x.Room.RoomCode : null,
+                    RoomName = x.Room != null ? x.Room.RoomName : null,
+                    RoomNumber = x.Room != null ? x.Room.RoomNumber : null,
+                    RoomLocationName = x.Room != null ? x.Room.LocationName : null,
+                    RoomFloorName = x.Room != null ? x.Room.FloorName : null,
 
                     ScheduleCode = x.ScheduleCode,
                     ScheduleName = x.ScheduleName,
@@ -497,7 +503,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     ClinicName = x.Clinic != null ? x.Clinic.ClinicName : string.Empty,
 
                     RoomId = x.RoomId,
-                    RoomMasterName = x.Room != null ? x.Room.RoomName : null,
+                    RoomCode = x.Room != null ? x.Room.RoomCode : null,
+                    RoomName = x.Room != null ? x.Room.RoomName : null,
+                    RoomNumber = x.Room != null ? x.Room.RoomNumber : null,
+                    RoomLocationName = x.Room != null ? x.Room.LocationName : null,
+                    RoomFloorName = x.Room != null ? x.Room.FloorName : null,
 
                     ScheduleCode = x.ScheduleCode,
                     ScheduleName = x.ScheduleName,
@@ -619,7 +629,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsOvernight = request.IsOvernight,
                 SessionName = NormalizeNullableText(request.SessionName),
                 PracticeLocation = NormalizeNullableText(request.PracticeLocation),
-                RoomName = NormalizeNullableText(request.RoomName),
                 MaxPatientQuota = request.MaxPatientQuota,
                 MaxAppointmentQuota = request.MaxAppointmentQuota,
                 MaxWalkInQuota = request.MaxWalkInQuota,
@@ -733,7 +742,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.IsOvernight = request.IsOvernight;
             entity.SessionName = NormalizeNullableText(request.SessionName);
             entity.PracticeLocation = NormalizeNullableText(request.PracticeLocation);
-            entity.RoomName = NormalizeNullableText(request.RoomName);
             entity.MaxPatientQuota = request.MaxPatientQuota;
             entity.MaxAppointmentQuota = request.MaxAppointmentQuota;
             entity.MaxWalkInQuota = request.MaxWalkInQuota;
@@ -1030,7 +1038,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     x.ScheduleName.ToLower().Contains(keyword) ||
                     (x.SessionName != null && x.SessionName.ToLower().Contains(keyword)) ||
                     (x.PracticeLocation != null && x.PracticeLocation.ToLower().Contains(keyword)) ||
-                    (x.RoomName != null && x.RoomName.ToLower().Contains(keyword)) ||
                     (x.Description != null && x.Description.ToLower().Contains(keyword)) ||
                     (x.Doctor != null && x.Doctor.DoctorCode.ToLower().Contains(keyword)) ||
                     (x.Doctor != null && x.Doctor.DoctorNumber.ToLower().Contains(keyword)) ||
@@ -1196,6 +1203,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     ? query.OrderByDescending(x => x.Clinic != null ? x.Clinic.ClinicName : string.Empty)
                     : query.OrderBy(x => x.Clinic != null ? x.Clinic.ClinicName : string.Empty),
 
+                "roomname" => isDesc
+                    ? query.OrderByDescending(x => x.Room != null ? x.Room.RoomName : string.Empty)
+                    : query.OrderBy(x => x.Room != null ? x.Room.RoomName : string.Empty),
+
                 "practiceday" => isDesc
                     ? query.OrderByDescending(x => x.PracticeDay)
                     : query.OrderBy(x => x.PracticeDay),
@@ -1260,7 +1271,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ClinicName = x.Clinic != null ? x.Clinic.ClinicName : string.Empty,
                 RoomId = x.RoomId,
                 RoomCode = x.Room != null ? x.Room.RoomCode : null,
-                RoomMasterName = x.Room != null ? x.Room.RoomName : null,
+                RoomName = x.Room != null ? x.Room.RoomName : null,
+                RoomNumber = x.Room != null ? x.Room.RoomNumber : null,
+                RoomLocationName = x.Room != null ? x.Room.LocationName : null,
+                RoomFloorName = x.Room != null ? x.Room.FloorName : null,
                 PracticeDay = x.PracticeDay,
                 PracticeDate = x.PracticeDate,
                 StartTime = x.StartTime,
@@ -1268,7 +1282,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsOvernight = x.IsOvernight,
                 SessionName = x.SessionName,
                 PracticeLocation = x.PracticeLocation,
-                RoomName = x.RoomName,
                 MaxPatientQuota = x.MaxPatientQuota,
                 MaxAppointmentQuota = x.MaxAppointmentQuota,
                 MaxWalkInQuota = x.MaxWalkInQuota,
@@ -1318,7 +1331,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             response.ClinicName = x.Clinic != null ? x.Clinic.ClinicName : string.Empty;
             response.RoomId = x.RoomId;
             response.RoomCode = x.Room != null ? x.Room.RoomCode : null;
-            response.RoomMasterName = x.Room != null ? x.Room.RoomName : null;
+            response.RoomName = x.Room != null ? x.Room.RoomName : null;
+            response.RoomNumber = x.Room != null ? x.Room.RoomNumber : null;
+            response.RoomLocationName = x.Room != null ? x.Room.LocationName : null;
+            response.RoomFloorName = x.Room != null ? x.Room.FloorName : null;
             response.PracticeDay = x.PracticeDay;
             response.PracticeDate = x.PracticeDate;
             response.StartTime = x.StartTime;
@@ -1326,7 +1342,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             response.IsOvernight = x.IsOvernight;
             response.SessionName = x.SessionName;
             response.PracticeLocation = x.PracticeLocation;
-            response.RoomName = x.RoomName;
             response.MaxPatientQuota = x.MaxPatientQuota;
             response.MaxAppointmentQuota = x.MaxAppointmentQuota;
             response.MaxWalkInQuota = x.MaxWalkInQuota;
@@ -1502,6 +1517,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (hasScheduleConflict)
                 return (false, "Dokter sudah memiliki jadwal pada hari/tanggal dan rentang jam tersebut.");
 
+            if (roomId.HasValue)
+            {
+                var hasRoomConflict = await HasRoomScheduleConflictAsync(
+                    excludeId: excludeId,
+                    roomId: roomId.Value,
+                    practiceDay: request.PracticeDay,
+                    practiceDate: request.PracticeDate?.Date,
+                    startTime: request.StartTime,
+                    endTime: request.EndTime,
+                    isOvernight: request.IsOvernight
+                );
+
+                if (hasRoomConflict)
+                    return (false, "Ruangan sudah digunakan oleh jadwal dokter lain pada hari/tanggal dan rentang jam tersebut.");
+            }
+
             return (true, null);
         }
 
@@ -1524,6 +1555,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     x.DoctorId == doctorId &&
                     x.ServiceUnitId == serviceUnitId &&
                     x.ClinicId == clinicId &&
+                    (!excludeId.HasValue || x.Id != excludeId.Value));
+
+            if (practiceDate.HasValue)
+            {
+                var date = practiceDate.Value.Date;
+                query = query.Where(x => x.PracticeDate == date);
+            }
+            else
+            {
+                query = query.Where(x => x.PracticeDate == null && x.PracticeDay == practiceDay);
+            }
+
+            var existingSchedules = await query
+                .Select(x => new
+                {
+                    x.StartTime,
+                    x.EndTime,
+                    x.IsOvernight
+                })
+                .ToListAsync();
+
+            return existingSchedules.Any(x =>
+                IsTimeRangeOverlap(
+                    x.StartTime,
+                    x.EndTime,
+                    x.IsOvernight,
+                    startTime,
+                    endTime,
+                    isOvernight
+                ));
+        }
+
+        private async Task<bool> HasRoomScheduleConflictAsync(
+            Guid? excludeId,
+            Guid roomId,
+            DayOfWeek practiceDay,
+            DateTime? practiceDate,
+            TimeSpan startTime,
+            TimeSpan endTime,
+            bool isOvernight)
+        {
+            var query = _dbContext.Set<MstDoctorSchedule>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.RoomId == roomId &&
                     (!excludeId.HasValue || x.Id != excludeId.Value));
 
             if (practiceDate.HasValue)

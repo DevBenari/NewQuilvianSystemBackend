@@ -30,12 +30,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 
         public decimal ToQuantity { get; set; } = 1;
 
-        public decimal ConversionFactor { get; set; } = 1;
-        // Contoh:
-        // 1 strip = 10 tablet
-        // FromQuantity = 1
-        // ToQuantity = 10
-        // ConversionFactor = 10
+        // Faktor konversi dihitung saat runtime: ToQuantity / FromQuantity.
+        // Contoh 1 strip = 10 tablet: FromQuantity = 1, ToQuantity = 10.
 
         [Required]
         [MaxLength(50)]

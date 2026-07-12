@@ -627,6 +627,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
+            var isUsedByRoom = await _dbContext.Set<MstRoom>()
+                .AsNoTracking()
+                .AnyAsync(x => x.ServiceUnitId == id && !x.IsDelete);
+
+            if (isUsedByRoom)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Service unit tidak dapat dihapus karena sudah digunakan oleh room."
+                ));
+            }
+
+            var isUsedByDoctorSchedule = await _dbContext.Set<MstDoctorSchedule>()
+                .AsNoTracking()
+                .AnyAsync(x => x.ServiceUnitId == id && !x.IsDelete);
+
+            if (isUsedByDoctorSchedule)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Service unit tidak dapat dihapus karena sudah digunakan oleh jadwal dokter."
+                ));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 

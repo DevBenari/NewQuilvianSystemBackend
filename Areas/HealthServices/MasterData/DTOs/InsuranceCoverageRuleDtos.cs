@@ -59,6 +59,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         public string? BenefitPlanCode { get; set; }
         public string? BenefitPlanName { get; set; }
+        public Guid? PatientClassId { get; set; }
+        public string? PatientClassCode { get; set; }
         public string? PatientClassName { get; set; }
 
         public string CoverageStatus { get; set; } = string.Empty;
@@ -67,8 +69,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public decimal? CoPaymentPercent { get; set; }
         public decimal? CoPaymentAmount { get; set; }
 
-        public bool IsCovered { get; set; }
-        public bool IsExcluded { get; set; }
         public bool IsNeedApproval { get; set; }
         public bool IsNeedGuaranteeLetter { get; set; }
         public bool IsAllowExcessPaymentByPatient { get; set; }
@@ -81,6 +81,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public DateTime? EffectiveStartDate { get; set; }
         public DateTime? EffectiveEndDate { get; set; }
 
+        public int Priority { get; set; }
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
@@ -126,6 +127,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         public string? BenefitPlanCode { get; set; }
         public string? BenefitPlanName { get; set; }
+        public Guid? PatientClassId { get; set; }
+        public string? PatientClassCode { get; set; }
         public string? PatientClassName { get; set; }
 
         public string CoverageStatus { get; set; } = string.Empty;
@@ -134,8 +137,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public decimal? CoPaymentPercent { get; set; }
         public decimal? CoPaymentAmount { get; set; }
 
-        public bool IsCovered { get; set; }
-        public bool IsExcluded { get; set; }
         public bool IsNeedApproval { get; set; }
         public bool IsNeedGuaranteeLetter { get; set; }
         public bool IsAllowExcessPaymentByPatient { get; set; }
@@ -226,8 +227,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         [MaxLength(150)]
         public string? BenefitPlanName { get; set; }
 
-        [MaxLength(100)]
-        public string? PatientClassName { get; set; }
+        public Guid? PatientClassId { get; set; }
 
         [Required]
         [MaxLength(50)]
@@ -245,8 +245,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         [Range(0, 999999999999)]
         public decimal? CoPaymentAmount { get; set; }
 
-        public bool IsCovered { get; set; } = true;
-        public bool IsExcluded { get; set; } = false;
         public bool IsNeedApproval { get; set; } = false;
         public bool IsNeedGuaranteeLetter { get; set; } = false;
         public bool IsAllowExcessPaymentByPatient { get; set; } = true;
@@ -274,6 +272,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         [MaxLength(250)]
         public string? Description { get; set; }
+
+        public int Priority { get; set; } = 0;
 
         public int SortOrder { get; set; } = 0;
     }

@@ -49,9 +49,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.IsConsumable)
                 .HasDefaultValue(false);
 
-            entity.Property(x => x.IsCoveredByInsuranceDefault)
-                .HasDefaultValue(true);
-
             entity.Property(x => x.SortOrder)
                 .HasDefaultValue(0);
 
@@ -102,12 +99,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 x.IsDelete
             });
 
-            entity.HasIndex(x => new
-            {
-                x.IsCoveredByInsuranceDefault,
-                x.IsActive,
-                x.IsDelete
-            });
         }
     }
 }

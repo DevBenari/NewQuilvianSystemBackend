@@ -48,8 +48,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         [MaxLength(100)]
         public string? PracticeLocation { get; set; }
 
-        [MaxLength(50)]
-        public string? RoomName { get; set; }
 
         public int MaxPatientQuota { get; set; } = 0;
 

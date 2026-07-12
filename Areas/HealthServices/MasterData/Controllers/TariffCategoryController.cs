@@ -75,7 +75,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     new() { Value = "isPharmacy", Label = "Farmasi" },
                     new() { Value = "isSurgery", Label = "Operasi" },
                     new() { Value = "isPackage", Label = "Paket" },
-                    new() { Value = "isCoveredByInsuranceDefault", Label = "Default ditanggung asuransi" },
                     new() { Value = "isActive", Label = "Status aktif" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
@@ -120,8 +119,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 RadiologyCategory = await query.CountAsync(x => x.IsRadiology),
                 PharmacyCategory = await query.CountAsync(x => x.IsPharmacy),
                 SurgeryCategory = await query.CountAsync(x => x.IsSurgery),
-                PackageCategory = await query.CountAsync(x => x.IsPackage),
-                InsuranceCoveredDefaultCategory = await query.CountAsync(x => x.IsCoveredByInsuranceDefault)
+                PackageCategory = await query.CountAsync(x => x.IsPackage)
             };
 
             return Ok(ApiResponse<TariffCategorySummaryResponse>.Ok(
@@ -151,7 +149,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] bool? isPharmacy,
             [FromQuery] bool? isSurgery,
             [FromQuery] bool? isPackage,
-            [FromQuery] bool? isCoveredByInsuranceDefault,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -185,8 +182,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 isRadiology,
                 isPharmacy,
                 isSurgery,
-                isPackage,
-                isCoveredByInsuranceDefault
+                isPackage
             );
 
             var totalData = await query.CountAsync();
@@ -229,7 +225,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] bool? isPharmacy = null,
             [FromQuery] bool? isSurgery = null,
             [FromQuery] bool? isPackage = null,
-            [FromQuery] bool? isCoveredByInsuranceDefault = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
         {
@@ -251,8 +246,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 isRadiology,
                 isPharmacy,
                 isSurgery,
-                isPackage,
-                isCoveredByInsuranceDefault
+                isPackage
             );
 
             var totalData = await query.CountAsync();
@@ -342,7 +336,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsPharmacy = request.IsPharmacy,
                 IsSurgery = request.IsSurgery,
                 IsPackage = request.IsPackage,
-                IsCoveredByInsuranceDefault = request.IsCoveredByInsuranceDefault,
                 SortOrder = request.SortOrder,
                 Description = NormalizeNullableText(request.Description),
                 IsActive = true,
@@ -414,7 +407,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.IsPharmacy = request.IsPharmacy;
             entity.IsSurgery = request.IsSurgery;
             entity.IsPackage = request.IsPackage;
-            entity.IsCoveredByInsuranceDefault = request.IsCoveredByInsuranceDefault;
             entity.SortOrder = request.SortOrder;
             entity.Description = NormalizeNullableText(request.Description);
             entity.IsActive = request.IsActive;
@@ -429,7 +421,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 TariffCategoryCode = entity.TariffCategoryCode,
                 TariffCategoryName = entity.TariffCategoryName,
                 TariffGroupName = entity.TariffGroupName,
-                IsCoveredByInsuranceDefault = entity.IsCoveredByInsuranceDefault,
                 IsActive = entity.IsActive
             };
 
@@ -469,7 +460,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 TariffCategoryCode = entity.TariffCategoryCode,
                 TariffCategoryName = entity.TariffCategoryName,
                 TariffGroupName = entity.TariffGroupName,
-                IsCoveredByInsuranceDefault = entity.IsCoveredByInsuranceDefault,
                 IsActive = entity.IsActive
             };
 
@@ -581,8 +571,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             bool? isRadiology,
             bool? isPharmacy,
             bool? isSurgery,
-            bool? isPackage,
-            bool? isCoveredByInsuranceDefault)
+            bool? isPackage)
         {
             if (isActive.HasValue)
                 query = query.Where(x => x.IsActive == isActive.Value);
@@ -617,8 +606,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (isPackage.HasValue)
                 query = query.Where(x => x.IsPackage == isPackage.Value);
 
-            if (isCoveredByInsuranceDefault.HasValue)
-                query = query.Where(x => x.IsCoveredByInsuranceDefault == isCoveredByInsuranceDefault.Value);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -717,7 +704,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 "ispharmacy" => isDesc ? query.OrderByDescending(x => x.IsPharmacy) : query.OrderBy(x => x.IsPharmacy),
                 "issurgery" => isDesc ? query.OrderByDescending(x => x.IsSurgery) : query.OrderBy(x => x.IsSurgery),
                 "ispackage" => isDesc ? query.OrderByDescending(x => x.IsPackage) : query.OrderBy(x => x.IsPackage),
-                "iscoveredbyinsurancedefault" => isDesc ? query.OrderByDescending(x => x.IsCoveredByInsuranceDefault) : query.OrderBy(x => x.IsCoveredByInsuranceDefault),
                 "isactive" => isDesc ? query.OrderByDescending(x => x.IsActive) : query.OrderBy(x => x.IsActive),
                 _ => isDesc
                     ? query.OrderByDescending(x => x.SortOrder).ThenByDescending(x => x.TariffCategoryName)
@@ -791,7 +777,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "isPharmacy", Type = "boolean", Description = "Filter kategori farmasi.", Example = "true" },
                 new() { Name = "isSurgery", Type = "boolean", Description = "Filter kategori operasi.", Example = "true" },
                 new() { Name = "isPackage", Type = "boolean", Description = "Filter kategori paket.", Example = "true" },
-                new() { Name = "isCoveredByInsuranceDefault", Type = "boolean", Description = "Filter default ditanggung asuransi.", Example = "true" },
                 new() { Name = "search", Type = "string", Description = "Pencarian kode, nama, grup tarif, atau deskripsi.", Example = "konsultasi" },
                 new() { Name = "sortBy", Type = "string", Description = "Kolom sorting.", Example = "sortOrder" },
                 new() { Name = "sortDirection", Type = "string", Description = "asc atau desc.", Example = "asc" },
@@ -827,7 +812,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "isPharmacy", Label = "Farmasi", Section = "Rule", InputType = "switch", SortOrder = 11 },
                 new() { Name = "isSurgery", Label = "Operasi", Section = "Rule", InputType = "switch", SortOrder = 12 },
                 new() { Name = "isPackage", Label = "Paket", Section = "Rule", InputType = "switch", SortOrder = 13 },
-                new() { Name = "isCoveredByInsuranceDefault", Label = "Default ditanggung asuransi", Section = "Rule", InputType = "switch", SortOrder = 14 },
                 new() { Name = "sortOrder", Label = "Urutan", Section = "Display", InputType = "number", SortOrder = 15 },
                 new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 16 }
             };
@@ -884,7 +868,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsPharmacy = entity.IsPharmacy,
                 IsSurgery = entity.IsSurgery,
                 IsPackage = entity.IsPackage,
-                IsCoveredByInsuranceDefault = entity.IsCoveredByInsuranceDefault,
                 SortOrder = entity.SortOrder,
                 IsActive = entity.IsActive,
                 CreateDateTime = entity.CreateDateTime,
@@ -913,7 +896,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsPharmacy = entity.IsPharmacy,
                 IsSurgery = entity.IsSurgery,
                 IsPackage = entity.IsPackage,
-                IsCoveredByInsuranceDefault = entity.IsCoveredByInsuranceDefault,
                 SortOrder = entity.SortOrder,
                 Description = entity.Description,
                 IsActive = entity.IsActive,
@@ -944,7 +926,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsPharmacy = entity.IsPharmacy,
                 IsSurgery = entity.IsSurgery,
                 IsPackage = entity.IsPackage,
-                IsCoveredByInsuranceDefault = entity.IsCoveredByInsuranceDefault,
                 SortOrder = entity.SortOrder
             };
         }
@@ -957,7 +938,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 TariffCategoryCode = entity.TariffCategoryCode,
                 TariffCategoryName = entity.TariffCategoryName,
                 TariffGroupName = entity.TariffGroupName,
-                IsCoveredByInsuranceDefault = entity.IsCoveredByInsuranceDefault,
                 IsActive = entity.IsActive
             };
         }

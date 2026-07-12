@@ -185,6 +185,24 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 x.IsActive,
                 x.IsDelete
             });
+
+            entity.HasIndex(x => new
+            {
+                x.InsuranceProviderId,
+                x.BenefitPlanCode,
+                x.IsEligible,
+                x.IsActive,
+                x.IsDelete
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.PatientId,
+                x.InsuranceProviderId,
+                x.BenefitPlanCode,
+                x.EffectiveStartDate,
+                x.EffectiveEndDate
+            });
         }
     }
 }

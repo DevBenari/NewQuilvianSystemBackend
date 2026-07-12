@@ -37,10 +37,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasColumnType("numeric(18,6)")
                 .HasDefaultValue(1);
 
-            entity.Property(x => x.ConversionFactor)
-                .HasColumnType("numeric(18,6)")
-                .HasDefaultValue(1);
-
             entity.Property(x => x.ConversionType)
                 .HasMaxLength(50)
                 .HasDefaultValue("General")

@@ -22,7 +22,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int ExpiryDateTrackedDrug { get; set; }
         public int FractionalDispenseAllowedDrug { get; set; }
         public int NeedPrescriptionDrug { get; set; }
-        public int CoveredByInsuranceDefaultDrug { get; set; }
+        public int PrescribableDrug { get; set; }
         public int NeedApprovalDrug { get; set; }
     }
 
@@ -47,8 +47,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? StrengthMeasurementCode { get; set; }
         public string? StrengthMeasurementName { get; set; }
         public string? StrengthMeasurementSymbol { get; set; }
-        public string? BaseUnit { get; set; }
-        public string? DispenseUnit { get; set; }
         public Guid? BaseUnitMeasurementId { get; set; }
         public string? BaseUnitMeasurementCode { get; set; }
         public string? BaseUnitMeasurementName { get; set; }
@@ -86,12 +84,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsExpiryDateTracked { get; set; }
         public bool IsAllowFractionalDispense { get; set; }
         public bool IsNeedPrescription { get; set; }
-        public bool IsCoveredByInsuranceDefault { get; set; }
+        public bool IsPrescribable { get; set; }
         public bool IsNeedApproval { get; set; }
-        public decimal DefaultPrice { get; set; }
-        public decimal? InsurancePrice { get; set; }
-        public decimal? MemberPrice { get; set; }
-        public decimal? CompanyPrice { get; set; }
         public string? ExternalDrugCode { get; set; }
         public string? IntegrationCode { get; set; }
         public string? BpomRegistrationNumber { get; set; }
@@ -136,13 +130,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? DrugFormName { get; set; }
         public string? Strength { get; set; }
         public decimal? StrengthValue { get; set; }
+        public Guid? StrengthMeasurementId { get; set; }
+        public string? StrengthMeasurementName { get; set; }
         public string? StrengthMeasurementSymbol { get; set; }
-        public string? BaseUnit { get; set; }
-        public string? DispenseUnit { get; set; }
+        public Guid? BaseUnitMeasurementId { get; set; }
+        public string? BaseUnitMeasurementName { get; set; }
         public string? BaseUnitMeasurementSymbol { get; set; }
+        public Guid? DispenseUnitMeasurementId { get; set; }
+        public string? DispenseUnitMeasurementName { get; set; }
         public string? DispenseUnitMeasurementSymbol { get; set; }
+        public Guid? PurchaseUnitMeasurementId { get; set; }
+        public string? PurchaseUnitMeasurementName { get; set; }
         public string? PurchaseUnitMeasurementSymbol { get; set; }
+        public Guid? StockUnitMeasurementId { get; set; }
+        public string? StockUnitMeasurementName { get; set; }
         public string? StockUnitMeasurementSymbol { get; set; }
+        public Guid? DefaultDoseUnitMeasurementId { get; set; }
+        public string? DefaultDoseUnitMeasurementName { get; set; }
         public string? DefaultDoseUnitMeasurementSymbol { get; set; }
         public string? Route { get; set; }
         public string? RouteName { get; set; }
@@ -156,13 +160,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsVaccine { get; set; }
         public bool IsConsumable { get; set; }
         public bool IsCompoundIngredientAllowed { get; set; }
+        public bool IsStockManaged { get; set; }
+        public bool IsAllowFractionalDispense { get; set; }
         public bool IsNeedPrescription { get; set; }
-        public bool IsCoveredByInsuranceDefault { get; set; }
+        public bool IsPrescribable { get; set; }
         public bool IsNeedApproval { get; set; }
-        public decimal DefaultPrice { get; set; }
-        public decimal? InsurancePrice { get; set; }
-        public decimal? MemberPrice { get; set; }
-        public decimal? CompanyPrice { get; set; }
+    }
+
+    public class DrugClinicalInformationResponse
+    {
+        public Guid DrugId { get; set; }
+        public string DrugCode { get; set; } = string.Empty;
+        public string DrugName { get; set; } = string.Empty;
+        public string? GenericName { get; set; }
+        public string? BrandName { get; set; }
+        public string? DrugForm { get; set; }
+        public string? Strength { get; set; }
+        public string? Route { get; set; }
+        public string? Indication { get; set; }
+        public string? Contraindication { get; set; }
+        public string? SideEffect { get; set; }
+        public string? WarningPrecaution { get; set; }
+        public string? DosageInformation { get; set; }
+        public string? DrugInteraction { get; set; }
+        public string? AdministrationInstruction { get; set; }
+        public string? StorageInstruction { get; set; }
+        public string? PregnancyCategory { get; set; }
+        public string? LactationNote { get; set; }
+        public string? PediatricNote { get; set; }
+        public string? GeriatricNote { get; set; }
+        public bool IsHighAlert { get; set; }
+        public bool IsNarcotic { get; set; }
+        public bool IsPsychotropic { get; set; }
+        public bool IsAntibiotic { get; set; }
     }
 
     public class DrugOptionPagedResponse
@@ -213,7 +243,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool? IsExpiryDateTracked { get; set; }
         public bool? IsAllowFractionalDispense { get; set; }
         public bool? IsNeedPrescription { get; set; }
-        public bool? IsCoveredByInsuranceDefault { get; set; }
+        public bool? IsPrescribable { get; set; }
         public bool? IsNeedApproval { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
@@ -270,11 +300,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid? StrengthMeasurementId { get; set; }
 
         [MaxLength(50)]
-        public string? BaseUnit { get; set; }
-
-        [MaxLength(50)]
-        public string? DispenseUnit { get; set; }
-
         public Guid? BaseUnitMeasurementId { get; set; }
         public Guid? DispenseUnitMeasurementId { get; set; }
         public Guid? PurchaseUnitMeasurementId { get; set; }
@@ -299,20 +324,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsExpiryDateTracked { get; set; } = true;
         public bool IsAllowFractionalDispense { get; set; } = false;
         public bool IsNeedPrescription { get; set; } = true;
-        public bool IsCoveredByInsuranceDefault { get; set; } = true;
+        public bool IsPrescribable { get; set; } = true;
         public bool IsNeedApproval { get; set; } = false;
-
-        [Range(typeof(decimal), "0", "999999999999")]
-        public decimal DefaultPrice { get; set; } = 0;
-
-        [Range(typeof(decimal), "0", "999999999999")]
-        public decimal? InsurancePrice { get; set; }
-
-        [Range(typeof(decimal), "0", "999999999999")]
-        public decimal? MemberPrice { get; set; }
-
-        [Range(typeof(decimal), "0", "999999999999")]
-        public decimal? CompanyPrice { get; set; }
 
         [MaxLength(1000)]
         public string? Indication { get; set; }

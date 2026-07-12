@@ -27,6 +27,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string ServiceUnitName { get; set; } = string.Empty;
         public Guid? ClinicId { get; set; }
         public string? ClinicName { get; set; }
+        public Guid? RoomId { get; set; }
+        public string? RoomCode { get; set; }
+        public string? RoomName { get; set; }
+        public string? RoomNumber { get; set; }
+        public string? RoomLocationName { get; set; }
+        public string? RoomFloorName { get; set; }
         public Guid? DoctorId { get; set; }
         public string? DoctorName { get; set; }
         public string? DoctorCode { get; set; }
@@ -93,8 +99,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string PaymentTypeName { get; set; } = string.Empty;
         public Guid? PaymentMethodId { get; set; }
         public string? PaymentMethodName { get; set; }
-        public string? PrimaryGuarantorNameSnapshot { get; set; }
-        public string? PrimaryGuarantorTypeSnapshot { get; set; }
+        public string? PaymentSourceNameSnapshot { get; set; }
+        public Guid? PatientInsuranceId { get; set; }
+        public Guid? InsuranceProviderId { get; set; }
+        public string? InsuranceProviderName { get; set; }
+        public bool IsInsuranceEligible { get; set; }
+        public bool IsInsurancePolicyActive { get; set; }
 
         public int PatientTotalVisitCount { get; set; }
         public int PatientVisitNumber { get; set; }

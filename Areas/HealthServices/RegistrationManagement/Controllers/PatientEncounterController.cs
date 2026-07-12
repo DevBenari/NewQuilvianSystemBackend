@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -36,7 +36,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         displayName: "Patient Encounter",
         AreaName = "HealthServices",
         ControllerName = "PatientEncounter",
-        Description = "Transaksi kunjungan pasien rawat jalan dan penjamin kunjungan",
+        Description = "Transaksi kunjungan pasien rawat jalan dan sumber pembayaran",
         SortOrder = 2
     )]
     [Tags("Health Services / Registration Management / Patient Encounter")]
@@ -45,7 +45,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private const string LogCategory = "HealthServices.RegistrationManagement";
         private const string KioskReadPolicy = "KioskRead";
         private const string EncounterCodePrefix = "ENC-RSMMC-";
-        private const string EncounterGuarantorCodePrefix = "EGT-RSMMC-";
+        private const string PaymentSourceCodePrefix = "EGT-RSMMC-";
         private const int CodeNumberLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
@@ -90,7 +90,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 RelationFilters = new List<PatientEncounterRelationFilterResponse>
                 {
                     new() { Value = "patientId", Label = "Patient", Endpoint = "/api/v1/health-services/patient-management/master-data/patients/options" },
-                    new() { Value = "serviceUnitId", Label = "Service Unit", Endpoint = "/api/v1/health-services/master-data/service-units/options" }
+                    new() { Value = "serviceUnitId", Label = "Service Unit", Endpoint = "/api/v1/health-services/master-data/service-units/options" },
+                    new() { Value = "roomId", Label = "Ruangan", Endpoint = "/api/v1/health-services/master-data/rooms/options" }
                 },
                 SortOptions = new List<PatientEncounterSortOptionResponse>
                 {
@@ -103,6 +104,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     new() { Value = "medicalRecordNumber", Label = "Nomor rekam medis" },
                     new() { Value = "serviceUnitName", Label = "Service unit" },
                     new() { Value = "clinicName", Label = "Clinic" },
+                    new() { Value = "roomName", Label = "Ruangan" },
                     new() { Value = "doctorName", Label = "Dokter" },
                     new() { Value = "encounterStatus", Label = "Status encounter" },
                     new() { Value = "paymentType", Label = "Tipe pembayaran" }
@@ -114,14 +116,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 RegistrationSourceOptions = BuildEnumOptions<EncounterRegistrationSource>(),
                 EncounterStatusOptions = BuildEnumOptions<EncounterStatus>(),
                 PaymentTypeOptions = BuildEnumOptions<EncounterPaymentType>(),
-                GuarantorTypeOptions = BuildEnumOptions<PatientEncounterGuarantorType>(),
-                GuarantorStatusOptions = BuildEnumOptions<PatientEncounterGuarantorStatus>(),
-                GuarantorRoleOptions = BuildEnumOptions<PatientEncounterGuarantorRole>(),
                 ResetButtonLabel = "Reset"
             };
 
-            await _loggerService.InfoAsync(LogCategory, "PatientEncounter.GetFilterMetadataForKiosk", "Mengambil metadata filter patient encounter.", result);
-            return Ok(ApiResponse<PatientEncounterFilterMetadataResponse>.Ok(result, "Metadata filter patient encounter berhasil diambil."));
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientEncounter.GetFilterMetadataForKiosk",
+                "Mengambil metadata filter patient encounter.",
+                result);
+
+            return Ok(ApiResponse<PatientEncounterFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter patient encounter berhasil diambil."));
         }
 
         [HttpGet("summary")]
@@ -143,7 +149,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var query = BuildBaseQuery();
             query = ApplyDateFilter(query, startDate, endDate, customPeriod);
             query = ApplyRelationFilter(query, patientId, serviceUnitId);
-            query = ApplyStandardFilter(query, encounterStatus, encounterType, paymentType, null, null, null, null, null, isActive, null);
+            query = ApplyStandardFilter(
+                query,
+                encounterStatus,
+                encounterType,
+                paymentType,
+                isReferral: null,
+                isActive: isActive,
+                search: null);
 
             var result = new PatientEncounterSummaryResponse
             {
@@ -154,17 +167,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 CompletedEncounter = await query.CountAsync(x => x.CompletedAt.HasValue),
                 CancelledEncounter = await query.CountAsync(x => x.CancelledAt.HasValue || x.IsCancel),
                 NoShowEncounter = await query.CountAsync(x => x.NoShowAt.HasValue),
-                InsuranceEncounter = await query.CountAsync(x => x.IsInsurancePatient),
-                CompanyEncounter = await query.CountAsync(x => x.IsCompanyPatient),
-                MembershipEncounter = await query.CountAsync(x => x.IsMembershipPatient),
-                MixedPaymentEncounter = await query.CountAsync(x => x.IsMixedPayment),
+                CashEncounter = await query.CountAsync(x => x.PaymentType == EncounterPaymentType.Cash),
+                InsuranceEncounter = await query.CountAsync(x => x.PaymentType == EncounterPaymentType.Insurance),
                 ReferralEncounter = await query.CountAsync(x => x.IsReferral),
-                EligibilityRequiredEncounter = await query.CountAsync(x => x.IsEligibilityRequired),
-                EligibilityCompletedEncounter = await query.CountAsync(x => x.IsEligibilityCompleted),
                 FromKioskEncounter = await query.CountAsync(x => x.IsFromKiosk)
             };
 
-            return Ok(ApiResponse<PatientEncounterSummaryResponse>.Ok(result, "Ringkasan patient encounter berhasil diambil."));
+            return Ok(ApiResponse<PatientEncounterSummaryResponse>.Ok(
+                result,
+                "Ringkasan patient encounter berhasil diambil."));
         }
 
         [HttpGet]
@@ -179,14 +190,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             [FromQuery] Guid? patientId,
             [FromQuery] Guid? serviceUnitId,
             [FromQuery] Guid? clinicId,
+            [FromQuery] Guid? roomId,
             [FromQuery] Guid? doctorId,
             [FromQuery] EncounterStatus? encounterStatus,
             [FromQuery] EncounterType? encounterType,
             [FromQuery] EncounterPaymentType? paymentType,
-            [FromQuery] bool? isInsurancePatient,
-            [FromQuery] bool? isCompanyPatient,
-            [FromQuery] bool? isEligibilityRequired,
-            [FromQuery] bool? isEligibilityCompleted,
             [FromQuery] bool? isReferral,
             [FromQuery] bool? isActive,
             [FromQuery] string? search,
@@ -202,15 +210,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var query = BuildBaseQuery();
             query = ApplyDateFilter(query, startDate, endDate, customPeriod);
             query = ApplyRelationFilter(query, patientId, serviceUnitId);
-            query = ApplyStandardFilter(query, encounterStatus, encounterType, paymentType, isInsurancePatient, isCompanyPatient, isEligibilityRequired, isEligibilityCompleted, isReferral, isActive, search);
+            query = ApplyStandardFilter(
+                query,
+                encounterStatus,
+                encounterType,
+                paymentType,
+                isReferral,
+                isActive,
+                search);
 
-            if (clinicId.HasValue && clinicId.Value != Guid.Empty) query = query.Where(x => x.ClinicId == clinicId.Value);
-            if (doctorId.HasValue && doctorId.Value != Guid.Empty) query = query.Where(x => x.DoctorId == doctorId.Value);
+            if (clinicId.HasValue && clinicId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.ClinicId == clinicId.Value);
+            }
+
+            if (roomId.HasValue && roomId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.RoomId == roomId.Value);
+            }
+
+            if (doctorId.HasValue && doctorId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.DoctorId == doctorId.Value);
+            }
 
             var totalData = await query.CountAsync();
-            var entities = await ApplySorting(query, sortBy, sortDirection).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
-            var actorNames = await GetActorNameMapAsync(entities.SelectMany(x => new[] { x.CreateBy, x.UpdateBy, x.RegisteredByUserId, x.CancelledByUserId ?? Guid.Empty, x.NoShowByUserId ?? Guid.Empty }));
-            var items = entities.Select(x => MapResponse(x, actorNames)).ToList();
+            var entities = await ApplySorting(query, sortBy, sortDirection)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(
+                entities.SelectMany(x => new[]
+                {
+                    x.CreateBy,
+                    x.UpdateBy,
+                    x.RegisteredByUserId,
+                    x.CancelledByUserId ?? Guid.Empty,
+                    x.NoShowByUserId ?? Guid.Empty
+                }));
+
+            var items = entities
+                .Select(x => MapResponse(x, actorNames))
+                .ToList();
 
             var result = new ResponsePatientEncounterPagedResult
             {
@@ -221,7 +263,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 Items = items
             };
 
-            return Ok(ApiResponse<ResponsePatientEncounterPagedResult>.Ok(result, "Data kunjungan pasien berhasil diambil."));
+            return Ok(ApiResponse<ResponsePatientEncounterPagedResult>.Ok(
+                result,
+                "Data kunjungan pasien berhasil diambil."));
         }
 
         [HttpGet("admin/options")]
@@ -279,6 +323,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
                     (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
                     (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.RoomCode.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.RoomName.ToLower().Contains(keyword)) ||
                     (x.Doctor != null && x.Doctor.FullName.ToLower().Contains(keyword)));
             }
 
@@ -306,23 +352,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         public async Task<IActionResult> GetById(Guid id)
         {
             var entity = await BuildBaseQuery()
-                .Include(x => x.EncounterGuarantors.Where(g => !g.IsDelete))
-                    .ThenInclude(x => x.PaymentMethod)
-                .Include(x => x.EncounterGuarantors.Where(g => !g.IsDelete))
-                    .ThenInclude(x => x.InsuranceProvider)
-                .Include(x => x.EncounterGuarantors.Where(g => !g.IsDelete))
-                    .ThenInclude(x => x.CompanyGuarantor)
+                .Include(x => x.PaymentSource)
+                    .ThenInclude(x => x!.PaymentMethod)
+                .Include(x => x.PaymentSource)
+                    .ThenInclude(x => x!.InsuranceProvider)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
             {
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Kunjungan pasien tidak ditemukan."));
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Kunjungan pasien tidak ditemukan."));
             }
 
-            var actorNames = await GetActorNameMapAsync(new[] { entity.CreateBy, entity.UpdateBy, entity.RegisteredByUserId, entity.CancelledByUserId ?? Guid.Empty, entity.NoShowByUserId ?? Guid.Empty });
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                entity.CreateBy,
+                entity.UpdateBy,
+                entity.RegisteredByUserId,
+                entity.CancelledByUserId ?? Guid.Empty,
+                entity.NoShowByUserId ?? Guid.Empty
+            });
 
-            return Ok(ApiResponse<PatientEncounterDetailResponse>.Ok(MapDetailResponse(entity, actorNames), "Detail kunjungan pasien berhasil diambil."));
+            return Ok(ApiResponse<PatientEncounterDetailResponse>.Ok(
+                MapDetailResponse(entity, actorNames),
+                "Detail kunjungan pasien berhasil diambil."));
         }
 
         [HttpPost("admin")]
@@ -339,13 +394,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien beserta penjamin", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien dengan satu sumber pembayaran", AccessType = AccessTypes.Create, SortOrder = 2)]
         public async Task<IActionResult> CreateEncounterForKiosk([FromBody] PatientEncounterCreateRequest request)
         {
             var now = DateTime.UtcNow;
             var operationalDate = ToUtcDate(AppDateTimeHelper.OperationalDate());
 
-            var targetDateResult = await ResolveTargetEncounterDateAsync(request, operationalDate);
+            var targetDateResult = await ResolveTargetEncounterDateAsync(
+                request,
+                operationalDate);
 
             if (!targetDateResult.IsValid)
             {
@@ -355,33 +412,77 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             }
 
             var targetEncounterDate = targetDateResult.TargetDate;
-            var validation = await ValidateCreateRequestAsync(request, targetEncounterDate, operationalDate);
+            var validation = await ValidateCreateRequestAsync(
+                request,
+                targetEncounterDate,
+                operationalDate);
 
             if (!validation.IsValid)
             {
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validation.ErrorMessage ?? "Data kunjungan pasien tidak valid."));
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Data kunjungan pasien tidak valid."));
+            }
+
+            var roomResolution = await ResolveEncounterRoomAsync(request);
+            if (!roomResolution.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    roomResolution.ErrorMessage ?? "Ruangan pelayanan tidak valid."));
+            }
+
+            var room = roomResolution.Room;
+
+            MstPatientInsurance? patientInsurance = null;
+
+            if (request.PaymentType == EncounterPaymentType.Insurance)
+            {
+                var insuranceResult = await LoadValidPatientInsuranceAsync(
+                    request.PatientId,
+                    request.PatientInsuranceId!.Value,
+                    targetEncounterDate);
+
+                if (insuranceResult.Insurance == null)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        insuranceResult.ErrorMessage ?? "Asuransi pasien tidak valid."));
+                }
+
+                patientInsurance = insuranceResult.Insurance;
             }
 
             var actorUserId = GetCurrentUserId();
 
-            var serviceUnit = await _dbContext.Set<MstServiceUnit>().AsNoTracking().FirstAsync(x => x.Id == request.ServiceUnitId);
+            var serviceUnit = await _dbContext.Set<MstServiceUnit>()
+                .AsNoTracking()
+                .FirstAsync(x => x.Id == request.ServiceUnitId);
+
             MstClinic? clinic = null;
 
             if (request.ClinicId.HasValue && request.ClinicId.Value != Guid.Empty)
             {
-                clinic = await _dbContext.Set<MstClinic>().AsNoTracking().FirstAsync(x => x.Id == request.ClinicId.Value);
+                clinic = await _dbContext.Set<MstClinic>()
+                    .AsNoTracking()
+                    .FirstAsync(x => x.Id == request.ClinicId.Value);
             }
 
             var isScreeningRequired = clinic?.IsScreeningRequired ?? serviceUnit.IsScreeningRequired;
             var isQueueRequired = clinic?.IsQueueRequired ?? serviceUnit.IsQueueRequired;
             var isDoctorRequired = clinic?.IsDoctorRequired ?? serviceUnit.IsDoctorRequired;
-            var guarantorRequests = BuildDefaultGuarantorsIfEmpty(request);
 
             var patient = await _dbContext.Set<MstPatient>()
                 .AsNoTracking()
-                .FirstAsync(x => x.Id == request.PatientId && x.IsActive && !x.IsDelete);
+                .FirstAsync(x =>
+                    x.Id == request.PatientId &&
+                    x.IsActive &&
+                    !x.IsDelete);
 
-            var ageSnapshot = await BuildAgeSnapshotAsync(patient.BirthDate, targetEncounterDate, now);
+            var ageSnapshot = await BuildAgeSnapshotAsync(
+                patient.BirthDate,
+                targetEncounterDate,
+                now);
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
@@ -394,11 +495,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     PatientId = request.PatientId,
                     ServiceUnitId = request.ServiceUnitId,
                     ClinicId = NormalizeNullableGuid(request.ClinicId),
+                    RoomId = room?.Id,
                     DoctorId = NormalizeNullableGuid(request.DoctorId),
                     DoctorScheduleId = NormalizeNullableGuid(request.DoctorScheduleId),
                     DoctorServiceRuleId = NormalizeNullableGuid(request.DoctorServiceRuleId),
                     PatientClassId = NormalizeNullableGuid(request.PatientClassId),
-                    PaymentMethodId = NormalizeNullableGuid(request.PaymentMethodId),
+                    PaymentMethodId = request.PaymentType == EncounterPaymentType.Cash
+                        ? NormalizeNullableGuid(request.PaymentMethodId)
+                        : null,
                     KioskScanSessionId = NormalizeNullableGuid(request.KioskScanSessionId),
                     AgeCategoryId = ageSnapshot.AgeCategoryId,
                     AgeYearAtEncounter = ageSnapshot.AgeYear,
@@ -415,12 +519,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     VisitType = request.VisitType,
                     RegistrationSource = request.RegistrationSource,
                     PaymentType = request.PaymentType,
-                    EncounterStatus = isQueueRequired ? EncounterStatus.Queued : EncounterStatus.Registered,
+                    EncounterStatus = isQueueRequired
+                        ? EncounterStatus.Queued
+                        : EncounterStatus.Registered,
                     ChiefComplaint = NormalizeNullableText(request.ChiefComplaint),
-                    EligibilityReferenceNumber = NormalizeNullableText(request.EligibilityReferenceNumber),
-                    EligibilityCheckedAt = request.EligibilityCheckedAt,
-                    IsEligibilityRequired = request.IsEligibilityRequired,
-                    IsEligibilityCompleted = request.IsEligibilityCompleted,
                     IsReferral = request.IsReferral,
                     ReferralNumber = NormalizeNullableText(request.ReferralNumber),
                     IsReferralRequired = request.IsReferralRequired,
@@ -442,24 +544,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     IsCancel = false
                 };
 
+                var paymentSource = await BuildPaymentSourceAsync(
+                    encounter.Id,
+                    request,
+                    patientInsurance,
+                    now,
+                    actorUserId);
+
+                ApplyEncounterPaymentSummary(encounter, paymentSource);
+
                 _dbContext.Set<TrxPatientEncounter>().Add(encounter);
-
-                var guarantors = new List<TrxPatientEncounterGuarantor>();
-
-                foreach (var guarantorRequest in guarantorRequests.OrderBy(x => x.CoveragePriority))
-                {
-                    var guarantor = await BuildGuarantorEntityAsync(encounter.Id, request.PatientId, guarantorRequest, now, actorUserId);
-                    guarantors.Add(guarantor);
-                    _dbContext.Set<TrxPatientEncounterGuarantor>().Add(guarantor);
-                }
-
-                ApplyEncounterPaymentSummary(encounter, guarantors, now, actorUserId);
+                _dbContext.Set<TrxPatientEncounterGuarantor>().Add(paymentSource);
 
                 TrxQueue? queue = null;
 
                 if (isQueueRequired)
                 {
-                    var queueNumber = await GenerateQueueNumberAsync(targetEncounterDate, request.ServiceUnitId, request.ClinicId);
+                    var queueNumber = await GenerateQueueNumberAsync(
+                        targetEncounterDate,
+                        request.ServiceUnitId,
+                        request.ClinicId);
 
                     queue = new TrxQueue
                     {
@@ -473,7 +577,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         QueueDate = targetEncounterDate,
                         QueueNumber = queueNumber,
                         QueueCode = GenerateQueueCode(clinic, queueNumber),
-                        QueueStatus = isScreeningRequired ? QueueStatus.WaitingForNurse : QueueStatus.WaitingForDoctor,
+                        QueueStatus = isScreeningRequired
+                            ? QueueStatus.WaitingForNurse
+                            : QueueStatus.WaitingForDoctor,
                         IsFromKiosk = encounter.IsFromKiosk,
                         IsWalkIn = request.IsWalkIn,
                         IsAppointment = request.IsAppointment,
@@ -487,12 +593,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     };
 
                     _dbContext.Set<TrxQueue>().Add(queue);
-                    encounter.EncounterStatus = isScreeningRequired ? EncounterStatus.WaitingForNurse : EncounterStatus.WaitingForDoctor;
+                    encounter.EncounterStatus = isScreeningRequired
+                        ? EncounterStatus.WaitingForNurse
+                        : EncounterStatus.WaitingForDoctor;
                 }
 
-                if (request.KioskScanSessionId.HasValue && request.KioskScanSessionId.Value != Guid.Empty)
+                if (request.KioskScanSessionId.HasValue &&
+                    request.KioskScanSessionId.Value != Guid.Empty)
                 {
-                    var scanSession = await _dbContext.Set<TrxKioskScanSession>().FirstOrDefaultAsync(x => x.Id == request.KioskScanSessionId.Value && !x.IsDelete);
+                    var scanSession = await _dbContext.Set<TrxKioskScanSession>()
+                        .FirstOrDefaultAsync(x =>
+                            x.Id == request.KioskScanSessionId.Value &&
+                            !x.IsDelete);
 
                     if (scanSession != null)
                     {
@@ -507,7 +619,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
                 if (queue != null)
                 {
-                    await _queueRealtimeService.NotifyQueueCreatedAsync(queue, actorUserId, "Antrean pasien baru dibuat.");
+                    await _queueRealtimeService.NotifyQueueCreatedAsync(
+                        queue,
+                        actorUserId,
+                        "Antrean pasien baru dibuat.");
                 }
 
                 var response = new PatientEncounterCreateResponse
@@ -520,7 +635,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     QueueCode = queue?.QueueCode,
                     QueueNumber = queue?.QueueNumber,
                     QueueStatus = queue?.QueueStatus,
-                    QueueStatusName = queue?.QueueStatus != null ? BuildEnumLabel(queue.QueueStatus) : null,
+                    QueueStatusName = queue?.QueueStatus != null
+                        ? BuildEnumLabel(queue.QueueStatus)
+                        : null,
                     EncounterDate = encounter.EncounterDate,
                     QueueDate = queue?.QueueDate,
                     IsFutureVisit = encounter.EncounterDate > operationalDate,
@@ -528,6 +645,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     IsScreeningRequired = isScreeningRequired,
                     IsDoctorRequired = isDoctorRequired,
                     IsQueueRequired = isQueueRequired,
+                    RoomId = encounter.RoomId,
+                    RoomCode = room?.RoomCode,
+                    RoomName = room?.RoomName,
+                    RoomNumber = room?.RoomNumber,
                     AgeCategoryId = encounter.AgeCategoryId,
                     AgeCategoryCode = encounter.AgeCategoryCodeSnapshot,
                     AgeCategoryName = encounter.AgeCategoryNameSnapshot,
@@ -538,20 +659,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     AgeTextAtEncounter = encounter.AgeTextAtEncounter,
                     AgeReferenceDate = encounter.AgeReferenceDate,
                     AgeCalculatedAt = encounter.AgeCalculatedAt,
-                    GuarantorCount = guarantors.Count,
-                    Guarantors = guarantors.Select(MapGuarantorCreateResponse).ToList()
+                    Payment = MapPaymentSourceResponse(paymentSource)
                 };
 
-                await _loggerService.InfoAsync(LogCategory, "PatientEncounter.CreateEncounterForKiosk", "Membuat transaksi kunjungan pasien beserta penjamin.", response);
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "PatientEncounter.CreateEncounterForKiosk",
+                    "Membuat transaksi kunjungan pasien dengan satu sumber pembayaran.",
+                    response);
 
-                return Ok(ApiResponse<PatientEncounterCreateResponse>.Ok(response, "Transaksi kunjungan pasien berhasil dibuat."));
+                return Ok(ApiResponse<PatientEncounterCreateResponse>.Ok(
+                    response,
+                    "Transaksi kunjungan pasien berhasil dibuat."));
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                await _loggerService.ErrorAsync(LogCategory, "PatientEncounter.CreateEncounterForKiosk", "Gagal membuat transaksi kunjungan pasien.", ex);
 
-                return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail(StatusCodes.Status500InternalServerError, "Terjadi kesalahan saat membuat transaksi kunjungan pasien."));
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "PatientEncounter.CreateEncounterForKiosk",
+                    "Gagal membuat transaksi kunjungan pasien.",
+                    ex);
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat membuat transaksi kunjungan pasien."));
             }
         }
 
@@ -702,16 +837,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 entity.Notes = request.DeleteReason.Trim();
             }
 
-            var guarantors = await _dbContext.Set<TrxPatientEncounterGuarantor>().Where(x => x.EncounterId == id && !x.IsDelete).ToListAsync();
+            var paymentSource = await _dbContext.Set<TrxPatientEncounterGuarantor>()
+                .FirstOrDefaultAsync(x => x.EncounterId == id && !x.IsDelete);
 
-            foreach (var guarantor in guarantors)
+            if (paymentSource != null)
             {
-                guarantor.IsDelete = true;
-                guarantor.IsActive = false;
-                guarantor.DeleteDateTime = now;
-                guarantor.DeleteBy = actorUserId;
-                guarantor.UpdateDateTime = now;
-                guarantor.UpdateBy = actorUserId;
+                paymentSource.IsDelete = true;
+                paymentSource.IsActive = false;
+                paymentSource.DeleteDateTime = now;
+                paymentSource.DeleteBy = actorUserId;
+                paymentSource.UpdateDateTime = now;
+                paymentSource.UpdateBy = actorUserId;
             }
 
             var cancelledQueues = await CancelQueuesByEncounterAsync(entity.Id, now, actorUserId, request?.DeleteReason ?? "Encounter deleted.");
@@ -731,10 +867,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .Include(x => x.Patient)
                 .Include(x => x.ServiceUnit)
                 .Include(x => x.Clinic)
+                .Include(x => x.Room)
                 .Include(x => x.Doctor)
                 .Include(x => x.PatientClass)
                 .Include(x => x.AgeCategory)
                 .Include(x => x.PaymentMethod)
+                .Include(x => x.PaymentSource)
                 .Include(x => x.RegisteredByUser)
                 .Include(x => x.CancelledByUser)
                 .Include(x => x.NoShowByUser)
@@ -798,23 +936,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             EncounterStatus? encounterStatus,
             EncounterType? encounterType,
             EncounterPaymentType? paymentType,
-            bool? isInsurancePatient,
-            bool? isCompanyPatient,
-            bool? isEligibilityRequired,
-            bool? isEligibilityCompleted,
             bool? isReferral,
             bool? isActive,
             string? search)
         {
-            if (encounterStatus.HasValue) query = query.Where(x => x.EncounterStatus == encounterStatus.Value);
-            if (encounterType.HasValue) query = query.Where(x => x.EncounterType == encounterType.Value);
-            if (paymentType.HasValue) query = query.Where(x => x.PaymentType == paymentType.Value);
-            if (isInsurancePatient.HasValue) query = query.Where(x => x.IsInsurancePatient == isInsurancePatient.Value);
-            if (isCompanyPatient.HasValue) query = query.Where(x => x.IsCompanyPatient == isCompanyPatient.Value);
-            if (isEligibilityRequired.HasValue) query = query.Where(x => x.IsEligibilityRequired == isEligibilityRequired.Value);
-            if (isEligibilityCompleted.HasValue) query = query.Where(x => x.IsEligibilityCompleted == isEligibilityCompleted.Value);
-            if (isReferral.HasValue) query = query.Where(x => x.IsReferral == isReferral.Value);
-            if (isActive.HasValue) query = query.Where(x => x.IsActive == isActive.Value);
+            if (encounterStatus.HasValue)
+            {
+                query = query.Where(x => x.EncounterStatus == encounterStatus.Value);
+            }
+
+            if (encounterType.HasValue)
+            {
+                query = query.Where(x => x.EncounterType == encounterType.Value);
+            }
+
+            if (paymentType.HasValue)
+            {
+                query = query.Where(x => x.PaymentType == paymentType.Value);
+            }
+
+            if (isReferral.HasValue)
+            {
+                query = query.Where(x => x.IsReferral == isReferral.Value);
+            }
+
+            if (isActive.HasValue)
+            {
+                query = query.Where(x => x.IsActive == isActive.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -827,45 +976,113 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
                     (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
                     (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.RoomName.ToLower().Contains(keyword)) ||
+                    (x.Room != null && x.Room.RoomNumber != null && x.Room.RoomNumber.ToLower().Contains(keyword)) ||
                     (x.Doctor != null && x.Doctor.FullName.ToLower().Contains(keyword)) ||
                     (x.PaymentMethod != null && x.PaymentMethod.PaymentMethodName.ToLower().Contains(keyword)) ||
                     (x.AgeCategoryCodeSnapshot != null && x.AgeCategoryCodeSnapshot.ToLower().Contains(keyword)) ||
                     (x.AgeCategoryNameSnapshot != null && x.AgeCategoryNameSnapshot.ToLower().Contains(keyword)) ||
                     (x.AgeTextAtEncounter != null && x.AgeTextAtEncounter.ToLower().Contains(keyword)) ||
-                    (x.PrimaryGuarantorNameSnapshot != null && x.PrimaryGuarantorNameSnapshot.ToLower().Contains(keyword)) ||
-                    (x.ReferralNumber != null && x.ReferralNumber.ToLower().Contains(keyword)) ||
-                    (x.EligibilityReferenceNumber != null && x.EligibilityReferenceNumber.ToLower().Contains(keyword)));
+                    (x.PaymentSource != null &&
+                     x.PaymentSource.PaymentSourceNameSnapshot != null &&
+                     x.PaymentSource.PaymentSourceNameSnapshot.ToLower().Contains(keyword)) ||
+                    (x.ReferralNumber != null && x.ReferralNumber.ToLower().Contains(keyword)));
             }
 
             return query;
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(PatientEncounterCreateRequest request, DateTime targetEncounterDate, DateTime operationalDate)
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(
+            PatientEncounterCreateRequest request,
+            DateTime targetEncounterDate,
+            DateTime operationalDate)
         {
-            if (request.PatientId == Guid.Empty) return (false, "Pasien wajib dipilih.");
-            if (request.ServiceUnitId == Guid.Empty) return (false, "Service unit wajib dipilih.");
+            if (request.PatientId == Guid.Empty)
+            {
+                return (false, "Pasien wajib dipilih.");
+            }
 
-            if (!Enum.IsDefined(typeof(EncounterType), request.EncounterType)) return (false, "Tipe encounter tidak valid. Gunakan nilai dari endpoint filters/metadata.");
-            if (!Enum.IsDefined(typeof(VisitType), request.VisitType)) return (false, "Tipe visit tidak valid. Gunakan nilai dari endpoint filters/metadata.");
-            if (!Enum.IsDefined(typeof(EncounterRegistrationSource), request.RegistrationSource)) return (false, "Sumber registrasi tidak valid. Gunakan nilai dari endpoint filters/metadata.");
-            if (!Enum.IsDefined(typeof(EncounterPaymentType), request.PaymentType)) return (false, "Tipe pembayaran tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            if (request.ServiceUnitId == Guid.Empty)
+            {
+                return (false, "Service unit wajib dipilih.");
+            }
 
-            var patientExists = await _dbContext.Set<MstPatient>().AsNoTracking().AnyAsync(x => x.Id == request.PatientId && x.IsActive && !x.IsDelete);
-            if (!patientExists) return (false, "Pasien tidak valid atau tidak aktif.");
+            if (!Enum.IsDefined(typeof(EncounterType), request.EncounterType))
+            {
+                return (false, "Tipe encounter tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
 
-            var serviceUnitExists = await _dbContext.Set<MstServiceUnit>().AsNoTracking().AnyAsync(x => x.Id == request.ServiceUnitId && x.IsActive && !x.IsDelete && x.IsAvailableForRegistration);
-            if (!serviceUnitExists) return (false, "Service unit tidak valid, tidak aktif, atau tidak tersedia untuk registrasi.");
+            if (!Enum.IsDefined(typeof(VisitType), request.VisitType))
+            {
+                return (false, "Tipe visit tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (!Enum.IsDefined(typeof(EncounterRegistrationSource), request.RegistrationSource))
+            {
+                return (false, "Sumber registrasi tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (request.PaymentType != EncounterPaymentType.Cash &&
+                request.PaymentType != EncounterPaymentType.Insurance)
+            {
+                return (false, "Tipe pembayaran registrasi hanya mendukung Tunai atau Asuransi.");
+            }
+
+            var patientExists = await _dbContext.Set<MstPatient>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.Id == request.PatientId &&
+                    x.IsActive &&
+                    !x.IsDelete);
+
+            if (!patientExists)
+            {
+                return (false, "Pasien tidak valid atau tidak aktif.");
+            }
+
+            var serviceUnitExists = await _dbContext.Set<MstServiceUnit>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.Id == request.ServiceUnitId &&
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    x.IsAvailableForRegistration);
+
+            if (!serviceUnitExists)
+            {
+                return (false, "Service unit tidak valid, tidak aktif, atau tidak tersedia untuk registrasi.");
+            }
 
             if (request.ClinicId.HasValue && request.ClinicId.Value != Guid.Empty)
             {
-                var clinicExists = await _dbContext.Set<MstClinic>().AsNoTracking().AnyAsync(x => x.Id == request.ClinicId.Value && x.ServiceUnitId == request.ServiceUnitId && x.IsActive && !x.IsDelete && x.IsAvailableForRegistration);
-                if (!clinicExists) return (false, "Clinic tidak valid, tidak aktif, atau tidak tersedia untuk registrasi.");
+                var clinicExists = await _dbContext.Set<MstClinic>()
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == request.ClinicId.Value &&
+                        x.ServiceUnitId == request.ServiceUnitId &&
+                        x.IsActive &&
+                        !x.IsDelete &&
+                        x.IsAvailableForRegistration);
+
+                if (!clinicExists)
+                {
+                    return (false, "Clinic tidak valid, tidak aktif, atau tidak tersedia untuk registrasi.");
+                }
             }
 
             if (request.DoctorId.HasValue && request.DoctorId.Value != Guid.Empty)
             {
-                var doctorExists = await _dbContext.Set<MstDoctor>().AsNoTracking().AnyAsync(x => x.Id == request.DoctorId.Value && x.IsActive && !x.IsDelete);
-                if (!doctorExists) return (false, "Dokter tidak valid atau tidak aktif.");
+                var doctorExists = await _dbContext.Set<MstDoctor>()
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == request.DoctorId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
+
+                if (!doctorExists)
+                {
+                    return (false, "Dokter tidak valid atau tidak aktif.");
+                }
             }
 
             if (targetEncounterDate < operationalDate)
@@ -873,11 +1090,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return (false, "Tanggal kunjungan tidak boleh lebih kecil dari tanggal operasional.");
             }
 
-            if (request.IsAppointment && !request.VisitDate.HasValue && request.DoctorScheduleId.HasValue)
+            if (request.IsAppointment &&
+                !request.VisitDate.HasValue &&
+                request.DoctorScheduleId.HasValue)
             {
                 var scheduleType = await _dbContext.Set<MstDoctorSchedule>()
                     .AsNoTracking()
-                    .Where(x => x.Id == request.DoctorScheduleId.Value && !x.IsDelete)
+                    .Where(x =>
+                        x.Id == request.DoctorScheduleId.Value &&
+                        !x.IsDelete)
                     .Select(x => x.ScheduleType)
                     .FirstOrDefaultAsync();
 
@@ -887,7 +1108,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 }
             }
 
-            if (request.DoctorScheduleId.HasValue && request.DoctorScheduleId.Value != Guid.Empty)
+            if (request.DoctorScheduleId.HasValue &&
+                request.DoctorScheduleId.Value != Guid.Empty)
             {
                 var scheduleValidation = await ValidateDoctorScheduleForEncounterAsync(
                     request,
@@ -899,113 +1121,248 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 }
             }
 
-            if (request.DoctorServiceRuleId.HasValue && request.DoctorServiceRuleId.Value != Guid.Empty)
+            if (request.DoctorServiceRuleId.HasValue &&
+                request.DoctorServiceRuleId.Value != Guid.Empty)
             {
-                var ruleExists = await _dbContext.Set<MstDoctorServiceRule>().AsNoTracking().AnyAsync(x =>
-                    x.Id == request.DoctorServiceRuleId.Value &&
-                    x.IsActive &&
-                    !x.IsDelete &&
-                    (!request.DoctorId.HasValue || x.DoctorId == request.DoctorId.Value) &&
-                    x.ServiceUnitId == request.ServiceUnitId);
+                var ruleExists = await _dbContext.Set<MstDoctorServiceRule>()
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == request.DoctorServiceRuleId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete &&
+                        (!request.DoctorId.HasValue || x.DoctorId == request.DoctorId.Value) &&
+                        x.ServiceUnitId == request.ServiceUnitId);
 
-                if (!ruleExists) return (false, "Doctor service rule tidak valid, tidak aktif, atau tidak sesuai dokter/service unit.");
+                if (!ruleExists)
+                {
+                    return (false, "Doctor service rule tidak valid, tidak aktif, atau tidak sesuai dokter/service unit.");
+                }
             }
 
-            if (request.PatientClassId.HasValue && request.PatientClassId.Value != Guid.Empty)
+            if (request.PatientClassId.HasValue &&
+                request.PatientClassId.Value != Guid.Empty)
             {
-                var patientClassExists = await _dbContext.Set<MstPatientClass>().AsNoTracking().AnyAsync(x => x.Id == request.PatientClassId.Value && x.IsActive && !x.IsDelete);
-                if (!patientClassExists) return (false, "Patient class tidak valid atau tidak aktif.");
+                var patientClassExists = await _dbContext.Set<MstPatientClass>()
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == request.PatientClassId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete);
+
+                if (!patientClassExists)
+                {
+                    return (false, "Patient class tidak valid atau tidak aktif.");
+                }
             }
 
-            if (request.PaymentMethodId.HasValue && request.PaymentMethodId.Value != Guid.Empty)
+            if (request.PaymentType == EncounterPaymentType.Cash)
             {
-                var paymentMethodExists = await _dbContext.Set<MstPaymentMethod>().AsNoTracking().AnyAsync(x => x.Id == request.PaymentMethodId.Value && x.IsActive && !x.IsDelete && x.IsAvailableForRegistration);
-                if (!paymentMethodExists) return (false, "Metode pembayaran tidak valid atau tidak tersedia untuk registrasi.");
+                if (request.PatientInsuranceId.HasValue &&
+                    request.PatientInsuranceId.Value != Guid.Empty)
+                {
+                    return (false, "PatientInsuranceId harus kosong untuk pembayaran Tunai.");
+                }
+
+                if (request.PaymentMethodId.HasValue &&
+                    request.PaymentMethodId.Value != Guid.Empty)
+                {
+                    var paymentMethodExists = await _dbContext.Set<MstPaymentMethod>()
+                        .AsNoTracking()
+                        .AnyAsync(x =>
+                            x.Id == request.PaymentMethodId.Value &&
+                            x.IsActive &&
+                            !x.IsDelete &&
+                            x.IsAvailableForRegistration);
+
+                    if (!paymentMethodExists)
+                    {
+                        return (false, "Metode pembayaran tidak valid atau tidak tersedia untuk registrasi.");
+                    }
+                }
+            }
+            else
+            {
+                if (request.PaymentMethodId.HasValue &&
+                    request.PaymentMethodId.Value != Guid.Empty)
+                {
+                    return (false, "PaymentMethodId harus kosong untuk pembayaran Asuransi.");
+                }
+
+                if (!request.PatientInsuranceId.HasValue ||
+                    request.PatientInsuranceId.Value == Guid.Empty)
+                {
+                    return (false, "PatientInsuranceId wajib diisi untuk pembayaran Asuransi.");
+                }
+
+                var insuranceResult = await LoadValidPatientInsuranceAsync(
+                    request.PatientId,
+                    request.PatientInsuranceId.Value,
+                    targetEncounterDate);
+
+                if (insuranceResult.Insurance == null)
+                {
+                    return (false, insuranceResult.ErrorMessage ?? "Asuransi pasien tidak valid.");
+                }
             }
 
-            if (request.KioskScanSessionId.HasValue && request.KioskScanSessionId.Value != Guid.Empty)
+            if (request.KioskScanSessionId.HasValue &&
+                request.KioskScanSessionId.Value != Guid.Empty)
             {
-                var scanSession = await _dbContext.Set<TrxKioskScanSession>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.KioskScanSessionId.Value && !x.IsDelete && !x.IsUsedForRegistration);
-                if (scanSession == null) return (false, "Kiosk scan session tidak valid atau sudah digunakan.");
-                if (scanSession.PatientId.HasValue && scanSession.PatientId.Value != request.PatientId) return (false, "Kiosk scan session tidak sesuai dengan pasien yang dipilih.");
+                var scanSession = await _dbContext.Set<TrxKioskScanSession>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x =>
+                        x.Id == request.KioskScanSessionId.Value &&
+                        !x.IsDelete &&
+                        !x.IsUsedForRegistration);
+
+                if (scanSession == null)
+                {
+                    return (false, "Kiosk scan session tidak valid atau sudah digunakan.");
+                }
+
+                if (scanSession.PatientId.HasValue &&
+                    scanSession.PatientId.Value != request.PatientId)
+                {
+                    return (false, "Kiosk scan session tidak sesuai dengan pasien yang dipilih.");
+                }
             }
 
-            if (request.IsReferralRequired && !request.IsReferral) return (false, "Referral wajib ditandai aktif jika rujukan diperlukan.");
-            if (request.IsReferral && request.IsReferralVerified && string.IsNullOrWhiteSpace(request.ReferralNumber)) return (false, "Nomor referral wajib diisi jika referral sudah diverifikasi.");
-
-            var guarantors = BuildDefaultGuarantorsIfEmpty(request);
-            if (!guarantors.Any()) return (false, "Minimal satu penjamin kunjungan wajib diisi.");
-            if (guarantors.Count(x => x.IsPrimary) != 1) return (false, "Harus ada tepat satu penjamin utama.");
-            if (guarantors.GroupBy(x => x.CoveragePriority).Any(x => x.Count() > 1)) return (false, "Coverage priority penjamin tidak boleh duplikat.");
-
-            foreach (var guarantor in guarantors)
+            if (request.IsReferralRequired && !request.IsReferral)
             {
-                var guarantorValidation = await ValidateGuarantorRequestAsync(request.PatientId, guarantor);
-                if (!guarantorValidation.IsValid) return guarantorValidation;
+                return (false, "Referral wajib ditandai aktif jika rujukan diperlukan.");
+            }
+
+            if (request.IsReferral &&
+                request.IsReferralVerified &&
+                string.IsNullOrWhiteSpace(request.ReferralNumber))
+            {
+                return (false, "Nomor referral wajib diisi jika referral sudah diverifikasi.");
             }
 
             return (true, null);
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateGuarantorRequestAsync(Guid patientId, PatientEncounterGuarantorRequest request)
+        private async Task<(bool IsValid, string? ErrorMessage, MstRoom? Room)> ResolveEncounterRoomAsync(
+            PatientEncounterCreateRequest request)
         {
-            if (!Enum.IsDefined(typeof(PatientEncounterGuarantorType), request.GuarantorType)) return (false, "Tipe penjamin tidak valid. Gunakan nilai dari endpoint filters/metadata.");
-            if (!Enum.IsDefined(typeof(PatientEncounterGuarantorRole), request.GuarantorRole)) return (false, "Role penjamin tidak valid. Gunakan nilai dari endpoint filters/metadata.");
-            if (!Enum.IsDefined(typeof(PatientEncounterGuarantorStatus), request.GuarantorStatus)) return (false, "Status penjamin tidak valid. Gunakan nilai dari endpoint filters/metadata.");
-            if (request.CoveragePriority <= 0) return (false, "Coverage priority harus lebih besar dari 0.");
-            if (request.CoveragePercent.HasValue && (request.CoveragePercent.Value < 0 || request.CoveragePercent.Value > 100)) return (false, "Coverage percent harus di antara 0 sampai 100.");
-            if (request.CoPaymentPercent.HasValue && (request.CoPaymentPercent.Value < 0 || request.CoPaymentPercent.Value > 100)) return (false, "Co-payment percent harus di antara 0 sampai 100.");
+            var requestedRoomId = NormalizeNullableGuid(request.RoomId);
+            Guid? scheduleRoomId = null;
 
-            var amounts = new[] { request.AnnualLimitAmount, request.RemainingLimitAmount, request.UsedLimitAmount, request.RoomLimitPerDayAmount, request.DeductibleAmount, request.CoPaymentAmount, request.EstimatedCoveredAmount, request.EstimatedPatientPayAmount };
-            if (amounts.Any(x => x.HasValue && x.Value < 0)) return (false, "Nilai amount penjamin tidak boleh kurang dari 0.");
-
-            if (request.PaymentMethodId.HasValue && request.PaymentMethodId.Value != Guid.Empty)
+            if (request.DoctorScheduleId.HasValue &&
+                request.DoctorScheduleId.Value != Guid.Empty)
             {
-                var exists = await _dbContext.Set<MstPaymentMethod>().AsNoTracking().AnyAsync(x => x.Id == request.PaymentMethodId.Value && x.IsActive && !x.IsDelete);
-                if (!exists) return (false, "Metode pembayaran penjamin tidak valid.");
+                scheduleRoomId = await _dbContext.Set<MstDoctorSchedule>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.Id == request.DoctorScheduleId.Value &&
+                        !x.IsDelete)
+                    .Select(x => x.RoomId)
+                    .FirstOrDefaultAsync();
             }
 
-            if (request.PatientInsuranceId.HasValue && request.PatientInsuranceId.Value != Guid.Empty)
+            if (requestedRoomId.HasValue &&
+                scheduleRoomId.HasValue &&
+                requestedRoomId.Value != scheduleRoomId.Value)
             {
-                var exists = await _dbContext.Set<MstPatientInsurance>().AsNoTracking().AnyAsync(x => x.Id == request.PatientInsuranceId.Value && x.PatientId == patientId && x.IsActive && !x.IsDelete);
-                if (!exists) return (false, "Asuransi pasien tidak valid atau tidak aktif.");
+                return (
+                    false,
+                    "Ruangan yang dipilih tidak sesuai dengan ruangan pada jadwal dokter.",
+                    null);
             }
 
-            if (request.InsuranceProviderId.HasValue && request.InsuranceProviderId.Value != Guid.Empty)
+            var resolvedRoomId = scheduleRoomId ?? requestedRoomId;
+            if (!resolvedRoomId.HasValue)
             {
-                var exists = await _dbContext.Set<MstInsuranceProvider>().AsNoTracking().AnyAsync(x => x.Id == request.InsuranceProviderId.Value && x.IsActive && !x.IsDelete);
-                if (!exists) return (false, "Provider asuransi tidak valid atau tidak aktif.");
+                return (true, null, null);
             }
 
-            if (request.PatientCompanyGuarantorId.HasValue && request.PatientCompanyGuarantorId.Value != Guid.Empty)
+            var room = await _dbContext.Set<MstRoom>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == resolvedRoomId.Value &&
+                    x.IsActive &&
+                    !x.IsDelete);
+
+            if (room == null)
             {
-                var exists = await _dbContext.Set<MstPatientCompanyGuarantor>().AsNoTracking().AnyAsync(x => x.Id == request.PatientCompanyGuarantorId.Value && x.PatientId == patientId && x.IsActive && !x.IsDelete);
-                if (!exists) return (false, "Company guarantor pasien tidak valid atau tidak aktif.");
+                return (false, "Ruangan tidak ditemukan, tidak aktif, atau sudah dihapus.", null);
             }
 
-            if (request.CompanyGuarantorId.HasValue && request.CompanyGuarantorId.Value != Guid.Empty)
+            if (room.ServiceUnitId != request.ServiceUnitId)
             {
-                var exists = await _dbContext.Set<MstCompanyGuarantor>().AsNoTracking().AnyAsync(x => x.Id == request.CompanyGuarantorId.Value && x.IsActive && !x.IsDelete);
-                if (!exists) return (false, "Company guarantor tidak valid atau tidak aktif.");
+                return (false, "Ruangan tidak sesuai dengan service unit pada encounter.", null);
             }
 
-            if (request.PatientMembershipId.HasValue && request.PatientMembershipId.Value != Guid.Empty)
+            var patientClassId = NormalizeNullableGuid(request.PatientClassId);
+            if (room.PatientClassId.HasValue &&
+                patientClassId.HasValue &&
+                room.PatientClassId.Value != patientClassId.Value)
             {
-                var exists = await _dbContext.Set<MstPatientMembership>().AsNoTracking().AnyAsync(x => x.Id == request.PatientMembershipId.Value && x.PatientId == patientId && x.IsActive && !x.IsDelete);
-                if (!exists) return (false, "Membership pasien tidak valid atau tidak aktif.");
+                return (false, "Ruangan tidak sesuai dengan patient class yang dipilih.", null);
             }
 
-            if (request.GuarantorType == PatientEncounterGuarantorType.Insurance && !request.PatientInsuranceId.HasValue && !request.InsuranceProviderId.HasValue)
+            return (true, null, room);
+        }
+
+        private async Task<(MstPatientInsurance? Insurance, string? ErrorMessage)> LoadValidPatientInsuranceAsync(
+            Guid patientId,
+            Guid patientInsuranceId,
+            DateTime encounterDate)
+        {
+            if (patientInsuranceId == Guid.Empty)
             {
-                return (false, "Penjamin asuransi wajib memiliki PatientInsuranceId atau InsuranceProviderId.");
+                return (null, "PatientInsuranceId wajib diisi.");
             }
 
-            if (request.GuarantorType == PatientEncounterGuarantorType.Company && !request.PatientCompanyGuarantorId.HasValue && !request.CompanyGuarantorId.HasValue)
+            var insurance = await _dbContext.Set<MstPatientInsurance>()
+                .AsNoTracking()
+                .Include(x => x.InsuranceProvider)
+                .FirstOrDefaultAsync(x =>
+                    x.Id == patientInsuranceId &&
+                    !x.IsDelete);
+
+            if (insurance == null)
             {
-                return (false, "Penjamin company wajib memiliki PatientCompanyGuarantorId atau CompanyGuarantorId.");
+                return (null, "Asuransi pasien tidak ditemukan.");
             }
 
-            return (true, null);
+            if (insurance.PatientId != patientId)
+            {
+                return (null, "Asuransi yang dipilih bukan milik pasien pada encounter.");
+            }
+
+            if (!insurance.IsActive)
+            {
+                return (null, "Asuransi pasien tidak aktif.");
+            }
+
+            if (!insurance.IsEligible)
+            {
+                return (null, "Asuransi pasien tidak eligible.");
+            }
+
+            if (insurance.InsuranceProvider == null ||
+                !insurance.InsuranceProvider.IsActive ||
+                insurance.InsuranceProvider.IsDelete)
+            {
+                return (null, "Provider asuransi tidak valid atau tidak aktif.");
+            }
+
+            var encounterDay = ToUtcDate(encounterDate);
+
+            if (insurance.EffectiveStartDate.HasValue &&
+                ToUtcDate(insurance.EffectiveStartDate.Value) > encounterDay)
+            {
+                return (null, "Polis asuransi belum berlaku pada tanggal kunjungan.");
+            }
+
+            if (insurance.EffectiveEndDate.HasValue &&
+                ToUtcDate(insurance.EffectiveEndDate.Value) < encounterDay)
+            {
+                return (null, "Polis asuransi sudah kedaluwarsa pada tanggal kunjungan.");
+            }
+
+            return (insurance, null);
         }
 
         private async Task<(bool IsValid, string? ErrorMessage, DateTime TargetDate)> ResolveTargetEncounterDateAsync(
@@ -1174,205 +1531,73 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return (true, null);
         }
 
-        private List<PatientEncounterGuarantorRequest> BuildDefaultGuarantorsIfEmpty(PatientEncounterCreateRequest request)
-        {
-            if (request.Guarantors.Any()) return request.Guarantors;
-            if (request.PaymentType != EncounterPaymentType.Cash) return new List<PatientEncounterGuarantorRequest>();
-
-            return new List<PatientEncounterGuarantorRequest>
-            {
-                new()
-                {
-                    GuarantorType = PatientEncounterGuarantorType.PatientCash,
-                    GuarantorRole = PatientEncounterGuarantorRole.Primary,
-                    GuarantorStatus = PatientEncounterGuarantorStatus.Eligible,
-                    CheckMethod = PatientEncounterGuarantorCheckMethod.None,
-                    CoveragePriority = 1,
-                    IsPrimary = true,
-                    PaymentMethodId = request.PaymentMethodId,
-                    IsEligibilityRequired = false,
-                    IsEligible = true,
-                    IsPolicyActive = true,
-                    IsAllowExcessPaymentByPatient = true,
-                    GuarantorNameSnapshot = "Patient Cash"
-                }
-            };
-        }
-
-        private async Task<TrxPatientEncounterGuarantor> BuildGuarantorEntityAsync(Guid encounterId, Guid patientId, PatientEncounterGuarantorRequest request, DateTime now, Guid actorUserId)
+        private async Task<TrxPatientEncounterGuarantor> BuildPaymentSourceAsync(
+            Guid encounterId,
+            PatientEncounterCreateRequest request,
+            MstPatientInsurance? patientInsurance,
+            DateTime now,
+            Guid actorUserId)
         {
             var entity = new TrxPatientEncounterGuarantor
             {
                 Id = Guid.NewGuid(),
-                EncounterGuarantorNumber = await GenerateEncounterGuarantorNumberAsync(),
+                PaymentSourceNumber = await GeneratePaymentSourceNumberAsync(),
                 EncounterId = encounterId,
-                PatientId = patientId,
-                GuarantorType = request.GuarantorType,
-                GuarantorRole = request.GuarantorRole,
-                GuarantorStatus = request.GuarantorStatus,
-                CheckMethod = request.CheckMethod,
-                CoveragePriority = request.CoveragePriority,
-                IsPrimary = request.IsPrimary,
+                PatientId = request.PatientId,
+                PaymentType = request.PaymentType,
                 IsActive = true,
-                PaymentMethodId = NormalizeNullableGuid(request.PaymentMethodId),
-                PatientInsuranceId = NormalizeNullableGuid(request.PatientInsuranceId),
-                InsuranceProviderId = NormalizeNullableGuid(request.InsuranceProviderId),
-                CompanyGuarantorId = NormalizeNullableGuid(request.CompanyGuarantorId),
-                PatientCompanyGuarantorId = NormalizeNullableGuid(request.PatientCompanyGuarantorId),
-                PatientMembershipId = NormalizeNullableGuid(request.PatientMembershipId),
-                GuarantorNameSnapshot = NormalizeNullableText(request.GuarantorNameSnapshot),
-                PolicyNumberSnapshot = NormalizeNullableText(request.PolicyNumberSnapshot),
-                CardNumberSnapshot = NormalizeNullableText(request.CardNumberSnapshot),
-                MemberNumberSnapshot = NormalizeNullableText(request.MemberNumberSnapshot),
-                PlanNameSnapshot = NormalizeNullableText(request.PlanNameSnapshot),
-                ClassNameSnapshot = NormalizeNullableText(request.ClassNameSnapshot),
-                BenefitPlanCodeSnapshot = NormalizeNullableText(request.BenefitPlanCodeSnapshot),
-                EffectiveStartDateSnapshot = request.EffectiveStartDateSnapshot,
-                EffectiveEndDateSnapshot = request.EffectiveEndDateSnapshot,
-                IsEligibilityRequired = request.IsEligibilityRequired,
-                IsEligible = request.IsEligible,
-                EligibilityReferenceNumber = NormalizeNullableText(request.EligibilityReferenceNumber),
-                EligibilityCheckedAt = request.EligibilityCheckedAt,
-                VerificationReferenceNumber = NormalizeNullableText(request.VerificationReferenceNumber),
-                VerificationOfficerName = NormalizeNullableText(request.VerificationOfficerName),
-                VerificationNote = NormalizeNullableText(request.VerificationNote),
-                IsNeedApproval = request.IsNeedApproval,
-                IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter,
-                IsNeedReferralLetter = request.IsNeedReferralLetter,
-                IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient,
-                CoveragePercent = request.CoveragePercent,
-                AnnualLimitAmount = request.AnnualLimitAmount,
-                RemainingLimitAmount = request.RemainingLimitAmount,
-                UsedLimitAmount = request.UsedLimitAmount,
-                RoomLimitPerDayAmount = request.RoomLimitPerDayAmount,
-                DeductibleAmount = request.DeductibleAmount,
-                CoPaymentPercent = request.CoPaymentPercent,
-                CoPaymentAmount = request.CoPaymentAmount,
-                EstimatedCoveredAmount = request.EstimatedCoveredAmount,
-                EstimatedPatientPayAmount = request.EstimatedPatientPayAmount,
-                IsPolicyActive = request.IsPolicyActive,
-                IsPremiumPaid = request.IsPremiumPaid,
-                IsCardActive = request.IsCardActive,
-                IsInWaitingPeriod = request.IsInWaitingPeriod,
-                WaitingPeriodUntilDate = request.WaitingPeriodUntilDate,
-                HasSpecialExclusion = request.HasSpecialExclusion,
-                SpecialExclusionNote = NormalizeNullableText(request.SpecialExclusionNote),
-                HasPreviousClaim = request.HasPreviousClaim,
-                PreviousClaimNote = NormalizeNullableText(request.PreviousClaimNote),
-                BenefitSnapshotJson = NormalizeNullableText(request.BenefitSnapshotJson),
-                ManualCheckResultJson = NormalizeNullableText(request.ManualCheckResultJson),
-                Notes = NormalizeNullableText(request.Notes),
                 CreateDateTime = now,
                 CreateBy = actorUserId,
                 IsDelete = false,
                 IsCancel = false
             };
 
-            await FillGuarantorSnapshotAsync(entity);
+            if (request.PaymentType == EncounterPaymentType.Cash)
+            {
+                entity.PaymentMethodId = NormalizeNullableGuid(request.PaymentMethodId);
+                entity.PaymentSourceNameSnapshot = "Tunai";
+                entity.IsEligible = true;
+                entity.IsPolicyActive = false;
+                return entity;
+            }
+
+            if (patientInsurance == null)
+            {
+                throw new InvalidOperationException(
+                    "Asuransi pasien wajib tersedia untuk membentuk sumber pembayaran Asuransi.");
+            }
+
+            entity.PatientInsuranceId = patientInsurance.Id;
+            entity.InsuranceProviderId = patientInsurance.InsuranceProviderId;
+            entity.PaymentSourceNameSnapshot =
+                patientInsurance.InsuranceProvider?.InsuranceProviderName;
+            entity.PolicyNumberSnapshot = NormalizeNullableText(patientInsurance.PolicyNumber);
+            entity.CardNumberSnapshot = NormalizeNullableText(patientInsurance.CardNumber);
+            entity.MemberNumberSnapshot = NormalizeNullableText(patientInsurance.MemberNumber);
+            entity.PlanNameSnapshot = NormalizeNullableText(patientInsurance.PlanName);
+            entity.ClassNameSnapshot = NormalizeNullableText(patientInsurance.ClassName);
+            entity.BenefitPlanCodeSnapshot = NormalizeNullableText(patientInsurance.BenefitPlanCode);
+            entity.EffectiveStartDateSnapshot = patientInsurance.EffectiveStartDate;
+            entity.EffectiveEndDateSnapshot = patientInsurance.EffectiveEndDate;
+            entity.IsEligible = patientInsurance.IsEligible;
+            entity.IsPolicyActive = true;
+
             return entity;
         }
 
-        private async Task FillGuarantorSnapshotAsync(TrxPatientEncounterGuarantor entity)
+
+
+
+
+        private static void ApplyEncounterPaymentSummary(
+            TrxPatientEncounter encounter,
+            TrxPatientEncounterGuarantor paymentSource)
         {
-            if (entity.GuarantorType == PatientEncounterGuarantorType.PatientCash)
-            {
-                entity.GuarantorNameSnapshot ??= "Patient Cash";
-                return;
-            }
-
-            if (entity.PatientInsuranceId.HasValue)
-            {
-                var data = await _dbContext.Set<MstPatientInsurance>().Include(x => x.InsuranceProvider).AsNoTracking().FirstOrDefaultAsync(x => x.Id == entity.PatientInsuranceId.Value);
-                if (data != null)
-                {
-                    entity.InsuranceProviderId ??= data.InsuranceProviderId;
-                    entity.GuarantorNameSnapshot ??= data.InsuranceProvider?.InsuranceProviderName;
-                    entity.PolicyNumberSnapshot ??= data.PolicyNumber;
-                    entity.CardNumberSnapshot ??= data.CardNumber;
-                    entity.MemberNumberSnapshot ??= data.MemberNumber;
-                    entity.PlanNameSnapshot ??= data.PlanName;
-                    entity.ClassNameSnapshot ??= data.ClassName;
-                    entity.BenefitPlanCodeSnapshot ??= data.BenefitPlanCode;
-                    entity.EffectiveStartDateSnapshot ??= data.EffectiveStartDate;
-                    entity.EffectiveEndDateSnapshot ??= data.EffectiveEndDate;
-                    entity.AnnualLimitAmount ??= data.AnnualLimitAmount;
-                    entity.RemainingLimitAmount ??= data.RemainingLimitAmount;
-                    entity.CoPaymentPercent ??= data.CoPaymentPercent;
-                    entity.CoPaymentAmount ??= data.CoPaymentAmount;
-                    entity.IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter || data.IsNeedGuaranteeLetter;
-                    entity.IsNeedReferralLetter = entity.IsNeedReferralLetter || data.IsNeedReferralLetter;
-                    entity.IsAllowExcessPaymentByPatient = data.IsAllowExcessPaymentByPatient;
-                }
-            }
-
-            if (entity.PatientCompanyGuarantorId.HasValue)
-            {
-                var data = await _dbContext.Set<MstPatientCompanyGuarantor>().Include(x => x.CompanyGuarantor).AsNoTracking().FirstOrDefaultAsync(x => x.Id == entity.PatientCompanyGuarantorId.Value);
-                if (data != null)
-                {
-                    entity.CompanyGuarantorId ??= data.CompanyGuarantorId;
-                    entity.GuarantorNameSnapshot ??= data.CompanyGuarantor?.CompanyGuarantorName;
-                    entity.MemberNumberSnapshot ??= data.EmployeeNumber;
-                    entity.PlanNameSnapshot ??= data.BenefitPlanName;
-                    entity.ClassNameSnapshot ??= data.ClassName;
-                    entity.BenefitPlanCodeSnapshot ??= data.BenefitPlanCode;
-                    entity.EffectiveStartDateSnapshot ??= data.EffectiveStartDate;
-                    entity.EffectiveEndDateSnapshot ??= data.EffectiveEndDate;
-                    entity.AnnualLimitAmount ??= data.AnnualLimitAmount;
-                    entity.RemainingLimitAmount ??= data.RemainingLimitAmount;
-                    entity.CoPaymentPercent ??= data.CoPaymentPercent;
-                    entity.CoPaymentAmount ??= data.CoPaymentAmount;
-                    entity.IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter || data.IsNeedGuaranteeLetter;
-                    entity.IsAllowExcessPaymentByPatient = data.IsAllowExcessPaymentByPatient;
-                }
-            }
-
-            if (entity.PatientMembershipId.HasValue)
-            {
-                var data = await _dbContext.Set<MstPatientMembership>().Include(x => x.MembershipTier).AsNoTracking().FirstOrDefaultAsync(x => x.Id == entity.PatientMembershipId.Value);
-                if (data != null)
-                {
-                    entity.GuarantorNameSnapshot ??= data.MembershipTier?.TierName;
-                    entity.MemberNumberSnapshot ??= data.MemberNumber;
-                    entity.PlanNameSnapshot ??= data.MembershipTier?.TierName;
-                    entity.EffectiveStartDateSnapshot ??= data.JoinDate;
-                    entity.EffectiveEndDateSnapshot ??= data.ExpiredDate;
-                }
-            }
-
-            if (string.IsNullOrWhiteSpace(entity.GuarantorNameSnapshot) && entity.InsuranceProviderId.HasValue)
-            {
-                entity.GuarantorNameSnapshot = await _dbContext.Set<MstInsuranceProvider>().Where(x => x.Id == entity.InsuranceProviderId.Value).Select(x => x.InsuranceProviderName).FirstOrDefaultAsync();
-            }
-
-            if (string.IsNullOrWhiteSpace(entity.GuarantorNameSnapshot) && entity.CompanyGuarantorId.HasValue)
-            {
-                entity.GuarantorNameSnapshot = await _dbContext.Set<MstCompanyGuarantor>().Where(x => x.Id == entity.CompanyGuarantorId.Value).Select(x => x.CompanyGuarantorName).FirstOrDefaultAsync();
-            }
-
-            if (string.IsNullOrWhiteSpace(entity.GuarantorNameSnapshot) && entity.PaymentMethodId.HasValue)
-            {
-                entity.GuarantorNameSnapshot = await _dbContext.Set<MstPaymentMethod>().Where(x => x.Id == entity.PaymentMethodId.Value).Select(x => x.PaymentMethodName).FirstOrDefaultAsync();
-            }
-        }
-
-        private static void ApplyEncounterPaymentSummary(TrxPatientEncounter encounter, IEnumerable<TrxPatientEncounterGuarantor> guarantors, DateTime now, Guid actorUserId)
-        {
-            var activeGuarantors = guarantors.Where(x => x.IsActive && !x.IsDelete && x.GuarantorStatus != PatientEncounterGuarantorStatus.Cancelled).ToList();
-            var primary = activeGuarantors.FirstOrDefault(x => x.IsPrimary) ?? activeGuarantors.OrderBy(x => x.CoveragePriority).FirstOrDefault();
-
-            encounter.IsInsurancePatient = activeGuarantors.Any(x => x.GuarantorType == PatientEncounterGuarantorType.Insurance || x.GuarantorType == PatientEncounterGuarantorType.BPJS);
-            encounter.IsCompanyPatient = activeGuarantors.Any(x => x.GuarantorType == PatientEncounterGuarantorType.Company);
-            encounter.IsMembershipPatient = activeGuarantors.Any(x => x.GuarantorType == PatientEncounterGuarantorType.Membership);
-            encounter.IsMixedPayment = activeGuarantors.Select(x => x.GuarantorType).Distinct().Count() > 1;
-            encounter.PrimaryGuarantorNameSnapshot = primary?.GuarantorNameSnapshot;
-            encounter.PrimaryGuarantorTypeSnapshot = primary?.GuarantorType.ToString();
-            encounter.IsEligibilityRequired = activeGuarantors.Any(x => x.IsEligibilityRequired) || encounter.IsEligibilityRequired;
-            encounter.IsEligibilityCompleted = activeGuarantors.Any(x => x.IsEligibilityRequired) && activeGuarantors.Where(x => x.IsEligibilityRequired).All(x => x.IsEligible && x.IsVerified);
-            encounter.EligibilityReferenceNumber = primary?.EligibilityReferenceNumber ?? encounter.EligibilityReferenceNumber;
-            encounter.EligibilityCheckedAt = primary?.EligibilityCheckedAt ?? encounter.EligibilityCheckedAt;
-            encounter.UpdateDateTime = now;
-            encounter.UpdateBy = actorUserId;
+            encounter.PaymentType = paymentSource.PaymentType;
+            encounter.PaymentMethodId = paymentSource.PaymentType == EncounterPaymentType.Cash
+                ? paymentSource.PaymentMethodId
+                : null;
+            encounter.PaymentSource = paymentSource;
         }
 
         private async Task<List<TrxQueue>> CancelQueuesByEncounterAsync(Guid encounterId, DateTime now, Guid actorUserId, string reason)
@@ -1400,9 +1625,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return await GenerateRunningCodeAsync<TrxPatientEncounter>(selector: x => x.EncounterNumber, prefix: EncounterCodePrefix);
         }
 
-        private async Task<string> GenerateEncounterGuarantorNumberAsync()
+        private async Task<string> GeneratePaymentSourceNumberAsync()
         {
-            return await GenerateRunningCodeAsync<TrxPatientEncounterGuarantor>(selector: x => x.EncounterGuarantorNumber, prefix: EncounterGuarantorCodePrefix);
+            // Prefix lama dipertahankan agar penomoran data existing tetap berlanjut.
+            return await GenerateRunningCodeAsync<TrxPatientEncounterGuarantor>(
+                selector: x => x.PaymentSourceNumber,
+                prefix: PaymentSourceCodePrefix);
         }
 
         private async Task<string> GenerateRunningCodeAsync<TEntity>(Expression<Func<TEntity, string>> selector, string prefix) where TEntity : class
@@ -1643,7 +1871,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return await _dbContext.Users.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => new { x.Id, Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode }).ToDictionaryAsync(x => x.Id, x => x.Name);
         }
 
-        private static PatientEncounterResponse MapResponse(TrxPatientEncounter entity, IReadOnlyDictionary<Guid, string?> actorNames)
+        private static PatientEncounterResponse MapResponse(
+            TrxPatientEncounter entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             return new PatientEncounterResponse
             {
@@ -1657,6 +1887,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ServiceUnitName = entity.ServiceUnit?.ServiceUnitName ?? string.Empty,
                 ClinicId = entity.ClinicId,
                 ClinicName = entity.Clinic?.ClinicName,
+                RoomId = entity.RoomId,
+                RoomCode = entity.Room?.RoomCode,
+                RoomName = entity.Room?.RoomName,
+                RoomNumber = entity.Room?.RoomNumber,
+                RoomLocationName = entity.Room?.LocationName,
+                RoomFloorName = entity.Room?.FloorName,
                 DoctorId = entity.DoctorId,
                 DoctorName = entity.Doctor?.FullName,
                 DoctorScheduleId = entity.DoctorScheduleId,
@@ -1664,8 +1900,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 PatientClassId = entity.PatientClassId,
                 PatientClassName = entity.PatientClass?.PatientClassName,
                 AgeCategoryId = entity.AgeCategoryId,
-                AgeCategoryCode = entity.AgeCategoryCodeSnapshot ?? entity.AgeCategory?.AgeCategoryCode,
-                AgeCategoryName = entity.AgeCategoryNameSnapshot ?? entity.AgeCategory?.AgeCategoryName,
+                AgeCategoryCode = entity.AgeCategoryCodeSnapshot
+                    ?? entity.AgeCategory?.AgeCategoryCode,
+                AgeCategoryName = entity.AgeCategoryNameSnapshot
+                    ?? entity.AgeCategory?.AgeCategoryName,
                 AgeYearAtEncounter = entity.AgeYearAtEncounter,
                 AgeMonthAtEncounter = entity.AgeMonthAtEncounter,
                 AgeDayAtEncounter = entity.AgeDayAtEncounter,
@@ -1686,14 +1924,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 EncounterStatusName = BuildEnumLabel(entity.EncounterStatus),
                 PaymentType = entity.PaymentType,
                 PaymentTypeName = BuildEnumLabel(entity.PaymentType),
-                IsInsurancePatient = entity.IsInsurancePatient,
-                IsCompanyPatient = entity.IsCompanyPatient,
-                IsMembershipPatient = entity.IsMembershipPatient,
-                IsMixedPayment = entity.IsMixedPayment,
-                PrimaryGuarantorNameSnapshot = entity.PrimaryGuarantorNameSnapshot,
-                PrimaryGuarantorTypeSnapshot = entity.PrimaryGuarantorTypeSnapshot,
-                IsEligibilityRequired = entity.IsEligibilityRequired,
-                IsEligibilityCompleted = entity.IsEligibilityCompleted,
+                PaymentSourceNameSnapshot =
+                    entity.PaymentSource?.PaymentSourceNameSnapshot,
                 IsReferral = entity.IsReferral,
                 IsReferralRequired = entity.IsReferralRequired,
                 IsReferralVerified = entity.IsReferralVerified,
@@ -1721,7 +1953,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             };
         }
 
-        private static PatientEncounterDetailResponse MapDetailResponse(TrxPatientEncounter entity, IReadOnlyDictionary<Guid, string?> actorNames)
+        private static PatientEncounterDetailResponse MapDetailResponse(
+            TrxPatientEncounter entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
             var response = new PatientEncounterDetailResponse
             {
@@ -1735,6 +1969,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ServiceUnitName = entity.ServiceUnit?.ServiceUnitName ?? string.Empty,
                 ClinicId = entity.ClinicId,
                 ClinicName = entity.Clinic?.ClinicName,
+                RoomId = entity.RoomId,
+                RoomCode = entity.Room?.RoomCode,
+                RoomName = entity.Room?.RoomName,
+                RoomNumber = entity.Room?.RoomNumber,
+                RoomLocationName = entity.Room?.LocationName,
+                RoomFloorName = entity.Room?.FloorName,
                 DoctorId = entity.DoctorId,
                 DoctorName = entity.Doctor?.FullName,
                 DoctorScheduleId = entity.DoctorScheduleId,
@@ -1742,8 +1982,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 PatientClassId = entity.PatientClassId,
                 PatientClassName = entity.PatientClass?.PatientClassName,
                 AgeCategoryId = entity.AgeCategoryId,
-                AgeCategoryCode = entity.AgeCategoryCodeSnapshot ?? entity.AgeCategory?.AgeCategoryCode,
-                AgeCategoryName = entity.AgeCategoryNameSnapshot ?? entity.AgeCategory?.AgeCategoryName,
+                AgeCategoryCode = entity.AgeCategoryCodeSnapshot
+                    ?? entity.AgeCategory?.AgeCategoryCode,
+                AgeCategoryName = entity.AgeCategoryNameSnapshot
+                    ?? entity.AgeCategory?.AgeCategoryName,
                 AgeYearAtEncounter = entity.AgeYearAtEncounter,
                 AgeMonthAtEncounter = entity.AgeMonthAtEncounter,
                 AgeDayAtEncounter = entity.AgeDayAtEncounter,
@@ -1766,16 +2008,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 PaymentType = entity.PaymentType,
                 PaymentTypeName = BuildEnumLabel(entity.PaymentType),
                 ChiefComplaint = entity.ChiefComplaint,
-                IsInsurancePatient = entity.IsInsurancePatient,
-                IsCompanyPatient = entity.IsCompanyPatient,
-                IsMembershipPatient = entity.IsMembershipPatient,
-                IsMixedPayment = entity.IsMixedPayment,
-                PrimaryGuarantorNameSnapshot = entity.PrimaryGuarantorNameSnapshot,
-                PrimaryGuarantorTypeSnapshot = entity.PrimaryGuarantorTypeSnapshot,
-                EligibilityReferenceNumber = entity.EligibilityReferenceNumber,
-                EligibilityCheckedAt = entity.EligibilityCheckedAt,
-                IsEligibilityRequired = entity.IsEligibilityRequired,
-                IsEligibilityCompleted = entity.IsEligibilityCompleted,
+                PaymentSourceNameSnapshot =
+                    entity.PaymentSource?.PaymentSourceNameSnapshot,
                 IsReferral = entity.IsReferral,
                 ReferralNumber = entity.ReferralNumber,
                 IsReferralRequired = entity.IsReferralRequired,
@@ -1794,11 +2028,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 CompletedAt = entity.CompletedAt,
                 CancelledAt = entity.CancelledAt,
                 CancelledByUserId = entity.CancelledByUserId,
-                CancelledByUserName = entity.CancelledByUserId.HasValue ? GetActorName(actorNames, entity.CancelledByUserId.Value) : null,
+                CancelledByUserName = entity.CancelledByUserId.HasValue
+                    ? GetActorName(actorNames, entity.CancelledByUserId.Value)
+                    : null,
                 CancelReason = entity.CancelReason,
                 NoShowAt = entity.NoShowAt,
                 NoShowByUserId = entity.NoShowByUserId,
-                NoShowByUserName = entity.NoShowByUserId.HasValue ? GetActorName(actorNames, entity.NoShowByUserId.Value) : null,
+                NoShowByUserName = entity.NoShowByUserId.HasValue
+                    ? GetActorName(actorNames, entity.NoShowByUserId.Value)
+                    : null,
                 NoShowReason = entity.NoShowReason,
                 Notes = entity.Notes,
                 IsActive = entity.IsActive,
@@ -1808,13 +2046,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 UpdateDateTime = entity.UpdateDateTime,
                 UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
                 UpdateByName = GetActorName(actorNames, entity.UpdateBy),
-                Guarantors = entity.EncounterGuarantors.Where(g => !g.IsDelete).OrderBy(g => g.CoveragePriority).Select(MapGuarantorResponse).ToList()
+                Payment = entity.PaymentSource == null || entity.PaymentSource.IsDelete
+                    ? null
+                    : MapPaymentSourceResponse(entity.PaymentSource)
             };
 
             return response;
         }
 
-        private static PatientEncounterOptionResponse MapOptionResponse(TrxPatientEncounter entity)
+        private static PatientEncounterOptionResponse MapOptionResponse(
+            TrxPatientEncounter entity)
         {
             return new PatientEncounterOptionResponse
             {
@@ -1827,98 +2068,56 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ServiceUnitName = entity.ServiceUnit?.ServiceUnitName ?? string.Empty,
                 ClinicId = entity.ClinicId,
                 ClinicName = entity.Clinic?.ClinicName,
+                RoomId = entity.RoomId,
+                RoomName = entity.Room?.RoomName,
+                RoomNumber = entity.Room?.RoomNumber,
                 DoctorId = entity.DoctorId,
                 DoctorName = entity.Doctor?.FullName,
                 AgeCategoryId = entity.AgeCategoryId,
-                AgeCategoryName = entity.AgeCategoryNameSnapshot ?? entity.AgeCategory?.AgeCategoryName,
+                AgeCategoryName = entity.AgeCategoryNameSnapshot
+                    ?? entity.AgeCategory?.AgeCategoryName,
                 AgeTextAtEncounter = entity.AgeTextAtEncounter,
                 EncounterStatus = entity.EncounterStatus,
                 EncounterStatusName = BuildEnumLabel(entity.EncounterStatus),
+                PaymentType = entity.PaymentType,
                 EncounterDate = entity.EncounterDate,
                 RegisteredAt = entity.RegisteredAt
             };
         }
 
-        private static PatientEncounterGuarantorResponse MapGuarantorResponse(TrxPatientEncounterGuarantor entity)
+        private static PatientEncounterPaymentResponse MapPaymentSourceResponse(
+            TrxPatientEncounterGuarantor entity)
         {
-            return new PatientEncounterGuarantorResponse
+            return new PatientEncounterPaymentResponse
             {
                 Id = entity.Id,
-                EncounterGuarantorNumber = entity.EncounterGuarantorNumber,
+                PaymentSourceNumber = entity.PaymentSourceNumber,
                 EncounterId = entity.EncounterId,
-                EncounterNumber = entity.Encounter?.EncounterNumber ?? string.Empty,
                 PatientId = entity.PatientId,
-                PatientName = entity.Patient?.FullName ?? string.Empty,
-                MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
-                GuarantorType = entity.GuarantorType,
-                GuarantorTypeName = BuildEnumLabel(entity.GuarantorType),
-                GuarantorRole = entity.GuarantorRole,
-                GuarantorRoleName = BuildEnumLabel(entity.GuarantorRole),
-                GuarantorStatus = entity.GuarantorStatus,
-                GuarantorStatusName = BuildEnumLabel(entity.GuarantorStatus),
-                CheckMethod = entity.CheckMethod,
-                CheckMethodName = BuildEnumLabel(entity.CheckMethod),
-                CoveragePriority = entity.CoveragePriority,
-                IsPrimary = entity.IsPrimary,
+                PaymentType = entity.PaymentType,
+                PaymentTypeName = BuildEnumLabel(entity.PaymentType),
                 PaymentMethodId = entity.PaymentMethodId,
                 PaymentMethodName = entity.PaymentMethod?.PaymentMethodName,
                 PatientInsuranceId = entity.PatientInsuranceId,
                 InsuranceProviderId = entity.InsuranceProviderId,
-                InsuranceProviderName = entity.InsuranceProvider?.InsuranceProviderName,
-                CompanyGuarantorId = entity.CompanyGuarantorId,
-                CompanyGuarantorName = entity.CompanyGuarantor?.CompanyGuarantorName,
-                PatientCompanyGuarantorId = entity.PatientCompanyGuarantorId,
-                PatientMembershipId = entity.PatientMembershipId,
-                GuarantorNameSnapshot = entity.GuarantorNameSnapshot,
+                InsuranceProviderName = entity.PaymentSourceNameSnapshot
+                    ?? entity.InsuranceProvider?.InsuranceProviderName,
                 PolicyNumberSnapshot = entity.PolicyNumberSnapshot,
                 CardNumberSnapshot = entity.CardNumberSnapshot,
                 MemberNumberSnapshot = entity.MemberNumberSnapshot,
                 PlanNameSnapshot = entity.PlanNameSnapshot,
                 ClassNameSnapshot = entity.ClassNameSnapshot,
                 BenefitPlanCodeSnapshot = entity.BenefitPlanCodeSnapshot,
-                IsEligibilityRequired = entity.IsEligibilityRequired,
+                EffectiveStartDateSnapshot = entity.EffectiveStartDateSnapshot,
+                EffectiveEndDateSnapshot = entity.EffectiveEndDateSnapshot,
                 IsEligible = entity.IsEligible,
-                IsVerified = entity.IsVerified,
-                VerifiedAt = entity.VerifiedAt,
-                EligibilityReferenceNumber = entity.EligibilityReferenceNumber,
-                EligibilityCheckedAt = entity.EligibilityCheckedAt,
-                IsNeedApproval = entity.IsNeedApproval,
-                IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter,
-                IsNeedReferralLetter = entity.IsNeedReferralLetter,
-                IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
-                CoveragePercent = entity.CoveragePercent,
-                AnnualLimitAmount = entity.AnnualLimitAmount,
-                RemainingLimitAmount = entity.RemainingLimitAmount,
-                EstimatedCoveredAmount = entity.EstimatedCoveredAmount,
-                EstimatedPatientPayAmount = entity.EstimatedPatientPayAmount,
                 IsPolicyActive = entity.IsPolicyActive,
-                IsPremiumPaid = entity.IsPremiumPaid,
-                IsCardActive = entity.IsCardActive,
-                IsInWaitingPeriod = entity.IsInWaitingPeriod,
                 IsActive = entity.IsActive,
-                CreateDateTime = entity.CreateDateTime,
-                CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
-                UpdateDateTime = entity.UpdateDateTime,
-                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy
+                CreateDateTime = entity.CreateDateTime
             };
         }
 
-        private static PatientEncounterGuarantorCreateResponse MapGuarantorCreateResponse(TrxPatientEncounterGuarantor entity)
-        {
-            return new PatientEncounterGuarantorCreateResponse
-            {
-                Id = entity.Id,
-                EncounterGuarantorNumber = entity.EncounterGuarantorNumber,
-                EncounterId = entity.EncounterId,
-                GuarantorType = entity.GuarantorType,
-                GuarantorTypeName = BuildEnumLabel(entity.GuarantorType),
-                GuarantorStatus = entity.GuarantorStatus,
-                GuarantorStatusName = BuildEnumLabel(entity.GuarantorStatus),
-                CoveragePriority = entity.CoveragePriority,
-                IsPrimary = entity.IsPrimary,
-                GuarantorNameSnapshot = entity.GuarantorNameSnapshot
-            };
-        }
+
 
         private static IQueryable<TrxPatientEncounter> ApplySorting(IQueryable<TrxPatientEncounter> query, string? sortBy, string? sortDirection)
         {
@@ -1932,6 +2131,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 "medicalrecordnumber" => isDescending ? query.OrderByDescending(x => x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty) : query.OrderBy(x => x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty),
                 "serviceunitname" => isDescending ? query.OrderByDescending(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty) : query.OrderBy(x => x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty),
                 "clinicname" => isDescending ? query.OrderByDescending(x => x.Clinic != null ? x.Clinic.ClinicName : string.Empty) : query.OrderBy(x => x.Clinic != null ? x.Clinic.ClinicName : string.Empty),
+                "roomname" => isDescending ? query.OrderByDescending(x => x.Room != null ? x.Room.RoomName : string.Empty) : query.OrderBy(x => x.Room != null ? x.Room.RoomName : string.Empty),
                 "doctorname" => isDescending ? query.OrderByDescending(x => x.Doctor != null ? x.Doctor.FullName : string.Empty) : query.OrderBy(x => x.Doctor != null ? x.Doctor.FullName : string.Empty),
                 "encounterstatus" => isDescending ? query.OrderByDescending(x => x.EncounterStatus).ThenByDescending(x => x.RegisteredAt) : query.OrderBy(x => x.EncounterStatus).ThenBy(x => x.RegisteredAt),
                 "paymenttype" => isDescending ? query.OrderByDescending(x => x.PaymentType).ThenByDescending(x => x.RegisteredAt) : query.OrderBy(x => x.PaymentType).ThenBy(x => x.RegisteredAt),

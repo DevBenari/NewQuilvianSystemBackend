@@ -37,6 +37,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string? ClinicName { get; set; }
         public Guid? DoctorId { get; set; }
         public string? DoctorName { get; set; }
+        public Guid? RoomId { get; set; }
+        public string? RoomCode { get; set; }
+        public string? RoomName { get; set; }
+        public string? RoomNumber { get; set; }
+        public string? RoomLocationName { get; set; }
+        public string? RoomFloorName { get; set; }
         public DateTime QueueDate { get; set; }
         public int QueueNumber { get; set; }
         public string QueueCode { get; set; } = string.Empty;
@@ -64,6 +70,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string? QueueStatusName { get; set; }
         public string? ClinicName { get; set; }
         public string? DoctorName { get; set; }
+        public Guid? RoomId { get; set; }
+        public string? RoomCode { get; set; }
+        public string? RoomName { get; set; }
+        public string? RoomNumber { get; set; }
+        public string? RoomLocationName { get; set; }
+        public string? RoomFloorName { get; set; }
         public DateTime? CalledAt { get; set; }
         public string? DisplayText { get; set; }
         public string? VoiceText { get; set; }

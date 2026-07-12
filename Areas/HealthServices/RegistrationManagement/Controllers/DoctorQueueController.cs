@@ -82,6 +82,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     new() { Value = "queueStatus", Label = "Status antrean" },
                     new() { Value = "patientName", Label = "Nama pasien" },
                     new() { Value = "clinicName", Label = "Poli" },
+                    new() { Value = "roomName", Label = "Ruangan" },
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
@@ -437,6 +438,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .AsNoTracking()
                 .Include(x => x.Encounter)
                     .ThenInclude(x => x.PaymentMethod)
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentSource)
+                        .ThenInclude(x => x.InsuranceProvider)
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.Room)
                 .Include(x => x.Patient)
                 .Include(x => x.ServiceUnit)
                 .Include(x => x.Clinic)
@@ -471,7 +477,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
                     (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
                     (x.Encounter != null && x.Encounter.EncounterNumber.ToLower().Contains(keyword)) ||
-                    (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)));
+                    (x.Clinic != null && x.Clinic.ClinicName.ToLower().Contains(keyword)) ||
+                    (x.Encounter != null && x.Encounter.Room != null && x.Encounter.Room.RoomName.ToLower().Contains(keyword)) ||
+                    (x.Encounter != null && x.Encounter.Room != null && x.Encounter.Room.RoomNumber != null && x.Encounter.Room.RoomNumber.ToLower().Contains(keyword)));
             }
             return query;
         }
@@ -527,6 +535,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
                         .ThenBy(x => x.QueueNumber)
                     : query.OrderBy(x => x.Clinic!.ClinicName)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber),
+
+                "roomname" => isDescending
+                    ? query.OrderByDescending(x => x.Encounter != null && x.Encounter.Room != null ? x.Encounter.Room.RoomName : string.Empty)
+                        .ThenByDescending(x => x.IsPriorityQueue)
+                        .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
+                        .ThenBy(x => x.QueueNumber)
+                    : query.OrderBy(x => x.Encounter != null && x.Encounter.Room != null ? x.Encounter.Room.RoomName : string.Empty)
                         .ThenByDescending(x => x.IsPriorityQueue)
                         .ThenBy(x => x.LastSkippedAt ?? x.CreateDateTime)
                         .ThenBy(x => x.QueueNumber),
@@ -673,6 +691,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         {
             var query = _dbContext.Set<TrxQueue>()
                 .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentMethod)
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentSource)
+                        .ThenInclude(x => x.InsuranceProvider)
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.Room)
                 .Include(x => x.Patient)
                 .Include(x => x.ServiceUnit)
                 .Include(x => x.Clinic)
@@ -774,7 +798,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var encounter = x.Encounter;
             var doctorPhotoPath = ResolveDoctorPhotoPath(x.DoctorId, doctorPhotoPaths);
             var paymentType = encounter?.PaymentType ?? EncounterPaymentType.Cash;
-            var primaryGuarantorName = NormalizeNullableText(encounter?.PrimaryGuarantorNameSnapshot);
+            var paymentSourceName = NormalizeNullableText(
+                encounter?.PaymentSource?.PaymentSourceNameSnapshot
+                ?? encounter?.PaymentSource?.InsuranceProvider?.InsuranceProviderName);
             var totalVisitCount = visitCounts.TryGetValue(x.PatientId, out var count) ? count : 0;
             var workforceProfileId = x.Doctor?.WorkforceProfileId ?? Guid.Empty;
             var doctorCredential = workforceProfileId != Guid.Empty && doctorCredentialSnapshots.TryGetValue(workforceProfileId, out var snapshot)
@@ -794,6 +820,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
                 ClinicId = x.ClinicId,
                 ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
+                RoomId = encounter?.RoomId,
+                RoomCode = encounter?.Room?.RoomCode,
+                RoomName = encounter?.Room?.RoomName,
+                RoomNumber = encounter?.Room?.RoomNumber,
+                RoomLocationName = encounter?.Room?.LocationName,
+                RoomFloorName = encounter?.Room?.FloorName,
                 DoctorId = x.DoctorId,
                 DoctorName = x.Doctor != null ? x.Doctor.FullName : null,
                 DoctorCode = x.Doctor != null ? x.Doctor.DoctorCode : null,
@@ -855,11 +887,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 CanStartConsultation = CanStartConsultationDoctor(x),
                 CanFinishConsultation = CanFinishConsultationDoctor(x),
                 PaymentType = paymentType,
-                PaymentTypeName = BuildPaymentTypeDisplayName(paymentType, primaryGuarantorName, encounter?.PaymentMethod?.PaymentMethodName),
+                PaymentTypeName = BuildPaymentTypeDisplayName(paymentType, paymentSourceName, encounter?.PaymentMethod?.PaymentMethodName),
                 PaymentMethodId = encounter?.PaymentMethodId,
                 PaymentMethodName = encounter?.PaymentMethod?.PaymentMethodName,
-                PrimaryGuarantorNameSnapshot = encounter?.PrimaryGuarantorNameSnapshot,
-                PrimaryGuarantorTypeSnapshot = encounter?.PrimaryGuarantorTypeSnapshot,
+                PaymentSourceNameSnapshot = paymentSourceName,
+                PatientInsuranceId = encounter?.PaymentSource?.PatientInsuranceId,
+                InsuranceProviderId = encounter?.PaymentSource?.InsuranceProviderId,
+                InsuranceProviderName = encounter?.PaymentSource?.InsuranceProvider?.InsuranceProviderName
+                    ?? encounter?.PaymentSource?.PaymentSourceNameSnapshot,
+                IsInsuranceEligible = encounter?.PaymentSource?.IsEligible ?? paymentType == EncounterPaymentType.Cash,
+                IsInsurancePolicyActive = encounter?.PaymentSource?.IsPolicyActive ?? false,
                 PatientTotalVisitCount = totalVisitCount,
                 PatientVisitNumber = totalVisitCount,
                 ChiefComplaint = encounter?.ChiefComplaint,
@@ -954,13 +991,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private static string BuildPaymentTypeDisplayName(
             EncounterPaymentType paymentType,
-            string? primaryGuarantorName,
+            string? paymentSourceName,
             string? paymentMethodName)
         {
-            var guarantorName = NormalizeNullableText(primaryGuarantorName);
-            if (guarantorName != null)
+            var normalizedPaymentSourceName = NormalizeNullableText(paymentSourceName);
+            if (normalizedPaymentSourceName != null)
             {
-                return guarantorName;
+                return normalizedPaymentSourceName;
             }
 
             var methodName = NormalizeNullableText(paymentMethodName);
@@ -969,22 +1006,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return methodName;
             }
 
-            var normalizedPaymentType = paymentType.ToString().Trim().ToLowerInvariant();
-
-            return normalizedPaymentType switch
-            {
-                "cash" => "Umum / Tunai",
-                "patientcash" => "Umum / Tunai",
-                "selfpay" => "Umum / Tunai",
-                "insurance" => "Asuransi",
-                "bpjs" => "BPJS",
-                "company" => "Perusahaan",
-                "corporate" => "Perusahaan",
-                "membership" => "Membership",
-                "mixed" => "Pembayaran Campuran",
-                "mixedpayment" => "Pembayaran Campuran",
-                _ => paymentType.ToString()
-            };
+            return paymentType == EncounterPaymentType.Insurance
+                ? "Asuransi"
+                : "Tunai";
         }
 
         private sealed class DoctorUserPhotoSnapshot

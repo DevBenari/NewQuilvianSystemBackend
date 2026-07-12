@@ -64,8 +64,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.PracticeLocation)
                 .HasMaxLength(100);
 
-            entity.Property(x => x.RoomName)
-                .HasMaxLength(50);
 
             entity.Property(x => x.MaxPatientQuota)
                 .HasDefaultValue(0);

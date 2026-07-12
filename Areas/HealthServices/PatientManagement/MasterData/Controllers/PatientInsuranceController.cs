@@ -322,6 +322,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         )]
         public async Task<IActionResult> GetPatientInsuranceOptions(
             [FromQuery] bool onlyActive = true,
+            [FromQuery] bool onlyUsable = false,
+            [FromQuery] DateTime? serviceDate = null,
             [FromQuery] Guid? patientId = null,
             [FromQuery] Guid? insuranceProviderId = null,
             [FromQuery] string? search = null,
@@ -340,6 +342,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 onlyActive ? true : null,
                 search
             );
+
+            if (onlyUsable)
+            {
+                var effectiveDate = (serviceDate ?? AppDateTimeHelper.OperationalDate()).Date;
+
+                query = query.Where(x =>
+                    x.IsActive &&
+                    x.IsEligible &&
+                    x.Patient != null &&
+                    x.Patient.IsActive &&
+                    !x.Patient.IsDelete &&
+                    x.InsuranceProvider != null &&
+                    x.InsuranceProvider.IsActive &&
+                    !x.InsuranceProvider.IsDelete &&
+                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= effectiveDate) &&
+                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= effectiveDate) &&
+                    (!x.InsuranceProvider.ContractStartDate.HasValue || x.InsuranceProvider.ContractStartDate.Value.Date <= effectiveDate) &&
+                    (!x.InsuranceProvider.ContractEndDate.HasValue || x.InsuranceProvider.ContractEndDate.Value.Date >= effectiveDate));
+            }
 
             var totalData = await query.CountAsync();
 
@@ -377,6 +398,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [AccessPermission("PatientInsurance", "Read")]
         public async Task<IActionResult> GetPatientInsuranceOptionsForAdmin(
             [FromQuery] bool onlyActive = true,
+            [FromQuery] bool onlyUsable = false,
+            [FromQuery] DateTime? serviceDate = null,
             [FromQuery] Guid? patientId = null,
             [FromQuery] Guid? insuranceProviderId = null,
             [FromQuery] string? search = null,
@@ -385,6 +408,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         {
             return await GetPatientInsuranceOptions(
                 onlyActive,
+                onlyUsable,
+                serviceDate,
                 patientId,
                 insuranceProviderId,
                 search,
@@ -1114,6 +1139,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             MstPatientInsurance entity,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
+            var usability = BuildUsability(entity, AppDateTimeHelper.OperationalDate());
+
             return new PatientInsuranceResponse
             {
                 Id = entity.Id,
@@ -1139,6 +1166,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 EffectiveEndDate = entity.EffectiveEndDate,
                 IsPrimary = entity.IsPrimary,
                 IsEligible = entity.IsEligible,
+                IsCurrentlyEffective = usability.IsCurrentlyEffective,
+                IsProviderActive = usability.IsProviderActive,
+                IsProviderContractEffective = usability.IsProviderContractEffective,
+                IsUsableForEncounter = usability.IsUsableForEncounter,
+                UsabilityMessage = usability.UsabilityMessage,
                 LastEligibilityCheckAt = entity.LastEligibilityCheckAt,
                 LastEligibilityReferenceNumber = entity.LastEligibilityReferenceNumber,
                 AnnualLimitAmount = entity.AnnualLimitAmount,
@@ -1163,6 +1195,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             MstPatientInsurance entity,
             IReadOnlyDictionary<Guid, string?> actorNames)
         {
+            var usability = BuildUsability(entity, AppDateTimeHelper.OperationalDate());
+
             var response = new PatientInsuranceDetailResponse
             {
                 Id = entity.Id,
@@ -1188,6 +1222,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 EffectiveEndDate = entity.EffectiveEndDate,
                 IsPrimary = entity.IsPrimary,
                 IsEligible = entity.IsEligible,
+                IsCurrentlyEffective = usability.IsCurrentlyEffective,
+                IsProviderActive = usability.IsProviderActive,
+                IsProviderContractEffective = usability.IsProviderContractEffective,
+                IsUsableForEncounter = usability.IsUsableForEncounter,
+                UsabilityMessage = usability.UsabilityMessage,
                 LastEligibilityCheckAt = entity.LastEligibilityCheckAt,
                 LastEligibilityReferenceNumber = entity.LastEligibilityReferenceNumber,
                 EligibilityNote = entity.EligibilityNote,
@@ -1214,6 +1253,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         private static PatientInsuranceOptionResponse MapOptionResponse(MstPatientInsurance entity)
         {
+            var usability = BuildUsability(entity, AppDateTimeHelper.OperationalDate());
+
             return new PatientInsuranceOptionResponse
             {
                 Id = entity.Id,
@@ -1234,6 +1275,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 EffectiveEndDate = entity.EffectiveEndDate,
                 IsPrimary = entity.IsPrimary,
                 IsEligible = entity.IsEligible,
+                IsCurrentlyEffective = usability.IsCurrentlyEffective,
+                IsProviderActive = usability.IsProviderActive,
+                IsProviderContractEffective = usability.IsProviderContractEffective,
+                IsUsableForEncounter = usability.IsUsableForEncounter,
+                UsabilityMessage = usability.UsabilityMessage,
                 IsNeedGuaranteeLetter = entity.IsNeedGuaranteeLetter,
                 IsNeedReferralLetter = entity.IsNeedReferralLetter,
                 IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
@@ -1242,6 +1288,72 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 CoPaymentPercent = entity.CoPaymentPercent,
                 CoPaymentAmount = entity.CoPaymentAmount
             };
+        }
+
+        private static (
+            bool IsCurrentlyEffective,
+            bool IsProviderActive,
+            bool IsProviderContractEffective,
+            bool IsUsableForEncounter,
+            string? UsabilityMessage) BuildUsability(
+                MstPatientInsurance entity,
+                DateTime serviceDate)
+        {
+            var date = serviceDate.Date;
+
+            var isCurrentlyEffective =
+                (!entity.EffectiveStartDate.HasValue || entity.EffectiveStartDate.Value.Date <= date) &&
+                (!entity.EffectiveEndDate.HasValue || entity.EffectiveEndDate.Value.Date >= date);
+
+            var isProviderActive =
+                entity.InsuranceProvider != null &&
+                entity.InsuranceProvider.IsActive &&
+                !entity.InsuranceProvider.IsDelete;
+
+            var isProviderContractEffective =
+                entity.InsuranceProvider != null &&
+                (!entity.InsuranceProvider.ContractStartDate.HasValue || entity.InsuranceProvider.ContractStartDate.Value.Date <= date) &&
+                (!entity.InsuranceProvider.ContractEndDate.HasValue || entity.InsuranceProvider.ContractEndDate.Value.Date >= date);
+
+            var isPatientActive =
+                entity.Patient != null &&
+                entity.Patient.IsActive &&
+                !entity.Patient.IsDelete;
+
+            var isUsable =
+                entity.IsActive &&
+                entity.IsEligible &&
+                isPatientActive &&
+                isCurrentlyEffective &&
+                isProviderActive &&
+                isProviderContractEffective;
+
+            string? message = null;
+
+            if (!entity.IsActive)
+                message = "Data asuransi pasien tidak aktif.";
+            else if (!entity.IsEligible)
+                message = "Asuransi pasien belum eligible.";
+            else if (!isPatientActive)
+                message = "Data pasien tidak aktif.";
+            else if (!isCurrentlyEffective)
+                message = entity.EffectiveStartDate.HasValue && entity.EffectiveStartDate.Value.Date > date
+                    ? "Polis asuransi belum mulai berlaku."
+                    : "Polis asuransi sudah berakhir.";
+            else if (!isProviderActive)
+                message = "Provider asuransi tidak aktif.";
+            else if (!isProviderContractEffective)
+                message = entity.InsuranceProvider?.ContractStartDate.HasValue == true &&
+                          entity.InsuranceProvider.ContractStartDate.Value.Date > date
+                    ? "Kontrak provider asuransi belum mulai berlaku."
+                    : "Kontrak provider asuransi sudah berakhir.";
+
+            return (
+                isCurrentlyEffective,
+                isProviderActive,
+                isProviderContractEffective,
+                isUsable,
+                message);
         }
 
         private static IOrderedQueryable<MstPatientInsurance> ApplySorting(

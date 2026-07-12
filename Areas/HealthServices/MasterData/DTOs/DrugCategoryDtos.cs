@@ -14,7 +14,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int ChronicDiseaseDrugCategory { get; set; }
         public int VaccineDrugCategory { get; set; }
         public int ConsumableDrugCategory { get; set; }
-        public int CoveredByInsuranceDefaultDrugCategory { get; set; }
     }
 
     public class DrugCategoryResponse
@@ -32,7 +31,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsChronicDiseaseDrug { get; set; }
         public bool IsVaccine { get; set; }
         public bool IsConsumable { get; set; }
-        public bool IsCoveredByInsuranceDefault { get; set; }
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
@@ -63,7 +61,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsChronicDiseaseDrug { get; set; }
         public bool IsVaccine { get; set; }
         public bool IsConsumable { get; set; }
-        public bool IsCoveredByInsuranceDefault { get; set; }
         public int SortOrder { get; set; }
     }
 
@@ -109,7 +106,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool? IsChronicDiseaseDrug { get; set; }
         public bool? IsVaccine { get; set; }
         public bool? IsConsumable { get; set; }
-        public bool? IsCoveredByInsuranceDefault { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
@@ -178,7 +174,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsChronicDiseaseDrug { get; set; } = false;
         public bool IsVaccine { get; set; } = false;
         public bool IsConsumable { get; set; } = false;
-        public bool IsCoveredByInsuranceDefault { get; set; } = true;
 
         public int SortOrder { get; set; } = 0;
 

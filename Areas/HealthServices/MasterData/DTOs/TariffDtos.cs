@@ -46,7 +46,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? DrugName { get; set; }
         public string? ExternalServiceCode { get; set; }
         public string? ExternalClassCode { get; set; }
-        public string? ProviderName { get; set; }
         public bool IsSurgeryRelated { get; set; }
         public bool IsRoomCharge { get; set; }
         public bool IsAdministrationFee { get; set; }
@@ -56,9 +55,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsNeedDoctor { get; set; }
         public bool IsNeedApproval { get; set; }
         public decimal NormalPrice { get; set; }
-        public decimal? MemberPrice { get; set; }
-        public decimal? InsurancePrice { get; set; }
-        public decimal? CompanyPrice { get; set; }
         public DateTime? EffectiveStartDate { get; set; }
         public DateTime? EffectiveEndDate { get; set; }
         public bool IsTaxable { get; set; }
@@ -96,9 +92,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid? DrugId { get; set; }
         public string? DrugName { get; set; }
         public decimal NormalPrice { get; set; }
-        public decimal? MemberPrice { get; set; }
-        public decimal? InsurancePrice { get; set; }
-        public decimal? CompanyPrice { get; set; }
         public bool IsNeedDoctor { get; set; }
         public bool IsNeedApproval { get; set; }
         public bool IsTaxable { get; set; }
@@ -221,9 +214,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         [MaxLength(50)]
         public string? ExternalClassCode { get; set; }
 
-        [MaxLength(100)]
-        public string? ProviderName { get; set; }
-
         public bool IsSurgeryRelated { get; set; } = false;
         public bool IsRoomCharge { get; set; } = false;
         public bool IsAdministrationFee { get; set; } = false;
@@ -235,15 +225,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         [Range(typeof(decimal), "0", "999999999999")]
         public decimal NormalPrice { get; set; } = 0;
-
-        [Range(typeof(decimal), "0", "999999999999")]
-        public decimal? MemberPrice { get; set; }
-
-        [Range(typeof(decimal), "0", "999999999999")]
-        public decimal? InsurancePrice { get; set; }
-
-        [Range(typeof(decimal), "0", "999999999999")]
-        public decimal? CompanyPrice { get; set; }
 
         public DateTime? EffectiveStartDate { get; set; }
         public DateTime? EffectiveEndDate { get; set; }

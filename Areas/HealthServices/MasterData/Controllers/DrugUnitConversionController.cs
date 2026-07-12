@@ -77,7 +77,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     new() { Value = "drugName", Label = "Nama obat" },
                     new() { Value = "fromMeasurementName", Label = "Dari satuan" },
                     new() { Value = "toMeasurementName", Label = "Ke satuan" },
-                    new() { Value = "conversionFactor", Label = "Faktor konversi" },
                     new() { Value = "conversionType", Label = "Tipe konversi" },
                     new() { Value = "isDefault", Label = "Default" },
                     new() { Value = "isActive", Label = "Status aktif" }
@@ -280,7 +279,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
                     FromQuantity = x.FromQuantity,
                     ToQuantity = x.ToQuantity,
-                    ConversionFactor = x.ConversionFactor,
+                    ConversionFactor = x.FromQuantity == 0 ? 0 : x.ToQuantity / x.FromQuantity,
                     ConversionType = x.ConversionType,
 
                     IsDefault = x.IsDefault,
@@ -335,7 +334,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     ToMeasurementSymbol = x.ToMeasurement != null ? x.ToMeasurement.MeasurementSymbol : null,
                     FromQuantity = x.FromQuantity,
                     ToQuantity = x.ToQuantity,
-                    ConversionFactor = x.ConversionFactor,
+                    ConversionFactor = x.FromQuantity == 0 ? 0 : x.ToQuantity / x.FromQuantity,
                     ConversionType = x.ConversionType,
                     IsDefault = x.IsDefault,
                     IsBidirectional = x.IsBidirectional,
@@ -385,7 +384,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 toMeasurementId: request.ToMeasurementId,
                 fromQuantity: request.FromQuantity,
                 toQuantity: request.ToQuantity,
-                conversionFactor: request.ConversionFactor,
                 conversionType: request.ConversionType,
                 isBidirectional: request.IsBidirectional,
                 effectiveStartDate: request.EffectiveStartDate,
@@ -427,7 +425,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ToMeasurementId = request.ToMeasurementId,
                 FromQuantity = request.FromQuantity,
                 ToQuantity = request.ToQuantity,
-                ConversionFactor = request.ConversionFactor,
                 ConversionType = normalizedConversionType,
                 IsDefault = request.IsDefault,
                 IsBidirectional = request.IsBidirectional,
@@ -493,7 +490,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 toMeasurementId: request.ToMeasurementId,
                 fromQuantity: request.FromQuantity,
                 toQuantity: request.ToQuantity,
-                conversionFactor: request.ConversionFactor,
                 conversionType: request.ConversionType,
                 isBidirectional: request.IsBidirectional,
                 effectiveStartDate: request.EffectiveStartDate,
@@ -531,7 +527,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.ToMeasurementId = request.ToMeasurementId;
             entity.FromQuantity = request.FromQuantity;
             entity.ToQuantity = request.ToQuantity;
-            entity.ConversionFactor = request.ConversionFactor;
             entity.ConversionType = normalizedConversionType;
             entity.IsDefault = request.IsDefault;
             entity.IsBidirectional = request.IsBidirectional;
@@ -700,7 +695,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             Guid toMeasurementId,
             decimal fromQuantity,
             decimal toQuantity,
-            decimal conversionFactor,
             string conversionType,
             bool isBidirectional,
             DateTime? effectiveStartDate,
@@ -727,9 +721,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (toQuantity <= 0)
                 return (false, "To quantity harus lebih dari 0.");
 
-            if (conversionFactor <= 0)
-                return (false, "Conversion factor harus lebih dari 0.");
-
             if (string.IsNullOrWhiteSpace(conversionType))
                 return (false, "Tipe konversi wajib diisi.");
 
@@ -741,26 +732,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (effectiveStartDate.HasValue && effectiveEndDate.HasValue && effectiveEndDate.Value.Date < effectiveStartDate.Value.Date)
                 return (false, "Tanggal akhir berlaku tidak boleh lebih kecil dari tanggal mulai berlaku.");
 
-            var drugExists = await _dbContext.Set<MstDrug>()
+            var drug = await _dbContext.Set<MstDrug>()
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == drugId && x.IsActive && !x.IsDelete);
+                .FirstOrDefaultAsync(x => x.Id == drugId && x.IsActive && !x.IsDelete);
 
-            if (!drugExists)
+            if (drug == null)
                 return (false, "Drug tidak valid atau tidak aktif.");
+
+            var configuredMeasurementIds = new[]
+            {
+                drug.StrengthMeasurementId,
+                drug.BaseUnitMeasurementId,
+                drug.DispenseUnitMeasurementId,
+                drug.PurchaseUnitMeasurementId,
+                drug.StockUnitMeasurementId,
+                drug.DefaultDoseUnitMeasurementId
+            }
+            .Where(x => x.HasValue && x.Value != Guid.Empty)
+            .Select(x => x!.Value)
+            .ToHashSet();
+
+            if (!configuredMeasurementIds.Contains(fromMeasurementId) ||
+                !configuredMeasurementIds.Contains(toMeasurementId))
+            {
+                return (false, "From measurement dan to measurement harus merupakan satuan yang dikonfigurasi pada drug tersebut.");
+            }
 
             var fromMeasurementExists = await _dbContext.Set<MstMeasurement>()
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == fromMeasurementId && x.IsActive && !x.IsDelete);
+                .AnyAsync(x => x.Id == fromMeasurementId && x.IsActive && !x.IsDelete && x.IsForDrug);
 
             if (!fromMeasurementExists)
-                return (false, "From measurement tidak valid atau tidak aktif.");
+                return (false, "From measurement tidak valid, tidak aktif, atau tidak ditandai untuk obat.");
 
             var toMeasurementExists = await _dbContext.Set<MstMeasurement>()
                 .AsNoTracking()
-                .AnyAsync(x => x.Id == toMeasurementId && x.IsActive && !x.IsDelete);
+                .AnyAsync(x => x.Id == toMeasurementId && x.IsActive && !x.IsDelete && x.IsForDrug);
 
             if (!toMeasurementExists)
-                return (false, "To measurement tidak valid atau tidak aktif.");
+                return (false, "To measurement tidak valid, tidak aktif, atau tidak ditandai untuk obat.");
 
             var normalizedName = conversionName.Trim().ToLower();
             var normalizedConversionType = NormalizeConversionType(conversionType);
@@ -878,7 +888,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     FromMeasurementName = x.FromMeasurement != null ? x.FromMeasurement.MeasurementName : string.Empty,
                     ToMeasurementId = x.ToMeasurementId,
                     ToMeasurementName = x.ToMeasurement != null ? x.ToMeasurement.MeasurementName : string.Empty,
-                    ConversionFactor = x.ConversionFactor,
+                    ConversionFactor = x.FromQuantity == 0 ? 0 : x.ToQuantity / x.FromQuantity,
                     ConversionType = x.ConversionType,
                     IsDefault = x.IsDefault,
                     IsActive = x.IsActive
@@ -906,7 +916,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ToMeasurementSymbol = x.ToMeasurement != null ? x.ToMeasurement.MeasurementSymbol : null,
                 FromQuantity = x.FromQuantity,
                 ToQuantity = x.ToQuantity,
-                ConversionFactor = x.ConversionFactor,
+                ConversionFactor = x.FromQuantity == 0 ? 0 : x.ToQuantity / x.FromQuantity,
                 ConversionType = x.ConversionType,
                 IsDefault = x.IsDefault,
                 IsBidirectional = x.IsBidirectional,
@@ -958,8 +968,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     : query.OrderBy(x => x.ToMeasurement != null ? x.ToMeasurement.MeasurementName : string.Empty),
 
                 "conversionfactor" => isDesc
-                    ? query.OrderByDescending(x => x.ConversionFactor)
-                    : query.OrderBy(x => x.ConversionFactor),
+                    ? query.OrderByDescending(x => x.ToQuantity / x.FromQuantity)
+                    : query.OrderBy(x => x.ToQuantity / x.FromQuantity),
 
                 "conversiontype" => isDesc
                     ? query.OrderByDescending(x => x.ConversionType)

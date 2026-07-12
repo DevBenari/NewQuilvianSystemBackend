@@ -144,7 +144,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ExpiryDateTrackedDrug = await query.CountAsync(x => x.IsExpiryDateTracked),
                 FractionalDispenseAllowedDrug = await query.CountAsync(x => x.IsAllowFractionalDispense),
                 NeedPrescriptionDrug = await query.CountAsync(x => x.IsNeedPrescription),
-                CoveredByInsuranceDefaultDrug = await query.CountAsync(x => x.IsCoveredByInsuranceDefault),
+                PrescribableDrug = await query.CountAsync(x => x.IsPrescribable),
                 NeedApprovalDrug = await query.CountAsync(x => x.IsNeedApproval)
             };
 
@@ -183,7 +183,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] bool? isExpiryDateTracked,
             [FromQuery] bool? isAllowFractionalDispense,
             [FromQuery] bool? isNeedPrescription,
-            [FromQuery] bool? isCoveredByInsuranceDefault,
+            [FromQuery] bool? isPrescribable,
             [FromQuery] bool? isNeedApproval,
             [FromQuery] string? search,
             [FromQuery] string? sortBy = "sortOrder",
@@ -221,7 +221,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 isExpiryDateTracked,
                 isAllowFractionalDispense,
                 isNeedPrescription,
-                isCoveredByInsuranceDefault,
+                isPrescribable,
                 isNeedApproval,
                 search
             );
@@ -274,6 +274,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] bool? isHighAlert = null,
             [FromQuery] bool? isCompoundIngredientAllowed = null,
             [FromQuery] bool? isNeedPrescription = null,
+            [FromQuery] bool? isPrescribable = true,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
@@ -307,7 +308,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 null,
                 null,
                 isNeedPrescription,
-                null,
+                isPrescribable,
                 null,
                 search
             );
@@ -335,6 +336,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return Ok(ApiResponse<DrugOptionPagedResponse>.Ok(
                 result,
                 "Data pilihan drug berhasil diambil."
+            ));
+        }
+
+        [HttpGet("{id:guid}/clinical-information")]
+        [ProducesResponseType(typeof(ApiResponse<DrugClinicalInformationResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Drug Clinical Information", Description = "Melihat informasi klinis obat", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Drug", "Read")]
+        public async Task<IActionResult> GetDrugClinicalInformation(Guid id)
+        {
+            var entity = await _dbContext.Set<MstDrug>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete && x.IsActive);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Drug tidak ditemukan atau tidak aktif."
+                ));
+            }
+
+            var result = new DrugClinicalInformationResponse
+            {
+                DrugId = entity.Id,
+                DrugCode = entity.DrugCode,
+                DrugName = entity.DrugName,
+                GenericName = entity.GenericName,
+                BrandName = entity.BrandName,
+                DrugForm = entity.DrugForm,
+                Strength = entity.Strength,
+                Route = entity.Route,
+                Indication = entity.Indication,
+                Contraindication = entity.Contraindication,
+                SideEffect = entity.SideEffect,
+                WarningPrecaution = entity.WarningPrecaution,
+                DosageInformation = entity.DosageInformation,
+                DrugInteraction = entity.DrugInteraction,
+                AdministrationInstruction = entity.AdministrationInstruction,
+                StorageInstruction = entity.StorageInstruction,
+                PregnancyCategory = entity.PregnancyCategory,
+                LactationNote = entity.LactationNote,
+                PediatricNote = entity.PediatricNote,
+                GeriatricNote = entity.GeriatricNote,
+                IsHighAlert = entity.IsHighAlert,
+                IsNarcotic = entity.IsNarcotic,
+                IsPsychotropic = entity.IsPsychotropic,
+                IsAntibiotic = entity.IsAntibiotic
+            };
+
+            return Ok(ApiResponse<DrugClinicalInformationResponse>.Ok(
+                result,
+                "Informasi klinis drug berhasil diambil."
             ));
         }
 
@@ -405,8 +459,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 Strength = NormalizeNullableString(request.Strength),
                 StrengthValue = request.StrengthValue,
                 StrengthMeasurementId = NormalizeNullableGuid(request.StrengthMeasurementId),
-                BaseUnit = NormalizeNullableString(request.BaseUnit),
-                DispenseUnit = NormalizeNullableString(request.DispenseUnit),
                 BaseUnitMeasurementId = NormalizeNullableGuid(request.BaseUnitMeasurementId),
                 DispenseUnitMeasurementId = NormalizeNullableGuid(request.DispenseUnitMeasurementId),
                 PurchaseUnitMeasurementId = NormalizeNullableGuid(request.PurchaseUnitMeasurementId),
@@ -428,12 +480,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsExpiryDateTracked = request.IsExpiryDateTracked,
                 IsAllowFractionalDispense = request.IsAllowFractionalDispense,
                 IsNeedPrescription = request.IsNeedPrescription,
-                IsCoveredByInsuranceDefault = request.IsCoveredByInsuranceDefault,
+                IsPrescribable = request.IsPrescribable,
                 IsNeedApproval = request.IsNeedApproval,
-                DefaultPrice = request.DefaultPrice,
-                InsurancePrice = request.InsurancePrice,
-                MemberPrice = request.MemberPrice,
-                CompanyPrice = request.CompanyPrice,
                 Indication = NormalizeNullableString(request.Indication),
                 Contraindication = NormalizeNullableString(request.Contraindication),
                 SideEffect = NormalizeNullableString(request.SideEffect),
@@ -519,8 +567,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.Strength = NormalizeNullableString(request.Strength);
             entity.StrengthValue = request.StrengthValue;
             entity.StrengthMeasurementId = NormalizeNullableGuid(request.StrengthMeasurementId);
-            entity.BaseUnit = NormalizeNullableString(request.BaseUnit);
-            entity.DispenseUnit = NormalizeNullableString(request.DispenseUnit);
             entity.BaseUnitMeasurementId = NormalizeNullableGuid(request.BaseUnitMeasurementId);
             entity.DispenseUnitMeasurementId = NormalizeNullableGuid(request.DispenseUnitMeasurementId);
             entity.PurchaseUnitMeasurementId = NormalizeNullableGuid(request.PurchaseUnitMeasurementId);
@@ -542,12 +588,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.IsExpiryDateTracked = request.IsExpiryDateTracked;
             entity.IsAllowFractionalDispense = request.IsAllowFractionalDispense;
             entity.IsNeedPrescription = request.IsNeedPrescription;
-            entity.IsCoveredByInsuranceDefault = request.IsCoveredByInsuranceDefault;
+            entity.IsPrescribable = request.IsPrescribable;
             entity.IsNeedApproval = request.IsNeedApproval;
-            entity.DefaultPrice = request.DefaultPrice;
-            entity.InsurancePrice = request.InsurancePrice;
-            entity.MemberPrice = request.MemberPrice;
-            entity.CompanyPrice = request.CompanyPrice;
             entity.Indication = NormalizeNullableString(request.Indication);
             entity.Contraindication = NormalizeNullableString(request.Contraindication);
             entity.SideEffect = NormalizeNullableString(request.SideEffect);
@@ -788,7 +830,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             bool? isExpiryDateTracked,
             bool? isAllowFractionalDispense,
             bool? isNeedPrescription,
-            bool? isCoveredByInsuranceDefault,
+            bool? isPrescribable,
             bool? isNeedApproval,
             string? search)
         {
@@ -829,7 +871,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (isExpiryDateTracked.HasValue) query = query.Where(x => x.IsExpiryDateTracked == isExpiryDateTracked.Value);
             if (isAllowFractionalDispense.HasValue) query = query.Where(x => x.IsAllowFractionalDispense == isAllowFractionalDispense.Value);
             if (isNeedPrescription.HasValue) query = query.Where(x => x.IsNeedPrescription == isNeedPrescription.Value);
-            if (isCoveredByInsuranceDefault.HasValue) query = query.Where(x => x.IsCoveredByInsuranceDefault == isCoveredByInsuranceDefault.Value);
+            if (isPrescribable.HasValue) query = query.Where(x => x.IsPrescribable == isPrescribable.Value);
             if (isNeedApproval.HasValue) query = query.Where(x => x.IsNeedApproval == isNeedApproval.Value);
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -844,8 +886,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.ManufacturerName != null && x.ManufacturerName.ToLower().Contains(keyword)) ||
                     (x.DrugForm != null && x.DrugForm.ToLower().Contains(keyword)) ||
                     (x.Strength != null && x.Strength.ToLower().Contains(keyword)) ||
-                    (x.BaseUnit != null && x.BaseUnit.ToLower().Contains(keyword)) ||
-                    (x.DispenseUnit != null && x.DispenseUnit.ToLower().Contains(keyword)) ||
                     (x.Route != null && x.Route.ToLower().Contains(keyword)) ||
                     (x.Indication != null && x.Indication.ToLower().Contains(keyword)) ||
                     (x.Contraindication != null && x.Contraindication.ToLower().Contains(keyword)) ||
@@ -888,7 +928,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     : query.OrderBy(x => x.DrugCategory != null ? x.DrugCategory.DrugCategoryName : string.Empty),
                 "drugform" => isDescending ? query.OrderByDescending(x => x.DrugForm) : query.OrderBy(x => x.DrugForm),
                 "route" => isDescending ? query.OrderByDescending(x => x.Route) : query.OrderBy(x => x.Route),
-                "defaultprice" => isDescending ? query.OrderByDescending(x => x.DefaultPrice) : query.OrderBy(x => x.DefaultPrice),
+                "isprescribable" => isDescending ? query.OrderByDescending(x => x.IsPrescribable) : query.OrderBy(x => x.IsPrescribable),
                 "isformulary" => isDescending ? query.OrderByDescending(x => x.IsFormulary) : query.OrderBy(x => x.IsFormulary),
                 "isgeneric" => isDescending ? query.OrderByDescending(x => x.IsGeneric) : query.OrderBy(x => x.IsGeneric),
                 "ishighalert" => isDescending ? query.OrderByDescending(x => x.IsHighAlert) : query.OrderBy(x => x.IsHighAlert),
@@ -911,17 +951,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (string.IsNullOrWhiteSpace(request.DrugName))
                 return (false, "Nama drug wajib diisi.");
 
-            if (request.DefaultPrice < 0)
-                return (false, "Harga default tidak boleh kurang dari 0.");
-
-            if (request.InsurancePrice.HasValue && request.InsurancePrice.Value < 0)
-                return (false, "Harga insurance tidak boleh kurang dari 0.");
-
-            if (request.MemberPrice.HasValue && request.MemberPrice.Value < 0)
-                return (false, "Harga member tidak boleh kurang dari 0.");
-
-            if (request.CompanyPrice.HasValue && request.CompanyPrice.Value < 0)
-                return (false, "Harga company tidak boleh kurang dari 0.");
 
             if (request.StrengthValue.HasValue && request.StrengthValue.Value < 0)
                 return (false, "Nilai strength tidak boleh kurang dari 0.");
@@ -938,6 +967,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             if (!categoryExists)
                 return (false, "Drug category tidak ditemukan atau tidak aktif.");
+
+            if (request.IsPrescribable)
+            {
+                if (!request.BaseUnitMeasurementId.HasValue || request.BaseUnitMeasurementId.Value == Guid.Empty)
+                    return (false, "Base unit measurement wajib dipilih untuk obat yang dapat diresepkan.");
+
+                if (!request.DispenseUnitMeasurementId.HasValue || request.DispenseUnitMeasurementId.Value == Guid.Empty)
+                    return (false, "Dispense unit measurement wajib dipilih untuk obat yang dapat diresepkan.");
+
+                if (!request.DefaultDoseUnitMeasurementId.HasValue || request.DefaultDoseUnitMeasurementId.Value == Guid.Empty)
+                    return (false, "Default dose unit measurement wajib dipilih untuk obat yang dapat diresepkan.");
+            }
+
+            if (request.StrengthValue.HasValue && request.StrengthValue.Value > 0 &&
+                (!request.StrengthMeasurementId.HasValue || request.StrengthMeasurementId.Value == Guid.Empty))
+            {
+                return (false, "Strength measurement wajib dipilih jika strength value diisi.");
+            }
 
             var measurementIds = new List<Guid?>
             {
@@ -957,10 +1004,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             {
                 var validMeasurementCount = await _dbContext.Set<MstMeasurement>()
                     .AsNoTracking()
-                    .CountAsync(x => measurementIds.Contains(x.Id) && !x.IsDelete && x.IsActive);
+                    .CountAsync(x => measurementIds.Contains(x.Id) && !x.IsDelete && x.IsActive && x.IsForDrug);
 
                 if (validMeasurementCount != measurementIds.Count)
-                    return (false, "Measurement yang dipilih tidak valid atau tidak aktif.");
+                    return (false, "Measurement yang dipilih tidak valid, tidak aktif, atau tidak ditandai untuk obat.");
+            }
+
+            if (request.IsAllowFractionalDispense && request.DispenseUnitMeasurementId.HasValue)
+            {
+                var dispenseUnitAllowsDecimal = await _dbContext.Set<MstMeasurement>()
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.Id == request.DispenseUnitMeasurementId.Value &&
+                        !x.IsDelete &&
+                        x.IsActive &&
+                        x.IsForDrug &&
+                        x.IsDecimalAllowed);
+
+                if (!dispenseUnitAllowsDecimal)
+                    return (false, "Dispense unit harus mengizinkan nilai desimal jika fractional dispense diaktifkan.");
             }
 
             var normalizedName = request.DrugName.Trim().ToLower();
@@ -1107,8 +1169,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 StrengthMeasurementCode = entity.StrengthMeasurement?.MeasurementCode,
                 StrengthMeasurementName = entity.StrengthMeasurement?.MeasurementName,
                 StrengthMeasurementSymbol = entity.StrengthMeasurement?.MeasurementSymbol,
-                BaseUnit = entity.BaseUnit,
-                DispenseUnit = entity.DispenseUnit,
                 BaseUnitMeasurementId = entity.BaseUnitMeasurementId,
                 BaseUnitMeasurementCode = entity.BaseUnitMeasurement?.MeasurementCode,
                 BaseUnitMeasurementName = entity.BaseUnitMeasurement?.MeasurementName,
@@ -1146,12 +1206,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsExpiryDateTracked = entity.IsExpiryDateTracked,
                 IsAllowFractionalDispense = entity.IsAllowFractionalDispense,
                 IsNeedPrescription = entity.IsNeedPrescription,
-                IsCoveredByInsuranceDefault = entity.IsCoveredByInsuranceDefault,
+                IsPrescribable = entity.IsPrescribable,
                 IsNeedApproval = entity.IsNeedApproval,
-                DefaultPrice = entity.DefaultPrice,
-                InsurancePrice = entity.InsurancePrice,
-                MemberPrice = entity.MemberPrice,
-                CompanyPrice = entity.CompanyPrice,
                 ExternalDrugCode = entity.ExternalDrugCode,
                 IntegrationCode = entity.IntegrationCode,
                 BpomRegistrationNumber = entity.BpomRegistrationNumber,
@@ -1207,13 +1263,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 DrugFormName = BuildDrugFormLabel(entity.DrugForm),
                 Strength = entity.Strength,
                 StrengthValue = entity.StrengthValue,
+                StrengthMeasurementId = entity.StrengthMeasurementId,
+                StrengthMeasurementName = entity.StrengthMeasurement?.MeasurementName,
                 StrengthMeasurementSymbol = entity.StrengthMeasurement?.MeasurementSymbol,
-                BaseUnit = entity.BaseUnit,
-                DispenseUnit = entity.DispenseUnit,
+                BaseUnitMeasurementId = entity.BaseUnitMeasurementId,
+                BaseUnitMeasurementName = entity.BaseUnitMeasurement?.MeasurementName,
                 BaseUnitMeasurementSymbol = entity.BaseUnitMeasurement?.MeasurementSymbol,
+                DispenseUnitMeasurementId = entity.DispenseUnitMeasurementId,
+                DispenseUnitMeasurementName = entity.DispenseUnitMeasurement?.MeasurementName,
                 DispenseUnitMeasurementSymbol = entity.DispenseUnitMeasurement?.MeasurementSymbol,
+                PurchaseUnitMeasurementId = entity.PurchaseUnitMeasurementId,
+                PurchaseUnitMeasurementName = entity.PurchaseUnitMeasurement?.MeasurementName,
                 PurchaseUnitMeasurementSymbol = entity.PurchaseUnitMeasurement?.MeasurementSymbol,
+                StockUnitMeasurementId = entity.StockUnitMeasurementId,
+                StockUnitMeasurementName = entity.StockUnitMeasurement?.MeasurementName,
                 StockUnitMeasurementSymbol = entity.StockUnitMeasurement?.MeasurementSymbol,
+                DefaultDoseUnitMeasurementId = entity.DefaultDoseUnitMeasurementId,
+                DefaultDoseUnitMeasurementName = entity.DefaultDoseUnitMeasurement?.MeasurementName,
                 DefaultDoseUnitMeasurementSymbol = entity.DefaultDoseUnitMeasurement?.MeasurementSymbol,
                 Route = entity.Route,
                 RouteName = BuildRouteLabel(entity.Route),
@@ -1227,13 +1293,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsVaccine = entity.IsVaccine,
                 IsConsumable = entity.IsConsumable,
                 IsCompoundIngredientAllowed = entity.IsCompoundIngredientAllowed,
+                IsStockManaged = entity.IsStockManaged,
+                IsAllowFractionalDispense = entity.IsAllowFractionalDispense,
                 IsNeedPrescription = entity.IsNeedPrescription,
-                IsCoveredByInsuranceDefault = entity.IsCoveredByInsuranceDefault,
-                IsNeedApproval = entity.IsNeedApproval,
-                DefaultPrice = entity.DefaultPrice,
-                InsurancePrice = entity.InsurancePrice,
-                MemberPrice = entity.MemberPrice,
-                CompanyPrice = entity.CompanyPrice
+                IsPrescribable = entity.IsPrescribable,
+                IsNeedApproval = entity.IsNeedApproval
             };
         }
 
@@ -1285,8 +1349,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             target.StrengthMeasurementCode = source.StrengthMeasurementCode;
             target.StrengthMeasurementName = source.StrengthMeasurementName;
             target.StrengthMeasurementSymbol = source.StrengthMeasurementSymbol;
-            target.BaseUnit = source.BaseUnit;
-            target.DispenseUnit = source.DispenseUnit;
             target.BaseUnitMeasurementId = source.BaseUnitMeasurementId;
             target.BaseUnitMeasurementCode = source.BaseUnitMeasurementCode;
             target.BaseUnitMeasurementName = source.BaseUnitMeasurementName;
@@ -1324,12 +1386,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             target.IsExpiryDateTracked = source.IsExpiryDateTracked;
             target.IsAllowFractionalDispense = source.IsAllowFractionalDispense;
             target.IsNeedPrescription = source.IsNeedPrescription;
-            target.IsCoveredByInsuranceDefault = source.IsCoveredByInsuranceDefault;
+            target.IsPrescribable = source.IsPrescribable;
             target.IsNeedApproval = source.IsNeedApproval;
-            target.DefaultPrice = source.DefaultPrice;
-            target.InsurancePrice = source.InsurancePrice;
-            target.MemberPrice = source.MemberPrice;
-            target.CompanyPrice = source.CompanyPrice;
             target.ExternalDrugCode = source.ExternalDrugCode;
             target.IntegrationCode = source.IntegrationCode;
             target.BpomRegistrationNumber = source.BpomRegistrationNumber;
@@ -1451,7 +1509,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Value = "drugCategoryName", Label = "Kategori obat" },
                 new() { Value = "drugForm", Label = "Bentuk obat" },
                 new() { Value = "route", Label = "Rute" },
-                new() { Value = "defaultPrice", Label = "Harga default" },
+                new() { Value = "isPrescribable", Label = "Dapat diresepkan" },
                 new() { Value = "isFormulary", Label = "Formularium" },
                 new() { Value = "isGeneric", Label = "Generik" },
                 new() { Value = "isHighAlert", Label = "High alert" },
