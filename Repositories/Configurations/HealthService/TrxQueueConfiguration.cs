@@ -269,20 +269,53 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 
             entity.HasIndex(x => x.DoctorScheduleId);
 
-            entity.HasIndex(x => x.QueueCode)
-                .IsUnique()
-                .HasFilter("\"IsDelete\" = false");
+            // QueueCode tetap diindeks untuk pencarian, tetapi tidak unik secara global.
+            // Contoh U001 boleh digunakan kembali pada tanggal yang berbeda.
+            entity.HasIndex(x => x.QueueCode);
 
+            // QueueCode unik hanya dalam tanggal, service unit, dan clinic yang sama.
+            // Filter ClinicId dipisahkan supaya PostgreSQL tetap dapat menjaga uniqueness
+            // ketika ClinicId bernilai null.
             entity.HasIndex(x => new
             {
                 x.QueueDate,
                 x.ServiceUnitId,
                 x.ClinicId,
-                x.DoctorId,
+                x.QueueCode
+            })
+            .IsUnique()
+            .HasFilter("\"IsDelete\" = false AND \"ClinicId\" IS NOT NULL");
+
+            entity.HasIndex(x => new
+            {
+                x.QueueDate,
+                x.ServiceUnitId,
+                x.QueueCode
+            })
+            .IsUnique()
+            .HasFilter("\"IsDelete\" = false AND \"ClinicId\" IS NULL");
+
+            // Nomor urut antrean tidak dibatasi 001-999.
+            // QueueNumber bertipe int dan format D3 hanya memberi minimal tiga digit:
+            // 1 -> U001, 999 -> U999, 1000 -> U1000.
+            entity.HasIndex(x => new
+            {
+                x.QueueDate,
+                x.ServiceUnitId,
+                x.ClinicId,
                 x.QueueNumber
             })
             .IsUnique()
-            .HasFilter("\"IsDelete\" = false");
+            .HasFilter("\"IsDelete\" = false AND \"ClinicId\" IS NOT NULL");
+
+            entity.HasIndex(x => new
+            {
+                x.QueueDate,
+                x.ServiceUnitId,
+                x.QueueNumber
+            })
+            .IsUnique()
+            .HasFilter("\"IsDelete\" = false AND \"ClinicId\" IS NULL");
 
             entity.HasIndex(x => new
             {
