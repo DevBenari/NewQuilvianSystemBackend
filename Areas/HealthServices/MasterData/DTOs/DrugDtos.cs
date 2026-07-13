@@ -193,6 +193,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsNarcotic { get; set; }
         public bool IsPsychotropic { get; set; }
         public bool IsAntibiotic { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+        public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class DrugOptionPagedResponse
@@ -291,7 +294,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         [MaxLength(100)]
         public string? DrugForm { get; set; }
 
-        [MaxLength(100)]
+        // Dapat berisi komposisi panjang untuk obat kombinasi.
         public string? Strength { get; set; }
 
         [Range(typeof(decimal), "0", "999999999999")]
@@ -327,40 +330,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsPrescribable { get; set; } = true;
         public bool IsNeedApproval { get; set; } = false;
 
-        [MaxLength(1000)]
         public string? Indication { get; set; }
 
-        [MaxLength(1000)]
         public string? Contraindication { get; set; }
 
-        [MaxLength(1000)]
         public string? SideEffect { get; set; }
 
-        [MaxLength(1000)]
         public string? WarningPrecaution { get; set; }
 
-        [MaxLength(1000)]
         public string? DosageInformation { get; set; }
 
-        [MaxLength(1000)]
         public string? DrugInteraction { get; set; }
 
-        [MaxLength(500)]
         public string? AdministrationInstruction { get; set; }
 
-        [MaxLength(500)]
         public string? StorageInstruction { get; set; }
 
-        [MaxLength(100)]
         public string? PregnancyCategory { get; set; }
 
-        [MaxLength(250)]
         public string? LactationNote { get; set; }
 
-        [MaxLength(250)]
         public string? PediatricNote { get; set; }
 
-        [MaxLength(250)]
         public string? GeriatricNote { get; set; }
 
         [MaxLength(50)]
@@ -384,6 +375,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
     public class UpdateDrugRequest : CreateDrugRequest
     {
         public bool IsActive { get; set; } = true;
+    }
+
+    /// <summary>
+    /// Payload khusus untuk memperbarui informasi klinis tanpa harus mengirim ulang
+    /// kategori, measurement, bentuk obat, dan konfigurasi stok.
+    /// Endpoint menggunakan PUT, sehingga frontend mengirim seluruh bagian klinis.
+    /// </summary>
+    public class UpdateDrugClinicalInformationRequest
+    {
+        public string? Indication { get; set; }
+        public string? Contraindication { get; set; }
+        public string? SideEffect { get; set; }
+        public string? WarningPrecaution { get; set; }
+        public string? DosageInformation { get; set; }
+        public string? DrugInteraction { get; set; }
+        public string? AdministrationInstruction { get; set; }
+        public string? StorageInstruction { get; set; }
+        public string? PregnancyCategory { get; set; }
+        public string? LactationNote { get; set; }
+        public string? PediatricNote { get; set; }
+        public string? GeriatricNote { get; set; }
     }
 
     public class UpdateDrugStatusRequest

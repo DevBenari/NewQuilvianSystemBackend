@@ -33,9 +33,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public string? DrugForm { get; set; }
         // Tablet, Capsule, Syrup, Injection, Cream, Drop, Inhaler, Other
 
-        [MaxLength(100)]
         public string? Strength { get; set; }
-        // Display text: 500 mg, 5 mg/ml, 1 g, etc
+        // Display text dapat berisi komposisi panjang, misalnya obat kombinasi multivitamin.
+        // Dipetakan sebagai PostgreSQL text melalui MstDrugConfiguration.
 
         public decimal? StrengthValue { get; set; }
         // Numeric strength, contoh: 500
@@ -107,40 +107,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 
         public bool IsNeedApproval { get; set; } = false;
 
-        [MaxLength(1000)]
+        // Narasi klinis dipetakan sebagai PostgreSQL text agar label resmi tidak terpotong.
         public string? Indication { get; set; }
 
-        [MaxLength(1000)]
         public string? Contraindication { get; set; }
 
-        [MaxLength(1000)]
         public string? SideEffect { get; set; }
 
-        [MaxLength(1000)]
         public string? WarningPrecaution { get; set; }
 
-        [MaxLength(1000)]
         public string? DosageInformation { get; set; }
 
-        [MaxLength(1000)]
         public string? DrugInteraction { get; set; }
 
-        [MaxLength(500)]
         public string? AdministrationInstruction { get; set; }
 
-        [MaxLength(500)]
         public string? StorageInstruction { get; set; }
 
-        [MaxLength(100)]
+        // Nama property dipertahankan agar tidak breaking terhadap API/frontend lama.
+        // Isinya dapat berupa narasi risiko kehamilan (PLLR), bukan hanya kategori A/B/C/D/X.
         public string? PregnancyCategory { get; set; }
 
-        [MaxLength(250)]
         public string? LactationNote { get; set; }
 
-        [MaxLength(250)]
         public string? PediatricNote { get; set; }
 
-        [MaxLength(250)]
         public string? GeriatricNote { get; set; }
 
         [MaxLength(50)]

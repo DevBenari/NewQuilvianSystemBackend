@@ -36,7 +36,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasMaxLength(100);
 
             entity.Property(x => x.Strength)
-                .HasMaxLength(100);
+                .HasColumnType("text")
+                .IsRequired(false);
 
             entity.Property(x => x.StrengthValue)
                 .HasColumnType("numeric(18,6)")
@@ -115,40 +116,52 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 .HasDefaultValue(false);
 
             entity.Property(x => x.Indication)
-                .HasMaxLength(1000);
+                .HasColumnType("text")
+                .IsRequired(false);
 
             entity.Property(x => x.Contraindication)
-                .HasMaxLength(1000);
+                .HasColumnType("text")
+                .IsRequired(false);
 
             entity.Property(x => x.SideEffect)
-                .HasMaxLength(1000);
+                .HasColumnType("text")
+                .IsRequired(false);
 
             entity.Property(x => x.WarningPrecaution)
-                .HasMaxLength(1000);
+                .HasColumnType("text")
+                .IsRequired(false);
 
             entity.Property(x => x.DosageInformation)
-                .HasMaxLength(1000);
+                .HasColumnType("text")
+                .IsRequired(false);
 
             entity.Property(x => x.DrugInteraction)
-                .HasMaxLength(1000);
+                .HasColumnType("text")
+                .IsRequired(false);
 
             entity.Property(x => x.AdministrationInstruction)
-                .HasMaxLength(500);
+                .HasColumnType("text")
+                .IsRequired(false);
 
             entity.Property(x => x.StorageInstruction)
-                .HasMaxLength(500);
+                .HasColumnType("text")
+                .IsRequired(false);
 
             entity.Property(x => x.PregnancyCategory)
-                .HasMaxLength(100);
+                .HasColumnType("text")
+                .IsRequired(false);
 
             entity.Property(x => x.LactationNote)
-                .HasMaxLength(250);
+                .HasColumnType("text")
+                .IsRequired(false);
 
             entity.Property(x => x.PediatricNote)
-                .HasMaxLength(250);
+                .HasColumnType("text")
+                .IsRequired(false);
 
             entity.Property(x => x.GeriatricNote)
-                .HasMaxLength(250);
+                .HasColumnType("text")
+                .IsRequired(false);
 
             entity.Property(x => x.ExternalDrugCode)
                 .HasMaxLength(50);

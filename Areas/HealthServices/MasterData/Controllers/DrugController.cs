@@ -358,37 +358,83 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            var result = new DrugClinicalInformationResponse
+            var actorNames = await GetActorNameMapAsync(new[]
             {
-                DrugId = entity.Id,
-                DrugCode = entity.DrugCode,
-                DrugName = entity.DrugName,
-                GenericName = entity.GenericName,
-                BrandName = entity.BrandName,
-                DrugForm = entity.DrugForm,
-                Strength = entity.Strength,
-                Route = entity.Route,
-                Indication = entity.Indication,
-                Contraindication = entity.Contraindication,
-                SideEffect = entity.SideEffect,
-                WarningPrecaution = entity.WarningPrecaution,
-                DosageInformation = entity.DosageInformation,
-                DrugInteraction = entity.DrugInteraction,
-                AdministrationInstruction = entity.AdministrationInstruction,
-                StorageInstruction = entity.StorageInstruction,
-                PregnancyCategory = entity.PregnancyCategory,
-                LactationNote = entity.LactationNote,
-                PediatricNote = entity.PediatricNote,
-                GeriatricNote = entity.GeriatricNote,
-                IsHighAlert = entity.IsHighAlert,
-                IsNarcotic = entity.IsNarcotic,
-                IsPsychotropic = entity.IsPsychotropic,
-                IsAntibiotic = entity.IsAntibiotic
-            };
+                entity.UpdateBy
+            });
+
+            var result = MapClinicalInformationResponse(entity, actorNames);
 
             return Ok(ApiResponse<DrugClinicalInformationResponse>.Ok(
                 result,
                 "Informasi klinis drug berhasil diambil."
+            ));
+        }
+
+        [HttpPut("{id:guid}/clinical-information")]
+        [ProducesResponseType(typeof(ApiResponse<DrugClinicalInformationResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Drug Clinical Information", Description = "Mengubah informasi klinis obat", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("Drug", "Update")]
+        public async Task<IActionResult> UpdateDrugClinicalInformation(
+            Guid id,
+            [FromBody] UpdateDrugClinicalInformationRequest request)
+        {
+            var entity = await _dbContext.Set<MstDrug>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Drug tidak ditemukan."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            entity.Indication = NormalizeClinicalText(request.Indication);
+            entity.Contraindication = NormalizeClinicalText(request.Contraindication);
+            entity.SideEffect = NormalizeClinicalText(request.SideEffect);
+            entity.WarningPrecaution = NormalizeClinicalText(request.WarningPrecaution);
+            entity.DosageInformation = NormalizeClinicalText(request.DosageInformation);
+            entity.DrugInteraction = NormalizeClinicalText(request.DrugInteraction);
+            entity.AdministrationInstruction = NormalizeClinicalText(request.AdministrationInstruction);
+            entity.StorageInstruction = NormalizeClinicalText(request.StorageInstruction);
+            entity.PregnancyCategory = NormalizeClinicalText(request.PregnancyCategory);
+            entity.LactationNote = NormalizeClinicalText(request.LactationNote);
+            entity.PediatricNote = NormalizeClinicalText(request.PediatricNote);
+            entity.GeriatricNote = NormalizeClinicalText(request.GeriatricNote);
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            var actorNames = await GetActorNameMapAsync(new[]
+            {
+                actorUserId
+            });
+
+            var result = MapClinicalInformationResponse(entity, actorNames);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Drug.UpdateDrugClinicalInformation",
+                "Mengubah informasi klinis drug.",
+                new
+                {
+                    entity.Id,
+                    entity.DrugCode,
+                    entity.DrugName,
+                    entity.UpdateDateTime,
+                    entity.UpdateBy
+                }
+            );
+
+            return Ok(ApiResponse<DrugClinicalInformationResponse>.Ok(
+                result,
+                "Informasi klinis drug berhasil diperbarui."
             ));
         }
 
@@ -482,18 +528,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsNeedPrescription = request.IsNeedPrescription,
                 IsPrescribable = request.IsPrescribable,
                 IsNeedApproval = request.IsNeedApproval,
-                Indication = NormalizeNullableString(request.Indication),
-                Contraindication = NormalizeNullableString(request.Contraindication),
-                SideEffect = NormalizeNullableString(request.SideEffect),
-                WarningPrecaution = NormalizeNullableString(request.WarningPrecaution),
-                DosageInformation = NormalizeNullableString(request.DosageInformation),
-                DrugInteraction = NormalizeNullableString(request.DrugInteraction),
-                AdministrationInstruction = NormalizeNullableString(request.AdministrationInstruction),
-                StorageInstruction = NormalizeNullableString(request.StorageInstruction),
-                PregnancyCategory = NormalizeNullableString(request.PregnancyCategory),
-                LactationNote = NormalizeNullableString(request.LactationNote),
-                PediatricNote = NormalizeNullableString(request.PediatricNote),
-                GeriatricNote = NormalizeNullableString(request.GeriatricNote),
+                Indication = NormalizeClinicalText(request.Indication),
+                Contraindication = NormalizeClinicalText(request.Contraindication),
+                SideEffect = NormalizeClinicalText(request.SideEffect),
+                WarningPrecaution = NormalizeClinicalText(request.WarningPrecaution),
+                DosageInformation = NormalizeClinicalText(request.DosageInformation),
+                DrugInteraction = NormalizeClinicalText(request.DrugInteraction),
+                AdministrationInstruction = NormalizeClinicalText(request.AdministrationInstruction),
+                StorageInstruction = NormalizeClinicalText(request.StorageInstruction),
+                PregnancyCategory = NormalizeClinicalText(request.PregnancyCategory),
+                LactationNote = NormalizeClinicalText(request.LactationNote),
+                PediatricNote = NormalizeClinicalText(request.PediatricNote),
+                GeriatricNote = NormalizeClinicalText(request.GeriatricNote),
                 ExternalDrugCode = NormalizeNullableString(request.ExternalDrugCode),
                 IntegrationCode = NormalizeNullableString(request.IntegrationCode),
                 BpomRegistrationNumber = NormalizeNullableString(request.BpomRegistrationNumber),
@@ -590,18 +636,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.IsNeedPrescription = request.IsNeedPrescription;
             entity.IsPrescribable = request.IsPrescribable;
             entity.IsNeedApproval = request.IsNeedApproval;
-            entity.Indication = NormalizeNullableString(request.Indication);
-            entity.Contraindication = NormalizeNullableString(request.Contraindication);
-            entity.SideEffect = NormalizeNullableString(request.SideEffect);
-            entity.WarningPrecaution = NormalizeNullableString(request.WarningPrecaution);
-            entity.DosageInformation = NormalizeNullableString(request.DosageInformation);
-            entity.DrugInteraction = NormalizeNullableString(request.DrugInteraction);
-            entity.AdministrationInstruction = NormalizeNullableString(request.AdministrationInstruction);
-            entity.StorageInstruction = NormalizeNullableString(request.StorageInstruction);
-            entity.PregnancyCategory = NormalizeNullableString(request.PregnancyCategory);
-            entity.LactationNote = NormalizeNullableString(request.LactationNote);
-            entity.PediatricNote = NormalizeNullableString(request.PediatricNote);
-            entity.GeriatricNote = NormalizeNullableString(request.GeriatricNote);
+            entity.Indication = NormalizeClinicalText(request.Indication);
+            entity.Contraindication = NormalizeClinicalText(request.Contraindication);
+            entity.SideEffect = NormalizeClinicalText(request.SideEffect);
+            entity.WarningPrecaution = NormalizeClinicalText(request.WarningPrecaution);
+            entity.DosageInformation = NormalizeClinicalText(request.DosageInformation);
+            entity.DrugInteraction = NormalizeClinicalText(request.DrugInteraction);
+            entity.AdministrationInstruction = NormalizeClinicalText(request.AdministrationInstruction);
+            entity.StorageInstruction = NormalizeClinicalText(request.StorageInstruction);
+            entity.PregnancyCategory = NormalizeClinicalText(request.PregnancyCategory);
+            entity.LactationNote = NormalizeClinicalText(request.LactationNote);
+            entity.PediatricNote = NormalizeClinicalText(request.PediatricNote);
+            entity.GeriatricNote = NormalizeClinicalText(request.GeriatricNote);
             entity.ExternalDrugCode = NormalizeNullableString(request.ExternalDrugCode);
             entity.IntegrationCode = NormalizeNullableString(request.IntegrationCode);
             entity.BpomRegistrationNumber = NormalizeNullableString(request.BpomRegistrationNumber);
@@ -1301,6 +1347,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             };
         }
 
+        private static DrugClinicalInformationResponse MapClinicalInformationResponse(
+            MstDrug entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
+        {
+            return new DrugClinicalInformationResponse
+            {
+                DrugId = entity.Id,
+                DrugCode = entity.DrugCode,
+                DrugName = entity.DrugName,
+                GenericName = entity.GenericName,
+                BrandName = entity.BrandName,
+                DrugForm = entity.DrugForm,
+                Strength = entity.Strength,
+                Route = entity.Route,
+                Indication = entity.Indication,
+                Contraindication = entity.Contraindication,
+                SideEffect = entity.SideEffect,
+                WarningPrecaution = entity.WarningPrecaution,
+                DosageInformation = entity.DosageInformation,
+                DrugInteraction = entity.DrugInteraction,
+                AdministrationInstruction = entity.AdministrationInstruction,
+                StorageInstruction = entity.StorageInstruction,
+                PregnancyCategory = entity.PregnancyCategory,
+                LactationNote = entity.LactationNote,
+                PediatricNote = entity.PediatricNote,
+                GeriatricNote = entity.GeriatricNote,
+                IsHighAlert = entity.IsHighAlert,
+                IsNarcotic = entity.IsNarcotic,
+                IsPsychotropic = entity.IsPsychotropic,
+                IsAntibiotic = entity.IsAntibiotic,
+                UpdateDateTime = entity.UpdateDateTime,
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
+            };
+        }
+
         private static DrugCreateResponse ToCreateResponse(MstDrug entity)
         {
             return new DrugCreateResponse
@@ -1434,6 +1516,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private static string? NormalizeClinicalText(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            return value
+                .Replace("\r\n", "\n")
+                .Replace("\r", "\n")
+                .Trim();
         }
 
         private static string NormalizeComparableText(string? value)
