@@ -167,6 +167,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 PaymentTypeName = context.PaymentTypeName,
                 InsuranceProviderName = context.InsuranceProviderName,
                 BenefitPlanName = context.BenefitPlanName,
+                ServiceUnitId = context.ServiceUnitId,
+                ClinicId = context.ClinicId,
+                PatientClassId = context.PatientClassId,
+                InsuranceProviderId = context.InsuranceProviderId,
+                BenefitPlanCode = context.BenefitPlanCode,
                 PageNumber = pageNumber,
                 PageSize = pageSize,
                 TotalData = totalData,
@@ -303,8 +308,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .Include(x => x.DefaultDoseUnitMeasurement)
                 .Where(x =>
                     !x.IsDelete &&
-                    x.IsActive &&
-                    x.IsPrescribable);
+                    x.IsActive);
         }
 
         private static IQueryable<MstDrug> ApplyFilters(
@@ -418,6 +422,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 warnings.Add(coverage.ErrorMessage);
             }
 
+            var readiness = BuildReadiness(drug, coverage);
+
             return new PrescribingDrugResponse
             {
                 DrugId = drug.Id,
@@ -452,6 +458,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 IsStockManaged = drug.IsStockManaged,
                 IsNeedPrescription = drug.IsNeedPrescription,
                 IsNeedApprovalFromDrug = drug.IsNeedApproval,
+                HasTariff = readiness.HasTariff,
+                HasDispenseUnit = readiness.HasDispenseUnit,
+                HasDoseUnit = readiness.HasDoseUnit,
+                HasClinicalInformation = readiness.HasClinicalInformation,
+                CanSelect = readiness.CanSelect,
+                ReadinessStatus = readiness.Status,
+                ReadinessMessages = readiness.Messages,
+                CompositionText = BuildCompositionText(drug),
+                IsFallbackTariff = coverage.IsFallbackTariff,
+                PricingWarning = coverage.PricingWarning,
                 TariffId = coverage.TariffId,
                 TariffCode = coverage.TariffCode,
                 TariffName = coverage.TariffName,
@@ -518,6 +534,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 IsStockManaged = baseResponse.IsStockManaged,
                 IsNeedPrescription = baseResponse.IsNeedPrescription,
                 IsNeedApprovalFromDrug = baseResponse.IsNeedApprovalFromDrug,
+                HasTariff = baseResponse.HasTariff,
+                HasDispenseUnit = baseResponse.HasDispenseUnit,
+                HasDoseUnit = baseResponse.HasDoseUnit,
+                HasClinicalInformation = baseResponse.HasClinicalInformation,
+                CanSelect = baseResponse.CanSelect,
+                ReadinessStatus = baseResponse.ReadinessStatus,
+                ReadinessMessages = baseResponse.ReadinessMessages,
+                CompositionText = baseResponse.CompositionText,
+                IsFallbackTariff = baseResponse.IsFallbackTariff,
+                PricingWarning = baseResponse.PricingWarning,
                 TariffId = baseResponse.TariffId,
                 TariffCode = baseResponse.TariffCode,
                 TariffName = baseResponse.TariffName,
@@ -551,6 +577,111 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 PediatricNote = drug.PediatricNote,
                 GeriatricNote = drug.GeriatricNote
             };
+        }
+
+        private static DrugReadinessResult BuildReadiness(
+            MstDrug drug,
+            InsuranceCoverageResult coverage)
+        {
+            var messages = new List<string>();
+
+            var hasTariff = coverage.IsValid && coverage.TariffId.HasValue;
+            var hasDispenseUnit =
+                drug.DispenseUnitMeasurementId.HasValue &&
+                drug.DispenseUnitMeasurement != null;
+            var hasDoseUnit =
+                drug.DefaultDoseUnitMeasurementId.HasValue &&
+                drug.DefaultDoseUnitMeasurement != null;
+            var hasClinicalInformation = HasClinicalInformation(drug);
+
+            if (!hasTariff)
+            {
+                messages.Add(coverage.CoverageStatus == "ConfigurationMissing"
+                    ? "Tarif rumah sakit untuk obat ini belum tersedia pada scope encounter."
+                    : coverage.ErrorMessage ?? "Tarif obat belum dapat digunakan.");
+            }
+
+            if (!hasDispenseUnit)
+            {
+                messages.Add("Satuan penyerahan obat belum dikonfigurasi pada master obat.");
+            }
+
+            if (!hasDoseUnit)
+            {
+                messages.Add("Satuan dosis default belum dikonfigurasi pada master obat.");
+            }
+
+            if (!hasClinicalInformation)
+            {
+                messages.Add("Informasi klinis obat belum dilengkapi pada master obat.");
+            }
+
+            if (coverage.IsFallbackTariff &&
+                !string.IsNullOrWhiteSpace(coverage.PricingWarning))
+            {
+                messages.Add(coverage.PricingWarning);
+            }
+
+            var canSelect = hasTariff && hasDispenseUnit && hasDoseUnit;
+
+            return new DrugReadinessResult
+            {
+                HasTariff = hasTariff,
+                HasDispenseUnit = hasDispenseUnit,
+                HasDoseUnit = hasDoseUnit,
+                HasClinicalInformation = hasClinicalInformation,
+                CanSelect = canSelect,
+                Status = canSelect ? "Ready" : "ConfigurationIncomplete",
+                Messages = messages
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList()
+            };
+        }
+
+        private static bool HasClinicalInformation(MstDrug drug)
+        {
+            return new[]
+            {
+                drug.Indication,
+                drug.Contraindication,
+                drug.SideEffect,
+                drug.WarningPrecaution,
+                drug.DosageInformation,
+                drug.DrugInteraction,
+                drug.AdministrationInstruction,
+                drug.StorageInstruction,
+                drug.PregnancyCategory,
+                drug.LactationNote,
+                drug.PediatricNote,
+                drug.GeriatricNote
+            }.Any(x => !string.IsNullOrWhiteSpace(x));
+        }
+
+        private static string? BuildCompositionText(MstDrug drug)
+        {
+            var values = new[]
+            {
+                drug.GenericName,
+                drug.Strength
+            }
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+            return values.Count == 0 ? null : string.Join(" ", values);
+        }
+
+        private sealed class DrugReadinessResult
+        {
+            public bool HasTariff { get; set; }
+            public bool HasDispenseUnit { get; set; }
+            public bool HasDoseUnit { get; set; }
+            public bool HasClinicalInformation { get; set; }
+            public bool CanSelect { get; set; }
+            public string Status { get; set; } = string.Empty;
+            public List<string> Messages { get; set; } = new();
         }
 
         private static List<PrescribingDrugQueryParameterResponse>

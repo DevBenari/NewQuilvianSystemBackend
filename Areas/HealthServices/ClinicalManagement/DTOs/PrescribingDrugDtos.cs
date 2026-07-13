@@ -68,6 +68,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         public bool IsNeedApprovalFromDrug { get; set; }
 
+        public bool HasTariff { get; set; }
+
+        public bool HasDispenseUnit { get; set; }
+
+        public bool HasDoseUnit { get; set; }
+
+        public bool HasClinicalInformation { get; set; }
+
+        public bool CanSelect { get; set; }
+
+        public string ReadinessStatus { get; set; } = string.Empty;
+
+        public List<string> ReadinessMessages { get; set; } = new();
+
+        public string? CompositionText { get; set; }
+
+        public bool IsFallbackTariff { get; set; }
+
+        public string? PricingWarning { get; set; }
+
         public Guid? TariffId { get; set; }
 
         public string? TariffCode { get; set; }
@@ -203,6 +223,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? InsuranceProviderName { get; set; }
 
         public string? BenefitPlanName { get; set; }
+
+        public Guid? ServiceUnitId { get; set; }
+
+        public Guid? ClinicId { get; set; }
+
+        public Guid? PatientClassId { get; set; }
+
+        public Guid? InsuranceProviderId { get; set; }
+
+        public string? BenefitPlanCode { get; set; }
 
         public int PageNumber { get; set; }
 
