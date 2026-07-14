@@ -4,48 +4,19 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.Global
 {
-    public class MstNurseStationClusterConfiguration : IEntityTypeConfiguration<MstNurseStationCluster>
+    public class MstNurseStationClusterStaffClinicConfiguration : IEntityTypeConfiguration<MstNurseStationClusterStaffClinic>
     {
-        public void Configure(EntityTypeBuilder<MstNurseStationCluster> entity)
+        public void Configure(EntityTypeBuilder<MstNurseStationClusterStaffClinic> entity)
         {
-            entity.ToTable("MstNurseStationCluster", "public");
+            entity.ToTable("MstNurseStationClusterStaffClinic", "public");
 
             entity.HasKey(x => x.Id);
 
-            entity.Property(x => x.ServiceUnitId)
+            entity.Property(x => x.NurseStationClusterStaffId)
                 .IsRequired();
 
-            entity.Property(x => x.ClusterCode)
-                .HasMaxLength(50)
+            entity.Property(x => x.ClinicId)
                 .IsRequired();
-
-            entity.Property(x => x.ClusterName)
-                .HasMaxLength(150)
-                .IsRequired();
-
-            entity.Property(x => x.ShortName)
-                .HasMaxLength(50);
-
-            entity.Property(x => x.LocationName)
-                .HasMaxLength(100);
-
-            entity.Property(x => x.FloorName)
-                .HasMaxLength(50);
-
-            entity.Property(x => x.RoomName)
-                .HasMaxLength(50);
-
-            entity.Property(x => x.IsAvailableForRegistrationQueue)
-                .HasDefaultValue(true);
-
-            entity.Property(x => x.IsAvailableForScreening)
-                .HasDefaultValue(true);
-
-            entity.Property(x => x.IsAvailableForDisplay)
-                .HasDefaultValue(true);
-
-            entity.Property(x => x.IsDefault)
-                .HasDefaultValue(false);
 
             entity.Property(x => x.SortOrder)
                 .HasDefaultValue(0);
@@ -90,36 +61,38 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
             entity.Property(x => x.IsCancel)
                 .HasDefaultValue(false);
 
-            entity.HasOne(x => x.ServiceUnit)
-                .WithMany()
-                .HasForeignKey(x => x.ServiceUnitId)
+            entity.HasOne(x => x.NurseStationClusterStaff)
+                .WithMany(x => x.StaffClinics)
+                .HasForeignKey(x => x.NurseStationClusterStaffId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(x => x.ClusterCode)
-                .IsUnique();
+            entity.HasOne(x => x.Clinic)
+                .WithMany()
+                .HasForeignKey(x => x.ClinicId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(x => x.ClusterName);
+            entity.HasIndex(x => x.NurseStationClusterStaffId);
 
-            entity.HasIndex(x => x.ServiceUnitId);
-
-            entity.HasIndex(x => new
-            {
-                x.ServiceUnitId,
-                x.ClusterName
-            });
+            entity.HasIndex(x => x.ClinicId);
 
             entity.HasIndex(x => new
             {
-                x.ServiceUnitId,
+                x.NurseStationClusterStaffId,
+                x.ClinicId
+            })
+            .IsUnique()
+            .HasFilter("\"IsDelete\" = false");
+
+            entity.HasIndex(x => new
+            {
+                x.NurseStationClusterStaffId,
                 x.IsActive,
                 x.IsDelete
             });
 
             entity.HasIndex(x => new
             {
-                x.IsAvailableForRegistrationQueue,
-                x.IsAvailableForScreening,
-                x.IsAvailableForDisplay,
+                x.ClinicId,
                 x.IsActive,
                 x.IsDelete
             });

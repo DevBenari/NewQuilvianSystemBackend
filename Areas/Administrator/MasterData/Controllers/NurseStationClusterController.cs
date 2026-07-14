@@ -108,6 +108,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var totalData = await query.CountAsync();
             var entities = await ApplySorting(query, sortBy, sortDirection).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
             var actorNames = await GetActorNameMapAsync(entities.Select(x => x.CreateBy).Where(x => x != Guid.Empty));
+            var overviewMap = await GetClusterOverviewMapAsync(entities.Select(x => x.Id));
 
             var result = new ResponseNurseStationClusterPagedResult
             {
@@ -115,7 +116,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = entities.Select(x => MapResponse(x, actorNames)).ToList()
+                Items = entities.Select(x => MapResponse(x, actorNames, overviewMap)).ToList()
             };
 
             return Ok(ApiResponse<ResponseNurseStationClusterPagedResult>.Ok(result, "Data nurse station cluster berhasil diambil."));
@@ -147,7 +148,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var entity = await BuildBaseQuery().FirstOrDefaultAsync(x => x.Id == id);
             if (entity == null) return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Nurse station cluster tidak ditemukan."));
             var actorNames = await GetActorNameMapAsync(new[] { entity.CreateBy, entity.UpdateBy });
-            return Ok(ApiResponse<NurseStationClusterDetailResponse>.Ok(MapDetailResponse(entity, actorNames), "Detail nurse station cluster berhasil diambil."));
+            var detail = await BuildDetailResponseAsync(entity, actorNames);
+            return Ok(ApiResponse<NurseStationClusterDetailResponse>.Ok(detail, "Detail nurse station cluster berhasil diambil."));
         }
 
         [HttpPost]
@@ -372,8 +374,15 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             return CodePrefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
         }
 
-        private static NurseStationClusterResponse MapResponse(MstNurseStationCluster entity, IReadOnlyDictionary<Guid, string?> actorNames)
+        private static NurseStationClusterResponse MapResponse(
+            MstNurseStationCluster entity,
+            IReadOnlyDictionary<Guid, string?> actorNames,
+            IReadOnlyDictionary<Guid, (int ClinicCount, int StaffCount)>? overviewMap = null)
         {
+            var overview = overviewMap != null && overviewMap.TryGetValue(entity.Id, out var value)
+                ? value
+                : (ClinicCount: 0, StaffCount: 0);
+
             return new NurseStationClusterResponse
             {
                 Id = entity.Id,
@@ -386,6 +395,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 LocationName = entity.LocationName,
                 FloorName = entity.FloorName,
                 RoomName = entity.RoomName,
+                ClinicCount = overview.ClinicCount,
+                StaffCount = overview.StaffCount,
                 IsAvailableForRegistrationQueue = entity.IsAvailableForRegistrationQueue,
                 IsAvailableForScreening = entity.IsAvailableForScreening,
                 IsAvailableForDisplay = entity.IsAvailableForDisplay,
@@ -398,16 +409,133 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             };
         }
 
-        private static NurseStationClusterDetailResponse MapDetailResponse(MstNurseStationCluster entity, IReadOnlyDictionary<Guid, string?> actorNames)
+        private async Task<NurseStationClusterDetailResponse> BuildDetailResponseAsync(
+            MstNurseStationCluster entity,
+            IReadOnlyDictionary<Guid, string?> actorNames)
         {
+            var overviewMap = await GetClusterOverviewMapAsync(new[] { entity.Id });
             var data = new NurseStationClusterDetailResponse();
-            var baseData = MapResponse(entity, actorNames);
-            foreach (var prop in typeof(NurseStationClusterResponse).GetProperties()) prop.SetValue(data, prop.GetValue(baseData));
+            var baseData = MapResponse(entity, actorNames, overviewMap);
+
+            foreach (var prop in typeof(NurseStationClusterResponse).GetProperties())
+            {
+                prop.SetValue(data, prop.GetValue(baseData));
+            }
+
             data.Description = entity.Description;
+            data.Clinics = await GetClusterClinicsAsync(entity.Id);
+            data.Staffs = await GetClusterStaffsAsync(entity.Id);
             data.UpdateDateTime = entity.UpdateDateTime;
             data.UpdateBy = entity.UpdateBy == Guid.Empty ? null : entity.UpdateBy;
             data.UpdateByName = GetActorName(actorNames, entity.UpdateBy);
+
             return data;
+        }
+
+        private async Task<Dictionary<Guid, (int ClinicCount, int StaffCount)>> GetClusterOverviewMapAsync(
+            IEnumerable<Guid> clusterIds)
+        {
+            var ids = clusterIds.Where(x => x != Guid.Empty).Distinct().ToList();
+            if (!ids.Any())
+            {
+                return new Dictionary<Guid, (int ClinicCount, int StaffCount)>();
+            }
+
+            var clinicCounts = await _dbContext.Set<MstNurseStationClusterClinic>()
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.NurseStationClusterId) && !x.IsDelete && x.IsActive)
+                .GroupBy(x => x.NurseStationClusterId)
+                .Select(x => new { ClusterId = x.Key, Count = x.Select(y => y.ClinicId).Distinct().Count() })
+                .ToDictionaryAsync(x => x.ClusterId, x => x.Count);
+
+            var staffCounts = await _dbContext.Set<MstNurseStationClusterStaff>()
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.NurseStationClusterId) && !x.IsDelete && x.IsActive)
+                .GroupBy(x => x.NurseStationClusterId)
+                .Select(x => new { ClusterId = x.Key, Count = x.Count() })
+                .ToDictionaryAsync(x => x.ClusterId, x => x.Count);
+
+            return ids.ToDictionary(
+                id => id,
+                id => (
+                    ClinicCount: clinicCounts.TryGetValue(id, out var clinicCount) ? clinicCount : 0,
+                    StaffCount: staffCounts.TryGetValue(id, out var staffCount) ? staffCount : 0));
+        }
+
+        private async Task<List<NurseStationClusterClinicOverviewResponse>> GetClusterClinicsAsync(Guid clusterId)
+        {
+            return await _dbContext.Set<MstNurseStationClusterClinic>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.NurseStationClusterId == clusterId &&
+                    !x.IsDelete &&
+                    x.IsActive)
+                .OrderByDescending(x => x.IsPrimary)
+                .ThenBy(x => x.SortOrder)
+                .ThenBy(x => x.Clinic != null ? x.Clinic.ClinicName : string.Empty)
+                .Select(x => new NurseStationClusterClinicOverviewResponse
+                {
+                    MappingId = x.Id,
+                    ClinicId = x.ClinicId,
+                    ClinicCode = x.Clinic != null ? x.Clinic.ClinicCode : null,
+                    ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
+                    IsPrimary = x.IsPrimary,
+                    SortOrder = x.SortOrder,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync();
+        }
+
+        private async Task<List<NurseStationClusterStaffOverviewResponse>> GetClusterStaffsAsync(Guid clusterId)
+        {
+            var entities = await _dbContext.Set<MstNurseStationClusterStaff>()
+                .AsNoTracking()
+                .Include(x => x.Employee)
+                .Include(x => x.WorkforceProfile)
+                .Include(x => x.StaffClinics.Where(sc => !sc.IsDelete && sc.IsActive))
+                    .ThenInclude(sc => sc.Clinic)
+                .Where(x => x.NurseStationClusterId == clusterId && !x.IsDelete)
+                .OrderByDescending(x => x.IsActive)
+                .ThenByDescending(x => x.IsPrimary)
+                .ThenBy(x => x.SortOrder)
+                .ThenBy(x => x.Employee != null ? x.Employee.FullName : string.Empty)
+                .ToListAsync();
+
+            return entities.Select(x =>
+            {
+                var clinics = x.StaffClinics
+                    .Where(sc => !sc.IsDelete && sc.IsActive)
+                    .OrderBy(sc => sc.SortOrder)
+                    .ThenBy(sc => sc.Clinic != null ? sc.Clinic.ClinicName : string.Empty)
+                    .Select(sc => new NurseStationClusterStaffClinicOverviewResponse
+                    {
+                        ClinicId = sc.ClinicId,
+                        ClinicCode = sc.Clinic?.ClinicCode,
+                        ClinicName = sc.Clinic?.ClinicName,
+                        SortOrder = sc.SortOrder
+                    })
+                    .ToList();
+
+                return new NurseStationClusterStaffOverviewResponse
+                {
+                    StaffMappingId = x.Id,
+                    EmployeeId = x.EmployeeId,
+                    EmployeeCode = x.Employee?.EmployeeCode,
+                    EmployeeNumber = x.Employee?.EmployeeNumber,
+                    EmployeeName = x.Employee?.FullName,
+                    WorkforceProfileId = x.WorkforceProfileId,
+                    WorkforceProfileCode = x.WorkforceProfile?.ProfileCode,
+                    WorkforceProfileName = x.WorkforceProfile?.DisplayName,
+                    ClinicCount = clinics.Count,
+                    Clinics = clinics,
+                    IsPrimary = x.IsPrimary,
+                    CanCallQueue = x.CanCallQueue,
+                    CanStartScreening = x.CanStartScreening,
+                    CanTransferQueue = x.CanTransferQueue,
+                    SortOrder = x.SortOrder,
+                    IsActive = x.IsActive
+                };
+            }).ToList();
         }
 
         private static NurseStationClusterOptionResponse MapOptionResponse(MstNurseStationCluster entity)

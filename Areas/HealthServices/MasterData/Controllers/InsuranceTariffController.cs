@@ -101,7 +101,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("InsuranceTariff", "Read")]
         public async Task<IActionResult> GetSummary()
         {
-            var today = AppDateTimeHelper.OperationalDate();
+            var operationalDate = AppDateTimeHelper.OperationalDate().Date;
+            var nextOperationalDate = operationalDate.AddDays(1);
 
             var query = _dbContext.Set<MstInsuranceTariff>()
                 .AsNoTracking()
@@ -112,13 +113,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 TotalInsuranceTariff = await query.CountAsync(),
                 ActiveInsuranceTariff = await query.CountAsync(x => x.IsActive),
                 InactiveInsuranceTariff = await query.CountAsync(x => !x.IsActive),
-                NeedApprovalTariff = await query.CountAsync(x => x.IsNeedApproval),
-                UsingContractPriceTariff = await query.CountAsync(x => x.IsUsingContractPrice),
+                NeedApprovalTariff = await query.CountAsync(x =>
+                    x.IsActive && x.IsNeedApproval),
+                UsingContractPriceTariff = await query.CountAsync(x =>
+                    x.IsActive && x.IsUsingContractPrice),
                 EffectiveTariff = await query.CountAsync(x =>
-                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= today) &&
-                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today)),
+                    x.IsActive &&
+                    (!x.EffectiveStartDate.HasValue ||
+                     x.EffectiveStartDate.Value < nextOperationalDate) &&
+                    (!x.EffectiveEndDate.HasValue ||
+                     x.EffectiveEndDate.Value >= operationalDate)),
                 ExpiredTariff = await query.CountAsync(x =>
-                    x.EffectiveEndDate.HasValue && x.EffectiveEndDate.Value.Date < today)
+                    x.IsActive &&
+                    x.EffectiveEndDate.HasValue &&
+                    x.EffectiveEndDate.Value < operationalDate),
+                FutureTariff = await query.CountAsync(x =>
+                    x.IsActive &&
+                    x.EffectiveStartDate.HasValue &&
+                    x.EffectiveStartDate.Value >= nextOperationalDate)
             };
 
             return Ok(ApiResponse<InsuranceTariffSummaryResponse>.Ok(
@@ -148,6 +160,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            var operationalDate = AppDateTimeHelper.OperationalDate().Date;
+            var nextOperationalDate = operationalDate.AddDays(1);
+
             var query = BuildBaseQuery();
 
             query = ApplyDateFilter(query, startDate, endDate, customPeriod);
@@ -172,18 +187,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 {
                     Id = x.Id,
                     InsuranceProviderId = x.InsuranceProviderId,
-                    InsuranceProviderCode = x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderCode : string.Empty,
+                    InsuranceProviderCode = x.InsuranceProvider != null
+                        ? x.InsuranceProvider.InsuranceProviderCode
+                        : string.Empty,
+                    InsuranceProviderName = x.InsuranceProvider != null
+                        ? x.InsuranceProvider.InsuranceProviderName
+                        : string.Empty,
+
                     TariffId = x.TariffId,
-                    TariffCode = x.Tariff != null ? x.Tariff.TariffCode : null,
-                    TariffName = x.Tariff != null ? x.Tariff.TariffName : null,
+                    TariffCode = x.Tariff != null
+                        ? x.Tariff.TariffCode
+                        : string.Empty,
+                    TariffName = x.Tariff != null
+                        ? x.Tariff.TariffName
+                        : string.Empty,
+                    TariffCategoryId = x.Tariff != null
+                        ? x.Tariff.TariffCategoryId
+                        : Guid.Empty,
+                    TariffCategoryName = x.Tariff != null && x.Tariff.TariffCategory != null
+                        ? x.Tariff.TariffCategory.TariffCategoryName
+                        : string.Empty,
+                    DrugId = x.Tariff != null ? x.Tariff.DrugId : null,
+                    DrugName = x.Tariff != null && x.Tariff.Drug != null
+                        ? x.Tariff.Drug.DrugName
+                        : null,
+                    ProcedureId = x.Tariff != null ? x.Tariff.ProcedureId : null,
+                    ProcedureName = x.Tariff != null && x.Tariff.Procedure != null
+                        ? x.Tariff.Procedure.ProcedureName
+                        : null,
+
                     PatientClassId = x.PatientClassId,
-                    PatientClassCode = x.PatientClass != null ? x.PatientClass.PatientClassCode : null,
+                    PatientClassCode = x.PatientClass != null
+                        ? x.PatientClass.PatientClassCode
+                        : null,
+                    PatientClassName = x.PatientClass != null
+                        ? x.PatientClass.PatientClassName
+                        : null,
+
                     InsuranceTariffCode = x.InsuranceTariffCode,
                     InsuranceTariffName = x.InsuranceTariffName,
                     ExternalServiceCode = x.ExternalServiceCode,
                     ExternalClassCode = x.ExternalClassCode,
                     BenefitPlanCode = x.BenefitPlanCode,
                     BenefitPlanName = x.BenefitPlanName,
+
+                    HospitalPrice = x.Tariff != null ? x.Tariff.NormalPrice : 0,
                     ContractPrice = x.ContractPrice,
                     HospitalPriceSnapshot = x.HospitalPriceSnapshot,
                     DiscountAmount = x.DiscountAmount,
@@ -191,8 +239,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     IsUsingContractPrice = x.IsUsingContractPrice,
                     IsNeedApproval = x.IsNeedApproval,
                     Priority = x.Priority,
+
                     EffectiveStartDate = x.EffectiveStartDate,
                     EffectiveEndDate = x.EffectiveEndDate,
+                    IsCurrentlyEffective =
+                        x.IsActive &&
+                        (!x.EffectiveStartDate.HasValue ||
+                         x.EffectiveStartDate.Value < nextOperationalDate) &&
+                        (!x.EffectiveEndDate.HasValue ||
+                         x.EffectiveEndDate.Value >= operationalDate),
+
                     SortOrder = x.SortOrder,
                     IsActive = x.IsActive,
                     CreateDateTime = x.CreateDateTime
@@ -316,24 +372,60 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("InsuranceTariff", "Read")]
         public async Task<IActionResult> GetInsuranceTariffById(Guid id)
         {
+            var operationalDate = AppDateTimeHelper.OperationalDate().Date;
+            var nextOperationalDate = operationalDate.AddDays(1);
+
             var data = await BuildBaseQuery()
                 .Where(x => x.Id == id)
                 .Select(x => new InsuranceTariffDetailResponse
                 {
                     Id = x.Id,
                     InsuranceProviderId = x.InsuranceProviderId,
-                    InsuranceProviderCode = x.InsuranceProvider != null ? x.InsuranceProvider.InsuranceProviderCode : string.Empty,
+                    InsuranceProviderCode = x.InsuranceProvider != null
+                        ? x.InsuranceProvider.InsuranceProviderCode
+                        : string.Empty,
+                    InsuranceProviderName = x.InsuranceProvider != null
+                        ? x.InsuranceProvider.InsuranceProviderName
+                        : string.Empty,
+
                     TariffId = x.TariffId,
-                    TariffCode = x.Tariff != null ? x.Tariff.TariffCode : null,
-                    TariffName = x.Tariff != null ? x.Tariff.TariffName : null,
+                    TariffCode = x.Tariff != null
+                        ? x.Tariff.TariffCode
+                        : string.Empty,
+                    TariffName = x.Tariff != null
+                        ? x.Tariff.TariffName
+                        : string.Empty,
+                    TariffCategoryId = x.Tariff != null
+                        ? x.Tariff.TariffCategoryId
+                        : Guid.Empty,
+                    TariffCategoryName = x.Tariff != null && x.Tariff.TariffCategory != null
+                        ? x.Tariff.TariffCategory.TariffCategoryName
+                        : string.Empty,
+                    DrugId = x.Tariff != null ? x.Tariff.DrugId : null,
+                    DrugName = x.Tariff != null && x.Tariff.Drug != null
+                        ? x.Tariff.Drug.DrugName
+                        : null,
+                    ProcedureId = x.Tariff != null ? x.Tariff.ProcedureId : null,
+                    ProcedureName = x.Tariff != null && x.Tariff.Procedure != null
+                        ? x.Tariff.Procedure.ProcedureName
+                        : null,
+
                     PatientClassId = x.PatientClassId,
-                    PatientClassCode = x.PatientClass != null ? x.PatientClass.PatientClassCode : null,
+                    PatientClassCode = x.PatientClass != null
+                        ? x.PatientClass.PatientClassCode
+                        : null,
+                    PatientClassName = x.PatientClass != null
+                        ? x.PatientClass.PatientClassName
+                        : null,
+
                     InsuranceTariffCode = x.InsuranceTariffCode,
                     InsuranceTariffName = x.InsuranceTariffName,
                     ExternalServiceCode = x.ExternalServiceCode,
                     ExternalClassCode = x.ExternalClassCode,
                     BenefitPlanCode = x.BenefitPlanCode,
                     BenefitPlanName = x.BenefitPlanName,
+
+                    HospitalPrice = x.Tariff != null ? x.Tariff.NormalPrice : 0,
                     ContractPrice = x.ContractPrice,
                     HospitalPriceSnapshot = x.HospitalPriceSnapshot,
                     DiscountAmount = x.DiscountAmount,
@@ -341,14 +433,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     IsUsingContractPrice = x.IsUsingContractPrice,
                     IsNeedApproval = x.IsNeedApproval,
                     Priority = x.Priority,
+
                     EffectiveStartDate = x.EffectiveStartDate,
                     EffectiveEndDate = x.EffectiveEndDate,
+                    IsCurrentlyEffective =
+                        x.IsActive &&
+                        (!x.EffectiveStartDate.HasValue ||
+                         x.EffectiveStartDate.Value < nextOperationalDate) &&
+                        (!x.EffectiveEndDate.HasValue ||
+                         x.EffectiveEndDate.Value >= operationalDate),
+
                     SortOrder = x.SortOrder,
                     BillingInstruction = x.BillingInstruction,
                     ClaimInstruction = x.ClaimInstruction,
                     Description = x.Description,
                     IsActive = x.IsActive,
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+                    UpdateDateTime = x.UpdateDateTime
                 })
                 .FirstOrDefaultAsync();
 

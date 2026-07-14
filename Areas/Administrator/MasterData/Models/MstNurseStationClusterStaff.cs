@@ -1,7 +1,7 @@
 ﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Models;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
 {
@@ -39,6 +39,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
         public MstEmployee? Employee { get; set; }
 
         public MstWorkforceProfile? WorkforceProfile { get; set; }
-    }
 
+        public ICollection<MstNurseStationClusterStaffClinic> StaffClinics { get; set; } =
+            new List<MstNurseStationClusterStaffClinic>();
+    }
 }

@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.Global
@@ -65,7 +65,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
                 .HasDefaultValue(false);
 
             entity.HasOne(x => x.NurseStationCluster)
-                .WithMany()
+                .WithMany(x => x.Clinics)
                 .HasForeignKey(x => x.NurseStationClusterId)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -81,9 +81,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
             entity.HasIndex(x => new
             {
                 x.NurseStationClusterId,
-                x.ClinicId,
-                x.IsDelete
-            }).IsUnique();
+                x.ClinicId
+            })
+            .IsUnique()
+            .HasFilter("\"IsDelete\" = false");
 
             entity.HasIndex(x => new
             {

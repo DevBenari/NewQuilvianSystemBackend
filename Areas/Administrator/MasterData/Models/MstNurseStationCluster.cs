@@ -1,7 +1,7 @@
 ﻿using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Models;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
 {
@@ -49,6 +49,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
         public bool IsActive { get; set; } = true;
 
         public MstServiceUnit? ServiceUnit { get; set; }
-    }
 
+        public ICollection<MstNurseStationClusterClinic> Clinics { get; set; } =
+            new List<MstNurseStationClusterClinic>();
+
+        public ICollection<MstNurseStationClusterStaff> Staffs { get; set; } =
+            new List<MstNurseStationClusterStaff>();
+    }
 }

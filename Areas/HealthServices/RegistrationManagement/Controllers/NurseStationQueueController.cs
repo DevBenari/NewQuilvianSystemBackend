@@ -136,7 +136,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             if (!clusterIds.Any()) return Forbid();
 
             var clinicIds = await GetClinicIdsByClusterIdsAsync(clusterIds);
-            var clusterMap = await GetClusterMapByClinicIdsAsync(clinicIds);
+            var clusterMap = await GetClusterMapByClinicIdsAsync(clinicIds, clusterIds);
 
             var query = BuildQueueBaseQuery(queueDate, clinicIds);
             query = ApplyStandardFilter(query, queueStatus, search);
@@ -738,24 +738,141 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private async Task<List<Guid>> GetClinicIdsByClusterIdsAsync(List<Guid> clusterIds)
         {
-            return await _dbContext.Set<MstNurseStationClusterClinic>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete && x.IsActive && clusterIds.Contains(x.NurseStationClusterId))
-                .Select(x => x.ClinicId)
+            var normalizedClusterIds = clusterIds
+                .Where(x => x != Guid.Empty)
                 .Distinct()
+                .ToList();
+
+            if (!normalizedClusterIds.Any())
+            {
+                return new List<Guid>();
+            }
+
+            // SuperAdmin tetap dapat melihat seluruh poli aktif pada cluster yang dipilih.
+            if (User.IsInRole("SuperAdmin"))
+            {
+                return await _dbContext.Set<MstNurseStationClusterClinic>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        !x.IsDelete &&
+                        x.IsActive &&
+                        normalizedClusterIds.Contains(x.NurseStationClusterId))
+                    .Select(x => x.ClinicId)
+                    .Distinct()
+                    .ToListAsync();
+            }
+
+            var employee = await ResolveCurrentEmployeeAsync();
+            if (employee == null)
+            {
+                return new List<Guid>();
+            }
+
+            var staffAssignments = await _dbContext.Set<MstNurseStationClusterStaff>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.EmployeeId == employee.Id &&
+                    normalizedClusterIds.Contains(x.NurseStationClusterId))
+                .Select(x => new
+                {
+                    StaffId = x.Id,
+                    ClusterId = x.NurseStationClusterId
+                })
                 .ToListAsync();
+
+            if (!staffAssignments.Any())
+            {
+                return new List<Guid>();
+            }
+
+            var staffIds = staffAssignments
+                .Select(x => x.StaffId)
+                .Distinct()
+                .ToList();
+
+            // Mapping baru: setiap perawat hanya melihat poli yang ditugaskan kepadanya.
+            var specificMappings = await _dbContext.Set<MstNurseStationClusterStaffClinic>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    staffIds.Contains(x.NurseStationClusterStaffId))
+                .Select(x => new
+                {
+                    x.NurseStationClusterStaffId,
+                    x.ClinicId
+                })
+                .ToListAsync();
+
+            var clusterByStaffId = staffAssignments.ToDictionary(
+                x => x.StaffId,
+                x => x.ClusterId);
+
+            var clustersWithSpecificMappings = specificMappings
+                .Where(x => clusterByStaffId.ContainsKey(x.NurseStationClusterStaffId))
+                .Select(x => clusterByStaffId[x.NurseStationClusterStaffId])
+                .Distinct()
+                .ToHashSet();
+
+            // Compatibility fallback:
+            // cluster lama yang belum mempunyai mapping staff-clinic tetap memakai
+            // MstNurseStationClusterClinic agar antrean yang sedang berjalan tidak hilang.
+            var fallbackClusterIds = staffAssignments
+                .Select(x => x.ClusterId)
+                .Distinct()
+                .Where(x => !clustersWithSpecificMappings.Contains(x))
+                .ToList();
+
+            var clinicIds = specificMappings
+                .Select(x => x.ClinicId)
+                .ToHashSet();
+
+            if (fallbackClusterIds.Any())
+            {
+                var legacyClinicIds = await _dbContext.Set<MstNurseStationClusterClinic>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        !x.IsDelete &&
+                        x.IsActive &&
+                        fallbackClusterIds.Contains(x.NurseStationClusterId))
+                    .Select(x => x.ClinicId)
+                    .Distinct()
+                    .ToListAsync();
+
+                clinicIds.UnionWith(legacyClinicIds);
+            }
+
+            return clinicIds.ToList();
         }
 
-        private async Task<Dictionary<Guid, (Guid ClusterId, string ClusterName)>> GetClusterMapByClinicIdsAsync(List<Guid> clinicIds)
+        private async Task<Dictionary<Guid, (Guid ClusterId, string ClusterName)>> GetClusterMapByClinicIdsAsync(
+            List<Guid> clinicIds,
+            List<Guid> clusterIds)
         {
-            if (clinicIds == null || clinicIds.Count == 0)
+            var normalizedClinicIds = clinicIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            var normalizedClusterIds = clusterIds
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (!normalizedClinicIds.Any() || !normalizedClusterIds.Any())
             {
                 return new Dictionary<Guid, (Guid ClusterId, string ClusterName)>();
             }
 
             var mappings = await _dbContext.Set<MstNurseStationClusterClinic>()
                 .AsNoTracking()
-                .Where(x => !x.IsDelete && x.IsActive && clinicIds.Contains(x.ClinicId))
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    normalizedClinicIds.Contains(x.ClinicId) &&
+                    normalizedClusterIds.Contains(x.NurseStationClusterId))
                 .Select(x => new
                 {
                     x.ClinicId,

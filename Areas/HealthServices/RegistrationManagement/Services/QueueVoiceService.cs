@@ -437,7 +437,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var defaultTemplate = callType switch
             {
                 QueueVoiceCallTypes.Nurse =>
-                    "Nomor antrian {queueCode}. Atas nama {patientName}. Silakan menuju ruang pemeriksaan perawat. Terima kasih.",
+                    "Nomor antrian {queueCode}. Atas nama {patientName}. Silakan menuju meja perawat. Terima kasih.",
 
                 QueueVoiceCallTypes.Doctor =>
                     "Nomor antrian {queueCode}. Atas nama {patientName}. Silakan menuju {clinicName}. Terima kasih.",
