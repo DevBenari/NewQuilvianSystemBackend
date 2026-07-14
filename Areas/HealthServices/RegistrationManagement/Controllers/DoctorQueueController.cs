@@ -354,13 +354,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [HttpPost("{id:guid}/start-consultation")]
         [AccessAction("Update", "Start Doctor Consultation", Description = "Memulai konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("DoctorQueue", "Update")]
-        public async Task<IActionResult> StartConsultation(Guid id)
+        public async Task<IActionResult> StartConsultation(Guid id, CancellationToken ct)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
             if (queue == null) return QueueNotFound();
 
             if (queue.QueueStatus != QueueStatus.CalledByDoctor && queue.QueueStatus != QueueStatus.WaitingForDoctor)
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Antrean belum siap untuk konsultasi dokter."));
+
+            var activeClusterCall = await FindOtherActiveDoctorCallLockAsync(queue, ct);
+            if (activeClusterCall != null)
+            {
+                return BuildDoctorCallLockConflict(activeClusterCall);
+            }
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
@@ -422,7 +428,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [HttpPost("{id:guid}/skip")]
         [AccessAction("Update", "Skip Doctor Queue", Description = "Melewati pasien yang tidak hadir saat dipanggil dokter", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("DoctorQueue", "Update")]
-        public async Task<IActionResult> Skip(Guid id, [FromBody] DoctorQueueActionRequest? request = null)
+        public async Task<IActionResult> Skip(Guid id, CancellationToken ct, [FromBody] DoctorQueueActionRequest? request = null)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
             if (queue == null) return QueueNotFound();
@@ -452,6 +458,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ));
             }
 
+            var activeClusterCall = await FindOtherActiveDoctorCallLockAsync(queue, ct);
+            if (activeClusterCall != null)
+            {
+                return BuildDoctorCallLockConflict(activeClusterCall);
+            }
+
             var actorUserId = GetCurrentUserId();
             queue.QueueStatus = QueueStatus.Skipped;
             queue.SkipCount += 1;
@@ -472,7 +484,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [HttpPost("{id:guid}/no-show")]
         [AccessAction("Update", "No Show Doctor Queue", Description = "Menandai pasien tidak hadir di antrean dokter", AccessType = AccessTypes.Update, SortOrder = 6)]
         [AccessPermission("DoctorQueue", "Update")]
-        public async Task<IActionResult> NoShow(Guid id, [FromBody] DoctorQueueActionRequest? request = null)
+        public async Task<IActionResult> NoShow(Guid id, CancellationToken ct, [FromBody] DoctorQueueActionRequest? request = null)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
             if (queue == null) return QueueNotFound();
@@ -502,6 +514,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     StatusCodes.Status400BadRequest,
                     "Timer panggilan dokter masih berjalan."
                 ));
+            }
+
+            var activeClusterCall = await FindOtherActiveDoctorCallLockAsync(queue, ct);
+            if (activeClusterCall != null)
+            {
+                return BuildDoctorCallLockConflict(activeClusterCall);
             }
 
             queue.QueueStatus = QueueStatus.NoShow;
@@ -847,6 +865,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return await query.FirstOrDefaultAsync(x => x.DoctorId == allowedDoctorId.Value);
         }
 
+        private async Task<DoctorQueueCallLockResponse?> FindOtherActiveDoctorCallLockAsync(
+            TrxQueue queue,
+            CancellationToken ct)
+        {
+            if (!queue.ClinicId.HasValue || queue.ClinicId.Value == Guid.Empty)
+            {
+                return null;
+            }
+
+            var serverNowUtc = DateTime.UtcNow;
+            var scope = await ResolveDoctorCallScopeAsync(queue.ClinicId.Value, ct);
+            var activeQueue = await FindActiveDoctorCallQueueAsync(
+                scope,
+                queue.Id,
+                serverNowUtc,
+                ct);
+
+            return activeQueue == null
+                ? null
+                : BuildCallLockResponse(scope, activeQueue, serverNowUtc);
+        }
+
+        private IActionResult BuildDoctorCallLockConflict(
+            DoctorQueueCallLockResponse activeLock)
+        {
+            var doctorName = NormalizeNullableText(activeLock.ActiveDoctorName)
+                ?? "dokter lain";
+            var clinicName = NormalizeNullableText(activeLock.ActiveClinicName);
+            var ownerName = clinicName == null
+                ? doctorName
+                : $"{doctorName} - {clinicName}";
+
+            return Conflict(new
+            {
+                success = false,
+                statusCode = StatusCodes.Status409Conflict,
+                message = $"{ownerName} sedang melakukan panggilan pasien. Tunggu {activeLock.RemainingSeconds} detik sampai panggilan selesai.",
+                data = activeLock
+            });
+        }
+
         private static bool CanEnterDoctorCallWorkflow(TrxQueue queue)
         {
             return queue.QueueStatus == QueueStatus.WaitingForDoctor ||
@@ -919,7 +978,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     .Distinct()
                     .ToListAsync(ct);
 
-                if (clinicIds.Count == 0)
+                if (!clinicIds.Any())
                 {
                     clinicIds.Add(scope.ClinicId);
                 }
