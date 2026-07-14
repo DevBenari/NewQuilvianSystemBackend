@@ -237,8 +237,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             CancellationToken cancellationToken)
         {
             var drug = await GetDrugAsync(request.DrugId, false, cancellationToken);
-            var doseUnit = await GetMeasurementAsync(request.DoseUnitMeasurementId, cancellationToken);
-            var dispenseUnit = await GetMeasurementAsync(request.DispenseUnitMeasurementId, cancellationToken);
+
+            var doseUnitMeasurementId = ResolveMeasurementId(
+                request.DoseUnitMeasurementId,
+                drug.DefaultDoseUnitMeasurementId,
+                drug.BaseUnitMeasurementId,
+                drug.DispenseUnitMeasurementId);
+
+            var dispenseUnitMeasurementId = ResolveMeasurementId(
+                request.DispenseUnitMeasurementId,
+                drug.DispenseUnitMeasurementId,
+                drug.BaseUnitMeasurementId,
+                drug.DefaultDoseUnitMeasurementId);
+
+            if (!doseUnitMeasurementId.HasValue)
+                throw new InvalidOperationException(
+                    $"Satuan dosis untuk obat {drug.DrugName} belum dikonfigurasi.");
+
+            if (!dispenseUnitMeasurementId.HasValue)
+                throw new InvalidOperationException(
+                    $"Satuan pemberian untuk obat {drug.DrugName} belum dikonfigurasi.");
+
+            var doseUnit = await GetMeasurementAsync(doseUnitMeasurementId, cancellationToken);
+            var dispenseUnit = await GetMeasurementAsync(dispenseUnitMeasurementId, cancellationToken);
             var coverage = await _insuranceCoverageService.ResolveDrugAsync(
                 prescription.EncounterId,
                 drug.Id,
@@ -275,7 +296,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             ApplyDrugSnapshot(entity, drug);
             entity.DrugId = drug.Id;
             entity.Dose = request.Dose;
-            entity.DoseUnitMeasurementId = request.DoseUnitMeasurementId;
+            entity.DoseUnitMeasurementId = doseUnitMeasurementId;
             entity.DoseUnitNameSnapshot = doseUnit?.MeasurementName;
             entity.DoseUnitSymbolSnapshot = doseUnit?.MeasurementSymbol;
             entity.FrequencyCode = NormalizeText(request.FrequencyCode);
@@ -289,7 +310,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             entity.AdministrationInstruction = NormalizeText(request.AdministrationInstruction);
             entity.DoctorNote = NormalizeText(request.DoctorNote);
             entity.Quantity = request.Quantity;
-            entity.DispenseUnitMeasurementId = request.DispenseUnitMeasurementId;
+            entity.DispenseUnitMeasurementId = dispenseUnitMeasurementId;
             entity.DispenseUnitNameSnapshot = dispenseUnit?.MeasurementName;
             entity.DispenseUnitSymbolSnapshot = dispenseUnit?.MeasurementSymbol;
             entity.SortOrder = request.SortOrder;
@@ -372,7 +393,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             CancellationToken cancellationToken)
         {
             var drug = await GetDrugAsync(request.DrugId, true, cancellationToken);
-            var quantityUnit = await GetMeasurementAsync(request.QuantityUnitMeasurementId, cancellationToken);
+
+            var quantityUnitMeasurementId = ResolveMeasurementId(
+                request.QuantityUnitMeasurementId,
+                drug.BaseUnitMeasurementId,
+                drug.DispenseUnitMeasurementId,
+                drug.DefaultDoseUnitMeasurementId);
+
+            if (!quantityUnitMeasurementId.HasValue)
+                throw new InvalidOperationException(
+                    $"Satuan bahan racikan untuk obat {drug.DrugName} belum dikonfigurasi.");
+
+            var quantityUnit = await GetMeasurementAsync(quantityUnitMeasurementId, cancellationToken);
             var coverage = await _insuranceCoverageService.ResolveDrugAsync(
                 prescription.EncounterId,
                 drug.Id,
@@ -417,7 +449,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             entity.DrugId = drug.Id;
             entity.AmountPerPackage = request.AmountPerPackage;
             entity.TotalQuantity = request.TotalQuantity;
-            entity.QuantityUnitMeasurementId = request.QuantityUnitMeasurementId;
+            entity.QuantityUnitMeasurementId = quantityUnitMeasurementId;
             entity.QuantityUnitNameSnapshot = quantityUnit?.MeasurementName;
             entity.QuantityUnitSymbolSnapshot = quantityUnit?.MeasurementSymbol;
             entity.IngredientInstruction = NormalizeText(request.IngredientInstruction);
@@ -730,6 +762,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             CoverageNote = x.CoverageNote,
             SortOrder = x.SortOrder
         };
+
+        private static Guid? ResolveMeasurementId(params Guid?[] candidates)
+        {
+            foreach (var candidate in candidates)
+            {
+                if (candidate.HasValue && candidate.Value != Guid.Empty)
+                    return candidate.Value;
+            }
+
+            return null;
+        }
 
         private static string? NormalizeText(string? value) =>
             string.IsNullOrWhiteSpace(value) ? null : value.Trim();
