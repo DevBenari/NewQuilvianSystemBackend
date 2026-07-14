@@ -286,7 +286,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     drugId,
                     quantity,
                     result.CoverageStatus,
+                    result.PricingQuantity,
                     result.UnitPrice,
+                    result.TotalPrice,
                     result.CoveredAmount,
                     result.PatientPayAmount
                 }
@@ -308,7 +310,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .Include(x => x.DefaultDoseUnitMeasurement)
                 .Where(x =>
                     !x.IsDelete &&
-                    x.IsActive);
+                    x.IsActive &&
+                    x.IsPrescribable);
         }
 
         private static IQueryable<MstDrug> ApplyFilters(
@@ -423,6 +426,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             }
 
             var readiness = BuildReadiness(drug, coverage);
+            var pricingQuantity = coverage.Quantity > 0 ? coverage.Quantity : 1m;
+            var hospitalTotalPrice = RoundMoney(
+                coverage.HospitalUnitPrice * pricingQuantity);
 
             return new PrescribingDrugResponse
             {
@@ -479,11 +485,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 IsCovered = coverage.IsCovered,
                 CoverageStatus = coverage.CoverageStatus,
                 CoveragePercent = coverage.CoveragePercent,
+                PricingQuantity = pricingQuantity,
                 HospitalUnitPrice = coverage.HospitalUnitPrice,
+                HospitalTotalPrice = hospitalTotalPrice,
                 ContractUnitPrice = coverage.ContractUnitPrice,
                 UnitPrice = coverage.UnitPrice,
+                TotalPrice = coverage.TotalPrice,
                 CoveredAmount = coverage.CoveredAmount,
                 PatientPayAmount = coverage.PatientPayAmount,
+                CoPaymentAmount = coverage.CoPaymentAmount,
                 IsNeedApproval = coverage.IsNeedApproval || drug.IsNeedApproval,
                 IsNeedGuaranteeLetter = coverage.IsNeedGuaranteeLetter,
                 CoverageNote = coverage.CoverageNote,
@@ -555,11 +565,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 IsCovered = baseResponse.IsCovered,
                 CoverageStatus = baseResponse.CoverageStatus,
                 CoveragePercent = baseResponse.CoveragePercent,
+                PricingQuantity = baseResponse.PricingQuantity,
                 HospitalUnitPrice = baseResponse.HospitalUnitPrice,
+                HospitalTotalPrice = baseResponse.HospitalTotalPrice,
                 ContractUnitPrice = baseResponse.ContractUnitPrice,
                 UnitPrice = baseResponse.UnitPrice,
+                TotalPrice = baseResponse.TotalPrice,
                 CoveredAmount = baseResponse.CoveredAmount,
                 PatientPayAmount = baseResponse.PatientPayAmount,
+                CoPaymentAmount = baseResponse.CoPaymentAmount,
                 IsNeedApproval = baseResponse.IsNeedApproval,
                 IsNeedGuaranteeLetter = baseResponse.IsNeedGuaranteeLetter,
                 CoverageNote = baseResponse.CoverageNote,
@@ -774,6 +788,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     Description = "Jumlah data per halaman."
                 }
             };
+        }
+
+        private static decimal RoundMoney(decimal value)
+        {
+            return Math.Round(value, 2, MidpointRounding.AwayFromZero);
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(

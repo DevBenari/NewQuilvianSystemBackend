@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
@@ -36,7 +37,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     public class DoctorQueueController : ControllerBase
     {
         private const string LogCategory = "HealthServices.RegistrationManagement";
-        private const int DoctorCallDurationSeconds = 30;
+        private const int DoctorCallDurationSeconds = 15;
         private const string DefaultDoctorProfilePhotoPathFallback = "/uploads/default-profile-photos/dokter.png";
 
         private static readonly QueueStatus[] DoctorWorkflowStatuses =
@@ -172,22 +173,122 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return Ok(ApiResponse<ResponseDoctorQueuePagedResult>.Ok(result, "Data antrean dokter berhasil diambil."));
         }
 
+        [HttpGet("call-lock")]
+        [ProducesResponseType(typeof(ApiResponse<DoctorQueueCallLockResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Doctor Queue Call Lock", Description = "Melihat status lock panggilan dokter dalam cluster", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("DoctorQueue", "Read")]
+        public async Task<IActionResult> GetCallLock(
+            [FromQuery] DateTime? queueDate,
+            [FromQuery] Guid? doctorId,
+            CancellationToken ct)
+        {
+            var isSuperAdmin = await IsCurrentUserSuperAdminAsync();
+            var allowedDoctorId = isSuperAdmin && (!doctorId.HasValue || doctorId.Value == Guid.Empty)
+                ? null
+                : await ResolveAllowedDoctorIdAsync(doctorId);
+
+            if (!isSuperAdmin && !allowedDoctorId.HasValue)
+            {
+                return Forbid();
+            }
+
+            var clinicIds = await BuildQueueBaseQuery(queueDate, allowedDoctorId)
+                .Where(x => x.ClinicId.HasValue && x.ClinicId.Value != Guid.Empty)
+                .Select(x => x.ClinicId!.Value)
+                .Distinct()
+                .ToListAsync(ct);
+
+            var serverNowUtc = DateTime.UtcNow;
+            DoctorQueueCallLockResponse? activeLock = null;
+            var processedScopeIds = new HashSet<Guid>();
+
+            foreach (var clinicId in clinicIds)
+            {
+                var scope = await ResolveDoctorCallScopeAsync(clinicId, ct);
+                if (!processedScopeIds.Add(scope.ScopeId))
+                {
+                    continue;
+                }
+
+                var activeQueue = await FindActiveDoctorCallQueueAsync(
+                    scope,
+                    null,
+                    serverNowUtc,
+                    ct);
+
+                if (activeQueue == null)
+                {
+                    continue;
+                }
+
+                var candidate = BuildCallLockResponse(scope, activeQueue, serverNowUtc);
+                if (activeLock == null ||
+                    (candidate.ExpiresAt ?? DateTime.MinValue) > (activeLock.ExpiresAt ?? DateTime.MinValue))
+                {
+                    activeLock = candidate;
+                }
+            }
+
+            var result = activeLock ?? new DoctorQueueCallLockResponse
+            {
+                IsLocked = false,
+                ServerNowUtc = serverNowUtc,
+                RemainingSeconds = 0,
+                CallDurationSeconds = DoctorCallDurationSeconds
+            };
+
+            return Ok(ApiResponse<DoctorQueueCallLockResponse>.Ok(
+                result,
+                result.IsLocked
+                    ? "Cluster sedang digunakan untuk panggilan dokter."
+                    : "Cluster tersedia untuk panggilan dokter."));
+        }
+
         [HttpPost("{id:guid}/call")]
         [AccessAction("Update", "Call Doctor Queue", Description = "Memanggil pasien ke dokter", AccessType = AccessTypes.Update, SortOrder = 2)]
         [AccessPermission("DoctorQueue", "Update")]
-        public async Task<IActionResult> Call(Guid id)
+        public async Task<IActionResult> Call(Guid id, CancellationToken ct)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
             if (queue == null) return QueueNotFound();
 
-            var now = DateTime.UtcNow;
-            if (queue.QueueStatus != QueueStatus.WaitingForDoctor &&
-                queue.QueueStatus != QueueStatus.CalledByDoctor &&
-                queue.QueueStatus != QueueStatus.Skipped)
+            var preliminaryNow = DateTime.UtcNow;
+            if (!CanEnterDoctorCallWorkflow(queue))
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     "Antrean tidak dalam status menunggu, dipanggil, atau dilewati dokter."
+                ));
+            }
+
+            if (IsDoctorCallTimerRunning(queue, preliminaryNow))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Timer panggilan dokter masih berjalan."
+                ));
+            }
+
+            if (!queue.ClinicId.HasValue || queue.ClinicId.Value == Guid.Empty)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Poli antrean dokter belum tersedia sehingga lock cluster tidak dapat ditentukan."
+                ));
+            }
+
+            var scope = await ResolveDoctorCallScopeAsync(queue.ClinicId.Value, ct);
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
+            await AcquireDoctorCallScopeLockAsync(scope.ScopeId, ct);
+            await _dbContext.Entry(queue).ReloadAsync(ct);
+
+            var now = DateTime.UtcNow;
+            if (!CanEnterDoctorCallWorkflow(queue))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Status antrean berubah dan sudah tidak dapat dipanggil."
                 ));
             }
 
@@ -199,6 +300,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ));
             }
 
+            var activeClusterQueue = await FindActiveDoctorCallQueueAsync(
+                scope,
+                queue.Id,
+                now,
+                ct);
+
+            if (activeClusterQueue != null)
+            {
+                var activeLock = BuildCallLockResponse(scope, activeClusterQueue, now);
+                var doctorName = NormalizeNullableText(activeLock.ActiveDoctorName) ?? "dokter lain";
+                var clinicName = NormalizeNullableText(activeLock.ActiveClinicName);
+                var ownerName = clinicName == null
+                    ? doctorName
+                    : $"{doctorName} - {clinicName}";
+
+                return Conflict(new
+                {
+                    success = false,
+                    statusCode = StatusCodes.Status409Conflict,
+                    message = $"{ownerName} sedang melakukan panggilan pasien. Tunggu {activeLock.RemainingSeconds} detik sampai panggilan selesai.",
+                    data = activeLock
+                });
+            }
+
             var actorUserId = GetCurrentUserId();
             queue.QueueStatus = QueueStatus.CalledByDoctor;
             queue.DoctorCallAttemptCount += 1;
@@ -208,15 +333,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             queue.UpdateDateTime = now;
             queue.UpdateBy = actorUserId;
 
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
 
             var message = $"Pasien berhasil dipanggil oleh dokter. Panggilan ke-{queue.DoctorCallAttemptCount}, timer {DoctorCallDurationSeconds} detik.";
             await _queueRealtimeService.NotifyQueueCalledByDoctorAsync(queue, actorUserId, message);
 
-            var voiceResult = await _queueVoiceService.GetOrCreateQueueCallAudioAsync(queue, QueueVoiceCallTypes.Doctor);
+            var voiceResult = await _queueVoiceService.GetOrCreateQueueCallAudioAsync(
+                queue,
+                QueueVoiceCallTypes.Doctor);
+
+            var callLock = BuildCallLockResponse(scope, queue, DateTime.UtcNow);
 
             return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(
-                BuildActionResponse(queue, message, voiceResult),
+                BuildActionResponse(queue, message, voiceResult, callLock),
                 message
             ));
         }
@@ -717,6 +847,140 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return await query.FirstOrDefaultAsync(x => x.DoctorId == allowedDoctorId.Value);
         }
 
+        private static bool CanEnterDoctorCallWorkflow(TrxQueue queue)
+        {
+            return queue.QueueStatus == QueueStatus.WaitingForDoctor ||
+                   queue.QueueStatus == QueueStatus.CalledByDoctor ||
+                   queue.QueueStatus == QueueStatus.Skipped;
+        }
+
+        private async Task<DoctorCallScope> ResolveDoctorCallScopeAsync(
+            Guid clinicId,
+            CancellationToken ct)
+        {
+            var clusterId = await _dbContext.Set<MstNurseStationClusterClinic>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.ClinicId == clinicId)
+                .Select(x => (Guid?)x.NurseStationClusterId)
+                .FirstOrDefaultAsync(ct);
+
+            return clusterId.HasValue && clusterId.Value != Guid.Empty
+                ? DoctorCallScope.ForCluster(clusterId.Value, clinicId)
+                : DoctorCallScope.ForClinic(clinicId);
+        }
+
+        private async Task AcquireDoctorCallScopeLockAsync(
+            Guid scopeId,
+            CancellationToken ct)
+        {
+            var lockKey = BuildDoctorCallAdvisoryLockKey(scopeId);
+
+            await _dbContext.Database.ExecuteSqlRawAsync(
+                "SELECT pg_advisory_xact_lock({0});",
+                new object[] { lockKey },
+                ct);
+        }
+
+        private async Task<TrxQueue?> FindActiveDoctorCallQueueAsync(
+            DoctorCallScope scope,
+            Guid? excludedQueueId,
+            DateTime serverNowUtc,
+            CancellationToken ct)
+        {
+            var query = _dbContext.Set<TrxQueue>()
+                .AsNoTracking()
+                .Include(x => x.Doctor)
+                .Include(x => x.Clinic)
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.IsDoctorRequired &&
+                    x.DoctorCallExpiresAt.HasValue &&
+                    x.DoctorCallExpiresAt.Value > serverNowUtc &&
+                    x.LastDoctorCalledAt.HasValue);
+
+            if (excludedQueueId.HasValue && excludedQueueId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.Id != excludedQueueId.Value);
+            }
+
+            if (scope.ClusterId.HasValue)
+            {
+                var clinicIds = await _dbContext.Set<MstNurseStationClusterClinic>()
+                    .AsNoTracking()
+                    .Where(x =>
+                        !x.IsDelete &&
+                        x.IsActive &&
+                        x.NurseStationClusterId == scope.ClusterId.Value)
+                    .Select(x => x.ClinicId)
+                    .Distinct()
+                    .ToListAsync(ct);
+
+                if (clinicIds.Count == 0)
+                {
+                    clinicIds.Add(scope.ClinicId);
+                }
+
+                query = query.Where(x =>
+                    x.ClinicId.HasValue &&
+                    clinicIds.Contains(x.ClinicId.Value));
+            }
+            else
+            {
+                query = query.Where(x => x.ClinicId == scope.ClinicId);
+            }
+
+            return await query
+                .OrderByDescending(x => x.DoctorCallExpiresAt)
+                .ThenByDescending(x => x.LastDoctorCalledAt)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        private static DoctorQueueCallLockResponse BuildCallLockResponse(
+            DoctorCallScope scope,
+            TrxQueue activeQueue,
+            DateTime serverNowUtc)
+        {
+            var remainingSeconds = CalculateDoctorCallRemainingSeconds(
+                activeQueue.DoctorCallExpiresAt,
+                serverNowUtc);
+
+            return new DoctorQueueCallLockResponse
+            {
+                IsLocked = remainingSeconds > 0,
+                ScopeId = scope.ScopeId,
+                ClusterId = scope.ClusterId,
+                ActiveQueueId = activeQueue.Id,
+                ActiveDoctorId = activeQueue.DoctorId,
+                ActiveDoctorName = activeQueue.Doctor?.FullName,
+                ActiveClinicId = activeQueue.ClinicId,
+                ActiveClinicName = activeQueue.Clinic?.ClinicName,
+                ExpiresAt = activeQueue.DoctorCallExpiresAt,
+                ServerNowUtc = serverNowUtc,
+                RemainingSeconds = remainingSeconds,
+                CallDurationSeconds = DoctorCallDurationSeconds
+            };
+        }
+
+        private static long BuildDoctorCallAdvisoryLockKey(Guid scopeId)
+        {
+            const ulong fnvOffsetBasis = 14695981039346656037UL;
+            const ulong fnvPrime = 1099511628211UL;
+            const ulong doctorCallNamespace = 0x444F43544F524C4FUL;
+
+            var hash = fnvOffsetBasis ^ doctorCallNamespace;
+            foreach (var value in scopeId.ToByteArray())
+            {
+                hash ^= value;
+                hash *= fnvPrime;
+            }
+
+            return unchecked((long)hash);
+        }
+
         private async Task<List<DoctorQueueResponse>> MapResponsesAsync(List<TrxQueue> queues)
         {
             if (queues.Count == 0)
@@ -1019,6 +1283,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             public DateTime LastUpdatedAt { get; set; }
         }
 
+        private sealed class DoctorCallScope
+        {
+            public Guid ScopeId { get; private set; }
+            public Guid? ClusterId { get; private set; }
+            public Guid ClinicId { get; private set; }
+
+            public static DoctorCallScope ForCluster(Guid clusterId, Guid clinicId)
+            {
+                return new DoctorCallScope
+                {
+                    ScopeId = clusterId,
+                    ClusterId = clusterId,
+                    ClinicId = clinicId
+                };
+            }
+
+            public static DoctorCallScope ForClinic(Guid clinicId)
+            {
+                return new DoctorCallScope
+                {
+                    ScopeId = clinicId,
+                    ClusterId = null,
+                    ClinicId = clinicId
+                };
+            }
+        }
+
         private sealed class DoctorWorkforceCredentialSnapshot
         {
             public static DoctorWorkforceCredentialSnapshot Empty { get; } = new();
@@ -1045,7 +1336,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             public DateTime CreateDateTime { get; set; }
         }
 
-        private static DoctorQueueActionResponse BuildActionResponse(TrxQueue queue, string message, QueueVoiceGenerateResponse? voiceResult = null)
+        private static DoctorQueueActionResponse BuildActionResponse(
+            TrxQueue queue,
+            string message,
+            QueueVoiceGenerateResponse? voiceResult = null,
+            DoctorQueueCallLockResponse? callLock = null)
         {
             var serverNowUtc = DateTime.UtcNow;
 
@@ -1071,6 +1366,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 CanFinishConsultation = CanFinishConsultationDoctor(queue),
                 ConsultationStartedAt = queue.ConsultationStartedAt,
                 ConsultationCompletedAt = queue.ConsultationCompletedAt,
+                IsDoctorCallClusterLocked = callLock?.IsLocked ?? false,
+                DoctorCallScopeId = callLock?.ScopeId,
+                DoctorCallClusterId = callLock?.ClusterId,
+                ActiveClusterDoctorCallQueueId = callLock?.ActiveQueueId,
+                ActiveClusterDoctorId = callLock?.ActiveDoctorId,
+                ActiveClusterDoctorName = callLock?.ActiveDoctorName,
+                ActiveClusterClinicId = callLock?.ActiveClinicId,
+                ActiveClusterClinicName = callLock?.ActiveClinicName,
+                DoctorCallClusterExpiresAt = callLock?.ExpiresAt,
+                DoctorCallClusterRemainingSeconds = callLock?.RemainingSeconds ?? 0,
+                DoctorCallDurationSeconds = DoctorCallDurationSeconds,
                 Message = message,
                 VoiceEnabled = voiceResult?.Enabled ?? false,
                 VoiceGenerated = voiceResult?.Generated ?? false,

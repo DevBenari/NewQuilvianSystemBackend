@@ -110,15 +110,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         public decimal CoveragePercent { get; set; }
 
+        /// <summary>
+        /// Kuantitas yang digunakan ketika harga dan coverage dihitung.
+        /// Pada endpoint katalog nilainya 1, sedangkan endpoint detail mengikuti query quantity.
+        /// </summary>
+        public decimal PricingQuantity { get; set; } = 1;
+
+        /// <summary>Harga normal rumah sakit per satuan dari MstTariff.NormalPrice.</summary>
         public decimal HospitalUnitPrice { get; set; }
 
+        /// <summary>Total harga normal rumah sakit sebelum tarif kontrak dan coverage.</summary>
+        public decimal HospitalTotalPrice { get; set; }
+
+        /// <summary>Harga kontrak asuransi per satuan jika tersedia.</summary>
         public decimal? ContractUnitPrice { get; set; }
 
+        /// <summary>Harga efektif per satuan sesuai metode pembayaran encounter.</summary>
         public decimal UnitPrice { get; set; }
+
+        /// <summary>Total harga efektif untuk PricingQuantity.</summary>
+        public decimal TotalPrice { get; set; }
 
         public decimal CoveredAmount { get; set; }
 
         public decimal PatientPayAmount { get; set; }
+
+        public decimal CoPaymentAmount { get; set; }
 
         public bool IsNeedApproval { get; set; }
 

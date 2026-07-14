@@ -148,6 +148,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public bool CanFinishConsultation { get; set; }
         public DateTime? ConsultationStartedAt { get; set; }
         public DateTime? ConsultationCompletedAt { get; set; }
+
+        public bool IsDoctorCallClusterLocked { get; set; }
+        public Guid? DoctorCallScopeId { get; set; }
+        public Guid? DoctorCallClusterId { get; set; }
+        public Guid? ActiveClusterDoctorCallQueueId { get; set; }
+        public Guid? ActiveClusterDoctorId { get; set; }
+        public string? ActiveClusterDoctorName { get; set; }
+        public Guid? ActiveClusterClinicId { get; set; }
+        public string? ActiveClusterClinicName { get; set; }
+        public DateTime? DoctorCallClusterExpiresAt { get; set; }
+        public int DoctorCallClusterRemainingSeconds { get; set; }
+        public int DoctorCallDurationSeconds { get; set; }
+
         public string Message { get; set; } = string.Empty;
         public bool VoiceEnabled { get; set; }
         public bool VoiceGenerated { get; set; }
@@ -159,6 +172,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string? VoiceDateKey { get; set; }
         public string? VoiceContentType { get; set; }
         public string? VoiceErrorMessage { get; set; }
+    }
+
+    public class DoctorQueueCallLockResponse
+    {
+        public bool IsLocked { get; set; }
+        public Guid? ScopeId { get; set; }
+        public Guid? ClusterId { get; set; }
+        public Guid? ActiveQueueId { get; set; }
+        public Guid? ActiveDoctorId { get; set; }
+        public string? ActiveDoctorName { get; set; }
+        public Guid? ActiveClinicId { get; set; }
+        public string? ActiveClinicName { get; set; }
+        public DateTime? ExpiresAt { get; set; }
+        public DateTime ServerNowUtc { get; set; }
+        public int RemainingSeconds { get; set; }
+        public int CallDurationSeconds { get; set; }
     }
 
     public class DoctorQueueFilterMetadataResponse

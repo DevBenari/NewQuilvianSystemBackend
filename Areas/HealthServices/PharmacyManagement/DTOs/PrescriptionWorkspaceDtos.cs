@@ -96,12 +96,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public Guid? DispenseUnitMeasurementId { get; set; }
         public string? DispenseUnitName { get; set; }
         public string? DispenseUnitSymbol { get; set; }
+        public Guid? TariffId { get; set; }
+        public Guid? InsuranceTariffId { get; set; }
+        public Guid? InsuranceCoverageRuleId { get; set; }
+        public decimal PricingQuantity { get; set; }
+        public decimal HospitalUnitPrice { get; set; }
+        public decimal? ContractUnitPrice { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal TotalPrice { get; set; }
+        public decimal HospitalTotalPrice { get; set; }
+        public string PricingSource { get; set; } = string.Empty;
+        public bool IsCoverageApplicable { get; set; }
+        public bool IsCovered { get; set; }
         public string CoverageStatus { get; set; } = string.Empty;
         public decimal CoveragePercent { get; set; }
         public decimal CoveredAmount { get; set; }
         public decimal PatientPayAmount { get; set; }
+        public decimal CoPaymentAmount { get; set; }
         public bool IsNeedApproval { get; set; }
         public bool IsApproved { get; set; }
         public bool IsNeedGuaranteeLetter { get; set; }
@@ -159,12 +170,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public string? QuantityUnitName { get; set; }
         public string? QuantityUnitSymbol { get; set; }
         public string? IngredientInstruction { get; set; }
+        public Guid? TariffId { get; set; }
+        public Guid? InsuranceTariffId { get; set; }
+        public Guid? InsuranceCoverageRuleId { get; set; }
+        public decimal PricingQuantity { get; set; }
+        public decimal HospitalUnitPrice { get; set; }
+        public decimal? ContractUnitPrice { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal TotalPrice { get; set; }
+        public decimal HospitalTotalPrice { get; set; }
+        public string PricingSource { get; set; } = string.Empty;
+        public bool IsCoverageApplicable { get; set; }
+        public bool IsCovered { get; set; }
         public string CoverageStatus { get; set; } = string.Empty;
         public decimal CoveragePercent { get; set; }
         public decimal CoveredAmount { get; set; }
         public decimal PatientPayAmount { get; set; }
+        public decimal CoPaymentAmount { get; set; }
         public bool IsNeedApproval { get; set; }
         public bool IsApproved { get; set; }
         public bool IsNeedGuaranteeLetter { get; set; }

@@ -748,12 +748,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (request.NormalPrice < 0)
                 return (false, "Harga normal tidak boleh kurang dari 0.");
 
-            return (false, "Harga member tidak boleh kurang dari 0.");
-
-            return (false, "Harga insurance tidak boleh kurang dari 0.");
-
-            return (false, "Harga company tidak boleh kurang dari 0.");
-
             if (request.EffectiveStartDate.HasValue && request.EffectiveEndDate.HasValue &&
                 request.EffectiveEndDate.Value < request.EffectiveStartDate.Value)
             {
