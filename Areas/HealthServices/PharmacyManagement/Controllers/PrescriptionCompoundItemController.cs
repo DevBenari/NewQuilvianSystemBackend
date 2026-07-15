@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Attributes;
@@ -36,6 +37,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         private readonly InsuranceCoverageService _insuranceCoverageService;
         private readonly PrescriptionAggregateService _prescriptionAggregateService;
         private readonly LoggerService _loggerService;
+        private readonly CompoundCalculationService _compoundCalculationService = new();
 
         public PrescriptionCompoundItemController(
             ApplicationDbContext dbContext,
@@ -107,18 +109,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         {
             var compound = await _dbContext.Set<TrxPrescriptionCompound>()
                 .Include(x => x.Prescription)
-                .FirstOrDefaultAsync(x => x.Id == request.PrescriptionCompoundId && !x.IsDelete, cancellationToken);
+                .FirstOrDefaultAsync(
+                    x => x.Id == request.PrescriptionCompoundId && !x.IsDelete,
+                    cancellationToken);
 
             if (compound?.Prescription == null)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Racikan atau resep tidak ditemukan."));
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Racikan atau resep tidak ditemukan."));
 
             try
             {
-                await _prescriptionAggregateService.EnsureEditableAsync(compound.PrescriptionId, cancellationToken);
+                await _prescriptionAggregateService.EnsureEditableAsync(
+                    compound.PrescriptionId,
+                    cancellationToken);
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    ex.Message));
             }
 
             var duplicate = await _dbContext.Set<TrxPrescriptionCompoundItem>()
@@ -129,43 +139,85 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                     cancellationToken);
 
             if (duplicate)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Obat tersebut sudah ada pada racikan."));
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Obat tersebut sudah ada pada racikan."));
 
             var drug = await LoadDrugAsync(request.DrugId, cancellationToken);
             if (drug == null || !drug.IsCompoundIngredientAllowed)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Obat tidak ditemukan, tidak aktif, atau tidak diizinkan sebagai bahan racikan."));
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Obat tidak ditemukan, tidak aktif, atau tidak diizinkan sebagai bahan racikan."));
 
-            var unit = await ResolveMeasurementAsync(
-                request.QuantityUnitMeasurementId ?? drug.DispenseUnitMeasurementId,
-                cancellationToken);
+            CompoundItemCalculationContext context;
+            try
+            {
+                context = await BuildCalculationContextAsync(
+                    compound,
+                    drug,
+                    request,
+                    existingVerifiedSourceQuantity: null,
+                    cancellationToken);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    ex.Message));
+            }
 
             var coverage = await _insuranceCoverageService.ResolveDrugAsync(
                 compound.Prescription.EncounterId,
                 drug.Id,
-                request.TotalQuantity,
+                context.Calculation.PricingQuantity,
                 compound.Prescription.PrescriptionDateTime,
                 cancellationToken);
 
             if (!coverage.IsValid)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, coverage.ErrorMessage ?? "Coverage bahan racikan tidak dapat dihitung."));
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    coverage.ErrorMessage ?? "Coverage bahan racikan tidak dapat dihitung."));
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            await using var transaction = await _dbContext.Database
+                .BeginTransactionAsync(cancellationToken);
 
-            var entity = BuildEntity(compound.Id, drug, unit, request.AmountPerPackage, coverage, request.TotalQuantity, request.IngredientInstruction, request.SortOrder, now, actorUserId);
+            var entity = BuildEntity(
+                compound.Id,
+                drug,
+                request,
+                context,
+                coverage,
+                now,
+                actorUserId);
+
             _dbContext.Set<TrxPrescriptionCompoundItem>().Add(entity);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            var aggregate = await _prescriptionAggregateService.RebuildAsync(compound.PrescriptionId, actorUserId, now, cancellationToken);
+            var aggregate = await _prescriptionAggregateService.RebuildAsync(
+                compound.PrescriptionId,
+                actorUserId,
+                now,
+                cancellationToken);
+
             await transaction.CommitAsync(cancellationToken);
 
-            var response = await ToMutationResponseAsync(entity, aggregate, cancellationToken);
+            var response = await ToMutationResponseAsync(
+                entity,
+                aggregate,
+                cancellationToken);
 
-            await _loggerService.InfoAsync(LogCategory, "PrescriptionCompoundItem.CreateItem", "Menambahkan bahan racikan.", response);
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PrescriptionCompoundItem.CreateItem",
+                "Menambahkan bahan racikan dengan kalkulasi sumber dan pricing quantity.",
+                response);
 
-            return Ok(ApiResponse<PrescriptionCompoundItemMutationResponse>.Ok(response, "Bahan racikan berhasil ditambahkan."));
+            return Ok(ApiResponse<PrescriptionCompoundItemMutationResponse>.Ok(
+                response,
+                "Bahan racikan berhasil ditambahkan."));
         }
 
         [HttpPut("{id:guid}")]
@@ -185,45 +237,109 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
             if (entity?.PrescriptionCompound?.Prescription == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Bahan racikan tidak ditemukan."));
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Bahan racikan tidak ditemukan."));
 
             try
             {
-                await _prescriptionAggregateService.EnsureEditableAsync(entity.PrescriptionCompound.PrescriptionId, cancellationToken);
+                await _prescriptionAggregateService.EnsureEditableAsync(
+                    entity.PrescriptionCompound.PrescriptionId,
+                    cancellationToken);
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    ex.Message));
             }
 
             var drug = await LoadDrugAsync(entity.DrugId, cancellationToken);
             if (drug == null)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Master obat tidak ditemukan."));
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Master obat tidak ditemukan."));
 
-            var unit = await ResolveMeasurementAsync(
-                request.QuantityUnitMeasurementId ?? drug.DispenseUnitMeasurementId,
-                cancellationToken);
+            CompoundItemCalculationContext preliminaryContext;
+            CompoundItemCalculationContext context;
+            decimal? verifiedSourceQuantity;
+            var verificationWasInvalidated = false;
+
+            try
+            {
+                preliminaryContext = await BuildCalculationContextAsync(
+                    entity.PrescriptionCompound,
+                    drug,
+                    request,
+                    existingVerifiedSourceQuantity: null,
+                    cancellationToken);
+
+                var canPreserveExistingVerification =
+                    request.VerifiedSourceQuantity is null &&
+                    entity.VerifiedSourceQuantity is > 0 &&
+                    IsExistingVerificationCompatible(
+                        entity,
+                        request,
+                        preliminaryContext);
+
+                verifiedSourceQuantity = request.VerifiedSourceQuantity
+                    ?? (canPreserveExistingVerification
+                        ? entity.VerifiedSourceQuantity
+                        : null);
+
+                verificationWasInvalidated =
+                    request.VerifiedSourceQuantity is null &&
+                    entity.VerifiedSourceQuantity is > 0 &&
+                    !canPreserveExistingVerification;
+
+                context = verifiedSourceQuantity is > 0
+                    ? await BuildCalculationContextAsync(
+                        entity.PrescriptionCompound,
+                        drug,
+                        request,
+                        verifiedSourceQuantity,
+                        cancellationToken)
+                    : preliminaryContext;
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    ex.Message));
+            }
 
             var coverage = await _insuranceCoverageService.ResolveDrugAsync(
                 entity.PrescriptionCompound.Prescription.EncounterId,
                 entity.DrugId,
-                request.TotalQuantity,
+                context.Calculation.PricingQuantity,
                 entity.PrescriptionCompound.Prescription.PrescriptionDateTime,
                 cancellationToken);
 
             if (!coverage.IsValid)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, coverage.ErrorMessage ?? "Coverage bahan racikan tidak dapat dihitung."));
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    coverage.ErrorMessage ?? "Coverage bahan racikan tidak dapat dihitung."));
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            ApplyCalculation(
+                entity,
+                request,
+                context,
+                verifiedSourceQuantity);
+
+            if (verificationWasInvalidated)
+            {
+                entity.CalculationStatus = "PharmacyReverificationRequired";
+                entity.CalculationNote = AppendNote(
+                    entity.CalculationNote,
+                    "Verifikasi quantity farmasi dibatalkan karena formula klinis berubah.");
+            }
+
             ApplyCoverage(entity, coverage);
-            entity.AmountPerPackage = request.AmountPerPackage;
-            entity.TotalQuantity = coverage.Quantity;
-            entity.QuantityUnitMeasurementId = unit?.Id;
-            entity.QuantityUnitNameSnapshot = unit?.MeasurementName;
-            entity.QuantityUnitSymbolSnapshot = unit?.MeasurementSymbol;
-            entity.IngredientInstruction = NormalizeNullableText(request.IngredientInstruction);
+            entity.IngredientInstruction = NormalizeNullableText(
+                request.IngredientInstruction);
             entity.SortOrder = request.SortOrder;
             entity.IsApproved = false;
             entity.ApprovedAt = null;
@@ -233,10 +349,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
-            var aggregate = await _prescriptionAggregateService.RebuildAsync(entity.PrescriptionCompound.PrescriptionId, actorUserId, now, cancellationToken);
-            var response = await ToMutationResponseAsync(entity, aggregate, cancellationToken);
 
-            return Ok(ApiResponse<PrescriptionCompoundItemMutationResponse>.Ok(response, "Bahan racikan berhasil diubah."));
+            var aggregate = await _prescriptionAggregateService.RebuildAsync(
+                entity.PrescriptionCompound.PrescriptionId,
+                actorUserId,
+                now,
+                cancellationToken);
+
+            var response = await ToMutationResponseAsync(
+                entity,
+                aggregate,
+                cancellationToken);
+
+            return Ok(ApiResponse<PrescriptionCompoundItemMutationResponse>.Ok(
+                response,
+                "Bahan racikan berhasil diubah."));
         }
 
         [HttpPatch("{id:guid}/approve")]
@@ -319,35 +446,181 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 .Where(x => !x.IsDelete && !x.IsCancel);
         }
 
-        private async Task<MstDrug?> LoadDrugAsync(Guid drugId, CancellationToken cancellationToken)
+        private async Task<MstDrug?> LoadDrugAsync(
+            Guid drugId,
+            CancellationToken cancellationToken)
         {
             return await _dbContext.Set<MstDrug>()
                 .AsNoTracking()
                 .Include(x => x.DrugCategory)
+                .Include(x => x.StrengthMeasurement)
+                .Include(x => x.BaseUnitMeasurement)
                 .Include(x => x.DispenseUnitMeasurement)
-                .FirstOrDefaultAsync(x => x.Id == drugId && x.IsActive && !x.IsDelete && x.IsPrescribable, cancellationToken);
+                .Include(x => x.DefaultDoseUnitMeasurement)
+                .FirstOrDefaultAsync(
+                    x => x.Id == drugId &&
+                         x.IsActive &&
+                         !x.IsDelete &&
+                         x.IsPrescribable,
+                    cancellationToken);
         }
 
-        private async Task<MstMeasurement?> ResolveMeasurementAsync(Guid? id, CancellationToken cancellationToken)
+        private async Task<MstMeasurement?> ResolveMeasurementAsync(
+            Guid? id,
+            CancellationToken cancellationToken)
         {
             if (!id.HasValue || id.Value == Guid.Empty)
                 return null;
 
             return await _dbContext.Set<MstMeasurement>()
                 .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Id == id.Value && x.IsActive && !x.IsDelete, cancellationToken)
-                ?? throw new InvalidOperationException("Satuan tidak ditemukan atau tidak aktif.");
+                .FirstOrDefaultAsync(
+                    x => x.Id == id.Value && x.IsActive && !x.IsDelete,
+                    cancellationToken)
+                ?? throw new InvalidOperationException(
+                    "Satuan tidak ditemukan atau tidak aktif.");
         }
+
+        private async Task<MstMeasurement?> ResolveMeasurementAsync(
+            Guid? id,
+            string? nameOrSymbol,
+            CancellationToken cancellationToken)
+        {
+            var byId = await ResolveMeasurementAsync(id, cancellationToken);
+            if (byId != null) return byId;
+
+            var token = CompoundCalculationService.NormalizeUnitToken(nameOrSymbol);
+            if (string.IsNullOrWhiteSpace(token)) return null;
+
+            var candidates = await _dbContext.Set<MstMeasurement>()
+                .AsNoTracking()
+                .Where(x => x.IsActive && !x.IsDelete && x.IsForDrug)
+                .ToListAsync(cancellationToken);
+
+            return candidates.FirstOrDefault(x =>
+                string.Equals(
+                    CompoundCalculationService.NormalizeUnitToken(x.MeasurementSymbol),
+                    token,
+                    StringComparison.Ordinal) ||
+                string.Equals(
+                    CompoundCalculationService.NormalizeUnitToken(x.MeasurementName),
+                    token,
+                    StringComparison.Ordinal));
+        }
+
+        private async Task<CompoundItemCalculationContext> BuildCalculationContextAsync(
+            TrxPrescriptionCompound compound,
+            MstDrug drug,
+            PrescriptionCompoundItemMutationRequestBase request,
+            decimal? existingVerifiedSourceQuantity,
+            CancellationToken cancellationToken)
+        {
+            var parsedStrength = _compoundCalculationService.ParseStrength(drug.Strength);
+
+            var quantityUnitId = request.QuantityUnitMeasurementId
+                ?? drug.BaseUnitMeasurementId
+                ?? drug.DispenseUnitMeasurementId
+                ?? drug.DefaultDoseUnitMeasurementId;
+            var quantityUnit = await ResolveMeasurementAsync(
+                quantityUnitId,
+                cancellationToken);
+
+            if (quantityUnit == null)
+                throw new InvalidOperationException(
+                    $"Satuan bahan racikan untuk obat {drug.DrugName} belum dikonfigurasi.");
+
+            var targetUnit = await ResolveMeasurementAsync(
+                request.TargetUnitMeasurementId ?? drug.StrengthMeasurementId,
+                request.TargetUnitName ?? parsedStrength.StrengthUnitToken,
+                cancellationToken);
+
+            var sourceStrengthUnit = await ResolveMeasurementAsync(
+                request.SourceStrengthMeasurementId ?? drug.StrengthMeasurementId,
+                request.SourceStrengthUnitName ?? parsedStrength.StrengthUnitToken,
+                cancellationToken);
+
+            var sourceContentMeasurementId = request.SourceContentUnitMeasurementId;
+            if (!sourceContentMeasurementId.HasValue &&
+                string.IsNullOrWhiteSpace(parsedStrength.SourceContentUnitToken) &&
+                string.IsNullOrWhiteSpace(request.SourceContentUnitName))
+            {
+                sourceContentMeasurementId = quantityUnit.Id;
+            }
+
+            var sourceContentUnit = await ResolveMeasurementAsync(
+                sourceContentMeasurementId,
+                request.SourceContentUnitName ?? parsedStrength.SourceContentUnitToken,
+                cancellationToken) ?? quantityUnit;
+
+            var sourceStrengthValue = request.SourceStrengthValue
+                ?? drug.StrengthValue
+                ?? parsedStrength.StrengthValue;
+            var sourceContentQuantity = request.SourceContentQuantity
+                ?? parsedStrength.SourceContentQuantity;
+
+            var calculation = _compoundCalculationService.Calculate(
+                new CompoundCalculationRequest
+                {
+                    CompoundCalculationMode = compound.CalculationMode,
+                    IngredientCalculationMode = request.CalculationMode,
+                    IngredientRole = request.IngredientRole,
+                    TotalPackage = compound.TotalPackage,
+                    FinalQuantity = compound.FinalQuantity,
+                    FinalQuantityUnit = CompoundUnitDescriptor.Create(
+                        compound.FinalQuantityMeasurementId,
+                        compound.FinalQuantityUnitNameSnapshot,
+                        compound.FinalQuantityUnitSymbolSnapshot),
+                    LegacyAmountPerPackage = request.AmountPerPackage,
+                    LegacyTotalQuantity = request.TotalQuantity,
+                    TargetValue = request.TargetValue,
+                    TargetUnit = ToDescriptor(targetUnit),
+                    TargetConcentrationUnit = request.TargetConcentrationUnit,
+                    SourceStrengthValue = sourceStrengthValue,
+                    SourceStrengthUnit = ToDescriptor(sourceStrengthUnit),
+                    SourceContentQuantity = sourceContentQuantity,
+                    SourceContentUnit = ToDescriptor(sourceContentUnit),
+                    VerifiedSourceQuantity = request.VerifiedSourceQuantity
+                        ?? existingVerifiedSourceQuantity,
+                    AllowFractionalSource = drug.IsAllowFractionalDispense,
+                    IsQuantitySufficientToFinal =
+                        request.IsQuantitySufficientToFinal,
+                    RequiresManualStrengthVerification =
+                        parsedStrength.RequiresManualVerification
+                });
+
+            if (!calculation.IsValid)
+                throw new InvalidOperationException(
+                    calculation.ErrorMessage ??
+                    "Kalkulasi bahan racikan tidak valid.");
+
+            return new CompoundItemCalculationContext
+            {
+                QuantityUnit = quantityUnit,
+                TargetUnit = targetUnit,
+                SourceStrengthUnit = sourceStrengthUnit,
+                SourceContentUnit = sourceContentUnit,
+                SourceStrengthValue = sourceStrengthValue,
+                SourceContentQuantity = sourceContentQuantity,
+                ParsedStrengthWarning = parsedStrength.Warning,
+                Calculation = calculation
+            };
+        }
+
+        private static CompoundUnitDescriptor? ToDescriptor(
+            MstMeasurement? measurement)
+            => measurement == null
+                ? null
+                : CompoundUnitDescriptor.Create(
+                    measurement.Id,
+                    measurement.MeasurementName,
+                    measurement.MeasurementSymbol);
 
         private static TrxPrescriptionCompoundItem BuildEntity(
             Guid compoundId,
             MstDrug drug,
-            MstMeasurement? unit,
-            decimal amountPerPackage,
+            PrescriptionCompoundItemMutationRequestBase request,
+            CompoundItemCalculationContext context,
             InsuranceCoverageResult coverage,
-            decimal totalQuantity,
-            string? instruction,
-            int sortOrder,
             DateTime now,
             Guid actorUserId)
         {
@@ -369,13 +642,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 IsNarcoticSnapshot = drug.IsNarcotic,
                 IsPsychotropicSnapshot = drug.IsPsychotropic,
                 IsHighAlertSnapshot = drug.IsHighAlert,
-                AmountPerPackage = amountPerPackage,
-                TotalQuantity = totalQuantity,
-                QuantityUnitMeasurementId = unit?.Id,
-                QuantityUnitNameSnapshot = unit?.MeasurementName,
-                QuantityUnitSymbolSnapshot = unit?.MeasurementSymbol,
-                IngredientInstruction = NormalizeNullableText(instruction),
-                SortOrder = sortOrder,
+                IsAllowFractionalSourceSnapshot = drug.IsAllowFractionalDispense,
+                IngredientInstruction = NormalizeNullableText(
+                    request.IngredientInstruction),
+                SortOrder = request.SortOrder,
                 IsApproved = false,
                 IsActive = true,
                 CreateDateTime = now,
@@ -383,8 +653,182 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 IsDelete = false,
                 IsCancel = false
             };
+
+            ApplyCalculation(
+                entity,
+                request,
+                context,
+                request.VerifiedSourceQuantity);
             ApplyCoverage(entity, coverage);
             return entity;
+        }
+
+        private static void ApplyCalculation(
+            TrxPrescriptionCompoundItem entity,
+            PrescriptionCompoundItemMutationRequestBase request,
+            CompoundItemCalculationContext context,
+            decimal? verifiedSourceQuantity)
+        {
+            var result = context.Calculation;
+            entity.CalculationMode = result.IngredientCalculationMode;
+            entity.IngredientRole = request.IngredientRole;
+            entity.TargetValue = request.TargetValue;
+            entity.TargetUnitMeasurementId = context.TargetUnit?.Id;
+            entity.TargetUnitNameSnapshot = context.TargetUnit?.MeasurementName
+                ?? NormalizeNullableText(request.TargetUnitName);
+            entity.TargetUnitSymbolSnapshot = context.TargetUnit?.MeasurementSymbol;
+            entity.TargetConcentrationUnit = NormalizeNullableText(
+                request.TargetConcentrationUnit);
+            entity.CalculatedActiveAmount = result.CalculatedActiveAmount;
+            entity.CalculatedActiveUnitMeasurementId =
+                result.CalculatedActiveUnit?.Id;
+            entity.CalculatedActiveUnitNameSnapshot =
+                result.CalculatedActiveUnit?.Name;
+            entity.CalculatedActiveUnitSymbolSnapshot =
+                result.CalculatedActiveUnit?.Symbol;
+            entity.SourceStrengthValue = context.SourceStrengthValue;
+            entity.SourceStrengthMeasurementId = context.SourceStrengthUnit?.Id;
+            entity.SourceStrengthUnitNameSnapshot =
+                context.SourceStrengthUnit?.MeasurementName
+                ?? NormalizeNullableText(request.SourceStrengthUnitName);
+            entity.SourceStrengthUnitSymbolSnapshot =
+                context.SourceStrengthUnit?.MeasurementSymbol;
+            entity.SourceContentQuantity = context.SourceContentQuantity;
+            entity.SourceContentUnitMeasurementId = context.SourceContentUnit?.Id;
+            entity.SourceContentUnitNameSnapshot =
+                context.SourceContentUnit?.MeasurementName
+                ?? NormalizeNullableText(request.SourceContentUnitName);
+            entity.SourceContentUnitSymbolSnapshot =
+                context.SourceContentUnit?.MeasurementSymbol;
+            entity.TheoreticalSourceQuantity = result.TheoreticalSourceQuantity;
+            entity.VerifiedSourceQuantity = verifiedSourceQuantity;
+            entity.PricingQuantity = result.PricingQuantity;
+            entity.IsQuantitySufficientToFinal =
+                request.IsQuantitySufficientToFinal;
+            entity.CalculationStatus = result.CalculationStatus;
+            entity.CalculationNote = BuildCalculationNote(
+                result.CalculationNote,
+                context.ParsedStrengthWarning,
+                result.Warnings);
+            entity.AmountPerPackage = result.AmountPerPackage;
+            entity.TotalQuantity = result.TotalQuantity;
+            entity.QuantityUnitMeasurementId = context.QuantityUnit.Id;
+            entity.QuantityUnitNameSnapshot = context.QuantityUnit.MeasurementName;
+            entity.QuantityUnitSymbolSnapshot = context.QuantityUnit.MeasurementSymbol;
+        }
+
+        private static string? BuildCalculationNote(
+            string? calculationNote,
+            string? parserWarning,
+            IEnumerable<string>? warnings)
+        {
+            var notes = new List<string>();
+            if (!string.IsNullOrWhiteSpace(calculationNote))
+                notes.Add(calculationNote.Trim());
+            if (!string.IsNullOrWhiteSpace(parserWarning))
+                notes.Add(parserWarning.Trim());
+            if (warnings != null)
+                notes.AddRange(warnings.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+            return notes.Count == 0
+                ? null
+                : string.Join("; ", notes.Distinct(StringComparer.OrdinalIgnoreCase));
+        }
+
+        private sealed class CompoundItemCalculationContext
+        {
+            public MstMeasurement QuantityUnit { get; set; } = null!;
+            public MstMeasurement? TargetUnit { get; set; }
+            public MstMeasurement? SourceStrengthUnit { get; set; }
+            public MstMeasurement? SourceContentUnit { get; set; }
+            public decimal? SourceStrengthValue { get; set; }
+            public decimal SourceContentQuantity { get; set; } = 1m;
+            public string? ParsedStrengthWarning { get; set; }
+            public CompoundCalculationResult Calculation { get; set; } = null!;
+        }
+
+        private static bool IsExistingVerificationCompatible(
+            TrxPrescriptionCompoundItem existing,
+            PrescriptionCompoundItemMutationRequestBase request,
+            CompoundItemCalculationContext preliminaryContext)
+        {
+            var calculation = preliminaryContext.Calculation;
+
+            return
+                existing.CalculationMode == calculation.IngredientCalculationMode &&
+                existing.IngredientRole == request.IngredientRole &&
+                DecimalEquals(existing.TargetValue, request.TargetValue) &&
+                MeasurementEquals(
+                    existing.TargetUnitMeasurementId,
+                    existing.TargetUnitNameSnapshot,
+                    existing.TargetUnitSymbolSnapshot,
+                    preliminaryContext.TargetUnit) &&
+                DecimalEquals(
+                    existing.SourceStrengthValue,
+                    preliminaryContext.SourceStrengthValue) &&
+                MeasurementEquals(
+                    existing.SourceStrengthMeasurementId,
+                    existing.SourceStrengthUnitNameSnapshot,
+                    existing.SourceStrengthUnitSymbolSnapshot,
+                    preliminaryContext.SourceStrengthUnit) &&
+                DecimalEquals(
+                    existing.SourceContentQuantity,
+                    preliminaryContext.SourceContentQuantity) &&
+                MeasurementEquals(
+                    existing.SourceContentUnitMeasurementId,
+                    existing.SourceContentUnitNameSnapshot,
+                    existing.SourceContentUnitSymbolSnapshot,
+                    preliminaryContext.SourceContentUnit) &&
+                existing.QuantityUnitMeasurementId ==
+                    preliminaryContext.QuantityUnit.Id &&
+                DecimalEquals(
+                    existing.TheoreticalSourceQuantity,
+                    calculation.TheoreticalSourceQuantity) &&
+                DecimalEquals(
+                    existing.AmountPerPackage,
+                    calculation.AmountPerPackage) &&
+                existing.IsQuantitySufficientToFinal ==
+                    request.IsQuantitySufficientToFinal;
+        }
+
+        private static bool MeasurementEquals(
+            Guid? existingId,
+            string? existingName,
+            string? existingSymbol,
+            MstMeasurement? current)
+        {
+            if (current == null)
+            {
+                return !existingId.HasValue &&
+                    string.IsNullOrWhiteSpace(existingName) &&
+                    string.IsNullOrWhiteSpace(existingSymbol);
+            }
+
+            if (existingId.HasValue && existingId.Value == current.Id)
+                return true;
+
+            var existingToken = CompoundCalculationService.NormalizeUnitToken(
+                existingSymbol ?? existingName);
+            var currentToken = CompoundCalculationService.NormalizeUnitToken(
+                current.MeasurementSymbol ?? current.MeasurementName);
+
+            return !string.IsNullOrWhiteSpace(existingToken) &&
+                string.Equals(existingToken, currentToken, StringComparison.Ordinal);
+        }
+
+        private static bool DecimalEquals(decimal? left, decimal? right)
+        {
+            if (!left.HasValue && !right.HasValue) return true;
+            if (!left.HasValue || !right.HasValue) return false;
+            return Math.Abs(left.Value - right.Value) <= 0.0001m;
+        }
+
+        private static string AppendNote(string? current, string note)
+        {
+            if (string.IsNullOrWhiteSpace(current)) return note;
+            return current.Contains(note, StringComparison.OrdinalIgnoreCase)
+                ? current
+                : $"{current}; {note}";
         }
 
         private static void ApplyCoverage(TrxPrescriptionCompoundItem entity, InsuranceCoverageResult coverage)
@@ -442,6 +886,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 IsNarcoticSnapshot = x.IsNarcoticSnapshot,
                 IsPsychotropicSnapshot = x.IsPsychotropicSnapshot,
                 IsHighAlertSnapshot = x.IsHighAlertSnapshot,
+                IsAllowFractionalSource = x.IsAllowFractionalSourceSnapshot,
+                CalculationMode = x.CalculationMode,
+                CalculationModeName = x.CalculationMode.ToString(),
+                IngredientRole = x.IngredientRole,
+                IngredientRoleName = x.IngredientRole.ToString(),
+                TargetValue = x.TargetValue,
+                TargetUnitMeasurementId = x.TargetUnitMeasurementId,
+                TargetUnitNameSnapshot = x.TargetUnitNameSnapshot,
+                TargetUnitSymbolSnapshot = x.TargetUnitSymbolSnapshot,
+                TargetConcentrationUnit = x.TargetConcentrationUnit,
+                CalculatedActiveAmount = x.CalculatedActiveAmount,
+                CalculatedActiveUnitMeasurementId = x.CalculatedActiveUnitMeasurementId,
+                CalculatedActiveUnitNameSnapshot = x.CalculatedActiveUnitNameSnapshot,
+                CalculatedActiveUnitSymbolSnapshot = x.CalculatedActiveUnitSymbolSnapshot,
+                SourceStrengthValue = x.SourceStrengthValue,
+                SourceStrengthMeasurementId = x.SourceStrengthMeasurementId,
+                SourceStrengthUnitNameSnapshot = x.SourceStrengthUnitNameSnapshot,
+                SourceStrengthUnitSymbolSnapshot = x.SourceStrengthUnitSymbolSnapshot,
+                SourceContentQuantity = x.SourceContentQuantity,
+                SourceContentUnitMeasurementId = x.SourceContentUnitMeasurementId,
+                SourceContentUnitNameSnapshot = x.SourceContentUnitNameSnapshot,
+                SourceContentUnitSymbolSnapshot = x.SourceContentUnitSymbolSnapshot,
+                TheoreticalSourceQuantity = x.TheoreticalSourceQuantity,
+                VerifiedSourceQuantity = x.VerifiedSourceQuantity,
+                PricingQuantity = x.PricingQuantity,
+                IsQuantitySufficientToFinal = x.IsQuantitySufficientToFinal,
+                CalculationStatus = x.CalculationStatus,
+                CalculationNote = x.CalculationNote,
                 AmountPerPackage = x.AmountPerPackage,
                 TotalQuantity = x.TotalQuantity,
                 QuantityUnitMeasurementId = x.QuantityUnitMeasurementId,
@@ -452,6 +924,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 ContractUnitPrice = x.ContractUnitPrice,
                 UnitPrice = x.UnitPrice,
                 TotalPrice = x.TotalPrice,
+                HospitalTotalPrice = Math.Round(
+                    x.HospitalUnitPrice * x.PricingQuantity,
+                    2,
+                    MidpointRounding.AwayFromZero),
                 PricingSource = x.PricingSource,
                 IsCoverageApplicable = x.IsCoverageApplicable,
                 IsCoveredByInsurance = x.IsCoveredByInsurance,

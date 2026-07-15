@@ -125,10 +125,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public Guid Id { get; set; }
         public string CompoundName { get; set; } = string.Empty;
         public string? CompoundForm { get; set; }
+        public CompoundCalculationMode CalculationMode { get; set; }
+        public string CalculationModeName { get; set; } = string.Empty;
         public decimal TotalPackage { get; set; }
         public Guid? PackageUnitMeasurementId { get; set; }
         public string? PackageUnitName { get; set; }
         public string? PackageUnitSymbol { get; set; }
+        public decimal? FinalQuantity { get; set; }
+        public Guid? FinalQuantityMeasurementId { get; set; }
+        public string? FinalQuantityUnitName { get; set; }
+        public string? FinalQuantityUnitSymbol { get; set; }
         public decimal DosePerUse { get; set; }
         public Guid? DoseUnitMeasurementId { get; set; }
         public string? DoseUnitName { get; set; }
@@ -164,6 +170,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public string? GenericName { get; set; }
         public string? DrugForm { get; set; }
         public string? Strength { get; set; }
+        public bool IsAllowFractionalSource { get; set; }
+        public CompoundIngredientCalculationMode CalculationMode { get; set; }
+        public string CalculationModeName { get; set; } = string.Empty;
+        public CompoundIngredientRole IngredientRole { get; set; }
+        public string IngredientRoleName { get; set; } = string.Empty;
+        public decimal? TargetValue { get; set; }
+        public Guid? TargetUnitMeasurementId { get; set; }
+        public string? TargetUnitName { get; set; }
+        public string? TargetUnitSymbol { get; set; }
+        public string? TargetConcentrationUnit { get; set; }
+        public decimal? CalculatedActiveAmount { get; set; }
+        public Guid? CalculatedActiveUnitMeasurementId { get; set; }
+        public string? CalculatedActiveUnitName { get; set; }
+        public string? CalculatedActiveUnitSymbol { get; set; }
+        public decimal? SourceStrengthValue { get; set; }
+        public Guid? SourceStrengthMeasurementId { get; set; }
+        public string? SourceStrengthUnitName { get; set; }
+        public string? SourceStrengthUnitSymbol { get; set; }
+        public decimal SourceContentQuantity { get; set; }
+        public Guid? SourceContentUnitMeasurementId { get; set; }
+        public string? SourceContentUnitName { get; set; }
+        public string? SourceContentUnitSymbol { get; set; }
+        public decimal? TheoreticalSourceQuantity { get; set; }
+        public decimal? VerifiedSourceQuantity { get; set; }
+        public bool IsQuantitySufficientToFinal { get; set; }
+        public string CalculationStatus { get; set; } = string.Empty;
+        public string? CalculationNote { get; set; }
         public decimal AmountPerPackage { get; set; }
         public decimal TotalQuantity { get; set; }
         public Guid? QuantityUnitMeasurementId { get; set; }
@@ -233,8 +266,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public Guid? Id { get; set; }
         [Required, MaxLength(200)] public string CompoundName { get; set; } = string.Empty;
         [MaxLength(100)] public string? CompoundForm { get; set; }
+        public CompoundCalculationMode CalculationMode { get; set; } = CompoundCalculationMode.LegacySourceUnit;
         [Range(typeof(decimal), "0.0001", "999999999")] public decimal TotalPackage { get; set; } = 1;
         public Guid? PackageUnitMeasurementId { get; set; }
+        [Range(typeof(decimal), "0.0001", "999999999")] public decimal? FinalQuantity { get; set; }
+        public Guid? FinalQuantityMeasurementId { get; set; }
+        [MaxLength(100)] public string? FinalQuantityUnitName { get; set; }
         [Range(typeof(decimal), "0.0001", "999999999")] public decimal DosePerUse { get; set; } = 1;
         public Guid? DoseUnitMeasurementId { get; set; }
         [MaxLength(50)] public string? FrequencyCode { get; set; }
@@ -256,6 +293,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
     {
         public Guid? Id { get; set; }
         [Required] public Guid DrugId { get; set; }
+        public CompoundIngredientCalculationMode CalculationMode { get; set; } = CompoundIngredientCalculationMode.LegacySourceQuantity;
+        public CompoundIngredientRole IngredientRole { get; set; } = CompoundIngredientRole.ActiveIngredient;
+        [Range(typeof(decimal), "0.0001", "999999999")] public decimal? TargetValue { get; set; }
+        public Guid? TargetUnitMeasurementId { get; set; }
+        [MaxLength(100)] public string? TargetUnitName { get; set; }
+        [MaxLength(50)] public string? TargetConcentrationUnit { get; set; }
+        [Range(typeof(decimal), "0.0001", "999999999")] public decimal? SourceStrengthValue { get; set; }
+        public Guid? SourceStrengthMeasurementId { get; set; }
+        [MaxLength(100)] public string? SourceStrengthUnitName { get; set; }
+        [Range(typeof(decimal), "0.0001", "999999999")] public decimal? SourceContentQuantity { get; set; }
+        public Guid? SourceContentUnitMeasurementId { get; set; }
+        [MaxLength(100)] public string? SourceContentUnitName { get; set; }
+        public bool IsQuantitySufficientToFinal { get; set; }
         [Range(typeof(decimal), "0.0001", "999999999")] public decimal AmountPerPackage { get; set; } = 1;
         [Range(typeof(decimal), "0.0001", "999999999")] public decimal TotalQuantity { get; set; } = 1;
         public Guid? QuantityUnitMeasurementId { get; set; }

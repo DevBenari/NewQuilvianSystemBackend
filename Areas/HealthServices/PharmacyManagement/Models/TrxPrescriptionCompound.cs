@@ -1,4 +1,5 @@
 ﻿using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -20,6 +21,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
         [MaxLength(100)]
         public string? CompoundForm { get; set; }
 
+        public CompoundCalculationMode CalculationMode { get; set; }
+            = CompoundCalculationMode.LegacySourceUnit;
+
         public decimal TotalPackage { get; set; } = 1;
 
         public Guid? PackageUnitMeasurementId { get; set; }
@@ -29,6 +33,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
 
         [MaxLength(30)]
         public string? PackageUnitSymbolSnapshot { get; set; }
+
+        /// <summary>
+        /// Jumlah akhir total untuk racikan non-terbagi, contoh 30 gram krim
+        /// atau 60 mL suspensi. Untuk racikan terbagi, TotalPackage tetap menjadi
+        /// jumlah unit akhir (bungkus/kapsul/sachet).
+        /// </summary>
+        public decimal? FinalQuantity { get; set; }
+
+        public Guid? FinalQuantityMeasurementId { get; set; }
+
+        [MaxLength(100)]
+        public string? FinalQuantityUnitNameSnapshot { get; set; }
+
+        [MaxLength(30)]
+        public string? FinalQuantityUnitSymbolSnapshot { get; set; }
 
         public decimal DosePerUse { get; set; } = 1;
 
@@ -91,6 +110,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
         public TrxPrescription? Prescription { get; set; }
 
         public MstMeasurement? PackageUnitMeasurement { get; set; }
+
+        public MstMeasurement? FinalQuantityMeasurement { get; set; }
 
         public MstMeasurement? DoseUnitMeasurement { get; set; }
 

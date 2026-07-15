@@ -1,4 +1,5 @@
 ﻿using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -57,8 +58,95 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
 
         public bool IsHighAlertSnapshot { get; set; }
 
+        public bool IsAllowFractionalSourceSnapshot { get; set; }
+
+        public CompoundIngredientCalculationMode CalculationMode { get; set; }
+            = CompoundIngredientCalculationMode.LegacySourceQuantity;
+
+        public CompoundIngredientRole IngredientRole { get; set; }
+            = CompoundIngredientRole.ActiveIngredient;
+
+        /// <summary>
+        /// Target klinis. Maknanya mengikuti CalculationMode:
+        /// dosis per unit, persen, atau konsentrasi per satuan akhir.
+        /// </summary>
+        public decimal? TargetValue { get; set; }
+
+        public Guid? TargetUnitMeasurementId { get; set; }
+
+        [MaxLength(100)]
+        public string? TargetUnitNameSnapshot { get; set; }
+
+        [MaxLength(30)]
+        public string? TargetUnitSymbolSnapshot { get; set; }
+
+        [MaxLength(50)]
+        public string? TargetConcentrationUnit { get; set; }
+
+        public decimal? CalculatedActiveAmount { get; set; }
+
+        public Guid? CalculatedActiveUnitMeasurementId { get; set; }
+
+        [MaxLength(100)]
+        public string? CalculatedActiveUnitNameSnapshot { get; set; }
+
+        [MaxLength(30)]
+        public string? CalculatedActiveUnitSymbolSnapshot { get; set; }
+
+        public decimal? SourceStrengthValue { get; set; }
+
+        public Guid? SourceStrengthMeasurementId { get; set; }
+
+        [MaxLength(100)]
+        public string? SourceStrengthUnitNameSnapshot { get; set; }
+
+        [MaxLength(30)]
+        public string? SourceStrengthUnitSymbolSnapshot { get; set; }
+
+        /// <summary>
+        /// Denominator strength sumber. Contoh 125 mg / 5 mL berarti nilai 5.
+        /// Untuk tablet/kapsul umumnya 1 satuan sumber.
+        /// </summary>
+        public decimal SourceContentQuantity { get; set; } = 1;
+
+        public Guid? SourceContentUnitMeasurementId { get; set; }
+
+        [MaxLength(100)]
+        public string? SourceContentUnitNameSnapshot { get; set; }
+
+        [MaxLength(30)]
+        public string? SourceContentUnitSymbolSnapshot { get; set; }
+
+        public decimal? TheoreticalSourceQuantity { get; set; }
+
+        /// <summary>
+        /// Quantity sumber hasil verifikasi farmasi. Jika null, pricing memakai
+        /// quantity teoritis yang sudah menerapkan aturan pembulatan sediaan.
+        /// </summary>
+        public decimal? VerifiedSourceQuantity { get; set; }
+
+        /// <summary>
+        /// Quantity yang benar-benar dikirim ke perhitungan tarif/coverage.
+        /// </summary>
+        public decimal PricingQuantity { get; set; } = 1;
+
+        public bool IsQuantitySufficientToFinal { get; set; }
+
+        [MaxLength(50)]
+        public string CalculationStatus { get; set; } = "Legacy";
+
+        [MaxLength(1000)]
+        public string? CalculationNote { get; set; }
+
+        /// <summary>
+        /// Field legacy tetap dipertahankan agar data dan integrasi lama tidak rusak.
+        /// Pada mode baru berisi jumlah sumber teoritis per unit akhir.
+        /// </summary>
         public decimal AmountPerPackage { get; set; } = 1;
 
+        /// <summary>
+        /// Field legacy tetap dipertahankan. Pada mode baru berisi total sumber teoritis.
+        /// </summary>
         public decimal TotalQuantity { get; set; } = 1;
 
         public Guid? QuantityUnitMeasurementId { get; set; }
@@ -131,6 +219,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
         public MstInsuranceCoverageRule? InsuranceCoverageRule { get; set; }
 
         public MstMeasurement? QuantityUnitMeasurement { get; set; }
+
+        public MstMeasurement? TargetUnitMeasurement { get; set; }
+
+        public MstMeasurement? CalculatedActiveUnitMeasurement { get; set; }
+
+        public MstMeasurement? SourceStrengthMeasurement { get; set; }
+
+        public MstMeasurement? SourceContentUnitMeasurement { get; set; }
 
         public ApplicationUser? ApprovedByUser { get; set; }
     }

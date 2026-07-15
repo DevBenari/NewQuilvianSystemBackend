@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Attributes;
@@ -67,7 +68,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" }
                 },
                 SortDirections = new List<string> { "asc", "desc" },
-                PageSizeOptions = new List<int> { 10, 25, 50, 100 }
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                CalculationModes = Enum.GetValues<CompoundCalculationMode>()
+                    .Select(x => new PrescriptionCompoundCalculationModeOptionResponse
+                    {
+                        Value = (int)x,
+                        Name = x.ToString(),
+                        Label = x.ToString()
+                    })
+                    .ToList()
             };
 
             await _loggerService.InfoAsync(
@@ -203,6 +212,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
 
             var packageUnit = await ResolveMeasurementAsync(request.PackageUnitMeasurementId, cancellationToken);
             var doseUnit = await ResolveMeasurementAsync(request.DoseUnitMeasurementId, cancellationToken);
+            var finalQuantityUnit = await ResolveMeasurementAsync(
+                request.FinalQuantityMeasurementId,
+                request.FinalQuantityUnitName,
+                cancellationToken);
+            ValidateCalculationHeader(request.CalculationMode, request.FinalQuantity, finalQuantityUnit, request.FinalQuantityUnitName);
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -214,10 +228,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 PrescriptionId = request.PrescriptionId,
                 CompoundName = request.CompoundName.Trim(),
                 CompoundForm = NormalizeNullableText(request.CompoundForm),
+                CalculationMode = request.CalculationMode,
                 TotalPackage = request.TotalPackage,
                 PackageUnitMeasurementId = packageUnit?.Id,
                 PackageUnitNameSnapshot = packageUnit?.MeasurementName,
                 PackageUnitSymbolSnapshot = packageUnit?.MeasurementSymbol,
+                FinalQuantity = request.FinalQuantity,
+                FinalQuantityMeasurementId = finalQuantityUnit?.Id,
+                FinalQuantityUnitNameSnapshot = finalQuantityUnit?.MeasurementName
+                    ?? NormalizeNullableText(request.FinalQuantityUnitName),
+                FinalQuantityUnitSymbolSnapshot = finalQuantityUnit?.MeasurementSymbol,
                 DosePerUse = request.DosePerUse,
                 DoseUnitMeasurementId = doseUnit?.Id,
                 DoseUnitNameSnapshot = doseUnit?.MeasurementName,
@@ -293,15 +313,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
 
             var packageUnit = await ResolveMeasurementAsync(request.PackageUnitMeasurementId, cancellationToken);
             var doseUnit = await ResolveMeasurementAsync(request.DoseUnitMeasurementId, cancellationToken);
+            var finalQuantityUnit = await ResolveMeasurementAsync(
+                request.FinalQuantityMeasurementId,
+                request.FinalQuantityUnitName,
+                cancellationToken);
+            ValidateCalculationHeader(request.CalculationMode, request.FinalQuantity, finalQuantityUnit, request.FinalQuantityUnitName);
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
             entity.CompoundName = request.CompoundName.Trim();
             entity.CompoundForm = NormalizeNullableText(request.CompoundForm);
+            entity.CalculationMode = request.CalculationMode;
             entity.TotalPackage = request.TotalPackage;
             entity.PackageUnitMeasurementId = packageUnit?.Id;
             entity.PackageUnitNameSnapshot = packageUnit?.MeasurementName;
             entity.PackageUnitSymbolSnapshot = packageUnit?.MeasurementSymbol;
+            entity.FinalQuantity = request.FinalQuantity;
+            entity.FinalQuantityMeasurementId = finalQuantityUnit?.Id;
+            entity.FinalQuantityUnitNameSnapshot = finalQuantityUnit?.MeasurementName
+                ?? NormalizeNullableText(request.FinalQuantityUnitName);
+            entity.FinalQuantityUnitSymbolSnapshot = finalQuantityUnit?.MeasurementSymbol;
             entity.DosePerUse = request.DosePerUse;
             entity.DoseUnitMeasurementId = doseUnit?.Id;
             entity.DoseUnitNameSnapshot = doseUnit?.MeasurementName;
@@ -394,6 +425,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             return _dbContext.Set<TrxPrescriptionCompound>()
                 .Include(x => x.Prescription)
                 .Include(x => x.PackageUnitMeasurement)
+                .Include(x => x.FinalQuantityMeasurement)
                 .Include(x => x.DoseUnitMeasurement)
                 .Where(x => !x.IsDelete && !x.IsCancel);
         }
@@ -411,6 +443,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 throw new InvalidOperationException("Satuan tidak ditemukan atau tidak aktif.");
 
             return measurement;
+        }
+
+        private async Task<MstMeasurement?> ResolveMeasurementAsync(
+            Guid? id,
+            string? nameOrSymbol,
+            CancellationToken cancellationToken)
+        {
+            var byId = await ResolveMeasurementAsync(id, cancellationToken);
+            if (byId != null) return byId;
+
+            var token = CompoundCalculationService.NormalizeUnitToken(nameOrSymbol);
+            if (string.IsNullOrWhiteSpace(token)) return null;
+
+            var candidates = await _dbContext.Set<MstMeasurement>()
+                .AsNoTracking()
+                .Where(x => x.IsActive && !x.IsDelete && x.IsForDrug)
+                .ToListAsync(cancellationToken);
+
+            return candidates.FirstOrDefault(x =>
+                string.Equals(
+                    CompoundCalculationService.NormalizeUnitToken(x.MeasurementSymbol),
+                    token,
+                    StringComparison.Ordinal) ||
+                string.Equals(
+                    CompoundCalculationService.NormalizeUnitToken(x.MeasurementName),
+                    token,
+                    StringComparison.Ordinal));
+        }
+
+        private static void ValidateCalculationHeader(
+            CompoundCalculationMode mode,
+            decimal? finalQuantity,
+            MstMeasurement? finalQuantityUnit,
+            string? finalQuantityUnitName)
+        {
+            if (mode is not (CompoundCalculationMode.FinalWeight or CompoundCalculationMode.FinalVolume))
+                return;
+
+            if (!finalQuantity.HasValue || finalQuantity.Value <= 0)
+                throw new InvalidOperationException(
+                    "Jumlah akhir racikan wajib diisi untuk mode berat atau volume akhir.");
+
+            if (finalQuantityUnit == null && string.IsNullOrWhiteSpace(finalQuantityUnitName))
+                throw new InvalidOperationException(
+                    "Satuan jumlah akhir racikan wajib diisi.");
         }
 
         private static IQueryable<TrxPrescriptionCompound> ApplySorting(
@@ -438,10 +515,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 PrescriptionNumber = x.Prescription?.PrescriptionNumber ?? string.Empty,
                 CompoundName = x.CompoundName,
                 CompoundForm = x.CompoundForm,
+                CalculationMode = x.CalculationMode,
+                CalculationModeName = x.CalculationMode.ToString(),
                 TotalPackage = x.TotalPackage,
                 PackageUnitMeasurementId = x.PackageUnitMeasurementId,
                 PackageUnitNameSnapshot = x.PackageUnitNameSnapshot,
                 PackageUnitSymbolSnapshot = x.PackageUnitSymbolSnapshot,
+                FinalQuantity = x.FinalQuantity,
+                FinalQuantityMeasurementId = x.FinalQuantityMeasurementId,
+                FinalQuantityUnitNameSnapshot = x.FinalQuantityUnitNameSnapshot,
+                FinalQuantityUnitSymbolSnapshot = x.FinalQuantityUnitSymbolSnapshot,
                 DosePerUse = x.DosePerUse,
                 DoseUnitMeasurementId = x.DoseUnitMeasurementId,
                 DoseUnitNameSnapshot = x.DoseUnitNameSnapshot,

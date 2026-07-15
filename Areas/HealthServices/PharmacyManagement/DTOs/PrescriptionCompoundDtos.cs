@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
 {
@@ -9,10 +10,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public string PrescriptionNumber { get; set; } = string.Empty;
         public string CompoundName { get; set; } = string.Empty;
         public string? CompoundForm { get; set; }
+        public CompoundCalculationMode CalculationMode { get; set; }
+        public string CalculationModeName { get; set; } = string.Empty;
         public decimal TotalPackage { get; set; }
         public Guid? PackageUnitMeasurementId { get; set; }
         public string? PackageUnitNameSnapshot { get; set; }
         public string? PackageUnitSymbolSnapshot { get; set; }
+        public decimal? FinalQuantity { get; set; }
+        public Guid? FinalQuantityMeasurementId { get; set; }
+        public string? FinalQuantityUnitNameSnapshot { get; set; }
+        public string? FinalQuantityUnitSymbolSnapshot { get; set; }
         public decimal DosePerUse { get; set; }
         public Guid? DoseUnitMeasurementId { get; set; }
         public string? DoseUnitNameSnapshot { get; set; }
@@ -51,6 +58,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public List<PrescriptionCompoundSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
+        public List<PrescriptionCompoundCalculationModeOptionResponse> CalculationModes { get; set; } = new();
     }
 
     public class PrescriptionCompoundDefaultFilterResponse
@@ -71,11 +79,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public string Label { get; set; } = string.Empty;
     }
 
-    public class CreatePrescriptionCompoundRequest
+    public class PrescriptionCompoundCalculationModeOptionResponse
     {
-        [Required]
-        public Guid PrescriptionId { get; set; }
+        public int Value { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+    }
 
+    public abstract class PrescriptionCompoundMutationRequestBase
+    {
         [Required]
         [MaxLength(200)]
         public string CompoundName { get; set; } = string.Empty;
@@ -83,10 +95,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         [MaxLength(100)]
         public string? CompoundForm { get; set; }
 
+        public CompoundCalculationMode CalculationMode { get; set; }
+            = CompoundCalculationMode.LegacySourceUnit;
+
         [Range(typeof(decimal), "0.0001", "999999999")]
         public decimal TotalPackage { get; set; } = 1;
 
         public Guid? PackageUnitMeasurementId { get; set; }
+
+        [Range(typeof(decimal), "0.0001", "999999999")]
+        public decimal? FinalQuantity { get; set; }
+
+        public Guid? FinalQuantityMeasurementId { get; set; }
+
+        [MaxLength(100)]
+        public string? FinalQuantityUnitName { get; set; }
 
         [Range(typeof(decimal), "0.0001", "999999999")]
         public decimal DosePerUse { get; set; } = 1;
@@ -128,58 +151,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public int SortOrder { get; set; }
     }
 
-    public class UpdatePrescriptionCompoundRequest
+    public class CreatePrescriptionCompoundRequest : PrescriptionCompoundMutationRequestBase
     {
         [Required]
-        [MaxLength(200)]
-        public string CompoundName { get; set; } = string.Empty;
+        public Guid PrescriptionId { get; set; }
+    }
 
-        [MaxLength(100)]
-        public string? CompoundForm { get; set; }
-
-        [Range(typeof(decimal), "0.0001", "999999999")]
-        public decimal TotalPackage { get; set; } = 1;
-
-        public Guid? PackageUnitMeasurementId { get; set; }
-
-        [Range(typeof(decimal), "0.0001", "999999999")]
-        public decimal DosePerUse { get; set; } = 1;
-
-        public Guid? DoseUnitMeasurementId { get; set; }
-
-        [MaxLength(50)]
-        public string? FrequencyCode { get; set; }
-
-        [MaxLength(150)]
-        public string? FrequencyText { get; set; }
-
-        [Range(typeof(decimal), "0", "999999999")]
-        public decimal? FrequencyPerDay { get; set; }
-
-        [Range(typeof(decimal), "0", "999999999")]
-        public decimal? DurationValue { get; set; }
-
-        [MaxLength(30)]
-        public string? DurationUnit { get; set; }
-
-        public bool IsAsNeeded { get; set; }
-
-        [MaxLength(250)]
-        public string? AdministrationTime { get; set; }
-
-        [MaxLength(500)]
-        public string? Signa { get; set; }
-
-        [MaxLength(1000)]
-        public string? CompoundingInstruction { get; set; }
-
-        [MaxLength(500)]
-        public string? AdministrationInstruction { get; set; }
-
-        [MaxLength(500)]
-        public string? DoctorNote { get; set; }
-
-        public int SortOrder { get; set; }
+    public class UpdatePrescriptionCompoundRequest : PrescriptionCompoundMutationRequestBase
+    {
     }
 
     public class PrescriptionCompoundMutationResponse : PrescriptionCompoundResponse
