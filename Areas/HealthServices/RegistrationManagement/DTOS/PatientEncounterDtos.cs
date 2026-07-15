@@ -413,6 +413,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public Guid? DoctorServiceRuleId { get; set; }
 
+        /// <summary>
+        /// Untuk EncounterType.Outpatient nilai ini boleh kosong dan akan
+        /// ditentukan otomatis oleh backend dari master bernama RAWAT JALAN.
+        /// Untuk encounter selain rawat jalan, nilai ini tetap digunakan bila diisi.
+        /// </summary>
         public Guid? PatientClassId { get; set; }
 
         /// <summary>
@@ -471,6 +476,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public Guid EncounterId { get; set; }
 
         public string EncounterNumber { get; set; } = string.Empty;
+
+        public Guid? PatientClassId { get; set; }
+
+        public string? PatientClassCode { get; set; }
+
+        public string? PatientClassName { get; set; }
+
+        public bool IsPatientClassAssignedAutomatically { get; set; }
 
         public EncounterStatus EncounterStatus { get; set; }
 

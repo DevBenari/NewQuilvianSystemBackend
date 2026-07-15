@@ -49,6 +49,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private const string PaymentSourceCodePrefix = "EGT-RSMMC-";
         private const int CodeNumberLength = 5;
 
+        // Nama kelas dijadikan business key karena kode dan GUID master dapat
+        // berbeda antar-environment. Penulisan dibandingkan secara case-insensitive
+        // dan mengabaikan spasi berlebih.
+        private const string DefaultOutpatientPatientClassName = "RAWAT JALAN";
+
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly QueueRealtimeService _queueRealtimeService;
@@ -416,6 +421,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             }
 
             var targetEncounterDate = targetDateResult.TargetDate;
+
+            // Rawat jalan selalu menggunakan kelas pasien RAWAT JALAN yang
+            // diselesaikan oleh backend. Dengan demikian kiosk/front desk tidak
+            // perlu mengirim GUID kelas dan tarif dapat dicocokkan secara konsisten.
+            var patientClassResolution = await ResolvePatientClassAsync(
+                request,
+                cancellationToken: HttpContext.RequestAborted);
+
+            if (!patientClassResolution.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    patientClassResolution.ErrorMessage
+                        ?? "Kelas pasien tidak dapat ditentukan."));
+            }
+
+            request.PatientClassId = patientClassResolution.PatientClass?.Id;
+
             var validation = await ValidateCreateRequestAsync(
                 request,
                 targetEncounterDate,
@@ -504,7 +527,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     DoctorId = NormalizeNullableGuid(request.DoctorId),
                     DoctorScheduleId = NormalizeNullableGuid(request.DoctorScheduleId),
                     DoctorServiceRuleId = NormalizeNullableGuid(request.DoctorServiceRuleId),
-                    PatientClassId = NormalizeNullableGuid(request.PatientClassId),
+                    PatientClassId = patientClassResolution.PatientClass?.Id,
                     PaymentMethodId = request.PaymentType == EncounterPaymentType.Cash
                         ? NormalizeNullableGuid(request.PaymentMethodId)
                         : null,
@@ -656,6 +679,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 {
                     EncounterId = encounter.Id,
                     EncounterNumber = encounter.EncounterNumber,
+                    PatientClassId = patientClassResolution.PatientClass?.Id,
+                    PatientClassCode = patientClassResolution.PatientClass?.PatientClassCode,
+                    PatientClassName = patientClassResolution.PatientClass?.PatientClassName,
+                    IsPatientClassAssignedAutomatically =
+                        patientClassResolution.IsAssignedAutomatically,
                     EncounterStatus = encounter.EncounterStatus,
                     EncounterStatusName = BuildEnumLabel(encounter.EncounterStatus),
                     QueueId = queue?.Id,
@@ -1377,6 +1405,78 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             }
 
             return (true, null);
+        }
+
+        private async Task<PatientClassResolution> ResolvePatientClassAsync(
+            PatientEncounterCreateRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            // Untuk rawat jalan, kelas ditentukan penuh oleh backend. Nilai yang
+            // mungkin dikirim frontend sengaja tidak dipakai agar kiosk, front desk,
+            // appointment, dan mobile menghasilkan konteks tarif yang sama.
+            if (request.EncounterType == EncounterType.Outpatient)
+            {
+                var activeClasses = await _dbContext.Set<MstPatientClass>()
+                    .AsNoTracking()
+                    .Where(x => x.IsActive && !x.IsDelete)
+                    .OrderBy(x => x.PatientClassName)
+                    .ThenBy(x => x.Id)
+                    .ToListAsync(cancellationToken);
+
+                var expectedName = NormalizeLookupText(
+                    DefaultOutpatientPatientClassName);
+
+                var matches = activeClasses
+                    .Where(x => NormalizeLookupText(x.PatientClassName) == expectedName)
+                    .ToList();
+
+                if (matches.Count == 0)
+                {
+                    return PatientClassResolution.Fail(
+                        $"Master kelas pasien '{DefaultOutpatientPatientClassName}' " +
+                        "tidak ditemukan atau tidak aktif.");
+                }
+
+                if (matches.Count > 1)
+                {
+                    return PatientClassResolution.Fail(
+                        $"Ditemukan lebih dari satu master kelas aktif bernama " +
+                        $"'{DefaultOutpatientPatientClassName}'. Nonaktifkan atau " +
+                        "rapikan data duplikat agar pemilihan tarif tidak ambigu.");
+                }
+
+                return PatientClassResolution.Success(
+                    matches[0],
+                    isAssignedAutomatically: true);
+            }
+
+            var requestedPatientClassId =
+                NormalizeNullableGuid(request.PatientClassId);
+
+            if (!requestedPatientClassId.HasValue)
+            {
+                return PatientClassResolution.Success(
+                    patientClass: null,
+                    isAssignedAutomatically: false);
+            }
+
+            var requestedClass = await _dbContext.Set<MstPatientClass>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == requestedPatientClassId.Value &&
+                    x.IsActive &&
+                    !x.IsDelete,
+                    cancellationToken);
+
+            if (requestedClass == null)
+            {
+                return PatientClassResolution.Fail(
+                    "Patient class tidak ditemukan, tidak aktif, atau sudah dihapus.");
+            }
+
+            return PatientClassResolution.Success(
+                requestedClass,
+                isAssignedAutomatically: false);
         }
 
         private async Task<(bool IsValid, string? ErrorMessage, MstRoom? Room)> ResolveEncounterRoomAsync(
@@ -2336,10 +2436,61 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
+        private static string NormalizeLookupText(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            return string.Join(
+                    " ",
+                    value.Split(
+                        ' ',
+                        StringSplitOptions.RemoveEmptyEntries |
+                        StringSplitOptions.TrimEntries))
+                .ToUpperInvariant();
+        }
+
         private Guid GetCurrentUserId()
         {
             var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("user_id");
             return Guid.TryParse(userIdValue, out var userId) ? userId : Guid.Empty;
+        }
+
+        private sealed class PatientClassResolution
+        {
+            private PatientClassResolution()
+            {
+            }
+
+            public bool IsValid { get; private init; }
+            public string? ErrorMessage { get; private init; }
+            public MstPatientClass? PatientClass { get; private init; }
+            public bool IsAssignedAutomatically { get; private init; }
+
+            public static PatientClassResolution Success(
+                MstPatientClass? patientClass,
+                bool isAssignedAutomatically)
+            {
+                return new PatientClassResolution
+                {
+                    IsValid = true,
+                    PatientClass = patientClass,
+                    IsAssignedAutomatically = isAssignedAutomatically
+                };
+            }
+
+            public static PatientClassResolution Fail(string errorMessage)
+            {
+                return new PatientClassResolution
+                {
+                    IsValid = false,
+                    ErrorMessage = errorMessage,
+                    PatientClass = null,
+                    IsAssignedAutomatically = false
+                };
+            }
         }
 
         private class PatientEncounterAgeSnapshot
