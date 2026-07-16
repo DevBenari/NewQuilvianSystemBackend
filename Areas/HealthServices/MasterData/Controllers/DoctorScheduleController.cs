@@ -1926,7 +1926,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "scheduleType", Label = "Tipe Jadwal", DataType = "enum", Required = true, ReadOnly = false, OptionsSource = "scheduleTypeOptions" },
                 new() { Name = "doctorId", Label = "Dokter", DataType = "guid", Required = true, ReadOnly = false, OptionsSource = "/api/v1/corporate/human-resource/master-data/doctors/options" },
                 new() { Name = "serviceUnitId", Label = "Service Unit", DataType = "guid", Required = true, ReadOnly = false, OptionsSource = "/api/v1/health-services/master-data/service-units/options" },
-                new() { Name = "clinicId", Label = "Clinic", DataType = "guid", Required = true, ReadOnly = false, OptionsSource = "/api/v1/health-services/master-data/clinics/options" },
+                new() { Name = "clinicId", Label = "Clinic", DataType = "guid", Required = true, ReadOnly = false, OptionsSource = "/api/v1/health-services/master-data/clinics/admin/options" },
                 new() { Name = "roomId", Label = "Room", DataType = "guid", Required = false, ReadOnly = false, OptionsSource = "/api/v1/health-services/master-data/rooms/options" },
                 new() { Name = "practiceDay", Label = "Hari Praktik", DataType = "enum", Required = true, ReadOnly = false, OptionsSource = "practiceDayOptions" },
                 new() { Name = "practiceDate", Label = "Tanggal Praktik", DataType = "date", Required = false, ReadOnly = false },
