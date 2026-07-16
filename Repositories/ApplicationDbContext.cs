@@ -160,6 +160,15 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstPrescriptionTemplateItem> MstPrescriptionTemplateItems { get; set; }
         public DbSet<MstPrescriptionTemplateCompound> MstPrescriptionTemplateCompounds { get; set; }
         public DbSet<MstPrescriptionTemplateCompoundItem> MstPrescriptionTemplateCompoundItems { get; set; }
+        public DbSet<MstPrescriptionReviewCriterion> MstPrescriptionReviewCriterions { get; set; }
+        public DbSet<TrxPrescriptionReviewItem> TrxPrescriptionReviewItems { get; set; }
+        public DbSet<TrxPrescriptionReview> TrxPrescriptionReviews { get; set; }
+        public DbSet<TrxPrescriptionPreparation> TrxPrescriptionPreparations { get; set; }
+        public DbSet<TrxPrescriptionPreparationItem> TrxPrescriptionPreparationItems { get; set; }
+        public DbSet<TrxPrescriptionFinalCheck> TrxPrescriptionFinalChecks { get; set; }
+        public DbSet<TrxPrescriptionFinalCheckItem> TrxPrescriptionFinalCheckItems { get; set; }
+        public DbSet<TrxPrescriptionDrugSubstitution> TrxPrescriptionDrugSubstitutions { get; set; }
+        public DbSet<TrxPrescriptionClarification> TrxPrescriptionClarifications { get; set; }
 
         #endregion HEALTH SERVICE
 

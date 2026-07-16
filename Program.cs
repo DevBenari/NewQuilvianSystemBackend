@@ -9,6 +9,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Hubs;
@@ -262,7 +263,9 @@ try
     builder.Services.AddScoped<ConsultationValidationService>();
     builder.Services.AddScoped<ConsultationFinalizationService>();
     builder.Services.AddScoped<PrescriptionAggregateService>();
-    builder.Services.AddScoped<PrescriptionWorkflowService>();
+    builder.Services.AddScoped<PrescriptionReviewService>();
+    builder.Services.AddScoped<PrescriptionPreparationService>();
+    builder.Services.AddScoped<PrescriptionFinalCheckService>();
 
     builder.Services.AddAuthorization(options =>
     {
@@ -486,6 +489,45 @@ try
 
     var app = builder.Build();
 
+    static async Task SeedPrescriptionReviewCriteriaAsync(
+    IServiceProvider services,
+    CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("PrescriptionReviewCriterionSeeder");
+
+        var systemUserId = await dbContext.Users
+            .AsNoTracking()
+            .Where(x =>
+                x.NormalizedUserName == "SUPERADMIN" ||
+                x.NormalizedEmail == "SUPERADMIN@ADMIN.COM")
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (systemUserId == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                "Seeder kriteria telaah resep membutuhkan akun SuperAdmin.");
+        }
+
+        logger.LogInformation(
+            "Memulai seeder master kriteria telaah resep.");
+
+        await PrescriptionReviewCriterionSeeder.SeedAsync(
+            dbContext,
+            systemUserId,
+            cancellationToken);
+
+        logger.LogInformation(
+            "Seeder master kriteria telaah resep selesai.");
+    }
+
     Log.Information(
         "Starting {Application} {BackendVersion} in {Environment} environment.",
         appName,
@@ -627,6 +669,15 @@ try
     await DefaultWorkScheduleSeeder.SeedAsync(app.Services);
     await SuperAdminSeeder.SeedAsync(app.Services);
     await AccessMenuSeeder.SeedAsync(app.Services);
+
+    var runPrescriptionReviewCriterionSeed =
+     builder.Configuration.GetValue<bool>(
+         "Seeders:RunPrescriptionReviewCriterionSeed");
+
+    if (runPrescriptionReviewCriterionSeed)
+    {
+        await SeedPrescriptionReviewCriteriaAsync(app.Services);
+    }
 
     // Seed Awal Saja
     // var icd10FolderPath = Path.Combine(
