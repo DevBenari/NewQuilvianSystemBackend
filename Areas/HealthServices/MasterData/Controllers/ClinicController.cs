@@ -286,7 +286,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] bool? isDoctorRequired,
             [FromQuery] bool? isScreeningRequired,
             [FromQuery] bool? isQueueRequired,
-            [FromQuery] string? search,
+            [FromQuery] bool onlyKioskAvailableNow = true,
+            [FromQuery] string? search = null,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -321,6 +322,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 isQueueRequired,
                 search
             );
+
+            if (onlyKioskAvailableNow)
+            {
+                query = ApplyKioskAvailableNowScheduleFilter(query);
+            }
 
             var totalData = await query.CountAsync();
 
@@ -438,6 +444,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] bool? isQueueRequired,
             [FromQuery] bool onlyActive = true,
             [FromQuery] bool? activeOnly = null,
+            [FromQuery] bool onlyKioskAvailableNow = true,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
@@ -460,6 +467,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 isQueueRequired,
                 search
             );
+
+            if (onlyKioskAvailableNow)
+            {
+                query = ApplyKioskAvailableNowScheduleFilter(query);
+            }
 
             var totalData = await query.CountAsync();
 
@@ -974,6 +986,129 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }
 
             return query;
+        }
+
+        private IQueryable<MstClinic> ApplyKioskAvailableNowScheduleFilter(
+            IQueryable<MstClinic> query)
+        {
+            var now = GetOperationalNow();
+            var today = now.Date;
+            var yesterday = today.AddDays(-1);
+            var tomorrow = today.AddDays(1);
+            var currentDay = today.DayOfWeek;
+            var previousDay = yesterday.DayOfWeek;
+            var currentTime = now.TimeOfDay;
+
+            return query.Where(clinic =>
+                _dbContext.Set<MstDoctorSchedule>()
+                    .AsNoTracking()
+                    .Any(schedule =>
+                        !schedule.IsDelete &&
+                        schedule.IsActive &&
+                        schedule.ScheduleStatus == DoctorScheduleStatus.Active &&
+                        schedule.IsAllowKioskRegistration &&
+                        schedule.ClinicId == clinic.Id &&
+                        schedule.ServiceUnitId == clinic.ServiceUnitId &&
+                        schedule.Doctor != null &&
+                        schedule.Doctor.IsActive &&
+                        !schedule.Doctor.IsDelete &&
+                        schedule.ServiceUnit != null &&
+                        schedule.ServiceUnit.IsActive &&
+                        !schedule.ServiceUnit.IsDelete &&
+                        (
+                            (
+                                !schedule.IsOvernight &&
+                                (
+                                    (
+                                        schedule.ScheduleType == DoctorScheduleType.WeeklyRecurring &&
+                                        schedule.PracticeDay == currentDay
+                                    ) ||
+                                    (
+                                        schedule.ScheduleType != DoctorScheduleType.WeeklyRecurring &&
+                                        schedule.PracticeDate.HasValue &&
+                                        schedule.PracticeDate.Value >= today &&
+                                        schedule.PracticeDate.Value < tomorrow
+                                    )
+                                ) &&
+                                (!schedule.EffectiveStartDate.HasValue ||
+                                    schedule.EffectiveStartDate.Value.Date <= today) &&
+                                (!schedule.EffectiveEndDate.HasValue ||
+                                    schedule.EffectiveEndDate.Value.Date >= today) &&
+                                schedule.StartTime <= currentTime &&
+                                currentTime < schedule.EndTime
+                            ) ||
+                            (
+                                schedule.IsOvernight &&
+                                (
+                                    (
+                                        (
+                                            (
+                                                schedule.ScheduleType == DoctorScheduleType.WeeklyRecurring &&
+                                                schedule.PracticeDay == currentDay
+                                            ) ||
+                                            (
+                                                schedule.ScheduleType != DoctorScheduleType.WeeklyRecurring &&
+                                                schedule.PracticeDate.HasValue &&
+                                                schedule.PracticeDate.Value >= today &&
+                                                schedule.PracticeDate.Value < tomorrow
+                                            )
+                                        ) &&
+                                        (!schedule.EffectiveStartDate.HasValue ||
+                                            schedule.EffectiveStartDate.Value.Date <= today) &&
+                                        (!schedule.EffectiveEndDate.HasValue ||
+                                            schedule.EffectiveEndDate.Value.Date >= today) &&
+                                        currentTime >= schedule.StartTime
+                                    ) ||
+                                    (
+                                        (
+                                            (
+                                                schedule.ScheduleType == DoctorScheduleType.WeeklyRecurring &&
+                                                schedule.PracticeDay == previousDay
+                                            ) ||
+                                            (
+                                                schedule.ScheduleType != DoctorScheduleType.WeeklyRecurring &&
+                                                schedule.PracticeDate.HasValue &&
+                                                schedule.PracticeDate.Value >= yesterday &&
+                                                schedule.PracticeDate.Value < today
+                                            )
+                                        ) &&
+                                        (!schedule.EffectiveStartDate.HasValue ||
+                                            schedule.EffectiveStartDate.Value.Date <= yesterday) &&
+                                        (!schedule.EffectiveEndDate.HasValue ||
+                                            schedule.EffectiveEndDate.Value.Date >= yesterday) &&
+                                        currentTime < schedule.EndTime
+                                    )
+                                )
+                            )
+                        )
+                    ));
+        }
+
+        private static DateTime GetOperationalNow()
+        {
+            var utcNow = DateTime.UtcNow;
+
+            try
+            {
+                var jakartaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Jakarta");
+                return TimeZoneInfo.ConvertTimeFromUtc(utcNow, jakartaTimeZone);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                try
+                {
+                    var windowsTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                    return TimeZoneInfo.ConvertTimeFromUtc(utcNow, windowsTimeZone);
+                }
+                catch
+                {
+                    return utcNow.AddHours(7);
+                }
+            }
+            catch (InvalidTimeZoneException)
+            {
+                return utcNow.AddHours(7);
+            }
         }
 
         private static IOrderedQueryable<MstClinic> ApplySorting(
