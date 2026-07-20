@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
@@ -35,6 +36,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
     public class PatientProcedureController : ControllerBase
     {
         private const string LogCategory = "HealthServices.Clinical";
+        private const string DuplicateProcedureMessage =
+            "Tindakan yang sama sudah dipilih pada konsultasi ini.";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly EncounterInsuranceService _encounterInsuranceService;
@@ -88,6 +91,78 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             return Ok(ApiResponse<PatientProcedureFilterMetadataResponse>.Ok(
                 result,
                 "Metadata filter tindakan pasien berhasil diambil."
+            ));
+        }
+
+        [HttpGet("master-options")]
+        [ProducesResponseType(typeof(ApiResponse<List<PatientProcedureMasterOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Patient Procedure", Description = "Melihat pilihan master tindakan dokter rawat jalan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientProcedure", "Read")]
+        public async Task<IActionResult> GetMasterProcedureOptions(
+            [FromQuery] string? search,
+            [FromQuery] string? procedureCategoryName,
+            [FromQuery] string? procedureType,
+            [FromQuery] int take = 50)
+        {
+            if (take <= 0) take = 50;
+            if (take > 100) take = 100;
+
+            var query = _dbContext.Set<MstProcedure>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.IsDoctorAction &&
+                    x.IsAvailableForOutpatient &&
+                    !x.IsLaboratory &&
+                    !x.IsRadiology);
+
+            if (!string.IsNullOrWhiteSpace(procedureCategoryName))
+            {
+                var category = procedureCategoryName.Trim().ToLower();
+                query = query.Where(x =>
+                    x.ProcedureCategoryName != null &&
+                    x.ProcedureCategoryName.ToLower() == category);
+            }
+
+            if (!string.IsNullOrWhiteSpace(procedureType))
+            {
+                var type = procedureType.Trim().ToLower();
+                query = query.Where(x => x.ProcedureType.ToLower() == type);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.Where(x =>
+                    x.ProcedureCode.ToLower().Contains(keyword) ||
+                    x.ProcedureName.ToLower().Contains(keyword) ||
+                    (x.ProcedureGroupName != null && x.ProcedureGroupName.ToLower().Contains(keyword)) ||
+                    (x.ProcedureCategoryName != null && x.ProcedureCategoryName.ToLower().Contains(keyword)));
+            }
+
+            var data = await query
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.ProcedureName)
+                .Take(take)
+                .Select(x => new PatientProcedureMasterOptionResponse
+                {
+                    Id = x.Id,
+                    ProcedureCode = x.ProcedureCode,
+                    ProcedureName = x.ProcedureName,
+                    ProcedureGroupName = x.ProcedureGroupName,
+                    ProcedureCategoryName = x.ProcedureCategoryName,
+                    ProcedureType = x.ProcedureType,
+                    IsNeedApproval = x.IsNeedApproval,
+                    IsSurgery = x.IsSurgery,
+                    EstimatedDurationMinutes = x.EstimatedDurationMinutes
+                })
+                .ToListAsync();
+
+            return Ok(ApiResponse<List<PatientProcedureMasterOptionResponse>>.Ok(
+                data,
+                "Data pilihan master tindakan dokter berhasil diambil."
             ));
         }
 
@@ -258,9 +333,63 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ));
         }
 
+        [HttpPost("select")]
+        [ProducesResponseType(typeof(ApiResponse<PatientProcedureCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Create", "Select Patient Procedure", Description = "Memilih tindakan dokter rawat jalan", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("PatientProcedure", "Create")]
+        public async Task<IActionResult> SelectProcedure([FromBody] SelectPatientProcedureRequest request)
+        {
+            var validation = await ValidateDoctorSelectionRequestAsync(request);
+
+            if (!validation.IsValid)
+            {
+                if (string.Equals(
+                    validation.ErrorMessage,
+                    DuplicateProcedureMessage,
+                    StringComparison.Ordinal))
+                {
+                    return Conflict(ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        DuplicateProcedureMessage
+                    ));
+                }
+
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Pilihan tindakan dokter tidak valid."
+                ));
+            }
+
+            // Endpoint sederhana ini sengaja tidak menerima quantity, satuan, FOC,
+            // execute immediately, maupun nilai tarif/coverage dari frontend.
+            // Seluruh nilai tersebut ditentukan dan dihitung oleh backend.
+            var createRequest = new CreatePatientProcedureRequest
+            {
+                EncounterId = request.EncounterId,
+                ConsultationId = request.ConsultationId,
+                ProcedureId = request.ProcedureId,
+                ProcedureSource = PatientProcedureSource.DoctorOrder,
+                ProcedureDateTime = DateTime.UtcNow,
+                PlannedAt = DateTime.UtcNow,
+                Quantity = 1,
+                UnitNameSnapshot = null,
+                IsPrimaryProcedure = false,
+                IsEmergencyProcedure = false,
+                IsSurgeryRelated = false,
+                IsPackageProcedure = false,
+                IsFreeOfCharge = false,
+                ExecuteImmediately = false
+            };
+
+            return await CreateProcedure(createRequest);
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<PatientProcedureCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Create", "Create Patient Procedure", Description = "Membuat tindakan pasien", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("PatientProcedure", "Create")]
         public async Task<IActionResult> CreateProcedure([FromBody] CreatePatientProcedureRequest request)
@@ -349,6 +478,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 Id = Guid.NewGuid(),
                 EncounterId = consultation.EncounterId,
                 ConsultationId = consultation.Id,
+                Consultation = consultation,
                 PatientId = consultation.PatientId,
                 DoctorId = consultation.DoctorId,
                 ServiceUnitId = consultation.ServiceUnitId,
@@ -366,7 +496,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 IsFromMasterProcedure = true,
                 IsPrimaryProcedure = request.IsPrimaryProcedure,
                 IsEmergencyProcedure = request.IsEmergencyProcedure,
-                IsSurgeryRelated = request.IsSurgeryRelated,
+                IsSurgeryRelated = request.IsSurgeryRelated || procedure.IsSurgery,
                 IsPackageProcedure = request.IsPackageProcedure,
 
                 PatientTypeSnapshot = null,
@@ -432,40 +562,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             _dbContext.Set<TrxPatientProcedure>().Add(entity);
 
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                await _dbContext.SaveChangesAsync();
 
-            var summary = await UpdateConsultationProcedureSummaryAsync(
-                consultation.Id,
-                actorUserId,
-                now
-            );
+                var summary = await UpdateConsultationProcedureSummaryAsync(
+                    consultation.Id,
+                    actorUserId,
+                    now
+                );
 
-            await transaction.CommitAsync();
+                await transaction.CommitAsync();
 
-            var response = ToCreateResponse(entity, summary);
+                var response = ToCreateResponse(entity, summary);
 
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "PatientProcedure.CreateProcedure",
-                "Membuat tindakan pasien.",
-                response
-            );
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "PatientProcedure.CreateProcedure",
+                    "Membuat tindakan pasien.",
+                    response
+                );
 
-            return Ok(ApiResponse<PatientProcedureCreateResponse>.Ok(
-                response,
-                "Tindakan pasien berhasil dibuat."
-            ));
+                return Ok(ApiResponse<PatientProcedureCreateResponse>.Ok(
+                    response,
+                    "Tindakan pasien berhasil dibuat."
+                ));
+            }
+            catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+            {
+                await transaction.RollbackAsync();
+
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Tindakan yang sama sudah dipilih pada konsultasi ini, kemungkinan dari tab atau perangkat lain."
+                ));
+            }
         }
 
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientProcedureUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Update", "Update Patient Procedure", Description = "Mengubah tindakan pasien", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("PatientProcedure", "Update")]
         public async Task<IActionResult> UpdateProcedure(Guid id, [FromBody] UpdatePatientProcedureRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientProcedure>()
+                .Include(x => x.Consultation)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
@@ -473,6 +617,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Tindakan pasien tidak ditemukan."
+                ));
+            }
+
+            if (entity.Consultation?.ConsultationStatus == DoctorConsultationStatus.Completed)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tindakan pada konsultasi yang sudah completed tidak dapat diubah."
+                ));
+            }
+
+            if (entity.Consultation?.ConsultationStatus == DoctorConsultationStatus.Cancelled)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tindakan pada konsultasi yang sudah cancelled tidak dapat diubah."
+                ));
+            }
+
+            if (request.Quantity <= 0)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Quantity tindakan harus lebih dari 0."
+                ));
+            }
+
+            if (request.IsFreeOfCharge && string.IsNullOrWhiteSpace(request.FreeOfChargeReason))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan FOC wajib diisi."
                 ));
             }
 
@@ -545,6 +721,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             var needApproval = pricing.IsNeedApproval || procedure.IsNeedApproval;
 
+            var pricingOrCoverageChanged =
+                entity.TariffId != pricing.TariffId ||
+                entity.InsuranceTariffId != pricing.InsuranceTariffId ||
+                entity.InsuranceCoverageRuleId != pricing.InsuranceCoverageRuleId ||
+                entity.Quantity != pricing.Quantity ||
+                entity.UnitPrice != pricing.UnitPrice ||
+                entity.TotalPrice != pricing.TotalPrice ||
+                entity.CoverageStatus != pricing.CoverageStatus ||
+                entity.CoveragePercent != pricing.CoveragePercent ||
+                entity.CoveredAmount != pricing.CoveredAmount ||
+                entity.PatientPayAmount != pricing.PatientPayAmount ||
+                entity.IsFreeOfCharge != request.IsFreeOfCharge ||
+                entity.IsNeedApproval != needApproval ||
+                entity.ProcedureDateTime != serviceDate;
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -573,7 +764,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             entity.IsPrimaryProcedure = request.IsPrimaryProcedure;
             entity.IsEmergencyProcedure = request.IsEmergencyProcedure;
-            entity.IsSurgeryRelated = request.IsSurgeryRelated;
+            entity.IsSurgeryRelated = request.IsSurgeryRelated || procedure.IsSurgery;
             entity.IsPackageProcedure = request.IsPackageProcedure;
 
             entity.Quantity = pricing.Quantity;
@@ -596,6 +787,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             entity.IsNeedApproval = needApproval;
 
+            if (pricingOrCoverageChanged)
+                ResetApproval(entity);
+
             entity.ClinicalNote = NormalizeNullableText(request.ClinicalNote);
             entity.ResultNote = NormalizeNullableText(request.ResultNote);
             entity.InstructionNote = NormalizeNullableText(request.InstructionNote);
@@ -608,22 +802,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             NormalizeProcedureData(entity);
 
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                await _dbContext.SaveChangesAsync();
 
-            var summary = await UpdateConsultationProcedureSummaryAsync(
-                entity.ConsultationId,
-                actorUserId,
-                now
-            );
+                var summary = await UpdateConsultationProcedureSummaryAsync(
+                    entity.ConsultationId,
+                    actorUserId,
+                    now
+                );
 
-            await transaction.CommitAsync();
+                await transaction.CommitAsync();
 
-            var response = ToUpdateResponse(entity, summary);
+                var response = ToUpdateResponse(entity, summary);
 
-            return Ok(ApiResponse<PatientProcedureUpdateResponse>.Ok(
-                response,
-                "Tindakan pasien berhasil diubah."
-            ));
+                return Ok(ApiResponse<PatientProcedureUpdateResponse>.Ok(
+                    response,
+                    "Tindakan pasien berhasil diubah."
+                ));
+            }
+            catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+            {
+                await transaction.RollbackAsync();
+
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Perubahan tindakan bertabrakan dengan data terbaru dari tab atau perangkat lain."
+                ));
+            }
         }
 
         [HttpPatch("{id:guid}/approve")]
@@ -641,6 +847,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Tindakan pasien tidak ditemukan."
+                ));
+            }
+
+            if (entity.ProcedureStatus == PatientProcedureStatus.Cancelled || !entity.IsActive)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tindakan yang sudah cancelled tidak dapat disetujui."
+                ));
+            }
+
+            if (entity.IsExecuted)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tindakan yang sudah dieksekusi tidak dapat disetujui ulang."
+                ));
+            }
+
+            if (entity.IsBillingGenerated)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tindakan yang sudah masuk billing tidak dapat diubah approval-nya."
                 ));
             }
 
@@ -728,6 +958,66 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             return Ok(ApiResponse<object>.Ok(
                 null,
                 "Tindakan pasien berhasil dieksekusi."
+            ));
+        }
+
+        [HttpPatch("{id:guid}/remove-draft")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Remove Draft Patient Procedure", Description = "Menghapus pilihan tindakan dari draft konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("PatientProcedure", "Update")]
+        public async Task<IActionResult> RemoveDraftProcedure(Guid id)
+        {
+            var entity = await _dbContext.Set<TrxPatientProcedure>()
+                .Include(x => x.Consultation)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Tindakan pasien tidak ditemukan."
+                ));
+            }
+
+            if (!CanRemoveProcedureFromDraft(entity))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tindakan tidak dapat dihapus dari draft karena konsultasi sudah terkunci, tindakan sudah diproses, atau sudah masuk billing."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+            entity.ProcedureStatus = PatientProcedureStatus.Cancelled;
+            entity.CancelledAt = now;
+            entity.CancelledByUserId = actorUserId;
+            entity.CancelReason = "Dihapus dari draft konsultasi dokter.";
+            entity.IsActive = false;
+            entity.IsCancel = true;
+            entity.CancelDateTime = now;
+            entity.CancelBy = actorUserId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync();
+
+            await UpdateConsultationProcedureSummaryAsync(
+                entity.ConsultationId,
+                actorUserId,
+                now
+            );
+
+            await transaction.CommitAsync();
+
+            return Ok(ApiResponse<object>.Ok(
+                null,
+                "Tindakan berhasil dihapus dari draft konsultasi."
             ));
         }
 
@@ -911,15 +1201,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(
             CreatePatientProcedureRequest request)
         {
+            if (request.EncounterId == Guid.Empty)
+                return (false, "EncounterId wajib diisi.");
+
+            if (request.ConsultationId == Guid.Empty)
+                return (false, "ConsultationId wajib diisi.");
+
+            if (request.ProcedureId == Guid.Empty)
+                return (false, "ProcedureId wajib diisi.");
+
             var consultation = await _dbContext.Set<TrxDoctorConsultation>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x =>
                     x.Id == request.ConsultationId &&
                     x.EncounterId == request.EncounterId &&
+                    x.IsActive &&
                     !x.IsDelete);
 
             if (consultation == null)
-                return (false, "Konsultasi dokter tidak ditemukan atau tidak sesuai encounter.");
+                return (false, "Konsultasi dokter tidak ditemukan, tidak aktif, atau tidak sesuai encounter.");
 
             if (consultation.ConsultationStatus == DoctorConsultationStatus.Completed)
                 return (false, "Konsultasi yang sudah completed tidak dapat ditambahkan tindakan.");
@@ -937,6 +1237,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (!procedureExists)
                 return (false, "Master tindakan tidak ditemukan atau tidak aktif.");
 
+            var duplicateValidation = await ValidateDuplicateProcedureAsync(
+                request.ConsultationId,
+                request.ProcedureId
+            );
+
+            if (!duplicateValidation.IsValid)
+                return duplicateValidation;
+
             if (request.Quantity <= 0)
                 return (false, "Quantity tindakan harus lebih dari 0.");
 
@@ -944,6 +1252,77 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 return (false, "Alasan FOC wajib diisi.");
 
             return (true, null);
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateDoctorSelectionRequestAsync(
+            SelectPatientProcedureRequest request)
+        {
+            if (request.EncounterId == Guid.Empty)
+                return (false, "EncounterId wajib diisi.");
+
+            if (request.ConsultationId == Guid.Empty)
+                return (false, "ConsultationId wajib diisi.");
+
+            if (request.ProcedureId == Guid.Empty)
+                return (false, "ProcedureId wajib diisi.");
+
+            var consultation = await _dbContext.Set<TrxDoctorConsultation>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == request.ConsultationId &&
+                    x.EncounterId == request.EncounterId &&
+                    x.IsActive &&
+                    !x.IsDelete);
+
+            if (consultation == null)
+                return (false, "Konsultasi dokter tidak ditemukan, tidak aktif, atau tidak sesuai encounter.");
+
+            if (consultation.ConsultationStatus == DoctorConsultationStatus.Completed)
+                return (false, "Konsultasi yang sudah completed tidak dapat ditambahkan tindakan.");
+
+            if (consultation.ConsultationStatus == DoctorConsultationStatus.Cancelled)
+                return (false, "Konsultasi yang sudah cancelled tidak dapat ditambahkan tindakan.");
+
+            var procedure = await _dbContext.Set<MstProcedure>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == request.ProcedureId &&
+                    x.IsActive &&
+                    !x.IsDelete);
+
+            if (procedure == null)
+                return (false, "Master tindakan tidak ditemukan atau tidak aktif.");
+
+            if (!procedure.IsDoctorAction || !procedure.IsAvailableForOutpatient)
+                return (false, "Tindakan ini tidak tersedia untuk pelayanan dokter rawat jalan.");
+
+            if (procedure.IsLaboratory || procedure.IsRadiology)
+                return (false, "Pemeriksaan laboratorium atau radiologi harus dipilih melalui modul penunjang medis.");
+
+            return await ValidateDuplicateProcedureAsync(
+                request.ConsultationId,
+                request.ProcedureId
+            );
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateDuplicateProcedureAsync(
+            Guid consultationId,
+            Guid procedureId,
+            Guid? excludeId = null)
+        {
+            var duplicateExists = await _dbContext.Set<TrxPatientProcedure>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.ConsultationId == consultationId &&
+                    x.ProcedureId == procedureId &&
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    x.ProcedureStatus != PatientProcedureStatus.Cancelled &&
+                    (!excludeId.HasValue || x.Id != excludeId.Value));
+
+            return duplicateExists
+                ? (false, DuplicateProcedureMessage)
+                : (true, null);
         }
 
         private async Task ClearPrimaryProcedureAsync(
@@ -984,6 +1363,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .AsNoTracking()
                 .Where(x =>
                     x.ConsultationId == consultationId &&
+                    x.IsActive &&
                     !x.IsDelete &&
                     x.ProcedureStatus != PatientProcedureStatus.Cancelled)
                 .OrderByDescending(x => x.IsPrimaryProcedure)
@@ -992,7 +1372,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             var procedureText = procedures.Count == 0
                 ? null
-                : string.Join("; ", procedures.Select(x => $"{x.ProcedureCodeSnapshot} - {x.ProcedureNameSnapshot}"));
+                : TruncateText(
+                    string.Join("; ", procedures.Select(x => $"{x.ProcedureCodeSnapshot} - {x.ProcedureNameSnapshot}")),
+                    2000
+                );
 
             consultation.ProcedureText = procedureText;
             consultation.ProcedureCount = procedures.Count;
@@ -1026,18 +1409,71 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 entity.CoveredAmount = 0;
                 entity.PatientPayAmount = 0;
                 entity.IsNeedApproval = false;
-                entity.IsApproved = false;
+                ResetApproval(entity);
             }
 
             if (!entity.IsNeedApproval)
-            {
-                entity.IsApproved = false;
-                entity.ApprovedAt = null;
-                entity.ApprovedByUserId = null;
-                entity.ApprovalNote = null;
-            }
+                ResetApproval(entity);
         }
 
+        private static void ResetApproval(TrxPatientProcedure entity)
+        {
+            entity.IsApproved = false;
+            entity.ApprovedAt = null;
+            entity.ApprovedByUserId = null;
+            entity.ApprovalNote = null;
+        }
+
+        private static bool CanEditProcedure(TrxPatientProcedure entity)
+        {
+            return entity.IsActive &&
+                   !entity.IsDelete &&
+                   !entity.IsExecuted &&
+                   !entity.IsBillingGenerated &&
+                   entity.ProcedureStatus != PatientProcedureStatus.Cancelled &&
+                   !IsConsultationLocked(entity.Consultation);
+        }
+
+        private static bool CanRemoveProcedureFromDraft(TrxPatientProcedure entity)
+        {
+            return CanEditProcedure(entity) &&
+                   entity.ProcedureStatus == PatientProcedureStatus.Planned &&
+                   !entity.IsApproved;
+        }
+
+        private static bool IsConsultationLocked(TrxDoctorConsultation? consultation)
+        {
+            return consultation == null ||
+                   !consultation.IsActive ||
+                   consultation.ConsultationStatus == DoctorConsultationStatus.Completed ||
+                   consultation.ConsultationStatus == DoctorConsultationStatus.Cancelled;
+        }
+
+        private static string? TruncateText(string? value, int maxLength)
+        {
+            if (string.IsNullOrEmpty(value) || value.Length <= maxLength)
+                return value;
+
+            return value[..maxLength];
+        }
+
+        private static bool IsUniqueViolation(DbUpdateException exception)
+        {
+            Exception? current = exception;
+
+            while (current != null)
+            {
+                if (current is PostgresException postgresException &&
+                    postgresException.SqlState == PostgresErrorCodes.UniqueViolation)
+                {
+                    return true;
+                }
+
+                current = current.InnerException;
+            }
+
+            return false;
+        }
 
         private static IQueryable<TrxPatientProcedure> ApplySorting(
             IQueryable<TrxPatientProcedure> query,
@@ -1120,7 +1556,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 IsBillingGenerated = x.IsBillingGenerated,
                 BillingGeneratedAt = x.BillingGeneratedAt,
                 IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
+                CreateDateTime = x.CreateDateTime,
+                UpdateDateTime = x.UpdateDateTime,
+                CanEdit = CanEditProcedure(x),
+                CanRemoveFromDraft = CanRemoveProcedureFromDraft(x)
             };
         }
 
@@ -1222,6 +1661,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             response.BillingGeneratedAt = x.BillingGeneratedAt;
             response.IsActive = x.IsActive;
             response.CreateDateTime = x.CreateDateTime;
+            response.UpdateDateTime = x.UpdateDateTime;
+            response.CanEdit = CanEditProcedure(x);
+            response.CanRemoveFromDraft = CanRemoveProcedureFromDraft(x);
         }
 
         private static PatientProcedureCreateResponse ToCreateResponse(
@@ -1258,7 +1700,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 IsExecuted = x.IsExecuted,
                 ProcedureCount = summary.ProcedureCount,
                 HasProcedure = summary.HasProcedure,
-                ProcedureText = summary.ProcedureText
+                ProcedureText = summary.ProcedureText,
+                UpdateDateTime = x.UpdateDateTime,
+                CanEdit = CanEditProcedure(x),
+                CanRemoveFromDraft = CanRemoveProcedureFromDraft(x)
             };
         }
 
@@ -1296,7 +1741,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 IsExecuted = x.IsExecuted,
                 ProcedureCount = summary.ProcedureCount,
                 HasProcedure = summary.HasProcedure,
-                ProcedureText = summary.ProcedureText
+                ProcedureText = summary.ProcedureText,
+                UpdateDateTime = x.UpdateDateTime,
+                CanEdit = CanEditProcedure(x),
+                CanRemoveFromDraft = CanRemoveProcedureFromDraft(x)
             };
         }
 

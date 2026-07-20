@@ -84,6 +84,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+
+        // Metadata aksi untuk frontend. Nilainya ditentukan backend berdasarkan
+        // status tindakan dan status konsultasi, sehingga frontend tidak perlu
+        // menebak-nebak rule bisnis.
+        public bool CanEdit { get; set; }
+        public bool CanRemoveFromDraft { get; set; }
     }
 
     public class PatientProcedureDetailResponse : PatientProcedureResponse
@@ -121,6 +128,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid? CancelledByUserId { get; set; }
         public string? CancelledByUserName { get; set; }
         public string? CancelReason { get; set; }
+    }
+
+    /// <summary>
+    /// Pilihan master tindakan khusus kebutuhan klinis dokter rawat jalan.
+    /// Endpoint klinis menggunakan DTO ini agar dokter tidak memerlukan akses
+    /// langsung ke halaman master data Procedure.
+    /// </summary>
+    public class PatientProcedureMasterOptionResponse
+    {
+        public Guid Id { get; set; }
+        public string ProcedureCode { get; set; } = string.Empty;
+        public string ProcedureName { get; set; } = string.Empty;
+        public string? ProcedureGroupName { get; set; }
+        public string? ProcedureCategoryName { get; set; }
+        public string ProcedureType { get; set; } = string.Empty;
+        public bool IsNeedApproval { get; set; }
+        public bool IsSurgery { get; set; }
+        public int EstimatedDurationMinutes { get; set; }
     }
 
     public class PatientProcedureOptionResponse
@@ -185,6 +210,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public int Value { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Payload sederhana untuk tab Tindakan Dokter. Dokter hanya memilih master
+    /// tindakan; quantity, satuan, source, status, tarif, dan coverage ditentukan
+    /// oleh backend.
+    /// </summary>
+    public class SelectPatientProcedureRequest
+    {
+        [Required]
+        public Guid EncounterId { get; set; }
+
+        [Required]
+        public Guid ConsultationId { get; set; }
+
+        [Required]
+        public Guid ProcedureId { get; set; }
     }
 
     public class CreatePatientProcedureRequest
@@ -349,6 +391,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public bool HasProcedure { get; set; }
 
         public string? ProcedureText { get; set; }
+
+        public DateTime? UpdateDateTime { get; set; }
+
+        public bool CanEdit { get; set; }
+
+        public bool CanRemoveFromDraft { get; set; }
     }
 
     public class PatientProcedureUpdateResponse : PatientProcedureCreateResponse

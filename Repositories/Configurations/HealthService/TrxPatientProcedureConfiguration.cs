@@ -379,12 +379,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 
             entity.HasIndex(x => x.ProcedureNameSnapshot);
 
+            // Proteksi terakhir terhadap request bersamaan dari dua tab/device.
+            // Record yang sudah dibatalkan dibuat IsActive=false sehingga tindakan
+            // yang sama tetap dapat dipilih kembali secara sah.
             entity.HasIndex(x => new
             {
                 x.ConsultationId,
-                x.ProcedureId,
-                x.IsDelete
-            });
+                x.ProcedureId
+            })
+                .IsUnique()
+                .HasDatabaseName("UX_TrxPatientProcedure_Consultation_Procedure_Active")
+                .HasFilter("\"IsDelete\" = FALSE AND \"IsActive\" = TRUE");
 
             entity.HasIndex(x => new
             {
