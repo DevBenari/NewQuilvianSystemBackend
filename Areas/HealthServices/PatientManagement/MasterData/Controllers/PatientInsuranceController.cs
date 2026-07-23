@@ -590,6 +590,131 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             return await CreatePatientInsurance(request);
         }
 
+
+        [HttpPatch("kiosk/{id:guid}/primary")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<PatientInsuranceCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> SetPatientInsurancePrimaryFromKiosk(Guid id)
+        {
+            var entity = await _dbContext.Set<MstPatientInsurance>()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == id &&
+                    !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Patient insurance tidak ditemukan."
+                ));
+            }
+
+            if (!entity.IsActive)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Patient insurance tidak aktif dan tidak dapat dijadikan utama."
+                ));
+            }
+
+            var patientIsActive = await _dbContext.Set<MstPatient>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.Id == entity.PatientId &&
+                    x.IsActive &&
+                    !x.IsDelete);
+
+            if (!patientIsActive)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Patient tidak valid atau tidak aktif."
+                ));
+            }
+
+            var providerIsActive = await _dbContext.Set<MstInsuranceProvider>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.Id == entity.InsuranceProviderId &&
+                    x.IsActive &&
+                    !x.IsDelete);
+
+            if (!providerIsActive)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Insurance provider tidak valid atau tidak aktif."
+                ));
+            }
+
+            if (entity.IsPrimary)
+            {
+                var currentResult = await BuildCreateResponseAsync(entity.Id);
+
+                return Ok(ApiResponse<PatientInsuranceCreateResponse>.Ok(
+                    currentResult,
+                    "Patient insurance sudah menjadi asuransi utama."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+            try
+            {
+                await UnsetOtherPrimaryAsync(
+                    patientId: entity.PatientId,
+                    exceptId: entity.Id,
+                    now: now,
+                    actorUserId: actorUserId
+                );
+
+                entity.IsPrimary = true;
+                entity.UpdateDateTime = now;
+                entity.UpdateBy = actorUserId;
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var result = await BuildCreateResponseAsync(entity.Id);
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "PatientInsurance.SetPatientInsurancePrimaryFromKiosk",
+                    "Mengubah asuransi utama pasien dari kiosk.",
+                    result
+                );
+
+                return Ok(ApiResponse<PatientInsuranceCreateResponse>.Ok(
+                    result,
+                    "Asuransi utama pasien berhasil diperbarui."
+                ));
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "PatientInsurance.SetPatientInsurancePrimaryFromKiosk",
+                    "Gagal mengubah asuransi utama pasien dari kiosk.",
+                    ex
+                );
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat mengubah asuransi utama pasien."
+                    )
+                );
+            }
+        }
+
         [HttpPut("{id:guid}")]
         [HttpPut("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]

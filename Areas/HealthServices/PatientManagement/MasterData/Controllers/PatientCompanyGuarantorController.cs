@@ -551,6 +551,131 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             return await CreatePatientCompanyGuarantor(request);
         }
 
+
+        [HttpPatch("kiosk/{id:guid}/primary")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> SetPatientCompanyGuarantorPrimaryFromKiosk(Guid id)
+        {
+            var entity = await _dbContext.Set<MstPatientCompanyGuarantor>()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == id &&
+                    !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Patient company guarantor tidak ditemukan."
+                ));
+            }
+
+            if (!entity.IsActive)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Patient company guarantor tidak aktif dan tidak dapat dijadikan utama."
+                ));
+            }
+
+            var patientIsActive = await _dbContext.Set<MstPatient>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.Id == entity.PatientId &&
+                    x.IsActive &&
+                    !x.IsDelete);
+
+            if (!patientIsActive)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Patient tidak valid atau tidak aktif."
+                ));
+            }
+
+            var companyGuarantorIsActive = await _dbContext.Set<MstCompanyGuarantor>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.Id == entity.CompanyGuarantorId &&
+                    x.IsActive &&
+                    !x.IsDelete);
+
+            if (!companyGuarantorIsActive)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Company guarantor tidak valid atau tidak aktif."
+                ));
+            }
+
+            if (entity.IsPrimary)
+            {
+                var currentResult = await BuildCreateResponseAsync(entity.Id);
+
+                return Ok(ApiResponse<PatientCompanyGuarantorCreateResponse>.Ok(
+                    currentResult,
+                    "Patient company guarantor sudah menjadi penjamin perusahaan utama."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+            try
+            {
+                await UnsetOtherPrimaryAsync(
+                    patientId: entity.PatientId,
+                    exceptId: entity.Id,
+                    now: now,
+                    actorUserId: actorUserId
+                );
+
+                entity.IsPrimary = true;
+                entity.UpdateDateTime = now;
+                entity.UpdateBy = actorUserId;
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var result = await BuildCreateResponseAsync(entity.Id);
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "PatientCompanyGuarantor.SetPatientCompanyGuarantorPrimaryFromKiosk",
+                    "Mengubah penjamin perusahaan utama pasien dari kiosk.",
+                    result
+                );
+
+                return Ok(ApiResponse<PatientCompanyGuarantorCreateResponse>.Ok(
+                    result,
+                    "Penjamin perusahaan utama pasien berhasil diperbarui."
+                ));
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "PatientCompanyGuarantor.SetPatientCompanyGuarantorPrimaryFromKiosk",
+                    "Gagal mengubah penjamin perusahaan utama pasien dari kiosk.",
+                    ex
+                );
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        "Terjadi kesalahan saat mengubah penjamin perusahaan utama pasien."
+                    )
+                );
+            }
+        }
+
         [HttpPut("{id:guid}")]
         [HttpPut("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
