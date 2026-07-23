@@ -634,6 +634,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     actorUserId: actorUserId
                 );
 
+                // Simpan pelepasan primary lama terlebih dahulu. Database memakai
+                // unique partial index untuk memastikan hanya satu primary aktif
+                // per pasien. Jika primary lama dan baru disimpan dalam satu batch,
+                // PostgreSQL dapat memeriksa baris baru sebelum baris lama dilepas
+                // sehingga terjadi duplicate key (HTTP 500).
+                await _dbContext.SaveChangesAsync();
+
                 entity.IsPrimary = true;
                 entity.UpdateDateTime = now;
                 entity.UpdateBy = actorUserId;
