@@ -154,6 +154,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public List<DoctorScheduleOptionResponse> Items { get; set; } = new();
     }
 
+    public class DoctorScheduleKioskClinicOptionResponse
+    {
+        public Guid Id { get; set; }
+        public Guid ClinicId { get; set; }
+        public string ClinicCode { get; set; } = string.Empty;
+        public string ClinicName { get; set; } = string.Empty;
+        public string ShortName { get; set; } = string.Empty;
+        public string ClinicTypeName { get; set; } = string.Empty;
+
+        public Guid ServiceUnitId { get; set; }
+        public string ServiceUnitCode { get; set; } = string.Empty;
+        public string ServiceUnitName { get; set; } = string.Empty;
+
+        public Guid? RoomId { get; set; }
+        public string? RoomCode { get; set; }
+        public string? RoomName { get; set; }
+        public string? LocationName { get; set; }
+        public string? FloorName { get; set; }
+        public string LocationText { get; set; } = string.Empty;
+
+        public int DefaultEstimatedServiceMinutes { get; set; }
+        public int AvailableDoctorCount { get; set; }
+        public int AvailableScheduleCount { get; set; }
+    }
+
+    public class DoctorScheduleKioskClinicOptionPagedResponse
+    {
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalData { get; set; }
+        public int TotalPage { get; set; }
+        public List<DoctorScheduleKioskClinicOptionResponse> Items { get; set; } = new();
+    }
+
     public class DoctorScheduleEnumOptionResponse
     {
         public int Value { get; set; }

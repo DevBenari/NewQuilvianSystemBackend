@@ -436,6 +436,141 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
 
 
+        [HttpGet("kiosk/available-clinics")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<DoctorScheduleKioskClinicOptionPagedResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat poliklinik yang tersedia untuk kiosk saat ini", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetAvailableClinicsForKiosk(
+            [FromQuery] string? search = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var query = ApplyKioskAvailableNowFilter(BuildBaseQuery());
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = ApplyFilters(
+                    query,
+                    doctorId: null,
+                    clinicId: null,
+                    isActive: null,
+                    search: search
+                );
+            }
+
+            var rows = await query
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.Clinic != null ? x.Clinic.ClinicName : string.Empty)
+                .ThenBy(x => x.Doctor != null ? x.Doctor.FullName : string.Empty)
+                .ThenBy(x => x.StartTime)
+                .Select(x => new
+                {
+                    x.ClinicId,
+                    ClinicCode = x.Clinic != null ? x.Clinic.ClinicCode : string.Empty,
+                    ClinicName = x.Clinic != null ? x.Clinic.ClinicName : string.Empty,
+
+                    x.ServiceUnitId,
+                    ServiceUnitCode = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitCode : string.Empty,
+                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
+
+                    x.RoomId,
+                    RoomCode = x.Room != null ? x.Room.RoomCode : null,
+                    RoomName = x.Room != null ? x.Room.RoomName : null,
+                    LocationName = x.Room != null ? x.Room.LocationName : null,
+                    FloorName = x.Room != null ? x.Room.FloorName : null,
+
+                    x.DoctorId,
+                    SpecialistName = x.Doctor != null ? x.Doctor.SpecialistName : null,
+                    x.EstimatedServiceMinutes
+                })
+                .ToListAsync();
+
+            var clinicItems = rows
+                .GroupBy(x => x.ClinicId)
+                .Select(group =>
+                {
+                    var first = group.First();
+                    var roomSource = group.FirstOrDefault(x =>
+                        !string.IsNullOrWhiteSpace(x.RoomName) ||
+                        !string.IsNullOrWhiteSpace(x.LocationName) ||
+                        !string.IsNullOrWhiteSpace(x.FloorName)) ?? first;
+
+                    var estimatedMinutes = group
+                        .Where(x => x.EstimatedServiceMinutes > 0)
+                        .Select(x => x.EstimatedServiceMinutes)
+                        .DefaultIfEmpty(0)
+                        .Min();
+
+                    var locationText = string.Join(
+                        " • ",
+                        new[]
+                        {
+                            roomSource.LocationName,
+                            roomSource.FloorName,
+                            roomSource.RoomName
+                        }.Where(value => !string.IsNullOrWhiteSpace(value))
+                    );
+
+                    return new DoctorScheduleKioskClinicOptionResponse
+                    {
+                        Id = first.ClinicId,
+                        ClinicId = first.ClinicId,
+                        ClinicCode = first.ClinicCode,
+                        ClinicName = first.ClinicName,
+                        ShortName = BuildClinicShortName(first.ClinicCode, first.ClinicName),
+                        ClinicTypeName = group.Any(x => !string.IsNullOrWhiteSpace(x.SpecialistName))
+                            ? "Specialist"
+                            : "General",
+
+                        ServiceUnitId = first.ServiceUnitId,
+                        ServiceUnitCode = first.ServiceUnitCode,
+                        ServiceUnitName = first.ServiceUnitName,
+
+                        RoomId = roomSource.RoomId,
+                        RoomCode = roomSource.RoomCode,
+                        RoomName = roomSource.RoomName,
+                        LocationName = roomSource.LocationName,
+                        FloorName = roomSource.FloorName,
+                        LocationText = locationText,
+
+                        DefaultEstimatedServiceMinutes = estimatedMinutes,
+                        AvailableDoctorCount = group
+                            .Select(x => x.DoctorId)
+                            .Distinct()
+                            .Count(),
+                        AvailableScheduleCount = group.Count()
+                    };
+                })
+                .OrderBy(x => x.ServiceUnitName)
+                .ThenBy(x => x.ClinicName)
+                .ToList();
+
+            var totalData = clinicItems.Count;
+            var items = clinicItems
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var result = new DoctorScheduleKioskClinicOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<DoctorScheduleKioskClinicOptionPagedResponse>.Ok(
+                result,
+                "Data poliklinik yang tersedia untuk kiosk berhasil diambil."
+            ));
+        }
+
+
         [HttpGet("admin/options")]
         [ProducesResponseType(typeof(ApiResponse<DoctorScheduleOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Doctor Schedule", Description = "Melihat data pilihan doctor schedule untuk halaman admin", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -1723,6 +1858,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         {
             return string.Concat(value.Select((x, i) =>
                 i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
+        }
+
+        private static string BuildClinicShortName(string? clinicCode, string? clinicName)
+        {
+            var normalizedName = NormalizeNullableText(clinicName);
+
+            if (!string.IsNullOrWhiteSpace(normalizedName))
+            {
+                var words = normalizedName
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Where(word => !string.Equals(word, "poli", StringComparison.OrdinalIgnoreCase))
+                    .Take(2)
+                    .Select(word => word.ToUpperInvariant())
+                    .ToList();
+
+                if (words.Count > 0)
+                    return string.Join(" ", words);
+            }
+
+            var normalizedCode = NormalizeNullableText(clinicCode);
+            return string.IsNullOrWhiteSpace(normalizedCode)
+                ? "POLI"
+                : normalizedCode.ToUpperInvariant();
         }
 
         private Guid GetCurrentUserId()
