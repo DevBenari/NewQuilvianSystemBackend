@@ -6,9 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.Attendance.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.DTOs.Auth;
 using QuilvianSystemBackend.Enums;
@@ -1093,6 +1094,8 @@ namespace QuilvianSystemBackend.Controllers
         {
             public WfpWorkScheduleAssignment? Assignment { get; set; }
 
+            public TrxShiftAssignment? ShiftAssignment { get; set; }
+
             public MstWorkSchedule? WorkSchedule { get; set; }
 
             public DateOnly AttendanceDate { get; set; }
@@ -1100,6 +1103,8 @@ namespace QuilvianSystemBackend.Controllers
             public DateTime? ScheduledCheckInAtUtc { get; set; }
 
             public DateTime? ScheduledCheckOutAtUtc { get; set; }
+
+            public bool IsDayOff { get; set; }
         }
 
         private async Task<LoginAttendanceResult> RecordAttendanceOnLoginAsync(
@@ -1155,7 +1160,7 @@ namespace QuilvianSystemBackend.Controllers
             var nowJakarta = GetSystemNow();
             var attendanceDate = DateOnly.FromDateTime(nowJakarta);
 
-            var alreadyExists = await _dbContext.EmpAttendances
+            var alreadyExists = await _dbContext.TrxAttendances
                 .AnyAsync(x =>
                     x.UserId == user.Id &&
                     x.AttendanceDate == attendanceDate &&
@@ -1176,7 +1181,7 @@ namespace QuilvianSystemBackend.Controllers
                 schedule
             );
 
-            var attendance = new EmpAttendance
+            var attendance = new TrxAttendance
             {
                 Id = Guid.NewGuid(),
 
@@ -1187,6 +1192,11 @@ namespace QuilvianSystemBackend.Controllers
 
                 WorkScheduleId = schedule?.Id,
                 WorkScheduleAssignmentId = assignment?.Id,
+                ShiftId = scheduleResult.ShiftAssignment?.ShiftId,
+                HospitalSiteId = scheduleResult.ShiftAssignment?.HospitalSiteId ?? assignment?.HospitalSiteId,
+                OrganizationUnitId = scheduleResult.ShiftAssignment?.OrganizationUnitId ?? assignment?.OrganizationUnitId,
+                DepartmentId = scheduleResult.ShiftAssignment?.DepartmentId ?? assignment?.DepartmentId,
+                WorkLocationId = scheduleResult.ShiftAssignment?.WorkLocationId ?? assignment?.WorkLocationId,
 
                 AttendanceDate = scheduleResult.AttendanceDate,
                 CheckInAt = nowUtc,
@@ -1202,7 +1212,10 @@ namespace QuilvianSystemBackend.Controllers
 
                 IsLate = lateResult.IsLate,
                 LateMinutes = lateResult.LateMinutes,
-                AttendanceStatus = lateResult.AttendanceStatus,
+                AttendanceStatus = scheduleResult.IsDayOff
+                    ? "OffDayAttendance"
+                    : lateResult.AttendanceStatus,
+                IsRestDay = scheduleResult.IsDayOff,
 
                 CheckInLatitude = request.Latitude.Value,
                 CheckInLongitude = request.Longitude.Value,
@@ -1225,7 +1238,7 @@ namespace QuilvianSystemBackend.Controllers
                 IsCancel = false
             };
 
-            _dbContext.EmpAttendances.Add(attendance);
+            _dbContext.TrxAttendances.Add(attendance);
 
             await _dbContext.SaveChangesAsync();
 
@@ -1456,41 +1469,100 @@ namespace QuilvianSystemBackend.Controllers
         }
 
         private async Task<ResolvedWorkScheduleResult> ResolveWorkScheduleAsync(
-    ApplicationUser user,
-    DateOnly attendanceDate)
+            ApplicationUser user,
+            DateOnly attendanceDate)
         {
-            WfpWorkScheduleAssignment? assignment = null;
-
             if (user.WorkforceProfileId.HasValue)
             {
-                assignment = await _dbContext.Set<WfpWorkScheduleAssignment>()
+                var shiftAssignment = await _dbContext.Set<TrxShiftAssignment>()
                     .AsNoTracking()
                     .Include(x => x.WorkSchedule)
-                    .FirstOrDefaultAsync(x =>
+                    .Include(x => x.RosterAssignment)
+                        .ThenInclude(x => x.WorkScheduleAssignment)
+                            .ThenInclude(x => x.WorkSchedule)
+                    .Where(x =>
                         x.WorkforceProfileId == user.WorkforceProfileId.Value &&
-                        x.ScheduleDate == attendanceDate &&
+                        x.ShiftDate == attendanceDate &&
                         x.IsActive &&
-                        !x.IsDelete);
-            }
+                        !x.IsDelete &&
+                        !x.IsCancel &&
+                        (x.AssignmentStatus == "Published" ||
+                         x.AssignmentStatus == "Confirmed" ||
+                         x.AssignmentStatus == "Completed"))
+                    .OrderByDescending(x => x.IsManualOverride)
+                    .ThenByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
+                    .FirstOrDefaultAsync();
 
-            if (assignment != null)
-            {
-                if (assignment.IsOffDay)
+                if (shiftAssignment != null)
                 {
+                    var workScheduleAssignment =
+                        shiftAssignment.RosterAssignment?.WorkScheduleAssignment;
+
+                    var workSchedule =
+                        shiftAssignment.WorkSchedule ??
+                        workScheduleAssignment?.WorkSchedule;
+
+                    var isDayOff =
+                        shiftAssignment.IsDayOff ||
+                        string.Equals(
+                            shiftAssignment.AssignmentType,
+                            "DayOff",
+                            StringComparison.OrdinalIgnoreCase);
+
                     return new ResolvedWorkScheduleResult
                     {
-                        Assignment = assignment,
-                        WorkSchedule = null,
+                        Assignment = workScheduleAssignment,
+                        ShiftAssignment = shiftAssignment,
+                        WorkSchedule = isDayOff ? null : workSchedule,
                         AttendanceDate = attendanceDate,
-                        ScheduledCheckInAtUtc = null,
-                        ScheduledCheckOutAtUtc = null
+                        ScheduledCheckInAtUtc = isDayOff
+                            ? null
+                            : EnsureUtc(shiftAssignment.ScheduledStartAt),
+                        ScheduledCheckOutAtUtc = isDayOff
+                            ? null
+                            : EnsureUtc(shiftAssignment.ScheduledEndAt),
+                        IsDayOff = isDayOff
                     };
                 }
 
-                if (assignment.WorkSchedule != null &&
+                var assignment = await _dbContext.Set<WfpWorkScheduleAssignment>()
+                    .AsNoTracking()
+                    .Include(x => x.WorkSchedule)
+                    .Where(x =>
+                        x.WorkforceProfileId == user.WorkforceProfileId.Value &&
+                        x.EffectiveStartDate <= attendanceDate &&
+                        (!x.EffectiveEndDate.HasValue ||
+                         x.EffectiveEndDate.Value >= attendanceDate) &&
+                        x.IsActive &&
+                        !x.IsDelete &&
+                        !x.IsCancel)
+                    .OrderByDescending(x => x.IsPrimary)
+                    .ThenByDescending(x => x.EffectiveStartDate)
+                    .ThenByDescending(x => x.UpdateDateTime ?? x.CreateDateTime)
+                    .FirstOrDefaultAsync();
+
+                if (assignment?.WorkSchedule != null &&
                     assignment.WorkSchedule.IsActive &&
                     !assignment.WorkSchedule.IsDelete)
                 {
+                    var isDayOff = string.Equals(
+                        assignment.WorkSchedule.ScheduleType,
+                        "Off",
+                        StringComparison.OrdinalIgnoreCase);
+
+                    if (isDayOff)
+                    {
+                        return new ResolvedWorkScheduleResult
+                        {
+                            Assignment = assignment,
+                            WorkSchedule = null,
+                            AttendanceDate = attendanceDate,
+                            ScheduledCheckInAtUtc = null,
+                            ScheduledCheckOutAtUtc = null,
+                            IsDayOff = true
+                        };
+                    }
+
                     var scheduled = BuildScheduledDateTimeUtc(
                         attendanceDate,
                         assignment.WorkSchedule
@@ -1502,7 +1574,8 @@ namespace QuilvianSystemBackend.Controllers
                         WorkSchedule = assignment.WorkSchedule,
                         AttendanceDate = attendanceDate,
                         ScheduledCheckInAtUtc = scheduled.ScheduledCheckInAtUtc,
-                        ScheduledCheckOutAtUtc = scheduled.ScheduledCheckOutAtUtc
+                        ScheduledCheckOutAtUtc = scheduled.ScheduledCheckOutAtUtc,
+                        IsDayOff = false
                     };
                 }
             }
@@ -1521,10 +1594,31 @@ namespace QuilvianSystemBackend.Controllers
                 return new ResolvedWorkScheduleResult
                 {
                     Assignment = null,
+                    ShiftAssignment = null,
                     WorkSchedule = null,
                     AttendanceDate = attendanceDate,
                     ScheduledCheckInAtUtc = null,
-                    ScheduledCheckOutAtUtc = null
+                    ScheduledCheckOutAtUtc = null,
+                    IsDayOff = false
+                };
+            }
+
+            var defaultIsDayOff = string.Equals(
+                defaultSchedule.ScheduleType,
+                "Off",
+                StringComparison.OrdinalIgnoreCase);
+
+            if (defaultIsDayOff)
+            {
+                return new ResolvedWorkScheduleResult
+                {
+                    Assignment = null,
+                    ShiftAssignment = null,
+                    WorkSchedule = null,
+                    AttendanceDate = attendanceDate,
+                    ScheduledCheckInAtUtc = null,
+                    ScheduledCheckOutAtUtc = null,
+                    IsDayOff = true
                 };
             }
 
@@ -1536,21 +1630,33 @@ namespace QuilvianSystemBackend.Controllers
             return new ResolvedWorkScheduleResult
             {
                 Assignment = null,
+                ShiftAssignment = null,
                 WorkSchedule = defaultSchedule,
                 AttendanceDate = attendanceDate,
                 ScheduledCheckInAtUtc = defaultScheduled.ScheduledCheckInAtUtc,
-                ScheduledCheckOutAtUtc = defaultScheduled.ScheduledCheckOutAtUtc
+                ScheduledCheckOutAtUtc = defaultScheduled.ScheduledCheckOutAtUtc,
+                IsDayOff = false
             };
         }
 
-        private async Task<EmpAttendance?> ResolveOpenAttendanceForCheckOutAsync(
+        private static DateTime EnsureUtc(DateTime value)
+        {
+            return value.Kind switch
+            {
+                DateTimeKind.Utc => value,
+                DateTimeKind.Local => value.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+            };
+        }
+
+        private async Task<TrxAttendance?> ResolveOpenAttendanceForCheckOutAsync(
             Guid userId,
             DateTime nowJakarta)
         {
             var today = DateOnly.FromDateTime(nowJakarta);
             var yesterday = today.AddDays(-1);
 
-            var todayAttendance = await _dbContext.EmpAttendances
+            var todayAttendance = await _dbContext.TrxAttendances
                 .FirstOrDefaultAsync(x =>
                     x.UserId == userId &&
                     x.AttendanceDate == today &&
@@ -1562,7 +1668,7 @@ namespace QuilvianSystemBackend.Controllers
                 return todayAttendance;
             }
 
-            var overnightAttendance = await _dbContext.EmpAttendances
+            var overnightAttendance = await _dbContext.TrxAttendances
                 .FirstOrDefaultAsync(x =>
                     x.UserId == userId &&
                     x.AttendanceDate == yesterday &&

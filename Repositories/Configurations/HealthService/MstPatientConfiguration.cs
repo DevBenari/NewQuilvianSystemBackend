@@ -1,8 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Enums;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Enums;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 {

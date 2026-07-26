@@ -1,0 +1,11 @@
+﻿namespace QuilvianSystemBackend.Enums.HumanResource
+{
+    public enum PerformanceReviewStatus
+    {
+        Draft = 0,
+        InProgress = 1,
+        Completed = 2,
+        Finalized = 3,
+        Cancelled = 4
+    }
+}

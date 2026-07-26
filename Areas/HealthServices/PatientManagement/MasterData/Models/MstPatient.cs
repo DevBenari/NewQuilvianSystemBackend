@@ -4,7 +4,7 @@ using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Enums;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models
 {

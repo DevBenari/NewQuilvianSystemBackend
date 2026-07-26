@@ -1,6 +1,6 @@
-﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 
 namespace QuilvianSystemBackend.Models
 {

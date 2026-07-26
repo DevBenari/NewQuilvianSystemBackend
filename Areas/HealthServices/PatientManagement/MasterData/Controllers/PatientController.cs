@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
@@ -33,6 +32,7 @@ using ImageSharpColor = SixLabors.ImageSharp.Color;
 using ImageSharpPoint = SixLabors.ImageSharp.Point;
 using ImageSharpSize = SixLabors.ImageSharp.Size;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Controllers
 {

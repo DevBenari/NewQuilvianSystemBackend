@@ -1,11 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Models;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 {

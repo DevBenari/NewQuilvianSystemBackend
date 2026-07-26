@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResource.Workforce
 {

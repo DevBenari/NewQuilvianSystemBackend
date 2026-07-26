@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Enums;
+﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Enums;
 using System.ComponentModel.DataAnnotations;

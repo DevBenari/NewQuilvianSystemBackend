@@ -1,0 +1,117 @@
+using QuilvianSystemBackend.Models;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Enums;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Models;
+
+namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models
+{
+    [Table("MstWorkforceProfile", Schema = "public")]
+    public class MstWorkforceProfile : IdentityModel
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        [Required]
+        [MaxLength(50)]
+        public string ProfileCode { get; set; } = string.Empty;
+
+        [Required]
+        public UserType UserType { get; set; }
+
+        [Required]
+        [MaxLength(200)]
+        public string DisplayName { get; set; } = string.Empty;
+
+        [MaxLength(200)]
+        public string? Email { get; set; }
+
+        [MaxLength(30)]
+        public string? PhoneNumber { get; set; }
+
+        [MaxLength(30)]
+        public string? WhatsAppNumber { get; set; }
+
+        public Guid? PrimaryDepartmentId { get; set; }
+
+        public Guid? PrimaryPositionId { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        public MstDepartment? PrimaryDepartment { get; set; }
+
+        public MstPosition? PrimaryPosition { get; set; }
+
+        public MstEmployee? Employee { get; set; }
+
+        public MstDoctor? Doctor { get; set; }
+
+        public MstExternalUser? ExternalUser { get; set; }
+
+        public ApplicationUser? UserAccount { get; set; }
+
+        public ICollection<WfpOrganizationAssignment> OrganizationAssignments { get; set; }
+            = new List<WfpOrganizationAssignment>();
+
+        public ICollection<WfpBankAccount> BankAccounts { get; set; }
+            = new List<WfpBankAccount>();
+
+        public ICollection<WfpDocument> Documents { get; set; }
+            = new List<WfpDocument>();
+
+        public ICollection<WfpEducation> Educations { get; set; }
+            = new List<WfpEducation>();
+
+        public ICollection<WfpTrainingRecord> TrainingRecords { get; set; }
+            = new List<WfpTrainingRecord>();
+
+        public ICollection<WfpCertification> Certifications { get; set; }
+            = new List<WfpCertification>();
+
+        public ICollection<WfpCredentialLicense> CredentialLicenses { get; set; }
+            = new List<WfpCredentialLicense>();
+
+        public WfpTransportAllowance? TransportAllowance { get; set; }
+
+        public ICollection<WfpTransportAllowanceTransaction> TransportAllowanceTransactions { get; set; } = new List<WfpTransportAllowanceTransaction>();
+
+        public WfpPayroll? Payroll { get; set; }
+
+        public WfpTax? Tax { get; set; }
+
+        public WfpInsurance? Insurance { get; set; }
+
+        public ICollection<WfpWorkScheduleAssignment> WorkScheduleAssignments { get; set; } = new List<WfpWorkScheduleAssignment>();
+
+        public ICollection<WfpLeaveBalance> LeaveBalances { get; set; } = new List<WfpLeaveBalance>();
+
+        public ICollection<WfpLeaveRequest> LeaveRequests { get; set; } = new List<WfpLeaveRequest>();
+
+        public ICollection<WfpOvertimeRequest> OvertimeRequests { get; set; } = new List<WfpOvertimeRequest>();
+
+        public ICollection<WfpClinicalPrivilege> ClinicalPrivileges { get; set; } = new List<WfpClinicalPrivilege>();
+
+        public ICollection<WfpHealthRecord> HealthRecords { get; set; } = new List<WfpHealthRecord>();
+        public ICollection<WfpOnboardingChecklist> OnboardingChecklists { get; set; } = new List<WfpOnboardingChecklist>();
+        public ICollection<WfpOffboardingChecklist> OffboardingChecklists { get; set; } = new List<WfpOffboardingChecklist>();
+        public ICollection<WfpEmploymentHistory> EmploymentHistories { get; set; } = new List<WfpEmploymentHistory>();
+        public ICollection<WfpContractHistory> ContractHistories { get; set; } = new List<WfpContractHistory>();
+        public ICollection<WfpCompetencyAssessment> CompetencyAssessments { get; set; } = new List<WfpCompetencyAssessment>();
+        public ICollection<WfpPerformanceReview> PerformanceReviews { get; set; } = new List<WfpPerformanceReview>();
+        public ICollection<WfpDisciplinaryAction> DisciplinaryActions { get; set; } = new List<WfpDisciplinaryAction>();
+        public ICollection<WfpComplianceAlert> ComplianceAlerts { get; set; } = new List<WfpComplianceAlert>();
+        public ICollection<WfpScheduleChangeRequest> ScheduleChangeRequests { get; set; } = new List<WfpScheduleChangeRequest>();
+        public ICollection<WfpShiftSwapRequest> RequestedShiftSwapRequests { get; set; } = new List<WfpShiftSwapRequest>();
+        public ICollection<WfpShiftSwapRequest> TargetShiftSwapRequests { get; set; } = new List<WfpShiftSwapRequest>();
+    }
+}
