@@ -23,7 +23,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.DefaultMinimumNoticeDays).HasDefaultValue(0);
             entity.Property(x => x.ColorCode).HasMaxLength(20);
             entity.Property(x => x.Description).HasMaxLength(500);
-            entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 
             ConfigureAuditFields(entity);

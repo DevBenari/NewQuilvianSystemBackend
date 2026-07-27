@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
-using QuilvianSystemBackend.Areas.SelfServices.DTOs;
+using QuilvianSystemBackend.Areas.SelfServices.Account.DTOs;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Enums;
@@ -14,7 +14,7 @@ using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 using System.Security.Cryptography;
 
-namespace QuilvianSystemBackend.Areas.SelfServices.Controllers
+namespace QuilvianSystemBackend.Areas.SelfServices.Account.Controllers
 {
     [ApiController]
     [Authorize]

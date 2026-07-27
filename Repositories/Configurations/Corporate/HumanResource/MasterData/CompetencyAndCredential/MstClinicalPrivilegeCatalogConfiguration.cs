@@ -20,7 +20,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.AllowsIndependentPractice).HasDefaultValue(true);
             entity.Property(x => x.IsHighRisk).HasDefaultValue(false);
             entity.Property(x => x.DefaultValidityMonths).IsRequired(false);
-            entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.Description).HasMaxLength(1000);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 

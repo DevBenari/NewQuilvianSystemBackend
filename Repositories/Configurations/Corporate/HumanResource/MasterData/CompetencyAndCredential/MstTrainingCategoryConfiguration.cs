@@ -13,7 +13,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.TrainingCategoryCode).HasMaxLength(50).IsRequired();
             entity.Property(x => x.TrainingCategoryName).HasMaxLength(150).IsRequired();
             entity.Property(x => x.IsMandatoryCategory).HasDefaultValue(false);
-            entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.Description).HasMaxLength(500);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 
@@ -42,7 +41,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasIndex(x => x.TrainingCategoryCode).IsUnique().HasFilter("\"IsDelete\" = false");
             entity.HasIndex(x => x.TrainingCategoryName);
             entity.HasIndex(x => new { x.IsMandatoryCategory, x.IsActive, x.IsDelete });
-            entity.HasIndex(x => new { x.SortOrder, x.TrainingCategoryName });
+            entity.HasIndex(x => new { x.CreateDateTime, x.TrainingCategoryName });
         }
     }
 }

@@ -18,7 +18,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.PatternDefinitionJson).HasColumnType("jsonb").HasDefaultValue("[]").IsRequired();
             entity.Property(x => x.Description).HasMaxLength(500);
             entity.Property(x => x.IsDefault).HasDefaultValue(false);
-            entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 
             ConfigureAuditFields(entity);

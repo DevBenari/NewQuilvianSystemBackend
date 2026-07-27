@@ -1,7 +1,7 @@
 ﻿using QuilvianSystemBackend.Enums;
 using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.SelfServices.DTOs
+namespace QuilvianSystemBackend.Areas.SelfServices.Account.DTOs
 {
     public class SelfServiceProfileResponse
     {

@@ -19,7 +19,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.IsRenewable).HasDefaultValue(true);
             entity.Property(x => x.RequiresDocument).HasDefaultValue(true);
             entity.Property(x => x.RequiresVerification).HasDefaultValue(true);
-            entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.Description).HasMaxLength(500);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 

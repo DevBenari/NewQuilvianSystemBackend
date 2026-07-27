@@ -3319,7 +3319,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             result.ProfessionOptions = await _dbContext.Set<MstProfession>()
                 .AsNoTracking()
                 .Where(x => x.IsActive && !x.IsDelete)
-                .OrderBy(x => x.SortOrder)
+                .OrderBy(x => x.CreateDateTime)
                 .ThenBy(x => x.ProfessionName)
                 .Select(x => new EmployeeMasterOptionResponse
                 {
@@ -3333,7 +3333,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             result.JobFamilyOptions = await _dbContext.Set<MstJobFamily>()
                 .AsNoTracking()
                 .Where(x => x.IsActive && !x.IsDelete)
-                .OrderBy(x => x.SortOrder)
+                .OrderBy(x => x.CreateDateTime)
                 .ThenBy(x => x.JobFamilyName)
                 .Select(x => new EmployeeMasterOptionResponse
                 {

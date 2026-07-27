@@ -78,8 +78,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
 
         public bool IsDefault { get; set; } = false;
 
-        public int SortOrder { get; set; } = 0;
-
         public bool IsActive { get; set; } = true;
 
         public MstLeaveType? LeaveType { get; set; }

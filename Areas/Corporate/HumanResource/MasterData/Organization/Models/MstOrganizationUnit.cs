@@ -34,8 +34,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
 
         public int LevelNumber { get; set; } = 1;
 
-        public int SortOrder { get; set; } = 0;
-
         public bool IsOperationalUnit { get; set; } = true;
 
         public DateTime? EffectiveStartDate { get; set; }

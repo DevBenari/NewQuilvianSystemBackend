@@ -23,9 +23,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.Description)
                 .HasMaxLength(500);
 
-            entity.Property(x => x.SortOrder)
-                .HasDefaultValue(0);
-
             entity.Property(x => x.IsActive)
                 .HasDefaultValue(true);
 
@@ -56,8 +53,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .HasFilter("\"IsDelete\" = false");
 
             entity.HasIndex(x => x.JobFamilyName);
-
-            entity.HasIndex(x => new { x.SortOrder, x.IsActive, x.IsDelete });
         }
     }
 }

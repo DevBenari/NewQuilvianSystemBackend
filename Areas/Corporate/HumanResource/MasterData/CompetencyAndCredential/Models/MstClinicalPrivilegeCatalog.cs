@@ -43,8 +43,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Compete
 
         public int? DefaultValidityMonths { get; set; }
 
-        public int SortOrder { get; set; } = 0;
-
         [MaxLength(1000)]
         public string? Description { get; set; }
 

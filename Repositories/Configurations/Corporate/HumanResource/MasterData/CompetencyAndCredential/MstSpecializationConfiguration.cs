@@ -16,7 +16,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.SpecializationType).HasMaxLength(50).HasDefaultValue("Specialization").IsRequired();
             entity.Property(x => x.IsClinicalSpecialization).HasDefaultValue(true);
             entity.Property(x => x.RequiresCredentialing).HasDefaultValue(true);
-            entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.Description).HasMaxLength(500);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 

@@ -3554,7 +3554,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
 
             result.ProfessionOptions = await _dbContext.Set<MstProfession>()
                 .AsNoTracking().Where(x => x.IsActive && !x.IsDelete)
-                .OrderBy(x => x.SortOrder).ThenBy(x => x.ProfessionName)
+                .OrderBy(x => x.CreateDateTime).ThenBy(x => x.ProfessionName)
                 .Select(x => new DoctorMasterOptionResponse
                 {
                     Value = x.Id, Code = x.ProfessionCode, Name = x.ProfessionName, Label = x.ProfessionName
@@ -3562,7 +3562,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
 
             result.SpecializationOptions = await _dbContext.Set<MstSpecialization>()
                 .AsNoTracking().Where(x => x.IsActive && !x.IsDelete)
-                .OrderBy(x => x.SortOrder).ThenBy(x => x.SpecializationName)
+                .OrderBy(x => x.CreateDateTime).ThenBy(x => x.SpecializationName)
                 .Select(x => new DoctorMasterOptionResponse
                 {
                     Value = x.Id, Code = x.SpecializationCode, Name = x.SpecializationName,

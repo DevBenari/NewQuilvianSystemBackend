@@ -22,7 +22,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.RequiresAssessment).HasDefaultValue(false);
             entity.Property(x => x.MinimumPassingScore).HasPrecision(5, 2).IsRequired(false);
             entity.Property(x => x.IssuesCertificate).HasDefaultValue(false);
-            entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.Description).HasMaxLength(1000);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 

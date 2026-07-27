@@ -16,21 +16,29 @@
     <Compile Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
     <Compile Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
     <Compile Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+    <Compile Remove="Areas\SelfServices\Models\**" />
+    <Compile Remove="Areas\SelfServices\Views\**" />
     <Content Remove="Areas\HealthServices\DeviceManagement\**" />
     <Content Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <Content Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
     <Content Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
     <Content Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+    <Content Remove="Areas\SelfServices\Models\**" />
+    <Content Remove="Areas\SelfServices\Views\**" />
     <EmbeddedResource Remove="Areas\HealthServices\DeviceManagement\**" />
     <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
     <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
     <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+    <EmbeddedResource Remove="Areas\SelfServices\Models\**" />
+    <EmbeddedResource Remove="Areas\SelfServices\Views\**" />
     <None Remove="Areas\HealthServices\DeviceManagement\**" />
     <None Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <None Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
     <None Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
     <None Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+    <None Remove="Areas\SelfServices\Models\**" />
+    <None Remove="Areas\SelfServices\Views\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -66,6 +74,8 @@
     <Folder Include="Areas\Corporate\HumanResource\MasterData\Performance\" />
     <Folder Include="Areas\Corporate\HumanResource\MasterData\PayrollAndBenefit\" />
     <Folder Include="Areas\Corporate\HumanResource\MasterData\TravelAndExpense\" />
+    <Folder Include="Areas\Corporate\HumanResource\WorkforceCore\DTOs\" />
+    <Folder Include="Areas\Corporate\HumanResource\WorkforceCore\Controllers\" />
     <Folder Include="Areas\Corporate\InventoryManagement\" />
     <Folder Include="Areas\Corporate\AssetManagement\" />
     <Folder Include="Areas\Corporate\FinancialManagement\" />
@@ -82,8 +92,14 @@
     <Folder Include="Areas\HealthServices\OperatingRoomManagement\" />
     <Folder Include="Areas\HealthServices\RadiologyManagement\" />
     <Folder Include="Areas\HealthServices\OutpatientManagement\" />
-    <Folder Include="Areas\SelfServices\Models\" />
-    <Folder Include="Areas\SelfServices\Views\" />
+    <Folder Include="Areas\SelfServices\HumanResource\Employee\Dashboard\" />
+    <Folder Include="Areas\SelfServices\HumanResource\Employee\MyProfile\" />
+    <Folder Include="Areas\SelfServices\HumanResource\Employee\MyEmployment\" />
+    <Folder Include="Areas\SelfServices\HumanResource\Employee\MyDocuments\" />
+    <Folder Include="Areas\SelfServices\HumanResource\Employee\MyRequests\" />
+    <Folder Include="Areas\SelfServices\HumanResource\Manager\Dashboard\" />
+    <Folder Include="Areas\SelfServices\HumanResource\Manager\MyTeam\" />
+    <Folder Include="Areas\SelfServices\HumanResource\Manager\MyApprovals\" />
     <Folder Include="Logs\" />
     <Folder Include="SeedData\ICD10\" />
   </ItemGroup>

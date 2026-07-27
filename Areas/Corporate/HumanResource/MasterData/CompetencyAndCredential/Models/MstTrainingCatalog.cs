@@ -47,8 +47,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Compete
 
         public bool IssuesCertificate { get; set; } = false;
 
-        public int SortOrder { get; set; } = 0;
-
         [MaxLength(1000)]
         public string? Description { get; set; }
 

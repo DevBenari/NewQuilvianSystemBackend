@@ -32,8 +32,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Compete
 
         public bool RequiresVerification { get; set; } = true;
 
-        public int SortOrder { get; set; } = 0;
-
         [MaxLength(500)]
         public string? Description { get; set; }
 

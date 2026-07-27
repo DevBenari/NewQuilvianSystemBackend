@@ -20,7 +20,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.CountLateAfterGrace).HasDefaultValue(true);
             entity.Property(x => x.CountEarlyLeaveAfterGrace).HasDefaultValue(true);
             entity.Property(x => x.Description).HasMaxLength(500);
-            entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 
             ConfigureAuditFields(entity);

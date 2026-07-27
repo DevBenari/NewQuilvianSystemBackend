@@ -21,7 +21,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.RequiresOnSitePresence).HasDefaultValue(true);
             entity.Property(x => x.CountsAsWorkingTime).HasDefaultValue(true);
             entity.Property(x => x.IsAllowanceEligible).HasDefaultValue(true);
-            entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 
             ConfigureAuditFields(entity);

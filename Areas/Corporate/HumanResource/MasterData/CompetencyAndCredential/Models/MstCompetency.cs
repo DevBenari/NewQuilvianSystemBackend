@@ -23,8 +23,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Compete
 
         public bool IsClinicalCompetency { get; set; } = false;
 
-        public int SortOrder { get; set; } = 0;
-
         [MaxLength(500)]
         public string? Description { get; set; }
 

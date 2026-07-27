@@ -24,7 +24,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.IsTrainingRequired).HasDefaultValue(false);
             entity.Property(x => x.AssessmentMethod).HasMaxLength(100);
             entity.Property(x => x.ValidityMonths).IsRequired(false);
-            entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.Description).HasMaxLength(500);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 

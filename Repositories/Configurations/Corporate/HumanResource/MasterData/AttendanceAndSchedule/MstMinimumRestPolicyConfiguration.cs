@@ -21,7 +21,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.MinimumWeeklyRestHours).HasPrecision(5, 2).HasDefaultValue(24m);
             entity.Property(x => x.ApplyToAllShifts).HasDefaultValue(true);
             entity.Property(x => x.Description).HasMaxLength(500);
-            entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 
             ConfigureAuditFields(entity);

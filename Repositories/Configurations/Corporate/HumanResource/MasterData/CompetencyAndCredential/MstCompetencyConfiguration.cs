@@ -20,7 +20,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .HasDefaultValue(CompetencyCategory.Other)
                 .IsRequired();
             entity.Property(x => x.IsClinicalCompetency).HasDefaultValue(false);
-            entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.Description).HasMaxLength(500);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 
@@ -53,7 +52,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasIndex(x => x.CompetencyName);
             entity.HasIndex(x => x.CompetencyCategory);
             entity.HasIndex(x => new { x.CompetencyCategory, x.IsClinicalCompetency, x.IsActive, x.IsDelete });
-            entity.HasIndex(x => new { x.SortOrder, x.CompetencyName });
         }
     }
 }

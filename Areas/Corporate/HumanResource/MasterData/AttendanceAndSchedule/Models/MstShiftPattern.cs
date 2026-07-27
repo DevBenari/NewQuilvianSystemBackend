@@ -31,8 +31,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
 
         public bool IsDefault { get; set; } = false;
 
-        public int SortOrder { get; set; } = 0;
-
         public bool IsActive { get; set; } = true;
 
         public MstShiftGroup? ShiftGroup { get; set; }

@@ -16,7 +16,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.IsClinicalProfession).HasDefaultValue(false);
             entity.Property(x => x.RequiresCredentialing).HasDefaultValue(false);
             entity.Property(x => x.RequiresLicense).HasDefaultValue(false);
-            entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.Description).HasMaxLength(500);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 

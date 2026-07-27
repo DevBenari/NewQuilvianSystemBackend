@@ -31,9 +31,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.LevelNumber)
                 .HasDefaultValue(1);
 
-            entity.Property(x => x.SortOrder)
-                .HasDefaultValue(0);
-
             entity.Property(x => x.IsOperationalUnit)
                 .HasDefaultValue(true);
 

@@ -1,4 +1,4 @@
-﻿namespace QuilvianSystemBackend.Areas.SelfServices.DTOs
+﻿namespace QuilvianSystemBackend.Areas.SelfServices.Biometric.DTOs
 {
     public class FingerprintRegisterRequest
     {

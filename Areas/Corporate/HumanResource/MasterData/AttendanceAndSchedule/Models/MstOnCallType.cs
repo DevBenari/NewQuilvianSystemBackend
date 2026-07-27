@@ -34,8 +34,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
 
         public bool IsAllowanceEligible { get; set; } = true;
 
-        public int SortOrder { get; set; } = 0;
-
         public bool IsActive { get; set; } = true;
 
         public ICollection<MstShift> Shifts { get; set; }
