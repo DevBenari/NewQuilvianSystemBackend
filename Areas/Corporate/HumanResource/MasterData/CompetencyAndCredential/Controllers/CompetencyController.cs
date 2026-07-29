@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.DTOs;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Enums.HumanResource;
@@ -13,9 +13,9 @@ using System.Security.Claims;
 
 using ResponseCompetencyPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.DTOs.CompetencyResponse>;
+        QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.DTOs.CompetencyResponse>;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Controllers
+namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Controllers
 {
     [ApiController]
     [Authorize]

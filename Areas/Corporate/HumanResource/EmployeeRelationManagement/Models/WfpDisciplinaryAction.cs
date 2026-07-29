@@ -1,8 +1,10 @@
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models
 {
@@ -12,11 +14,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         public Guid Id { get; set; } = Guid.NewGuid();
 
         public Guid WorkforceProfileId { get; set; }
+
         public Guid? EmployeeId { get; set; }
+
         public Guid? OrganizationAssignmentId { get; set; }
+
         public Guid? DisciplinaryCaseId { get; set; }
+
         public Guid? DisciplinaryDecisionId { get; set; }
+
         public Guid? IncidentReportId { get; set; }
+
+        public Guid DisciplinaryActionTypeId { get; set; }
+
+        public Guid? ViolationTypeId { get; set; }
+
+        public Guid? SanctionTypeId { get; set; }
+
+        public Guid? EmployeeRelationCaseTypeId { get; set; }
+
+        public Guid? RequestReasonId { get; set; }
+
+        public Guid? WorkflowDefinitionId { get; set; }
 
         [Required]
         [MaxLength(60)]
@@ -30,7 +49,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         public string? ActionLevel { get; set; }
 
         public DateTime ActionDate { get; set; }
+
         public DateTime? EffectiveStartDate { get; set; }
+
         public DateTime? EffectiveEndDate { get; set; }
 
         [Required]
@@ -39,8 +60,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
 
         [MaxLength(2000)]
         public string? Reason { get; set; }
+
         [MaxLength(2000)]
         public string? DecisionSummary { get; set; }
+
         [MaxLength(4000)]
         public string? ConfidentialNotes { get; set; }
 
@@ -49,31 +72,57 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationMa
         public string ActionStatus { get; set; } = "Draft";
 
         public bool IsAcknowledged { get; set; } = false;
+
         public DateTime? AcknowledgedAt { get; set; }
+
         public bool IsAppealed { get; set; } = false;
+
         [MaxLength(40)]
         public string? AppealStatus { get; set; }
 
         public bool IsConfidential { get; set; } = true;
+
         [Required]
         [MaxLength(30)]
         public string AccessClassification { get; set; } = "HighlyRestricted";
+
         public bool RequiresEnhancedAudit { get; set; } = true;
 
         public Guid? IssuedByUserId { get; set; }
+
         public Guid? ApprovedByUserId { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         [MaxLength(1000)]
         public string? Description { get; set; }
 
         public MstWorkforceProfile? WorkforceProfile { get; set; }
+
         public MstEmployee? Employee { get; set; }
+
         public WfpOrganizationAssignment? OrganizationAssignment { get; set; }
+
         public TrxDisciplinaryCase? DisciplinaryCase { get; set; }
+
         public TrxDisciplinaryDecision? DisciplinaryDecision { get; set; }
+
         public TrxEmployeeIncidentReport? IncidentReport { get; set; }
+
+        public MstDisciplinaryActionType? DisciplinaryActionType { get; set; }
+
+        public MstViolationType? ViolationType { get; set; }
+
+        public MstSanctionType? SanctionType { get; set; }
+
+        public MstEmployeeRelationCaseType? EmployeeRelationCaseType { get; set; }
+
+        public MstRequestReason? RequestReason { get; set; }
+
+        public MstWorkflowDefinition? WorkflowDefinition { get; set; }
+
         public ApplicationUser? IssuedByUser { get; set; }
+
         public ApplicationUser? ApprovedByUser { get; set; }
     }
 }
