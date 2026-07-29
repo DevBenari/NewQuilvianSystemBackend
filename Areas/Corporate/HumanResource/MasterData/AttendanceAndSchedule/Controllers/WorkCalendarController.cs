@@ -9,7 +9,6 @@ using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Controllers
 {
