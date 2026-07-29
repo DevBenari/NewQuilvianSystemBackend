@@ -15,7 +15,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/corporate/human-resource/master-data/performance-templates/{performanceTemplateId : guid}/details")]
+    [Route("api/v1/corporate/human-resource/master-data/performance-templates/{performanceTemplateId:guid}/details")]
     [Tags("Corporate / Human Resource / Master Data / Performance Template Detail")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_MASTER_DATA",
@@ -112,7 +112,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             }, "Data berhasil diambil."));
         }
 
-        [HttpGet("{id : guid}")]
+        [HttpGet("{id:guid}")]
         [AccessAction("Read", "Read Performance Template Detail", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PerformanceTemplateDetail", "Read")]
         public async Task<IActionResult> Detail(Guid performanceTemplateId, Guid id, CancellationToken ct)
@@ -156,7 +156,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             return await Detail(performanceTemplateId, x.Id, ct);
         }
 
-        [HttpPut("{id : guid}")]
+        [HttpPut("{id:guid}")]
         [AccessAction("Update", "Update Performance Template Detail", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("PerformanceTemplateDetail", "Update")]
         public async Task<IActionResult> Update(Guid performanceTemplateId, Guid id, [FromBody] UpdatePerformanceTemplateDetailRequest r, CancellationToken ct)
@@ -192,7 +192,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             return await Detail(performanceTemplateId, id, ct);
         }
 
-        [HttpPatch("{id : guid}/status")]
+        [HttpPatch("{id:guid}/status")]
         [AccessAction("Update", "Update Performance Template Detail Status", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("PerformanceTemplateDetail", "Update")]
         public async Task<IActionResult> Status(Guid performanceTemplateId, Guid id, [FromBody] UpdatePerformanceTemplateDetailStatusRequest r, CancellationToken ct)
@@ -206,7 +206,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             return Ok(ApiResponse<object>.Ok(null, "Status berhasil diperbarui."));
         }
 
-        [HttpDelete("{id : guid}")]
+        [HttpDelete("{id:guid}")]
         [AccessAction("Delete", "Delete Performance Template Detail", AccessType = AccessTypes.Delete, SortOrder = 5)]
         [AccessPermission("PerformanceTemplateDetail", "Delete")]
         public async Task<IActionResult> Delete(Guid performanceTemplateId, Guid id, CancellationToken ct)

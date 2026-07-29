@@ -124,7 +124,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             }, "Pilihan berhasil diambil."));
         }
 
-        [HttpGet("{id : guid}")]
+        [HttpGet("{id:guid}")]
         [AccessAction("Read", "Read Performance Rating Scale", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PerformanceRatingScale", "Read")]
         public async Task<IActionResult> Detail(Guid id, CancellationToken ct)
@@ -163,7 +163,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             return await Detail(x.Id, ct);
         }
 
-        [HttpPut("{id : guid}")]
+        [HttpPut("{id:guid}")]
         [AccessAction("Update", "Update Performance Rating Scale", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("PerformanceRatingScale", "Update")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePerformanceRatingScaleRequest r, CancellationToken ct)
@@ -191,7 +191,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             return await Detail(id, ct);
         }
 
-        [HttpPatch("{id : guid}/status")]
+        [HttpPatch("{id:guid}/status")]
         [AccessAction("Update", "Update Performance Rating Scale Status", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("PerformanceRatingScale", "Update")]
         public async Task<IActionResult> Status(Guid id, [FromBody] UpdatePerformanceRatingScaleStatusRequest r, CancellationToken ct)
@@ -208,7 +208,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             return Ok(ApiResponse<object>.Ok(null, "Status berhasil diperbarui."));
         }
 
-        [HttpDelete("{id : guid}")]
+        [HttpDelete("{id:guid}")]
         [AccessAction("Delete", "Delete Performance Rating Scale", AccessType = AccessTypes.Delete, SortOrder = 5)]
         [AccessPermission("PerformanceRatingScale", "Delete")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken ct)

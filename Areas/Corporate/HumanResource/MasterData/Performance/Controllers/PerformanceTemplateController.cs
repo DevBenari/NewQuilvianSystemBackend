@@ -146,7 +146,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             }, "Pilihan berhasil diambil."));
         }
 
-        [HttpGet("{id : guid}")]
+        [HttpGet("{id:guid}")]
         [AccessAction("Read", "Read Performance Template", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PerformanceTemplate", "Read")]
         public async Task<IActionResult> Detail(Guid id, CancellationToken ct)
@@ -243,7 +243,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             return await Detail(x.Id, ct);
         }
 
-        [HttpPut("{id : guid}")]
+        [HttpPut("{id:guid}")]
         [AccessAction("Update", "Update Performance Template", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("PerformanceTemplate", "Update")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePerformanceTemplateRequest r, CancellationToken ct)
@@ -286,7 +286,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             return await Detail(id, ct);
         }
 
-        [HttpPatch("{id : guid}/status")]
+        [HttpPatch("{id:guid}/status")]
         [AccessAction("Update", "Update Performance Template Status", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("PerformanceTemplate", "Update")]
         public async Task<IActionResult> Status(Guid id, [FromBody] UpdatePerformanceTemplateStatusRequest r, CancellationToken ct)
@@ -303,7 +303,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             return Ok(ApiResponse<object>.Ok(null, "Status berhasil diperbarui."));
         }
 
-        [HttpDelete("{id : guid}")]
+        [HttpDelete("{id:guid}")]
         [AccessAction("Delete", "Delete Performance Template", AccessType = AccessTypes.Delete, SortOrder = 5)]
         [AccessPermission("PerformanceTemplate", "Delete")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken ct)

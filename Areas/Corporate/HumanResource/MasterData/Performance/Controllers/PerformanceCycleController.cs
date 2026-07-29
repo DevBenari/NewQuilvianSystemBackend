@@ -130,7 +130,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             }, "Pilihan berhasil diambil."));
         }
 
-        [HttpGet("{id : guid}")]
+        [HttpGet("{id:guid}")]
         [AccessAction("Read", "Read Performance Cycle", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PerformanceCycle", "Read")]
         public async Task<IActionResult> Detail(Guid id, CancellationToken ct)
@@ -174,7 +174,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             return await Detail(x.Id, ct);
         }
 
-        [HttpPut("{id : guid}")]
+        [HttpPut("{id:guid}")]
         [AccessAction("Update", "Update Performance Cycle", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("PerformanceCycle", "Update")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePerformanceCycleRequest r, CancellationToken ct)
@@ -211,7 +211,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             return await Detail(id, ct);
         }
 
-        [HttpPatch("{id : guid}/status")]
+        [HttpPatch("{id:guid}/status")]
         [AccessAction("Update", "Update Performance Cycle Status", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("PerformanceCycle", "Update")]
         public async Task<IActionResult> Status(Guid id, [FromBody] UpdatePerformanceCycleStatusRequest r, CancellationToken ct)
@@ -231,7 +231,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             return Ok(ApiResponse<object>.Ok(null, "Status berhasil diperbarui."));
         }
 
-        [HttpDelete("{id : guid}")]
+        [HttpDelete("{id:guid}")]
         [AccessAction("Delete", "Delete Performance Cycle", AccessType = AccessTypes.Delete, SortOrder = 5)]
         [AccessPermission("PerformanceCycle", "Delete")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken ct)

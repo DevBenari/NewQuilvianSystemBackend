@@ -15,7 +15,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId : guid}/performance-reviews/{performanceReviewId : guid}/details")]
+    [Route("api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId:guid}/performance-reviews/{performanceReviewId:guid}/details")]
     [Tags("Corporate / Human Resource / Performance Management / Performance Review Detail")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_PERFORMANCE",
@@ -107,7 +107,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             }, "Data berhasil diambil."));
         }
 
-        [HttpGet("{id : guid}")]
+        [HttpGet("{id:guid}")]
         [AccessAction("Read", "Read Performance Review Detail", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PerformanceReviewDetail", "Read")]
         public async Task<IActionResult> Detail(Guid workforceProfileId, Guid performanceReviewId, Guid id, CancellationToken ct)
@@ -153,7 +153,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             return await Detail(workforceProfileId, performanceReviewId, x.Id, ct);
         }
 
-        [HttpPut("{id : guid}")]
+        [HttpPut("{id:guid}")]
         [AccessAction("Update", "Update Performance Review Detail", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("PerformanceReviewDetail", "Update")]
         public async Task<IActionResult> Update(Guid workforceProfileId, Guid performanceReviewId, Guid id, [FromBody] UpdateWfpPerformanceReviewDetailRequest r, CancellationToken ct)
@@ -190,7 +190,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             return await Detail(workforceProfileId, performanceReviewId, id, ct);
         }
 
-        [HttpPatch("{id : guid}/status")]
+        [HttpPatch("{id:guid}/status")]
         [AccessAction("Update", "Update Performance Review Detail Status", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("PerformanceReviewDetail", "Update")]
         public async Task<IActionResult> Status(Guid workforceProfileId, Guid performanceReviewId, Guid id, [FromBody] UpdateWfpPerformanceReviewDetailStatusRequest r, CancellationToken ct)
@@ -206,7 +206,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagem
             return Ok(ApiResponse<object>.Ok(null, "Status berhasil diperbarui."));
         }
 
-        [HttpDelete("{id : guid}")]
+        [HttpDelete("{id:guid}")]
         [AccessAction("Delete", "Delete Performance Review Detail", AccessType = AccessTypes.Delete, SortOrder = 5)]
         [AccessPermission("PerformanceReviewDetail", "Delete")]
         public async Task<IActionResult> Delete(Guid workforceProfileId, Guid performanceReviewId, Guid id, CancellationToken ct)
