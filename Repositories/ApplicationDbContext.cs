@@ -483,8 +483,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxApprovalAction> TrxApprovalActions { get; set; }
         public DbSet<TrxApprovalDelegation> TrxApprovalDelegations { get; set; }
         public DbSet<TrxWorkflowComment> TrxWorkflowComments { get; set; }
-        public DbSet<TrxWorkflowAttachment> TrxWorkflowAttachments { get; set; }
+        public DbSet<TrxWorkflowAttachment> TrxWorkflowAttachments { get; set; }        
         public DbSet<TrxWorkflowStatusHistory> TrxWorkflowStatusHistories { get; set; }
+        public DbSet<TrxWorkflowApproverAssignment> TrxWorkflowApproverAssignments { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - WORKFLOW MANAGEMENT
 
         #endregion CORPORATE

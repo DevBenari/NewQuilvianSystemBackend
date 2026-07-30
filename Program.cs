@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
@@ -271,6 +273,14 @@ try
 
     builder.Services.AddScoped<HumanResourceContextService>();
     builder.Services.AddScoped<EmployeeProfileChangeService>();
+    builder.Services.AddScoped<WorkflowService>();
+    builder.Services.AddScoped<WorkflowFileStorageService>();
+    builder.Services.AddScoped<WorkflowCommentService>();
+    builder.Services.AddScoped<WorkflowAttachmentService>();
+    builder.Services.AddScoped<ApprovalDelegationService>();
+    builder.Services.AddScoped<ApprovalInboxService>();
+    builder.Services.AddScoped<WorkflowReferenceLifecycleService>();
+    builder.Services.AddScoped<EmployeeProfileChangeWorkflowIntegrationService>();
 
     builder.Services.AddAuthorization(options =>
     {
