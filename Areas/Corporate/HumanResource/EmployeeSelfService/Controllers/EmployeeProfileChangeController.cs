@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -9,22 +9,22 @@ using System.Security.Claims;
 
 using EmployeeProfileChangePagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs.EmployeeProfileChangeListResponse>;
+        QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs.EmployeeProfileChangeListResponse>;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Controllers
+namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/corporate/human-resource/employee-profile-changes")]
+    [Route("api/v1/corporate/human-resource/employee-self-service/profile-change-requests")]
     [AccessController(
-        moduleCode: "HUMAN_RESOURCE_WORKFORCE_CORE",
-        moduleName: "Human Resource Workforce Core",
-        displayName: "Employee Profile Change",
+        moduleCode: "HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE",
+        moduleName: "Human Resource Employee Self Service",
+        displayName: "Employee Profile Change Request",
         AreaName = "Corporate",
         ControllerName = "EmployeeProfileChange",
-        Description = "Corporate human resource employee profile change request, verification, approval, dan apply",
+        Description = "Employee self service profile change request, verification, approval, and application",
         SortOrder = 20)]
-    [Tags("Corporate / Human Resource / Workforce Core / Employee Profile Change")]
+    [Tags("Corporate / Human Resource / Employee Self Service / Profile Change Request")]
     public class EmployeeProfileChangeController : ControllerBase
     {
         private readonly EmployeeProfileChangeService _service;
@@ -41,7 +41,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
-            "Read Employee Profile Change",
+            "Read Employee Profile Change Request",
             Description = "Melihat metadata employee profile change",
             AccessType = AccessTypes.Read,
             SortOrder = 1)]
@@ -53,7 +53,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             return Ok(
                 ApiResponse<EmployeeProfileChangeFilterMetadataResponse>.Ok(
                     result,
-                    "Metadata employee profile change berhasil diambil."));
+                    "Metadata profile change request berhasil diambil."));
         }
 
         [HttpGet("summary")]
@@ -62,7 +62,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
-            "Read Employee Profile Change",
+            "Read Employee Profile Change Request",
             Description = "Melihat ringkasan employee profile change",
             AccessType = AccessTypes.Read,
             SortOrder = 1)]
@@ -78,7 +78,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             return Ok(
                 ApiResponse<EmployeeProfileChangeSummaryResponse>.Ok(
                     result,
-                    "Ringkasan employee profile change berhasil diambil."));
+                    "Ringkasan profile change request berhasil diambil."));
         }
 
         [HttpGet]
@@ -87,7 +87,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status200OK)]
         [AccessAction(
             "Read",
-            "Read Employee Profile Change",
+            "Read Employee Profile Change Request",
             Description = "Melihat daftar employee profile change",
             AccessType = AccessTypes.Read,
             SortOrder = 1)]
@@ -125,7 +125,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             return Ok(
                 ApiResponse<EmployeeProfileChangePagedResult>.Ok(
                     result,
-                    "Data employee profile change berhasil diambil."));
+                    "Data profile change request berhasil diambil."));
         }
 
         [HttpGet("{id:guid}")]
@@ -137,7 +137,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status404NotFound)]
         [AccessAction(
             "Read",
-            "Read Employee Profile Change",
+            "Read Employee Profile Change Request",
             Description = "Melihat detail employee profile change",
             AccessType = AccessTypes.Read,
             SortOrder = 1)]
@@ -159,7 +159,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status400BadRequest)]
         [AccessAction(
             "Create",
-            "Create Employee Profile Change",
+            "Create Employee Profile Change Request",
             Description = "Membuat draft employee profile change",
             AccessType = AccessTypes.Create,
             SortOrder = 2)]
@@ -185,7 +185,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status200OK)]
         [AccessAction(
             "Update",
-            "Update Employee Profile Change",
+            "Update Employee Profile Change Request",
             Description = "Mengubah draft atau revisi employee profile change",
             AccessType = AccessTypes.Update,
             SortOrder = 3)]
@@ -213,7 +213,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status200OK)]
         [AccessAction(
             "Update",
-            "Submit Employee Profile Change",
+            "Submit Employee Profile Change Request",
             Description = "Submit employee profile change",
             AccessType = AccessTypes.Update,
             SortOrder = 4)]
@@ -241,7 +241,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status200OK)]
         [AccessAction(
             "Verify",
-            "Start Employee Profile Change Verification",
+            "Start Profile Change Request Verification",
             Description = "Memulai verifikasi employee profile change",
             AccessType = AccessTypes.Update,
             SortOrder = 5)]
@@ -268,7 +268,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status200OK)]
         [AccessAction(
             "Verify",
-            "Verify Employee Profile Change",
+            "Verify Employee Profile Change Request",
             Description = "Memberikan keputusan verifikasi employee profile change",
             AccessType = AccessTypes.Update,
             SortOrder = 6)]
@@ -295,7 +295,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         [HttpGet("{id:guid}/verifications/{verificationId:guid}/evidence")]
         [AccessAction(
             "Read",
-            "Read Employee Profile Change Evidence",
+            "Read Profile Change Request Evidence",
             Description = "Mengunduh bukti verifikasi employee profile change",
             AccessType = AccessTypes.Read,
             SortOrder = 1)]
@@ -339,7 +339,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status200OK)]
         [AccessAction(
             "Approve",
-            "Approve Employee Profile Change",
+            "Approve Employee Profile Change Request",
             Description = "Menyetujui employee profile change",
             AccessType = AccessTypes.Update,
             SortOrder = 7)]
@@ -367,7 +367,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status200OK)]
         [AccessAction(
             "Reject",
-            "Reject Employee Profile Change",
+            "Reject Employee Profile Change Request",
             Description = "Menolak employee profile change",
             AccessType = AccessTypes.Update,
             SortOrder = 8)]
@@ -395,7 +395,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status200OK)]
         [AccessAction(
             "Update",
-            "Request Employee Profile Change Revision",
+            "Request Profile Change Request Revision",
             Description = "Meminta revisi employee profile change",
             AccessType = AccessTypes.Update,
             SortOrder = 9)]
@@ -423,7 +423,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status200OK)]
         [AccessAction(
             "Apply",
-            "Apply Employee Profile Change",
+            "Apply Employee Profile Change Request",
             Description = "Menerapkan employee profile change ke data workforce",
             AccessType = AccessTypes.Update,
             SortOrder = 10)]
@@ -451,7 +451,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status200OK)]
         [AccessAction(
             "Cancel",
-            "Cancel Employee Profile Change",
+            "Cancel Employee Profile Change Request",
             Description = "Membatalkan employee profile change",
             AccessType = AccessTypes.Update,
             SortOrder = 11)]
@@ -479,7 +479,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             StatusCodes.Status200OK)]
         [AccessAction(
             "Delete",
-            "Delete Employee Profile Change",
+            "Delete Employee Profile Change Request",
             Description = "Menghapus employee profile change secara soft delete",
             AccessType = AccessTypes.Delete,
             SortOrder = 12)]

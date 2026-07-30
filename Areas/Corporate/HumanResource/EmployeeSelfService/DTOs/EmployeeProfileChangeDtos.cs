@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
+namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs
 {
+    /// <summary>
+    /// Employee Self Service request contracts for profile change workflow.
+    /// </summary>
     public class EmployeeProfileChangeStringOptionResponse
     {
         public string Value { get; set; } = string.Empty;
