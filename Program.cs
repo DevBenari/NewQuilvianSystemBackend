@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
@@ -281,6 +282,20 @@ try
     builder.Services.AddScoped<ApprovalInboxService>();
     builder.Services.AddScoped<WorkflowReferenceLifecycleService>();
     builder.Services.AddScoped<EmployeeProfileChangeWorkflowIntegrationService>();
+
+    builder.Services.AddScoped<AttendanceRawLogService>();
+    builder.Services.AddScoped<AttendanceScheduleResolverService>();
+    builder.Services.AddScoped<AttendanceProcessingService>();
+    builder.Services.AddScoped<AttendanceDailyQueryService>();
+    builder.Services.AddScoped<AttendanceCorrectionWorkflowLifecycleService>();
+    builder.Services.AddScoped<AttendanceCorrectionService>();
+    builder.Services.AddScoped<AttendanceCorrectionMonitoringService>();
+    builder.Services.AddScoped<AttendancePayrollHandoffService>();
+    builder.Services.Configure<AttendanceSchedulerOptions>(
+    builder.Configuration.GetSection("HumanResource:AttendanceScheduler"));
+    builder.Services.AddScoped<AttendancePeriodService>();
+    builder.Services.AddScoped<AttendanceSchedulerService>();
+    builder.Services.AddHostedService<AttendanceSchedulerHostedService>();
 
     builder.Services.AddAuthorization(options =>
     {

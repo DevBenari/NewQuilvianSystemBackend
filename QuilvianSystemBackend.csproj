@@ -67,6 +67,7 @@
   <ItemGroup>
     <Folder Include="Areas\Administrator\Dashboard\" />
     <Folder Include="Areas\Administrator\DocumentManagement\" />
+    <Folder Include="Areas\Corporate\HumanResource\AttendanceManagement\Constants\" />
     <Folder Include="Areas\Corporate\HumanResource\MasterData\AttendanceAndSchedule\" />
     <Folder Include="Areas\Corporate\HumanResource\MasterData\LeaveAndOvertime\" />
     <Folder Include="Areas\Corporate\HumanResource\MasterData\Workflow\" />

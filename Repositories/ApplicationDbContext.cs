@@ -128,6 +128,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstLeavePolicy> MstLeavePolicies { get; set; }
         public DbSet<MstLeaveEntitlementPolicy> MstLeaveEntitlementPolicies { get; set; }
         public DbSet<MstLeaveCarryForwardPolicy> MstLeaveCarryForwardPolicies { get; set; }
+        public DbSet<MstLeaveAdjustmentReason> MstLeaveAdjustmentReasons { get; set; }
         public DbSet<MstOvertimePolicy> MstOvertimePolicies { get; set; }
         public DbSet<MstOvertimeRate> MstOvertimeRates { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - MASTER DATA - LEAVE AND OVERTIME
@@ -276,6 +277,9 @@ namespace QuilvianSystemBackend.Repositories
         #region CORPORATE - HUMAN RESOURCE - ATTENDANCE MANAGEMENT
         public DbSet<TrxAttendance> TrxAttendances { get; set; }
         public DbSet<TrxAttendanceRawLog> TrxAttendanceRawLogs { get; set; }
+        public DbSet<TrxAttendanceProcessingRun> TrxAttendanceProcessingRuns { get; set; }
+        public DbSet<TrxAttendancePeriod> TrxAttendancePeriods { get; set; }
+        public DbSet<TrxAttendanceSchedulerJob> TrxAttendanceSchedulerJobs { get; set; }
         public DbSet<TrxAttendanceDaily> TrxAttendanceDailies { get; set; }
         public DbSet<TrxAttendanceDailySegment> TrxAttendanceDailySegments { get; set; }
         public DbSet<TrxAttendanceException> TrxAttendanceExceptions { get; set; }
@@ -303,9 +307,14 @@ namespace QuilvianSystemBackend.Repositories
 
         #region CORPORATE - HUMAN RESOURCE - LEAVE MANAGEMENT
         public DbSet<WfpLeaveBalance> WfpLeaveBalances { get; set; }
+        public DbSet<TrxLeaveEntitlementPeriod> TrxLeaveEntitlementPeriods { get; set; }
         public DbSet<WfpLeaveRequest> WfpLeaveRequests { get; set; }
         public DbSet<TrxLeaveEntitlement> TrxLeaveEntitlements { get; set; }
+        public DbSet<TrxLeaveAccrualRun> TrxLeaveAccrualRuns { get; set; }
         public DbSet<TrxLeaveAccrual> TrxLeaveAccruals { get; set; }
+        public DbSet<TrxLeaveCarryForwardRun> TrxLeaveCarryForwardRuns { get; set; }
+        public DbSet<TrxLeaveCarryForward> TrxLeaveCarryForwards { get; set; }
+        public DbSet<TrxLeaveAdjustment> TrxLeaveAdjustments { get; set; }
         public DbSet<TrxLeaveBalanceTransaction> TrxLeaveBalanceTransactions { get; set; }
         public DbSet<TrxLeaveRequestApproval> TrxLeaveRequestApprovals { get; set; }
         public DbSet<TrxLeaveRequestAttachment> TrxLeaveRequestAttachments { get; set; }
@@ -483,7 +492,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxApprovalAction> TrxApprovalActions { get; set; }
         public DbSet<TrxApprovalDelegation> TrxApprovalDelegations { get; set; }
         public DbSet<TrxWorkflowComment> TrxWorkflowComments { get; set; }
-        public DbSet<TrxWorkflowAttachment> TrxWorkflowAttachments { get; set; }        
+        public DbSet<TrxWorkflowAttachment> TrxWorkflowAttachments { get; set; }
         public DbSet<TrxWorkflowStatusHistory> TrxWorkflowStatusHistories { get; set; }
         public DbSet<TrxWorkflowApproverAssignment> TrxWorkflowApproverAssignments { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - WORKFLOW MANAGEMENT

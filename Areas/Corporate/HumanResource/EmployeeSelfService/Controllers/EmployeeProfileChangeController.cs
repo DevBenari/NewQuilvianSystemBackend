@@ -18,14 +18,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
     [Authorize]
     [Route("api/v1/corporate/human-resource/employee-profile-changes")]
     [AccessController(
-        moduleCode: "HUMAN_RESOURCE_WORKFORCE_CORE",
-        moduleName: "Human Resource Workforce Core",
+        moduleCode: "HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE",
+        moduleName: "Human Resource Employee Self Service",
         displayName: "Employee Profile Change",
         AreaName = "Corporate",
         ControllerName = "EmployeeProfileChange",
         Description = "Corporate human resource employee profile change dengan generic workflow engine",
         SortOrder = 20)]
-    [Tags("Corporate / Human Resource / Workforce Core / Employee Profile Change")]
+    [Tags("Corporate / Human Resource / Employee Self Service / Employee Profile Change")]
     public class EmployeeProfileChangeController : ControllerBase
     {
         private readonly EmployeeProfileChangeService _service;

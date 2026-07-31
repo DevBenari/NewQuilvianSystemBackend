@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -37,13 +38,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         [Required]
         [MaxLength(30)]
-        public string EventType { get; set; } = "Unknown";
-        // CheckIn, CheckOut, BreakStart, BreakEnd, Unknown.
+        public string EventType { get; set; }
+            = AttendanceValueConstants.RawLogEventType.Unknown;
 
         [Required]
         [MaxLength(30)]
-        public string SourceType { get; set; } = "Device";
-        // Device, Mobile, WebLogin, Import, Integration, Manual.
+        public string SourceType { get; set; }
+            = AttendanceValueConstants.RawLogSourceType.Device;
 
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
@@ -63,8 +64,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         [Required]
         [MaxLength(30)]
-        public string ProcessingStatus { get; set; } = "Pending";
-        // Pending, Matched, Processed, Duplicate, Rejected, Error.
+        public string ProcessingStatus { get; set; }
+            = AttendanceValueConstants.RawLogProcessingStatus.Pending;
 
         public DateTime ReceivedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ProcessedAt { get; set; }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
 using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
@@ -42,6 +43,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         public const string EmployeeProfileChangeReferenceType =
             "EMPLOYEE_PROFILE_CHANGE";
 
+        public const string AttendanceCorrectionReferenceType =
+            "ATTENDANCE_CORRECTION";
+
         private static readonly HashSet<string> EmployeeProfileChangeReferenceAliases =
             new(StringComparer.OrdinalIgnoreCase)
             {
@@ -51,17 +55,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 "PROFILE_CHANGE"
             };
 
+        private static readonly HashSet<string> AttendanceCorrectionReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                AttendanceCorrectionReferenceType,
+                "AttendanceCorrection",
+                "TrxAttendanceCorrectionRequest",
+                "ATTENDANCE_CORRECTION_REQUEST"
+            };
+
         private readonly ApplicationDbContext _dbContext;
         private readonly EmployeeProfileChangeService _employeeProfileChangeService;
+        private readonly AttendanceCorrectionWorkflowLifecycleService
+            _attendanceCorrectionWorkflowLifecycleService;
         private readonly ILogger<WorkflowReferenceLifecycleService> _logger;
 
         public WorkflowReferenceLifecycleService(
             ApplicationDbContext dbContext,
             EmployeeProfileChangeService employeeProfileChangeService,
+            AttendanceCorrectionWorkflowLifecycleService
+                attendanceCorrectionWorkflowLifecycleService,
             ILogger<WorkflowReferenceLifecycleService> logger)
         {
             _dbContext = dbContext;
             _employeeProfileChangeService = employeeProfileChangeService;
+            _attendanceCorrectionWorkflowLifecycleService =
+                attendanceCorrectionWorkflowLifecycleService;
             _logger = logger;
         }
 
@@ -117,28 +136,45 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     "Workflow instance tidak ditemukan.");
             }
 
-            if (!IsEmployeeProfileChangeReference(workflow.ReferenceType))
+            if (IsEmployeeProfileChangeReference(workflow.ReferenceType))
             {
-                return new WorkflowReferenceLifecycleSynchronizationResult
-                {
-                    IsHandled = false,
-                    WorkflowInstanceId = workflow.Id,
-                    ReferenceId = workflow.ReferenceId,
-                    WorkflowStatus = workflow.WorkflowStatus
-                };
+                return await SynchronizeEmployeeProfileChangeAsync(
+                    workflow,
+                    actorUserId,
+                    allowAutoApply,
+                    cancellationToken);
             }
 
-            return await SynchronizeEmployeeProfileChangeAsync(
-                workflow,
-                actorUserId,
-                allowAutoApply,
-                cancellationToken);
+            if (IsAttendanceCorrectionReference(workflow.ReferenceType))
+            {
+                return await _attendanceCorrectionWorkflowLifecycleService
+                    .SynchronizeAsync(
+                        workflow,
+                        actorUserId,
+                        allowAutoApply,
+                        cancellationToken);
+            }
+
+            return new WorkflowReferenceLifecycleSynchronizationResult
+            {
+                IsHandled = false,
+                WorkflowInstanceId = workflow.Id,
+                ReferenceId = workflow.ReferenceId,
+                WorkflowStatus = workflow.WorkflowStatus
+            };
         }
 
         public static bool IsEmployeeProfileChangeReference(string? referenceType)
         {
             return !string.IsNullOrWhiteSpace(referenceType) &&
                    EmployeeProfileChangeReferenceAliases.Contains(
+                       referenceType.Trim());
+        }
+
+        public static bool IsAttendanceCorrectionReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   AttendanceCorrectionReferenceAliases.Contains(
                        referenceType.Trim());
         }
 

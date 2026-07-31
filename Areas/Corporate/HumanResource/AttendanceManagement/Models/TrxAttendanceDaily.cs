@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
@@ -33,12 +34,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         public Guid? WorkScheduleId { get; set; }
         public Guid? WorkScheduleAssignmentId { get; set; }
+        public Guid? PrimaryShiftAssignmentId { get; set; }
         public Guid? ShiftId { get; set; }
         public Guid? AttendancePolicyId { get; set; }
         public Guid? GracePeriodPolicyId { get; set; }
         public Guid? PayrollPeriodId { get; set; }
+        public Guid? AttendancePeriodId { get; set; }
 
         public DateOnly AttendanceDate { get; set; }
+
+        [Required]
+        [MaxLength(40)]
+        public string ScheduleSource { get; set; }
+            = AttendanceValueConstants.ScheduleSource.Unresolved;
+
+        public string? ScheduleResolutionJson { get; set; }
 
         public DateTime? ScheduledCheckInAt { get; set; }
         public DateTime? ScheduledCheckOutAt { get; set; }
@@ -71,11 +81,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         [Required]
         [MaxLength(50)]
-        public string AttendanceStatus { get; set; } = "Unprocessed";
+        public string AttendanceStatus { get; set; }
+            = AttendanceValueConstants.AttendanceStatus.Unprocessed;
 
         [Required]
         [MaxLength(30)]
-        public string ProcessingStatus { get; set; } = "Pending";
+        public string ProcessingStatus { get; set; }
+            = AttendanceValueConstants.AttendanceProcessingStatus.Pending;
 
         public int ProcessingVersion { get; set; } = 1;
         public DateTime? ProcessedAt { get; set; }
@@ -83,7 +95,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public bool IsPayrollEligible { get; set; } = true;
 
         [MaxLength(30)]
-        public string PayrollInputStatus { get; set; } = "Pending";
+        public string PayrollInputStatus { get; set; }
+            = AttendanceValueConstants.PayrollInputStatus.Pending;
 
         public DateTime? PayrollProcessedAt { get; set; }
 
@@ -104,15 +117,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public MstWorkLocation? WorkLocation { get; set; }
         public MstWorkSchedule? WorkSchedule { get; set; }
         public WfpWorkScheduleAssignment? WorkScheduleAssignment { get; set; }
+        public TrxShiftAssignment? PrimaryShiftAssignment { get; set; }
         public MstShift? Shift { get; set; }
         public MstAttendancePolicy? AttendancePolicy { get; set; }
         public MstGracePeriodPolicy? GracePeriodPolicy { get; set; }
         public MstPayrollPeriod? PayrollPeriod { get; set; }
+        public TrxAttendancePeriod? AttendancePeriod { get; set; }
         public TrxAttendance? Attendance { get; set; }
 
-        public ICollection<TrxAttendanceRawLog> RawLogs { get; set; } = new List<TrxAttendanceRawLog>();
-        public ICollection<TrxAttendanceDailySegment> Segments { get; set; } = new List<TrxAttendanceDailySegment>();
-        public ICollection<TrxAttendanceException> Exceptions { get; set; } = new List<TrxAttendanceException>();
-        public ICollection<TrxAttendanceCorrectionRequest> CorrectionRequests { get; set; } = new List<TrxAttendanceCorrectionRequest>();
+        public ICollection<TrxAttendanceRawLog> RawLogs { get; set; }
+            = new List<TrxAttendanceRawLog>();
+
+        public ICollection<TrxAttendanceDailySegment> Segments { get; set; }
+            = new List<TrxAttendanceDailySegment>();
+
+        public ICollection<TrxAttendanceException> Exceptions { get; set; }
+            = new List<TrxAttendanceException>();
+
+        public ICollection<TrxAttendanceCorrectionRequest> CorrectionRequests { get; set; }
+            = new List<TrxAttendanceCorrectionRequest>();
     }
 }

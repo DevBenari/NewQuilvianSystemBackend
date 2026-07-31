@@ -32,34 +32,24 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .HasFilter("\"IsDelete\" = false");
 
             entity.HasIndex(x => x.LeaveTypeName);
-            entity.HasIndex(x => x.LeaveCategory);
-            entity.HasIndex(x => new { x.LeaveCategory, x.IsPaidLeave, x.IsBalanceDeducted, x.IsActive, x.IsDelete });
+            entity.HasIndex(x => new
+            {
+                x.LeaveCategory,
+                x.IsPaidLeave,
+                x.IsBalanceDeducted,
+                x.IsActive,
+                x.IsDelete
+            });
         }
 
-        private static void ConfigureAuditFields<T>(EntityTypeBuilder<T> entity)
-            where T : QuilvianSystemBackend.Models.IdentityModel
+        private static void ConfigureAuditFields(EntityTypeBuilder<MstLeaveType> entity)
         {
-            entity.Property(x => x.CreateDateTime)
-                .HasColumnType("timestamp with time zone")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-            entity.Property(x => x.UpdateDateTime)
-                .HasColumnType("timestamp with time zone")
-                .IsRequired(false);
-
-            entity.Property(x => x.DeleteDateTime)
-                .HasColumnType("timestamp with time zone")
-                .IsRequired(false);
-
-            entity.Property(x => x.CancelDateTime)
-                .HasColumnType("timestamp with time zone")
-                .IsRequired(false);
-
-            entity.Property(x => x.IsDelete)
-                .HasDefaultValue(false);
-
-            entity.Property(x => x.IsCancel)
-                .HasDefaultValue(false);
+            entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(x => x.UpdateDateTime).HasColumnType("timestamp with time zone").IsRequired(false);
+            entity.Property(x => x.DeleteDateTime).HasColumnType("timestamp with time zone").IsRequired(false);
+            entity.Property(x => x.CancelDateTime).HasColumnType("timestamp with time zone").IsRequired(false);
+            entity.Property(x => x.IsDelete).HasDefaultValue(false);
+            entity.Property(x => x.IsCancel).HasDefaultValue(false);
         }
     }
 }

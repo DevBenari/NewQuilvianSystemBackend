@@ -745,13 +745,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     WorkflowValueConstants.WorkflowStatus.RevisionRequested,
                     StringComparison.OrdinalIgnoreCase);
 
-                if (!isDraftSubmit && !isRevisionResubmit)
+                var isReturnedResubmit = string.Equals(
+                    instance.WorkflowStatus,
+                    WorkflowValueConstants.WorkflowStatus.Returned,
+                    StringComparison.OrdinalIgnoreCase);
+
+                if (!isDraftSubmit && !isRevisionResubmit && !isReturnedResubmit)
                 {
                     await transaction.RollbackAsync(cancellationToken);
 
                     return WorkflowServiceResult<WorkflowInstanceDetailResponse>.Fail(
                         StatusCodes.Status409Conflict,
-                        "Workflow hanya dapat di-submit dari status Draft atau RevisionRequested.");
+                        "Workflow hanya dapat di-submit dari status Draft, RevisionRequested, atau Returned.");
                 }
 
                 var activeSteps = instance.StepInstances
@@ -779,7 +784,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 instance.UpdateDateTime = now;
                 instance.UpdateBy = actorContext.UserId;
 
-                if (isRevisionResubmit)
+                if (isRevisionResubmit || isReturnedResubmit)
                 {
                     var revisionStepOrder = PrepareRevisionResubmit(
                         instance,

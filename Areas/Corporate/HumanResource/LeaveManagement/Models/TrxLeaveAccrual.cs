@@ -1,9 +1,6 @@
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -27,20 +24,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Mo
         public Guid? LeaveBalanceId { get; set; }
         public Guid? LeaveEntitlementId { get; set; }
         public Guid? LeaveEntitlementPolicyId { get; set; }
+        public Guid? LeaveAccrualRunId { get; set; }
+        public Guid? BalanceTransactionId { get; set; }
 
         public DateOnly AccrualDate { get; set; }
+        public DateOnly? ScheduledAccrualDate { get; set; }
         public DateOnly AccrualPeriodStartDate { get; set; }
         public DateOnly AccrualPeriodEndDate { get; set; }
 
+        public int AccrualSequence { get; set; } = 1;
         public decimal AccrualAmountDays { get; set; } = 0;
         public decimal BalanceBeforeAccrual { get; set; } = 0;
         public decimal BalanceAfterAccrual { get; set; } = 0;
 
         public bool IsProrated { get; set; } = false;
 
+        [MaxLength(150)]
+        public string? IdempotencyKey { get; set; }
+
         [Required, MaxLength(30)]
-        public string AccrualStatus { get; set; } = "Draft";
-        // Draft, Calculated, Posted, Reversed, Cancelled
+        public string AccrualStatus { get; set; }
+            = LeaveValueConstants.AccrualStatus.Draft;
 
         [MaxLength(50)]
         public string AccrualFrequency { get; set; } = "Monthly";
@@ -69,10 +73,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Mo
         public WfpLeaveBalance? LeaveBalance { get; set; }
         public TrxLeaveEntitlement? LeaveEntitlement { get; set; }
         public MstLeaveEntitlementPolicy? LeaveEntitlementPolicy { get; set; }
+        public TrxLeaveAccrualRun? LeaveAccrualRun { get; set; }
+        public TrxLeaveBalanceTransaction? BalanceTransaction { get; set; }
         public ApplicationUser? CalculatedByUser { get; set; }
         public ApplicationUser? PostedByUser { get; set; }
         public ApplicationUser? ReversedByUser { get; set; }
 
-        public ICollection<TrxLeaveBalanceTransaction> BalanceTransactions { get; set; } = new List<TrxLeaveBalanceTransaction>();
+        public ICollection<TrxLeaveBalanceTransaction> BalanceTransactions { get; set; }
+            = new List<TrxLeaveBalanceTransaction>();
     }
 }

@@ -1,5 +1,7 @@
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -32,13 +34,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         [Required]
         [MaxLength(50)]
-        public string CorrectionType { get; set; } = "AttendanceTime";
-        // AttendanceTime, MissingPunch, Location, Schedule, Status, BusinessTrip, RemoteAttendance, Other.
+        public string CorrectionType { get; set; }
+            = AttendanceValueConstants.CorrectionType.AttendanceTime;
 
         [Required]
         [MaxLength(30)]
-        public string RequestStatus { get; set; } = "Draft";
-        // Draft, Submitted, UnderReview, Approved, PartiallyApproved, Rejected, Applied, Cancelled.
+        public string RequestStatus { get; set; }
+            = AttendanceValueConstants.CorrectionRequestStatus.Draft;
 
         [Required]
         [MaxLength(1500)]
@@ -74,12 +76,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public MstRequestReason? RequestReason { get; set; }
         public MstRejectionReason? RejectionReason { get; set; }
         public MstWorkflowDefinition? WorkflowDefinition { get; set; }
+        public TrxWorkflowInstance? WorkflowInstance { get; set; }
         public MstWorkforceProfile? RequestedByWorkforceProfile { get; set; }
         public ApplicationUser? RequestedByUser { get; set; }
         public ApplicationUser? AppliedByUser { get; set; }
 
-        public ICollection<TrxAttendanceCorrectionDetail> Details { get; set; } = new List<TrxAttendanceCorrectionDetail>();
-        public ICollection<TrxAttendanceCorrectionApproval> Approvals { get; set; } = new List<TrxAttendanceCorrectionApproval>();
-        public ICollection<TrxAttendanceException> Exceptions { get; set; } = new List<TrxAttendanceException>();
+        public ICollection<TrxAttendanceCorrectionDetail> Details { get; set; }
+            = new List<TrxAttendanceCorrectionDetail>();
+
+        // Legacy compatibility only. Approval baru memakai Generic Workflow Engine.
+        public ICollection<TrxAttendanceCorrectionApproval> Approvals { get; set; }
+            = new List<TrxAttendanceCorrectionApproval>();
+
+        public ICollection<TrxAttendanceException> Exceptions { get; set; }
+            = new List<TrxAttendanceException>();
     }
 }
