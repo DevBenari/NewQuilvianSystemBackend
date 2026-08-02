@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
 using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
@@ -46,6 +47,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         public const string AttendanceCorrectionReferenceType =
             "ATTENDANCE_CORRECTION";
 
+        public const string LeaveAdjustmentReferenceType =
+            "LEAVE_ADJUSTMENT";
+
         private static readonly HashSet<string> EmployeeProfileChangeReferenceAliases =
             new(StringComparer.OrdinalIgnoreCase)
             {
@@ -64,10 +68,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 "ATTENDANCE_CORRECTION_REQUEST"
             };
 
+        private static readonly HashSet<string> LeaveAdjustmentReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                LeaveAdjustmentReferenceType,
+                "LeaveAdjustment",
+                "TrxLeaveAdjustment",
+                "LEAVE_BALANCE_ADJUSTMENT"
+            };
+
         private readonly ApplicationDbContext _dbContext;
         private readonly EmployeeProfileChangeService _employeeProfileChangeService;
         private readonly AttendanceCorrectionWorkflowLifecycleService
             _attendanceCorrectionWorkflowLifecycleService;
+        private readonly LeaveAdjustmentWorkflowLifecycleService
+            _leaveAdjustmentWorkflowLifecycleService;
         private readonly ILogger<WorkflowReferenceLifecycleService> _logger;
 
         public WorkflowReferenceLifecycleService(
@@ -75,12 +90,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             EmployeeProfileChangeService employeeProfileChangeService,
             AttendanceCorrectionWorkflowLifecycleService
                 attendanceCorrectionWorkflowLifecycleService,
+            LeaveAdjustmentWorkflowLifecycleService
+                leaveAdjustmentWorkflowLifecycleService,
             ILogger<WorkflowReferenceLifecycleService> logger)
         {
             _dbContext = dbContext;
             _employeeProfileChangeService = employeeProfileChangeService;
             _attendanceCorrectionWorkflowLifecycleService =
                 attendanceCorrectionWorkflowLifecycleService;
+            _leaveAdjustmentWorkflowLifecycleService =
+                leaveAdjustmentWorkflowLifecycleService;
             _logger = logger;
         }
 
@@ -155,6 +174,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                         cancellationToken);
             }
 
+            if (IsLeaveAdjustmentReference(workflow.ReferenceType))
+            {
+                return await _leaveAdjustmentWorkflowLifecycleService
+                    .SynchronizeAsync(
+                        workflow,
+                        actorUserId,
+                        allowAutoApply,
+                        cancellationToken);
+            }
+
             return new WorkflowReferenceLifecycleSynchronizationResult
             {
                 IsHandled = false,
@@ -175,6 +204,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         {
             return !string.IsNullOrWhiteSpace(referenceType) &&
                    AttendanceCorrectionReferenceAliases.Contains(
+                       referenceType.Trim());
+        }
+
+        public static bool IsLeaveAdjustmentReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   LeaveAdjustmentReferenceAliases.Contains(
                        referenceType.Trim());
         }
 

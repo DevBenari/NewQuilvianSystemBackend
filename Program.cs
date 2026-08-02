@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
@@ -292,10 +293,27 @@ try
     builder.Services.AddScoped<AttendanceCorrectionMonitoringService>();
     builder.Services.AddScoped<AttendancePayrollHandoffService>();
     builder.Services.Configure<AttendanceSchedulerOptions>(
-    builder.Configuration.GetSection("HumanResource:AttendanceScheduler"));
+        builder.Configuration.GetSection("HumanResource:AttendanceScheduler"));
     builder.Services.AddScoped<AttendancePeriodService>();
     builder.Services.AddScoped<AttendanceSchedulerService>();
     builder.Services.AddHostedService<AttendanceSchedulerHostedService>();
+
+    builder.Services.AddScoped<LeaveEntitlementBalanceQueryService>();
+    builder.Services.AddScoped<LeaveAdjustmentPostingService>();
+    builder.Services.AddScoped<LeaveAdjustmentWorkflowLifecycleService>();
+    builder.Services.AddScoped<LeaveAdjustmentService>();
+    builder.Services.AddScoped<LeaveAccrualPolicyResolverService>();
+    builder.Services.AddScoped<LeaveAccrualProcessorService>();
+    builder.Services.AddScoped<LeaveAccrualSchedulerService>();
+    builder.Services.Configure<LeaveAccrualSchedulerOptions>(
+        builder.Configuration.GetSection("HumanResource:LeaveAccrualScheduler"));
+    builder.Services.AddHostedService<LeaveAccrualSchedulerHostedService>();
+    builder.Services.AddScoped<LeaveCarryForwardPolicyResolverService>();
+    builder.Services.AddScoped<LeaveCarryForwardProcessorService>();
+    builder.Services.AddScoped<LeaveCarryForwardSchedulerService>();
+    builder.Services.Configure<LeaveCarryForwardSchedulerOptions>(
+        builder.Configuration.GetSection("HumanResource:LeaveCarryForwardScheduler"));
+    builder.Services.AddHostedService<LeaveCarryForwardSchedulerHostedService>();
 
     builder.Services.AddAuthorization(options =>
     {
