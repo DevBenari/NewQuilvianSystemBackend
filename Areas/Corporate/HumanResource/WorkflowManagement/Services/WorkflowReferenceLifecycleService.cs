@@ -50,6 +50,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         public const string LeaveAdjustmentReferenceType =
             "LEAVE_ADJUSTMENT";
 
+        public const string LeaveRequestReferenceType =
+            "LEAVE_REQUEST";
+
+        public const string LeaveCancellationReferenceType =
+            "LEAVE_CANCELLATION";
+
+        public const string LeaveRecallReferenceType =
+            "LEAVE_RECALL";
+
         private static readonly HashSet<string> EmployeeProfileChangeReferenceAliases =
             new(StringComparer.OrdinalIgnoreCase)
             {
@@ -77,12 +86,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 "LEAVE_BALANCE_ADJUSTMENT"
             };
 
+        private static readonly HashSet<string> LeaveRequestReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                LeaveRequestReferenceType,
+                "LeaveRequest",
+                "WfpLeaveRequest",
+                "LEAVE_REQUEST_APPROVAL"
+            };
+
+        private static readonly HashSet<string> LeaveCancellationReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                LeaveCancellationReferenceType,
+                "LeaveCancellation",
+                "TrxLeaveCancellationRequest",
+                "LEAVE_CANCELLATION_REQUEST"
+            };
+
+        private static readonly HashSet<string> LeaveRecallReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                LeaveRecallReferenceType,
+                "LEAVE_RETURN_TO_WORK",
+                "LeaveRecall",
+                "TrxLeaveRecall",
+                "LeaveReturnToWork"
+            };
+
         private readonly ApplicationDbContext _dbContext;
         private readonly EmployeeProfileChangeService _employeeProfileChangeService;
         private readonly AttendanceCorrectionWorkflowLifecycleService
             _attendanceCorrectionWorkflowLifecycleService;
         private readonly LeaveAdjustmentWorkflowLifecycleService
             _leaveAdjustmentWorkflowLifecycleService;
+        private readonly LeaveRequestWorkflowLifecycleService
+            _leaveRequestWorkflowLifecycleService;
+        private readonly LeaveCancellationWorkflowLifecycleService
+            _leaveCancellationWorkflowLifecycleService;
+        private readonly LeaveRecallWorkflowLifecycleService
+            _leaveRecallWorkflowLifecycleService;
         private readonly ILogger<WorkflowReferenceLifecycleService> _logger;
 
         public WorkflowReferenceLifecycleService(
@@ -92,6 +135,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 attendanceCorrectionWorkflowLifecycleService,
             LeaveAdjustmentWorkflowLifecycleService
                 leaveAdjustmentWorkflowLifecycleService,
+            LeaveRequestWorkflowLifecycleService
+                leaveRequestWorkflowLifecycleService,
+            LeaveCancellationWorkflowLifecycleService
+                leaveCancellationWorkflowLifecycleService,
+            LeaveRecallWorkflowLifecycleService
+                leaveRecallWorkflowLifecycleService,
             ILogger<WorkflowReferenceLifecycleService> logger)
         {
             _dbContext = dbContext;
@@ -100,6 +149,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 attendanceCorrectionWorkflowLifecycleService;
             _leaveAdjustmentWorkflowLifecycleService =
                 leaveAdjustmentWorkflowLifecycleService;
+            _leaveRequestWorkflowLifecycleService =
+                leaveRequestWorkflowLifecycleService;
+            _leaveCancellationWorkflowLifecycleService =
+                leaveCancellationWorkflowLifecycleService;
+            _leaveRecallWorkflowLifecycleService =
+                leaveRecallWorkflowLifecycleService;
             _logger = logger;
         }
 
@@ -184,6 +239,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                         cancellationToken);
             }
 
+            if (IsLeaveRequestReference(workflow.ReferenceType))
+            {
+                return await _leaveRequestWorkflowLifecycleService
+                    .SynchronizeAsync(
+                        workflow,
+                        actorUserId,
+                        allowAutoApply,
+                        cancellationToken);
+            }
+
+            if (IsLeaveCancellationReference(workflow.ReferenceType))
+            {
+                return await _leaveCancellationWorkflowLifecycleService
+                    .SynchronizeAsync(
+                        workflow,
+                        actorUserId,
+                        allowAutoApply,
+                        cancellationToken);
+            }
+
+            if (IsLeaveRecallReference(workflow.ReferenceType))
+            {
+                return await _leaveRecallWorkflowLifecycleService
+                    .SynchronizeAsync(
+                        workflow,
+                        actorUserId,
+                        allowAutoApply,
+                        cancellationToken);
+            }
+
             return new WorkflowReferenceLifecycleSynchronizationResult
             {
                 IsHandled = false,
@@ -211,6 +296,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         {
             return !string.IsNullOrWhiteSpace(referenceType) &&
                    LeaveAdjustmentReferenceAliases.Contains(
+                       referenceType.Trim());
+        }
+
+        public static bool IsLeaveRequestReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   LeaveRequestReferenceAliases.Contains(
+                       referenceType.Trim());
+        }
+
+        public static bool IsLeaveCancellationReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   LeaveCancellationReferenceAliases.Contains(
+                       referenceType.Trim());
+        }
+
+        public static bool IsLeaveRecallReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   LeaveRecallReferenceAliases.Contains(
                        referenceType.Trim());
         }
 

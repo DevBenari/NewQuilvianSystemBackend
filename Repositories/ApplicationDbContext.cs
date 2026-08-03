@@ -321,6 +321,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxLeaveCancellationRequest> TrxLeaveCancellationRequests { get; set; }
         public DbSet<TrxLeaveRecall> TrxLeaveRecalls { get; set; }
         public DbSet<TrxCompensatoryLeave> TrxCompensatoryLeaves { get; set; }
+        public DbSet<TrxLeaveExecution> TrxLeaveExecutions { get; set; }
+        public DbSet<TrxLeaveAttendanceIntegration> TrxLeaveAttendanceIntegrations { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - LEAVE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - OVERTIME MANAGEMENT

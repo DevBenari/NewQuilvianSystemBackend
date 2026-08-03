@@ -318,6 +318,24 @@ try
     builder.Services.AddScoped<LeaveRequestReservationService>();
     builder.Services.AddScoped<LeaveRequestAttachmentService>();
     builder.Services.AddScoped<LeaveRequestService>();
+    builder.Services.AddScoped<LeaveRequestBalanceLifecycleService>();
+    builder.Services.AddScoped<LeaveRequestWorkflowLifecycleService>();
+    builder.Services.AddScoped<LeaveRequestWorkflowIntegrationService>();
+    builder.Services.AddScoped<LeaveExecutionBalanceService>();
+    builder.Services.AddScoped<LeaveExecutionProcessorService>();
+    builder.Services.AddScoped<LeaveExecutionQueryService>();
+    builder.Services.AddScoped<LeaveCalendarService>();
+    builder.Services.Configure<LeaveExecutionSchedulerOptions>(
+        builder.Configuration.GetSection("HumanResource:LeaveExecutionScheduler"));
+    builder.Services.AddHostedService<LeaveExecutionSchedulerHostedService>();
+    builder.Services.Configure<LeavePayrollIntegrationOptions>(
+        builder.Configuration.GetSection("HumanResource:LeavePayrollIntegration"));
+    builder.Services.AddScoped<LeavePayrollIntegrationService>();
+    builder.Services.AddScoped<LeaveCancellationWorkflowLifecycleService>();
+    builder.Services.AddScoped<LeaveRecallWorkflowLifecycleService>();
+    builder.Services.AddScoped<LeaveCancellationService>();
+    builder.Services.AddScoped<LeaveRecallService>();
+    builder.Services.AddScoped<LeaveFinalReconciliationService>();
 
     builder.Services.AddAuthorization(options =>
     {
