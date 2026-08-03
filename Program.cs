@@ -314,6 +314,10 @@ try
     builder.Services.Configure<LeaveCarryForwardSchedulerOptions>(
         builder.Configuration.GetSection("HumanResource:LeaveCarryForwardScheduler"));
     builder.Services.AddHostedService<LeaveCarryForwardSchedulerHostedService>();
+    builder.Services.AddScoped<LeaveRequestCalculationService>();
+    builder.Services.AddScoped<LeaveRequestReservationService>();
+    builder.Services.AddScoped<LeaveRequestAttachmentService>();
+    builder.Services.AddScoped<LeaveRequestService>();
 
     builder.Services.AddAuthorization(options =>
     {
