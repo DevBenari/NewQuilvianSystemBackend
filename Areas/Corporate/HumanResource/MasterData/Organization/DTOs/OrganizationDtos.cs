@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.DTOs
+namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs
 {
     public class OrganizationSummaryResponse
     {

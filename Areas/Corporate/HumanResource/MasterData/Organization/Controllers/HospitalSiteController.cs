@@ -61,7 +61,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         [HttpGet("filters/metadata")]
         [AccessAction("Read", "Read Hospital Site", Description = "Melihat metadata filter hospital site", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("HospitalSite", "Read")]
-        public IActionResult GetFilterMetadata()
+        public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new HospitalSiteFilterMetadataResponse
             {
@@ -85,6 +85,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 }
             };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "HospitalSite.GetFilterMetadata",
+                "Mengambil metadata filter hospital site.",
+                result
+            );
 
             return Ok(ApiResponse<HospitalSiteFilterMetadataResponse>.Ok(
                 result,
@@ -339,6 +346,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             _dbContext.Set<MstHospitalSite>().Add(entity);
             await _dbContext.SaveChangesAsync();
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "HospitalSite.Create",
+                "Membuat data hospital site.",
+                new { entity.Id, entity.LegalEntityId, entity.SiteCode, entity.SiteName, entity.SiteType, entity.IsMainSite, entity.IsActive, entity.CreateDateTime, entity.CreateBy }
+            );
+
             return Ok(ApiResponse<object>.Ok(
                 new
                 {
@@ -402,6 +416,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             entity.UpdateBy = actor;
 
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "HospitalSite.Update",
+                "Mengubah data hospital site.",
+                new { entity.Id, entity.LegalEntityId, entity.SiteCode, entity.SiteName, entity.SiteType, entity.IsMainSite, entity.IsActive, entity.UpdateDateTime, entity.UpdateBy }
+            );
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -490,6 +511,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             entity.UpdateBy = actor;
 
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "HospitalSite.Delete",
+                "Menghapus data hospital site.",
+                new { entity.Id, entity.SiteCode, entity.SiteName, entity.DeleteDateTime, entity.DeleteBy }
+            );
 
             return Ok(ApiResponse<object>.Ok(
                 null,

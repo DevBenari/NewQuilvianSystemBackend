@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.DTOs;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
@@ -13,13 +13,13 @@ using System.Security.Claims;
 
 using ResponseDepartmentPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.DTOs.OrganizationDepartmentResponse>;
+        QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs.OrganizationDepartmentResponse>;
 
 using ResponsePositionPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.DTOs.OrganizationPositionResponse>;
+        QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs.OrganizationPositionResponse>;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Controllers
+namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Controllers
 {
     [ApiController]
     [Authorize]
@@ -173,7 +173,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     Description = x.Description,
                     IsActive = x.IsActive,
                     CreateDateTime = x.CreateDateTime,
-                    CreateBy = x.CreateBy == Guid.Empty ? null : (Guid?)x.CreateBy,
+                    CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
                     CreateByName = x.CreateBy == Guid.Empty
                         ? null
                         : _dbContext.Users
@@ -290,7 +290,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     Description = x.Description,
                     IsActive = x.IsActive,
                     CreateDateTime = x.CreateDateTime,
-                    CreateBy = x.CreateBy == Guid.Empty ? null : (Guid?)x.CreateBy,
+                    CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
                     CreateByName = x.CreateBy == Guid.Empty
                         ? null
                         : _dbContext.Users
@@ -303,7 +303,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                             .FirstOrDefault(),
 
                     UpdateDateTime = x.UpdateDateTime,
-                    UpdateBy = x.UpdateBy == Guid.Empty ? null : (Guid?)x.UpdateBy,
+                    UpdateBy = x.UpdateBy == Guid.Empty ? null : x.UpdateBy,
                     UpdateByName = x.UpdateBy == Guid.Empty
                         ? null
                         : _dbContext.Users
@@ -625,7 +625,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     Description = x.Description,
                     IsActive = x.IsActive,
                     CreateDateTime = x.CreateDateTime,
-                    CreateBy = x.CreateBy == Guid.Empty ? null : (Guid?)x.CreateBy,
+                    CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
                     CreateByName = x.CreateBy == Guid.Empty
                         ? null
                         : _dbContext.Users
@@ -731,7 +731,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     Description = x.Description,
                     IsActive = x.IsActive,
                     CreateDateTime = x.CreateDateTime,
-                    CreateBy = x.CreateBy == Guid.Empty ? null : (Guid?)x.CreateBy,
+                    CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
                     CreateByName = x.CreateBy == Guid.Empty
                         ? null
                         : _dbContext.Users
@@ -744,7 +744,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                             .FirstOrDefault(),
 
                     UpdateDateTime = x.UpdateDateTime,
-                    UpdateBy = x.UpdateBy == Guid.Empty ? null : (Guid?)x.UpdateBy,
+                    UpdateBy = x.UpdateBy == Guid.Empty ? null : x.UpdateBy,
                     UpdateByName = x.UpdateBy == Guid.Empty
                         ? null
                         : _dbContext.Users

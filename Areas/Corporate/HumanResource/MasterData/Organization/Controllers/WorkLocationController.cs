@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 
 using WorkLocationPagedResult =
@@ -42,20 +43,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 "Remote"
             };
 
+        private const string LogCategory = "Corporate.HumanResource.MasterData";
         private const string CodePrefix = "WLC-RSMMC-";
         private const int CodeNumberLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
+        private readonly LoggerService _loggerService;
 
-        public WorkLocationController(ApplicationDbContext dbContext)
+        public WorkLocationController(
+            ApplicationDbContext dbContext,
+            LoggerService loggerService)
         {
             _dbContext = dbContext;
+            _loggerService = loggerService;
         }
 
         [HttpGet("filters/metadata")]
         [AccessAction("Read", "Read Work Location", Description = "Melihat metadata filter work location", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkLocation", "Read")]
-        public IActionResult GetFilterMetadata()
+        public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new WorkLocationFilterMetadataResponse
             {
@@ -80,6 +86,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 }
             };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "WorkLocation.GetFilterMetadata",
+                "Mengambil metadata filter work location.",
+                result
+            );
 
             return Ok(ApiResponse<WorkLocationFilterMetadataResponse>.Ok(
                 result,
@@ -329,6 +342,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             _dbContext.Set<MstWorkLocation>().Add(entity);
             await _dbContext.SaveChangesAsync();
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "WorkLocation.Create",
+                "Membuat data work location.",
+                new { entity.Id, entity.LegalEntityId, entity.HospitalSiteId, entity.OrganizationUnitId, entity.DepartmentId, entity.LocationCode, entity.LocationName, entity.LocationType, entity.IsPrimary, entity.IsActive, entity.CreateDateTime, entity.CreateBy }
+            );
+
             return Ok(ApiResponse<object>.Ok(
                 new
                 {
@@ -387,6 +407,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             entity.UpdateBy = actor;
 
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "WorkLocation.Update",
+                "Mengubah data work location.",
+                new { entity.Id, entity.LegalEntityId, entity.HospitalSiteId, entity.OrganizationUnitId, entity.DepartmentId, entity.LocationCode, entity.LocationName, entity.LocationType, entity.IsPrimary, entity.IsActive, entity.UpdateDateTime, entity.UpdateBy }
+            );
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -460,6 +487,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             entity.UpdateBy = actor;
 
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "WorkLocation.Delete",
+                "Menghapus data work location.",
+                new { entity.Id, entity.LocationCode, entity.LocationName, entity.DeleteDateTime, entity.DeleteBy }
+            );
 
             return Ok(ApiResponse<object>.Ok(
                 null,

@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 
 using OrganizationUnitPagedResult =
@@ -41,20 +42,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 "Unit"
             };
 
+        private const string LogCategory = "Corporate.HumanResource.MasterData";
         private const string CodePrefix = "ORG-RSMMC-";
         private const int CodeNumberLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
+        private readonly LoggerService _loggerService;
 
-        public OrganizationUnitController(ApplicationDbContext dbContext)
+        public OrganizationUnitController(
+            ApplicationDbContext dbContext,
+            LoggerService loggerService)
         {
             _dbContext = dbContext;
+            _loggerService = loggerService;
         }
 
         [HttpGet("filters/metadata")]
         [AccessAction("Read", "Read Organization Unit", Description = "Melihat metadata filter organization unit", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("OrganizationUnit", "Read")]
-        public IActionResult GetFilterMetadata()
+        public async Task<IActionResult> GetFilterMetadata()
         {
             var result = new OrganizationUnitFilterMetadataResponse
             {
@@ -79,6 +85,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 }
             };
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "OrganizationUnit.GetFilterMetadata",
+                "Mengambil metadata filter organization unit.",
+                result
+            );
 
             return Ok(ApiResponse<OrganizationUnitFilterMetadataResponse>.Ok(
                 result,
@@ -322,6 +335,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             _dbContext.Set<MstOrganizationUnit>().Add(entity);
             await _dbContext.SaveChangesAsync();
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "OrganizationUnit.Create",
+                "Membuat data organization unit.",
+                new { entity.Id, entity.LegalEntityId, entity.HospitalSiteId, entity.ParentOrganizationUnitId, entity.DepartmentId, entity.UnitCode, entity.UnitName, entity.UnitType, entity.IsActive, entity.CreateDateTime, entity.CreateBy }
+            );
+
             return Ok(ApiResponse<object>.Ok(
                 new
                 {
@@ -374,6 +394,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             entity.UpdateBy = CurrentUserId();
 
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "OrganizationUnit.Update",
+                "Mengubah data organization unit.",
+                new { entity.Id, entity.LegalEntityId, entity.HospitalSiteId, entity.ParentOrganizationUnitId, entity.DepartmentId, entity.UnitCode, entity.UnitName, entity.UnitType, entity.IsActive, entity.UpdateDateTime, entity.UpdateBy }
+            );
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -449,6 +476,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             entity.UpdateBy = actor;
 
             await _dbContext.SaveChangesAsync();
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "OrganizationUnit.Delete",
+                "Menghapus data organization unit.",
+                new { entity.Id, entity.UnitCode, entity.UnitName, entity.DeleteDateTime, entity.DeleteBy }
+            );
 
             return Ok(ApiResponse<object>.Ok(
                 null,
