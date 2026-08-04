@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -21,19 +24,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
     [Tags("Corporate / Human Resource / Master Data / Leave and Overtime / Overtime Rate")]
     public class OvertimeRateController : ControllerBase
     {
-        private static readonly HashSet<string> AllowedDayTypes = new(StringComparer.OrdinalIgnoreCase) { "Workday", "RestDay", "Holiday", "SpecialHoliday" };
-        private static readonly HashSet<string> AllowedTimeBands = new(StringComparer.OrdinalIgnoreCase) { "AllDay", "FirstHour", "NextHour", "Night", "Custom" };
-        private static readonly HashSet<string> AllowedCalculationMethods = new(StringComparer.OrdinalIgnoreCase) { "Multiplier", "FixedAmount", "HigherOfMultiplierOrFixed" };
+        private static readonly HashSet<string> AllowedDayTypes =
+            OvertimeValueConstants.DayType.All.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> AllowedTimeBands =
+            OvertimeValueConstants.TimeBand.All.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> AllowedCalculationMethods =
+            OvertimeValueConstants.CalculationMethod.All.ToHashSet(StringComparer.OrdinalIgnoreCase);
         private const string LogCategory = "Corporate.HumanResource.MasterData";
         private const string CodePrefix = "OTR-RSMMC-";
         private const int CodeNumberLength = 5;
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly OvertimeRateResolverService _rateResolverService;
 
-        public OvertimeRateController(ApplicationDbContext dbContext, LoggerService loggerService)
+        public OvertimeRateController(
+            ApplicationDbContext dbContext,
+            LoggerService loggerService,
+            OvertimeRateResolverService rateResolverService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _rateResolverService = rateResolverService;
         }
 
         [HttpGet("filters/metadata")]
@@ -105,7 +116,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             NormalizePaging(ref pageNumber, ref pageSize);
             var q = ApplyFilter(BaseQuery(), overtimePolicyId, dayType, null, null, onlyActive ? true : null, search);
             var totalData = await q.CountAsync();
-            var items = await q.OrderBy(x => x.OvertimePolicyId).ThenBy(x => x.Priority).ThenBy(x => x.OvertimeRateName)
+            var items = await q.OrderBy(x => x.OvertimePolicyId).ThenByDescending(x => x.Priority).ThenBy(x => x.OvertimeRateName)
                 .Skip((pageNumber - 1) * pageSize).Take(pageSize)
                 .Select(x => new OvertimeRateOptionResponse
                 {
@@ -118,6 +129,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
                 PageNumber = pageNumber, PageSize = pageSize, TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize), Items = items
             }, "Pilihan overtime rate berhasil diambil."));
+        }
+
+        [HttpPost("resolve-preview")]
+        [AccessAction("Read", "Resolve Overtime Rate", Description = "Melakukan preview resolusi overtime rate", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("OvertimeRate", "Read")]
+        public async Task<IActionResult> ResolvePreview(
+            [FromBody] OvertimeRateResolveRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await _rateResolverService.ResolveAsync(request, cancellationToken);
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "OvertimeRate.ResolvePreview",
+                "Melakukan preview resolusi overtime rate.",
+                result);
+            return Ok(ApiResponse<OvertimeRateResolutionResponse>.Ok(
+                result,
+                result.Message));
         }
 
         [HttpGet("{id:guid}")]
@@ -157,8 +186,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
                 Id = Guid.NewGuid(), OvertimePolicyId = request.OvertimePolicyId, OvertimeRateCode = await GenerateCodeAsync(),
                 OvertimeRateName = request.OvertimeRateName.Trim(), DayType = NormalizeToken(request.DayType, AllowedDayTypes),
                 TimeBand = NormalizeToken(request.TimeBand, AllowedTimeBands), CalculationMethod = NormalizeToken(request.CalculationMethod, AllowedCalculationMethods),
-                RateMultiplier = request.RateMultiplier, FixedAmount = request.FixedAmount, StartMinute = request.StartMinute,
-                EndMinute = request.EndMinute, StartTime = request.StartTime, EndTime = request.EndTime,
+                RateMultiplier = request.RateMultiplier, FixedAmount = NormalizeFixedAmount(request),
+                StartMinute = NormalizeStartMinute(request), EndMinute = NormalizeEndMinute(request),
+                StartTime = NormalizeStartTime(request), EndTime = NormalizeEndTime(request),
                 MinimumEligibleMinutes = request.MinimumEligibleMinutes, MaximumEligibleMinutes = request.MaximumEligibleMinutes,
                 Priority = request.Priority, EffectiveStartDate = request.EffectiveStartDate?.Date, EffectiveEndDate = request.EffectiveEndDate?.Date,
                 Description = NormalizeText(request.Description), IsActive = true, CreateDateTime = now, CreateBy = actor,
@@ -188,8 +218,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             entity.OvertimePolicyId = request.OvertimePolicyId; entity.OvertimeRateName = request.OvertimeRateName.Trim();
             entity.DayType = NormalizeToken(request.DayType, AllowedDayTypes); entity.TimeBand = NormalizeToken(request.TimeBand, AllowedTimeBands);
             entity.CalculationMethod = NormalizeToken(request.CalculationMethod, AllowedCalculationMethods); entity.RateMultiplier = request.RateMultiplier;
-            entity.FixedAmount = request.FixedAmount; entity.StartMinute = request.StartMinute; entity.EndMinute = request.EndMinute;
-            entity.StartTime = request.StartTime; entity.EndTime = request.EndTime; entity.MinimumEligibleMinutes = request.MinimumEligibleMinutes;
+            entity.FixedAmount = NormalizeFixedAmount(request); entity.StartMinute = NormalizeStartMinute(request); entity.EndMinute = NormalizeEndMinute(request);
+            entity.StartTime = NormalizeStartTime(request); entity.EndTime = NormalizeEndTime(request); entity.MinimumEligibleMinutes = request.MinimumEligibleMinutes;
             entity.MaximumEligibleMinutes = request.MaximumEligibleMinutes; entity.Priority = request.Priority;
             entity.EffectiveStartDate = request.EffectiveStartDate?.Date; entity.EffectiveEndDate = request.EffectiveEndDate?.Date;
             entity.Description = NormalizeText(request.Description); entity.IsActive = request.IsActive;
@@ -212,8 +242,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         {
             var entity = await _dbContext.Set<MstOvertimeRate>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
             if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Overtime rate tidak ditemukan."));
-            if (request.IsActive && !await _dbContext.Set<MstOvertimePolicy>().AsNoTracking().AnyAsync(x => x.Id == entity.OvertimePolicyId && x.IsActive && !x.IsDelete))
+            if (request.IsActive && !await _dbContext.Set<MstOvertimePolicy>().AsNoTracking().AnyAsync(x => x.Id == entity.OvertimePolicyId && x.IsActive && !x.IsDelete && !x.IsCancel))
                 return BadRequest(ApiResponse<object>.Fail(400, "Overtime rate tidak dapat diaktifkan karena overtime policy tidak aktif atau tidak valid."));
+
+            if (request.IsActive)
+            {
+                var overlap = await _rateResolverService.CheckAmbiguousOverlapAsync(
+                    id,
+                    BuildDefinitionInput(entity, true));
+
+                if (overlap.HasAmbiguousOverlap)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(400,
+                        $"Overtime rate tidak dapat diaktifkan karena overlap ambigu dengan {overlap.ConflictingRateCode} - {overlap.ConflictingRateName}."));
+                }
+            }
+
             entity.IsActive = request.IsActive; entity.UpdateDateTime = DateTime.UtcNow; entity.UpdateBy = GetCurrentUserId();
             await _dbContext.SaveChangesAsync();
             return Ok(ApiResponse<object>.Ok(null, "Status overtime rate berhasil diperbarui."));
@@ -273,22 +317,175 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             if (!AllowedDayTypes.Contains(request.DayType.Trim())) return (false, "Day type tidak valid.");
             if (!AllowedTimeBands.Contains(request.TimeBand.Trim())) return (false, "Time band tidak valid.");
             if (!AllowedCalculationMethods.Contains(request.CalculationMethod.Trim())) return (false, "Calculation method tidak valid.");
-            if (!await _dbContext.Set<MstOvertimePolicy>().AsNoTracking().AnyAsync(x => x.Id == request.OvertimePolicyId && x.IsActive && !x.IsDelete)) return (false, "Overtime policy tidak ditemukan atau tidak aktif.");
-            var method = NormalizeToken(request.CalculationMethod, AllowedCalculationMethods);
-            if ((method == "FixedAmount" || method == "HigherOfMultiplierOrFixed") && (!request.FixedAmount.HasValue || request.FixedAmount <= 0)) return (false, "Fixed amount wajib lebih besar dari nol untuk calculation method tersebut.");
-            if ((method == "Multiplier" || method == "HigherOfMultiplierOrFixed") && request.RateMultiplier <= 0) return (false, "Rate multiplier wajib lebih besar dari nol.");
-            if (request.EndMinute.HasValue && request.EndMinute.Value <= request.StartMinute) return (false, "End minute harus lebih besar dari start minute.");
-            if (request.MaximumEligibleMinutes.HasValue && request.MaximumEligibleMinutes.Value < request.MinimumEligibleMinutes) return (false, "Maximum eligible minutes tidak boleh lebih kecil dari minimum eligible minutes.");
-            if (request.StartTime.HasValue && request.EndTime.HasValue && request.EndTime.Value <= request.StartTime.Value) return (false, "End time harus lebih besar dari start time.");
-            if (request.EffectiveStartDate.HasValue && request.EffectiveEndDate.HasValue && request.EffectiveEndDate.Value.Date < request.EffectiveStartDate.Value.Date) return (false, "Tanggal selesai efektif tidak boleh sebelum tanggal mulai efektif.");
-            var name = request.OvertimeRateName.Trim().ToLower();
+
             var normalizedDayType = NormalizeToken(request.DayType, AllowedDayTypes);
             var normalizedTimeBand = NormalizeToken(request.TimeBand, AllowedTimeBands);
-            var duplicate = _dbContext.Set<MstOvertimeRate>().AsNoTracking().Where(x => !x.IsDelete && x.OvertimePolicyId == request.OvertimePolicyId && x.DayType == normalizedDayType && x.TimeBand == normalizedTimeBand && x.OvertimeRateName.ToLower() == name);
+            var method = NormalizeToken(request.CalculationMethod, AllowedCalculationMethods);
+            var isActive = request is UpdateOvertimeRateRequest updateRequest
+                ? updateRequest.IsActive
+                : true;
+
+            var policy = await _dbContext.Set<MstOvertimePolicy>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == request.OvertimePolicyId &&
+                    (!isActive || x.IsActive) &&
+                    !x.IsDelete &&
+                    !x.IsCancel);
+
+            if (policy == null) return (false, "Overtime policy tidak ditemukan atau tidak aktif.");
+
+            if ((method == OvertimeValueConstants.CalculationMethod.FixedAmount ||
+                 method == OvertimeValueConstants.CalculationMethod.HigherOfMultiplierOrFixed) &&
+                (!request.FixedAmount.HasValue || request.FixedAmount <= 0))
+                return (false, "Fixed amount wajib lebih besar dari nol untuk calculation method tersebut.");
+
+            if ((method == OvertimeValueConstants.CalculationMethod.Multiplier ||
+                 method == OvertimeValueConstants.CalculationMethod.HigherOfMultiplierOrFixed) &&
+                request.RateMultiplier <= 0)
+                return (false, "Rate multiplier wajib lebih besar dari nol.");
+
+            if (normalizedTimeBand == OvertimeValueConstants.TimeBand.AllDay)
+            {
+                if (request.StartMinute != 0 || request.EndMinute.HasValue || request.StartTime.HasValue || request.EndTime.HasValue)
+                    return (false, "Time band AllDay tidak boleh memiliki interval menit atau jam.");
+            }
+            else if (OvertimeValueConstants.TimeBand.UsesMinuteRange(normalizedTimeBand))
+            {
+                if (!request.EndMinute.HasValue || request.EndMinute.Value <= request.StartMinute)
+                    return (false, "Time band FirstHour/NextHour wajib memiliki end minute yang lebih besar dari start minute.");
+                if (request.StartTime.HasValue || request.EndTime.HasValue)
+                    return (false, "Time band berbasis menit tidak boleh memiliki start time atau end time.");
+            }
+            else if (OvertimeValueConstants.TimeBand.UsesClockRange(normalizedTimeBand))
+            {
+                if (!request.StartTime.HasValue || !request.EndTime.HasValue)
+                    return (false, "Time band Night/Custom wajib memiliki start time dan end time.");
+                if (request.StartTime.Value == request.EndTime.Value)
+                    return (false, "Start time dan end time tidak boleh sama.");
+                if (request.StartMinute != 0 || request.EndMinute.HasValue)
+                    return (false, "Time band berbasis jam tidak boleh memiliki interval menit.");
+            }
+
+            if (request.MaximumEligibleMinutes.HasValue && request.MaximumEligibleMinutes.Value < request.MinimumEligibleMinutes)
+                return (false, "Maximum eligible minutes tidak boleh lebih kecil dari minimum eligible minutes.");
+
+            if (request.EffectiveStartDate.HasValue && request.EffectiveEndDate.HasValue &&
+                request.EffectiveEndDate.Value.Date < request.EffectiveStartDate.Value.Date)
+                return (false, "Tanggal selesai efektif tidak boleh sebelum tanggal mulai efektif.");
+
+            if (policy.EffectiveStartDate.HasValue && request.EffectiveStartDate.HasValue &&
+                request.EffectiveStartDate.Value.Date < policy.EffectiveStartDate.Value.Date)
+                return (false, "Tanggal mulai overtime rate tidak boleh sebelum tanggal mulai overtime policy.");
+
+            if (policy.EffectiveEndDate.HasValue && request.EffectiveEndDate.HasValue &&
+                request.EffectiveEndDate.Value.Date > policy.EffectiveEndDate.Value.Date)
+                return (false, "Tanggal selesai overtime rate tidak boleh setelah tanggal selesai overtime policy.");
+
+            var name = request.OvertimeRateName.Trim().ToLower();
+            var duplicate = _dbContext.Set<MstOvertimeRate>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.OvertimePolicyId == request.OvertimePolicyId &&
+                    x.DayType == normalizedDayType &&
+                    x.TimeBand == normalizedTimeBand &&
+                    x.OvertimeRateName.ToLower() == name);
+
             if (excludeId.HasValue) duplicate = duplicate.Where(x => x.Id != excludeId.Value);
             if (await duplicate.AnyAsync()) return (false, "Nama overtime rate sudah digunakan untuk overtime policy, day type, dan time band tersebut.");
+
+            var overlap = await _rateResolverService.CheckAmbiguousOverlapAsync(
+                excludeId,
+                BuildDefinitionInput(request, isActive));
+
+            if (overlap.HasAmbiguousOverlap)
+            {
+                return (false,
+                    $"Overtime rate overlap ambigu dengan {overlap.ConflictingRateCode} - {overlap.ConflictingRateName}. Gunakan priority, periode efektif, atau interval yang berbeda.");
+            }
+
             return (true, null);
         }
+
+        private static OvertimeRateDefinitionInput BuildDefinitionInput(
+            CreateOvertimeRateRequest request,
+            bool isActive)
+        {
+            var timeBand = NormalizeToken(request.TimeBand, AllowedTimeBands);
+            return new OvertimeRateDefinitionInput
+            {
+                OvertimePolicyId = request.OvertimePolicyId,
+                DayType = NormalizeToken(request.DayType, AllowedDayTypes),
+                TimeBand = timeBand,
+                StartMinute = NormalizeStartMinute(request),
+                EndMinute = NormalizeEndMinute(request),
+                StartTime = NormalizeStartTime(request),
+                EndTime = NormalizeEndTime(request),
+                Priority = request.Priority,
+                IsActive = isActive,
+                EffectiveStartDate = request.EffectiveStartDate?.Date,
+                EffectiveEndDate = request.EffectiveEndDate?.Date
+            };
+        }
+
+        private static OvertimeRateDefinitionInput BuildDefinitionInput(
+            MstOvertimeRate entity,
+            bool isActive) => new()
+        {
+            OvertimePolicyId = entity.OvertimePolicyId,
+            DayType = entity.DayType,
+            TimeBand = entity.TimeBand,
+            StartMinute = entity.StartMinute,
+            EndMinute = entity.EndMinute,
+            StartTime = entity.StartTime,
+            EndTime = entity.EndTime,
+            Priority = entity.Priority,
+            IsActive = isActive,
+            EffectiveStartDate = entity.EffectiveStartDate,
+            EffectiveEndDate = entity.EffectiveEndDate
+        };
+
+        private static decimal? NormalizeFixedAmount(CreateOvertimeRateRequest request)
+        {
+            var method = NormalizeToken(request.CalculationMethod, AllowedCalculationMethods);
+            return method == OvertimeValueConstants.CalculationMethod.Multiplier
+                ? null
+                : request.FixedAmount;
+        }
+
+        private static int NormalizeStartMinute(CreateOvertimeRateRequest request)
+        {
+            var timeBand = NormalizeToken(request.TimeBand, AllowedTimeBands);
+            return OvertimeValueConstants.TimeBand.UsesMinuteRange(timeBand)
+                ? request.StartMinute
+                : 0;
+        }
+
+        private static int? NormalizeEndMinute(CreateOvertimeRateRequest request)
+        {
+            var timeBand = NormalizeToken(request.TimeBand, AllowedTimeBands);
+            return OvertimeValueConstants.TimeBand.UsesMinuteRange(timeBand)
+                ? request.EndMinute
+                : null;
+        }
+
+        private static TimeOnly? NormalizeStartTime(CreateOvertimeRateRequest request)
+        {
+            var timeBand = NormalizeToken(request.TimeBand, AllowedTimeBands);
+            return OvertimeValueConstants.TimeBand.UsesClockRange(timeBand)
+                ? request.StartTime
+                : null;
+        }
+
+        private static TimeOnly? NormalizeEndTime(CreateOvertimeRateRequest request)
+        {
+            var timeBand = NormalizeToken(request.TimeBand, AllowedTimeBands);
+            return OvertimeValueConstants.TimeBand.UsesClockRange(timeBand)
+                ? request.EndTime
+                : null;
+        }
+
         private OvertimeRateResponse MapResponse(MstOvertimeRate x, IReadOnlyDictionary<Guid, string?> actors) => new()
         {
             Id = x.Id, OvertimePolicyId = x.OvertimePolicyId, OvertimePolicyCode = x.OvertimePolicy?.OvertimePolicyCode ?? string.Empty,

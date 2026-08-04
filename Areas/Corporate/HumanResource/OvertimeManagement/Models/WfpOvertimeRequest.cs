@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
@@ -33,6 +33,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         public Guid? CostCenterId { get; set; }
 
         public Guid? OvertimePolicyId { get; set; }
+
+        public Guid? SourceOvertimePlanDetailId { get; set; }
+
+        [Required, MaxLength(40)]
+        public string RequestSource { get; set; } = "EmployeeSelfService";
+
         public Guid? WorkScheduleAssignmentId { get; set; }
         public Guid? RosterPeriodId { get; set; }
         public Guid? ShiftAssignmentId { get; set; }
@@ -140,6 +146,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         public MstPosition? Position { get; set; }
         public MstCostCenter? CostCenter { get; set; }
         public MstOvertimePolicy? OvertimePolicy { get; set; }
+        public TrxOvertimePlanDetail? SourceOvertimePlanDetail { get; set; }
         public WfpWorkScheduleAssignment? WorkScheduleAssignment { get; set; }
         public TrxRosterPeriod? RosterPeriod { get; set; }
         public TrxShiftAssignment? ShiftAssignment { get; set; }

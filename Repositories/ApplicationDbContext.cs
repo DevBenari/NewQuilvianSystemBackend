@@ -328,6 +328,8 @@ namespace QuilvianSystemBackend.Repositories
         #endregion CORPORATE - HUMAN RESOURCE - LEAVE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - OVERTIME MANAGEMENT
+        public DbSet<TrxOvertimePlan> TrxOvertimePlans { get; set; }
+        public DbSet<TrxOvertimePlanDetail> TrxOvertimePlanDetails { get; set; }
         public DbSet<WfpOvertimeRequest> WfpOvertimeRequests { get; set; }
         public DbSet<TrxOvertimeRequestDetail> TrxOvertimeRequestDetails { get; set; }
         public DbSet<TrxOvertimeRequestApproval> TrxOvertimeRequestApprovals { get; set; }
