@@ -1,0 +1,104 @@
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Models;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models
+{
+    [Table("TrxEmergencyVisit", Schema = "public")]
+    public class TrxEmergencyVisit : IdentityModel
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        [Required]
+        [MaxLength(50)]
+        public string EmergencyVisitNumber { get; set; } = string.Empty;
+
+        public Guid? EncounterId { get; set; }
+
+        public Guid? PatientId { get; set; }
+
+        [Required]
+        public Guid ServiceUnitId { get; set; }
+
+        public Guid? ArrivalModeId { get; set; }
+
+        public Guid? CaseTypeId { get; set; }
+
+        public DateTime ArrivalDateTime { get; set; } = DateTime.UtcNow;
+
+        [MaxLength(1000)]
+        public string? ChiefComplaint { get; set; }
+
+        [MaxLength(250)]
+        public string? ArrivalLocation { get; set; }
+
+        [MaxLength(250)]
+        public string? FoundLocation { get; set; }
+
+        [MaxLength(250)]
+        public string? TraumaLocation { get; set; }
+
+        public DateTime? TraumaDateTime { get; set; }
+
+        public bool IsUnknownPatient { get; set; }
+
+        [MaxLength(100)]
+        public string? TemporaryPatientAlias { get; set; }
+
+        public bool IsImmediateCareAllowed { get; set; }
+
+        public EmergencyRegistrationStatus RegistrationStatus { get; set; }
+            = EmergencyRegistrationStatus.Pending;
+
+        public EmergencyVisitStatus VisitStatus { get; set; }
+            = EmergencyVisitStatus.Arrived;
+
+        public DateTime? RegistrationCompletedAt { get; set; }
+
+        public Guid? RegistrationCompletedByUserId { get; set; }
+
+        public DateTime? TreatmentStartedAt { get; set; }
+
+        public DateTime? VisitCompletedAt { get; set; }
+
+        [MaxLength(1000)]
+        public string? Notes { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        public TrxPatientEncounter? Encounter { get; set; }
+
+        public MstPatient? Patient { get; set; }
+
+        public MstServiceUnit? ServiceUnit { get; set; }
+
+        public MstEmergencyArrivalMode? ArrivalMode { get; set; }
+
+        public MstEmergencyCaseType? CaseType { get; set; }
+
+        public ApplicationUser? RegistrationCompletedByUser { get; set; }
+
+        public ICollection<TrxEmergencyTriage> Triages { get; set; }
+            = new List<TrxEmergencyTriage>();
+
+        public ICollection<TrxEmergencyResuscitation> Resuscitations { get; set; }
+            = new List<TrxEmergencyResuscitation>();
+
+        public ICollection<TrxEmergencyObservation> Observations { get; set; }
+            = new List<TrxEmergencyObservation>();
+
+        public ICollection<TrxEmergencyDisposition> Dispositions { get; set; }
+            = new List<TrxEmergencyDisposition>();
+
+        public ICollection<TrxEmergencyTransfer> Transfers { get; set; }
+            = new List<TrxEmergencyTransfer>();
+
+        public ICollection<TrxEmergencyProcedureDetail> ProcedureDetails { get; set; }
+            = new List<TrxEmergencyProcedureDetail>();
+    }
+}

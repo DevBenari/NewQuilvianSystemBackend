@@ -37,6 +37,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManage
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories
 {
@@ -570,6 +572,31 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxPrescriptionFinalCheckItem> TrxPrescriptionFinalCheckItems { get; set; }
         public DbSet<TrxPrescriptionDrugSubstitution> TrxPrescriptionDrugSubstitutions { get; set; }
         public DbSet<TrxPrescriptionClarification> TrxPrescriptionClarifications { get; set; }
+
+        #region HEALTH SERVICE - Emergency Installation Management
+
+        #region master
+        public DbSet<MstEmergencyTriageLevel> MstEmergencyTriageLevels { get; set; }
+        public DbSet<MstEmergencyTriageIndicator> MstEmergencyTriageIndicators { get; set; }
+        public DbSet<MstEmergencyArrivalMode> MstEmergencyArrivalModes { get; set; }
+        public DbSet<MstEmergencyCaseType> MstEmergencyCaseTypes { get; set; }
+        public DbSet<MstEmergencyDispositionType> MstEmergencyDispositionTypes { get; set; }
+        public DbSet<MstEmergencySetting> MstEmergencySettings { get; set; }
+        #endregion
+
+        #region transaction
+        public DbSet<TrxEmergencyVisit> TrxEmergencyVisits { get; set; }
+        public DbSet<TrxEmergencyTriage> TrxEmergencyTriages { get; set; }
+        public DbSet<TrxEmergencyTriageDetail> TrxEmergencyTriageDetails { get; set; }
+        public DbSet<TrxEmergencyResuscitation> TrxEmergencyResuscitations { get; set; }
+        public DbSet<TrxEmergencyObservation> TrxEmergencyObservations { get; set; }
+        public DbSet<TrxEmergencyObservationDetail> TrxEmergencyObservationDetails { get; set; }
+        public DbSet<TrxEmergencyProcedureDetail> TrxEmergencyProcedureDetails { get; set; }
+        public DbSet<TrxEmergencyDisposition> TrxEmergencyDispositions { get; set; }
+        public DbSet<TrxEmergencyTransfer> TrxEmergencyTransfers { get; set; }
+        #endregion
+
+        #endregion
 
         #endregion HEALTH SERVICE
 
