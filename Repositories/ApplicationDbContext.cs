@@ -1,41 +1,43 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.ExpenseManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.TravelAndExpense.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Performance.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.TravelAndExpense.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.ExpenseManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.LearningAndDevelopment.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.OccupationalHealthManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Models;
 
 namespace QuilvianSystemBackend.Repositories
 {
@@ -567,6 +569,31 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxPrescriptionFinalCheckItem> TrxPrescriptionFinalCheckItems { get; set; }
         public DbSet<TrxPrescriptionDrugSubstitution> TrxPrescriptionDrugSubstitutions { get; set; }
         public DbSet<TrxPrescriptionClarification> TrxPrescriptionClarifications { get; set; }
+
+        #region HEALTH SERVICE - Emergency Installation Management
+
+        #region master
+        public DbSet<MstEmergencyTriageLevel> MstEmergencyTriageLevels { get; set; }
+        public DbSet<MstEmergencyTriageIndicator> MstEmergencyTriageIndicators { get; set; }
+        public DbSet<MstEmergencyArrivalMode> MstEmergencyArrivalModes { get; set; }
+        public DbSet<MstEmergencyCaseType> MstEmergencyCaseTypes { get; set; }
+        public DbSet<MstEmergencyDispositionType> MstEmergencyDispositionTypes { get; set; }
+        public DbSet<MstEmergencySetting> MstEmergencySettings { get; set; }
+        #endregion
+
+        #region transaction
+        public DbSet<TrxEmergencyVisit> TrxEmergencyVisits { get; set; }
+        public DbSet<TrxEmergencyTriage> TrxEmergencyTriages { get; set; }
+        public DbSet<TrxEmergencyTriageDetail> TrxEmergencyTriageDetails { get; set; }
+        public DbSet<TrxEmergencyResuscitation> TrxEmergencyResuscitations { get; set; }
+        public DbSet<TrxEmergencyObservation> TrxEmergencyObservations { get; set; }
+        public DbSet<TrxEmergencyObservationDetail> TrxEmergencyObservationDetails { get; set; }
+        public DbSet<TrxEmergencyProcedureDetail> TrxEmergencyProcedureDetails { get; set; }
+        public DbSet<TrxEmergencyDisposition> TrxEmergencyDispositions { get; set; }
+        public DbSet<TrxEmergencyTransfer> TrxEmergencyTransfers { get; set; }
+        #endregion
+
+        #endregion
 
         #endregion HEALTH SERVICE
 

@@ -42,6 +42,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="EntityFramework" Version="6.5.2" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.36" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.36" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.36">
@@ -84,7 +85,6 @@
     <Folder Include="Areas\Corporate\TaxManagement\" />
     <Folder Include="Areas\Corporate\ProcurementManagement\" />
     <Folder Include="Areas\HealthServices\InpatientManagement\" />
-    <Folder Include="Areas\HealthServices\EmergencyInstallationManagement\" />
     <Folder Include="Areas\HealthServices\MedicalRecordManagement\" />
     <Folder Include="Areas\HealthServices\LaboratoryManagement\" />
     <Folder Include="Areas\HealthServices\InsuranceManagement\" />

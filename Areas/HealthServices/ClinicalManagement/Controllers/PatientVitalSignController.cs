@@ -31,6 +31,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         Description = "Catatan observasi tanda vital pasien",
         SortOrder = 8
     )]
+
     [Tags("Health Services / Clinical Management / Patient Vital Sign")]
     public class PatientVitalSignController : ControllerBase
     {
