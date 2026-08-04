@@ -6,6 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
@@ -271,6 +275,67 @@ try
 
     builder.Services.AddScoped<HumanResourceContextService>();
     builder.Services.AddScoped<EmployeeProfileChangeService>();
+    builder.Services.AddScoped<WorkflowService>();
+    builder.Services.AddScoped<WorkflowFileStorageService>();
+    builder.Services.AddScoped<WorkflowCommentService>();
+    builder.Services.AddScoped<WorkflowAttachmentService>();
+    builder.Services.AddScoped<ApprovalDelegationService>();
+    builder.Services.AddScoped<ApprovalInboxService>();
+    builder.Services.AddScoped<WorkflowReferenceLifecycleService>();
+    builder.Services.AddScoped<EmployeeProfileChangeWorkflowIntegrationService>();
+
+    builder.Services.AddScoped<AttendanceRawLogService>();
+    builder.Services.AddScoped<AttendanceScheduleResolverService>();
+    builder.Services.AddScoped<AttendanceProcessingService>();
+    builder.Services.AddScoped<AttendanceDailyQueryService>();
+    builder.Services.AddScoped<AttendanceCorrectionWorkflowLifecycleService>();
+    builder.Services.AddScoped<AttendanceCorrectionService>();
+    builder.Services.AddScoped<AttendanceCorrectionMonitoringService>();
+    builder.Services.AddScoped<AttendancePayrollHandoffService>();
+    builder.Services.Configure<AttendanceSchedulerOptions>(
+        builder.Configuration.GetSection("HumanResource:AttendanceScheduler"));
+    builder.Services.AddScoped<AttendancePeriodService>();
+    builder.Services.AddScoped<AttendanceSchedulerService>();
+    builder.Services.AddHostedService<AttendanceSchedulerHostedService>();
+
+    builder.Services.AddScoped<LeaveEntitlementBalanceQueryService>();
+    builder.Services.AddScoped<LeaveAdjustmentPostingService>();
+    builder.Services.AddScoped<LeaveAdjustmentWorkflowLifecycleService>();
+    builder.Services.AddScoped<LeaveAdjustmentService>();
+    builder.Services.AddScoped<LeaveAccrualPolicyResolverService>();
+    builder.Services.AddScoped<LeaveAccrualProcessorService>();
+    builder.Services.AddScoped<LeaveAccrualSchedulerService>();
+    builder.Services.Configure<LeaveAccrualSchedulerOptions>(
+        builder.Configuration.GetSection("HumanResource:LeaveAccrualScheduler"));
+    builder.Services.AddHostedService<LeaveAccrualSchedulerHostedService>();
+    builder.Services.AddScoped<LeaveCarryForwardPolicyResolverService>();
+    builder.Services.AddScoped<LeaveCarryForwardProcessorService>();
+    builder.Services.AddScoped<LeaveCarryForwardSchedulerService>();
+    builder.Services.Configure<LeaveCarryForwardSchedulerOptions>(
+        builder.Configuration.GetSection("HumanResource:LeaveCarryForwardScheduler"));
+    builder.Services.AddHostedService<LeaveCarryForwardSchedulerHostedService>();
+    builder.Services.AddScoped<LeaveRequestCalculationService>();
+    builder.Services.AddScoped<LeaveRequestReservationService>();
+    builder.Services.AddScoped<LeaveRequestAttachmentService>();
+    builder.Services.AddScoped<LeaveRequestService>();
+    builder.Services.AddScoped<LeaveRequestBalanceLifecycleService>();
+    builder.Services.AddScoped<LeaveRequestWorkflowLifecycleService>();
+    builder.Services.AddScoped<LeaveRequestWorkflowIntegrationService>();
+    builder.Services.AddScoped<LeaveExecutionBalanceService>();
+    builder.Services.AddScoped<LeaveExecutionProcessorService>();
+    builder.Services.AddScoped<LeaveExecutionQueryService>();
+    builder.Services.AddScoped<LeaveCalendarService>();
+    builder.Services.Configure<LeaveExecutionSchedulerOptions>(
+        builder.Configuration.GetSection("HumanResource:LeaveExecutionScheduler"));
+    builder.Services.AddHostedService<LeaveExecutionSchedulerHostedService>();
+    builder.Services.Configure<LeavePayrollIntegrationOptions>(
+        builder.Configuration.GetSection("HumanResource:LeavePayrollIntegration"));
+    builder.Services.AddScoped<LeavePayrollIntegrationService>();
+    builder.Services.AddScoped<LeaveCancellationWorkflowLifecycleService>();
+    builder.Services.AddScoped<LeaveRecallWorkflowLifecycleService>();
+    builder.Services.AddScoped<LeaveCancellationService>();
+    builder.Services.AddScoped<LeaveRecallService>();
+    builder.Services.AddScoped<LeaveFinalReconciliationService>();
 
     builder.Services.AddAuthorization(options =>
     {

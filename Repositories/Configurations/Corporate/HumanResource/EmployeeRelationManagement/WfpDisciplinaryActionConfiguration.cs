@@ -11,15 +11,72 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.ToTable("WfpDisciplinaryAction", "public");
             entity.HasKey(x => x.Id);
 
-            entity.Property(x => x.ActionDate).HasColumnType("timestamp with time zone");
-            entity.Property(x => x.EffectiveStartDate).HasColumnType("timestamp with time zone");
-            entity.Property(x => x.EffectiveEndDate).HasColumnType("timestamp with time zone");
-            entity.Property(x => x.AcknowledgedAt).HasColumnType("timestamp with time zone");
-            entity.Property(x => x.IsAcknowledged).HasDefaultValue(false);
-            entity.Property(x => x.IsAppealed).HasDefaultValue(false);
-            entity.Property(x => x.IsConfidential).HasDefaultValue(true);
-            entity.Property(x => x.RequiresEnhancedAudit).HasDefaultValue(true);
-            entity.Property(x => x.IsActive).HasDefaultValue(true);
+            entity.Property(x => x.ActionCode)
+                .HasMaxLength(60)
+                .IsRequired();
+
+            entity.Property(x => x.ActionType)
+                .HasMaxLength(80)
+                .IsRequired();
+
+            entity.Property(x => x.ActionLevel)
+                .HasMaxLength(40);
+
+            entity.Property(x => x.ActionDate)
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property(x => x.EffectiveStartDate)
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property(x => x.EffectiveEndDate)
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property(x => x.Subject)
+                .HasMaxLength(250)
+                .IsRequired();
+
+            entity.Property(x => x.Reason)
+                .HasMaxLength(2000);
+
+            entity.Property(x => x.DecisionSummary)
+                .HasMaxLength(2000);
+
+            entity.Property(x => x.ConfidentialNotes)
+                .HasMaxLength(4000);
+
+            entity.Property(x => x.ActionStatus)
+                .HasMaxLength(40)
+                .HasDefaultValue("Draft")
+                .IsRequired();
+
+            entity.Property(x => x.AcknowledgedAt)
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property(x => x.AppealStatus)
+                .HasMaxLength(40);
+
+            entity.Property(x => x.AccessClassification)
+                .HasMaxLength(30)
+                .HasDefaultValue("HighlyRestricted")
+                .IsRequired();
+
+            entity.Property(x => x.Description)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.IsAcknowledged)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsAppealed)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsConfidential)
+                .HasDefaultValue(true);
+
+            entity.Property(x => x.RequiresEnhancedAudit)
+                .HasDefaultValue(true);
+
+            entity.Property(x => x.IsActive)
+                .HasDefaultValue(true);
 
             entity.HasOne(x => x.WorkforceProfile)
                 .WithMany(x => x.DisciplinaryActions)
@@ -51,6 +108,36 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .HasForeignKey(x => x.IncidentReportId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.DisciplinaryActionType)
+                .WithMany()
+                .HasForeignKey(x => x.DisciplinaryActionTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ViolationType)
+                .WithMany()
+                .HasForeignKey(x => x.ViolationTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.SanctionType)
+                .WithMany()
+                .HasForeignKey(x => x.SanctionTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.EmployeeRelationCaseType)
+                .WithMany()
+                .HasForeignKey(x => x.EmployeeRelationCaseTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.RequestReason)
+                .WithMany()
+                .HasForeignKey(x => x.RequestReasonId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.WorkflowDefinition)
+                .WithMany()
+                .HasForeignKey(x => x.WorkflowDefinitionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(x => x.IssuedByUser)
                 .WithMany()
                 .HasForeignKey(x => x.IssuedByUserId)
@@ -65,21 +152,56 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
 
-            entity.HasIndex(x => new { x.WorkforceProfileId, x.ActionDate });
+            entity.HasIndex(x => new
+            {
+                x.WorkforceProfileId,
+                x.ActionDate
+            });
 
-            entity.HasIndex(x => new { x.ActionStatus, x.EffectiveEndDate });
+            entity.HasIndex(x => new
+            {
+                x.ActionStatus,
+                x.EffectiveEndDate
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.DisciplinaryActionTypeId,
+                x.ViolationTypeId,
+                x.SanctionTypeId
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.EmployeeRelationCaseTypeId,
+                x.RequestReasonId,
+                x.WorkflowDefinitionId
+            });
 
             ConfigureIdentity(entity);
         }
 
-        private static void ConfigureIdentity(EntityTypeBuilder<WfpDisciplinaryAction> entity)
+        private static void ConfigureIdentity(
+            EntityTypeBuilder<WfpDisciplinaryAction> entity)
         {
-            entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.Property(x => x.UpdateDateTime).HasColumnType("timestamp with time zone");
-            entity.Property(x => x.DeleteDateTime).HasColumnType("timestamp with time zone");
-            entity.Property(x => x.CancelDateTime).HasColumnType("timestamp with time zone");
-            entity.Property(x => x.IsDelete).HasDefaultValue(false);
-            entity.Property(x => x.IsCancel).HasDefaultValue(false);
+            entity.Property(x => x.CreateDateTime)
+                .HasColumnType("timestamp with time zone")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.UpdateDateTime)
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property(x => x.DeleteDateTime)
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property(x => x.CancelDateTime)
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property(x => x.IsDelete)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsCancel)
+                .HasDefaultValue(false);
         }
     }
 }

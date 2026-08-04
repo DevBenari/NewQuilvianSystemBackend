@@ -1,9 +1,6 @@
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -26,11 +23,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Mo
 
         public Guid? LeavePolicyId { get; set; }
         public Guid? LeaveEntitlementPolicyId { get; set; }
+        public Guid? LeaveEntitlementPeriodId { get; set; }
         public Guid? LeaveBalanceId { get; set; }
+        public Guid? EntitlementTransactionId { get; set; }
 
         public int EntitlementYear { get; set; }
         public DateOnly PeriodStartDate { get; set; }
         public DateOnly PeriodEndDate { get; set; }
+        public DateOnly? GrantDate { get; set; }
+        public DateOnly? AvailableFromDate { get; set; }
         public DateOnly? ExpiryDate { get; set; }
 
         public decimal BaseEntitlementDays { get; set; } = 0;
@@ -41,10 +42,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Mo
 
         public bool IsProrated { get; set; } = false;
         public int ServiceMonthsAtGrant { get; set; } = 0;
+        public int CalculationVersion { get; set; } = 1;
+
+        [MaxLength(150)]
+        public string? IdempotencyKey { get; set; }
 
         [Required, MaxLength(30)]
-        public string EntitlementStatus { get; set; } = "Draft";
-        // Draft, Generated, Posted, Adjusted, Expired, Cancelled
+        public string EntitlementStatus { get; set; }
+            = LeaveValueConstants.EntitlementStatus.Draft;
 
         [MaxLength(50)]
         public string SourceType { get; set; } = "Policy";
@@ -70,11 +75,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Mo
         public MstLeaveType? LeaveType { get; set; }
         public MstLeavePolicy? LeavePolicy { get; set; }
         public MstLeaveEntitlementPolicy? LeaveEntitlementPolicy { get; set; }
+        public TrxLeaveEntitlementPeriod? LeaveEntitlementPeriod { get; set; }
         public WfpLeaveBalance? LeaveBalance { get; set; }
+        public TrxLeaveBalanceTransaction? EntitlementTransaction { get; set; }
         public ApplicationUser? GeneratedByUser { get; set; }
         public ApplicationUser? PostedByUser { get; set; }
 
-        public ICollection<TrxLeaveAccrual> Accruals { get; set; } = new List<TrxLeaveAccrual>();
-        public ICollection<TrxLeaveBalanceTransaction> BalanceTransactions { get; set; } = new List<TrxLeaveBalanceTransaction>();
+        public ICollection<TrxLeaveAccrual> Accruals { get; set; }
+            = new List<TrxLeaveAccrual>();
+
+        public ICollection<TrxLeaveBalanceTransaction> BalanceTransactions { get; set; }
+            = new List<TrxLeaveBalanceTransaction>();
     }
 }

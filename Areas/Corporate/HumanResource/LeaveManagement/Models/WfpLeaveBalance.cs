@@ -1,9 +1,6 @@
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -23,9 +20,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Mo
 
         public Guid? LeavePolicyId { get; set; }
         public Guid? LeaveEntitlementPolicyId { get; set; }
+        public Guid? LeaveEntitlementPeriodId { get; set; }
 
         public int Year { get; set; }
-
         public DateOnly PeriodStartDate { get; set; }
         public DateOnly PeriodEndDate { get; set; }
 
@@ -44,7 +41,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Mo
         public decimal RemainingDays { get; set; } = 0;
         public decimal AvailableDays { get; set; } = 0;
 
+        [Required]
+        [MaxLength(30)]
+        public string BalanceStatus { get; set; }
+            = LeaveValueConstants.BalanceStatus.Active;
+
+        public Guid? LastTransactionId { get; set; }
+        public long LastTransactionSequence { get; set; } = 0;
+        public long BalanceVersion { get; set; } = 0;
+
         public DateTime? LastCalculatedAt { get; set; }
+        public DateTime? LastReconciledAt { get; set; }
+        public DateOnly? CarryForwardExpiryDate { get; set; }
 
         public bool IsLocked { get; set; } = false;
         public DateTime? LockedAt { get; set; }
@@ -59,11 +67,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Mo
         public MstLeaveType? LeaveType { get; set; }
         public MstLeavePolicy? LeavePolicy { get; set; }
         public MstLeaveEntitlementPolicy? LeaveEntitlementPolicy { get; set; }
+        public TrxLeaveEntitlementPeriod? LeaveEntitlementPeriod { get; set; }
+        public TrxLeaveBalanceTransaction? LastTransaction { get; set; }
         public ApplicationUser? LockedByUser { get; set; }
 
-        public ICollection<TrxLeaveEntitlement> Entitlements { get; set; } = new List<TrxLeaveEntitlement>();
-        public ICollection<TrxLeaveAccrual> Accruals { get; set; } = new List<TrxLeaveAccrual>();
-        public ICollection<TrxLeaveBalanceTransaction> Transactions { get; set; } = new List<TrxLeaveBalanceTransaction>();
-        public ICollection<WfpLeaveRequest> LeaveRequests { get; set; } = new List<WfpLeaveRequest>();
+        public ICollection<TrxLeaveEntitlement> Entitlements { get; set; }
+            = new List<TrxLeaveEntitlement>();
+
+        public ICollection<TrxLeaveAccrual> Accruals { get; set; }
+            = new List<TrxLeaveAccrual>();
+
+        public ICollection<TrxLeaveBalanceTransaction> Transactions { get; set; }
+            = new List<TrxLeaveBalanceTransaction>();
+
+        public ICollection<TrxLeaveAdjustment> Adjustments { get; set; }
+            = new List<TrxLeaveAdjustment>();
+
+        public ICollection<WfpLeaveRequest> LeaveRequests { get; set; }
+            = new List<WfpLeaveRequest>();
     }
 }
