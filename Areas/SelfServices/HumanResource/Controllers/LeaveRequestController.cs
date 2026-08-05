@@ -8,20 +8,20 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Controllers
+namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/corporate/human-resource/employee-self-service/leave/requests")]
+    [Route("api/v1/self-services/human-resource/leave/requests")]
     [AccessController(
-        moduleCode: "HUMAN_RESOURCE_LEAVE",
-        moduleName: "Human Resource Leave",
-        displayName: "Leave Request Self Service",
-        AreaName = "Corporate",
-        ControllerName = "LeaveRequestSelfService",
+        moduleCode: "HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE",
+        moduleName: "Human Resource Employee Self Service",
+        displayName: "My Leave Request",
+        AreaName = "SelfServices",
+        ControllerName = "MyLeaveRequest",
         Description = "Employee self-service leave request, calculation, attachment, reservation, and workflow submission",
         SortOrder = 6)]
-    [Tags("Corporate / Human Resource / Employee Self Service / Leave Request")]
+    [Tags("Self Services / Human Resource / Leave Request")]
     public class LeaveRequestController : ControllerBase
     {
         private readonly LeaveRequestService _service;
@@ -40,7 +40,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpGet("filters/metadata")]
         [AccessAction("Read", "Read Leave Request", Description = "Melihat metadata ESS leave request", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveRequestSelfService", "Read")]
+        [AccessPermission("MyLeaveRequest", "Read")]
         public IActionResult GetMetadata()
         {
             return Ok(ApiResponse<LeaveRequestFilterMetadataResponse>.Ok(
@@ -50,7 +50,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpGet("balances/options")]
         [AccessAction("Read", "Read Leave Balance Options", Description = "Melihat pilihan jenis cuti dan saldo employee", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveRequestSelfService", "Read")]
+        [AccessPermission("MyLeaveRequest", "Read")]
         public async Task<IActionResult> GetBalanceOptions(
             [FromQuery] DateOnly? asOfDate,
             CancellationToken cancellationToken)
@@ -63,7 +63,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpGet("reasons/options")]
         [AccessAction("Read", "Read Leave Request Reasons", Description = "Melihat pilihan alasan pengajuan cuti", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveRequestSelfService", "Read")]
+        [AccessPermission("MyLeaveRequest", "Read")]
         public async Task<IActionResult> GetReasonOptions(
             [FromQuery] string? search,
             CancellationToken cancellationToken)
@@ -73,7 +73,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpPost("calculate")]
         [AccessAction("Read", "Calculate Leave Request", Description = "Menghitung hari cuti, jadwal, konflik, dan saldo", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveRequestSelfService", "Read")]
+        [AccessPermission("MyLeaveRequest", "Read")]
         public async Task<IActionResult> Calculate(
             [FromBody] LeaveRequestCalculationRequest request,
             CancellationToken cancellationToken)
@@ -86,7 +86,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpGet("summary")]
         [AccessAction("Read", "Read Leave Request Summary", Description = "Melihat ringkasan pengajuan cuti employee", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveRequestSelfService", "Read")]
+        [AccessPermission("MyLeaveRequest", "Read")]
         public async Task<IActionResult> GetSummary(
             [FromQuery] LeaveRequestQueryRequest request,
             CancellationToken cancellationToken)
@@ -99,7 +99,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpGet]
         [AccessAction("Read", "Read Leave Request", Description = "Melihat daftar pengajuan cuti milik employee", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveRequestSelfService", "Read")]
+        [AccessPermission("MyLeaveRequest", "Read")]
         public async Task<IActionResult> GetPaged(
             [FromQuery] LeaveRequestQueryRequest request,
             CancellationToken cancellationToken)
@@ -112,7 +112,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpGet("{id:guid}")]
         [AccessAction("Read", "Read Leave Request Detail", Description = "Melihat detail pengajuan cuti milik employee", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveRequestSelfService", "Read")]
+        [AccessPermission("MyLeaveRequest", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
         {
             return ToActionResult(await _service.GetByIdAsync(
@@ -123,7 +123,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpGet("{id:guid}/workflow")]
         [AccessAction("Read", "Read Leave Request Workflow", Description = "Melihat workflow pengajuan cuti", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveRequestSelfService", "Read")]
+        [AccessPermission("MyLeaveRequest", "Read")]
         public async Task<IActionResult> GetWorkflow(Guid id, CancellationToken cancellationToken)
         {
             return ToActionResult(await _service.GetWorkflowAsync(
@@ -134,7 +134,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpPost]
         [AccessAction("Create", "Create Leave Request", Description = "Membuat draft pengajuan cuti", AccessType = AccessTypes.Create, SortOrder = 2)]
-        [AccessPermission("LeaveRequestSelfService", "Create")]
+        [AccessPermission("MyLeaveRequest", "Create")]
         public async Task<IActionResult> Create(
             [FromBody] CreateLeaveRequestRequest request,
             CancellationToken cancellationToken)
@@ -147,7 +147,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpPut("{id:guid}")]
         [AccessAction("Update", "Update Leave Request", Description = "Mengubah draft atau revisi pengajuan cuti", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("LeaveRequestSelfService", "Update")]
+        [AccessPermission("MyLeaveRequest", "Update")]
         public async Task<IActionResult> Update(
             Guid id,
             [FromBody] UpdateLeaveRequestRequest request,
@@ -162,7 +162,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpPost("{id:guid}/prepare-workflow")]
         [AccessAction("Update", "Prepare Leave Request Workflow", Description = "Menyiapkan workflow LEAVE_REQUEST", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("LeaveRequestSelfService", "Update")]
+        [AccessPermission("MyLeaveRequest", "Update")]
         public async Task<IActionResult> PrepareWorkflow(
             Guid id,
             [FromBody] PrepareLeaveRequestWorkflowRequest request,
@@ -177,7 +177,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpPost("{id:guid}/submit")]
         [AccessAction("Submit", "Submit Leave Request", Description = "Submit pengajuan cuti dan reservasi saldo", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("LeaveRequestSelfService", "Submit")]
+        [AccessPermission("MyLeaveRequest", "Submit")]
         public async Task<IActionResult> Submit(
             Guid id,
             [FromBody] SubmitLeaveRequestRequest request,
@@ -192,7 +192,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpPost("{id:guid}/cancel")]
         [AccessAction("Cancel", "Cancel Leave Request", Description = "Membatalkan atau menarik pengajuan cuti", AccessType = AccessTypes.Update, SortOrder = 6)]
-        [AccessPermission("LeaveRequestSelfService", "Cancel")]
+        [AccessPermission("MyLeaveRequest", "Cancel")]
         public async Task<IActionResult> Cancel(
             Guid id,
             [FromBody] CancelLeaveRequestRequest request,
@@ -208,7 +208,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
         [HttpPost("{id:guid}/attachments")]
         [Consumes("multipart/form-data")]
         [AccessAction("Update", "Upload Leave Request Attachment", Description = "Mengunggah dokumen pendukung pengajuan cuti", AccessType = AccessTypes.Update, SortOrder = 7)]
-        [AccessPermission("LeaveRequestSelfService", "Update")]
+        [AccessPermission("MyLeaveRequest", "Update")]
         public async Task<IActionResult> UploadAttachment(
             Guid id,
             [FromForm] IFormFile file,
@@ -227,7 +227,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpGet("{id:guid}/attachments/{attachmentId:guid}/download")]
         [AccessAction("Read", "Download Leave Request Attachment", Description = "Mengunduh attachment pengajuan cuti", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveRequestSelfService", "Read")]
+        [AccessPermission("MyLeaveRequest", "Read")]
         public async Task<IActionResult> DownloadAttachment(
             Guid id,
             Guid attachmentId,
@@ -250,7 +250,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpDelete("{id:guid}/attachments/{attachmentId:guid}")]
         [AccessAction("Update", "Delete Leave Request Attachment", Description = "Menghapus attachment draft pengajuan cuti", AccessType = AccessTypes.Update, SortOrder = 7)]
-        [AccessPermission("LeaveRequestSelfService", "Update")]
+        [AccessPermission("MyLeaveRequest", "Update")]
         public async Task<IActionResult> DeleteAttachment(
             Guid id,
             Guid attachmentId,
@@ -265,7 +265,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpDelete("{id:guid}")]
         [AccessAction("Delete", "Delete Leave Request", Description = "Menghapus draft pengajuan cuti", AccessType = AccessTypes.Delete, SortOrder = 8)]
-        [AccessPermission("LeaveRequestSelfService", "Delete")]
+        [AccessPermission("MyLeaveRequest", "Delete")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
         {
             return ToActionResult(await _service.DeleteAsync(

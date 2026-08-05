@@ -1,4 +1,4 @@
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs
+namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs
 {
     public class MyOvertimeQueryRequest
     {

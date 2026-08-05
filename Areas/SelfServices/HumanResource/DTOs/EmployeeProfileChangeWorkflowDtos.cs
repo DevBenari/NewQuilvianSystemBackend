@@ -1,8 +1,7 @@
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.DTOs;
 using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs
+namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs
 {
     public class EmployeeProfileChangeWorkflowSubmitRequest
     {

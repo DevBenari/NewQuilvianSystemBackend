@@ -7,15 +7,15 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Controllers
+namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/corporate/human-resource/employee-self-service/leave/return-to-work")]
-    [AccessController("HUMAN_RESOURCE_LEAVE", "Human Resource Leave", "Return To Work Self Service",
-        AreaName = "Corporate", ControllerName = "LeaveReturnToWorkSelfService",
+    [Route("api/v1/self-services/human-resource/leave/return-to-work")]
+    [AccessController("HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE", "Human Resource Employee Self Service", "My Return To Work",
+        AreaName = "SelfServices", ControllerName = "MyReturnToWork",
         Description = "Employee acknowledgement of recall and actual return-to-work date", SortOrder = 10)]
-    [Tags("Corporate / Human Resource / Employee Self Service / Return To Work")]
+    [Tags("Self Services / Human Resource / Return To Work")]
     public class LeaveReturnToWorkController : ControllerBase
     {
         private readonly LeaveRecallService _service;
@@ -23,13 +23,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpGet]
         [AccessAction("Read", "Read My Return To Work", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveReturnToWorkSelfService", "Read")]
+        [AccessPermission("MyReturnToWork", "Read")]
         public async Task<IActionResult> GetPaged([FromQuery] LeaveLifecycleQueryRequest request, CancellationToken token)
             => ToActionResult(await _service.GetMyReturnToWorkAsync(GetUserId(), request, token));
 
         [HttpPost("{recallId:guid}/acknowledge")]
         [AccessAction("Acknowledge", "Acknowledge Return To Work", AccessType = AccessTypes.Update, SortOrder = 2)]
-        [AccessPermission("LeaveReturnToWorkSelfService", "Acknowledge")]
+        [AccessPermission("MyReturnToWork", "Acknowledge")]
         public async Task<IActionResult> Acknowledge(Guid recallId, [FromBody] AcknowledgeReturnToWorkRequest request, CancellationToken token)
             => ToActionResult(await _service.AcknowledgeReturnToWorkAsync(recallId, GetUserId(), request, token));
 

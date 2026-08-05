@@ -18,7 +18,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
         displayName: "Leave Calendar",
         AreaName = "Corporate",
         ControllerName = "LeaveCalendar",
-        Description = "Approved leave calendar for HR, employee, and manager team",
+        Description = "Approved leave calendar for HR and manager team",
         SortOrder = 8)]
     [Tags("Corporate / Human Resource / Leave Management / Leave Calendar")]
     public class LeaveCalendarController : ControllerBase
@@ -43,24 +43,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
             CancellationToken cancellationToken)
         {
             return ToActionResult(await _service.GetAdminCalendarAsync(request, cancellationToken));
-        }
-
-        [HttpGet("my-calendar")]
-        [AccessAction(
-            "Read",
-            "Read My Leave Calendar",
-            Description = "Melihat kalender cuti employee login",
-            AccessType = AccessTypes.Read,
-            SortOrder = 1)]
-        [AccessPermission("LeaveCalendarSelfService", "Read")]
-        public async Task<IActionResult> GetMyCalendar(
-            [FromQuery] LeaveCalendarQueryRequest request,
-            CancellationToken cancellationToken)
-        {
-            return ToActionResult(await _service.GetMyCalendarAsync(
-                GetCurrentUserId(),
-                request,
-                cancellationToken));
         }
 
         [HttpGet("team-calendar")]

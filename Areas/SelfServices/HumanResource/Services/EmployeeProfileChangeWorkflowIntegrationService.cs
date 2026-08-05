@@ -1,16 +1,16 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
+using QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs;
 using QuilvianSystemBackend.Repositories;
 using System.Text.Json;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Services
+namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
 {
     /// <summary>
     /// Adapter antara transaksi Employee Profile Change dan Workflow Engine generik.

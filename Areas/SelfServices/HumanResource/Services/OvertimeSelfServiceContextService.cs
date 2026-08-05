@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Repositories;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Services
+namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
 {
     public class OvertimeSelfServiceEmployeeContext
     {

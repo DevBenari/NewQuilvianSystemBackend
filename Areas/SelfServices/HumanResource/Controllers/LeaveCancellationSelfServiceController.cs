@@ -7,33 +7,40 @@ using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Controllers
+namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
 {
     [ApiController]
     [Authorize]
-    [Route("api/v1/corporate/human-resource/employee-self-service/leave/cancellations")]
-    [AccessController("HUMAN_RESOURCE_LEAVE", "Human Resource Leave", "Leave Cancellation Self Service",
-        AreaName = "Corporate", ControllerName = "LeaveCancellationSelfService",
+    [Route("api/v1/self-services/human-resource/leave/cancellations")]
+    [AccessController("HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE", "Human Resource Employee Self Service", "My Leave Cancellation",
+        AreaName = "SelfServices", ControllerName = "MyLeaveCancellation",
         Description = "Employee self-service cancellation setelah leave disetujui", SortOrder = 7)]
-    [Tags("Corporate / Human Resource / Employee Self Service / Leave Cancellation")]
+    [Tags("Self Services / Human Resource / Leave Cancellation")]
     public class LeaveCancellationSelfServiceController : ControllerBase
     {
         private readonly LeaveCancellationService _service;
-        public LeaveCancellationSelfServiceController(LeaveCancellationService service) => _service = service;
+        private readonly LeaveRequestCalculationService _calculationService;
+
+        public LeaveCancellationSelfServiceController(
+            LeaveCancellationService service,
+            LeaveRequestCalculationService calculationService)
+        {
+            _service = service;
+            _calculationService = calculationService;
+        }
 
         [HttpGet]
         [AccessAction("Read", "Read My Leave Cancellation", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveCancellationSelfService", "Read")]
+        [AccessPermission("MyLeaveCancellation", "Read")]
         public async Task<IActionResult> GetPaged([FromQuery] LeaveLifecycleQueryRequest request, CancellationToken token)
             => ToActionResult(await _service.GetMyPagedAsync(GetUserId(), request, token));
 
         [HttpGet("{id:guid}")]
         [AccessAction("Read", "Read My Leave Cancellation Detail", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveCancellationSelfService", "Read")]
+        [AccessPermission("MyLeaveCancellation", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken token)
         {
-            var actor = await HttpContext.RequestServices.GetRequiredService<LeaveRequestCalculationService>()
-                .GetActorContextAsync(GetUserId(), token);
+            var actor = await _calculationService.GetActorContextAsync(GetUserId(), token);
             return actor.Success && actor.Data != null
                 ? ToActionResult(await _service.GetByIdAsync(id, actor.Data.WorkforceProfileId, token))
                 : StatusCode(actor.StatusCode, ApiResponse<object>.Fail(actor.StatusCode, actor.Message));
@@ -41,19 +48,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
 
         [HttpPost]
         [AccessAction("Create", "Create Leave Cancellation", AccessType = AccessTypes.Create, SortOrder = 2)]
-        [AccessPermission("LeaveCancellationSelfService", "Create")]
+        [AccessPermission("MyLeaveCancellation", "Create")]
         public async Task<IActionResult> Create([FromBody] CreateLeaveCancellationRequest request, CancellationToken token)
             => ToActionResult(await _service.CreateAsync(GetUserId(), request, token));
 
         [HttpPost("{id:guid}/prepare-workflow")]
         [AccessAction("Update", "Prepare Leave Cancellation Workflow", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("LeaveCancellationSelfService", "Update")]
+        [AccessPermission("MyLeaveCancellation", "Update")]
         public async Task<IActionResult> PrepareWorkflow(Guid id, [FromBody] PrepareLeaveLifecycleWorkflowRequest request, CancellationToken token)
             => ToActionResult(await _service.PrepareWorkflowAsync(id, GetUserId(), request, token));
 
         [HttpPost("{id:guid}/submit")]
         [AccessAction("Submit", "Submit Leave Cancellation", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("LeaveCancellationSelfService", "Submit")]
+        [AccessPermission("MyLeaveCancellation", "Submit")]
         public async Task<IActionResult> Submit(Guid id, [FromBody] SubmitLeaveLifecycleWorkflowRequest request, CancellationToken token)
             => ToActionResult(await _service.SubmitAsync(id, GetUserId(), request, token));
 

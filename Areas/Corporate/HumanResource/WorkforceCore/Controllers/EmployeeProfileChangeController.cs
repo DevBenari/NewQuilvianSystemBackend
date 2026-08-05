@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
+using QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs;
+using QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
@@ -10,7 +10,7 @@ using System.Security.Claims;
 
 using EmployeeProfileChangePagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs.EmployeeProfileChangeListResponse>;
+        QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs.EmployeeProfileChangeListResponse>;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Controllers
 {
@@ -18,14 +18,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
     [Authorize]
     [Route("api/v1/corporate/human-resource/employee-profile-changes")]
     [AccessController(
-        moduleCode: "HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE",
-        moduleName: "Human Resource Employee Self Service",
-        displayName: "Employee Profile Change",
+        moduleCode: "HUMAN_RESOURCE_WORKFORCE_CORE",
+        moduleName: "Human Resource Workforce Core",
+        displayName: "Employee Profile Change Administration",
         AreaName = "Corporate",
         ControllerName = "EmployeeProfileChange",
-        Description = "Corporate human resource employee profile change dengan generic workflow engine",
+        Description = "HR administration, verification, apply, and workflow synchronization for employee profile changes",
         SortOrder = 20)]
-    [Tags("Corporate / Human Resource / Employee Self Service / Employee Profile Change")]
+    [Tags("Corporate / Human Resource / Workforce Core / Employee Profile Change Administration")]
     public class EmployeeProfileChangeController : ControllerBase
     {
         private readonly EmployeeProfileChangeService _service;
@@ -178,102 +178,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
             return ToActionResult(result);
         }
 
-        [HttpPost]
-        [ProducesResponseType(
-            typeof(ApiResponse<EmployeeProfileChangeResponse>),
-            StatusCodes.Status200OK)]
-        [ProducesResponseType(
-            typeof(ApiResponse<object>),
-            StatusCodes.Status400BadRequest)]
-        [AccessAction(
-            "Create",
-            "Create Employee Profile Change",
-            Description = "Membuat draft employee profile change",
-            AccessType = AccessTypes.Create,
-            SortOrder = 2)]
-        [AccessPermission("EmployeeProfileChange", "Create")]
-        public async Task<IActionResult> CreateDraft(
-            [FromBody] CreateEmployeeProfileChangeRequest request,
-            CancellationToken cancellationToken)
-        {
-            if (!TryGetCurrentUserId(out var actorUserId))
-            {
-                return UnauthorizedResponse();
-            }
 
-            var result = await _service.CreateDraftAsync(
-                request,
-                actorUserId,
-                cancellationToken);
 
-            return ToActionResult(result);
-        }
 
-        [HttpPut("{id:guid}")]
-        [ProducesResponseType(
-            typeof(ApiResponse<EmployeeProfileChangeResponse>),
-            StatusCodes.Status200OK)]
-        [AccessAction(
-            "Update",
-            "Update Employee Profile Change",
-            Description = "Mengubah draft atau revisi employee profile change",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3)]
-        [AccessPermission("EmployeeProfileChange", "Update")]
-        public async Task<IActionResult> UpdateDraft(
-            Guid id,
-            [FromBody] UpdateEmployeeProfileChangeRequest request,
-            CancellationToken cancellationToken)
-        {
-            if (!TryGetCurrentUserId(out var actorUserId))
-            {
-                return UnauthorizedResponse();
-            }
 
-            var result = await _service.UpdateDraftAsync(
-                id,
-                request,
-                actorUserId,
-                cancellationToken);
 
-            return ToActionResult(result);
-        }
-
-        [HttpPost("{id:guid}/submit")]
-        [ProducesResponseType(
-            typeof(ApiResponse<EmployeeProfileChangeWorkflowResponse>),
-            StatusCodes.Status200OK)]
-        [ProducesResponseType(
-            typeof(ApiResponse<object>),
-            StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(
-            typeof(ApiResponse<object>),
-            StatusCodes.Status409Conflict)]
-        [AccessAction(
-            "Submit",
-            "Submit Employee Profile Change",
-            Description = "Submit employee profile change ke generic workflow engine",
-            AccessType = AccessTypes.Update,
-            SortOrder = 4)]
-        [AccessPermission("EmployeeProfileChange", "Update")]
-        public async Task<IActionResult> Submit(
-            Guid id,
-            [FromBody] EmployeeProfileChangeWorkflowSubmitRequest? request,
-            CancellationToken cancellationToken)
-        {
-            if (!TryGetCurrentUserId(out var actorUserId))
-            {
-                return UnauthorizedResponse();
-            }
-
-            var result = await _workflowIntegrationService.SubmitAsync(
-                id,
-                request,
-                actorUserId,
-                cancellationToken);
-
-            return ToActionResult(result);
-        }
 
         [HttpPost("{id:guid}/start-verification")]
         [ProducesResponseType(
@@ -463,35 +372,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
             return ToActionResult(result);
         }
 
-        [HttpPost("{id:guid}/cancel")]
-        [ProducesResponseType(
-            typeof(ApiResponse<EmployeeProfileChangeWorkflowResponse>),
-            StatusCodes.Status200OK)]
-        [AccessAction(
-            "Cancel",
-            "Cancel Employee Profile Change",
-            Description = "Membatalkan atau menarik employee profile change melalui generic workflow engine",
-            AccessType = AccessTypes.Update,
-            SortOrder = 11)]
-        [AccessPermission("EmployeeProfileChange", "Update")]
-        public async Task<IActionResult> Cancel(
-            Guid id,
-            [FromBody] EmployeeProfileChangeWorkflowCancelRequest? request,
-            CancellationToken cancellationToken)
-        {
-            if (!TryGetCurrentUserId(out var actorUserId))
-            {
-                return UnauthorizedResponse();
-            }
 
-            var result = await _workflowIntegrationService.CancelAsync(
-                id,
-                request,
-                actorUserId,
-                cancellationToken);
-
-            return ToActionResult(result);
-        }
 
         [HttpPost("{id:guid}/workflow/synchronize")]
         [ProducesResponseType(
@@ -521,33 +402,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
             return ToActionResult(result);
         }
 
-        [HttpDelete("{id:guid}")]
-        [ProducesResponseType(
-            typeof(ApiResponse<object>),
-            StatusCodes.Status200OK)]
-        [AccessAction(
-            "Delete",
-            "Delete Employee Profile Change",
-            Description = "Menghapus employee profile change secara soft delete",
-            AccessType = AccessTypes.Delete,
-            SortOrder = 13)]
-        [AccessPermission("EmployeeProfileChange", "Delete")]
-        public async Task<IActionResult> Delete(
-            Guid id,
-            CancellationToken cancellationToken)
-        {
-            if (!TryGetCurrentUserId(out var actorUserId))
-            {
-                return UnauthorizedResponse();
-            }
 
-            var result = await _service.DeleteAsync(
-                id,
-                actorUserId,
-                cancellationToken);
-
-            return ToActionResult(result);
-        }
 
         private IActionResult GenericWorkflowActionRequired(
             string action,

@@ -6,7 +6,6 @@ using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
-using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Controllers
 {
@@ -19,7 +18,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         displayName: "Attendance Daily",
         AreaName = "Corporate",
         ControllerName = "AttendanceDaily",
-        Description = "Corporate human resource attendance daily query and self-service history",
+        Description = "Corporate human resource attendance daily query, evidence, exception, and payroll readiness",
         SortOrder = 4)]
     [Tags("Corporate / Human Resource / Attendance Management / Attendance Daily")]
     public class AttendanceDailyController : ControllerBase
@@ -182,145 +181,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return Ok(ApiResponse<List<AttendanceDailyRawLogResponse>>.Ok(
                 result,
                 "Source raw log attendance daily berhasil diambil."));
-        }
-
-        [HttpGet("my-history/summary")]
-        [ProducesResponseType(typeof(ApiResponse<AttendanceSelfServiceSummaryResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read My Attendance History", Description = "Melihat ringkasan attendance user login", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("AttendanceDailySelfService", "Read")]
-        public async Task<IActionResult> GetMySummary(
-            [FromQuery] DateOnly? startDate,
-            [FromQuery] DateOnly? endDate,
-            [FromQuery] string? customPeriod,
-            CancellationToken cancellationToken)
-        {
-            var userId = GetCurrentUserId();
-            if (userId == Guid.Empty)
-            {
-                return Unauthorized(ApiResponse<object>.Fail(
-                    StatusCodes.Status401Unauthorized,
-                    "Identitas user login tidak valid."));
-            }
-
-            var result = await _service.GetMySummaryAsync(
-                userId,
-                startDate,
-                endDate,
-                customPeriod,
-                cancellationToken);
-
-            if (!result.Success || result.Data == null)
-            {
-                return StatusCode(
-                    result.StatusCode,
-                    ApiResponse<object>.Fail(result.StatusCode, result.Message));
-            }
-
-            return Ok(ApiResponse<AttendanceSelfServiceSummaryResponse>.Ok(
-                result.Data,
-                result.Message));
-        }
-
-        [HttpGet("my-history")]
-        [ProducesResponseType(typeof(ApiResponse<AttendanceDailyPagedResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read My Attendance History", Description = "Melihat riwayat attendance user login", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("AttendanceDailySelfService", "Read")]
-        public async Task<IActionResult> GetMyHistory(
-            [FromQuery] DateOnly? startDate,
-            [FromQuery] DateOnly? endDate,
-            [FromQuery] string? customPeriod,
-            [FromQuery] string? attendanceStatus,
-            [FromQuery] string? processingStatus,
-            [FromQuery] bool? isLate,
-            [FromQuery] bool? isEarlyLeave,
-            [FromQuery] bool? hasMissingPunch,
-            [FromQuery] string? search,
-            [FromQuery] string sortBy = "attendanceDate",
-            [FromQuery] string sortDirection = "desc",
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 25,
-            CancellationToken cancellationToken = default)
-        {
-            var userId = GetCurrentUserId();
-            if (userId == Guid.Empty)
-            {
-                return Unauthorized(ApiResponse<object>.Fail(
-                    StatusCodes.Status401Unauthorized,
-                    "Identitas user login tidak valid."));
-            }
-
-            var result = await _service.GetMyHistoryAsync(
-                userId,
-                startDate,
-                endDate,
-                customPeriod,
-                attendanceStatus,
-                processingStatus,
-                isLate,
-                isEarlyLeave,
-                hasMissingPunch,
-                search,
-                sortBy,
-                sortDirection,
-                pageNumber,
-                pageSize,
-                cancellationToken);
-
-            if (!result.Success || result.Data == null)
-            {
-                return StatusCode(
-                    result.StatusCode,
-                    ApiResponse<object>.Fail(result.StatusCode, result.Message));
-            }
-
-            return Ok(ApiResponse<AttendanceDailyPagedResponse>.Ok(
-                result.Data,
-                result.Message));
-        }
-
-        [HttpGet("my-history/{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<AttendanceDailyDetailResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read My Attendance History", Description = "Melihat detail attendance user login", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("AttendanceDailySelfService", "Read")]
-        public async Task<IActionResult> GetMyAttendanceDetail(
-            Guid id,
-            CancellationToken cancellationToken)
-        {
-            var userId = GetCurrentUserId();
-            if (userId == Guid.Empty)
-            {
-                return Unauthorized(ApiResponse<object>.Fail(
-                    StatusCodes.Status401Unauthorized,
-                    "Identitas user login tidak valid."));
-            }
-
-            var result = await _service.GetMyDetailAsync(id, userId, cancellationToken);
-            if (!result.Success || result.Data == null)
-            {
-                return StatusCode(
-                    result.StatusCode,
-                    ApiResponse<object>.Fail(result.StatusCode, result.Message));
-            }
-
-            return Ok(ApiResponse<AttendanceDailyDetailResponse>.Ok(
-                result.Data,
-                result.Message));
-        }
-
-        private Guid GetCurrentUserId()
-        {
-            var value = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                ?? User.FindFirstValue("user_id");
-
-            return Guid.TryParse(value, out var userId)
-                ? userId
-                : Guid.Empty;
         }
     }
 }

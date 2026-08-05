@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Http;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Services
+namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
 {
     public class OvertimeSelfServiceServiceResult<T>
     {

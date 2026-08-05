@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs
+namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs
 {
     /// <summary>
     /// Employee Self Service request contracts for profile change workflow.

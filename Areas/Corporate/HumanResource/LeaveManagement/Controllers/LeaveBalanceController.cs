@@ -6,7 +6,6 @@ using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
-using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Controllers
 {
@@ -19,7 +18,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
         displayName: "Leave Balance",
         AreaName = "Corporate",
         ControllerName = "LeaveBalance",
-        Description = "Corporate human resource leave balance, ledger, history, and self-service query",
+        Description = "Corporate human resource leave balance, ledger, history, and reconciliation",
         SortOrder = 2)]
     [Tags("Corporate / Human Resource / Leave Management / Leave Balance")]
     public class LeaveBalanceController : ControllerBase
@@ -164,67 +163,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Co
             var result = await _service.GetReconciliationAsync(id, null, cancellationToken);
             if (result == null) return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Saldo cuti tidak ditemukan."));
             return Ok(ApiResponse<LeaveBalanceReconciliationResponse>.Ok(result, "Rekonsiliasi saldo cuti berhasil diambil."));
-        }
-
-        [HttpGet("my-balances/summary")]
-        [ProducesResponseType(typeof(ApiResponse<LeaveSelfServiceSummaryResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read My Leave Balance", Description = "Melihat ringkasan saldo cuti user login", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveBalanceSelfService", "Read")]
-        public async Task<IActionResult> GetMySummary([FromQuery] int? year, CancellationToken cancellationToken)
-        {
-            var userId = GetCurrentUserId();
-            var result = await _service.GetMySummaryAsync(userId, year, cancellationToken);
-            if (result == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Workforce profile user login tidak ditemukan."));
-            return Ok(ApiResponse<LeaveSelfServiceSummaryResponse>.Ok(result, "Ringkasan saldo cuti saya berhasil diambil."));
-        }
-
-        [HttpGet("my-balances")]
-        [ProducesResponseType(typeof(ApiResponse<LeaveBalancePagedResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read My Leave Balance", Description = "Melihat saldo cuti user login", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveBalanceSelfService", "Read")]
-        public async Task<IActionResult> GetMyBalances(
-            [FromQuery] LeaveBalanceQueryRequest request,
-            CancellationToken cancellationToken)
-        {
-            var result = await _service.GetMyBalancesAsync(GetCurrentUserId(), request, cancellationToken);
-            if (result == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Workforce profile user login tidak ditemukan."));
-            return Ok(ApiResponse<LeaveBalancePagedResponse>.Ok(result, "Saldo cuti saya berhasil diambil."));
-        }
-
-        [HttpGet("my-balances/{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<LeaveBalanceDetailResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read My Leave Balance", Description = "Melihat detail saldo cuti user login", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveBalanceSelfService", "Read")]
-        public async Task<IActionResult> GetMyBalanceDetail(Guid id, CancellationToken cancellationToken)
-        {
-            var result = await _service.GetMyBalanceDetailAsync(GetCurrentUserId(), id, cancellationToken);
-            if (result == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Saldo cuti tidak ditemukan atau bukan milik user login."));
-            return Ok(ApiResponse<LeaveBalanceDetailResponse>.Ok(result, "Detail saldo cuti saya berhasil diambil."));
-        }
-
-        [HttpGet("my-balances/{id:guid}/ledger")]
-        [ProducesResponseType(typeof(ApiResponse<LeaveBalanceTransactionPagedResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read My Leave Balance", Description = "Melihat ledger saldo cuti user login", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LeaveBalanceSelfService", "Read")]
-        public async Task<IActionResult> GetMyLedger(
-            Guid id,
-            [FromQuery] LeaveBalanceLedgerQueryRequest request,
-            CancellationToken cancellationToken)
-        {
-            var result = await _service.GetMyLedgerAsync(GetCurrentUserId(), id, request, cancellationToken);
-            if (result == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Saldo cuti tidak ditemukan atau bukan milik user login."));
-            return Ok(ApiResponse<LeaveBalanceTransactionPagedResponse>.Ok(result, "Ledger saldo cuti saya berhasil diambil."));
-        }
-
-        private Guid GetCurrentUserId()
-        {
-            var value = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("user_id");
-            return Guid.TryParse(value, out var id) ? id : Guid.Empty;
         }
     }
 }

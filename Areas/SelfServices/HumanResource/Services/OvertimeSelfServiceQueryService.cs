@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models;
+using QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Services
+namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
 {
     public class OvertimeSelfServiceQueryService
     {
@@ -220,7 +220,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
                 query = query.Where(x =>
                     x.RequestNumber.ToLower().Contains(keyword) ||
                     x.Reason.ToLower().Contains(keyword) ||
-                    (x.WorkDescription != null && x.WorkDescription.ToLower().Contains(keyword)));
+                    x.WorkDescription != null && x.WorkDescription.ToLower().Contains(keyword));
             }
 
             return query;

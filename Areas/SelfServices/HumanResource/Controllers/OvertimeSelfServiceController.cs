@@ -1,14 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Services;
+using QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs;
+using QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Controllers
+namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Controllers
 {
     [ApiController]
     [Authorize]
@@ -21,7 +21,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
         ControllerName = "MyOvertime",
         Description = "Employee self service overtime request",
         SortOrder = 8)]
-    [Tags("Self Services / Human Resource / My Overtime")]
+    [Tags("Self Services / Human Resource / Overtime")]
     public class OvertimeSelfServiceController : ControllerBase
     {
         private const string LogCategory = "SelfServices.HumanResource.Overtime";
@@ -41,6 +41,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
 
         [HttpGet("filters/metadata")]
         [AccessAction("Read", "Read My Overtime", Description = "Melihat metadata filter pengajuan lembur milik sendiri", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("MyOvertime", "Read")]
         public IActionResult GetMetadata() =>
             Ok(ApiResponse<MyOvertimeMetadataResponse>.Ok(
                 _queryService.GetMetadata(),
@@ -48,6 +49,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
 
         [HttpGet("summary")]
         [AccessAction("Read", "Read My Overtime", Description = "Melihat ringkasan pengajuan lembur milik sendiri", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("MyOvertime", "Read")]
         public async Task<IActionResult> GetSummary(
             [FromQuery] MyOvertimeQueryRequest request,
             CancellationToken cancellationToken = default)
@@ -59,6 +61,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
 
         [HttpGet]
         [AccessAction("Read", "Read My Overtime", Description = "Melihat daftar pengajuan lembur milik sendiri", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("MyOvertime", "Read")]
         public async Task<IActionResult> GetPaged(
             [FromQuery] MyOvertimeQueryRequest request,
             CancellationToken cancellationToken = default)
@@ -70,6 +73,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
 
         [HttpGet("{id:guid}")]
         [AccessAction("Read", "Read My Overtime", Description = "Melihat detail pengajuan lembur milik sendiri", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("MyOvertime", "Read")]
         public async Task<IActionResult> GetDetail(
             Guid id,
             CancellationToken cancellationToken = default)
@@ -81,6 +85,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
 
         [HttpPost("validate-preview")]
         [AccessAction("Validate", "Validate My Overtime", Description = "Melakukan preview validasi pengajuan lembur", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("MyOvertime", "Validate")]
         public async Task<IActionResult> Preview(
             [FromBody] PreviewMyOvertimeRequest request,
             CancellationToken cancellationToken = default)
@@ -92,6 +97,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
 
         [HttpPost]
         [AccessAction("Create", "Create My Overtime", Description = "Membuat Draft pengajuan lembur milik sendiri", AccessType = AccessTypes.Create, SortOrder = 3)]
+        [AccessPermission("MyOvertime", "Create")]
         public async Task<IActionResult> CreateDraft(
             [FromBody] CreateMyOvertimeRequest request,
             CancellationToken cancellationToken = default)
@@ -106,6 +112,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
 
         [HttpPut("{id:guid}")]
         [AccessAction("Update", "Update My Overtime", Description = "Mengubah Draft atau NeedRevision pengajuan lembur milik sendiri", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("MyOvertime", "Update")]
         public async Task<IActionResult> UpdateDraft(
             Guid id,
             [FromBody] UpdateMyOvertimeRequest request,
@@ -121,6 +128,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
 
         [HttpPost("{id:guid}/submit")]
         [AccessAction("Submit", "Submit My Overtime", Description = "Membuat atau submit ulang Generic Workflow OVERTIME_REQUEST", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("MyOvertime", "Submit")]
         public async Task<IActionResult> Submit(
             Guid id,
             [FromBody] SubmitMyOvertimeRequest? request,
@@ -136,6 +144,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
 
         [HttpPost("{id:guid}/cancel")]
         [AccessAction("Cancel", "Cancel My Overtime", Description = "Membatalkan atau menarik pengajuan lembur melalui Generic Workflow", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("MyOvertime", "Cancel")]
         public async Task<IActionResult> Cancel(
             Guid id,
             [FromBody] CancelMyOvertimeRequest request,
@@ -151,6 +160,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfServic
 
         [HttpDelete("{id:guid}")]
         [AccessAction("Delete", "Delete My Overtime", Description = "Menghapus Draft pengajuan lembur secara soft delete", AccessType = AccessTypes.Delete, SortOrder = 7)]
+        [AccessPermission("MyOvertime", "Delete")]
         public async Task<IActionResult> DeleteDraft(
             Guid id,
             CancellationToken cancellationToken = default)
