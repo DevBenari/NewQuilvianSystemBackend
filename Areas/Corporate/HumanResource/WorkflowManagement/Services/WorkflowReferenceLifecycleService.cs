@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
 using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
@@ -59,6 +61,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         public const string LeaveRecallReferenceType =
             "LEAVE_RECALL";
 
+        public const string OvertimeRequestReferenceType =
+            OvertimeValueConstants.Workflow.ReferenceType;
+
         private static readonly HashSet<string> EmployeeProfileChangeReferenceAliases =
             new(StringComparer.OrdinalIgnoreCase)
             {
@@ -114,6 +119,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 "LeaveReturnToWork"
             };
 
+        private static readonly HashSet<string> OvertimeRequestReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                OvertimeRequestReferenceType,
+                "OvertimeRequest",
+                "WfpOvertimeRequest",
+                "OVERTIME_REQUEST_APPROVAL"
+            };
+
         private readonly ApplicationDbContext _dbContext;
         private readonly EmployeeProfileChangeService _employeeProfileChangeService;
         private readonly AttendanceCorrectionWorkflowLifecycleService
@@ -126,6 +140,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             _leaveCancellationWorkflowLifecycleService;
         private readonly LeaveRecallWorkflowLifecycleService
             _leaveRecallWorkflowLifecycleService;
+        private readonly OvertimeRequestWorkflowLifecycleService
+            _overtimeRequestWorkflowLifecycleService;
         private readonly ILogger<WorkflowReferenceLifecycleService> _logger;
 
         public WorkflowReferenceLifecycleService(
@@ -141,6 +157,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 leaveCancellationWorkflowLifecycleService,
             LeaveRecallWorkflowLifecycleService
                 leaveRecallWorkflowLifecycleService,
+            OvertimeRequestWorkflowLifecycleService
+                overtimeRequestWorkflowLifecycleService,
             ILogger<WorkflowReferenceLifecycleService> logger)
         {
             _dbContext = dbContext;
@@ -155,6 +173,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 leaveCancellationWorkflowLifecycleService;
             _leaveRecallWorkflowLifecycleService =
                 leaveRecallWorkflowLifecycleService;
+            _overtimeRequestWorkflowLifecycleService =
+                overtimeRequestWorkflowLifecycleService;
             _logger = logger;
         }
 
@@ -269,6 +289,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                         cancellationToken);
             }
 
+            if (IsOvertimeRequestReference(workflow.ReferenceType))
+            {
+                return await _overtimeRequestWorkflowLifecycleService
+                    .SynchronizeAsync(
+                        workflow,
+                        actorUserId,
+                        allowAutoApply,
+                        cancellationToken);
+            }
+
             return new WorkflowReferenceLifecycleSynchronizationResult
             {
                 IsHandled = false,
@@ -317,6 +347,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
         {
             return !string.IsNullOrWhiteSpace(referenceType) &&
                    LeaveRecallReferenceAliases.Contains(
+                       referenceType.Trim());
+        }
+
+        public static bool IsOvertimeRequestReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   OvertimeRequestReferenceAliases.Contains(
                        referenceType.Trim());
         }
 

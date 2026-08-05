@@ -341,6 +341,32 @@ try
 
     builder.Services.AddScoped<OvertimePolicyResolverService>();
     builder.Services.AddScoped<OvertimeRateResolverService>();
+    builder.Services.AddScoped<OvertimePlanQueryService>();
+    builder.Services.AddScoped<OvertimePlanningService>();
+    builder.Services.AddScoped<OvertimeRequestWorkflowLifecycleService>();
+    builder.Services.AddScoped<OvertimeRequestWorkflowIntegrationService>();
+    builder.Services.AddScoped<OvertimeAttendanceMatchingService>();
+    builder.Services.AddScoped<OvertimeActualCalculationService>();
+    builder.Services.AddScoped<OvertimeRealizationQueryService>();
+    builder.Services.AddScoped<OvertimeVerificationQueryService>();
+    builder.Services.AddScoped<OvertimeVerificationService>();
+    builder.Services.AddScoped<OvertimeCompensatoryLeaveQueryService>();
+    builder.Services.AddScoped<OvertimeCompensatoryLeaveService>();
+    builder.Services.AddScoped<OvertimePayrollHandoffQueryService>();
+    builder.Services.AddScoped<OvertimePayrollHandoffService>();
+    builder.Services.AddScoped<OvertimePeriodGuardService>();
+    builder.Services.AddScoped<OvertimePeriodQueryService>();
+    builder.Services.AddScoped<OvertimeFinalReconciliationService>();
+    builder.Services.AddScoped<OvertimeCompensatoryExpiryService>();
+    builder.Services.AddScoped<OvertimePeriodService>();
+    builder.Services.Configure<OvertimeSchedulerOptions>(
+        builder.Configuration.GetSection("HumanResource:OvertimeScheduler"));
+    builder.Services.AddScoped<OvertimeSchedulerService>();
+    builder.Services.AddHostedService<OvertimeSchedulerHostedService>();
+
+    builder.Services.AddScoped<OvertimeSelfServiceContextService>();
+    builder.Services.AddScoped<OvertimeSelfServiceQueryService>();
+    builder.Services.AddScoped<OvertimeSelfServiceService>();
 
     builder.Services.AddAuthorization(options =>
     {
