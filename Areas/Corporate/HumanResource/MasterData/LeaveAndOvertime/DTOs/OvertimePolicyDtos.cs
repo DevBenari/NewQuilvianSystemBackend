@@ -25,6 +25,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         public Guid? EmploymentTypeId { get; set; }
         public string OvertimePolicyCode { get; set; } = string.Empty;
         public string OvertimePolicyName { get; set; } = string.Empty;
+        public int Priority { get; set; }
+        public bool IsFallback { get; set; }
         public bool RequirePreApproval { get; set; }
         public bool RequirePostVerification { get; set; }
         public bool RequireAttendanceMatch { get; set; }
@@ -71,6 +73,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         public Guid? HospitalSiteId { get; set; }
         public Guid? OrganizationUnitId { get; set; }
         public bool IsDefault { get; set; }
+        public int Priority { get; set; }
+        public bool IsFallback { get; set; }
     }
 
     public class OvertimePolicyOptionPagedResponse
@@ -129,6 +133,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         public Guid? OrganizationUnitId { get; set; }
         public Guid? EmployeeCategoryId { get; set; }
         public Guid? EmploymentTypeId { get; set; }
+        [Range(0, int.MaxValue)]
+        public int Priority { get; set; }
+        public bool IsFallback { get; set; }
         [Required, MaxLength(150)]
         public string OvertimePolicyName { get; set; } = string.Empty;
         public bool RequirePreApproval { get; set; } = true;
@@ -189,6 +196,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         public Guid Id { get; set; }
         public string OvertimePolicyCode { get; set; } = string.Empty;
         public string OvertimePolicyName { get; set; } = string.Empty;
+        public int Priority { get; set; }
+        public bool IsFallback { get; set; }
         public bool IsDefault { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
@@ -201,6 +210,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         public Guid Id { get; set; }
         public string OvertimePolicyCode { get; set; } = string.Empty;
         public string OvertimePolicyName { get; set; } = string.Empty;
+        public int Priority { get; set; }
+        public bool IsFallback { get; set; }
         public bool IsDefault { get; set; }
         public bool IsActive { get; set; }
         public DateTime? UpdateDateTime { get; set; }

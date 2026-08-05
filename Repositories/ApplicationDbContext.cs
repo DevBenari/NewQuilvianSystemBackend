@@ -28,17 +28,9 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Models;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
-using QuilvianSystemBackend.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories
 {
@@ -328,6 +320,8 @@ namespace QuilvianSystemBackend.Repositories
         #endregion CORPORATE - HUMAN RESOURCE - LEAVE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - OVERTIME MANAGEMENT
+        public DbSet<TrxOvertimePlan> TrxOvertimePlans { get; set; }
+        public DbSet<TrxOvertimePlanDetail> TrxOvertimePlanDetails { get; set; }
         public DbSet<WfpOvertimeRequest> WfpOvertimeRequests { get; set; }
         public DbSet<TrxOvertimeRequestDetail> TrxOvertimeRequestDetails { get; set; }
         public DbSet<TrxOvertimeRequestApproval> TrxOvertimeRequestApprovals { get; set; }

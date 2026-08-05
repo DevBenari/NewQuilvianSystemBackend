@@ -9,6 +9,7 @@ using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
@@ -267,6 +268,7 @@ try
     builder.Services.AddScoped<PrescriptionTemplateService>();
     builder.Services.AddScoped<PrescriptionValidationService>();
     builder.Services.AddScoped<ConsultationValidationService>();
+    builder.Services.AddScoped<DoctorConsultationLifecycleService>();
     builder.Services.AddScoped<ConsultationFinalizationService>();
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
@@ -336,6 +338,9 @@ try
     builder.Services.AddScoped<LeaveCancellationService>();
     builder.Services.AddScoped<LeaveRecallService>();
     builder.Services.AddScoped<LeaveFinalReconciliationService>();
+
+    builder.Services.AddScoped<OvertimePolicyResolverService>();
+    builder.Services.AddScoped<OvertimeRateResolverService>();
 
     builder.Services.AddAuthorization(options =>
     {

@@ -29,6 +29,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         [MaxLength(150)]
         public string OvertimePolicyName { get; set; } = string.Empty;
 
+        public int Priority { get; set; } = 0;
+
+        public bool IsFallback { get; set; } = false;
+
         public bool RequirePreApproval { get; set; } = true;
 
         public bool RequirePostVerification { get; set; } = true;

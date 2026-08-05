@@ -1,4 +1,5 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
@@ -79,6 +80,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime ServerNowUtc { get; set; }
         public int DoctorCallRemainingSeconds { get; set; }
         public DateTime? ScreeningCompletedAt { get; set; }
+        public Guid? ConsultationId { get; set; }
+        public string? ConsultationNumber { get; set; }
+        public DoctorConsultationStatus? ConsultationStatus { get; set; }
         public DateTime? ConsultationStartedAt { get; set; }
         public DateTime? ConsultationCompletedAt { get; set; }
         public int SkipCount { get; set; }
@@ -146,6 +150,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public bool CanNoShow { get; set; }
         public bool CanStartConsultation { get; set; }
         public bool CanFinishConsultation { get; set; }
+        public Guid? ConsultationId { get; set; }
+        public string? ConsultationNumber { get; set; }
+        public DoctorConsultationStatus? ConsultationStatus { get; set; }
         public DateTime? ConsultationStartedAt { get; set; }
         public DateTime? ConsultationCompletedAt { get; set; }
 

@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResource.OvertimeManagement
@@ -12,6 +13,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.RequestNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.RequestSource)
+                .HasMaxLength(40)
+                .HasDefaultValue(OvertimeValueConstants.RequestSource.EmployeeSelfService)
+                .IsRequired();
             entity.Property(x => x.OvertimeDate).HasColumnType("date");
             entity.Property(x => x.PlannedEndDate).HasColumnType("date").IsRequired(false);
             entity.Property(x => x.PlannedStartAt).HasColumnType("timestamp with time zone").IsRequired(false);
@@ -56,6 +61,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasOne(x => x.Position).WithMany().HasForeignKey(x => x.PositionId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.CostCenter).WithMany().HasForeignKey(x => x.CostCenterId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.OvertimePolicy).WithMany().HasForeignKey(x => x.OvertimePolicyId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.SourceOvertimePlanDetail)
+                .WithOne(x => x.GeneratedOvertimeRequest)
+                .HasForeignKey<WfpOvertimeRequest>(x => x.SourceOvertimePlanDetailId)
+                .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.WorkScheduleAssignment).WithMany().HasForeignKey(x => x.WorkScheduleAssignmentId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.RosterPeriod).WithMany().HasForeignKey(x => x.RosterPeriodId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.ShiftAssignment).WithMany().HasForeignKey(x => x.ShiftAssignmentId).OnDelete(DeleteBehavior.Restrict);
@@ -75,6 +84,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasOne(x => x.ProcessedByUser).WithMany().HasForeignKey(x => x.ProcessedByUserId).OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => x.RequestNumber).IsUnique().HasFilter("\"IsDelete\" = false");
+            entity.HasIndex(x => x.SourceOvertimePlanDetailId)
+                .IsUnique()
+                .HasFilter("\"SourceOvertimePlanDetailId\" IS NOT NULL AND \"IsDelete\" = false");
+            entity.HasIndex(x => new { x.RequestSource, x.OvertimeRequestStatus, x.OvertimeDate, x.IsDelete });
             entity.HasIndex(x => new { x.WorkforceProfileId, x.OvertimeDate, x.OvertimeRequestStatus, x.IsDelete });
             entity.HasIndex(x => new { x.DepartmentId, x.OvertimeDate, x.OvertimeRequestStatus, x.IsDelete });
             entity.HasIndex(x => new { x.PayrollPeriodId, x.IsPayrollProcessed, x.IsDelete });

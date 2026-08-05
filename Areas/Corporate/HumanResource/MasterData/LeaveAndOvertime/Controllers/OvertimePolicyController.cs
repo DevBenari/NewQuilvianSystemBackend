@@ -5,6 +5,10 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOve
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Models;
@@ -24,17 +28,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
     [Tags("Corporate / Human Resource / Master Data / Leave and Overtime / Overtime Policy")]
     public class OvertimePolicyController : ControllerBase
     {
-        private static readonly HashSet<string> AllowedRoundingMethods = new(StringComparer.OrdinalIgnoreCase) { "None", "Up", "Down", "Nearest" };
+        private static readonly HashSet<string> AllowedRoundingMethods =
+            OvertimeValueConstants.RoundingMethod.All.ToHashSet(StringComparer.OrdinalIgnoreCase);
         private const string LogCategory = "Corporate.HumanResource.MasterData";
         private const string CodePrefix = "OTP-RSMMC-";
         private const int CodeNumberLength = 5;
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly OvertimePolicyResolverService _policyResolverService;
 
-        public OvertimePolicyController(ApplicationDbContext dbContext, LoggerService loggerService)
+        public OvertimePolicyController(
+            ApplicationDbContext dbContext,
+            LoggerService loggerService,
+            OvertimePolicyResolverService policyResolverService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _policyResolverService = policyResolverService;
         }
 
         [HttpGet("filters/metadata")]
@@ -50,6 +60,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
                 {
                     new() { Value = "overtimePolicyCode", Label = "Kode kebijakan lembur" },
                     new() { Value = "overtimePolicyName", Label = "Nama kebijakan lembur" },
+                    new() { Value = "priority", Label = "Prioritas resolver" },
                     new() { Value = "minimumOvertimeMinutes", Label = "Minimum menit lembur" },
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
                     new() { Value = "isDefault", Label = "Kebijakan default" },
@@ -104,19 +115,38 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             NormalizePaging(ref pageNumber, ref pageSize);
             var q = ApplyFilter(BaseQuery(), legalEntityId, hospitalSiteId, organizationUnitId, null, null, null, null, null, onlyActive ? true : null, search);
             var totalData = await q.CountAsync();
-            var items = await q.OrderByDescending(x => x.IsDefault).ThenBy(x => x.OvertimePolicyName)
+            var items = await q.OrderByDescending(x => x.IsDefault).ThenBy(x => x.IsFallback).ThenByDescending(x => x.Priority).ThenBy(x => x.OvertimePolicyName)
                 .Skip((pageNumber - 1) * pageSize).Take(pageSize)
                 .Select(x => new OvertimePolicyOptionResponse
                 {
                     Id = x.Id, OvertimePolicyCode = x.OvertimePolicyCode, OvertimePolicyName = x.OvertimePolicyName,
                     LegalEntityId = x.LegalEntityId, HospitalSiteId = x.HospitalSiteId,
-                    OrganizationUnitId = x.OrganizationUnitId, IsDefault = x.IsDefault
+                    OrganizationUnitId = x.OrganizationUnitId, IsDefault = x.IsDefault,
+                    Priority = x.Priority, IsFallback = x.IsFallback
                 }).ToListAsync();
             return Ok(ApiResponse<OvertimePolicyOptionPagedResponse>.Ok(new OvertimePolicyOptionPagedResponse
             {
                 PageNumber = pageNumber, PageSize = pageSize, TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize), Items = items
             }, "Pilihan overtime policy berhasil diambil."));
+        }
+
+        [HttpPost("resolve-preview")]
+        [AccessAction("Read", "Resolve Overtime Policy", Description = "Melakukan preview resolusi overtime policy", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("OvertimePolicy", "Read")]
+        public async Task<IActionResult> ResolvePreview(
+            [FromBody] OvertimePolicyResolveRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await _policyResolverService.ResolveAsync(request, cancellationToken);
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "OvertimePolicy.ResolvePreview",
+                "Melakukan preview resolusi overtime policy.",
+                result);
+            return Ok(ApiResponse<OvertimePolicyResolutionResponse>.Ok(
+                result,
+                result.Message));
         }
 
         [HttpGet("{id:guid}")]
@@ -135,6 +165,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
                 OrganizationUnitId = b.OrganizationUnitId, OrganizationUnitName = b.OrganizationUnitName,
                 EmployeeCategoryId = b.EmployeeCategoryId, EmploymentTypeId = b.EmploymentTypeId,
                 OvertimePolicyCode = b.OvertimePolicyCode, OvertimePolicyName = b.OvertimePolicyName,
+                Priority = b.Priority, IsFallback = b.IsFallback,
                 RequirePreApproval = b.RequirePreApproval, RequirePostVerification = b.RequirePostVerification,
                 RequireAttendanceMatch = b.RequireAttendanceMatch, MinimumOvertimeMinutes = b.MinimumOvertimeMinutes,
                 MaximumOvertimeMinutesPerDay = b.MaximumOvertimeMinutesPerDay,
@@ -160,7 +191,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         [AccessPermission("OvertimePolicy", "Create")]
         public async Task<IActionResult> Create([FromBody] CreateOvertimePolicyRequest request)
         {
-            var validation = await ValidateRequestAsync(null, request);
+            var validation = await ValidateRequestAsync(null, request, true);
             if (!validation.IsValid) return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage!));
             var now = DateTime.UtcNow; var actor = GetCurrentUserId();
             if (request.IsDefault) await UnsetDefaultAsync(null, request, now, actor);
@@ -170,6 +201,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
                 HospitalSiteId = NormalizeGuid(request.HospitalSiteId), OrganizationUnitId = NormalizeGuid(request.OrganizationUnitId),
                 EmployeeCategoryId = NormalizeGuid(request.EmployeeCategoryId), EmploymentTypeId = NormalizeGuid(request.EmploymentTypeId),
                 OvertimePolicyCode = await GenerateCodeAsync(), OvertimePolicyName = request.OvertimePolicyName.Trim(),
+                Priority = request.Priority, IsFallback = request.IsFallback,
                 RequirePreApproval = request.RequirePreApproval, RequirePostVerification = request.RequirePostVerification,
                 RequireAttendanceMatch = request.RequireAttendanceMatch, MinimumOvertimeMinutes = request.MinimumOvertimeMinutes,
                 MaximumOvertimeMinutesPerDay = request.MaximumOvertimeMinutesPerDay,
@@ -177,7 +209,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
                 MaximumOvertimeMinutesPerMonth = request.MaximumOvertimeMinutesPerMonth,
                 OvertimeThresholdMinutes = request.OvertimeThresholdMinutes, RoundingIntervalMinutes = request.RoundingIntervalMinutes,
                 RoundingMethod = NormalizeRoundingMethod(request.RoundingMethod), DeductBreakMinutes = request.DeductBreakMinutes,
-                BreakDeductionMinutes = request.BreakDeductionMinutes, AllowBeforeShift = request.AllowBeforeShift,
+                BreakDeductionMinutes = request.DeductBreakMinutes ? request.BreakDeductionMinutes : 0, AllowBeforeShift = request.AllowBeforeShift,
                 AllowAfterShift = request.AllowAfterShift, AllowRestDay = request.AllowRestDay, AllowHoliday = request.AllowHoliday,
                 AllowDuringLeave = request.AllowDuringLeave, AttendanceToleranceMinutes = request.AttendanceToleranceMinutes,
                 ApprovalWorkflowCode = NormalizeText(request.ApprovalWorkflowCode), EffectiveStartDate = request.EffectiveStartDate?.Date,
@@ -190,7 +222,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             var response = new OvertimePolicyCreateResponse
             {
                 Id = entity.Id, OvertimePolicyCode = entity.OvertimePolicyCode,
-                OvertimePolicyName = entity.OvertimePolicyName, IsDefault = entity.IsDefault, IsActive = entity.IsActive,
+                OvertimePolicyName = entity.OvertimePolicyName, Priority = entity.Priority, IsFallback = entity.IsFallback,
+                IsDefault = entity.IsDefault, IsActive = entity.IsActive,
                 CreateDateTime = entity.CreateDateTime, CreateBy = entity.CreateBy == Guid.Empty ? null : entity.CreateBy,
                 CreateByName = GetActorName(actors, entity.CreateBy)
             };
@@ -205,7 +238,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         {
             var entity = await _dbContext.Set<MstOvertimePolicy>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
             if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Overtime policy tidak ditemukan."));
-            var validation = await ValidateRequestAsync(id, request);
+            var validation = await ValidateRequestAsync(id, request, request.IsActive);
             if (!validation.IsValid) return BadRequest(ApiResponse<object>.Fail(400, validation.ErrorMessage!));
             var now = DateTime.UtcNow; var actor = GetCurrentUserId();
             if (request.IsDefault && request.IsActive) await UnsetDefaultAsync(id, request, now, actor);
@@ -215,7 +248,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             var response = new OvertimePolicyUpdateResponse
             {
                 Id = entity.Id, OvertimePolicyCode = entity.OvertimePolicyCode,
-                OvertimePolicyName = entity.OvertimePolicyName, IsDefault = entity.IsDefault, IsActive = entity.IsActive,
+                OvertimePolicyName = entity.OvertimePolicyName, Priority = entity.Priority, IsFallback = entity.IsFallback,
+                IsDefault = entity.IsDefault, IsActive = entity.IsActive,
                 UpdateDateTime = entity.UpdateDateTime, UpdateBy = entity.UpdateBy == Guid.Empty ? null : entity.UpdateBy,
                 UpdateByName = GetActorName(actors, entity.UpdateBy)
             };
@@ -231,6 +265,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             var entity = await _dbContext.Set<MstOvertimePolicy>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
             if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Overtime policy tidak ditemukan."));
             var now = DateTime.UtcNow; var actor = GetCurrentUserId();
+            if (request.IsActive)
+            {
+                var workflowValidation = await ValidateWorkflowAsync(
+                    entity.RequirePreApproval,
+                    entity.ApprovalWorkflowCode);
+
+                if (!workflowValidation.IsValid)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(400, workflowValidation.ErrorMessage!));
+                }
+
+                var overlap = await _policyResolverService.CheckAmbiguousOverlapAsync(
+                    id,
+                    BuildDefinitionInput(entity, true));
+
+                if (overlap.HasAmbiguousOverlap)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(400,
+                        $"Overtime policy tidak dapat diaktifkan karena overlap ambigu dengan {overlap.ConflictingPolicyCode} - {overlap.ConflictingPolicyName}."));
+                }
+            }
+
             if (request.IsDefault == true && request.IsActive)
             {
                 var scope = new CreateOvertimePolicyRequest
@@ -305,15 +361,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             return (sortBy ?? "overtimePolicyName").Trim().ToLowerInvariant() switch
             {
                 "overtimepolicycode" => desc ? q.OrderByDescending(x => x.OvertimePolicyCode) : q.OrderBy(x => x.OvertimePolicyCode),
+                "priority" => desc ? q.OrderByDescending(x => x.Priority).ThenBy(x => x.OvertimePolicyName) : q.OrderBy(x => x.Priority).ThenBy(x => x.OvertimePolicyName),
                 "minimumovertimeminutes" => desc ? q.OrderByDescending(x => x.MinimumOvertimeMinutes) : q.OrderBy(x => x.MinimumOvertimeMinutes),
                 "createdatetime" => desc ? q.OrderByDescending(x => x.CreateDateTime) : q.OrderBy(x => x.CreateDateTime),
-                "isdefault" => desc ? q.OrderByDescending(x => x.IsDefault).ThenBy(x => x.OvertimePolicyName) : q.OrderBy(x => x.IsDefault).ThenBy(x => x.OvertimePolicyName),
+                "isdefault" => desc ? q.OrderByDescending(x => x.IsDefault).ThenBy(x => x.IsFallback).ThenByDescending(x => x.Priority).ThenBy(x => x.OvertimePolicyName) : q.OrderBy(x => x.IsDefault).ThenBy(x => x.OvertimePolicyName),
                 "isactive" => desc ? q.OrderByDescending(x => x.IsActive).ThenBy(x => x.OvertimePolicyName) : q.OrderBy(x => x.IsActive).ThenBy(x => x.OvertimePolicyName),
                 _ => desc ? q.OrderByDescending(x => x.OvertimePolicyName) : q.OrderBy(x => x.OvertimePolicyName)
             };
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(Guid? excludeId, CreateOvertimePolicyRequest request)
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(Guid? excludeId, CreateOvertimePolicyRequest request, bool isActive)
         {
             if (string.IsNullOrWhiteSpace(request.OvertimePolicyName)) return (false, "Nama overtime policy wajib diisi.");
             if (!AllowedRoundingMethods.Contains(request.RoundingMethod.Trim())) return (false, "Rounding method tidak valid.");
@@ -326,12 +383,66 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             if (request.MaximumOvertimeMinutesPerWeek.HasValue && request.MaximumOvertimeMinutesPerDay.HasValue && request.MaximumOvertimeMinutesPerWeek.Value < request.MaximumOvertimeMinutesPerDay.Value) return (false, "Maximum overtime minutes per week tidak boleh lebih kecil dari batas harian.");
             if (request.MaximumOvertimeMinutesPerMonth.HasValue && request.MaximumOvertimeMinutesPerWeek.HasValue && request.MaximumOvertimeMinutesPerMonth.Value < request.MaximumOvertimeMinutesPerWeek.Value) return (false, "Maximum overtime minutes per month tidak boleh lebih kecil dari batas mingguan.");
             if (request.DeductBreakMinutes && request.BreakDeductionMinutes <= 0) return (false, "Break deduction minutes wajib lebih besar dari nol ketika potongan istirahat diaktifkan.");
+            if (!request.AllowBeforeShift && !request.AllowAfterShift && !request.AllowRestDay && !request.AllowHoliday) return (false, "Policy harus mengizinkan minimal satu jenis waktu lembur.");
+            if (isActive)
+            {
+                var workflowValidation = await ValidateWorkflowAsync(
+                    request.RequirePreApproval,
+                    request.ApprovalWorkflowCode);
+
+                if (!workflowValidation.IsValid)
+                    return (false, workflowValidation.ErrorMessage);
+            }
             if (request.EffectiveStartDate.HasValue && request.EffectiveEndDate.HasValue && request.EffectiveEndDate.Value.Date < request.EffectiveStartDate.Value.Date) return (false, "Tanggal selesai efektif tidak boleh sebelum tanggal mulai efektif.");
             var name = request.OvertimePolicyName.Trim().ToLower();
             var duplicate = _dbContext.Set<MstOvertimePolicy>().AsNoTracking().Where(x => !x.IsDelete && x.OvertimePolicyName.ToLower() == name);
             if (excludeId.HasValue) duplicate = duplicate.Where(x => x.Id != excludeId.Value);
             if (await duplicate.AnyAsync()) return (false, "Nama overtime policy sudah digunakan.");
+
+            var overlap = await _policyResolverService.CheckAmbiguousOverlapAsync(
+                excludeId,
+                BuildDefinitionInput(request, isActive));
+
+            if (overlap.HasAmbiguousOverlap)
+            {
+                return (false,
+                    $"Overtime policy overlap ambigu dengan {overlap.ConflictingPolicyCode} - {overlap.ConflictingPolicyName}. Gunakan priority atau periode efektif yang berbeda.");
+            }
+
             return (true, null);
+        }
+
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateWorkflowAsync(
+            bool requirePreApproval,
+            string? approvalWorkflowCode)
+        {
+            if (requirePreApproval && string.IsNullOrWhiteSpace(approvalWorkflowCode))
+            {
+                return (false, "Approval workflow code wajib diisi ketika pre-approval diaktifkan.");
+            }
+
+            if (string.IsNullOrWhiteSpace(approvalWorkflowCode))
+            {
+                return (true, null);
+            }
+
+            var workflowCode = approvalWorkflowCode.Trim().ToLower();
+            var requestType = OvertimeValueConstants.Workflow.RequestType.ToLower();
+            var activeStatus = OvertimeValueConstants.Workflow.ActiveStatus.ToLower();
+
+            var workflowValid = await _dbContext.MstWorkflowDefinitions
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    !x.IsDelete &&
+                    !x.IsCancel &&
+                    x.IsActive &&
+                    x.WorkflowCode.ToLower() == workflowCode &&
+                    x.RequestType.ToLower() == requestType &&
+                    x.WorkflowStatus.ToLower() == activeStatus);
+
+            return workflowValid
+                ? (true, null)
+                : (false, "Approval workflow code tidak ditemukan, tidak aktif, atau bukan workflow OvertimeRequest.");
         }
 
         private void ApplyRequest(MstOvertimePolicy entity, CreateOvertimePolicyRequest request)
@@ -342,6 +453,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             entity.EmployeeCategoryId = NormalizeGuid(request.EmployeeCategoryId);
             entity.EmploymentTypeId = NormalizeGuid(request.EmploymentTypeId);
             entity.OvertimePolicyName = request.OvertimePolicyName.Trim();
+            entity.Priority = request.Priority;
+            entity.IsFallback = request.IsFallback;
             entity.RequirePreApproval = request.RequirePreApproval;
             entity.RequirePostVerification = request.RequirePostVerification;
             entity.RequireAttendanceMatch = request.RequireAttendanceMatch;
@@ -353,7 +466,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             entity.RoundingIntervalMinutes = request.RoundingIntervalMinutes;
             entity.RoundingMethod = NormalizeRoundingMethod(request.RoundingMethod);
             entity.DeductBreakMinutes = request.DeductBreakMinutes;
-            entity.BreakDeductionMinutes = request.BreakDeductionMinutes;
+            entity.BreakDeductionMinutes = request.DeductBreakMinutes ? request.BreakDeductionMinutes : 0;
             entity.AllowBeforeShift = request.AllowBeforeShift;
             entity.AllowAfterShift = request.AllowAfterShift;
             entity.AllowRestDay = request.AllowRestDay;
@@ -399,6 +512,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             EmploymentTypeId = x.EmploymentTypeId,
             OvertimePolicyCode = x.OvertimePolicyCode,
             OvertimePolicyName = x.OvertimePolicyName,
+            Priority = x.Priority,
+            IsFallback = x.IsFallback,
             RequirePreApproval = x.RequirePreApproval,
             RequirePostVerification = x.RequirePostVerification,
             RequireAttendanceMatch = x.RequireAttendanceMatch,
@@ -427,6 +542,38 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             CreateDateTime = x.CreateDateTime,
             CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy,
             CreateByName = GetActorName(actors, x.CreateBy)
+        };
+
+        private static OvertimePolicyDefinitionInput BuildDefinitionInput(
+            CreateOvertimePolicyRequest request,
+            bool isActive) => new()
+        {
+            LegalEntityId = NormalizeGuid(request.LegalEntityId),
+            HospitalSiteId = NormalizeGuid(request.HospitalSiteId),
+            OrganizationUnitId = NormalizeGuid(request.OrganizationUnitId),
+            EmployeeCategoryId = NormalizeGuid(request.EmployeeCategoryId),
+            EmploymentTypeId = NormalizeGuid(request.EmploymentTypeId),
+            Priority = request.Priority,
+            IsFallback = request.IsFallback,
+            IsActive = isActive,
+            EffectiveStartDate = request.EffectiveStartDate?.Date,
+            EffectiveEndDate = request.EffectiveEndDate?.Date
+        };
+
+        private static OvertimePolicyDefinitionInput BuildDefinitionInput(
+            MstOvertimePolicy entity,
+            bool isActive) => new()
+        {
+            LegalEntityId = entity.LegalEntityId,
+            HospitalSiteId = entity.HospitalSiteId,
+            OrganizationUnitId = entity.OrganizationUnitId,
+            EmployeeCategoryId = entity.EmployeeCategoryId,
+            EmploymentTypeId = entity.EmploymentTypeId,
+            Priority = entity.Priority,
+            IsFallback = entity.IsFallback,
+            IsActive = isActive,
+            EffectiveStartDate = entity.EffectiveStartDate,
+            EffectiveEndDate = entity.EffectiveEndDate
         };
 
         private async Task<bool> ExistsActiveAsync<T>(Guid id) where T : IdentityModel =>

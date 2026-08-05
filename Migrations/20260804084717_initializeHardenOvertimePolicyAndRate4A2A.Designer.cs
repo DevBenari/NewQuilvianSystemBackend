@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,10 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260804084717_initializeHardenOvertimePolicyAndRate4A2A")]
+    partial class initializeHardenOvertimePolicyAndRate4A2A
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -36712,363 +36714,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxCompensatoryTimeOff", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxOvertimePlan", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ClosedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ClosedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("CostCenterId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DepartmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("HospitalSiteId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid?>("LegalEntityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<Guid?>("OrganizationUnitId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateOnly>("PlanEndDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("PlanNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateOnly>("PlanStartDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("PlanStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<string>("PlanTitle")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime?>("PublishedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("PublishedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<Guid?>("RosterPeriodId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ValidatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ValidatedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("WorkLocationId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClosedByUserId");
-
-                    b.HasIndex("CostCenterId");
-
-                    b.HasIndex("DepartmentId");
-
-                    b.HasIndex("LegalEntityId");
-
-                    b.HasIndex("OrganizationUnitId");
-
-                    b.HasIndex("PlanNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("PublishedByUserId");
-
-                    b.HasIndex("ValidatedByUserId");
-
-                    b.HasIndex("WorkLocationId");
-
-                    b.HasIndex("RosterPeriodId", "PlanStatus", "IsDelete");
-
-                    b.HasIndex("HospitalSiteId", "DepartmentId", "PlanStartDate", "PlanEndDate", "PlanStatus", "IsDelete");
-
-                    b.ToTable("TrxOvertimePlan", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxOvertimePlanDetail", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CostCenterId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("DayType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Workday");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DepartmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("DetailStatus")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasDefaultValue("Draft");
-
-                    b.Property<Guid?>("EmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("EstimatedBreakMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("HasLeaveConflict")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("HasMinimumRestConflict")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("HasScheduleConflict")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("HasTrainingConflict")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("HasWorkHourLimitConflict")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid?>("HospitalSiteId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsPolicyCompliant")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<Guid?>("OrganizationAssignmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("OrganizationUnitId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("OvertimeCategory")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasDefaultValue("AfterShift");
-
-                    b.Property<DateOnly>("OvertimeDate")
-                        .HasColumnType("date");
-
-                    b.Property<Guid>("OvertimePlanId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("OvertimePolicyId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("PlannedEndAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateOnly?>("PlannedEndDate")
-                        .HasColumnType("date");
-
-                    b.Property<int>("PlannedMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("PlannedStartAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("PositionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("RosterPeriodId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("SequenceNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid?>("ShiftAssignmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ShiftId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ValidationResultJson")
-                        .HasColumnType("jsonb");
-
-                    b.Property<string>("WorkDescription")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<Guid?>("WorkLocationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("WorkScheduleAssignmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("WorkScheduleId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("WorkforceProfileId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CostCenterId");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("HospitalSiteId");
-
-                    b.HasIndex("OrganizationAssignmentId");
-
-                    b.HasIndex("OrganizationUnitId");
-
-                    b.HasIndex("OvertimePolicyId");
-
-                    b.HasIndex("PositionId");
-
-                    b.HasIndex("RosterPeriodId");
-
-                    b.HasIndex("ShiftAssignmentId");
-
-                    b.HasIndex("ShiftId");
-
-                    b.HasIndex("WorkLocationId");
-
-                    b.HasIndex("WorkScheduleAssignmentId");
-
-                    b.HasIndex("WorkScheduleId");
-
-                    b.HasIndex("OvertimePlanId", "SequenceNumber")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("OvertimePlanId", "WorkforceProfileId", "PlannedStartAt")
-                        .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("DepartmentId", "OvertimeDate", "DetailStatus", "IsDelete");
-
-                    b.HasIndex("WorkforceProfileId", "OvertimeDate", "DetailStatus", "IsDelete");
-
-                    b.ToTable("TrxOvertimePlanDetail", "public");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxOvertimeRealization", b =>
                 {
                     b.Property<Guid>("Id")
@@ -38154,13 +37799,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("RequestReasonId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("RequestSource")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasDefaultValue("EmployeeSelfService");
-
                     b.Property<TimeOnly?>("RequestedEndTime")
                         .HasColumnType("time without time zone");
 
@@ -38177,9 +37815,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("ShiftId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("SourceOvertimePlanDetailId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("StartedAt")
@@ -38268,10 +37903,6 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ShiftId");
 
-                    b.HasIndex("SourceOvertimePlanDetailId")
-                        .IsUnique()
-                        .HasFilter("\"SourceOvertimePlanDetailId\" IS NOT NULL AND \"IsDelete\" = false");
-
                     b.HasIndex("SubmittedByUserId");
 
                     b.HasIndex("WorkScheduleAssignmentId");
@@ -38283,8 +37914,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("PayrollPeriodId", "IsPayrollProcessed", "IsDelete");
 
                     b.HasIndex("DepartmentId", "OvertimeDate", "OvertimeRequestStatus", "IsDelete");
-
-                    b.HasIndex("RequestSource", "OvertimeRequestStatus", "OvertimeDate", "IsDelete");
 
                     b.HasIndex("WorkforceProfileId", "OvertimeDate", "OvertimeRequestStatus", "IsDelete");
 
@@ -78506,196 +78135,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkforceProfile");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxOvertimePlan", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ClosedByUser")
-                        .WithMany()
-                        .HasForeignKey("ClosedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstCostCenter", "CostCenter")
-                        .WithMany()
-                        .HasForeignKey("CostCenterId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstDepartment", "Department")
-                        .WithMany()
-                        .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstHospitalSite", "HospitalSite")
-                        .WithMany()
-                        .HasForeignKey("HospitalSiteId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstLegalEntity", "LegalEntity")
-                        .WithMany()
-                        .HasForeignKey("LegalEntityId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstOrganizationUnit", "OrganizationUnit")
-                        .WithMany()
-                        .HasForeignKey("OrganizationUnitId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "PublishedByUser")
-                        .WithMany()
-                        .HasForeignKey("PublishedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models.TrxRosterPeriod", "RosterPeriod")
-                        .WithMany()
-                        .HasForeignKey("RosterPeriodId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ValidatedByUser")
-                        .WithMany()
-                        .HasForeignKey("ValidatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstWorkLocation", "WorkLocation")
-                        .WithMany()
-                        .HasForeignKey("WorkLocationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("ClosedByUser");
-
-                    b.Navigation("CostCenter");
-
-                    b.Navigation("Department");
-
-                    b.Navigation("HospitalSite");
-
-                    b.Navigation("LegalEntity");
-
-                    b.Navigation("OrganizationUnit");
-
-                    b.Navigation("PublishedByUser");
-
-                    b.Navigation("RosterPeriod");
-
-                    b.Navigation("ValidatedByUser");
-
-                    b.Navigation("WorkLocation");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxOvertimePlanDetail", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstCostCenter", "CostCenter")
-                        .WithMany()
-                        .HasForeignKey("CostCenterId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstDepartment", "Department")
-                        .WithMany()
-                        .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstHospitalSite", "HospitalSite")
-                        .WithMany()
-                        .HasForeignKey("HospitalSiteId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpOrganizationAssignment", "OrganizationAssignment")
-                        .WithMany()
-                        .HasForeignKey("OrganizationAssignmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstOrganizationUnit", "OrganizationUnit")
-                        .WithMany()
-                        .HasForeignKey("OrganizationUnitId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxOvertimePlan", "OvertimePlan")
-                        .WithMany("Details")
-                        .HasForeignKey("OvertimePlanId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Models.MstOvertimePolicy", "OvertimePolicy")
-                        .WithMany()
-                        .HasForeignKey("OvertimePolicyId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstPosition", "Position")
-                        .WithMany()
-                        .HasForeignKey("PositionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models.TrxRosterPeriod", "RosterPeriod")
-                        .WithMany()
-                        .HasForeignKey("RosterPeriodId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models.TrxShiftAssignment", "ShiftAssignment")
-                        .WithMany()
-                        .HasForeignKey("ShiftAssignmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models.MstShift", "Shift")
-                        .WithMany()
-                        .HasForeignKey("ShiftId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstWorkLocation", "WorkLocation")
-                        .WithMany()
-                        .HasForeignKey("WorkLocationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models.WfpWorkScheduleAssignment", "WorkScheduleAssignment")
-                        .WithMany()
-                        .HasForeignKey("WorkScheduleAssignmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models.MstWorkSchedule", "WorkSchedule")
-                        .WithMany()
-                        .HasForeignKey("WorkScheduleId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
-                        .WithMany()
-                        .HasForeignKey("WorkforceProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CostCenter");
-
-                    b.Navigation("Department");
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("HospitalSite");
-
-                    b.Navigation("OrganizationAssignment");
-
-                    b.Navigation("OrganizationUnit");
-
-                    b.Navigation("OvertimePlan");
-
-                    b.Navigation("OvertimePolicy");
-
-                    b.Navigation("Position");
-
-                    b.Navigation("RosterPeriod");
-
-                    b.Navigation("Shift");
-
-                    b.Navigation("ShiftAssignment");
-
-                    b.Navigation("WorkLocation");
-
-                    b.Navigation("WorkSchedule");
-
-                    b.Navigation("WorkScheduleAssignment");
-
-                    b.Navigation("WorkforceProfile");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxOvertimeRealization", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.TrxAttendanceDaily", "AttendanceDaily")
@@ -79122,11 +78561,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("ShiftId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxOvertimePlanDetail", "SourceOvertimePlanDetail")
-                        .WithOne("GeneratedOvertimeRequest")
-                        .HasForeignKey("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.WfpOvertimeRequest", "SourceOvertimePlanDetailId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "SubmittedByUser")
                         .WithMany()
                         .HasForeignKey("SubmittedByUserId")
@@ -79194,8 +78628,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Shift");
 
                     b.Navigation("ShiftAssignment");
-
-                    b.Navigation("SourceOvertimePlanDetail");
 
                     b.Navigation("SubmittedByUser");
 
@@ -88886,16 +88318,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("FitnessAssessments");
 
                     b.Navigation("MedicalExaminations");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxOvertimePlan", b =>
-                {
-                    b.Navigation("Details");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxOvertimePlanDetail", b =>
-                {
-                    b.Navigation("GeneratedOvertimeRequest");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Models.TrxOvertimeRealization", b =>

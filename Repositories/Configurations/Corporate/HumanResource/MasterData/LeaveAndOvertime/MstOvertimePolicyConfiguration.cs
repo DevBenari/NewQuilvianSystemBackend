@@ -13,6 +13,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
 
             entity.Property(x => x.OvertimePolicyCode).HasMaxLength(50).IsRequired();
             entity.Property(x => x.OvertimePolicyName).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.Priority).HasDefaultValue(0);
+            entity.Property(x => x.IsFallback).HasDefaultValue(false);
             entity.Property(x => x.RequirePreApproval).HasDefaultValue(true);
             entity.Property(x => x.RequirePostVerification).HasDefaultValue(true);
             entity.Property(x => x.RequireAttendanceMatch).HasDefaultValue(true);
@@ -69,7 +71,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasIndex(x => x.OvertimePolicyName);
             entity.HasIndex(x => new { x.LegalEntityId, x.HospitalSiteId, x.OrganizationUnitId });
             entity.HasIndex(x => new { x.EmployeeCategoryId, x.EmploymentTypeId });
-            entity.HasIndex(x => new { x.IsDefault, x.RequirePreApproval, x.RequirePostVerification, x.IsActive, x.IsDelete });
+            entity.HasIndex(x => new { x.Priority, x.IsFallback, x.IsDefault, x.RequirePreApproval, x.RequirePostVerification, x.IsActive, x.IsDelete });
             entity.HasIndex(x => new { x.EffectiveStartDate, x.EffectiveEndDate, x.IsActive, x.IsDelete });
         }
 

@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -55,17 +58,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private readonly LoggerService _loggerService;
         private readonly QueueVoiceService _queueVoiceService;
         private readonly QueueRealtimeService _queueRealtimeService;
+        private readonly DoctorConsultationLifecycleService _doctorConsultationLifecycleService;
 
         public DoctorQueueController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             QueueVoiceService queueVoiceService,
-            QueueRealtimeService queueRealtimeService)
+            QueueRealtimeService queueRealtimeService,
+            DoctorConsultationLifecycleService doctorConsultationLifecycleService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _queueVoiceService = queueVoiceService;
             _queueRealtimeService = queueRealtimeService;
+            _doctorConsultationLifecycleService = doctorConsultationLifecycleService;
         }
 
         [HttpGet("filters/metadata")]
@@ -359,34 +365,72 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var queue = await GetAllowedQueueWithEncounterAsync(id);
             if (queue == null) return QueueNotFound();
 
-            if (queue.QueueStatus != QueueStatus.CalledByDoctor && queue.QueueStatus != QueueStatus.WaitingForDoctor)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Antrean belum siap untuk konsultasi dokter."));
-
-            var activeClusterCall = await FindOtherActiveDoctorCallLockAsync(queue, ct);
-            if (activeClusterCall != null)
+            var isAlreadyInConsultation = queue.QueueStatus == QueueStatus.InConsultation;
+            if (queue.QueueStatus != QueueStatus.CalledByDoctor &&
+                queue.QueueStatus != QueueStatus.WaitingForDoctor &&
+                !isAlreadyInConsultation)
             {
-                return BuildDoctorCallLockConflict(activeClusterCall);
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Antrean belum siap untuk konsultasi dokter."));
+            }
+
+            if (!isAlreadyInConsultation)
+            {
+                var activeClusterCall = await FindOtherActiveDoctorCallLockAsync(queue, ct);
+                if (activeClusterCall != null)
+                {
+                    return BuildDoctorCallLockConflict(activeClusterCall);
+                }
             }
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+            TrxDoctorConsultation consultation;
 
-            queue.QueueStatus = QueueStatus.InConsultation;
-            queue.ConsultationStartedAt ??= now;
-            queue.UpdateDateTime = now;
-            queue.UpdateBy = actorUserId;
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(ct);
 
-            if (queue.Encounter != null)
+            try
             {
-                queue.Encounter.EncounterStatus = EncounterStatus.InConsultation;
-                queue.Encounter.UpdateDateTime = now;
-                queue.Encounter.UpdateBy = actorUserId;
+                consultation = await _doctorConsultationLifecycleService
+                    .GetOrCreateForQueueAsync(queue, actorUserId, now, ct);
+
+                queue.QueueStatus = QueueStatus.InConsultation;
+                queue.ConsultationStartedAt ??= now;
+                queue.UpdateDateTime = now;
+                queue.UpdateBy = actorUserId;
+
+                if (queue.Encounter != null)
+                {
+                    queue.Encounter.EncounterStatus = EncounterStatus.InConsultation;
+                    queue.Encounter.UpdateDateTime = now;
+                    queue.Encounter.UpdateBy = actorUserId;
+                }
+
+                await _dbContext.SaveChangesAsync(ct);
+                await transaction.CommitAsync(ct);
+            }
+            catch (InvalidOperationException exception)
+            {
+                await transaction.RollbackAsync(ct);
+
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    exception.Message));
             }
 
-            await _dbContext.SaveChangesAsync();
-            await _queueRealtimeService.NotifyQueueConsultationStartedAsync(queue, actorUserId, "Konsultasi dokter dimulai.");
+            const string message = "Konsultasi dokter dimulai.";
+            await _queueRealtimeService.NotifyQueueConsultationStartedAsync(
+                queue,
+                actorUserId,
+                message);
 
-            return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(BuildActionResponse(queue, "Konsultasi dokter dimulai."), "Konsultasi dokter dimulai."));
+            return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(
+                BuildActionResponse(
+                    queue,
+                    message,
+                    consultation: consultation),
+                message));
         }
 
         [HttpPost("{id:guid}/finish-consultation")]
@@ -1104,10 +1148,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             var doctorCredentialSnapshots = await BuildDoctorCredentialSnapshotsAsync(workforceProfileIds);
 
+            var queueIds = queues
+                .Select(x => x.Id)
+                .Where(x => x != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            var consultationRows = await _dbContext.Set<TrxDoctorConsultation>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.ConsultationStatus != DoctorConsultationStatus.Cancelled &&
+                    queueIds.Contains(x.QueueId))
+                .Select(x => new DoctorConsultationQueueSnapshot
+                {
+                    Id = x.Id,
+                    QueueId = x.QueueId,
+                    ConsultationNumber = x.ConsultationNumber,
+                    ConsultationStatus = x.ConsultationStatus,
+                    IsActive = x.IsActive,
+                    UpdatedAt = x.UpdateDateTime ?? x.CreateDateTime
+                })
+                .ToListAsync();
+
+            var consultationMap = consultationRows
+                .GroupBy(x => x.QueueId)
+                .ToDictionary(
+                    x => x.Key,
+                    x => x
+                        .OrderByDescending(y => y.IsActive)
+                        .ThenByDescending(y => y.ConsultationStatus == DoctorConsultationStatus.InProgress)
+                        .ThenByDescending(y => y.UpdatedAt)
+                        .First());
+
             var serverNowUtc = DateTime.UtcNow;
 
             return queues
-                .Select(x => MapResponse(x, visitCounts, doctorPhotoPaths, doctorCredentialSnapshots, serverNowUtc))
+                .Select(x => MapResponse(
+                    x,
+                    visitCounts,
+                    doctorPhotoPaths,
+                    doctorCredentialSnapshots,
+                    consultationMap,
+                    serverNowUtc))
                 .ToList();
         }
 
@@ -1116,6 +1199,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             IReadOnlyDictionary<Guid, int> visitCounts,
             IReadOnlyDictionary<Guid, string> doctorPhotoPaths,
             IReadOnlyDictionary<Guid, DoctorWorkforceCredentialSnapshot> doctorCredentialSnapshots,
+            IReadOnlyDictionary<Guid, DoctorConsultationQueueSnapshot> consultationMap,
             DateTime serverNowUtc)
         {
             var encounter = x.Encounter;
@@ -1130,6 +1214,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ? snapshot
                 : DoctorWorkforceCredentialSnapshot.Empty;
             var primaryCredential = doctorCredential.Sip ?? doctorCredential.Str;
+            var consultation = consultationMap.TryGetValue(x.Id, out var consultationSnapshot)
+                ? consultationSnapshot
+                : null;
 
             return new DoctorQueueResponse
             {
@@ -1194,6 +1281,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ServerNowUtc = serverNowUtc,
                 DoctorCallRemainingSeconds = CalculateDoctorCallRemainingSeconds(x.DoctorCallExpiresAt, serverNowUtc),
                 ScreeningCompletedAt = x.ScreeningCompletedAt,
+                ConsultationId = consultation?.Id,
+                ConsultationNumber = consultation?.ConsultationNumber,
+                ConsultationStatus = consultation?.ConsultationStatus,
                 ConsultationStartedAt = x.ConsultationStartedAt,
                 ConsultationCompletedAt = x.ConsultationCompletedAt,
                 SkipCount = x.SkipCount,
@@ -1395,11 +1485,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             public DateTime CreateDateTime { get; set; }
         }
 
+        private sealed class DoctorConsultationQueueSnapshot
+        {
+            public Guid Id { get; set; }
+            public Guid QueueId { get; set; }
+            public string ConsultationNumber { get; set; } = string.Empty;
+            public DoctorConsultationStatus ConsultationStatus { get; set; }
+            public bool IsActive { get; set; }
+            public DateTime UpdatedAt { get; set; }
+        }
+
         private static DoctorQueueActionResponse BuildActionResponse(
             TrxQueue queue,
             string message,
             QueueVoiceGenerateResponse? voiceResult = null,
-            DoctorQueueCallLockResponse? callLock = null)
+            DoctorQueueCallLockResponse? callLock = null,
+            TrxDoctorConsultation? consultation = null)
         {
             var serverNowUtc = DateTime.UtcNow;
 
@@ -1423,6 +1524,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 CanNoShow = CanNoShowDoctor(queue, serverNowUtc),
                 CanStartConsultation = CanStartConsultationDoctor(queue),
                 CanFinishConsultation = CanFinishConsultationDoctor(queue),
+                ConsultationId = consultation?.Id,
+                ConsultationNumber = consultation?.ConsultationNumber,
+                ConsultationStatus = consultation?.ConsultationStatus,
                 ConsultationStartedAt = queue.ConsultationStartedAt,
                 ConsultationCompletedAt = queue.ConsultationCompletedAt,
                 IsDoctorCallClusterLocked = callLock?.IsLocked ?? false,
