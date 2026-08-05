@@ -31,6 +31,15 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Mod
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories
 {
