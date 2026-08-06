@@ -48,6 +48,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasIndex(x => x.RequestNumber).IsUnique().HasFilter("\"IsDelete\" = false");
             entity.HasIndex(x => new { x.WorkforceProfileId, x.RequestStatus, x.IsDelete });
             entity.HasIndex(x => new { x.EffectiveStartDate, x.EffectiveEndDate, x.RequestStatus });
+            entity.HasIndex(x => x.WorkflowInstanceId);
         }
     }
 }

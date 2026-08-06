@@ -46,8 +46,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
 
         [Required]
         [MaxLength(30)]
-        public string RequestStatus { get; set; } = "PendingTarget";
-        // Draft, PendingTarget, TargetAccepted, TargetRejected, PendingApproval, Approved, Rejected, Cancelled, Applied
+        public string RequestStatus { get; set; } = "Draft";
+        // Draft, PendingTarget, TargetAccepted, TargetRejected, PendingApproval, NeedRevision, Approved, Rejected, Cancelled, Applied
 
         public DateTime? RequestedAt { get; set; }
         public DateTime? TargetRespondedAt { get; set; }

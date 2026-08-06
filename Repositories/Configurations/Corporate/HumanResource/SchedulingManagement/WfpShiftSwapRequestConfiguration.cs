@@ -15,7 +15,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.TargetShiftDate).HasColumnType("date");
             entity.Property(x => x.Reason).HasMaxLength(1000).IsRequired();
             entity.Property(x => x.AttachmentPath).HasMaxLength(500);
-            entity.Property(x => x.RequestStatus).HasMaxLength(30).HasDefaultValue("PendingTarget").IsRequired();
+            entity.Property(x => x.RequestStatus).HasMaxLength(30).HasDefaultValue("Draft").IsRequired();
             entity.Property(x => x.RequestedAt).HasColumnType("timestamp with time zone").IsRequired(false);
             entity.Property(x => x.TargetRespondedAt).HasColumnType("timestamp with time zone").IsRequired(false);
             entity.Property(x => x.ApprovedAt).HasColumnType("timestamp with time zone").IsRequired(false);
@@ -44,6 +44,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.HasIndex(x => new { x.RequesterWorkforceProfileId, x.RequestStatus, x.IsDelete });
             entity.HasIndex(x => new { x.TargetWorkforceProfileId, x.RequestStatus, x.IsDelete });
             entity.HasIndex(x => new { x.RequesterShiftAssignmentId, x.TargetShiftAssignmentId, x.IsDelete });
+            entity.HasIndex(x => x.WorkflowInstanceId);
         }
     }
 }

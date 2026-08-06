@@ -1,7 +1,7 @@
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.DTOs;
 using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs
+namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
 {
     public class EmployeeProfileChangeWorkflowSubmitRequest
     {
@@ -18,6 +18,25 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs
         public string? IdempotencyKey { get; set; }
 
         public List<Guid> SelectedApproverUserIds { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Kontrak submit khusus Employee Self Service. Approver selalu di-resolve oleh
+    /// Generic Workflow dari definition, approval matrix, dan manager assignment.
+    /// </summary>
+    public class EmployeeProfileChangeSelfServiceSubmitRequest
+    {
+        [MaxLength(500)]
+        public string? Note { get; set; }
+
+        [MaxLength(30)]
+        public string SourceChannel { get; set; } = "Web";
+
+        [MaxLength(100)]
+        public string? RequestCorrelationId { get; set; }
+
+        [MaxLength(100)]
+        public string? IdempotencyKey { get; set; }
     }
 
     public class EmployeeProfileChangeWorkflowCancelRequest

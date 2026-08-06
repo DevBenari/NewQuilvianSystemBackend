@@ -74,7 +74,6 @@
     <Folder Include="Areas\Corporate\HumanResource\MasterData\Performance\" />
     <Folder Include="Areas\Corporate\HumanResource\MasterData\PayrollAndBenefit\" />
     <Folder Include="Areas\Corporate\HumanResource\MasterData\TravelAndExpense\" />
-    <Folder Include="Areas\Corporate\HumanResource\WorkforceCore\DTOs\" />
     <Folder Include="Areas\Corporate\HumanResource\WorkforceCore\Controllers\" />
     <Folder Include="Areas\Corporate\InventoryManagement\" />
     <Folder Include="Areas\Corporate\AssetManagement\" />
@@ -92,14 +91,6 @@
     <Folder Include="Areas\HealthServices\OperatingRoomManagement\" />
     <Folder Include="Areas\HealthServices\RadiologyManagement\" />
     <Folder Include="Areas\HealthServices\OutpatientManagement\" />
-    <Folder Include="Areas\SelfServices\HumanResource\Employee\Dashboard\" />
-    <Folder Include="Areas\SelfServices\HumanResource\Employee\MyProfile\" />
-    <Folder Include="Areas\SelfServices\HumanResource\Employee\MyEmployment\" />
-    <Folder Include="Areas\SelfServices\HumanResource\Employee\MyDocuments\" />
-    <Folder Include="Areas\SelfServices\HumanResource\Employee\MyRequests\" />
-    <Folder Include="Areas\SelfServices\HumanResource\Manager\Dashboard\" />
-    <Folder Include="Areas\SelfServices\HumanResource\Manager\MyTeam\" />
-    <Folder Include="Areas\SelfServices\HumanResource\Manager\MyApprovals\" />
     <Folder Include="Logs\" />
     <Folder Include="SeedData\ICD10\" />
   </ItemGroup>

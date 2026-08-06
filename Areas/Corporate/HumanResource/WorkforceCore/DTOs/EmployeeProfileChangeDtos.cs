@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs
+namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs
 {
     /// <summary>
     /// Employee Self Service request contracts for profile change workflow.
@@ -199,9 +199,51 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs
         public List<CreateEmployeeProfileChangeDetailRequest> Details { get; set; } = new();
     }
 
+    /// <summary>
+    /// Kontrak create khusus Employee Self Service. Workforce profile dan workflow
+    /// definition ditentukan backend dari user login serta konfigurasi workflow.
+    /// </summary>
+    public class CreateEmployeeProfileChangeSelfServiceRequest
+    {
+        public Guid? RequestReasonId { get; set; }
+
+        [Required, MaxLength(50)]
+        public string RequestCategory { get; set; } = "Profile";
+
+        [MaxLength(500)]
+        public string? RequestReasonText { get; set; }
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        [Required, MinLength(1)]
+        public List<CreateEmployeeProfileChangeDetailRequest> Details { get; set; } = new();
+    }
+
     public class UpdateEmployeeProfileChangeRequest
     {
         public Guid? WorkflowDefinitionId { get; set; }
+        public Guid? RequestReasonId { get; set; }
+
+        [Required, MaxLength(50)]
+        public string RequestCategory { get; set; } = "Profile";
+
+        [MaxLength(500)]
+        public string? RequestReasonText { get; set; }
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        [Required, MinLength(1)]
+        public List<CreateEmployeeProfileChangeDetailRequest> Details { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Kontrak update khusus Employee Self Service. Employee tidak dapat mengganti
+    /// workflow definition melalui request body.
+    /// </summary>
+    public class UpdateEmployeeProfileChangeSelfServiceRequest
+    {
         public Guid? RequestReasonId { get; set; }
 
         [Required, MaxLength(50)]

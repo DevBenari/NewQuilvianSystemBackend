@@ -4,13 +4,12 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Mo
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
-using QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs;
 using QuilvianSystemBackend.Repositories;
 using System.Text.Json;
 
-namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
+namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services
 {
     /// <summary>
     /// Adapter antara transaksi Employee Profile Change dan Workflow Engine generik.
@@ -134,6 +133,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
             }
 
             var source = await _dbContext.Set<TrxEmployeeProfileChangeRequest>()
+                .AsNoTracking()
                 .Include(x => x.Details)
                 .FirstOrDefaultAsync(
                     x => x.Id == profileChangeRequestId && !x.IsDelete,
@@ -155,7 +155,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
                         "Hanya pemohon yang dapat submit employee profile change.");
             }
 
-            var canSubmit =
+            var requiresDomainPreparation =
                 string.Equals(
                     source.RequestStatus,
                     "Draft",
@@ -165,7 +165,12 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
                     "NeedRevision",
                     StringComparison.OrdinalIgnoreCase);
 
-            if (!canSubmit)
+            var isSubmittedRecovery = string.Equals(
+                source.RequestStatus,
+                "Submitted",
+                StringComparison.OrdinalIgnoreCase);
+
+            if (!requiresDomainPreparation && !isSubmittedRecovery)
             {
                 var runningWorkflow = await FindLatestWorkflowAsync(
                     source.Id,
@@ -191,7 +196,7 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
                 return EmployeeProfileChangeServiceResult<
                     EmployeeProfileChangeWorkflowResponse>.Fail(
                         StatusCodes.Status409Conflict,
-                        "Employee profile change hanya dapat di-submit dari status Draft atau NeedRevision.");
+                        "Employee profile change hanya dapat di-submit dari status Draft, NeedRevision, atau dipulihkan dari status Submitted.");
             }
 
             if (!source.Details.Any(x => !x.IsDelete))
@@ -200,6 +205,30 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
                     EmployeeProfileChangeWorkflowResponse>.Fail(
                         StatusCodes.Status400BadRequest,
                         "Employee profile change harus mempunyai minimal satu detail perubahan.");
+            }
+
+            if (requiresDomainPreparation)
+            {
+                var preparationResult = await _employeeProfileChangeService.SubmitAsync(
+                    source.Id,
+                    request?.Note,
+                    actorUserId,
+                    cancellationToken);
+
+                if (!preparationResult.Success || preparationResult.Data == null)
+                {
+                    return EmployeeProfileChangeServiceResult<
+                        EmployeeProfileChangeWorkflowResponse>.Fail(
+                            preparationResult.StatusCode,
+                            preparationResult.Message);
+                }
+
+                source = await _dbContext.Set<TrxEmployeeProfileChangeRequest>()
+                    .AsNoTracking()
+                    .Include(x => x.Details)
+                    .FirstAsync(
+                        x => x.Id == profileChangeRequestId && !x.IsDelete,
+                        cancellationToken);
             }
 
             var existingWorkflow = await FindLatestWorkflowAsync(
@@ -307,11 +336,10 @@ namespace QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services
                             detailCount = source.Details.Count(x => !x.IsDelete),
                             requestedByUserId = source.RequestedByUserId
                         }),
-                        SelectedApproverUserIds = request?
-                            .SelectedApproverUserIds?
-                            .Where(x => x != Guid.Empty)
-                            .Distinct()
-                            .ToList() ?? new List<Guid>()
+                        // Employee Self Service tidak boleh memilih approver.
+                        // Workflow Engine me-resolve approver dari definition, matrix,
+                        // organization assignment, dan manager assignment.
+                        SelectedApproverUserIds = new List<Guid>()
                     },
                     cancellationToken);
 

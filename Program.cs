@@ -11,6 +11,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Servic
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
@@ -285,6 +287,18 @@ try
     builder.Services.AddScoped<ApprovalInboxService>();
     builder.Services.AddScoped<WorkflowReferenceLifecycleService>();
     builder.Services.AddScoped<EmployeeProfileChangeWorkflowIntegrationService>();
+
+    builder.Services.AddScoped<ScheduleChangeService>();
+    builder.Services.AddScoped<ScheduleChangeWorkflowLifecycleService>();
+    builder.Services.AddScoped<ScheduleChangeWorkflowIntegrationService>();
+    builder.Services.AddScoped<ShiftSwapService>();
+    builder.Services.AddScoped<ShiftSwapWorkflowLifecycleService>();
+    builder.Services.AddScoped<ShiftSwapWorkflowIntegrationService>();
+
+    builder.Services.AddScoped<ResignationRequestService>();
+    builder.Services.AddScoped<ResignationWorkflowLifecycleService>();
+    builder.Services.AddScoped<ResignationWorkflowIntegrationService>();
+    builder.Services.AddScoped<ResignationLifecycleHandoffService>();
 
     builder.Services.AddScoped<AttendanceRawLogService>();
     builder.Services.AddScoped<AttendanceScheduleResolverService>();

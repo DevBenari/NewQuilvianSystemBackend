@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
-using QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs;
-using QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
@@ -10,9 +9,9 @@ using System.Security.Claims;
 
 using EmployeeProfileChangePagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
-        QuilvianSystemBackend.Areas.SelfServices.HumanResource.DTOs.EmployeeProfileChangeListResponse>;
+        QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs.EmployeeProfileChangeListResponse>;
 
-namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Controllers
+namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Controllers
 {
     [ApiController]
     [Authorize]
