@@ -7,15 +7,17 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
+using QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services;
 using QuilvianSystemBackend.Hubs;
 using QuilvianSystemBackend.Middlewares;
 using QuilvianSystemBackend.Models;
@@ -286,6 +288,18 @@ try
     builder.Services.AddScoped<WorkflowReferenceLifecycleService>();
     builder.Services.AddScoped<EmployeeProfileChangeWorkflowIntegrationService>();
 
+    builder.Services.AddScoped<ScheduleChangeService>();
+    builder.Services.AddScoped<ScheduleChangeWorkflowLifecycleService>();
+    builder.Services.AddScoped<ScheduleChangeWorkflowIntegrationService>();
+    builder.Services.AddScoped<ShiftSwapService>();
+    builder.Services.AddScoped<ShiftSwapWorkflowLifecycleService>();
+    builder.Services.AddScoped<ShiftSwapWorkflowIntegrationService>();
+
+    builder.Services.AddScoped<ResignationRequestService>();
+    builder.Services.AddScoped<ResignationWorkflowLifecycleService>();
+    builder.Services.AddScoped<ResignationWorkflowIntegrationService>();
+    builder.Services.AddScoped<ResignationLifecycleHandoffService>();
+
     builder.Services.AddScoped<AttendanceRawLogService>();
     builder.Services.AddScoped<AttendanceScheduleResolverService>();
     builder.Services.AddScoped<AttendanceProcessingService>();
@@ -341,6 +355,32 @@ try
 
     builder.Services.AddScoped<OvertimePolicyResolverService>();
     builder.Services.AddScoped<OvertimeRateResolverService>();
+    builder.Services.AddScoped<OvertimePlanQueryService>();
+    builder.Services.AddScoped<OvertimePlanningService>();
+    builder.Services.AddScoped<OvertimeRequestWorkflowLifecycleService>();
+    builder.Services.AddScoped<OvertimeRequestWorkflowIntegrationService>();
+    builder.Services.AddScoped<OvertimeAttendanceMatchingService>();
+    builder.Services.AddScoped<OvertimeActualCalculationService>();
+    builder.Services.AddScoped<OvertimeRealizationQueryService>();
+    builder.Services.AddScoped<OvertimeVerificationQueryService>();
+    builder.Services.AddScoped<OvertimeVerificationService>();
+    builder.Services.AddScoped<OvertimeCompensatoryLeaveQueryService>();
+    builder.Services.AddScoped<OvertimeCompensatoryLeaveService>();
+    builder.Services.AddScoped<OvertimePayrollHandoffQueryService>();
+    builder.Services.AddScoped<OvertimePayrollHandoffService>();
+    builder.Services.AddScoped<OvertimePeriodGuardService>();
+    builder.Services.AddScoped<OvertimePeriodQueryService>();
+    builder.Services.AddScoped<OvertimeFinalReconciliationService>();
+    builder.Services.AddScoped<OvertimeCompensatoryExpiryService>();
+    builder.Services.AddScoped<OvertimePeriodService>();
+    builder.Services.Configure<OvertimeSchedulerOptions>(
+        builder.Configuration.GetSection("HumanResource:OvertimeScheduler"));
+    builder.Services.AddScoped<OvertimeSchedulerService>();
+    builder.Services.AddHostedService<OvertimeSchedulerHostedService>();
+
+    builder.Services.AddScoped<OvertimeSelfServiceContextService>();
+    builder.Services.AddScoped<OvertimeSelfServiceQueryService>();
+    builder.Services.AddScoped<OvertimeSelfServiceService>();
 
     builder.Services.AddAuthorization(options =>
     {

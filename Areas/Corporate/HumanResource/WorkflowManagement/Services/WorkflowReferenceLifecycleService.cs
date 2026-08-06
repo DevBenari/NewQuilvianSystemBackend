@@ -1,12 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using Microsoft.Extensions.Logging;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeSelfService.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services
 {
@@ -58,6 +64,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
         public const string LeaveRecallReferenceType =
             "LEAVE_RECALL";
+
+        public const string OvertimeRequestReferenceType =
+            OvertimeValueConstants.Workflow.ReferenceType;
+
+        public const string ScheduleChangeReferenceType =
+            SchedulingRequestValueConstants.Workflow.ScheduleChangeReferenceType;
+
+        public const string ShiftSwapReferenceType =
+            SchedulingRequestValueConstants.Workflow.ShiftSwapReferenceType;
+
+        public const string ResignationReferenceType =
+            ResignationValueConstants.Workflow.ReferenceType;
 
         private static readonly HashSet<string> EmployeeProfileChangeReferenceAliases =
             new(StringComparer.OrdinalIgnoreCase)
@@ -114,6 +132,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 "LeaveReturnToWork"
             };
 
+        private static readonly HashSet<string> OvertimeRequestReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                OvertimeRequestReferenceType,
+                "OvertimeRequest",
+                "WfpOvertimeRequest",
+                "OVERTIME_REQUEST_APPROVAL"
+            };
+
+        private static readonly HashSet<string> ScheduleChangeReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                ScheduleChangeReferenceType,
+                "ScheduleChange",
+                "WfpScheduleChangeRequest"
+            };
+
+        private static readonly HashSet<string> ShiftSwapReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                ShiftSwapReferenceType,
+                "ShiftSwap",
+                "WfpShiftSwapRequest"
+            };
+
+        private static readonly HashSet<string> ResignationReferenceAliases =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                ResignationReferenceType,
+                "ResignationRequest",
+                "TrxResignationRequest",
+                "RESIGNATION"
+            };
+
         private readonly ApplicationDbContext _dbContext;
         private readonly EmployeeProfileChangeService _employeeProfileChangeService;
         private readonly AttendanceCorrectionWorkflowLifecycleService
@@ -126,6 +178,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             _leaveCancellationWorkflowLifecycleService;
         private readonly LeaveRecallWorkflowLifecycleService
             _leaveRecallWorkflowLifecycleService;
+        private readonly OvertimeRequestWorkflowLifecycleService
+            _overtimeRequestWorkflowLifecycleService;
+        private readonly ScheduleChangeWorkflowLifecycleService
+            _scheduleChangeWorkflowLifecycleService;
+        private readonly ShiftSwapWorkflowLifecycleService
+            _shiftSwapWorkflowLifecycleService;
+        private readonly ResignationWorkflowLifecycleService
+            _resignationWorkflowLifecycleService;
         private readonly ILogger<WorkflowReferenceLifecycleService> _logger;
 
         public WorkflowReferenceLifecycleService(
@@ -141,6 +201,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 leaveCancellationWorkflowLifecycleService,
             LeaveRecallWorkflowLifecycleService
                 leaveRecallWorkflowLifecycleService,
+            OvertimeRequestWorkflowLifecycleService
+                overtimeRequestWorkflowLifecycleService,
+            ScheduleChangeWorkflowLifecycleService
+                scheduleChangeWorkflowLifecycleService,
+            ShiftSwapWorkflowLifecycleService
+                shiftSwapWorkflowLifecycleService,
+            ResignationWorkflowLifecycleService
+                resignationWorkflowLifecycleService,
             ILogger<WorkflowReferenceLifecycleService> logger)
         {
             _dbContext = dbContext;
@@ -155,6 +223,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 leaveCancellationWorkflowLifecycleService;
             _leaveRecallWorkflowLifecycleService =
                 leaveRecallWorkflowLifecycleService;
+            _overtimeRequestWorkflowLifecycleService =
+                overtimeRequestWorkflowLifecycleService;
+            _scheduleChangeWorkflowLifecycleService =
+                scheduleChangeWorkflowLifecycleService;
+            _shiftSwapWorkflowLifecycleService =
+                shiftSwapWorkflowLifecycleService;
+            _resignationWorkflowLifecycleService =
+                resignationWorkflowLifecycleService;
             _logger = logger;
         }
 
@@ -269,6 +345,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                         cancellationToken);
             }
 
+            if (IsOvertimeRequestReference(workflow.ReferenceType))
+            {
+                return await _overtimeRequestWorkflowLifecycleService
+                    .SynchronizeAsync(
+                        workflow,
+                        actorUserId,
+                        allowAutoApply,
+                        cancellationToken);
+            }
+
+            if (IsScheduleChangeReference(workflow.ReferenceType))
+            {
+                return await _scheduleChangeWorkflowLifecycleService
+                    .SynchronizeAsync(
+                        workflow,
+                        actorUserId,
+                        allowAutoApply,
+                        cancellationToken);
+            }
+
+            if (IsShiftSwapReference(workflow.ReferenceType))
+            {
+                return await _shiftSwapWorkflowLifecycleService
+                    .SynchronizeAsync(
+                        workflow,
+                        actorUserId,
+                        allowAutoApply,
+                        cancellationToken);
+            }
+
+            if (IsResignationReference(workflow.ReferenceType))
+            {
+                return await _resignationWorkflowLifecycleService
+                    .SynchronizeAsync(
+                        workflow,
+                        actorUserId,
+                        allowAutoApply,
+                        cancellationToken);
+            }
+
             return new WorkflowReferenceLifecycleSynchronizationResult
             {
                 IsHandled = false,
@@ -318,6 +434,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             return !string.IsNullOrWhiteSpace(referenceType) &&
                    LeaveRecallReferenceAliases.Contains(
                        referenceType.Trim());
+        }
+
+        public static bool IsOvertimeRequestReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   OvertimeRequestReferenceAliases.Contains(
+                       referenceType.Trim());
+        }
+
+        public static bool IsScheduleChangeReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   ScheduleChangeReferenceAliases.Contains(referenceType.Trim());
+        }
+
+        public static bool IsShiftSwapReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   ShiftSwapReferenceAliases.Contains(referenceType.Trim());
+        }
+
+        public static bool IsResignationReference(string? referenceType)
+        {
+            return !string.IsNullOrWhiteSpace(referenceType) &&
+                   ResignationReferenceAliases.Contains(referenceType.Trim());
         }
 
         public static string MapProfileChangeStatus(string workflowStatus)
@@ -630,7 +771,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     "NeedRevision" => "NeedRevision",
                     "Rejected" => "Rejected",
                     "Cancelled" => "Cancelled",
-                    "Approved" => "Approved",
+                    "Approved" when !detail.RequiresVerification => "Verified",
+                    "Approved" when string.Equals(
+                        detail.DetailStatus,
+                        "Verified",
+                        StringComparison.OrdinalIgnoreCase) => "Verified",
+                    "Approved" => detail.DetailStatus,
                     "Submitted" when string.Equals(
                         detail.DetailStatus,
                         "NeedRevision",

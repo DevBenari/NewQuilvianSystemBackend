@@ -338,6 +338,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxOvertimeRealizationDetail> TrxOvertimeRealizationDetails { get; set; }
         public DbSet<TrxOvertimeVerification> TrxOvertimeVerifications { get; set; }
         public DbSet<TrxCompensatoryTimeOff> TrxCompensatoryTimeOffs { get; set; }
+        public DbSet<TrxOvertimePeriod> TrxOvertimePeriods { get; set; }
+        public DbSet<TrxOvertimeSchedulerJob> TrxOvertimeSchedulerJobs { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - OVERTIME MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - BUSINESS TRAVEL MANAGEMENT

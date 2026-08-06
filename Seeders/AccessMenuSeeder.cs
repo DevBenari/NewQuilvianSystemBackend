@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ActionConstraints;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -66,6 +66,7 @@ namespace QuilvianSystemBackend.Seeders
                 );
             }
 
+            await NormalizeEmployeeSelfServiceLegacyEntriesAsync(dbContext);
             await NormalizeSystemOnlyVisibilityAsync(dbContext);
 
             await dbContext.SaveChangesAsync();
@@ -234,6 +235,83 @@ namespace QuilvianSystemBackend.Seeders
             dbContext.SysActionAccesses.Add(action);
 
             await dbContext.SaveChangesAsync();
+        }
+
+
+        private static async Task NormalizeEmployeeSelfServiceLegacyEntriesAsync(
+            ApplicationDbContext dbContext)
+        {
+            var now = DateTime.UtcNow;
+
+            var legacyControllers = await (
+                from controller in dbContext.SysControllerAccesses
+                join module in dbContext.SysApplicationModules
+                    on controller.ModuleId equals module.Id
+                where
+                    (module.ModuleCode == "HUMAN_RESOURCE_LEAVE" &&
+                     (controller.ControllerName == "LeaveRequestSelfService" ||
+                      controller.ControllerName == "LeaveCancellationSelfService" ||
+                      controller.ControllerName == "LeaveReturnToWorkSelfService")) ||
+                    (module.ModuleCode == "HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE" &&
+                     controller.ControllerName == "EmployeeProfileChange")
+                select controller)
+                .ToListAsync();
+
+            foreach (var controller in legacyControllers)
+            {
+                controller.VisibleInRoleAccess = false;
+                controller.IsActive = false;
+                controller.IsDelete = true;
+                controller.UpdateDateTime = now;
+
+                var actions = await dbContext.SysActionAccesses
+                    .Where(x => x.ControllerAccessId == controller.Id)
+                    .ToListAsync();
+
+                foreach (var action in actions)
+                {
+                    action.VisibleInRoleAccess = false;
+                    action.IsActive = false;
+                    action.IsDelete = true;
+                    action.UpdateDateTime = now;
+                }
+            }
+
+            var attendanceCorrectionController = await (
+                from controller in dbContext.SysControllerAccesses
+                join module in dbContext.SysApplicationModules
+                    on controller.ModuleId equals module.Id
+                where
+                    module.ModuleCode == "HUMAN_RESOURCE_ATTENDANCE" &&
+                    controller.ControllerName == "AttendanceCorrection"
+                select controller)
+                .FirstOrDefaultAsync();
+
+            if (attendanceCorrectionController != null)
+            {
+                var personalActionNames = new[]
+                {
+                    "Create",
+                    "Update",
+                    "Delete",
+                    "Submit",
+                    "Cancel"
+                };
+
+                var staleActions = await dbContext.SysActionAccesses
+                    .Where(x =>
+                        x.ControllerAccessId == attendanceCorrectionController.Id &&
+                        personalActionNames.Contains(x.ActionName))
+                    .ToListAsync();
+
+                foreach (var action in staleActions)
+                {
+                    action.VisibleInRoleAccess = false;
+                    action.IsActive = false;
+                    action.IsDelete = true;
+                    action.UpdateDateTime = now;
+                }
+            }
         }
 
         private static async Task NormalizeSystemOnlyVisibilityAsync(
