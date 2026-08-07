@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
@@ -318,6 +319,7 @@ try
     builder.Services.AddScoped<LeaveAdjustmentPostingService>();
     builder.Services.AddScoped<LeaveAdjustmentWorkflowLifecycleService>();
     builder.Services.AddScoped<LeaveAdjustmentService>();
+    builder.Services.AddScoped<LeaveAdjustmentReasonService>();
     builder.Services.AddScoped<LeaveAccrualPolicyResolverService>();
     builder.Services.AddScoped<LeaveAccrualProcessorService>();
     builder.Services.AddScoped<LeaveAccrualSchedulerService>();
