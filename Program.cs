@@ -27,6 +27,7 @@ using QuilvianSystemBackend.Seeders;
 using QuilvianSystemBackend.Services.Language;
 using QuilvianSystemBackend.Services.Logging;
 using QuilvianSystemBackend.Services.Security;
+using QuilvianSystemBackend.Services.System;
 using QuilvianSystemBackend.Shared.HumanResource.Services;
 using Serilog;
 using Serilog.Events;
@@ -258,6 +259,7 @@ try
 
     builder.Services.AddScoped<LanguageService>();
     builder.Services.AddScoped<LoggerService>();
+    builder.Services.AddScoped<ApplicationVersionService>();
     builder.Services.AddScoped<AccessPermissionService>();
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();

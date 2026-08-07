@@ -36,5 +36,18 @@ namespace QuilvianSystemBackend.Models
         public bool IsActive { get; set; } = true;
 
         public DateTime ReleaseDateTime { get; set; } = DateTime.Now;
+
+        [MaxLength(64)]
+        public string? MergeCommitSha { get; set; }
+
+        [MaxLength(200)]
+        public string? SourceBranch { get; set; }
+
+        [MaxLength(200)]
+        public string? TargetBranch { get; set; }
+
+        public int? PullRequestNumber { get; set; }
+
+        public ICollection<SysAppVersionBuild> Builds { get; set; } = new List<SysAppVersionBuild>();
     }
 }

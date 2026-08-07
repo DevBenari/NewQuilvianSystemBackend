@@ -42,6 +42,15 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
             entity.Property(x => x.ReleaseDateTime)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+            entity.Property(x => x.MergeCommitSha)
+                .HasMaxLength(64);
+
+            entity.Property(x => x.SourceBranch)
+                .HasMaxLength(200);
+
+            entity.Property(x => x.TargetBranch)
+                .HasMaxLength(200);
+
             entity.Property(x => x.CreateDateTime)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -53,7 +62,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
 
             entity.HasIndex(x => x.IsLatest);
             entity.HasIndex(x => x.IsActive);
-            entity.HasIndex(x => x.BackendVersion);
+            entity.HasIndex(x => new { x.AppName, x.BackendVersion })
+                .IsUnique()
+                .HasFilter("\"IsDelete\" = false");
             entity.HasIndex(x => x.ApiVersion);
         }
     }

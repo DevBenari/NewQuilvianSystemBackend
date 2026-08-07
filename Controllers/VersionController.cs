@@ -5,6 +5,7 @@ using QuilvianSystemBackend.DTOs.System;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Services.System;
 
 namespace QuilvianSystemBackend.Controllers
 {
@@ -15,13 +16,50 @@ namespace QuilvianSystemBackend.Controllers
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly ApplicationVersionService _applicationVersionService;
 
         public VersionController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            ApplicationVersionService applicationVersionService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _applicationVersionService = applicationVersionService;
+        }
+
+        [HttpGet("/api/v1/system/version")]
+        [AllowAnonymous]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(ApiResponse<ApplicationVersionInfoResponse>), StatusCodes.Status200OK)]
+        public IActionResult GetApplicationVersion()
+        {
+            var response = _applicationVersionService.GetCurrentVersion();
+
+            return Ok(ApiResponse<ApplicationVersionInfoResponse>.Ok(
+                response,
+                "Informasi version aplikasi berhasil diambil."));
+        }
+
+        [HttpGet("/api/v1/system/version/history")]
+        [AllowAnonymous]
+        [Produces("application/json")]
+        [ProducesResponseType(
+            typeof(ApiResponse<PagedResult<ApplicationReleaseHistoryResponse>>),
+            StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetApplicationVersionHistory(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _applicationVersionService.GetHistoryAsync(
+                pageNumber,
+                pageSize,
+                cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<ApplicationReleaseHistoryResponse>>.Ok(
+                response,
+                "Riwayat version aplikasi berhasil diambil."));
         }
 
         [HttpGet("version")]
