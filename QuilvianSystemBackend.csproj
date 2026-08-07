@@ -95,11 +95,4 @@
     <Folder Include="SeedData\ICD10\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="DPUruNet">
-      <HintPath>ExternalLibraries\DigitalPersona\DPUruNet.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
-  </ItemGroup>
-
 </Project>
