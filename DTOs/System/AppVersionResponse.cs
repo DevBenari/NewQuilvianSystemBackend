@@ -2,22 +2,16 @@
 {
     public class AppVersionResponse
     {
-        public string AppName { get; set; } = string.Empty;
-
         public string BackendVersion { get; set; } = string.Empty;
 
         public string ApiVersion { get; set; } = string.Empty;
 
-        public string? FrontendMinimumVersion { get; set; }
+        public string MinimumSupportedFrontendVersion { get; set; } = string.Empty;
 
-        public string? FrontendRecommendedVersion { get; set; }
+        // Deprecated compatibility alias. Remove after the frontend adopts MinimumSupportedFrontendVersion.
+        public string FrontendMinimumVersion => MinimumSupportedFrontendVersion;
 
-        public string? ReleaseName { get; set; }
-
-        public string? Description { get; set; }
-
-        public DateTime ReleaseDateTime { get; set; }
-
-        public DateTime ServerDateTime { get; set; }
+        // Deprecated compatibility alias only; this is not a separate recommended-version policy.
+        public string FrontendRecommendedVersion => MinimumSupportedFrontendVersion;
     }
 }

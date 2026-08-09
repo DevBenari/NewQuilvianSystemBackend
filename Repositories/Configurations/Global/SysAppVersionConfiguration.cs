@@ -24,10 +24,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
                 .HasMaxLength(20)
                 .IsRequired();
 
-            entity.Property(x => x.FrontendMinimumVersion)
+            entity.Property(x => x.VersioningGeneration)
+                .HasDefaultValue(1);
+
+            entity.Property(x => x.MinimumSupportedFrontendVersion)
                 .HasMaxLength(50);
 
-            entity.Property(x => x.FrontendRecommendedVersion)
+            entity.Property(x => x.LegacyFrontendRecommendedVersion)
+                .HasColumnName("FrontendRecommendedVersion")
                 .HasMaxLength(50);
 
             entity.Property(x => x.ReleaseName)
@@ -62,9 +66,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
 
             entity.HasIndex(x => x.IsLatest);
             entity.HasIndex(x => x.IsActive);
-            entity.HasIndex(x => new { x.AppName, x.BackendVersion })
+            entity.HasIndex(x => new { x.AppName, x.VersioningGeneration, x.BackendVersion })
                 .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
+            entity.HasIndex(x => x.AppName)
+                .IsUnique()
+                .HasFilter("\"IsLatest\" = true AND \"IsActive\" = true AND \"IsDelete\" = false");
             entity.HasIndex(x => x.ApiVersion);
         }
     }

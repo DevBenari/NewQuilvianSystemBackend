@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.DTOs.System;
 using QuilvianSystemBackend.Models;
@@ -10,28 +9,96 @@ namespace QuilvianSystemBackend.Services.System
 {
     public class ApplicationVersionService
     {
+        private const int AuthoritativeVersioningGeneration = 2;
         private const string UnknownCommitSha = "unknown";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly IConfiguration _configuration;
         private readonly IHostEnvironment _hostEnvironment;
         private readonly ILogger<ApplicationVersionService> _logger;
-        private readonly ApplicationVersionInfoResponse _currentVersion;
+        private readonly BackendVersionManifest _manifest;
 
         public ApplicationVersionService(
             ApplicationDbContext dbContext,
             IConfiguration configuration,
             IHostEnvironment hostEnvironment,
-            ILogger<ApplicationVersionService> logger)
+            ILogger<ApplicationVersionService> logger,
+            BackendVersionManifest manifest)
         {
             _dbContext = dbContext;
             _configuration = configuration;
             _hostEnvironment = hostEnvironment;
             _logger = logger;
-            _currentVersion = LoadCurrentVersion();
+            _manifest = manifest;
         }
 
-        public ApplicationVersionInfoResponse GetCurrentVersion() => _currentVersion;
+        public ApplicationVersionInfoResponse GetRuntimeVersionInfo()
+        {
+            var buildMetadata = LoadBuildMetadata();
+            return new ApplicationVersionInfoResponse
+            {
+                Application = ReadRequiredConfiguration("AppInfo:Name"),
+                ReleaseVersion = _manifest.BackendVersion,
+                BuildVersion = buildMetadata.BuildVersion ?? string.Empty,
+                BuildNumber = buildMetadata.BuildNumber,
+                CommitSha = buildMetadata.CommitSha,
+                Branch = buildMetadata.Branch,
+                Framework = $".NET {Environment.Version.Major}",
+                Environment = _hostEnvironment.EnvironmentName,
+                BuildDate = buildMetadata.BuildDate
+            };
+        }
+
+        public async Task<AppVersionResponse> GetCurrentVersionAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var appName = ReadRequiredConfiguration("AppInfo:Name");
+            SysAppVersion? currentVersion;
+
+            try
+            {
+                currentVersion = await _dbContext.SysAppVersions
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(
+                        x => x.AppName == appName &&
+                             x.VersioningGeneration == AuthoritativeVersioningGeneration &&
+                             x.IsLatest &&
+                             x.IsActive &&
+                             !x.IsDelete,
+                        cancellationToken);
+            }
+            catch (InvalidOperationException exception)
+            {
+                _logger.LogCritical(
+                    exception,
+                    "Application version invariant is violated for {Application}: multiple current Versioning V2 rows exist.",
+                    appName);
+                throw;
+            }
+
+            if (currentVersion == null)
+            {
+                var exception = new InvalidOperationException(
+                    $"Current Versioning V2 record was not found for application '{appName}'.");
+                _logger.LogCritical(exception, "Current authoritative application version is unavailable.");
+                throw exception;
+            }
+
+            if (string.IsNullOrWhiteSpace(currentVersion.MinimumSupportedFrontendVersion))
+            {
+                var exception = new InvalidOperationException(
+                    $"Current Versioning V2 record for '{appName}' has no minimum supported frontend version.");
+                _logger.LogCritical(exception, "Current authoritative application version is invalid.");
+                throw exception;
+            }
+
+            return new AppVersionResponse
+            {
+                BackendVersion = currentVersion.BackendVersion,
+                ApiVersion = currentVersion.ApiVersion,
+                MinimumSupportedFrontendVersion = currentVersion.MinimumSupportedFrontendVersion
+            };
+        }
 
         public async Task<PagedResult<ApplicationReleaseHistoryResponse>> GetHistoryAsync(
             int pageNumber,
@@ -88,105 +155,82 @@ namespace QuilvianSystemBackend.Services.System
             };
         }
 
-        public async Task RegisterCurrentBuildAsync(CancellationToken cancellationToken = default)
+        public async Task RegisterCurrentVersionAsync(CancellationToken cancellationToken = default)
         {
+            var appName = ReadRequiredConfiguration("AppInfo:Name");
+            var apiVersion = ReadRequiredConfiguration("AppInfo:ApiVersion");
+            var minimumSupportedFrontendVersion =
+                ReadRequiredConfiguration("FrontendCompatibility:MinimumSupportedVersion");
+
+            if (!BackendVersionManifest.IsValidSemanticVersion(minimumSupportedFrontendVersion))
+            {
+                throw new InvalidOperationException(
+                    "FrontendCompatibility:MinimumSupportedVersion must use MAJOR.MINOR.PATCH format.");
+            }
+
             try
             {
                 await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-                var metadata = _currentVersion;
-                var apiVersion = _configuration["AppInfo:ApiVersion"] ?? "v1";
-                var release = await _dbContext.SysAppVersions.FirstOrDefaultAsync(
-                    x => x.AppName == metadata.Application &&
-                         x.BackendVersion == metadata.ReleaseVersion &&
+
+                if (_dbContext.Database.IsNpgsql())
+                {
+                    await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+                        $"SELECT pg_advisory_xact_lock(hashtext({appName})::bigint)",
+                        cancellationToken);
+                }
+
+                var release = await _dbContext.SysAppVersions.SingleOrDefaultAsync(
+                    x => x.AppName == appName &&
+                         x.VersioningGeneration == AuthoritativeVersioningGeneration &&
+                         x.BackendVersion == _manifest.BackendVersion &&
                          !x.IsDelete,
                     cancellationToken);
+
+                var releaseId = release?.Id ?? Guid.NewGuid();
+
+                await _dbContext.SysAppVersions
+                    .Where(x => x.AppName == appName && x.Id != releaseId && x.IsLatest)
+                    .ExecuteUpdateAsync(
+                        updates => updates
+                            .SetProperty(x => x.IsLatest, false)
+                            .SetProperty(x => x.UpdateDateTime, DateTime.UtcNow),
+                        cancellationToken);
 
                 if (release == null)
                 {
                     release = new SysAppVersion
                     {
-                        Id = Guid.NewGuid(),
-                        AppName = metadata.Application,
-                        BackendVersion = metadata.ReleaseVersion,
-                        ApiVersion = apiVersion,
-                        FrontendMinimumVersion = _configuration["AppInfo:FrontendMinimumVersion"],
-                        FrontendRecommendedVersion = _configuration["AppInfo:FrontendRecommendedVersion"],
-                        ReleaseName = _configuration["AppInfo:ReleaseName"],
-                        Description = _configuration["AppInfo:Description"],
-                        IsLatest = true,
-                        IsActive = true,
-                        ReleaseDateTime = metadata.BuildDate ?? DateTime.UtcNow,
+                        Id = releaseId,
+                        AppName = appName,
+                        BackendVersion = _manifest.BackendVersion,
+                        VersioningGeneration = AuthoritativeVersioningGeneration,
+                        ReleaseDateTime = DateTime.UtcNow,
                         CreateDateTime = DateTime.UtcNow,
                         CreateBy = Guid.Empty
                     };
                     _dbContext.SysAppVersions.Add(release);
                 }
-                else
-                {
-                    var frontendMinimumVersion = _configuration["AppInfo:FrontendMinimumVersion"];
-                    var frontendRecommendedVersion = _configuration["AppInfo:FrontendRecommendedVersion"];
-                    var releaseName = _configuration["AppInfo:ReleaseName"];
-                    var description = _configuration["AppInfo:Description"];
-                    var releaseChanged = release.ApiVersion != apiVersion ||
-                                         release.FrontendMinimumVersion != frontendMinimumVersion ||
-                                         release.FrontendRecommendedVersion != frontendRecommendedVersion ||
-                                         release.ReleaseName != releaseName ||
-                                         release.Description != description ||
-                                         !release.IsLatest ||
-                                         !release.IsActive;
 
-                    if (releaseChanged)
-                    {
-                        release.ApiVersion = apiVersion;
-                        release.FrontendMinimumVersion = frontendMinimumVersion;
-                        release.FrontendRecommendedVersion = frontendRecommendedVersion;
-                        release.ReleaseName = releaseName;
-                        release.Description = description;
-                        release.IsLatest = true;
-                        release.IsActive = true;
-                        release.UpdateDateTime = DateTime.UtcNow;
-                    }
-                }
+                release.ApiVersion = apiVersion;
+                release.MinimumSupportedFrontendVersion = minimumSupportedFrontendVersion;
+                release.LegacyFrontendRecommendedVersion = null;
+                release.ReleaseName = _manifest.ReleaseName;
+                release.Description = _manifest.Description;
+                release.IsLatest = true;
+                release.IsActive = true;
+                release.IsDelete = false;
+                release.UpdateDateTime = release.UpdateDateTime ?? DateTime.UtcNow;
 
-                if (string.Equals(metadata.Branch, "master", StringComparison.OrdinalIgnoreCase))
-                {
-                    var mergeCommitSha = IsKnownCommit(metadata.CommitSha)
-                        ? metadata.CommitSha
-                        : release.MergeCommitSha;
-                    var sourceBranch = release.SourceBranch ?? GetEnvironmentValue("APP_SOURCE_BRANCH");
-                    var targetBranch = GetEnvironmentValue("APP_TARGET_BRANCH") ?? metadata.Branch;
-                    var pullRequestNumber = release.PullRequestNumber ??
-                                            ParseNullableInt(GetEnvironmentValue("APP_PULL_REQUEST_NUMBER"));
+                var buildMetadata = LoadBuildMetadata();
+                ApplyReliableReleaseMetadata(release, buildMetadata);
 
-                    if (release.MergeCommitSha != mergeCommitSha ||
-                        release.SourceBranch != sourceBranch ||
-                        release.TargetBranch != targetBranch ||
-                        release.PullRequestNumber != pullRequestNumber)
-                    {
-                        release.MergeCommitSha = mergeCommitSha;
-                        release.SourceBranch = sourceBranch;
-                        release.TargetBranch = targetBranch;
-                        release.PullRequestNumber = pullRequestNumber;
-                        release.UpdateDateTime = DateTime.UtcNow;
-                    }
-                }
-
-                var oldLatestReleases = await _dbContext.SysAppVersions
-                    .Where(x => x.Id != release.Id && x.IsLatest && !x.IsDelete)
-                    .ToListAsync(cancellationToken);
-
-                foreach (var oldRelease in oldLatestReleases)
-                {
-                    oldRelease.IsLatest = false;
-                    oldRelease.UpdateDateTime = DateTime.UtcNow;
-                }
-
-                if (ShouldPersistBuild(metadata))
+                if (ShouldPersistBuild(buildMetadata))
                 {
                     var buildExists = await _dbContext.SysAppVersionBuilds.AnyAsync(
                         x => x.AppVersionId == release.Id &&
                              !x.IsDelete &&
-                             (x.BuildVersion == metadata.BuildVersion || x.CommitSha == metadata.CommitSha),
+                             (x.BuildVersion == buildMetadata.BuildVersion ||
+                              x.CommitSha == buildMetadata.CommitSha),
                         cancellationToken);
 
                     if (!buildExists)
@@ -195,90 +239,76 @@ namespace QuilvianSystemBackend.Services.System
                         {
                             Id = Guid.NewGuid(),
                             AppVersionId = release.Id,
-                            BuildVersion = metadata.BuildVersion,
-                            BuildNumber = metadata.BuildNumber,
-                            CommitSha = metadata.CommitSha,
+                            BuildVersion = buildMetadata.BuildVersion!,
+                            BuildNumber = buildMetadata.BuildNumber,
+                            CommitSha = buildMetadata.CommitSha,
                             CommitMessage = GetEnvironmentValue("APP_COMMIT_MESSAGE"),
-                            BranchName = metadata.Branch,
-                            BuildDateTime = metadata.BuildDate ?? DateTime.UtcNow,
+                            BranchName = buildMetadata.Branch,
+                            BuildDateTime = buildMetadata.BuildDate ?? DateTime.UtcNow,
                             CreateDateTime = DateTime.UtcNow,
                             CreateBy = Guid.Empty
                         });
                     }
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "Skipping application build history for {BackendVersion}: reliable CommitSha, BuildNumber, and BuildVersion metadata are required.",
+                        _manifest.BackendVersion);
                 }
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
                 _logger.LogInformation(
-                    "Application release {ReleaseVersion} build {BuildVersion} registration completed.",
-                    metadata.ReleaseVersion,
-                    metadata.BuildVersion);
+                    "Authoritative application version {BackendVersion} (generation {VersioningGeneration}) registration completed.",
+                    _manifest.BackendVersion,
+                    AuthoritativeVersioningGeneration);
             }
             catch (Exception exception)
             {
-                _logger.LogError(
+                _logger.LogCritical(
                     exception,
-                    "Application version history registration failed. Application startup will continue.");
+                    "Authoritative application version registration failed. Application startup cannot continue.");
+                throw;
             }
         }
 
-        private ApplicationVersionInfoResponse LoadCurrentVersion()
+        private void ApplyReliableReleaseMetadata(SysAppVersion release, BuildMetadata metadata)
         {
-            var releaseVersion = GetEnvironmentValue("APP_RELEASE_VERSION")
-                ?? LoadReleaseVersionFromFile()
-                ?? _configuration["AppInfo:BackendVersion"]
-                ?? "0.0.0";
-            var buildVersion = GetEnvironmentValue("APP_BUILD_VERSION") ?? $"{releaseVersion}-local";
-
-            return new ApplicationVersionInfoResponse
+            if (!IsKnownCommit(metadata.CommitSha))
             {
-                Application = _configuration["AppInfo:Name"] ?? "Quilvian System Backend",
-                ReleaseVersion = releaseVersion,
-                BuildVersion = buildVersion,
+                return;
+            }
+
+            release.MergeCommitSha = metadata.CommitSha;
+            release.SourceBranch ??= GetEnvironmentValue("APP_SOURCE_BRANCH");
+            release.TargetBranch = GetEnvironmentValue("APP_TARGET_BRANCH") ?? metadata.Branch;
+            release.PullRequestNumber ??=
+                ParseNullableInt(GetEnvironmentValue("APP_PULL_REQUEST_NUMBER"));
+        }
+
+        private string ReadRequiredConfiguration(string key)
+        {
+            var value = _configuration[key]?.Trim();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new InvalidOperationException($"Required application configuration '{key}' is missing.");
+            }
+
+            return value;
+        }
+
+        private static BuildMetadata LoadBuildMetadata()
+        {
+            return new BuildMetadata
+            {
+                BuildVersion = GetEnvironmentValue("APP_BUILD_VERSION"),
                 BuildNumber = ParseBuildNumber(GetEnvironmentValue("APP_BUILD_NUMBER")),
                 CommitSha = GetEnvironmentValue("APP_COMMIT_SHA") ?? UnknownCommitSha,
                 Branch = GetEnvironmentValue("APP_BRANCH"),
-                Framework = $".NET {Environment.Version.Major}",
-                Environment = _hostEnvironment.EnvironmentName,
                 BuildDate = ParseBuildDate(GetEnvironmentValue("APP_BUILD_DATE"))
             };
-        }
-
-        private string? LoadReleaseVersionFromFile()
-        {
-            try
-            {
-                var path = Path.Combine(_hostEnvironment.ContentRootPath, "version.json");
-                if (!File.Exists(path))
-                {
-                    _logger.LogWarning(
-                        "Version source file {VersionFile} was not found. Falling back to AppInfo:BackendVersion.",
-                        path);
-                    return null;
-                }
-
-                var version = JsonSerializer.Deserialize<VersionFile>(
-                    File.ReadAllText(path),
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                if (version == null || version.Major < 0 || version.Minor < 0 || version.Patch < 0)
-                {
-                    _logger.LogWarning(
-                        "Version source file {VersionFile} is invalid. Falling back to AppInfo:BackendVersion.",
-                        path);
-                    return null;
-                }
-
-                return $"{version.Major}.{version.Minor}.{version.Patch}";
-            }
-            catch (Exception exception)
-            {
-                _logger.LogWarning(
-                    exception,
-                    "Version source file could not be read. Falling back to AppInfo:BackendVersion.");
-                return null;
-            }
         }
 
         private static string? GetEnvironmentValue(string name)
@@ -289,7 +319,7 @@ namespace QuilvianSystemBackend.Services.System
 
         private static long ParseBuildNumber(string? value)
         {
-            return long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var number) && number >= 0
+            return long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var number) && number > 0
                 ? number
                 : 0;
         }
@@ -312,10 +342,11 @@ namespace QuilvianSystemBackend.Services.System
                 : null;
         }
 
-        private static bool ShouldPersistBuild(ApplicationVersionInfoResponse metadata)
+        private static bool ShouldPersistBuild(BuildMetadata metadata)
         {
             return IsKnownCommit(metadata.CommitSha) &&
-                   !metadata.BuildVersion.EndsWith("-local", StringComparison.OrdinalIgnoreCase);
+                   metadata.BuildNumber > 0 &&
+                   !string.IsNullOrWhiteSpace(metadata.BuildVersion);
         }
 
         private static bool IsKnownCommit(string commitSha)
@@ -324,11 +355,13 @@ namespace QuilvianSystemBackend.Services.System
                    !string.Equals(commitSha, UnknownCommitSha, StringComparison.OrdinalIgnoreCase);
         }
 
-        private sealed class VersionFile
+        private sealed class BuildMetadata
         {
-            public int Major { get; set; }
-            public int Minor { get; set; }
-            public int Patch { get; set; }
+            public string? BuildVersion { get; init; }
+            public long BuildNumber { get; init; }
+            public string CommitSha { get; init; } = UnknownCommitSha;
+            public string? Branch { get; init; }
+            public DateTime? BuildDate { get; init; }
         }
     }
 }

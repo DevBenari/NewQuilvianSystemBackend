@@ -20,11 +20,15 @@ namespace QuilvianSystemBackend.Models
         [MaxLength(20)]
         public string ApiVersion { get; set; } = string.Empty;
 
-        [MaxLength(50)]
-        public string? FrontendMinimumVersion { get; set; }
+        public int VersioningGeneration { get; set; } = 1;
 
         [MaxLength(50)]
-        public string? FrontendRecommendedVersion { get; set; }
+        public string? MinimumSupportedFrontendVersion { get; set; }
+
+        // LEGACY ONLY: retained and mapped to the historical database column for data preservation.
+        [Column("FrontendRecommendedVersion")]
+        [MaxLength(50)]
+        public string? LegacyFrontendRecommendedVersion { get; set; }
 
         [MaxLength(200)]
         public string? ReleaseName { get; set; }

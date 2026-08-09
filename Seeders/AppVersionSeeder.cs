@@ -8,7 +8,7 @@ namespace QuilvianSystemBackend.Seeders
         {
             using var scope = serviceProvider.CreateScope();
             var versionService = scope.ServiceProvider.GetRequiredService<ApplicationVersionService>();
-            await versionService.RegisterCurrentBuildAsync();
+            await versionService.RegisterCurrentVersionAsync();
         }
     }
 }

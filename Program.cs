@@ -43,6 +43,7 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+    var backendVersionManifest = BackendVersionManifest.Load(builder.Environment.ContentRootPath);
 
     builder.Host.UseSerilog((context, services, loggerConfiguration) =>
     {
@@ -50,10 +51,7 @@ try
         var environment = context.HostingEnvironment;
 
         var appName = configuration["AppInfo:Name"] ?? "Quilvian System Backend";
-        var appVersion =
-            configuration["AppInfo:BackendVersion"] ??
-            configuration["AppInfo:Version"] ??
-            "1.0.0";
+        var appVersion = backendVersionManifest.BackendVersion;
 
         var serviceName = configuration["SerilogSettings:ServiceName"] ?? "quilvian-backend";
         var fileNamePattern = configuration["SerilogSettings:FileNamePattern"] ?? "quilvian-backend-.json";
@@ -257,6 +255,7 @@ try
 
     builder.Services.AddHttpContextAccessor();
 
+    builder.Services.AddSingleton(backendVersionManifest);
     builder.Services.AddScoped<LanguageService>();
     builder.Services.AddScoped<LoggerService>();
     builder.Services.AddScoped<ApplicationVersionService>();
@@ -479,10 +478,7 @@ try
     builder.Services.AddEndpointsApiExplorer();
 
     var appName = builder.Configuration["AppInfo:Name"] ?? "Quilvian System Backend API";
-    var appVersion =
-        builder.Configuration["AppInfo:BackendVersion"] ??
-        builder.Configuration["AppInfo:Version"] ??
-        "1.0.0";
+    var appVersion = backendVersionManifest.BackendVersion;
     var apiVersion = builder.Configuration["AppInfo:ApiVersion"] ?? "v1";
 
     builder.Services.AddSwaggerGen(options =>
