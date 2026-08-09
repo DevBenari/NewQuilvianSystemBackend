@@ -52,6 +52,7 @@ namespace QuilvianSystemBackend.Repositories
 
         #region GLOBAL
         public DbSet<SysAppVersion> SysAppVersions { get; set; }
+        public DbSet<SysAppVersionBuild> SysAppVersionBuilds { get; set; }
         public DbSet<SysApplicationModule> SysApplicationModules { get; set; }
         public DbSet<SysControllerAccess> SysControllerAccesses { get; set; }
         public DbSet<SysActionAccess> SysActionAccesses { get; set; }

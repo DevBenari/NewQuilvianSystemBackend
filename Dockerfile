@@ -1,10 +1,21 @@
 # syntax=docker/dockerfile:1.7
 
-FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
+
+ARG APP_BUILD_VERSION
+ARG APP_BUILD_NUMBER=0
+ARG APP_COMMIT_SHA=unknown
+ARG APP_BRANCH
+ARG APP_BUILD_DATE
 
 ENV ASPNETCORE_URLS=http://+:80
 ENV LD_LIBRARY_PATH=/opt/piper:${LD_LIBRARY_PATH}
+ENV APP_BUILD_VERSION=${APP_BUILD_VERSION}
+ENV APP_BUILD_NUMBER=${APP_BUILD_NUMBER}
+ENV APP_COMMIT_SHA=${APP_COMMIT_SHA}
+ENV APP_BRANCH=${APP_BRANCH}
+ENV APP_BUILD_DATE=${APP_BUILD_DATE}
 
 EXPOSE 80
 
@@ -30,7 +41,7 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*
 
 
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 COPY ["QuilvianSystemBackend.csproj", "./"]

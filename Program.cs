@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
@@ -26,6 +27,7 @@ using QuilvianSystemBackend.Seeders;
 using QuilvianSystemBackend.Services.Language;
 using QuilvianSystemBackend.Services.Logging;
 using QuilvianSystemBackend.Services.Security;
+using QuilvianSystemBackend.Services.System;
 using QuilvianSystemBackend.Shared.HumanResource.Services;
 using Serilog;
 using Serilog.Events;
@@ -41,6 +43,7 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+    var backendVersionManifest = BackendVersionManifest.Load(builder.Environment.ContentRootPath);
 
     builder.Host.UseSerilog((context, services, loggerConfiguration) =>
     {
@@ -48,10 +51,7 @@ try
         var environment = context.HostingEnvironment;
 
         var appName = configuration["AppInfo:Name"] ?? "Quilvian System Backend";
-        var appVersion =
-            configuration["AppInfo:BackendVersion"] ??
-            configuration["AppInfo:Version"] ??
-            "1.0.0";
+        var appVersion = backendVersionManifest.BackendVersion;
 
         var serviceName = configuration["SerilogSettings:ServiceName"] ?? "quilvian-backend";
         var fileNamePattern = configuration["SerilogSettings:FileNamePattern"] ?? "quilvian-backend-.json";
@@ -255,8 +255,10 @@ try
 
     builder.Services.AddHttpContextAccessor();
 
+    builder.Services.AddSingleton(backendVersionManifest);
     builder.Services.AddScoped<LanguageService>();
     builder.Services.AddScoped<LoggerService>();
+    builder.Services.AddScoped<ApplicationVersionService>();
     builder.Services.AddScoped<AccessPermissionService>();
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
@@ -318,6 +320,7 @@ try
     builder.Services.AddScoped<LeaveAdjustmentPostingService>();
     builder.Services.AddScoped<LeaveAdjustmentWorkflowLifecycleService>();
     builder.Services.AddScoped<LeaveAdjustmentService>();
+    builder.Services.AddScoped<LeaveAdjustmentReasonService>();
     builder.Services.AddScoped<LeaveAccrualPolicyResolverService>();
     builder.Services.AddScoped<LeaveAccrualProcessorService>();
     builder.Services.AddScoped<LeaveAccrualSchedulerService>();
@@ -475,10 +478,7 @@ try
     builder.Services.AddEndpointsApiExplorer();
 
     var appName = builder.Configuration["AppInfo:Name"] ?? "Quilvian System Backend API";
-    var appVersion =
-        builder.Configuration["AppInfo:BackendVersion"] ??
-        builder.Configuration["AppInfo:Version"] ??
-        "1.0.0";
+    var appVersion = backendVersionManifest.BackendVersion;
     var apiVersion = builder.Configuration["AppInfo:ApiVersion"] ?? "v1";
 
     builder.Services.AddSwaggerGen(options =>
