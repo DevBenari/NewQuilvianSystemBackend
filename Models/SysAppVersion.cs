@@ -20,11 +20,15 @@ namespace QuilvianSystemBackend.Models
         [MaxLength(20)]
         public string ApiVersion { get; set; } = string.Empty;
 
-        [MaxLength(50)]
-        public string? FrontendMinimumVersion { get; set; }
+        public int VersioningGeneration { get; set; } = 1;
 
         [MaxLength(50)]
-        public string? FrontendRecommendedVersion { get; set; }
+        public string? MinimumSupportedFrontendVersion { get; set; }
+
+        // LEGACY ONLY: retained and mapped to the historical database column for data preservation.
+        [Column("FrontendRecommendedVersion")]
+        [MaxLength(50)]
+        public string? LegacyFrontendRecommendedVersion { get; set; }
 
         [MaxLength(200)]
         public string? ReleaseName { get; set; }
@@ -36,5 +40,18 @@ namespace QuilvianSystemBackend.Models
         public bool IsActive { get; set; } = true;
 
         public DateTime ReleaseDateTime { get; set; } = DateTime.Now;
+
+        [MaxLength(64)]
+        public string? MergeCommitSha { get; set; }
+
+        [MaxLength(200)]
+        public string? SourceBranch { get; set; }
+
+        [MaxLength(200)]
+        public string? TargetBranch { get; set; }
+
+        public int? PullRequestNumber { get; set; }
+
+        public ICollection<SysAppVersionBuild> Builds { get; set; } = new List<SysAppVersionBuild>();
     }
 }

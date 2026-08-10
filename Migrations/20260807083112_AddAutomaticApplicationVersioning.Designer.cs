@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260807083112_AddAutomaticApplicationVersioning")]
+    partial class AddAutomaticApplicationVersioning
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -68978,6 +68981,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
+                    b.Property<string>("FrontendMinimumVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("FrontendRecommendedVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -68998,18 +69009,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
-                    b.Property<string>("LegacyFrontendRecommendedVersion")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("FrontendRecommendedVersion");
-
                     b.Property<string>("MergeCommitSha")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
-
-                    b.Property<string>("MinimumSupportedFrontendVersion")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
 
                     b.Property<int?>("PullRequestNumber")
                         .HasColumnType("integer");
@@ -69037,24 +69039,15 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("UpdateDateTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("VersioningGeneration")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1);
-
                     b.HasKey("Id");
 
                     b.HasIndex("ApiVersion");
-
-                    b.HasIndex("AppName")
-                        .IsUnique()
-                        .HasFilter("\"IsLatest\" = true AND \"IsActive\" = true AND \"IsDelete\" = false");
 
                     b.HasIndex("IsActive");
 
                     b.HasIndex("IsLatest");
 
-                    b.HasIndex("AppName", "VersioningGeneration", "BackendVersion")
+                    b.HasIndex("AppName", "BackendVersion")
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
