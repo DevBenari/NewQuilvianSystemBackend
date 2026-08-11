@@ -44,6 +44,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Employe
     public class SanctionTypeFilterMetadataResponse
     {
         public SanctionTypeDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<EmployeeRelationCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<EmployeeRelationSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
@@ -51,6 +52,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Employe
 
     public class SanctionTypeDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public bool? IsActive { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "name";

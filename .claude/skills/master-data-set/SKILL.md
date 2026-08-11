@@ -1,17 +1,19 @@
 ---
 name: master-data-set
-description: Kerjakan kebutuhan master data di backend sesuai kontrak baku — tambah filter tanggal, perbaiki proyeksi /options, tambah CreateByName/UpdateByName, atau buat controller + DTO master baru. Pakai saat user minta mengerjakan GAP/tugas dari register docs/hamzah/task/, atau menyebut entitas master data yang perlu dilengkapi di backend. Menulis laporan, memperbarui register, build, dan commit — berhenti sebelum push.
+description: Kerjakan kebutuhan master data di backend sesuai kontrak baku — tambah filter tanggal, perbaiki proyeksi /options, tambah CreateByName/UpdateByName, atau buat controller + DTO master baru. Pakai saat user minta mengerjakan GAP/tugas dari register docs/hamzah/task/, atau menyebut entitas master data yang perlu dilengkapi di backend. Menulis laporan, memperbarui register, dan build — lalu menyerahkan perintah git ke user.
 ---
 
 # Set Master Data — Kerjakan Kebutuhan Backend
 
-Kerjakan satu tugas master data di backend sampai ter-commit dan terverifikasi.
+Kerjakan satu tugas master data di backend sampai terverifikasi build, lalu serahkan
+perintah git-nya ke user.
 
 Bedanya dengan skill `master-data-audit`: skill itu **menemukan** kekurangan, skill ini
 **menutupnya**.
 
-> 🔒 **Berhenti di `git commit`.** Push dijalankan user sendiri
-> (`.claude/rules/no-auto-push.md`). Jangan menawarkan untuk push.
+> 🔒 **Jangan menjalankan perintah git yang mengubah apa pun** — `add`, `commit`, `push`,
+> `pull`, `fetch`, `checkout`, `reset`, `restore`, `stash` semuanya milik user
+> (`.claude/rules/git-read-only.md`). Claude berhenti setelah file tertulis dan build lolos.
 
 ---
 
@@ -34,7 +36,7 @@ menyusun ulang dari nol.
 | Dokumen | Isi |
 |---|---|
 | `.claude/rules/master-data-contract.md` | Kontrak yang harus dipenuhi — **baca sebelum menulis kode** |
-| `.claude/rules/no-auto-push.md` | Batas pekerjaan + checklist pra-commit |
+| `.claude/rules/git-read-only.md` | Batas pekerjaan + checklist verifikasi |
 | `docs/hamzah/task/<topik>.md` | Register yang memicu tugas ini |
 
 > **Wajib mengikuti pola yang sudah ada di repo. DILARANG membuat pola sendiri.**
@@ -153,7 +155,7 @@ Uji endpoint lewat Swagger biasanya belum dijalankan — tulis begitu, jangan di
 ### 6. Perbarui register
 
 Kalau tugas ini berasal dari `docs/hamzah/task/<topik>.md`, dokumen itu **wajib ikut
-diperbarui pada commit yang sama**:
+diperbarui**, dan disebutkan di serah terima agar user men-stage-nya pada commit yang sama:
 
 - Tandai GAP/tugasnya selesai di tabel **Ringkasan** dan tabel **Usulan pemecahan tugas**
 - Sebutkan sha commit dan halaman laporannya
@@ -164,30 +166,23 @@ diperbarui pada commit yang sama**:
 Register yang tidak bergerak sementara laporan bertambah akan menyesatkan pembaca
 berikutnya — pekerjaan yang sudah beres masih terbaca sebagai gap.
 
-### 7. Commit — lalu BERHENTI
+### 7. Periksa keadaan repo — baca saja
 
 ```bash
 git -C QuilvianBackend rev-parse --abbrev-ref HEAD   # harus MHamzah
 git -C QuilvianBackend status --short                # tidak ada bin/, obj/, .user
-git -C QuilvianBackend add <file kode> docs/hamzah/
-git -C QuilvianBackend diff --staged                 # baca sendiri isinya
-git -C QuilvianBackend commit -F - <<'EOF'
-<judul singkat>
-
-<badan: apa yang berubah dan kenapa>
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
-EOF
+git -C QuilvianBackend diff                          # baca sendiri isinya
 ```
 
-> ⚠️ Gunakan **heredoc** (`<<'EOF'`), bukan here-string PowerShell (`@'...'@`) — di Bash
-> sintaks itu menyisipkan `@` nyasar ke baris pertama dan terakhir pesan commit.
+Kalau `status` memunculkan `bin/` atau `obj/`, **jangan** dibereskan dengan `git rm` atau
+`restore` — laporkan ke user bahwa `.gitignore` bocor.
 
-**Jangan jalankan `git push`.** Hook akan menolaknya, dan itu memang disengaja.
+**Jangan jalankan `git add`, `commit`, atau `push`.** Hook akan menolaknya, dan itu memang
+disengaja.
 
 ---
 
-## Laporan akhir ke user
+## Serah terima ke user
 
 ```markdown
 🔧 **Backend diubah**
@@ -197,17 +192,32 @@ EOF
 - Halaman laporan: `docs/hamzah/report/<topik>.md`
 - Register diperbarui: `docs/hamzah/task/<topik>.md`
 
-✅ Commit `<sha>` — <judul>
-   Branch  : MHamzah (ahead <n> dari origin/MHamzah)
-   Push    : git -C QuilvianBackend push origin MHamzah   ← jalankan sendiri
-
 ### Verifikasi
 | Pemeriksaan | Hasil |
 |---|---|
 | `dotnet build --no-incremental` | 0 Error |
 | Warning baru dari file yang disentuh | tidak ada |
 | Uji endpoint lewat Swagger | belum dijalankan |
+
+### Siap di-commit — jalankan sendiri
+
+```bash
+git -C QuilvianBackend add <file1> <file2> docs/hamzah/
+git -C QuilvianBackend commit -F - <<'EOF'
+<judul singkat>
+
+<badan: apa yang berubah dan kenapa>
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+EOF
+git -C QuilvianBackend push origin MHamzah
 ```
+```
+
+Sajikan **pesan commit yang sudah jadi**, bukan placeholder — user tinggal menyalin.
+
+> ⚠️ Sarankan **heredoc** (`<<'EOF'`), bukan here-string PowerShell (`@'...'@`). Di Bash,
+> sintaks PowerShell itu menyisipkan `@` nyasar ke baris pertama dan terakhir pesan commit.
 
 Kalau ada yang gagal — build error, konflik, atau bagian scope yang tidak selesai —
 **sebutkan apa adanya**. Jangan dilaporkan sebagai selesai.

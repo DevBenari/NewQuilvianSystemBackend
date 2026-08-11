@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using EmployeeGradePagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs.EmployeeGradeResponse>;
 
@@ -50,6 +51,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             var result = new EmployeeGradeFilterMetadataResponse
             {
                 DefaultFilter = new EmployeeGradeDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 SortOptions = new List<EmployeeGradeSortOptionResponse>
                 {
                     new() { Value = "gradeCode", Label = "Kode grade" },
@@ -94,6 +96,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         [AccessAction("Read", "Read Employee Grade", Description = "Melihat data employee grade", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("EmployeeGrade", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? jobLevelId,
             [FromQuery] bool? isActive,
             [FromQuery] string? search,
@@ -104,6 +109,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         {
             NormalizePaging(ref pageNumber, ref pageSize);
             var query = ApplyFilter(BaseQuery(), jobLevelId, isActive, search);
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
 
             var items = await ApplySorting(query, sortBy, sortDirection)
@@ -400,5 +406,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
 
         private static Guid? NormalizeGuid(Guid? value) => !value.HasValue || value.Value == Guid.Empty ? null : value.Value;
         private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        private static List<EmployeeGradeCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<EmployeeGradeCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
+        }
     }
 }

@@ -3,15 +3,27 @@
   "permissions": {
     "allow": [
       "Bash(git status:*)",
-      "Bash(git diff:*)",
       "Bash(git log:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git fetch:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git rev-parse:*)",
       "Bash(dotnet build:*)"
     ],
     "deny": [
-      "Bash(git push:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git switch:*)",
+      "Bash(git branch:*)",
+      "Bash(git reset:*)",
+      "Bash(git restore:*)",
+      "Bash(git stash:*)",
+      "Bash(git merge:*)",
+      "Bash(git rebase:*)",
+      "Bash(git remote:*)"
     ]
   },
   "hooks": {
@@ -22,8 +34,8 @@
           {
             "type": "command",
             "shell": "bash",
-            "command": "f=\"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/guard-no-auto-push.mjs\"; [ -f \"$f\" ] || f=\"${CLAUDE_PROJECT_DIR:-.}/QuilvianBackend/.claude/hooks/guard-no-auto-push.mjs\"; [ -f \"$f\" ] || exit 0; node \"$f\"",
-            "statusMessage": "Memeriksa larangan push backend",
+            "command": "f=\"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/guard-git-read-only.mjs\"; [ -f \"$f\" ] || f=\"${CLAUDE_PROJECT_DIR:-.}/QuilvianBackend/.claude/hooks/guard-git-read-only.mjs\"; [ -f \"$f\" ] || exit 0; node \"$f\"",
+            "statusMessage": "Memeriksa larangan git tulis di backend",
             "timeout": 15
           }
         ]

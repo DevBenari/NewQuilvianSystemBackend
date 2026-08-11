@@ -40,7 +40,7 @@ Baca sebelum menilai apa pun:
 | Dokumen | Isi |
 |---|---|
 | `.claude/rules/master-data-contract.md` | Kontrak backend — **ini yang dinilai** |
-| `.claude/rules/no-auto-push.md` | Batas pekerjaan Claude |
+| `.claude/rules/git-read-only.md` | Batas pekerjaan Claude |
 | `QuilvianFrontEnd/.claude/rules/rules-master-data.md` | Kontrak UI asli, acuan tertinggi |
 | `QuilvianFrontEnd/.claude/rules/no-uuid-display.md` | Sumber kewajiban field `*Name` |
 
@@ -222,11 +222,12 @@ mengerjakannya dalam sesi audit yang sama.
 
 ## Setelah audit
 
-Register ini **belum di-commit**. Kalau user ingin dokumennya masuk repo:
+Register ini **belum masuk git** — Claude tidak menjalankan perintah git yang mengubah
+apa pun (`.claude/rules/git-read-only.md`). Sajikan perintahnya supaya user tinggal
+menyalin:
 
 ```bash
 git -C QuilvianBackend add docs/hamzah/task/<topik>.md
 git -C QuilvianBackend commit -m "docs: register kebutuhan <cakupan>"
+git -C QuilvianBackend push origin MHamzah
 ```
-
-Lalu berhenti — push dijalankan user (`.claude/rules/no-auto-push.md`).

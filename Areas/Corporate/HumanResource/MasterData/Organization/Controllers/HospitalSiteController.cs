@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using HospitalSitePagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
@@ -66,6 +67,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             var result = new HospitalSiteFilterMetadataResponse
             {
                 DefaultFilter = new HospitalSiteDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 SiteTypeOptions = AllowedSiteTypes
                     .OrderBy(x => x)
                     .Select(x => new HospitalSiteStringOptionResponse
@@ -124,6 +126,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         [AccessAction("Read", "Read Hospital Site", Description = "Melihat data hospital site", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("HospitalSite", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? legalEntityId,
             [FromQuery] string? siteType,
             [FromQuery] bool? isMainSite,
@@ -144,6 +149,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 isActive,
                 search);
 
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
 
             var items = await ApplySorting(query, sortBy, sortDirection)
@@ -733,6 +739,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         {
             return AllowedSiteTypes.First(x =>
                 x.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static List<HospitalSiteCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<HospitalSiteCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
         }
     }
 }

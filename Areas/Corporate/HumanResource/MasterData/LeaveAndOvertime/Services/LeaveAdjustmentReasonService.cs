@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -20,6 +21,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         public LeaveAdjustmentReasonFilterMetadataResponse GetFilterMetadata() => new()
         {
             DefaultFilter = new LeaveAdjustmentReasonDefaultFilterResponse(),
+            CustomPeriods = BuildPeriodOptions(),
             SortOptions = new List<LeaveAdjustmentReasonSortOptionResponse>
             {
                 new() { Value = "sortOrder", Label = "Urutan" },
@@ -47,12 +49,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         }
 
         public async Task<PagedResult<LeaveAdjustmentReasonResponse>> GetDataAsync(
+            DateTime? startDate, DateTime? endDate, string? customPeriod,
             Guid? leaveTypeId, string? reasonCategory, string? allowedDirection, bool? allowOpeningBalance,
             bool? requiresApproval, bool? isActive, string? search, string? sortBy, string? sortDirection,
             int pageNumber, int pageSize)
         {
             NormalizePaging(ref pageNumber, ref pageSize);
             var query = ApplyFilter(BaseQuery(), leaveTypeId, reasonCategory, allowedDirection, allowOpeningBalance, requiresApproval, isActive, search);
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
             var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -288,6 +292,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
 
         private static Guid? NormalizeGuid(Guid? value) => !value.HasValue || value == Guid.Empty ? null : value;
         private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        private static List<LeaveAdjustmentReasonCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<LeaveAdjustmentReasonCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
+        }
     }
 
     public sealed class LeaveAdjustmentReasonServiceResult<T> where T : class

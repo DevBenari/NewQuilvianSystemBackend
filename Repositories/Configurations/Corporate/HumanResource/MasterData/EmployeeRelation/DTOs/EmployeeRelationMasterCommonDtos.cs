@@ -11,4 +11,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Employe
         public string Value { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
     }
+
+    public class EmployeeRelationCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+    }
 }

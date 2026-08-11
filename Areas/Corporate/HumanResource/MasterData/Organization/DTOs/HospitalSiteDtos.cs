@@ -68,6 +68,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
     public class HospitalSiteFilterMetadataResponse
     {
         public HospitalSiteDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<HospitalSiteCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<HospitalSiteStringOptionResponse> SiteTypeOptions { get; set; } = new();
         public List<HospitalSiteSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
@@ -76,6 +77,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
 
     public class HospitalSiteDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? LegalEntityId { get; set; }
         public string? SiteType { get; set; }
         public bool? IsMainSite { get; set; }
@@ -85,6 +89,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class HospitalSiteCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class HospitalSiteStringOptionResponse

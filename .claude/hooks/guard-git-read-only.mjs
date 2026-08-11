@@ -1,25 +1,63 @@
 #!/usr/bin/env node
-// PreToolUse hook — penegak `.claude/rules/no-auto-push.md`.
+// PreToolUse hook — penegak `.claude/rules/git-read-only.md`.
 //
-// Aturannya satu kalimat: Claude TIDAK PERNAH menjalankan `git push` di repo
-// backend. Titik publikasi ke remote dipegang user sendiri.
+// Di repo backend, Claude hanya boleh MEMBACA state git. Seluruh perintah yang
+// mengubah index, working tree, branch, atau remote — add, commit, push, pull,
+// fetch, checkout, branch, reset, restore, stash, merge, rebase — dijalankan
+// user sendiri.
 //
-// Hook ini sengaja lebih keras daripada `guard-backend-push.mjs` milik repo
-// frontend. Hook itu masih mengizinkan `push origin MHamzah`; hook ini menolak
-// SEMUA push ke backend, termasuk yang tujuannya benar. Keduanya boleh aktif
-// berdampingan — yang menolak lebih dulu yang menang.
+// Pendekatannya ALLOWLIST, bukan denylist: hanya verb yang terbukti hanya-baca
+// yang diloloskan. Verb yang belum terpikir saat hook ini ditulis ikut tertahan,
+// bukan lolos diam-diam.
 //
-// Yang TIDAK diperiksa (semuanya lokal dan tetap bebas dipakai):
-// add, commit, status, log, diff, pull, fetch, rebase, checkout, reset,
-// stash, dotnet build/run/ef, dan operasi tulis file.
+// Yang TIDAK diperiksa sama sekali: perintah non-git (dotnet build/run/ef, tulis
+// file, rg, ls) dan seluruh perintah di repo frontend.
 
 import { stdin } from "node:process";
 
 const BACKEND = /quilvian_?backend|quilviansystembackend/i;
 const FRONTEND = /quilvian_?frontend|quilviansystemfrontend/i;
-const RULES = "QuilvianBackend/.claude/rules/no-auto-push.md";
+const RULES = "QuilvianBackend/.claude/rules/git-read-only.md";
 
-// Operasi `gh` yang efeknya setara mem-publish ke remote tanpa lewat `git push`.
+// Verb git yang murni menampilkan keadaan. Semua yang di luar daftar ini ditolak
+// saat konteksnya repo backend.
+const READ_ONLY_VERBS = new Set([
+  "status",
+  "log",
+  "diff",
+  "show",
+  "blame",
+  "rev-parse",
+  "rev-list",
+  "ls-files",
+  "ls-tree",
+  "ls-remote",
+  "cat-file",
+  "describe",
+  "shortlog",
+  "name-rev",
+  "for-each-ref",
+  "symbolic-ref",
+  "check-ignore",
+  "count-objects",
+  "whatchanged",
+  "grep",
+  "version",
+  "help",
+]);
+
+// Verb yang punya bentuk baca DAN bentuk tulis — hanya diloloskan kalau
+// subcommand/flag-nya terbukti baca.
+const CONDITIONAL_VERBS = {
+  remote: (args) =>
+    args.length === 0 ||
+    /^(?:show|get-url|-v|--verbose)$/i.test(args[0]),
+  config: (args) => args.some((a) => /^--(?:get|get-all|get-regexp|list|l)$/i.test(a)),
+  reflog: (args) => args.length === 0 || /^show$/i.test(args[0]),
+  notes: (args) => args.length === 0 || /^(?:list|show)$/i.test(args[0]),
+};
+
+// Operasi `gh` yang efeknya setara mem-publish ke remote tanpa lewat git.
 const GH_RISKY = [
   /(?:^|[\s;&|(])gh\s+pr\s+(?:create|merge|close)\b/i,
   /(?:^|[\s;&|(])gh\s+release\b/i,
@@ -35,14 +73,14 @@ function deny(reason) {
         permissionDecision: "deny",
         permissionDecisionReason: `${reason} Lihat ${RULES}`,
       },
-      systemMessage: `🔒 Push backend diblokir: ${reason}`,
+      systemMessage: `🔒 Git backend hanya-baca: ${reason}`,
     }),
   );
   process.exit(0);
 }
 
 // Pemisah antar perintah dalam satu string shell. Cukup untuk melacak `cd` yang
-// mendahului `git push` — ini bukan parser shell lengkap.
+// mendahului perintah git — ini bukan parser shell lengkap.
 const splitSegments = (command) => command.split(/\|\||&&|[;\n\r|&]/);
 
 const tokenize = (segment) =>
@@ -119,16 +157,22 @@ for (const segment of splitSegments(command)) {
     : (context ?? (BACKEND.test(command) ? "backend" : null));
   if (repo !== "backend") continue;
 
-  if (verb === "remote" && /^(?:add|remove|rm|set-url|rename)$/i.test(args[0] ?? "")) {
-    deny("Mengubah remote repo backend bukan keputusan Claude.");
-  }
+  if (READ_ONLY_VERBS.has(verb)) continue;
 
-  if (verb === "push") {
+  const conditional = CONDITIONAL_VERBS[verb];
+  if (conditional) {
+    if (conditional(args)) continue;
     deny(
-      "Claude tidak menjalankan `git push` di backend — user yang melakukannya sendiri. " +
-        "Selesaikan sampai `git commit`, lalu laporkan sha commit dan perintah push-nya.",
+      `\`${`git ${verb} ${args[0] ?? ""}`.trim()}\` mengubah konfigurasi repo backend — ` +
+        "Claude hanya boleh membacanya.",
     );
   }
+
+  deny(
+    `\`git ${verb}\` di backend dijalankan user sendiri, bukan Claude. ` +
+      "Claude hanya boleh membaca state git (status, log, diff, show, rev-parse). " +
+      "Selesaikan sampai file tertulis dan build lolos, lalu sajikan perintah git-nya.",
+  );
 }
 
 // Konteks backend bisa datang dari dua arah: nama repo disebut di perintah, atau
@@ -138,7 +182,7 @@ if (BACKEND.test(command) || context === "backend") {
   const risky = GH_RISKY.find((pattern) => pattern.test(command));
   if (risky) {
     deny(
-      "Operasi GitHub CLI ini mempublikasikan perubahan ke remote tanpa lewat `git push`, " +
+      "Operasi GitHub CLI ini mengubah state repo remote tanpa lewat git, " +
         "sehingga ikut dilarang. Serahkan ke user.",
     );
   }

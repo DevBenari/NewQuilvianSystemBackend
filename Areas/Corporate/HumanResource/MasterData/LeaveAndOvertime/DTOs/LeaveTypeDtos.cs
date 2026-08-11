@@ -65,6 +65,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
     {
         public string ResetButtonLabel { get; set; } = "Reset";
         public LeaveTypeDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<LeaveTypeCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<LeaveTypeStringOptionResponse> LeaveCategoryOptions { get; set; } = new();
         public List<LeaveTypeSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
@@ -73,6 +74,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
 
     public class LeaveTypeDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public string? LeaveCategory { get; set; }
         public bool? IsPaidLeave { get; set; }
         public bool? IsBalanceDeducted { get; set; }
@@ -82,6 +86,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class LeaveTypeCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class LeaveTypeStringOptionResponse

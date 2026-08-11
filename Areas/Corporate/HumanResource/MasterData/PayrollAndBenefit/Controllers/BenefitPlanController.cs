@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using BenefitPlanPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
@@ -61,6 +62,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             var result = new BenefitPlanFilterMetadataResponse
             {
                 DefaultFilter = new BenefitPlanDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 SortOptions = new List<BenefitPlanSortOptionResponse>
                 {
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
@@ -111,6 +113,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [AccessAction("Read", "Read Benefit Plan", Description = "Melihat data benefit plan", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("BenefitPlan", "Read")]
         public async Task<IActionResult> GetBenefitPlans(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] bool? isActive,
             [FromQuery] string? search,
             [FromQuery] string? sortBy = "benefitPlanName",
@@ -136,6 +141,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     (x.Description != null && x.Description.ToLower().Contains(keyword)));
             }
 
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
 
             var desc = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
@@ -673,6 +679,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 next++;
 
             return prefix + next.ToString().PadLeft(length, '0');
+        }
+
+        private static List<BenefitPlanCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<BenefitPlanCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
         }
     }
 }

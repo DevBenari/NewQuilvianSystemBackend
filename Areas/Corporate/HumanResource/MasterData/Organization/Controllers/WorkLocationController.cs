@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using WorkLocationPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
@@ -66,6 +67,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             var result = new WorkLocationFilterMetadataResponse
             {
                 DefaultFilter = new WorkLocationDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 LocationTypeOptions = AllowedLocationTypes
                     .OrderBy(x => x)
                     .Select(x => new WorkLocationStringOptionResponse
@@ -129,6 +131,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         [AccessAction("Read", "Read Work Location", Description = "Melihat data work location", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("WorkLocation", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? legalEntityId,
             [FromQuery] Guid? hospitalSiteId,
             [FromQuery] Guid? organizationUnitId,
@@ -155,6 +160,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 isActive,
                 search);
 
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
 
             var items = await ApplySorting(query, sortBy, sortDirection)
@@ -736,6 +742,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         {
             return AllowedLocationTypes.First(x =>
                 x.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static List<WorkLocationCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<WorkLocationCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
         }
     }
 }

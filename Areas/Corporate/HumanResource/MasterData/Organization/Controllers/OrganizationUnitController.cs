@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using OrganizationUnitPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
@@ -65,6 +66,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             var result = new OrganizationUnitFilterMetadataResponse
             {
                 DefaultFilter = new OrganizationUnitDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 UnitTypeOptions = AllowedUnitTypes
                     .OrderBy(x => x)
                     .Select(x => new OrganizationUnitStringOptionResponse
@@ -124,6 +126,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         [AccessAction("Read", "Read Organization Unit", Description = "Melihat data organization unit", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("OrganizationUnit", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? legalEntityId,
             [FromQuery] Guid? hospitalSiteId,
             [FromQuery] Guid? parentOrganizationUnitId,
@@ -148,6 +153,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 isActive,
                 search);
 
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
 
             var items = await ApplySorting(query, sortBy, sortDirection)
@@ -722,6 +728,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         {
             return AllowedUnitTypes.First(x =>
                 x.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static List<OrganizationUnitCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<OrganizationUnitCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
         }
     }
 }

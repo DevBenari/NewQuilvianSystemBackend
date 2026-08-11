@@ -4,13 +4,16 @@ API ASP.NET Core (`QuilvianSystemBackend.csproj`), branch kerja **`MHamzah`**.
 
 ## ⛔ Aturan keras — baca dulu
 
-> **Claude mengerjakan sampai `git commit`, lalu berhenti. `git push` dijalankan user.**
+> **Git di backend hanya boleh DIBACA.** Claude menulis file dan menjalankan build.
+> Seluruh perintah git yang mengubah sesuatu — `add`, `commit`, `push`, `pull`, `fetch`,
+> `checkout`, `branch`, `reset`, `restore`, `stash` — dijalankan user sendiri.
 
-Berlaku untuk semua bentuk push, termasuk yang tujuannya benar. Ditegakkan oleh
-`.claude/hooks/guard-no-auto-push.mjs`, jadi pelanggaran gagal sebelum dieksekusi.
-Detail: `.claude/rules/no-auto-push.md`.
+Yang boleh dijalankan Claude hanya perintah yang menampilkan keadaan: `status`, `log`,
+`diff`, `show`, `blame`, `rev-parse`. Ditegakkan oleh
+`.claude/hooks/guard-git-read-only.mjs` memakai allowlist, jadi verb yang tidak terdaftar
+ikut tertahan. Detail: `.claude/rules/git-read-only.md`.
 
-Selain push, backend **boleh diubah bebas** — file, endpoint, DTO, model, migration,
+Selain git, backend **boleh diubah bebas** — file, endpoint, DTO, model, migration,
 `dotnet ef`, `dotnet build`. Yang perlu izin user dulu:
 
 - `appsettings*.json` berisi connection string / kredensial
@@ -19,12 +22,18 @@ Selain push, backend **boleh diubah bebas** — file, endpoint, DTO, model, migr
 
 ## Setiap perubahan wajib punya halaman laporan
 
-`docs/hamzah/report/<nama-topik>.md`, ditulis **sebelum** commit dan ikut di-stage.
+`docs/hamzah/report/<nama-topik>.md`, ditulis **sebelum** pekerjaan diserahkan ke user.
 Folder `docs/` tidak di-gitignore, jadi laporan ini ikut ter-push — inilah jejak yang
 dibaca tim backend.
 
 Kalau pekerjaannya berasal dari register di `docs/hamzah/task/`, dokumen register itu
-**wajib ikut diperbarui pada commit yang sama**.
+**wajib ikut diperbarui**, dan disebutkan agar ikut di-stage user pada commit yang sama.
+
+## Cara mengakhiri pekerjaan
+
+Setelah file ditulis dan build lolos, sajikan serah terima: daftar file yang berubah,
+hasil verifikasi, lalu blok perintah `git add` + `commit` + `push` yang tinggal disalin
+user. Jangan menawarkan untuk menjalankannya.
 
 ## Alur Master Data
 
@@ -37,8 +46,19 @@ Master data punya kontrak baku sendiri:
 
 /master-data-set     Kerjakan tugas dari register itu
                      → kode + laporan di docs/hamzah/report/<topik>.md
-                     Build, commit, berhenti sebelum push.
+                     Build, lalu serahkan perintah git ke user.
 ```
+
+Keduanya punya **dua pintu masuk** ke prosedur yang sama:
+
+| Pintu masuk | File | Kapan dipakai |
+|---|---|---|
+| Slash command | `.claude/commands/<nama>.md` | User mengetik `/master-data-audit <cakupan>` |
+| Skill | `.claude/skills/<nama>/SKILL.md` | Claude memilih sendiri saat permintaannya cocok |
+
+File `commands/` sengaja dibuat **tipis** — isinya hanya mengarahkan ke `SKILL.md` yang
+bersangkutan. Prosedur lengkapnya hidup di satu tempat saja, di `SKILL.md`. Kalau ada
+langkah yang perlu diubah, ubah di sana; jangan menyalin ulang ke file command.
 
 Kontraknya di `.claude/rules/master-data-contract.md` — wajib dibaca sebelum menyentuh
 kode master data.
@@ -70,6 +90,6 @@ docs/hamzah/    task/    ← register kebutuhan (hasil audit)
 > `Areas/`. Rutenya tetap jalan karena ASP.NET memindai atribut `[Route]`. Jangan terlewat
 > saat menyisir controller master data.
 
-@.claude/rules/no-auto-push.md
+@.claude/rules/git-read-only.md
 
 @.claude/rules/master-data-contract.md
