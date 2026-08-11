@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using CostCenterPagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs.CostCenterResponse>;
 
@@ -50,6 +51,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             var result = new CostCenterFilterMetadataResponse
             {
                 DefaultFilter = new CostCenterDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 SortOptions = new List<CostCenterSortOptionResponse>
                 {
                     new() { Value = "costCenterCode", Label = "Kode pusat biaya" },
@@ -94,6 +96,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         [AccessAction("Read", "Read Cost Center", Description = "Melihat data cost center", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("CostCenter", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? legalEntityId,
             [FromQuery] Guid? hospitalSiteId,
             [FromQuery] Guid? organizationUnitId,
@@ -107,6 +112,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         {
             NormalizePaging(ref pageNumber, ref pageSize);
             var query = ApplyFilter(BaseQuery(), legalEntityId, hospitalSiteId, organizationUnitId, departmentId, isActive, search);
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
 
             var items = await ApplySorting(query, sortBy, sortDirection)
@@ -492,5 +498,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
 
         private static Guid? NormalizeGuid(Guid? value) => !value.HasValue || value.Value == Guid.Empty ? null : value.Value;
         private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        private static List<CostCenterCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<CostCenterCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
+        }
     }
 }

@@ -16,6 +16,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using OvertimePolicyPagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.DTOs.OvertimePolicyResponse>;
 
@@ -55,6 +56,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             var result = new OvertimePolicyFilterMetadataResponse
             {
                 DefaultFilter = new OvertimePolicyDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 RoundingMethodOptions = AllowedRoundingMethods.Select(x => new OvertimePolicyStringOptionResponse { Value = x, Label = x }).ToList(),
                 SortOptions = new List<OvertimePolicySortOptionResponse>
                 {
@@ -92,10 +94,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         [HttpGet]
         [AccessAction("Read", "Read Overtime Policy", Description = "Melihat data overtime policy", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("OvertimePolicy", "Read")]
-        public async Task<IActionResult> GetData(Guid? legalEntityId, Guid? hospitalSiteId, Guid? organizationUnitId, Guid? employeeCategoryId, Guid? employmentTypeId, bool? requirePreApproval, bool? requireAttendanceMatch, bool? isDefault, bool? isActive, string? search, string? sortBy = "overtimePolicyName", string? sortDirection = "asc", int pageNumber = 1, int pageSize = 25)
+        public async Task<IActionResult> GetData(DateTime? startDate, DateTime? endDate, string? customPeriod, Guid? legalEntityId, Guid? hospitalSiteId, Guid? organizationUnitId, Guid? employeeCategoryId, Guid? employmentTypeId, bool? requirePreApproval, bool? requireAttendanceMatch, bool? isDefault, bool? isActive, string? search, string? sortBy = "overtimePolicyName", string? sortDirection = "asc", int pageNumber = 1, int pageSize = 25)
         {
             NormalizePaging(ref pageNumber, ref pageSize);
             var q = ApplyFilter(BaseQuery(), legalEntityId, hospitalSiteId, organizationUnitId, employeeCategoryId, employmentTypeId, requirePreApproval, requireAttendanceMatch, isDefault, isActive, search);
+            q = WorkflowMasterDataSupport.ApplyDateFilter(q, startDate, endDate, customPeriod);
             var totalData = await q.CountAsync();
             var entities = await ApplySorting(q, sortBy, sortDirection).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
             var actors = await GetActorNameMapAsync(entities.Select(x => x.CreateBy));
@@ -619,5 +622,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         private static Guid? NormalizeGuid(Guid? value) => !value.HasValue || value == Guid.Empty ? null : value;
         private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         private static string NormalizeRoundingMethod(string value) => AllowedRoundingMethods.First(x => x.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        private static List<OvertimePolicyCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<OvertimePolicyCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
+        }
     }
 }

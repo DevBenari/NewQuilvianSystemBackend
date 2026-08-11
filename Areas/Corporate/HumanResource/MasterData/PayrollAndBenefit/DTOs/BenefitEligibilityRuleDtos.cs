@@ -70,6 +70,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
     public class BenefitEligibilityRuleFilterMetadataResponse
     {
         public BenefitEligibilityRuleDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<BenefitEligibilityRuleCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<BenefitEligibilityRuleSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
@@ -77,6 +78,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
     public class BenefitEligibilityRuleDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? BenefitPlanId { get; set; }
         public bool? AllowProbationEmployee { get; set; }
         public bool? AllowContractEmployee { get; set; }
@@ -89,6 +93,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class BenefitEligibilityRuleCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class CreateBenefitEligibilityRuleRequest

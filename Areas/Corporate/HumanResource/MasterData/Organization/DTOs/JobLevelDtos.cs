@@ -49,6 +49,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
     public class JobLevelFilterMetadataResponse
     {
         public JobLevelDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<JobLevelCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<JobLevelSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
@@ -56,12 +57,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
 
     public class JobLevelDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public bool? IsActive { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "levelOrder";
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class JobLevelCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class JobLevelSortOptionResponse

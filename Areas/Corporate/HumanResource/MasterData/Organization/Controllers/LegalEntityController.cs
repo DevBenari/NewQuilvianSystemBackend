@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using LegalEntityPagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs.LegalEntityResponse>;
 
@@ -50,6 +51,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             var result = new LegalEntityFilterMetadataResponse
             {
                 DefaultFilter = new LegalEntityDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 SortOptions = new List<LegalEntitySortOptionResponse>
                 {
                     new() { Value = "legalEntityCode", Label = "Kode entitas legal" },
@@ -94,6 +96,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         [AccessAction("Read", "Read Legal Entity", Description = "Melihat data legal entity", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LegalEntity", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] bool? isDefault,
             [FromQuery] bool? isActive,
             [FromQuery] string? search,
@@ -104,6 +109,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         {
             NormalizePaging(ref pageNumber, ref pageSize);
             var query = ApplyFilter(BaseQuery(), isDefault, isActive, search);
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
 
             var items = await ApplySorting(query, sortBy, sortDirection)
@@ -473,5 +479,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         }
 
         private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        private static List<LegalEntityCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<LegalEntityCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
+        }
     }
 }

@@ -10,6 +10,7 @@ using System.Security.Claims;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Performance.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Performance.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Performance.Controllers
 {
@@ -51,7 +52,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
         [AccessPermission("PerformanceTemplateDetail", "Read")]
         public IActionResult Metadata() => Ok(ApiResponse<PerformanceTemplateDetailFilterMetadataResponse>.Ok(new()
         {
-            DefaultFilter = new(), DetailTypeOptions = Types.Select(x => new PerformanceStringOptionResponse
+            DefaultFilter = new(), CustomPeriods = BuildPeriodOptions(), DetailTypeOptions = Types.Select(x => new PerformanceStringOptionResponse
             {
                 Value = x, Label = x
             }
@@ -99,11 +100,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
         [HttpGet]
         [AccessAction("Read", "Read Performance Template Detail", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PerformanceTemplateDetail", "Read")]
-        public async Task<IActionResult> List(Guid performanceTemplateId, [FromQuery] string? detailType, [FromQuery] string? scoreMethod, [FromQuery] bool? isRequired, [FromQuery] bool? isActive, [FromQuery] string? search, [FromQuery] string? sortBy = "sortOrder", [FromQuery] string? sortDirection = "asc", [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default)
+        public async Task<IActionResult> List(Guid performanceTemplateId, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] string? customPeriod, [FromQuery] string? detailType, [FromQuery] string? scoreMethod, [FromQuery] bool? isRequired, [FromQuery] bool? isActive, [FromQuery] string? search, [FromQuery] string? sortBy = "sortOrder", [FromQuery] string? sortDirection = "asc", [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default)
         {
             if (!await TemplateExists(performanceTemplateId, ct)) return NF();
             Norm(ref pageNumber, ref pageSize);
             var q = Filter(Q(performanceTemplateId), detailType, scoreMethod, isRequired, isActive, search);
+            q = WorkflowMasterDataSupport.ApplyDateFilter(q, startDate, endDate, customPeriod);
             var total = await q.CountAsync(ct);
             var rows = await Sort(q, sortBy, sortDirection).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct);
             return Ok(ApiResponse<PagedResult<PerformanceTemplateDetailResponse>>.Ok(new()
@@ -287,6 +289,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
         {
             p = Math.Max(1, p);
             s = Math.Min(100, Math.Max(1, s));
+        }
+
+        private static List<PerformanceCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<PerformanceCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
         }
     }
 }

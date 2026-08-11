@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using JobLevelPagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs.JobLevelResponse>;
 
@@ -50,6 +51,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             var result = new JobLevelFilterMetadataResponse
             {
                 DefaultFilter = new JobLevelDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 SortOptions = new List<JobLevelSortOptionResponse>
                 {
                     new() { Value = "jobLevelCode", Label = "Kode job level" },
@@ -93,6 +95,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         [AccessAction("Read", "Read Job Level", Description = "Melihat data job level", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("JobLevel", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] bool? isActive,
             [FromQuery] string? search,
             [FromQuery] string? sortBy = "levelOrder",
@@ -102,6 +107,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         {
             NormalizePaging(ref pageNumber, ref pageSize);
             var query = ApplyFilter(BaseQuery(), isActive, search);
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
 
             var items = await ApplySorting(query, sortBy, sortDirection)
@@ -375,5 +381,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         }
 
         private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        private static List<JobLevelCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<JobLevelCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
+        }
     }
 }

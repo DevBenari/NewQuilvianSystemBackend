@@ -84,6 +84,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
     {
         public string ResetButtonLabel { get; set; } = "Reset";
         public LeaveEntitlementPolicyDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<LeaveEntitlementPolicyCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<LeaveEntitlementPolicySortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
@@ -91,6 +92,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
 
     public class LeaveEntitlementPolicyDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? LeavePolicyId { get; set; }
         public string? EntitlementMethod { get; set; }
         public string? PeriodBasis { get; set; }
@@ -101,6 +105,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class LeaveEntitlementPolicyCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class LeaveEntitlementPolicySortOptionResponse

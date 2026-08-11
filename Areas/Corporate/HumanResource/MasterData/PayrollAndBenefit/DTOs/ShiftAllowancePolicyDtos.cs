@@ -73,6 +73,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
     public class ShiftAllowancePolicyFilterMetadataResponse
     {
         public ShiftAllowancePolicyDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<ShiftAllowancePolicyCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<ShiftAllowancePolicyStringOptionResponse> CalculationMethodOptions { get; set; } = new();
         public List<ShiftAllowancePolicySortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
@@ -81,6 +82,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
     public class ShiftAllowancePolicyDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? AllowanceTypeId { get; set; }
         public Guid? ShiftId { get; set; }
         public Guid? ShiftGroupId { get; set; }
@@ -92,6 +96,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class ShiftAllowancePolicyCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class CreateShiftAllowancePolicyRequest
