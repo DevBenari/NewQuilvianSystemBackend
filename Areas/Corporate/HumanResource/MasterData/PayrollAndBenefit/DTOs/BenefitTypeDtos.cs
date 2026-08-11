@@ -67,6 +67,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public BenefitTypeDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<BenefitTypeCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<BenefitTypeStringOptionResponse> PrimaryOptions { get; set; } = new();
         public List<BenefitTypeStringOptionResponse> SecondaryOptions { get; set; } = new();
         public List<BenefitTypeSortOptionResponse> SortOptions { get; set; } = new();
@@ -76,12 +77,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
     public class BenefitTypeDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public bool? IsActive { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "createDateTime";
         public string SortDirection { get; set; } = "desc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class BenefitTypeCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class BenefitTypeStringOptionResponse
