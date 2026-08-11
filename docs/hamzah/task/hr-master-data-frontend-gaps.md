@@ -440,7 +440,7 @@ dua kebutuhan selesai.
 ## Pekerjaan yang sudah jalan
 
 `benefit-type` sudah dikerjakan sebagai pilot GAP-1. Laporannya ada di
-`docs/report/hamzah/benefit-type-date-filter.md` — **file itu belum ikut ter-push**, masih
+`docs/hamzah/report/benefit-type-date-filter.md` — **file itu belum ikut ter-push**, masih
 lokal di mesin pengembang.
 
 Statusnya: **masih di working tree, belum di-commit dan belum di-push**, karena
