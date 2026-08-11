@@ -15,12 +15,12 @@ untuk dipecah menjadi tugas. Tidak ada file kode yang disentuh saat dokumen ini 
 
 ## Ringkasan
 
-| ID | Kebutuhan | Objek terdampak | Dampak kalau dibiarkan | Sifat pekerjaan |
+| ID | Kebutuhan | Objek terdampak | Dampak kalau dibiarkan | Status |
 |---|---|---|---|---|
-| **GAP-1** | Filter rentang tanggal (`startDate`/`endDate`/`customPeriod`) | 35 controller | 34 halaman master data punya filter tanggal yang tampil tapi tidak berfungsi | Repetitif, pola sudah ada |
-| **GAP-2** | 6 master tanpa controller sama sekali | 6 model | 12+ form terpaksa memakai input UUID manual, tidak ada cara menambah datanya lewat UI | Paling besar — CRUD baru |
-| **GAP-3** | `/options` hanya mengembalikan `Id` | 3 endpoint | Select relasi kosong tanpa label; frontend workaround ke endpoint list | Kecil — 3 file |
-| **GAP-4** | `CreateByName` / `UpdateByName` tidak ada | 8 DTO | Kolom **Dibuat Oleh** tampil `-` di 8 halaman master data | Kecil–sedang, pola sudah ada |
+| **GAP-1** | Filter rentang tanggal (`startDate`/`endDate`/`customPeriod`) | 35 controller | 34 halaman master data punya filter tanggal yang tampil tapi tidak berfungsi | 🔸 Pilot `benefit-type` selesai, 34 controller sisa |
+| **GAP-2** | 6 master tanpa controller sama sekali | 6 model | 12+ form terpaksa memakai input UUID manual, tidak ada cara menambah datanya lewat UI | ⬜ Belum dikerjakan |
+| **GAP-3** | `/options` hanya mengembalikan `Id` | 3 endpoint | Select relasi kosong tanpa label; frontend workaround ke endpoint list | ✅ **Selesai** 2026-08-11 |
+| **GAP-4** | `CreateByName` / `UpdateByName` tidak ada | 8 DTO | Kolom **Dibuat Oleh** tampil `-` di 8 halaman master data | ⬜ Belum dikerjakan |
 
 Semua kebutuhan di atas **tidak memblokir** frontend. Frontend sudah menanganinya dengan
 fallback yang jujur (filter tidak dikirim, input UUID manual, kolom `-`). Yang hilang adalah
@@ -39,7 +39,12 @@ backend pada 2026-08-11:
 
 ---
 
-## GAP-1 — Filter rentang tanggal belum diterima 35 controller
+## GAP-1 — Filter rentang tanggal belum diterima 35 controller — 🔸 SEBAGIAN
+
+> **Pilot `benefit-type` selesai** dan sudah ada di `origin/MHamzah` (commit `8ece36a`),
+> laporan di `docs/hamzah/report/benefit-type-date-filter.md`. Entitas itu **tidak** termasuk
+> dalam angka 35 di bawah — daftar 35 controller berikut seluruhnya masih perlu dikerjakan
+> lewat T3–T8.
 
 ### Masalahnya
 
@@ -301,7 +306,16 @@ menjadi `type: "select"` + `optionResource`.
 
 ---
 
-## GAP-3 — `GET /options` hanya mengembalikan `Id`
+## GAP-3 — `GET /options` hanya mengembalikan `Id` — ✅ SELESAI
+
+> **Selesai 2026-08-11** (tugas T1). Commit `8b9de69`, laporan di
+> `docs/hamzah/report/options-projection-code-name.md`.
+> Ketiga proyeksi kini mengisi seluruh field DTO, dan `BenefitPlanOptionResponse`
+> sudah punya `BenefitPlanCode` + `BenefitPlanName`. Signature action, paging, urutan,
+> dan bentuk response tidak berubah; tidak ada query tambahan karena `Include` yang
+> diperlukan memang sudah ada di `BuildBaseQuery()`.
+>
+> Uraian di bawah dipertahankan sebagai catatan masalah aslinya.
 
 ### Masalahnya
 
@@ -418,19 +432,19 @@ Supaya tidak ada pekerjaan yang mubazir:
 
 Diurutkan dari rasio manfaat/usaha tertinggi:
 
-| # | Tugas | Scope | Ketergantungan |
-|---|---|---|---|
-| T1 | GAP-3 — perbaiki proyeksi `/options` | 3 controller + 1 DTO | — |
-| T2 | GAP-4 — `CreateByName`/`UpdateByName` area Organization | 8 DTO + 8 controller | — |
-| T3 | GAP-1a — filter tanggal area Organization | 8 controller | Sekalian dengan T2, file yang sama |
-| T4 | GAP-1b — filter tanggal area PayrollAndBenefit | 6 controller | — |
-| T5 | GAP-1c — filter tanggal area LeaveAndOvertime | 7 controller | — |
-| T6 | GAP-1d — filter tanggal area AttendanceAndSchedule | 5 controller | — |
-| T7 | GAP-1e — filter tanggal area Performance | 5 controller | — |
-| T8 | GAP-1f — filter tanggal area EmployeeRelation | 4 controller | — |
-| T9 | GAP-2 — controller baru 6 master | 6 controller + 6 DTO baru | Sebaiknya setelah T1 supaya pola `/options` yang benar sudah jadi acuan |
-| T10 | Alias `customPeriod` untuk `doctors`, `employees`, `external-users` | 3 controller | Prioritas rendah, tidak merusak apa pun |
-| T11 | Pindahkan 4 controller EmployeeRelation dari `Repositories/Configurations/` ke `Areas/` | 4 file + namespace | Prioritas rendah, **jangan** dicampur T8 |
+| # | Tugas | Scope | Status | Ketergantungan |
+|---|---|---|---|---|
+| T1 | GAP-3 — perbaiki proyeksi `/options` | 3 controller + 1 DTO | ✅ **Selesai** — commit `8b9de69` | — |
+| T2 | GAP-4 — `CreateByName`/`UpdateByName` area Organization | 8 DTO + 8 controller | ⬜ Berikutnya | — |
+| T3 | GAP-1a — filter tanggal area Organization | 8 controller | ⬜ Berikutnya | Sekalian dengan T2, file yang sama |
+| T4 | GAP-1b — filter tanggal area PayrollAndBenefit | 6 controller | ⬜ | — |
+| T5 | GAP-1c — filter tanggal area LeaveAndOvertime | 7 controller | ⬜ | — |
+| T6 | GAP-1d — filter tanggal area AttendanceAndSchedule | 5 controller | ⬜ | — |
+| T7 | GAP-1e — filter tanggal area Performance | 5 controller | ⬜ | — |
+| T8 | GAP-1f — filter tanggal area EmployeeRelation | 4 controller | ⬜ | — |
+| T9 | GAP-2 — controller baru 6 master | 6 controller + 6 DTO baru | ⬜ | T1 sudah selesai, jadi pola `/options` yang benar sudah tersedia sebagai acuan |
+| T10 | Alias `customPeriod` untuk `doctors`, `employees`, `external-users` | 3 controller | ⬜ | Prioritas rendah, tidak merusak apa pun |
+| T11 | Pindahkan 4 controller EmployeeRelation dari `Repositories/Configurations/` ke `Areas/` | 4 file + namespace | ⬜ | Prioritas rendah, **jangan** dicampur T8 |
 
 T3 digabung dengan T2 karena menyentuh delapan controller yang sama — sekali buka file,
 dua kebutuhan selesai.
@@ -439,14 +453,24 @@ dua kebutuhan selesai.
 
 ## Pekerjaan yang sudah jalan
 
-`benefit-type` sudah dikerjakan sebagai pilot GAP-1. Laporannya ada di
-`docs/hamzah/report/benefit-type-date-filter.md` — **file itu belum ikut ter-push**, masih
-lokal di mesin pengembang.
+| Tugas | Commit | Laporan | Sudah di `origin/MHamzah` |
+|---|---|---|---|
+| GAP-1 pilot — `benefit-type` filter tanggal | `8ece36a` | `report/benefit-type-date-filter.md` | ✅ Ya |
+| T1 / GAP-3 — proyeksi `/options` | `8b9de69` | `report/options-projection-code-name.md` | ⬜ Belum — masih commit lokal |
 
-Statusnya: **masih di working tree, belum di-commit dan belum di-push**, karena
-`dotnet build` belum bisa dijalankan — SDK yang diminta `global.json` (9.0.316) belum
-terpasang di mesin ini. Jadi `benefit-type` sudah dicoret dari daftar GAP-1 di dokumen ini,
-tapi perubahannya belum sampai ke `origin/MHamzah`.
+Hambatan SDK yang sempat dicatat di sini **sudah hilang**: .NET SDK 9.0.316 sesuai
+`global.json` sudah terpasang pada 2026-08-11, sehingga `dotnet build` bisa dijalankan dan
+seluruh pekerjaan di atas terverifikasi.
+
+Catatan build yang perlu diingat saat mengerjakan T2 dan seterusnya: `dotnet build` polos
+akan **melewati kompilasi** kalau tidak ada file yang berubah sejak build/`dotnet run`
+terakhir — hasilnya selesai dalam hitungan detik dan melaporkan 0 Warning yang menyesatkan.
+Untuk mengukur warning dengan benar, pakai `dotnet build QuilvianSystemBackend.csproj
+--no-incremental`. Baseline repo ini saat rebuild penuh: **125 warning, 0 error**.
+
+Riwayat commit memuat `5bcbcb2` dengan judul cacat (`@ feat: ...`) — isinya identik dengan
+`8ece36a` yang menggantikannya lewat amend, dan sudah terlanjur ter-push. Dibiarkan saja
+karena membersihkannya menuntut force push yang dilarang RULE 2.
 
 ---
 
@@ -456,7 +480,10 @@ tapi perubahannya belum sampai ke `origin/MHamzah`.
 |---|---|
 | Penyisiran controller HR master data (filter tanggal) | Dijalankan 2026-08-11 — 35 controller tanpa `startDate`, 27 sudah mendukung |
 | Penyisiran DTO HR master data (`CreateByName`) | Dijalankan 2026-08-11 — 9 DTO tanpa `CreateByName` (8 Organization + 1 Performance detail) |
-| Penyisiran proyeksi `/options` | Dijalankan 2026-08-11 — 3 endpoint hanya mengisi `Id` |
+| Penyisiran proyeksi `/options` | Dijalankan 2026-08-11 — 3 endpoint hanya mengisi `Id`. **Sudah diperbaiki**, lihat GAP-3 |
 | Pencocokan endpoint frontend ↔ route backend | Dijalankan 2026-08-11 — 47 endpoint frontend, semuanya punya route backend yang cocok |
 | Keberadaan tabel 6 master GAP-2 | Diverifikasi di `ApplicationDbContextModelSnapshot.cs` — keenam tabel ada |
-| `dotnet build` | **Belum dijalankan** — SDK 9.0.316 (`global.json`) belum terpasang. Dokumen ini tidak mengubah kode, jadi tidak ada yang perlu dikompilasi |
+| `dotnet build` | **Sukses** — dijalankan 2026-08-11 setelah SDK 9.0.316 terpasang. Rebuild penuh: 125 warning bawaan, 0 error |
+
+Dokumen ini diperbarui setiap ada tugas yang selesai — kolom **Status** pada tabel Ringkasan
+dan tabel Usulan pemecahan tugas adalah sumber rujukan posisi terkini.
