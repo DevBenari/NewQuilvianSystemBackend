@@ -68,6 +68,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             var result = new BenefitTypeFilterMetadataResponse
             {
                 DefaultFilter = new BenefitTypeDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 SortOptions = new List<BenefitTypeSortOptionResponse>
                 {
                     new() { Value = "createDateTime", Label = "Tanggal dibuat" },
@@ -119,6 +120,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [AccessAction("Read", "Read Benefit Type", Description = "Melihat data benefit type", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("BenefitType", "Read")]
         public async Task<IActionResult> GetBenefitTypes(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] bool? isActive,
             [FromQuery] string? search,
             [FromQuery] string? sortBy = "benefitTypeName",
@@ -130,7 +134,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = BuildBaseQuery();
+            var query = ApplyDateFilter(BuildBaseQuery(), startDate, endDate, customPeriod);
 
             if (isActive.HasValue)
                 query = query.Where(x => x.IsActive == isActive.Value);
@@ -596,6 +600,52 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 next++;
 
             return prefix + next.ToString().PadLeft(length, '0');
+        }
+
+        private static IQueryable<MstBenefitType> ApplyDateFilter(
+            IQueryable<MstBenefitType> query,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            var range = ResolveDateRange(startDate, endDate, customPeriod);
+            if (range.Start.HasValue) query = query.Where(x => x.CreateDateTime >= range.Start.Value);
+            if (range.EndExclusive.HasValue) query = query.Where(x => x.CreateDateTime < range.EndExclusive.Value);
+            return query;
+        }
+
+        private static (DateTime? Start, DateTime? EndExclusive) ResolveDateRange(
+            DateTime? startDate,
+            DateTime? endDate,
+            string? customPeriod)
+        {
+            if (startDate.HasValue || endDate.HasValue)
+            {
+                return (
+                    startDate.HasValue ? DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc) : null,
+                    endDate.HasValue ? DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc) : null);
+            }
+
+            var today = DateTime.UtcNow.Date;
+            return customPeriod?.Trim().ToLowerInvariant() switch
+            {
+                "today" => (today, today.AddDays(1)),
+                "last7days" => (today.AddDays(-6), today.AddDays(1)),
+                "thismonth" => (new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1)),
+                "lastmonth" => (new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-1), new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc)),
+                _ => (null, null)
+            };
+        }
+
+        private static List<BenefitTypeCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<BenefitTypeCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
         }
     }
 }
