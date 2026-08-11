@@ -61,6 +61,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
     public class BenefitPlanOptionResponse
     {
         public Guid Id { get; set; }
+        public string BenefitPlanCode { get; set; } = string.Empty;
+        public string BenefitPlanName { get; set; } = string.Empty;
         public Guid BenefitTypeId { get; set; }
         public string? BenefitTypeCode { get; set; }
         public string? BenefitTypeName { get; set; }

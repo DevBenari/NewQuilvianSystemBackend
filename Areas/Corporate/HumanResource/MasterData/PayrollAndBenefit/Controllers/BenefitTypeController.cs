@@ -240,11 +240,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 .ToListAsync();
 
             var items = rows
-                .Select(x =>
+                .Select(x => new BenefitTypeOptionResponse
                 {
-                    var response = new BenefitTypeOptionResponse();
-                    response.Id = x.Id;
-                    return response;
+                    Id = x.Id,
+                    BenefitTypeCode = x.BenefitTypeCode,
+                    BenefitTypeName = x.BenefitTypeName,
+                    BenefitCategory = x.BenefitCategory,
+                    FundingType = x.FundingType,
+                    IsTaxable = x.IsTaxable,
+                    RequiresEnrollment = x.RequiresEnrollment,
+                    AllowsDependents = x.AllowsDependents
                 })
                 .ToList();
 

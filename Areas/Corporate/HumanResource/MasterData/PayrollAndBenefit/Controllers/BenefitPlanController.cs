@@ -245,11 +245,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 .ToListAsync();
 
             var items = rows
-                .Select(x =>
+                .Select(x => new BenefitPlanOptionResponse
                 {
-                    var response = new BenefitPlanOptionResponse();
-                    response.Id = x.Id;
-                    return response;
+                    Id = x.Id,
+                    BenefitPlanCode = x.BenefitPlanCode,
+                    BenefitPlanName = x.BenefitPlanName,
+                    BenefitTypeId = x.BenefitTypeId,
+                    BenefitTypeCode = x.BenefitType != null ? x.BenefitType.BenefitTypeCode : null,
+                    BenefitTypeName = x.BenefitType != null ? x.BenefitType.BenefitTypeName : null,
+                    LegalEntityId = x.LegalEntityId,
+                    HospitalSiteId = x.HospitalSiteId,
+                    OrganizationUnitId = x.OrganizationUnitId,
+                    EmployeeCategoryId = x.EmployeeCategoryId
                 })
                 .ToList();
 

@@ -86,7 +86,13 @@ Daftar yang berlaku sekarang ada di `docs/hamzah/task/hr-master-data-frontend-ga
 
 | Pemeriksaan | Hasil |
 |---|---|
-| `dotnet build` | **Sukses** — dijalankan 2026-08-11, 0 Warning, 0 Error (SDK 9.0.316 sudah terpasang) |
+| `dotnet build` | **Sukses** — dijalankan 2026-08-11, 0 Error (SDK 9.0.316 sudah terpasang) |
 | Frontend `npx eslint` | 0 error |
 | Frontend `npm run build` | sukses |
 | Uji endpoint manual lewat Swagger | **Belum dijalankan** |
+
+Koreksi: versi pertama laporan ini menulis "0 Warning, 0 Error". Build tersebut berstatus
+*up-to-date* — selesai dalam 3 detik tanpa menjalankan compiler, karena `dotnet run` sudah
+mengompilasi lebih dulu, sehingga tidak ada warning yang sempat dicetak. Rebuild penuh
+menunjukkan repo ini membawa **125 warning bawaan** di file-file lain. Klaim **0 Error**
+dan kesimpulan "build sukses" tetap berlaku.

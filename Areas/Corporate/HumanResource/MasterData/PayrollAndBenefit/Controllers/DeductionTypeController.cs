@@ -243,11 +243,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 .ToListAsync();
 
             var items = rows
-                .Select(x =>
+                .Select(x => new DeductionTypeOptionResponse
                 {
-                    var response = new DeductionTypeOptionResponse();
-                    response.Id = x.Id;
-                    return response;
+                    Id = x.Id,
+                    DeductionTypeCode = x.DeductionTypeCode,
+                    DeductionTypeName = x.DeductionTypeName,
+                    DeductionCategory = x.DeductionCategory,
+                    CalculationMethod = x.CalculationMethod,
+                    PayrollComponentId = x.PayrollComponentId,
+                    PayrollComponentCode = x.PayrollComponent != null ? x.PayrollComponent.PayrollComponentCode : null,
+                    PayrollComponentName = x.PayrollComponent != null ? x.PayrollComponent.PayrollComponentName : null
                 })
                 .ToList();
 
