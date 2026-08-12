@@ -19,6 +19,8 @@ Before implementation, inspect the nearest comparable controller, DTO, model, se
 - Cross-repository task: `.codex/CROSS_REPO_RULES.md`
 - Before completion: `.codex/REVIEW_RULES.md`
 - Local handoff/report: `.codex/REPORT_TEMPLATE.md`
+- API/controller/DTO/contract work: `.codex/API_RULES.md`
+- Entity/EF/database/migration work: `.codex/DATABASE_RULES.md`
 
 These documents supplement rather than replace the repository-specific safety, architecture, branch, security, validation, database, and write-scope rules in this file. Simple read-only questions do not require loading the full operating layer.
 
