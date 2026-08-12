@@ -248,6 +248,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         }
 
         [HttpPost]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(ApiResponse<WfpCertificationDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -334,6 +335,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         }
 
         [HttpPut("{id:guid}")]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(ApiResponse<WfpCertificationDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -757,7 +759,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 IsLifetime = x.IsLifetime,
                 IsExpired = !x.IsLifetime && x.ExpiredDate.HasValue && x.ExpiredDate.Value.Date < today,
                 DaysUntilExpiry = days,
-                FilePath = x.FilePath,
+                // Do not expose the server-side storage key; clients use the authorized file endpoint.
+                FilePath = null,
                 FileUrl = string.IsNullOrWhiteSpace(x.FilePath)
                     ? null
                     : $"/api/v1/corporate/human-resource/workforce-profiles/{x.WorkforceProfileId}/certifications/{x.Id}/file",

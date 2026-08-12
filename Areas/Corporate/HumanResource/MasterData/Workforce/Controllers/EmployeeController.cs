@@ -383,7 +383,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             SortOrder = 1
         )]
         [AccessPermission("Employee", "Read")]
-        public async Task<IActionResult> GetSummary()
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken)
         {
             var employeeQuery = _dbContext.Set<MstEmployee>()
                 .AsNoTracking()
@@ -407,12 +407,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
 
             var result = new EmployeeSummaryResponse
             {
-                TotalEmployee = await employeeQuery.CountAsync(),
-                ActiveEmployee = await employeeQuery.CountAsync(x => x.IsActive),
-                InactiveEmployee = await employeeQuery.CountAsync(x => !x.IsActive),
+                TotalEmployee = await employeeQuery.CountAsync(cancellationToken),
+                ActiveEmployee = await employeeQuery.CountAsync(x => x.IsActive, cancellationToken),
+                InactiveEmployee = await employeeQuery.CountAsync(x => !x.IsActive, cancellationToken),
                 EmployeeWithTransportAllowanceProfile = await employeeQuery.CountAsync(x =>
                     x.WorkforceProfileId != Guid.Empty &&
-                    transportProfileQuery.Any(t => t.WorkforceProfileId == x.WorkforceProfileId)),
+                    transportProfileQuery.Any(t => t.WorkforceProfileId == x.WorkforceProfileId),
+                    cancellationToken),
                 TransportEligibleEmployee = await employeeQuery.CountAsync(x =>
                     x.WorkforceProfileId != Guid.Empty &&
                     activeTransportProfileQuery.Any(t =>
@@ -422,7 +423,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                             t.MonthlyAmount > 0 ||
                             t.PerAttendanceAmount > 0 ||
                             t.MaximumMonthlyAmount > 0
-                        ))),
+                        )),
+                    cancellationToken),
                 NightTransportEligibleEmployee = await employeeQuery.CountAsync(x =>
                     x.WorkforceProfileId != Guid.Empty &&
                     activeTransportProfileQuery.Any(t =>
@@ -432,9 +434,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                         !t.TransportAllowancePolicy.IsDelete &&
                         (
                             t.TransportAllowancePolicy.CalculationMethod == "NightShift" ||
-                            t.TransportAllowancePolicy.PolicyCode.ToLower().Contains("night") ||
-                            t.TransportAllowancePolicy.PolicyName.ToLower().Contains("night")
-                        )))
+                            (t.TransportAllowancePolicy.PolicyCode ?? "").ToLower().Contains("night") ||
+                            (t.TransportAllowancePolicy.PolicyName ?? "").ToLower().Contains("night")
+                        )),
+                    cancellationToken)
             };
 
             await _loggerService.InfoAsync(
