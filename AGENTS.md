@@ -10,6 +10,18 @@ The primary rule is:
 
 Before implementation, inspect the nearest comparable controller, DTO, model, service, data-access usage, validation, authorization rule, workflow, EF configuration, migration, and endpoint as applicable.
 
+## Codex Governance Operating Layer
+
+`AGENTS.md` remains the authoritative repository constitution. Read the following only when their condition applies:
+
+- Every implementation task: `.codex/TASK_RULES.md`
+- Classification and model selection: `.codex/TASK_CLASSIFICATION.md`
+- Cross-repository task: `.codex/CROSS_REPO_RULES.md`
+- Before completion: `.codex/REVIEW_RULES.md`
+- Local handoff/report: `.codex/REPORT_TEMPLATE.md`
+
+These documents supplement rather than replace the repository-specific safety, architecture, branch, security, validation, database, and write-scope rules in this file. Simple read-only questions do not require loading the full operating layer.
+
 ## Repository Identity and Branch Workflow
 
 - Repository: `NewQuilvianSystemBackend`
@@ -207,13 +219,9 @@ Before running tests, inspect whether a relevant test project exists. Never repo
 
 For implementation tasks:
 
-1. Confirm the task mode, write target, branch, and scope.
-2. Inspect the nearest existing implementation.
-3. Inspect affected API, DTO, authorization, workflow, persistence, and consumer contracts as applicable.
-4. Make only the authorized changes.
-5. Review the diff.
-6. Run only permitted and proportionate validation.
-7. Report changed files, actual validation, migration state, risks, and `git status --short`.
+1. Follow the conditional governance references above, beginning with `.codex/TASK_RULES.md`.
+2. Keep the task bounded and apply all repository-specific rules in this file.
+3. Report changed files, actual validation, migration state, risks, and `git status --short`.
 
 Do not stage, commit, or push unless explicitly requested.
 

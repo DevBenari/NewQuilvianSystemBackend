@@ -1,0 +1,28 @@
+# Codex Handoff Report Template
+
+Use this structure for ignored local reports under `.quilvian-local/`. Record evidence only; omit secret values.
+
+```md
+# [TASK ID] — [short title]
+
+- TASK ID:
+- TASK TYPE:
+- COMPLEXITY:
+- CLASSIFICATION SCORE:
+- MODEL:
+- TASK MODE:
+- WRITE TARGET:
+- FILES INSPECTED:
+- FILES CHANGED:
+- IMPLEMENTATION:
+- API CONTRACT IMPACT:
+- DATABASE IMPACT:
+- SECURITY IMPACT:
+- VISUAL REFERENCE: NOT REQUIRED | REQUIRED | PROVIDED
+- VALIDATION:
+- WARNINGS:
+- KNOWN ISSUES:
+- MANUAL TEST REQUIRED:
+- GIT STATUS:
+- NEXT RECOMMENDED STEP:
+```
