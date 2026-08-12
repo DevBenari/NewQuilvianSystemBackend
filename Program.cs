@@ -11,6 +11,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Servic
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
@@ -258,6 +259,7 @@ try
     builder.Services.AddSingleton(backendVersionManifest);
     builder.Services.AddScoped<LanguageService>();
     builder.Services.AddScoped<LoggerService>();
+    builder.Services.AddScoped<WfpCertificationFileStorageService>();
     builder.Services.AddScoped<ApplicationVersionService>();
     builder.Services.AddScoped<AccessPermissionService>();
     builder.Services.AddScoped<QueueVoiceService>();
