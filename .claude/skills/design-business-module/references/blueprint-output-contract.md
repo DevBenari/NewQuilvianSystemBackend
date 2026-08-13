@@ -115,9 +115,17 @@ matriks kewenangan UI dan ruang `DEV_DISCRETION`.
 
 ### 3.3 `erd/`
 
-Mengikuti [class-and-erd-template.md](class-and-erd-template.md). Kamus data memakai kedalaman
-bertingkat: tabel `Baru` dan `Diperbarui` ditulis seluruh kolomnya, tabel `Sudah ada` cukup
-kolom kunci ditambah rujukan ke file model.
+Mengikuti [class-and-erd-template.md](class-and-erd-template.md).
+
+| Yang wajib ada | Keterangan |
+| --- | --- |
+| Kolom di dalam kotak entity | ERD yang hanya memuat nama tabel dan garis relasi **tidak** memenuhi kontrak |
+| Penanda `PK`, `FK`, `UK` | Agar kunci terbaca tanpa legenda terpisah |
+| Kamus data bertingkat | Tabel `Baru` dan `Diperbarui` seluruh kolom; `Sudah ada` cukup kolom kunci ditambah rujukan file model |
+| Skema DDL | Untuk tabel `Baru` dan `Diperbarui`, diambil dari file configuration EF Core |
+| Peringatan DDL | Bagian DDL dibuka dengan pernyataan bahwa isinya dokumentasi bentuk, bukan skrip yang dijalankan |
+
+Kolom audit `IdentityModel` tidak digambar pada ERD dan tidak ditulis ulang pada DDL.
 
 ### 3.4 `contracts/api-contract.md`
 

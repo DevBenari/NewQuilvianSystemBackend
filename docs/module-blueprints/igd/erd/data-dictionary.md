@@ -200,3 +200,182 @@ dilarang dipakai sebagai contoh berisi data asli.
 | `TrxEmergencyResuscitation` | Pemicu dan hasil resusitasi |
 
 Payload log hanya boleh memuat `EntityId`, nama controller, nama action, dan status.
+
+---
+
+## 6. Skema tabel dalam bentuk DDL
+
+### Peringatan
+
+> **DDL di bawah adalah dokumentasi bentuk tabel, bukan skrip untuk dijalankan.**
+>
+> Basis data project ini dibentuk EF Core Migrations. Menjalankan DDL ini secara manual akan
+> berbenturan dengan riwayat migration. Perubahan struktur dilakukan dengan menambah migration
+> baru, bukan dengan menjalankan SQL langsung.
+
+Sumber seluruh detail di bawah adalah file configuration pada
+`Repositories/Configurations/HealthService/EmergencyInstallationManagement/`, bukan tebakan.
+
+Basis data PostgreSQL, schema `public`, identifier dikutip karena EF Core memakai penamaan
+PascalCase.
+
+### Kolom audit yang berlaku untuk semua tabel
+
+Tidak ditulis ulang pada setiap DDL:
+
+```sql
+"CreateDateTime"  timestamp    NOT NULL,
+"CreateBy"        uuid         NOT NULL,
+"UpdateDateTime"  timestamp,
+"UpdateBy"        uuid         NOT NULL,
+"DeleteDateTime"  timestamp,
+"DeleteBy"        uuid         NOT NULL,
+"CancelDateTime"  timestamp,
+"CancelBy"        uuid         NOT NULL,
+"IsCancel"        boolean      NOT NULL DEFAULT false,
+"IsDelete"        boolean      NOT NULL DEFAULT false
+```
+
+### 6.1 `TrxEmergencyTriage` — status `Diperbarui`
+
+Dua kolom terakhir adalah penambahan pada revisi ini.
+
+```sql
+-- Bentuk tabel sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.
+CREATE TABLE public."TrxEmergencyTriage" (
+    "Id"                        uuid          NOT NULL,
+    "EmergencyVisitId"          uuid          NOT NULL,
+    "TriageLevelId"             uuid          NOT NULL,
+    "PatientVitalSignId"        uuid,
+    "Sequence"                  integer       NOT NULL DEFAULT 1,
+    "IsRetriage"                boolean       NOT NULL DEFAULT false,
+    "PreviousTriageId"          uuid,
+    "TriageSystem"              integer       NOT NULL DEFAULT 1,  -- enum ATS=1, ESI=2
+    "TriageStatus"              integer       NOT NULL DEFAULT 1,  -- enum Draft=1 .. Cancelled=5
+    "StartedAt"                 timestamp     NOT NULL,
+    "CompletedAt"               timestamp,
+    "MaxWaitingMinutesSnapshot" integer       NOT NULL,
+    "ResponseDueAt"             timestamp,
+    "ImmediateCareAllowed"      boolean       NOT NULL DEFAULT false,
+    "TriageReason"              varchar(1000),                     -- SENSITIF
+    "AirwaySummary"             varchar(1000),                     -- SENSITIF
+    "BreathingSummary"          varchar(1000),                     -- SENSITIF
+    "CirculationSummary"        varchar(1000),                     -- SENSITIF
+    "DisabilitySummary"         varchar(1000),                     -- SENSITIF
+    "ExposureSummary"           varchar(1000),                     -- SENSITIF
+    "RedFlagSummary"            varchar(1000),                     -- SENSITIF
+    "PerformedByUserId"         uuid          NOT NULL,
+    "ReviewedByUserId"          uuid,
+    "ReviewedAt"                timestamp,
+    "Notes"                     varchar(1000),                     -- SENSITIF
+    "IsActive"                  boolean       NOT NULL DEFAULT true,
+    "IsSlaBreached"             boolean       NOT NULL DEFAULT false,  -- BARU
+    "SlaBreachedAt"             timestamp,                             -- BARU
+    -- kolom audit IdentityModel, lihat di atas
+
+    CONSTRAINT "PK_TrxEmergencyTriage" PRIMARY KEY ("Id"),
+
+    CONSTRAINT "FK_TrxEmergencyTriage_TrxEmergencyVisit_EmergencyVisitId"
+        FOREIGN KEY ("EmergencyVisitId")
+        REFERENCES public."TrxEmergencyVisit" ("Id") ON DELETE RESTRICT,
+
+    CONSTRAINT "FK_TrxEmergencyTriage_MstEmergencyTriageLevel_TriageLevelId"
+        FOREIGN KEY ("TriageLevelId")
+        REFERENCES public."MstEmergencyTriageLevel" ("Id") ON DELETE RESTRICT,
+
+    CONSTRAINT "FK_TrxEmergencyTriage_TrxPatientVitalSign_PatientVitalSignId"
+        FOREIGN KEY ("PatientVitalSignId")
+        REFERENCES public."TrxPatientVitalSign" ("Id") ON DELETE RESTRICT,
+
+    CONSTRAINT "FK_TrxEmergencyTriage_TrxEmergencyTriage_PreviousTriageId"
+        FOREIGN KEY ("PreviousTriageId")
+        REFERENCES public."TrxEmergencyTriage" ("Id") ON DELETE RESTRICT,
+
+    CONSTRAINT "FK_TrxEmergencyTriage_AspNetUsers_PerformedByUserId"
+        FOREIGN KEY ("PerformedByUserId")
+        REFERENCES public."AspNetUsers" ("Id") ON DELETE RESTRICT,
+
+    CONSTRAINT "FK_TrxEmergencyTriage_AspNetUsers_ReviewedByUserId"
+        FOREIGN KEY ("ReviewedByUserId")
+        REFERENCES public."AspNetUsers" ("Id") ON DELETE RESTRICT
+);
+
+-- Index yang sudah ada
+CREATE UNIQUE INDEX "IX_TrxEmergencyTriage_EmergencyVisitId_Sequence"
+    ON public."TrxEmergencyTriage" ("EmergencyVisitId", "Sequence");
+
+CREATE INDEX "IX_TrxEmergencyTriage_EmergencyVisitId_TriageStatus_StartedAt"
+    ON public."TrxEmergencyTriage" ("EmergencyVisitId", "TriageStatus", "StartedAt");
+
+CREATE INDEX "IX_TrxEmergencyTriage_PatientVitalSignId"
+    ON public."TrxEmergencyTriage" ("PatientVitalSignId");
+
+CREATE INDEX "IX_TrxEmergencyTriage_PreviousTriageId"
+    ON public."TrxEmergencyTriage" ("PreviousTriageId");
+
+CREATE INDEX "IX_TrxEmergencyTriage_ResponseDueAt"
+    ON public."TrxEmergencyTriage" ("ResponseDueAt");
+
+-- Index BARU untuk pencarian pasien yang melampaui batas waktu
+CREATE INDEX "IX_TrxEmergencyTriage_EmergencyVisitId_ResponseDueAt_IsSlaBreached"
+    ON public."TrxEmergencyTriage" ("EmergencyVisitId", "ResponseDueAt", "IsSlaBreached");
+```
+
+Index unik `("EmergencyVisitId", "Sequence")` adalah pengaman penting: ia mencegah dua
+penilaian dengan urutan sama pada satu kunjungan, sehingga rantai retriage tidak bercabang.
+
+### 6.2 Migration yang diperlukan
+
+```sql
+-- Setara dengan migration AddTriageSlaBreachMarker
+ALTER TABLE public."TrxEmergencyTriage"
+    ADD COLUMN "IsSlaBreached" boolean NOT NULL DEFAULT false,
+    ADD COLUMN "SlaBreachedAt" timestamp;
+
+CREATE INDEX "IX_TrxEmergencyTriage_EmergencyVisitId_ResponseDueAt_IsSlaBreached"
+    ON public."TrxEmergencyTriage" ("EmergencyVisitId", "ResponseDueAt", "IsSlaBreached");
+```
+
+Dapat dijalankan tanpa mematikan layanan. Baris lama terisi `false` melalui nilai bawaan;
+breach historis tidak dihitung ulang karena `ResponseDueAt` lama tidak selalu terisi.
+
+Cara mundur:
+
+```sql
+DROP INDEX public."IX_TrxEmergencyTriage_EmergencyVisitId_ResponseDueAt_IsSlaBreached";
+ALTER TABLE public."TrxEmergencyTriage"
+    DROP COLUMN "SlaBreachedAt",
+    DROP COLUMN "IsSlaBreached";
+```
+
+### 6.3 Perubahan enum `EmergencyVisitStatus`
+
+Tidak memerlukan perubahan skema. Enum disimpan sebagai `integer` melalui `HasConversion<int>`
+dan tidak ada check constraint pada kolom tersebut.
+
+```text
+Arrived = 1, WaitingForTriage = 2, Triaged = 3, InTreatment = 4,
+UnderObservation = 5, AwaitingDisposition = 6, Disposed = 7, Cancelled = 8,
+Completed = 9   <- BARU
+```
+
+Nilai `9` dipilih agar nilai yang sudah tersimpan tidak bergeser.
+
+Bila kemudian check constraint ditambahkan pada kolom ini, ia **wajib** memuat nilai `9`.
+
+### 6.4 Tabel berstatus `Sudah ada`
+
+DDL tidak ditulis ulang karena tidak ada perubahan. Bentuk tabelnya dapat dibaca langsung
+pada file configuration berikut:
+
+| Tabel | File configuration |
+| --- | --- |
+| `TrxEmergencyVisit` | `Repositories/Configurations/HealthService/EmergencyInstallationManagement/TrxEmergencyVisitConfiguration.cs` |
+| `TrxEmergencyTriageDetail` | `.../TrxEmergencyTriageDetailConfiguration.cs` |
+| `TrxEmergencyResuscitation` | `.../TrxEmergencyResuscitationConfiguration.cs` |
+| `TrxEmergencyObservation` | `.../TrxEmergencyObservationConfiguration.cs` |
+| `TrxEmergencyObservationDetail` | `.../TrxEmergencyObservationDetailConfiguration.cs` |
+| `TrxEmergencyProcedureDetail` | `.../TrxEmergencyProcedureDetailConfiguration.cs` |
+| `TrxEmergencyDisposition` | `.../TrxEmergencyDispositionConfiguration.cs` |
+| `TrxEmergencyTransfer` | `.../TrxEmergencyTransferConfiguration.cs` |
+| Enam tabel master `MstEmergency*` | Configuration master pada folder yang sama |

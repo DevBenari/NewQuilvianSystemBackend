@@ -9,19 +9,72 @@
 Diagram ini memperlihatkan bagaimana IGD terhubung ke modul lain. Aturannya satu: IGD
 **menunjuk**, tidak menyalin.
 
+Kotak entity hanya memuat kolom penghubung, karena tujuan diagram ini adalah memperlihatkan
+**titik sentuh antar modul**. Kolom lengkap ada pada
+[emergency-episode.md](emergency-episode.md) dan [data-dictionary.md](data-dictionary.md).
+
 ```mermaid
 erDiagram
+    TrxPatientEncounter {
+        uuid Id PK "milik Registration Management"
+        int EncounterType "OP untuk IGD"
+    }
+    Patient {
+        uuid Id PK "milik Patient Management"
+        varchar MedicalRecordNumber UK
+    }
+    MstServiceUnit {
+        uuid Id PK "milik Master Data"
+        varchar Name "membedakan konteks IGD"
+    }
+    TrxEmergencyVisit {
+        uuid Id PK
+        uuid EncounterId FK "penghubung ke seluruh data klinis"
+        uuid PatientId FK
+        uuid ServiceUnitId FK
+        int VisitStatus "enum"
+    }
+    TrxEmergencyTriage {
+        uuid Id PK
+        uuid EmergencyVisitId FK
+        uuid PatientVitalSignId FK
+    }
+    TrxEmergencyObservationDetail {
+        uuid Id PK
+        uuid PatientVitalSignId FK "tanda vital, tidak disalin"
+        uuid ProgressNoteId FK "CPPT, tidak disalin"
+    }
+    TrxEmergencyProcedureDetail {
+        uuid Id PK
+        uuid PatientProcedureId FK "unique, tindakan tidak disalin"
+    }
+    TrxPatientProcedure {
+        uuid Id PK "milik Clinical Management"
+        uuid EncounterId FK
+    }
+    TrxPatientVitalSign {
+        uuid Id PK "milik Clinical Management"
+        uuid EncounterId FK
+    }
+    TrxPatientIntegratedProgressNote {
+        uuid Id PK "CPPT, milik Clinical Management"
+        uuid EncounterId FK
+    }
+    TrxWorkflowInstance {
+        uuid Id PK "milik Workflow Management"
+        varchar ReferenceType "diisi EmergencyVisit"
+        uuid ReferenceId "menunjuk TrxEmergencyVisit"
+    }
     TrxPatientEncounter ||--o| TrxEmergencyVisit : "1:0..1 — Sudah ada"
     Patient ||--o{ TrxEmergencyVisit : "1:N — Sudah ada, direferensikan"
     MstServiceUnit ||--o{ TrxEmergencyVisit : "1:N — Sudah ada"
     TrxEmergencyVisit ||--o{ TrxEmergencyTriage : "1:N — Sudah ada"
-    TrxEmergencyVisit ||--o{ TrxEmergencyResuscitation : "1:N — Sudah ada"
-    TrxEmergencyVisit ||--o{ TrxEmergencyObservation : "1:N — Sudah ada"
-    TrxEmergencyVisit ||--o{ TrxEmergencyDisposition : "1:N — Sudah ada"
-    TrxEmergencyVisit ||--o{ TrxEmergencyTransfer : "1:N — Sudah ada"
+    TrxEmergencyVisit ||--o{ TrxEmergencyProcedureDetail : "1:N — Sudah ada"
     TrxPatientProcedure ||--o| TrxEmergencyProcedureDetail : "1:0..1 — Sudah ada"
-    TrxPatientVitalSign ||--o{ TrxEmergencyObservationDetail : "1:N — Sudah ada, direferensikan"
-    TrxPatientIntegratedProgressNote ||--o{ TrxEmergencyObservationDetail : "1:N — Sudah ada, direferensikan"
+    TrxPatientVitalSign ||--o{ TrxEmergencyTriage : "1:N — direferensikan"
+    TrxPatientVitalSign ||--o{ TrxEmergencyObservationDetail : "1:N — direferensikan"
+    TrxPatientIntegratedProgressNote ||--o{ TrxEmergencyObservationDetail : "1:N — direferensikan"
+    TrxEmergencyVisit |o--o{ TrxWorkflowInstance : "0..1:N — lewat ReferenceType"
 ```
 
 ## Batas kepemilikan

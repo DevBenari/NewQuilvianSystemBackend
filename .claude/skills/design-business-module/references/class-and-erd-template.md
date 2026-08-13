@@ -106,18 +106,53 @@ Ditempatkan di `erd/`.
 
 ### 2.1 Bentuk diagram
 
+ERD **MUST** menampilkan kolom di dalam kotak entity, bukan hanya garis relasi. Diagram yang
+hanya memuat nama tabel tidak memenuhi kontrak ini — pembaca tidak dapat melihat parameter
+tanpa membuka dokumen lain.
+
 Status entity ditulis pada label relasi agar terbaca tanpa legenda terpisah.
 
 ````markdown
 ```mermaid
 erDiagram
-    TrxPatientEncounter ||--|| TrxEmergencyVisit : "1:1 — Sudah ada"
+    TrxEmergencyVisit {
+        uuid Id PK
+        varchar EmergencyVisitNumber UK
+        uuid EncounterId FK "milik Registration"
+        uuid PatientId FK "kosong bila belum dikenal"
+        int VisitStatus "enum disimpan sebagai int"
+    }
+    TrxEmergencyTriage {
+        uuid Id PK
+        uuid EmergencyVisitId FK
+        uuid TriageLevelId FK
+        int Sequence "unik bersama EmergencyVisitId"
+        boolean IsRetriage
+        uuid PreviousTriageId FK "penilaian yang digantikan"
+        timestamp ResponseDueAt "dihitung server"
+    }
+    MstEmergencyTriageLevel {
+        uuid Id PK
+        int Level
+        varchar ColorName
+        int MaxWaitingMinutes
+    }
     TrxEmergencyVisit ||--o{ TrxEmergencyTriage : "1:N — Sudah ada"
-    TrxEmergencyTriage ||--o{ TrxEmergencyTriageDetail : "1:N — Sudah ada"
-    TrxEmergencyTriage |o--o| TrxEmergencyTriage : "0:1 — Baru, penilaian pengganti"
     MstEmergencyTriageLevel ||--o{ TrxEmergencyTriage : "1:N — Sudah ada"
+    TrxEmergencyTriage |o--o| TrxEmergencyTriage : "0:1 — Sudah ada, retriage"
 ```
 ````
+
+Aturan isi kotak entity:
+
+| Aturan | Alasan |
+| --- | --- |
+| Tampilkan PK, seluruh FK, kolom status, dan kolom yang dipakai aturan bisnis | Itu yang dicari pembaca saat membaca ERD |
+| Tandai `PK`, `FK`, dan `UK` | Menunjukkan kunci tanpa perlu legenda |
+| Pakai tipe basis data, bukan tipe bahasa | `uuid`, bukan `Guid`; `timestamp`, bukan `DateTime` |
+| Enum ditulis `int` disertai keterangan | Mengikuti `HasConversion<int>` pada EF Core |
+| Kolom audit `IdentityModel` **MUST NOT** digambar | Sepuluh kolom yang sama di setiap tabel membuat diagram tidak terbaca |
+| Kolom sensitif boleh diringkas | Delapan kolom ringkasan klinis cukup diwakili satu baris berketerangan |
 
 Notasi kardinalitas Mermaid yang dipakai:
 
@@ -192,3 +227,61 @@ Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki kolom audit `CreateDat
 
 Penghapusan bersifat penandaan melalui `IsDelete`, bukan penghapusan baris.
 ```
+
+---
+
+## 4. Skema tabel dalam bentuk DDL
+
+Kamus data **MUST** disertai bentuk DDL untuk tabel berstatus `Baru` dan `Diperbarui`. Tabel
+`Sudah ada` yang tidak berubah cukup dirujuk file configuration-nya.
+
+### 4.1 Peringatan wajib di kepala bagian
+
+Basis data project ini dibentuk EF Core Migrations, bukan skrip SQL manual. DDL pada blueprint
+adalah **dokumentasi bentuk tabel**, bukan skrip yang dijalankan. Bagian DDL **MUST** dibuka
+dengan peringatan ini agar tidak ada yang menjalankannya dan berbenturan dengan migration.
+
+### 4.2 Sumber kebenaran DDL
+
+Ambil dari file configuration, bukan dari tebakan:
+
+| Yang diambil | Dari |
+| --- | --- |
+| Nama tabel dan schema | `builder.ToTable("Nama", "public")` |
+| Primary key | `builder.HasKey(...)` |
+| Panjang string | `builder.Property(x => x.Kolom).HasMaxLength(n)` |
+| Enum sebagai integer | `builder.Property(...).HasConversion<int>()` |
+| Index dan unique | `builder.HasIndex(...)` dan `.IsUnique()` |
+| Foreign key dan perilaku hapus | `builder.HasOne(...).OnDelete(...)` |
+
+### 4.3 Bentuk yang dipakai
+
+PostgreSQL dengan identifier dikutip, karena EF Core memakai penamaan PascalCase.
+
+````markdown
+```sql
+-- Bentuk tabel sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.
+CREATE TABLE public."TrxEmergencyTriage" (
+    "Id"                 uuid         NOT NULL,
+    "EmergencyVisitId"   uuid         NOT NULL,
+    "TriageStatus"       integer      NOT NULL,  -- enum, HasConversion<int>
+    "TriageReason"       varchar(1000),          -- SENSITIF
+    "ResponseDueAt"      timestamp,
+    -- kolom audit IdentityModel tidak ditulis ulang di sini
+
+    CONSTRAINT "PK_TrxEmergencyTriage" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_TrxEmergencyTriage_TrxEmergencyVisit_EmergencyVisitId"
+        FOREIGN KEY ("EmergencyVisitId")
+        REFERENCES public."TrxEmergencyVisit" ("Id") ON DELETE RESTRICT
+);
+
+CREATE UNIQUE INDEX "IX_TrxEmergencyTriage_EmergencyVisitId_Sequence"
+    ON public."TrxEmergencyTriage" ("EmergencyVisitId", "Sequence");
+```
+````
+
+Kolom sensitif **MUST** diberi komentar `-- SENSITIF` agar terbaca langsung oleh implementer
+yang menyalin DDL.
+
+Kolom audit `IdentityModel` **MUST NOT** ditulis ulang pada setiap DDL; cukup dinyatakan sekali
+di kepala bagian.
