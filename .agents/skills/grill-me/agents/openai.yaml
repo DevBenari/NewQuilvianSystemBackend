@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grill Me"
+  short_description: "Wawancara kritis kebutuhan modul"
+  default_prompt: "Use $grill-me to interview me critically about a new Quilvian module."

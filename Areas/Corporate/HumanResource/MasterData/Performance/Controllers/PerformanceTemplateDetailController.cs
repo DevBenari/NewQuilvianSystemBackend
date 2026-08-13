@@ -108,9 +108,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
             q = WorkflowMasterDataSupport.ApplyDateFilter(q, startDate, endDate, customPeriod);
             var total = await q.CountAsync(ct);
             var rows = await Sort(q, sortBy, sortDirection).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct);
+            var actorNames = await ActorNamesAsync(rows.Select(x => (Guid?) x.CreateBy), ct);
+            var items = rows.Select(Map).ToList();
+            foreach (var item in items) item.CreateByName = ActorName(actorNames, item.CreateBy);
             return Ok(ApiResponse<PagedResult<PerformanceTemplateDetailResponse>>.Ok(new()
             {
-                PageNumber = pageNumber, PageSize = pageSize, TotalData = total, TotalPage = (int) Math.Ceiling(total / (double) pageSize), Items = rows.Select(Map).ToList()
+                PageNumber = pageNumber, PageSize = pageSize, TotalData = total, TotalPage = (int) Math.Ceiling(total / (double) pageSize), Items = items
             }, "Data berhasil diambil."));
         }
 
@@ -121,6 +124,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
         {
             var x = await Q(performanceTemplateId).FirstOrDefaultAsync(x => x.Id == id, ct);
             if (x == null) return NotFound(ApiResponse<object>.Fail(404, "Template detail tidak ditemukan."));
+            var actorNames = await ActorNamesAsync(new Guid?[] { x.CreateBy, x.UpdateBy }, ct);
             var r = new PerformanceTemplateDetailDetailResponse
             {
                 Id = x.Id, PerformanceTemplateId = x.PerformanceTemplateId, ParentDetailId = x.ParentDetailId, KpiCatalogId = x.KpiCatalogId,
@@ -129,7 +133,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
                 MaximumTargetValue = x.MaximumTargetValue, MeasurementUnit = x.MeasurementUnit, ScoreMethod = x.ScoreMethod, TargetDirection = x.TargetDirection,
                 IsRequired = x.IsRequired, SortOrder = x.SortOrder, IsActive = x.IsActive, Description = x.Description, EvidenceRequirement = x.EvidenceRequirement,
                 AllowEmployeeComment = x.AllowEmployeeComment, AllowReviewerComment = x.AllowReviewerComment, CreateDateTime = x.CreateDateTime,
-                CreateBy = N(x.CreateBy), UpdateDateTime = x.UpdateDateTime, UpdateBy = N(x.UpdateBy)
+                CreateBy = N(x.CreateBy), CreateByName = ActorName(actorNames, x.CreateBy),
+                UpdateDateTime = x.UpdateDateTime, UpdateBy = N(x.UpdateBy), UpdateByName = ActorName(actorNames, x.UpdateBy)
             };
             return Ok(ApiResponse<PerformanceTemplateDetailDetailResponse>.Ok(r, "Detail berhasil diambil."));
         }
@@ -284,6 +289,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
         static string Canon(string v, string[] a) => a.First(x => x.Equals(v.Trim(), StringComparison.OrdinalIgnoreCase));
         static Guid? NG(Guid? g) => !g.HasValue || g == Guid.Empty? null : g;
         static Guid? N(Guid g) => g == Guid.Empty? null : g;
+
+        async Task<Dictionary<Guid, string>> ActorNamesAsync(IEnumerable<Guid?> actorIds, CancellationToken ct)
+        {
+            var ids = actorIds.Where(x => x.HasValue && x.Value != Guid.Empty).Select(x => x!.Value).Distinct().ToList();
+            if (ids.Count == 0) return new Dictionary<Guid, string>();
+            return await _db.Users.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode, ct);
+        }
+
+        static string? ActorName(IReadOnlyDictionary<Guid, string> actorNames, Guid? actorId) =>
+            !actorId.HasValue || actorId.Value == Guid.Empty? null : actorNames.GetValueOrDefault(actorId.Value);
         static string? T(string? s) => string.IsNullOrWhiteSpace(s)? null : s.Trim();
         static void Norm(ref int p, ref int s)
         {

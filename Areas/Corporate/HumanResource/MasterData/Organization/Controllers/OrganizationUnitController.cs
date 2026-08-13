@@ -183,6 +183,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 })
                 .ToListAsync();
 
+            var actorNames = await GetActorNameMapAsync(items.Select(x => x.CreateBy));
+            foreach (var item in items)
+                item.CreateByName = GetActorName(actorNames, item.CreateBy);
+
             var result = new OrganizationUnitPagedResult
             {
                 PageNumber = pageNumber,
@@ -271,6 +275,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                     "Organization unit tidak ditemukan."));
             }
 
+            var actorNames = await GetActorNameMapAsync(new Guid?[] { entity.CreateBy, entity.UpdateBy });
+
             var result = new OrganizationUnitDetailResponse
             {
                 Id = entity.Id,
@@ -292,8 +298,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 WorkLocationCount = entity.WorkLocations.Count(x => !x.IsDelete),
                 CreateDateTime = entity.CreateDateTime,
                 CreateBy = entity.CreateBy == Guid.Empty ? null : entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
                 UpdateDateTime = entity.UpdateDateTime,
-                UpdateBy = entity.UpdateBy == Guid.Empty ? null : entity.UpdateBy
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
 
             return Ok(ApiResponse<OrganizationUnitDetailResponse>.Ok(
@@ -690,6 +698,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
 
             return CodePrefix + next.ToString().PadLeft(CodeNumberLength, '0');
         }
+
+        private async Task<Dictionary<Guid, string>> GetActorNameMapAsync(IEnumerable<Guid?> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x.HasValue && x.Value != Guid.Empty)
+                .Select(x => x!.Value)
+                .Distinct()
+                .ToList();
+            if (ids.Count == 0) return new Dictionary<Guid, string>();
+
+            return await _dbContext.Users.AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode);
+        }
+
+        private static string? GetActorName(IReadOnlyDictionary<Guid, string> actorNames, Guid? actorId) =>
+            !actorId.HasValue || actorId.Value == Guid.Empty ? null : actorNames.GetValueOrDefault(actorId.Value);
 
         private Guid CurrentUserId()
         {

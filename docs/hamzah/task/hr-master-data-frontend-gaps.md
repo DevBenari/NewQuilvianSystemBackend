@@ -18,13 +18,17 @@ untuk dipecah menjadi tugas. Tidak ada file kode yang disentuh saat dokumen ini 
 | ID | Kebutuhan | Objek terdampak | Dampak kalau dibiarkan | Status |
 |---|---|---|---|---|
 | **GAP-1** | Filter rentang tanggal (`startDate`/`endDate`/`customPeriod`) | 35 controller | 34 halaman master data punya filter tanggal yang tampil tapi tidak berfungsi | ✅ **Selesai** 2026-08-11 |
-| **GAP-2** | 6 master tanpa controller sama sekali | 6 model | 12+ form terpaksa memakai input UUID manual, tidak ada cara menambah datanya lewat UI | ⬜ Belum dikerjakan |
+| **GAP-2** | 6 master tanpa controller sama sekali | 6 model | 12+ form terpaksa memakai input UUID manual, tidak ada cara menambah datanya lewat UI | ✅ **Selesai** 2026-08-12 |
 | **GAP-3** | `/options` hanya mengembalikan `Id` | 3 endpoint | Select relasi kosong tanpa label; frontend workaround ke endpoint list | ✅ **Selesai** 2026-08-11 |
-| **GAP-4** | `CreateByName` / `UpdateByName` tidak ada | 8 DTO | Kolom **Dibuat Oleh** tampil `-` di 8 halaman master data | ⬜ Belum dikerjakan |
+| **GAP-4** | `CreateByName` / `UpdateByName` tidak ada | 8 DTO | Kolom **Dibuat Oleh** tampil `-` di 8 halaman master data | ✅ **Selesai** 2026-08-12 |
 
 > 📋 **Ringkasan siap-uji per GAP yang sudah selesai** ada di `docs/hamzah/task-done/` —
 > satu berkas per GAP, lengkap dengan tag Swagger, route, dan langkah pengujiannya:
-> `gap-1-filter-rentang-tanggal.md`, `gap-3-proyeksi-options.md`.
+> `gap-1-filter-rentang-tanggal.md`, `gap-2-controller-master-baru.md`,
+> `gap-3-proyeksi-options.md`, `gap-4-create-by-name.md`.
+
+> ✅ **Keempat GAP di tabel ini sudah tertutup.** Yang tersisa hanya T10 dan T11 di tabel
+> *Usulan pemecahan tugas* — keduanya prioritas rendah dan tidak merusak apa pun.
 
 Semua kebutuhan di atas **tidak memblokir** frontend. Frontend sudah menanganinya dengan
 fallback yang jujur (filter tidak dikirim, input UUID manual, kolom `-`). Yang hilang adalah
@@ -235,7 +239,21 @@ perubahan lain, tidak perlu deploy ulang komponen.
 
 ---
 
-## GAP-2 — Enam master data belum punya controller sama sekali
+## GAP-2 — Enam master data belum punya controller sama sekali — ✅ SELESAI
+
+> **Selesai 2026-08-12** — tugas T9. Keenam master kini punya controller + DTO lengkap
+> (9 action masing-masing), sesuai Definition of Done di bawah. Laporan teknis di
+> `docs/hamzah/report/hr-master-data-six-new-controllers.md`, ringkasan siap-uji di
+> `docs/hamzah/task-done/gap-2-controller-master-baru.md`.
+>
+> Route yang dipakai: `workforce-types`, `employee-categories`, `employment-types`,
+> `employment-statuses`, `contract-types`, `on-call-types`.
+>
+> Tidak ada migration, tidak ada file lama yang diedit — 12 berkas baru seluruhnya.
+> Rebuild penuh: **125 warning (sama dengan baseline), 0 error**.
+> Commit `29d8eda`, sudah ada di `origin/MHamzah`.
+>
+> Uraian di bawah dipertahankan sebagai catatan masalah aslinya.
 
 ### Masalahnya
 
@@ -378,7 +396,20 @@ Catatan: frontend **menampilkan `Name` saja** dan memakai `Code` untuk pencarian
 
 ---
 
-## GAP-4 — `CreateByName` / `UpdateByName` tidak ada di 8 DTO area Organization
+## GAP-4 — `CreateByName` / `UpdateByName` tidak ada di 8 DTO area Organization — ✅ SELESAI
+
+> **Selesai 2026-08-12** — tugas T2. Kedelapan DTO Organization kini mengirim
+> `createByName` di list dan `createByName` + `updateByName` di detail, diisi lewat
+> pemetaan **batch** (satu query ke `Users` per request), bukan subquery per baris.
+> `PerformanceTemplateDetailDtos.cs` yang disebut "plus, prioritas rendah" di bawah
+> **ikut dikerjakan**, jadi GAP-4 tertutup penuh — total 9 DTO + 9 controller.
+>
+> Laporan teknis di `docs/hamzah/report/organization-create-by-name.md`, ringkasan siap-uji
+> di `docs/hamzah/task-done/gap-4-create-by-name.md`.
+>
+> Tidak ada migration. Tidak ada perubahan frontend yang dibutuhkan.
+>
+> Uraian di bawah dipertahankan sebagai catatan masalah aslinya.
 
 ### Masalahnya
 
@@ -451,14 +482,14 @@ Diurutkan dari rasio manfaat/usaha tertinggi:
 | # | Tugas | Scope | Status | Ketergantungan |
 |---|---|---|---|---|
 | T1 | GAP-3 — perbaiki proyeksi `/options` | 3 controller + 1 DTO | ✅ **Selesai** — commit `8b9de69` | — |
-| T2 | GAP-4 — `CreateByName`/`UpdateByName` area Organization | 8 DTO + 8 controller | ⬜ **Berikutnya** | — |
+| T2 | GAP-4 — `CreateByName`/`UpdateByName` area Organization | 8 DTO + 8 controller (+1 Performance) | ✅ **Selesai** 2026-08-12 | — |
 | T3 | GAP-1a — filter tanggal area Organization | 8 controller | ✅ **Selesai** 2026-08-11 | — |
 | T4 | GAP-1b — filter tanggal area PayrollAndBenefit | 6 controller | ✅ **Selesai** 2026-08-11 | — |
 | T5 | GAP-1c — filter tanggal area LeaveAndOvertime | 7 controller | ✅ **Selesai** 2026-08-11 | — |
 | T6 | GAP-1d — filter tanggal area AttendanceAndSchedule | 5 controller | ✅ **Selesai** 2026-08-11 | — |
 | T7 | GAP-1e — filter tanggal area Performance | 5 controller | ✅ **Selesai** 2026-08-11 | — |
 | T8 | GAP-1f — filter tanggal area EmployeeRelation | 4 controller | ✅ **Selesai** 2026-08-11 | — |
-| T9 | GAP-2 — controller baru 6 master | 6 controller + 6 DTO baru | ⬜ | T1 sudah selesai, jadi pola `/options` yang benar sudah tersedia sebagai acuan |
+| T9 | GAP-2 — controller baru 6 master | 6 controller + 6 DTO baru | ✅ **Selesai** 2026-08-12 | T1 sudah selesai, jadi pola `/options` yang benar sudah tersedia sebagai acuan |
 | T10 | Alias `customPeriod` untuk `doctors`, `employees`, `external-users` | 3 controller | ⬜ | Prioritas rendah, tidak merusak apa pun |
 | T11 | Pindahkan 4 controller EmployeeRelation dari `Repositories/Configurations/` ke `Areas/` | 4 file + namespace | ⬜ | Prioritas rendah, **jangan** dicampur T8 |
 
@@ -478,8 +509,19 @@ menambah `CreateByName`/`UpdateByName`.
 | Tugas | Commit | Laporan | Sudah di `origin/MHamzah` |
 |---|---|---|---|
 | GAP-1 pilot — `benefit-type` filter tanggal | `8ece36a` | `report/benefit-type-date-filter.md` | ✅ Ya |
-| T1 / GAP-3 — proyeksi `/options` | `8b9de69` | `report/options-projection-code-name.md` | ⬜ Belum — masih commit lokal |
-| T3–T8 / GAP-1 — filter tanggal 35 controller | ⬜ **Belum di-commit** | `report/hr-master-data-date-filter.md` | ⬜ Belum |
+| T1 / GAP-3 — proyeksi `/options` | `8b9de69` | `report/options-projection-code-name.md` | ✅ Ya |
+| T3–T8 / GAP-1 — filter tanggal 35 controller | sudah masuk riwayat | `report/hr-master-data-date-filter.md` | ✅ Ya |
+| T9 / GAP-2 — controller + DTO 6 master baru | `29d8eda` | `report/hr-master-data-six-new-controllers.md` | ✅ Ya |
+| T2 / GAP-4 — `CreateByName`/`UpdateByName` | ⬜ **Belum di-commit** | `report/organization-create-by-name.md` | ⬜ Belum |
+
+> Diperiksa ulang 2026-08-12: `HEAD` = `origin/MHamzah` = `29d8eda`. Seluruh pekerjaan
+> T1, T3–T8, dan T9/GAP-2 sudah ada di remote berikut laporan dan berkas `task-done`-nya.
+> Yang belum masuk hanya berkas GAP-4.
+
+**Keempat GAP sudah tertutup.** Yang tersisa hanya T10 (alias `customPeriod` untuk
+`doctors`, `employees`, `external-users`) dan T11 (pindahkan 4 controller EmployeeRelation
+dari `Repositories/Configurations/` ke `Areas/`) — keduanya prioritas rendah dan tidak
+merusak apa pun kalau dibiarkan.
 
 Hambatan SDK yang sempat dicatat di sini **sudah hilang**: .NET SDK 9.0.316 sesuai
 `global.json` sudah terpasang pada 2026-08-11, sehingga `dotnet build` bisa dijalankan dan
@@ -506,7 +548,11 @@ karena membersihkannya menuntut force push yang dilarang RULE 2.
 | Penyisiran DTO HR master data (`CreateByName`) | Dijalankan 2026-08-11 — 9 DTO tanpa `CreateByName` (8 Organization + 1 Performance detail) |
 | Penyisiran proyeksi `/options` | Dijalankan 2026-08-11 — 3 endpoint hanya mengisi `Id`. **Sudah diperbaiki**, lihat GAP-3 |
 | Pencocokan endpoint frontend ↔ route backend | Dijalankan 2026-08-11 — 47 endpoint frontend, semuanya punya route backend yang cocok |
-| Keberadaan tabel 6 master GAP-2 | Diverifikasi di `ApplicationDbContextModelSnapshot.cs` — keenam tabel ada |
+| Keberadaan tabel 6 master GAP-2 | Diverifikasi di `ApplicationDbContextModelSnapshot.cs` — keenam tabel ada. **Controller + DTO-nya sudah dibuat**, lihat `report/hr-master-data-six-new-controllers.md` |
+| Build setelah GAP-2 | Dijalankan 2026-08-12 — rebuild penuh **125 warning, 0 error**; 12 berkas baru tidak menyumbang warning sama sekali |
+| Uji Swagger 6 endpoint baru GAP-2 | **Belum dijalankan** — langkahnya ada di `task-done/gap-2-controller-master-baru.md` |
+| Build setelah GAP-4 | Dijalankan 2026-08-12 — rebuild penuh **125 warning, 0 error**; 18 berkas yang disentuh tidak menyumbang warning |
+| Uji Swagger 9 endpoint GAP-4 | **Belum dijalankan** — langkahnya ada di `task-done/gap-4-create-by-name.md`, termasuk cara memastikan pemetaan nama benar-benar batch |
 | `dotnet build` | **Sukses** — dijalankan 2026-08-11 setelah SDK 9.0.316 terpasang. Rebuild penuh: 125 warning bawaan, 0 error |
 
 Dokumen ini diperbarui setiap ada tugas yang selesai — kolom **Status** pada tabel Ringkasan

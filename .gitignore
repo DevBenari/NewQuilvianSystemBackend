@@ -367,5 +367,4 @@ appsettings.Development.json
 .env
 .env.*
 
-# Ignore Claude Code
-.claude
+agency-local/

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan Module Delivery"
+  short_description: "Susun roadmap vertical slice lintas project"
+  default_prompt: "Use $plan-module-delivery to create linked backend and frontend roadmaps."
