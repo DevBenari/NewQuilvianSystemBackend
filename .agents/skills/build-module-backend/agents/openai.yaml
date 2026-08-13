@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Module Backend"
+  short_description: "Implementasi task backend dari blueprint"
+  default_prompt: "Use $build-module-backend to implement the selected approved backend task."

@@ -1,16 +1,16 @@
 # Rekomendasi Skill Suite Pengembangan Modul — Dari Kebutuhan Bisnis sampai Siap Digunakan
 
-| | |
-|---|---|
-| Tanggal | 2026-08-12 |
-| Branch | `MHamzah` |
-| Status | **Spesifikasi/rekomendasi** — tujuh skill belum dibuat atau dipasang melalui dokumen ini |
-| Dokumen canonical | `docs/agency/rekomendasi-skills-pengembangan-modul.md` |
-| Pemicu | Kebutuhan pola kerja yang dapat dipakai untuk IGD, pengkajian rawat inap, dan modul-modul lain |
-| Model penempatan | **Hybrid 5 shared + 2 repo-local; secara fisik 6 backend + 1 frontend** |
-| Cakupan perubahan | Dokumentasi saja |
-| Database/runtime migration | Tidak ada |
-| Breaking change | Tidak ada |
+|                            |                                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------------------- |
+| Tanggal                    | 2026-08-13                                                                                     |
+| Branch                     | `MHamzah`                                                                                      |
+| Status                     | **Diimplementasikan** — tujuh skill canonical dan lima adapter frontend telah dipasang; forward-test lintas modul menjadi tahap berikutnya |
+| Dokumen canonical          | `docs/agency/rekomendasi-ai-skills-pengembangan-modul.md`                                      |
+| Pemicu                     | Kebutuhan pola kerja yang dapat dipakai untuk IGD, pengkajian rawat inap, dan modul-modul lain |
+| Model penempatan           | **Hybrid 5 shared + 2 repo-local; secara fisik 6 backend + 1 frontend**                        |
+| Cakupan perubahan          | Konfigurasi AI agent dan dokumentasi; source aplikasi tidak diubah                             |
+| Database/runtime migration | Tidak ada                                                                                      |
+| Breaking change            | Tidak ada                                                                                      |
 
 ## 1. Tujuan
 
@@ -71,15 +71,15 @@ Seluruh skill harus memegang prinsip berikut:
 
 Semua hasil penelusuran project menggunakan status yang sama:
 
-| Status | Arti |
-|---|---|
-| **Ready to reuse** | Sudah tersedia, terhubung, terdaftar, dan cukup aman dipakai oleh modul baru |
-| **Reuse with adapter** | Dapat dipakai melalui mapping, facade, endpoint tambahan, atau lapisan integrasi |
-| **Extend** | Pemilik dan fondasinya benar, tetapi field, relasi, rule, atau endpoint masih kurang |
-| **Repair** | Sudah ada, tetapi memiliki defect atau blocker yang harus ditutup sebelum digunakan |
-| **Missing** | Belum tersedia dan memang perlu dibuat |
-| **Conflict** | Implementasi existing bertentangan dengan kebutuhan bisnis atau sumber kebenaran lain |
-| **Unknown** | Bukti belum cukup; perlu keputusan manusia atau pemeriksaan environment/data aktual |
+| Status                 | Arti                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| **Ready to reuse**     | Sudah tersedia, terhubung, terdaftar, dan cukup aman dipakai oleh modul baru          |
+| **Reuse with adapter** | Dapat dipakai melalui mapping, facade, endpoint tambahan, atau lapisan integrasi      |
+| **Extend**             | Pemilik dan fondasinya benar, tetapi field, relasi, rule, atau endpoint masih kurang  |
+| **Repair**             | Sudah ada, tetapi memiliki defect atau blocker yang harus ditutup sebelum digunakan   |
+| **Missing**            | Belum tersedia dan memang perlu dibuat                                                |
+| **Conflict**           | Implementasi existing bertentangan dengan kebutuhan bisnis atau sumber kebenaran lain |
+| **Unknown**            | Bukti belum cukup; perlu keputusan manusia atau pemeriksaan environment/data aktual   |
 
 Status tidak boleh diberikan hanya karena nama tabel atau class ditemukan. Pemeriksaan
 harus mencakup hubungan runtime seperti registrasi dependency injection, migration,
@@ -87,15 +87,15 @@ seed/default data, permission, pemanggilan frontend, dan test bila tersedia.
 
 ## 4. Daftar Skill yang Direkomendasikan
 
-| Urutan | Skill | Fungsi utama | Sifat utama |
-|---:|---|---|---|
-| 1 | `grill-me` | Wawancara kritis untuk menutup kebutuhan dan keputusan | Interaktif, tidak menulis kode |
-| 2 | `trace-existing-capabilities` | Menelusuri tabel, API, UI, dan alur existing lintas modul | Read-only |
-| 3 | `design-business-module` | Menyusun arsitektur backend, frontend, kontrak, dan ERD | Desain, tidak menulis kode aplikasi |
-| 4 | `plan-module-delivery` | Mengubah desain menjadi roadmap backend dan frontend | Perencanaan |
-| 5 | `build-module-backend` | Mengerjakan satu task backend berdasarkan kontrak | Menulis kode sesuai task |
-| 6 | `build-module-frontend` | Mengerjakan satu task frontend dengan batas kewenangan yang jelas | Menulis kode sesuai task |
-| 7 | `verify-module-readiness` | Mengukur kesiapan nyata dan mencari gap end-to-end | Read-only secara default |
+| Urutan | Skill                         | Fungsi utama                                                      | Sifat utama                         |
+| -----: | ----------------------------- | ----------------------------------------------------------------- | ----------------------------------- |
+|      1 | `grill-me`                    | Wawancara kritis untuk menutup kebutuhan dan keputusan            | Interaktif, tidak menulis kode      |
+|      2 | `trace-existing-capabilities` | Menelusuri tabel, API, UI, dan alur existing lintas modul         | Read-only                           |
+|      3 | `design-business-module`      | Menyusun arsitektur backend, frontend, kontrak, dan ERD           | Desain, tidak menulis kode aplikasi |
+|      4 | `plan-module-delivery`        | Mengubah desain menjadi roadmap backend dan frontend              | Perencanaan                         |
+|      5 | `build-module-backend`        | Mengerjakan satu task backend berdasarkan kontrak                 | Menulis kode sesuai task            |
+|      6 | `build-module-frontend`       | Mengerjakan satu task frontend dengan batas kewenangan yang jelas | Menulis kode sesuai task            |
+|      7 | `verify-module-readiness`     | Mengukur kesiapan nyata dan mencari gap end-to-end                | Read-only secara default            |
 
 Setiap nama mengikuti format kebab-case dan sebaiknya diwujudkan sebagai satu folder skill
 mandiri dengan `SKILL.md`. Slash command, apabila diperlukan, hanya menjadi wrapper tipis;
@@ -110,28 +110,28 @@ dan frontend. Pembagiannya menggunakan dua jenis ownership:
   dan readiness untuk kedua repository;
 - **repo-local implementation skill** menulis kode hanya pada project yang dimilikinya.
 
-| Skill | Jenis | Lokasi canonical tahap awal | Cakupan repository |
-|---|---|---|---|
-| `grill-me` | Shared | `QuilvianBackend/agent-skills/grill-me/` | Keputusan bisnis dan kewenangan untuk backend serta frontend |
-| `trace-existing-capabilities` | Shared | `QuilvianBackend/agent-skills/trace-existing-capabilities/` | Membaca kedua repository secara read-only |
-| `design-business-module` | Shared | `QuilvianBackend/agent-skills/design-business-module/` | Satu desain target, termasuk arsitektur backend dan frontend |
-| `plan-module-delivery` | Shared | `QuilvianBackend/agent-skills/plan-module-delivery/` | Satu traceability dengan roadmap backend dan frontend terpisah |
-| `verify-module-readiness` | Shared | `QuilvianBackend/agent-skills/verify-module-readiness/` | Audit end-to-end kedua repository secara read-only default |
-| `build-module-backend` | Repo-local | `QuilvianBackend/agent-skills/build-module-backend/` | ASP.NET Core, EF Core, API, migration, DI, audit, dan backend test |
-| `build-module-frontend` | Repo-local | `QuilvianFrontEnd/agent-skills/build-module-frontend/` | Next.js, API client, state, UI, permission, dan frontend test |
+| Skill                         | Jenis      | Lokasi canonical tahap awal                                         | Cakupan repository                                                 |
+| ----------------------------- | ---------- | ------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `grill-me`                    | Shared     | `QuilvianBackend/.agents/skills/grill-me/`                          | Keputusan bisnis dan kewenangan untuk backend serta frontend       |
+| `trace-existing-capabilities` | Shared     | `QuilvianBackend/.agents/skills/trace-existing-capabilities/`       | Membaca kedua repository secara read-only                          |
+| `design-business-module`      | Shared     | `QuilvianBackend/.agents/skills/design-business-module/`            | Satu desain target, termasuk arsitektur backend dan frontend       |
+| `plan-module-delivery`        | Shared     | `QuilvianBackend/.agents/skills/plan-module-delivery/`              | Satu traceability dengan roadmap backend dan frontend terpisah     |
+| `verify-module-readiness`     | Shared     | `QuilvianBackend/.agents/skills/verify-module-readiness/`           | Audit end-to-end kedua repository secara read-only default         |
+| `build-module-backend`        | Repo-local | `QuilvianBackend/.agents/skills/build-module-backend/`              | ASP.NET Core, EF Core, API, migration, DI, audit, dan backend test |
+| `build-module-frontend`       | Repo-local | `QuilvianFrontEnd/.agents/skills/build-module-frontend/`            | Next.js, API client, state, UI, permission, dan frontend test      |
 
 Secara konseptual pembagiannya adalah **5 shared + 2 implementation skills**. Karena
 workspace parent belum merupakan Git repository, lima shared skill untuk tahap awal
 dititipkan dan diberi versi di backend. Selain itu, `QuilvianFrontEnd/docs/` pada kondisi
 project saat ini diabaikan oleh `.gitignore`. Akibatnya struktur fisiknya menjadi **6 skill
-di backend dan 1 skill di frontend**. Backend hanya menjadi *custodian* artefak dan kontrak shared,
+di backend dan 1 skill di frontend**. Backend hanya menjadi _custodian_ artefak dan kontrak shared,
 bukan pemilik tunggal keputusan produk, klinis, keamanan, maupun desain frontend.
 
-Folder `.claude/` pada kedua repository juga sedang diabaikan Git. Karena itu,
-`agent-skills/` direkomendasikan sebagai **source package yang tracked**, sedangkan
-`.claude/skills/` dan `.claude/commands/` menjadi **installation target lokal/generated**.
-Pembuatan paket nanti harus memverifikasi `git check-ignore` sebelum menyatakan sebuah skill
-sudah terversi.
+Codex menemukan skill project melalui `.agents/skills/` dari current working directory
+hingga repository root. Karena itu package canonical sekaligus installation target ditempatkan
+langsung di `.agents/skills/`, bukan pada `.claude/` atau folder source paralel. Path tersebut
+telah diperiksa agar tidak diabaikan Git. Struktur paket mengikuti panduan resmi
+[OpenAI — Build skills](https://learn.chatgpt.com/docs/build-skills).
 
 ### 4.2 Satu sumber canonical, tanpa salinan prosedur
 
@@ -139,8 +139,8 @@ sudah terversi.
 - Dokumen pada `docs/agency/` ini adalah spesifikasi canonical. Jika ditemukan salinan
   bernama sama pada folder lain, salinan tersebut bukan sumber kedua dan tidak boleh
   diperbarui secara independen.
-- Repository lain boleh memiliki slash command atau shim tipis yang dihasilkan ke lokasi
-  instalasi dan menunjuk source package, versi, serta hash skill canonical; wrapper tidak
+- Repository lain boleh memiliki adapter/shim tipis pada lokasi instalasi yang menunjuk
+  source package, versi, serta hash skill canonical; adapter tidak
   boleh menyalin body prosedur.
 - Business rule, ERD, API contract, dan readiness verdict tidak boleh mempunyai salinan
   canonical kedua di frontend.
@@ -356,18 +356,18 @@ terhubung melalui kontrak API.
 
 Setiap task wajib memiliki:
 
-| Field | Isi minimum |
-|---|---|
-| ID dan judul | ID stabil serta outcome bisnis yang jelas |
-| Requirement | Aturan/skenario yang dilayani |
-| Dependency | Task, keputusan, data, atau API yang harus tersedia |
-| Reuse | Entity, endpoint, service, atau component existing yang digunakan |
-| Dampak | Schema, migration, API, permission, audit, dan UI yang terpengaruh |
-| Lokasi | Perkiraan file/area yang akan disentuh |
-| Acceptance criteria | Perilaku yang dapat diuji, termasuk exception |
-| Test | Unit, integration, contract, UI, atau E2E yang dibutuhkan |
-| Risiko/blocker | Konflik, keputusan terbuka, data migration, dan integrasi |
-| Definition of Done | Kondisi objektif agar task boleh dinyatakan selesai |
+| Field               | Isi minimum                                                        |
+| ------------------- | ------------------------------------------------------------------ |
+| ID dan judul        | ID stabil serta outcome bisnis yang jelas                          |
+| Requirement         | Aturan/skenario yang dilayani                                      |
+| Dependency          | Task, keputusan, data, atau API yang harus tersedia                |
+| Reuse               | Entity, endpoint, service, atau component existing yang digunakan  |
+| Dampak              | Schema, migration, API, permission, audit, dan UI yang terpengaruh |
+| Lokasi              | Perkiraan file/area yang akan disentuh                             |
+| Acceptance criteria | Perilaku yang dapat diuji, termasuk exception                      |
+| Test                | Unit, integration, contract, UI, atau E2E yang dibutuhkan          |
+| Risiko/blocker      | Konflik, keputusan terbuka, data migration, dan integrasi          |
+| Definition of Done  | Kondisi objektif agar task boleh dinyatakan selesai                |
 
 Roadmap memakai vertical slice. Task frontend ditulis sebagai outcome, bukan keputusan
 tampilan. Contoh:
@@ -505,17 +505,17 @@ Gerbang wajib:
 
 ## 7. Matriks Kewenangan Frontend
 
-| Area keputusan | Pemilik utama | Peran skill |
-|---|---|---|
-| Business rule dan legal state transition | Product/domain owner bersama backend | Menemukan gap dan menjaga traceability |
-| API payload, error contract, dan compatibility | Backend/API contract owner | Memvalidasi kesesuaian |
-| Authentication, permission, dan privacy | Security/domain owner | Menandai pelanggaran; tidak boleh diabaikan |
-| Menu, urutan, nama, dan visibilitas | Atasan/product/UI lead bila diarahkan; developer bila didelegasikan | Memberi opsi, bukan keputusan sepihak |
-| Route | Konvensi project/atasan; developer jika belum ditentukan | Memeriksa konflik dan broken navigation |
-| Layout dan pola interaksi | Developer, kecuali ada mockup/brief mengikat | Memberi trade-off opsional |
-| Component, hooks, state, dan responsive implementation | Developer mengikuti standar project | Memeriksa maintainability dan kontrak |
-| Warna, typography, dan visual language | Design system/UI lead | Memeriksa standar yang terdokumentasi |
-| Prioritas delivery | Atasan/product owner | Menampilkan dependency dan risiko |
+| Area keputusan                                         | Pemilik utama                                                       | Peran skill                                 |
+| ------------------------------------------------------ | ------------------------------------------------------------------- | ------------------------------------------- |
+| Business rule dan legal state transition               | Product/domain owner bersama backend                                | Menemukan gap dan menjaga traceability      |
+| API payload, error contract, dan compatibility         | Backend/API contract owner                                          | Memvalidasi kesesuaian                      |
+| Authentication, permission, dan privacy                | Security/domain owner                                               | Menandai pelanggaran; tidak boleh diabaikan |
+| Menu, urutan, nama, dan visibilitas                    | Atasan/product/UI lead bila diarahkan; developer bila didelegasikan | Memberi opsi, bukan keputusan sepihak       |
+| Route                                                  | Konvensi project/atasan; developer jika belum ditentukan            | Memeriksa konflik dan broken navigation     |
+| Layout dan pola interaksi                              | Developer, kecuali ada mockup/brief mengikat                        | Memberi trade-off opsional                  |
+| Component, hooks, state, dan responsive implementation | Developer mengikuti standar project                                 | Memeriksa maintainability dan kontrak       |
+| Warna, typography, dan visual language                 | Design system/UI lead                                               | Memeriksa standar yang terdokumentasi       |
+| Prioritas delivery                                     | Atasan/product owner                                                | Menampilkan dependency dan risiko           |
 
 Jika arahan atasan bertentangan dengan keamanan, privasi, invariant bisnis, atau kontrak API,
 skill tidak boleh diam-diam memilih salah satu. Catat konflik, jelaskan dampaknya, dan minta
@@ -558,17 +558,17 @@ oleh pekerjaan dokumentasi ini. Untuk tahap awal, path tersebut berada di
 
 `blueprint-manifest.md` sekurang-kurangnya memuat:
 
-| Field | Fungsi |
-|---|---|
-| `blueprint_id` | Identitas stabil lintas seluruh artefak dan task |
-| `revision` | Revisi blueprint saat ini |
-| `status` | `draft`, `approved`, atau `superseded` |
-| `owners`, `approved_by`, dan `approved_at` | Authority dan bukti persetujuan |
-| `backend_commit_sha` | Snapshot backend yang digunakan discovery/design |
-| `frontend_commit_sha` | Snapshot frontend yang digunakan discovery/design |
-| `contract_versions` | Versi API/integration/state contract yang berlaku |
-| `artifact_hashes` | Deteksi drift atau perubahan di luar handoff resmi |
-| `input_revisions` dan `input_hashes` | Versi serta hash artefak upstream yang menjadi dasar |
+| Field                                      | Fungsi                                               |
+| ------------------------------------------ | ---------------------------------------------------- |
+| `blueprint_id`                             | Identitas stabil lintas seluruh artefak dan task     |
+| `revision`                                 | Revisi blueprint saat ini                            |
+| `status`                                   | `draft`, `approved`, atau `superseded`               |
+| `owners`, `approved_by`, dan `approved_at` | Authority dan bukti persetujuan                      |
+| `backend_commit_sha`                       | Snapshot backend yang digunakan discovery/design     |
+| `frontend_commit_sha`                      | Snapshot frontend yang digunakan discovery/design    |
+| `contract_versions`                        | Versi API/integration/state contract yang berlaku    |
+| `artifact_hashes`                          | Deteksi drift atau perubahan di luar handoff resmi   |
+| `input_revisions` dan `input_hashes`       | Versi serta hash artefak upstream yang menjadi dasar |
 
 Frontend menyimpan implementation notes, test, dan kode miliknya di repository frontend,
 tetapi mereferensikan `blueprint_id`, revision, requirement ID, dan contract version ini.
@@ -577,25 +577,25 @@ tetapi mereferensikan `blueprint_id`, revision, requirement ID, dan contract ver
 
 ### Roadmap backend
 
-| Fase | Fokus |
-|---|---|
-| B0 — Discovery lock | Scope, keputusan, ownership, reuse map, dan kontrak disetujui |
-| B1 — Foundation | Schema/extension, configuration, migration, seed, permission, dan DI |
-| B2 — Core workflow | Aggregate, invariant, state transition, API, audit, dan unit test |
-| B3 — Integration | Upstream/downstream, adapter, idempotency, retry, dan contract test |
-| B4 — Operational | Query operasional, reporting, observability, privacy, dan failure handling |
-| B5 — Readiness | Integration/E2E test, data verification, performance, dan acceptance closure |
+| Fase                | Fokus                                                                        |
+| ------------------- | ---------------------------------------------------------------------------- |
+| B0 — Discovery lock | Scope, keputusan, ownership, reuse map, dan kontrak disetujui                |
+| B1 — Foundation     | Schema/extension, configuration, migration, seed, permission, dan DI         |
+| B2 — Core workflow  | Aggregate, invariant, state transition, API, audit, dan unit test            |
+| B3 — Integration    | Upstream/downstream, adapter, idempotency, retry, dan contract test          |
+| B4 — Operational    | Query operasional, reporting, observability, privacy, dan failure handling   |
+| B5 — Readiness      | Integration/E2E test, data verification, performance, dan acceptance closure |
 
 ### Roadmap frontend
 
-| Fase | Fokus |
-|---|---|
-| F0 — Direction lock | Functional brief, kewenangan UI, route/menu decision, dan API dependency |
-| F1 — Data foundation | API client, types, mapping, cache/state, permission, dan shared components |
-| F2 — Core workflow | User outcome utama per role berdasarkan API contract |
+| Fase                    | Fokus                                                                         |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| F0 — Direction lock     | Functional brief, kewenangan UI, route/menu decision, dan API dependency      |
+| F1 — Data foundation    | API client, types, mapping, cache/state, permission, dan shared components    |
+| F2 — Core workflow      | User outcome utama per role berdasarkan API contract                          |
 | F3 — Exception handling | Error, empty, retry, cancellation, correction, conflict, dan duplicate submit |
-| F4 — Quality | Accessibility, responsive behavior, privacy, unit/component/integration test |
-| F5 — Acceptance | Contract test, E2E utama, UAT, telemetry, dan closure gap |
+| F4 — Quality            | Accessibility, responsive behavior, privacy, unit/component/integration test  |
+| F5 — Acceptance         | Contract test, E2E utama, UAT, telemetry, dan closure gap                     |
 
 Fase bukan sprint tetap. Task backend dan frontend dapat berjalan paralel setelah kontrak
 yang dibutuhkan stabil. Dependency dan acceptance criteria, bukan nomor fase semata, yang
@@ -638,13 +638,12 @@ Selain lima keluaran utama, setiap blueprint sebaiknya memiliki:
 Artefak pendukung dibuat hanya jika relevan. Jangan menghasilkan dokumen kosong untuk
 memenuhi struktur folder.
 
-## 12. Bentuk Implementasi Skill yang Disarankan
+## 12. Bentuk Implementasi Skill
 
-Ketika disetujui untuk benar-benar dibuat, setiap skill menjadi paket mandiri dengan
-pembagian berikut:
+Setiap skill telah dibuat sebagai paket mandiri dengan pembagian berikut:
 
 ```text
-QuilvianBackend/agent-skills/
+QuilvianBackend/.agents/skills/
 ├── grill-me/
 │   └── SKILL.md
 ├── trace-existing-capabilities/
@@ -658,16 +657,19 @@ QuilvianBackend/agent-skills/
 └── build-module-backend/
     └── SKILL.md
 
-QuilvianFrontEnd/agent-skills/
-└── build-module-frontend/
-    └── SKILL.md
+QuilvianFrontEnd/.agents/skills/
+├── build-module-frontend/          # canonical repo-local
+│   └── SKILL.md
+├── grill-me/                       # adapter shared
+├── trace-existing-capabilities/    # adapter shared
+├── design-business-module/         # adapter shared
+├── plan-module-delivery/           # adapter shared
+└── verify-module-readiness/        # adapter shared
 ```
 
-Struktur di atas adalah source package yang harus masuk version control. Saat digunakan,
-installer/sync step menempatkan package atau shim yang diperlukan ke `.claude/skills/`
-tanpa menjadikan hasil generated tersebut sumber canonical. Alternatifnya, tim boleh
-mengubah aturan `.gitignore` secara eksplisit agar folder skill tertentu di `.claude/`
-menjadi tracked; keputusan itu harus berlaku konsisten pada kedua repository.
+Struktur `.agents/skills/` di atas adalah package project yang dapat ditemukan Codex dan
+harus masuk version control. Lima folder shared pada frontend hanyalah adapter: prosedur
+canonical tetap enam package di backend ditambah satu frontend builder di frontend.
 
 Ketentuannya:
 
@@ -679,31 +681,27 @@ Ketentuannya:
 - jangan menambah README, changelog, atau dokumentasi duplikat di dalam paket skill;
 - validasi setiap skill dan uji pada minimal satu skenario IGD serta satu skenario non-IGD.
 
-### 12.1 Wrapper frontend untuk shared skill
+### 12.1 Adapter frontend untuk shared skill
 
-Jika shared skill perlu dipanggil dari sesi frontend, hasilkan command atau shim tipis ke
-installation target lokal:
+Supaya shared skill dapat dipanggil ketika current working directory berada di frontend,
+pasang adapter tipis pada installation target project:
 
 ```text
-QuilvianFrontEnd/.claude/commands/
-├── grill-me.md
-├── trace-existing-capabilities.md
-├── design-business-module.md
-├── plan-module-delivery.md
-└── verify-module-readiness.md
+QuilvianFrontEnd/.agents/skills/
+├── grill-me/SKILL.md
+├── trace-existing-capabilities/SKILL.md
+├── design-business-module/SKILL.md
+├── plan-module-delivery/SKILL.md
+└── verify-module-readiness/SKILL.md
 ```
 
-Setiap wrapper hanya menyatakan nama skill canonical, relative path source package sibling
-repository, versi/hash yang diharapkan, serta cara melapor bila path tidak tersedia.
-Wrapper tidak memiliki prosedur interview, discovery, desain, planning, atau verification
-sendiri. Karena `.claude/` saat ini di-ignore, keberadaan wrapper lokal bukan bukti bahwa
-source package sudah dibagikan atau terversi.
+Setiap adapter hanya menyatakan nama skill canonical, relative path source package sibling
+repository, SHA-256 yang diharapkan, serta cara melapor bila path tidak tersedia atau hash
+berbeda. Adapter tidak memiliki prosedur interview, discovery, desain, planning, atau
+verification sendiri.
 
-Command frontend `QuilvianFrontEnd/.claude/commands/grill-me.md` yang sekarang ada harus
-diaudit ketika suite diimplementasikan. Isinya masih frontend-oriented, mencampur discovery
-API dengan interview, dan memuat kebijakan lama bahwa backend tidak pernah diubah. Jangan
-menjadikannya prosedur canonical kedua; migrasikan kebutuhan yang masih valid ke shared
-`grill-me`/`trace-existing-capabilities`, lalu jadikan command tersebut wrapper tipis.
+Konfigurasi lama yang berada di `agency-local/` tetap dianggap backup, bukan installation
+aktif atau prosedur canonical. Isinya tidak diubah oleh setup ini.
 
 ### 12.2 Promosi menjadi skill global
 
@@ -746,47 +744,53 @@ Rangkaian skill dianggap layak dipakai apabila:
 13. mendeteksi revision, contract version, approval, dan source SHA yang stale;
 14. membuktikan kompatibilitas backend-frontend melalui contract serta integration/E2E test.
 
-## 14. Dampak Teknis Pekerjaan Dokumentasi Ini
+## 14. Dampak Teknis Implementasi Skill Suite
 
 ### Endpoint dan kontrak aplikasi
 
-Tidak ada endpoint, DTO, model, service, migration, configuration, atau kontrak runtime yang
-diubah. Dokumen ini hanya menjadi dasar persetujuan sebelum paket skill benar-benar dibuat.
+Tidak ada endpoint, DTO, model, service, migration, configuration aplikasi, atau kontrak
+runtime yang diubah. Implementasi hanya menambah package AI skill, adapter discovery, dan
+dokumentasi.
 
 ### File yang disentuh
 
-| File | Perubahan |
-|---|---|
-| `docs/agency/rekomendasi-skills-pengembangan-modul.md` | Draft existing yang belum tracked diperbarui — pembagian hybrid 5 shared + 2 repo-local, canonical ownership, handoff, dan anti-drift |
-| `docs/hamzah/report/rekomendasi-skills-pengembangan-modul.md` | Baru — laporan revisi dokumentasi |
+| Lokasi                                                                 | Perubahan                                                                                              |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `QuilvianBackend/.agents/skills/`                                      | Enam package canonical: lima shared dan satu backend builder                                            |
+| `QuilvianFrontEnd/.agents/skills/`                                     | Satu frontend builder canonical dan lima adapter shared berpengaman hash                               |
+| `docs/agency/rekomendasi-ai-skills-pengembangan-modul.md`              | Dokumen canonical diselaraskan dengan setup aktual                                                     |
+| `docs/hamzah/report/setup-ai-skills-pengembangan-modul.md`             | Laporan implementasi dan verifikasi                                                                   |
 
 ### Dampak ke frontend
 
-Tidak ada kode frontend yang berubah. Bagian frontend pada dokumen menetapkan batas
-kewenangan: skill mendefinisikan kontrak fungsional/teknis dan guardrail, sedangkan menu
-serta tampilan mengikuti keputusan developer di bawah instruksi atasan dan standar project.
+Tidak ada source aplikasi frontend yang berubah. Frontend memperoleh satu builder repo-local
+dan lima adapter shared. Batas kewenangan tetap berlaku: menu serta tampilan mengikuti
+keputusan berotoritas, lalu standar project dan `DEV_DISCRETION` pada ruang yang didelegasikan.
 
 ### Cara menguji
 
-Karena perubahan hanya berupa Markdown:
+Karena perubahan berupa Markdown/YAML konfigurasi agent:
 
-1. pastikan satu dokumen rekomendasi diperbarui dan satu laporan perubahan dibuat;
-2. pastikan tujuh nama skill dan urutan handoff tercantum;
-3. pastikan keluaran arsitektur backend, arsitektur frontend, ERD, dan kedua roadmap ada;
-4. pastikan flowchart/use-case dikecualikan;
-5. pastikan aturan reuse tabel existing dan kewenangan frontend tertulis eksplisit;
-6. pastikan pembagian 5 shared + 2 repo-local dan lokasi fisik 6 backend + 1 frontend konsisten;
-7. pastikan hanya ada satu prosedur canonical dan wrapper frontend dinyatakan tipis;
-8. pastikan manifest, revision, contract version, approval, SHA, dan stale-input guard tersedia.
+1. jalankan validator skill terhadap tujuh package canonical dan lima adapter;
+2. pastikan frontmatter hanya memiliki `name` dan `description`;
+3. pastikan tujuh nama skill dan urutan handoff tercantum;
+4. pastikan keluaran arsitektur backend, arsitektur frontend, ERD, dan kedua roadmap ada;
+5. pastikan flowchart/use-case dikecualikan;
+6. pastikan aturan reuse tabel existing dan kewenangan frontend tertulis eksplisit;
+7. pastikan pembagian 5 shared + 2 repo-local dan lokasi canonical 6 backend + 1 frontend konsisten;
+8. hitung ulang SHA-256 lima canonical shared dan cocokkan dengan adapter frontend;
+9. pastikan manifest, revision, contract version, approval, SHA, dan stale-input guard tersedia;
+10. pastikan `.agents/skills/` tidak diabaikan Git.
 
 ### Status verifikasi
 
-| Pemeriksaan | Hasil |
-|---|---|
-| Pemeriksaan struktur dan isi Markdown | **Lulus** — heading utama bernomor 1–14 lengkap dan unik; seluruh code fence seimbang; output wajib serta pengecualian diagram tetap tersedia |
-| Pemeriksaan pembagian skill | **Lulus** — tepat 7 skill: 5 shared + 2 repo-local; source package menjadi 6 backend + 1 frontend |
-| Pemeriksaan lokasi source/install | **Lulus** — kandidat `agent-skills/` kedua repository tidak di-ignore, sedangkan `.claude/` dinyatakan sebagai installation target ignored/generated |
-| Pemeriksaan file | **Lulus** — draft existing yang belum tracked diperbarui dan satu laporan dibuat; tidak ada source aplikasi yang diubah |
-| Review independen | **Lulus setelah revisi** — canonical ownership, thin wrapper, contract/SHA/approval guard, dan source-vs-install boundary konsisten |
-| `dotnet build` | Tidak dijalankan — perubahan dokumentasi saja dan user sebelumnya meminta tidak melakukan build |
-| Implementasi/validasi paket skill | Belum — di luar scope dokumen ini |
+| Pemeriksaan                           | Hasil                                                                                       |
+| ------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Struktur dan isi Markdown             | **Lulus** — tidak ada placeholder/TODO; seluruh package di bawah 500 baris                  |
+| Pembagian skill                       | **Lulus** — 7 canonical: 6 backend + 1 frontend; 5 adapter shared di frontend               |
+| Lokasi package/discovery              | **Lulus** — seluruh `.agents/skills/` yang diuji tidak diabaikan Git                        |
+| Hash adapter shared                   | **Lulus** — 5 expected SHA-256 cocok dengan canonical `SKILL.md`                            |
+| Validasi package skill                | **Lulus** — 12 dari 12 package/adapter lolos `quick_validate.py`                            |
+| Forward-test IGD dan non-IGD          | Belum dijalankan — diperlukan sebelum shared skill dipromosikan menjadi global              |
+| Source aplikasi                       | Tidak diubah                                                                                |
+| Build aplikasi                        | Tidak dijalankan — setup hanya menyentuh konfigurasi agent dan dokumentasi                  |

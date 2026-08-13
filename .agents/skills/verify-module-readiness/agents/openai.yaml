@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify Module Readiness"
+  short_description: "Audit kesiapan modul secara end-to-end"
+  default_prompt: "Use $verify-module-readiness to audit this module against its approved blueprint."
