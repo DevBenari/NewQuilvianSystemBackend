@@ -19,10 +19,12 @@ Use this structure for ignored local reports under `.quilvian-local/`. Record ev
 - DATABASE IMPACT:
 - SECURITY IMPACT:
 - VISUAL REFERENCE: NOT REQUIRED | REQUIRED | PROVIDED
-- VALIDATION:
+- VALIDATION: command/check | result | classification | evidence/note
 - WARNINGS:
 - KNOWN ISSUES:
-- MANUAL TEST REQUIRED:
+- MANUAL TEST: REQUIRED | PASS | FAIL | NOT FEASIBLE | NOT APPLICABLE
+- INCIDENTAL CHANGES: NONE | restored/removed item and reason
+- INTERRUPTIONS: NONE | interruption type and recovery performed
 - GIT STATUS:
 - NEXT RECOMMENDED STEP:
 ```

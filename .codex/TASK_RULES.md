@@ -23,6 +23,14 @@ This document defines the repeatable operating lifecycle for implementation work
 - Prefer existing controllers, DTOs, services, data access, validation, authorization, and workflow patterns over new patterns.
 - Stop and report when required branch, write-target, security, database, or contract conditions are not satisfied.
 
+## Interruption recovery
+
+For a transient execution, model, or provider interruption (for example an upstream error, rate limit, interrupted response, or tool timeout), inspect current Git status and the relevant diff, determine what already completed, and resume from the last verified state. Do not restart a completed audit, duplicate existing edits, or revert valid completed work merely because the response was interrupted. Report repeated external/provider failures rather than retrying without limit.
+
+## Incidental changes
+
+Tool-generated or incidental changes outside the authorized task scope must not remain in the final tracked diff unless explicitly required. Before restoring an incidental change, establish that it was absent at task start or clearly unrelated, was generated incidentally, and restoring it will not remove authorized business work. Restore only that item; never broadly revert the working tree or discard unrelated user work.
+
 ## Boundaries
 
 This workflow never authorizes Git publication, deployment, dependency upgrades, migration generation or execution, database operations, or changes outside the active task's explicit write scope.
