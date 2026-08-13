@@ -3,7 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint | `IGD-BP-001` revision `4` |
-| `contract_version` | `0.2.0-draft` |
+| `contract_version` | `0.2.0` |
+| Status | `approved` — disetujui Product/Domain Owner 14 Agustus 2026 sesuai `IGD-DEC-046` |
 | Commit diaudit | backend `e5331a0` |
 
 Transisi yang **tidak** sah ikut dituliskan, bukan hanya yang sah. Tanpa itu, implementer

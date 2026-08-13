@@ -3,7 +3,7 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint | `IGD-BP-001` revision `4` |
-| Status | `draft` — approval tetap tindakan manusia |
+| Status | `approved` — disetujui Product/Domain Owner 14 Agustus 2026 sesuai `IGD-DEC-046`; gate klinis dan security/privacy tetap berlaku sebagai syarat go-live |
 | Commit diaudit | backend `e5331a0`, frontend `08c84d371` |
 | Keputusan yang mengikat | `IGD-DEC-046` sampai `IGD-DEC-050` |
 | Aturan folder | [backend-structure-rules.md](../../../.claude/skills/design-business-module/references/backend-structure-rules.md) |

@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint | `IGD-BP-001` revision `4` |
-| `contract_version` | `0.2.0-draft` |
-| Status | `draft` — menunggu approval API owner |
+| `contract_version` | `0.2.0` |
+| Status | `approved` — disetujui Product/Domain Owner 14 Agustus 2026 sesuai `IGD-DEC-046`; hash terkunci di manifest |
 | Commit diaudit | backend `e5331a0` |
 | Pembungkus respons | `ApiResponse<T>.Ok(data, pesan)` dan `ApiResponse<T>.Fail(kode, pesan)` |
 

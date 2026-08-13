@@ -3,7 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint | `IGD-BP-001` revision `4` |
-| `contract_version` | `0.2.0-draft` |
+| `contract_version` | `0.2.0` |
+| Status | `approved sebagian` — bentuk permission per endpoint disetujui Product/Domain Owner 14 Agustus 2026; pemisahan kewenangan SuperAdmin dan break-glass menunggu security/privacy owner |
 | Commit diaudit | backend `e5331a0` |
 | Keputusan yang mengikat | `IGD-DEC-026`, `IGD-DEC-050` |
 

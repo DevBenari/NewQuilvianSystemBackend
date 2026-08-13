@@ -3,7 +3,7 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint | `IGD-BP-001` revision `4` |
-| Status | `draft` |
+| Status | `approved` — disetujui Product/Domain Owner 14 Agustus 2026 sesuai `IGD-DEC-046` |
 | Kedalaman | **Kontrak fungsional.** Revisi ini memfokuskan kedalaman detail pada backend |
 | Commit diaudit | frontend `08c84d371` |
 

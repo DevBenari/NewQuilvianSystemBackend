@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `IGD-BP-001` |
-| Revision | `3` |
-| Status | `draft` |
+| Revision | `4` |
+| Status | `approved sebagian` — lihat [Approval 2026-08-14](#approval-2026-08-14) |
 | Interview mode | `Closure pass` |
-| Product/domain owner | `OPEN — belum diidentifikasi` |
+| Product/domain owner | Pemegang sementara sesuai `IGD-DEC-046`; nama formal perlu diisi |
 | Backend SHA | `pending-trace` |
 | Frontend SHA | `pending-trace` |
 | Primary evidence | `docs/Modul-RS/Alur_Bisnis_Modul_IGD_NewQuilvian.md`, versi 1.0, 5 Agustus 2026 |
@@ -1327,3 +1327,35 @@ revision 4.
 | `IGD-CONFLICT-003` | `resolved` — `IGD-DEC-050` |
 
 Tidak ada blocker tersisa yang menghalangi penulisan blueprint revision 4.
+
+## Approval 2026-08-14
+
+Pemegang Product/Domain Owner sementara sesuai `IGD-DEC-046` menyatakan persetujuan atas
+seluruh butir yang diajukan pada 14 Agustus 2026. Persetujuan dicatat menurut batas kewenangan
+yang ditetapkan `IGD-DEC-046` sendiri.
+
+### Yang menjadi `approved` oleh persetujuan ini
+
+| Butir | Keputusan terkait | Akibat |
+| --- | --- | --- |
+| Scope, workflow, dan urutan prioritas modul IGD | `IGD-DEC-046` | Blueprint revision 4 menjadi baseline delivery |
+| Status `Completed` pada kunjungan IGD | `IGD-DEC-049` | Nilai enum baru dan endpoint penyelesaian boleh dibangun |
+| Penanda pelampauan target respons dan hosted service pemantaunya | `IGD-GAP-007`, `IGD-DEC-027` | Kolom breach, index, worker, dan endpoint daftar breach boleh dibangun |
+| Kontrak API, state, validasi, integrasi, dan permission | seluruhnya | Naik dari `0.2.0-draft` menjadi `0.2.0` dan hash-nya dikunci di manifest |
+
+### Yang **tidak** berubah statusnya walaupun disetujui
+
+Ketiga butir berikut berada di luar kewenangan Product/Domain Owner menurut `IGD-DEC-046`.
+Pernyataan setuju dicatat sebagai dukungan pemilik proses, bukan sebagai pengesahan.
+
+| Butir | Menunggu | Status tetap |
+| --- | --- | --- |
+| Nilai target waktu triase level 2 sampai 5 | SOP triase MMC | `TargetUnconfigured`; angka tidak boleh ditebak |
+| Pemisahan kewenangan SuperAdmin dan mekanisme break-glass | Security/privacy owner | Boleh dirancang dan dibangun, tidak boleh diaktifkan di produksi |
+| Skema kategori triase sebagai aturan klinis | Clinical governance owner | Tetap baseline regulasi Permenkes 47/2018, bukan persetujuan klinis |
+
+### Catatan yang harus diisi sebelum dipakai sebagai bukti formal
+
+Nama dan jabatan pemegang Product/Domain Owner belum tertulis. Sampai diisi, baris
+`approved_by` pada manifest bernilai peran, bukan orang, sehingga belum memenuhi syarat
+`GovernanceAssignment` pada `IGD-DEC-036` dan `IGD-DEC-045`.
