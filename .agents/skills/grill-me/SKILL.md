@@ -51,8 +51,19 @@ Jika mode tidak jelas, simpulkan dari artefak yang tersedia dan jelaskan asumsi 
 8. Tandai keputusan UI yang memang didelegasikan sebagai `DEV_DISCRETION`. Jangan
    menetapkan menu, route, tab/modal/drawer, warna, atau layout berdasarkan selera agent.
 
-Default interaksi adalah satu pertanyaan kritis per giliran. Jika user meminta semua
-pertanyaan sekaligus, tulis seluruh daftar ke decision log dan tampilkan ringkasan pendek.
+Default interaksi adalah satu pertanyaan kritis per giliran. Untuk setiap pertanyaan,
+selalu berikan 2--3 pilihan yang saling eksklusif bila pilihan tersebut dapat ditentukan
+dengan aman, tandai tepat satu sebagai **(Direkomendasikan)**, dan jelaskan singkat dasar
+evidence atau trade-off rekomendasinya. Selalu sediakan `Other — tuliskan pilihan atau
+constraint lain`; jika UI interaktif sudah menambahkan `Other` otomatis, jangan menduplikasi
+opsi tersebut. Jangan menyajikan rekomendasi sebagai keputusan atau approval; owner berwenang
+tetap harus memilih dan menyetujuinya. Jika pilihan aman belum dapat dirumuskan, jadikan
+rekomendasi sebagai langkah fail-closed untuk meminta keputusan/evidence owner, tetap dengan
+opsi `Other`.
+
+Jika user meminta semua pertanyaan sekaligus, tulis seluruh daftar ke decision log dan
+tampilkan ringkasan pendek; setiap pertanyaan tetap harus memiliki pilihan, rekomendasi, dan
+`Other`.
 
 ## Kelola approval
 

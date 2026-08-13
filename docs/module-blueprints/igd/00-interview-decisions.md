@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `IGD-BP-001` |
-| Revision | `1` |
+| Revision | `3` |
 | Status | `draft` |
-| Interview mode | `Scope pass` |
+| Interview mode | `Closure pass` |
 | Product/domain owner | `OPEN — belum diidentifikasi` |
 | Backend SHA | `pending-trace` |
 | Frontend SHA | `pending-trace` |
@@ -13,6 +13,11 @@
 
 ## Scope dan Outcome
 
+- **Fact:** Closure Pass 13 Agustus 2026 membaca `01-existing-capability-map.md` dan
+  menemukan bahwa model encounter yang diaudit masih membutuhkan identitas pasien, sementara
+  kontrak representasi pasien provisional sebelum `PatientId` definitif belum memiliki owner
+  maupun approval otoritatif. Ini adalah blocker desain untuk jalur provisional; keputusan dan
+  histori Scope Pass sebelumnya tetap berlaku.
 - **Fact:** Dokumen sumber mencakup kedatangan, triage/retriage, registrasi, pelayanan
   klinis, observasi, resusitasi, transfer, disposition, billing/administrasi, dan penutupan
   kunjungan IGD.
@@ -1008,6 +1013,20 @@ Skenario yang masih terbuka:
 | `IGD-DEC-036` | Decision | Mandatory GovernanceAssignment harus aktif sebelum production untuk Product Owner dan approver Clinical/Finance/Privacy/Security/Integration; missing assignment fail-closed untuk affected governance decision dan exact person/job-title menjadi go-live evidence/configuration | MMC governance sponsor + all domain owners | `draft` | User stated approval/13 Agustus 2026; authority unverified | Jawaban user 13 Agustus 2026 |
 | `IGD-DEC-037` | Decision | High-impact parameter memakai conservative defaults: finalized financial impact non-nol dan bulk ≥2 encounter/patient high-impact, approval expiry tidak auto-approve, missing checker fails closed, material clinical activity denies cancellation, dan manual reopen always high-impact/scoped/maker-checker | Clinical + finance + registration/master patient + security/privacy governance | `draft` | User stated approval/13 Agustus 2026; authority unverified | Jawaban user 13 Agustus 2026 |
 | `IGD-DEC-038` | Decision | Self-pay Outstanding + Released tetap disabled sampai seluruh written policy, exception catalog, threshold/deposit, maker-checker Finance+Product governance, evidence, receivable ownership, audit, UAT, dan feature-flag activation gate terpenuhi; clinical safety tidak dihambat | Finance/billing + product/domain + clinical governance owners | `draft` | User stated approval/13 Agustus 2026; authority unverified | Jawaban user 13 Agustus 2026 |
+| `IGD-OQ-028` | Open Question | Siapa owner Registration/Master Patient yang berwenang menyetujui kontrak provisional identity, termasuk representasi yang sah sebelum `PatientId` definitif ada dan boundary terhadap `TemporaryPatientId`? | Registration/Master Patient owner + Product/Domain Owner | `superseded` oleh `IGD-DEC-039` | â€” | Closure Pass 13 Agustus 2026; jawaban user memilih opsi A |
+| `IGD-DEC-039` | Decision | Registration Management accountable atas representasi provisional identity pada encounter. Patient Management menyetujui boundary lifecycle/reconciliation terhadap master patient, dan Product/Domain Owner menyetujui kontrak lintas-domain. Keputusan ini tidak membuat `TemporaryPatientId` atau master patient IGD baru dan tetap memerlukan approval formal dari owner berwenang. | Registration Management + Patient Management + Product/Domain Owner | `draft` | User selected option A/13 Agustus 2026; authority formal belum diidentifikasi | Closure Pass 13 Agustus 2026; `01-existing-capability-map.md` ownership map untuk encounter dan master patient |
+| `IGD-OQ-029` | Open Question | Siapa pemilik dan approver kontrak clinical context untuk pelayanan IGD provisional, agar Clinical Management dan Pharmacy dapat memakai encounter yang sama tanpa duplikasi rekam klinis? | Clinical Management owner + Registration API owner + Pharmacy owner | `superseded` oleh `IGD-DEC-040` | â€” | Closure Pass 13 Agustus 2026; jawaban user memilih opsi A |
+| `IGD-OQ-030` | Conflict | Apakah `EncounterType.Outpatient` tetap menjadi contract canonical IGD, atau target harus diubah menjadi `EncounterType.Emergency`, mengingat frontend saat ini mengirim Emergency sementara service emergency visit hanya menerima Outpatient? | Product/Domain Owner + Registration API owner + Emergency Installation owner | `superseded` oleh `IGD-DEC-041` | â€” | Closure Pass 13 Agustus 2026; jawaban user memilih opsi A |
+| `IGD-OQ-031` | Open Question | Siapa owner canonical untuk disposition, transfer, clinical completion, administrative release, dan billing completion, serta bagaimana kontrak state antar-owner tersebut disetujui tanpa menjadikan salah satu state sebagai proxy bagi yang lain? | Clinical governance + Emergency Installation + Registration + Finance/Billing owners | `superseded` oleh `IGD-DEC-042` | â€” | Closure Pass 13 Agustus 2026; jawaban user memilih opsi A |
+| `IGD-OQ-032` | Unknown | Sistem apa yang memiliki order/result lab-radiologi, critical-result routing, dan late-result follow-up; siapa owner yang menyetujui semantic contract, reliability profile, serta responsibility handover ke IGD? | Diagnostic Services + Clinical governance + Integration owners | `superseded` oleh `IGD-DEC-043` | â€” | Closure Pass 13 Agustus 2026; jawaban user memilih opsi A |
+| `IGD-OQ-033` | Open Question | Apakah mass-casualty state merupakan source of truth domain incident/disaster eksternal atau dimiliki Emergency Installation Management, dan siapa approver contract aktivasi/konfirmasi/penonaktifannya? | Incident command + Product/Domain Owner + Integration owner | `superseded` oleh `IGD-DEC-044` | â€” | Closure Pass 13 Agustus 2026; jawaban user memilih opsi A |
+| `IGD-OQ-034` | Ownership | Siapa assignee formal untuk Product/Domain, Clinical, Finance, Privacy, Security, dan Integration approval; serta siapa escalation authority ketika mandatory approver lintas-domain tidak sepakat? | MMC governance sponsor | `superseded` oleh `IGD-DEC-045` | â€” | Closure Pass 13 Agustus 2026; jawaban user memilih opsi A |
+| `IGD-DEC-040` | Decision | Clinical Management menjadi accountable owner kontrak clinical context untuk encounter provisional. `EncounterId` adalah konteks klinis canonical. Registration Management menyetujui aturan penggunaan encounter/provisional dan Pharmacy Management menyetujui kompatibilitas konsumsi konteks. Kontrak tidak boleh membuat atau menduplikasi rekam klinis IGD. | Clinical Management + Registration Management + Pharmacy Management | `draft` | User memilih opsi A/13 Agustus 2026; authority formal belum diidentifikasi | Closure Pass 13 Agustus 2026; `01-existing-capability-map.md` ownership map shared clinical facts, encounter, dan pharmacy |
+| `IGD-DEC-041` | Decision | `EncounterType.Outpatient` tetap menjadi tipe encounter canonical IGD sesuai `IGD-DEC-001`. Frontend wajib diselaraskan dengan kontrak backend; `EncounterType.Emergency` pada frontend saat ini adalah conflict provider/consumer dan bukan kontrak target yang disetujui. | Product/Domain Owner + Registration API owner + Emergency Installation owner | `draft` | User memilih opsi A/13 Agustus 2026; authority formal belum diidentifikasi | Closure Pass 13 Agustus 2026; `IGD-DEC-001`; `01-existing-capability-map.md` provider/consumer mismatch encounter type |
+| `IGD-DEC-042` | Decision | Ownership state bersifat federated: Emergency Installation mengelola disposition, transfer, dan closure episode; Clinical Governance menyetujui guard clinical completion; Registration mengelola administrative release; Finance/Billing mengelola billing dan financial clearance. Kontrak state wajib versioned dan satu state tidak boleh menjadi proxy bagi state milik domain lain. | Emergency Installation + Clinical Governance + Registration + Finance/Billing | `draft` | User memilih opsi A/13 Agustus 2026; authority formal belum diidentifikasi | Closure Pass 13 Agustus 2026; `IGD-DEC-020`, `IGD-DEC-021`; `01-existing-capability-map.md` closure-state conflict |
+| `IGD-DEC-043` | Decision | Sistem/domain Diagnostic Services yang ditunjuk menjadi source of truth untuk diagnostic order dan result. IGD mengelola acknowledgement dan handover follow-up, Integration menyetujui Reliability Profile, dan Clinical Governance menyetujui semantic serta critical-result rule. Sampai sistem dan owner bernama dibuktikan, IGD tidak boleh menduplikasi fakta diagnostik atau mengaktifkan integrasi produksi. | Diagnostic Services + Clinical Governance + Integration + Emergency Installation | `draft` | User memilih opsi A/13 Agustus 2026; sistem/authority formal belum diidentifikasi | Closure Pass 13 Agustus 2026; `IGD-DEC-024`, `IGD-DEC-032`, `IGD-DEC-033`; `01-existing-capability-map.md` diagnostic owner/contract belum teridentifikasi |
+| `IGD-DEC-044` | Decision | Sementara itu Emergency Installation menjadi source of truth state operasional mode korban massal/bencana berdasarkan `IGD-DEC-010` sampai `IGD-DEC-015`. Sinkronisasi otomatis dengan domain incident/disaster eksternal diblokir sampai owner, kontrak, approver, dan reliability evidence eksternal terbukti. Keputusan ini bukan penetapan permanent enterprise source of truth. | Emergency Installation + Incident Command + Product/Domain Owner + Integration | `draft` | User memilih opsi A/13 Agustus 2026; authority formal belum diidentifikasi | Closure Pass 13 Agustus 2026; `IGD-DEC-010`–`IGD-DEC-015`; `01-existing-capability-map.md` disaster domain di luar repository belum diketahui |
+| `IGD-DEC-045` | Decision | Sponsor governance MMC menetapkan `GovernanceAssignment` untuk Product/Domain, Clinical, Finance, Privacy, Security, dan Integration, masing-masing dengan `UserId`, capability, scope, primary/delegate, masa berlaku, dan evidence. Direktur atau pejabat governance yang ditunjuk menjadi authority eskalasi deadlock. Assignment dan jalur eskalasi belum dianggap aktif sampai evidence penetapan formal tersedia. | MMC governance sponsor | `draft` | User memilih opsi A/13 Agustus 2026; assignee dan authority formal belum diidentifikasi | Closure Pass 13 Agustus 2026; `IGD-DEC-028`; `IGD-DEC-036` |
 
 ## Evidence Eksternal Indonesia
 
@@ -1156,18 +1175,36 @@ rule terkait disetujui:
     diperlakukan high-impact sampai threshold policy yang lebih spesifik tersedia.
 57. Feature self-pay outstanding release tetap disabled sampai seluruh policy, approval, evidence,
     receivable ownership, audit, UAT, dan effective-dated activation gate terpenuhi.
+58. Clinical Management dan Pharmacy menggunakan `EncounterId` yang sama sebagai clinical context
+    provisional; modul IGD tidak membuat rekam klinis paralel.
+59. Frontend mengirim `EncounterType.Outpatient` untuk episode IGD dan backend menolak kontrak
+    type yang tidak canonical secara konsisten.
+60. Disposition/transfer/episode closure, clinical-completion guard, administrative release, serta
+    billing/financial clearance hanya dapat dimutasi oleh owner domainnya dan tidak saling
+    mengimplikasikan state lain tanpa kontrak versioned yang disetujui.
+61. Diagnostic order/result canonical tetap berada pada Diagnostic Services; tanpa sistem/owner
+    bernama, semantic contract, dan Reliability Profile yang disetujui, integrasi diagnostik
+    produksi tidak aktif dan fakta diagnostik tidak diduplikasi di IGD.
+62. State operasional mode korban massal/bencana dikelola Emergency Installation sementara;
+    sinkronisasi otomatis ke domain incident/disaster eksternal tetap diblokir sampai kontrak dan
+    reliability evidence eksternal disetujui.
+63. Governance decision lintas-domain tidak dapat menjadi approved tanpa `GovernanceAssignment`
+    aktif dan terbukti; deadlock mengikuti authority eskalasi yang ditetapkan formal.
 
 ## Open Questions dan Blocker
 
 ### Status arsitektur saat ini
 
-Tidak ada `IGD-OQ` tersisa berstatus `open`. `IGD-DEC-031` sampai `IGD-DEC-038` menutup seluruh
-pertanyaan arsitektur yang tersisa.
+`IGD-DEC-031` sampai `IGD-DEC-045` menutup pertanyaan arsitektur yang saat ini telah dijawab
+secara draft. Tidak satu pun merupakan approval formal: `IGD-DEC-039` sampai `IGD-DEC-045`
+menunggu assignment dan approval owner yang berwenang.
 
 Sebelum production, wajib tersedia: governance assignment; identity merge checker/reverse approver;
-critical-result catalog dan escalation; Integration Reliability Profile/vendor matrix; SLA
-Kuning/Hijau dan Disaster profile atau fallback; high-impact checker/approval configuration; serta
-self-pay outstanding release yang tetap disabled hingga seluruh activation gate terpenuhi.
+nama sistem/owner serta kontrak Diagnostic Services; critical-result catalog dan escalation;
+Integration Reliability Profile/vendor matrix; bukti runtime/test registrasi `Emergency*Service`
+dan aktivasi controller; SLA Kuning/Hijau dan Disaster profile atau fallback; high-impact
+checker/approval configuration; serta self-pay outstanding release yang tetap disabled hingga
+seluruh activation gate terpenuhi.
 
 Item `IGD-GAP-*`, `IGD-EVID-*`, `IGD-AUDIT-*`, `IGD-CONFLICT-*`, dan `IGD-REG-001` adalah audit/
 evidence item, bukan open architecture question. Missing configuration/evidence bersifat
@@ -1175,9 +1212,10 @@ fail-closed; clinical emergency care tetap patient-safety-first.
 
 ### Pertanyaan aktif — jawab satu per giliran
 
-Tidak ada pertanyaan aktif. Seluruh `IGD-OQ` telah tersupersesi oleh keputusan `IGD-DEC-031`
-sampai `IGD-DEC-038`; konfigurasi/evidence yang belum tersedia diperlakukan sebagai mandatory
-go-live configuration dengan behavior fail-closed.
+Tidak ada `IGD-OQ` aktif. `IGD-OQ-028` sampai `IGD-OQ-034` telah tersupersesi oleh
+`IGD-DEC-039` sampai `IGD-DEC-045` sebagai draft. Evidence dan konfigurasi yang belum tersedia
+tetap mandatory go-live gate dengan behavior fail-closed; layanan klinis emergensi tidak boleh
+diasumsikan menunggu administrasi.
 
 ### Catatan blocker historis (superseded)
 
