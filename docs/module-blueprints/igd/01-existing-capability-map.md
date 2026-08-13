@@ -246,3 +246,89 @@ compare the new revision with the SHA above and rescan at least the affected cap
 - Changes to SOP/configuration, runtime DI, database deployment, external integration, or role
   assignments invalidate the relevant source-only `Unknown` statements and require evidence from
   the owning environment.
+
+---
+
+## Impact Scan 2026-08-14 — `IGD-GAP-006`, `IGD-GAP-007`, `IGD-GAP-008`
+
+| Field | Nilai |
+| --- | --- |
+| Mode | Impact scan read-only, terbatas pada tiga gap yang `pending-audit` |
+| Commit diaudit | backend `e5331a0`, frontend `08c84d371` |
+| Pemicu | Closure Pass 2026-08-14 meneruskan ketiga gap ini ke audit source, bukan ke wawancara |
+
+Temuan utama: **sebagian besar kemampuan yang diduga belum ada ternyata sudah tersedia dalam
+bentuk generik di modul lain.** IGD sebaiknya memakai ulang, bukan membangun kerangka baru.
+
+### `IGD-GAP-006` — Ekspresivitas authorization
+
+Cara kerja authorization saat ini: `AccessPermissionAttribute(controllerName, actionName)`
+memasang `AccessPermissionFilter`, yang memanggil `AccessPermissionService.HasAccessAsync`
+dengan hanya nama controller dan nama action. Keputusan diambil dari join
+`ApplicationUserOrganizations` (DepartmentId, PositionId) ke `SysAccessPolicies`.
+
+| Kemampuan | Status | Bukti |
+| --- | --- | --- |
+| Policy berbasis Department dan Position, bukan sekadar role datar | Ready to reuse | backend + `Services/Security/AccessPermissionService.cs` + baris 85-112 + `e5331a0` |
+| Masa berlaku penugasan organisasi | Ready to reuse | backend + `Services/Security/AccessPermissionService.cs` + `EffectiveStartDate`/`EffectiveEndDate` baris 101-104 + `e5331a0` |
+| Maker-checker | Reuse with adapter | backend + `Areas/Corporate/HumanResource/WorkflowManagement/Models/TrxApprovalAction.cs`, `TrxWorkflowApproverAssignment.cs` + `e5331a0` |
+| Approval bertingkat | Reuse with adapter | backend + `.../WorkflowManagement/Models/TrxWorkflowStepInstance.cs` dan `MasterData/Workflow/Models/MstWorkflowStep.cs` + `e5331a0` |
+| Delegasi sementara | Reuse with adapter | backend + `.../WorkflowManagement/Models/TrxApprovalDelegation.cs` + `EffectiveStartAt`/`EffectiveEndAt` baris 41-43 + `e5331a0` |
+| Scope resource atau unit pelayanan pada pemeriksaan akses | **Missing** | `HasAccessAsync` tidak menerima parameter resource atau unit sama sekali; backend + `Services/Security/AccessPermissionService.cs` + baris 22-25 + `e5331a0` |
+| Pemeriksaan credential atau kompetensi klinis | **Missing** | Tidak ditemukan pada jalur authorization mana pun + `e5331a0` |
+| Bypass SuperAdmin tanpa syarat | **Conflict** | backend + `Services/Security/AccessPermissionService.cs` + `IsSuperAdminUser` baris 54-57 dan 117-151 + `e5331a0` |
+
+Catatan penting mengenai kelayakan pakai ulang: engine workflow **tidak terikat HR**.
+`TrxWorkflowInstance` memakai `ReferenceType` bertipe string dan `ReferenceId` bertipe Guid
+(baris 28 dan 30), sehingga dapat menunjuk entitas domain mana pun. Yang terikat HR hanyalah
+lokasi foldernya, bukan modelnya.
+
+Conflict yang ditemukan bersifat material: `IGD-DEC-026` menyatakan technical administrator
+tidak otomatis memiliki clinical atau business authority, sedangkan kode memberi akses penuh
+tanpa syarat kepada pemegang role `SuperAdmin` atau `UserType == 1`. Keduanya tidak dapat
+berlaku bersamaan.
+
+### `IGD-GAP-007` — Engine SLA triase
+
+| Kemampuan | Status | Bukti |
+| --- | --- | --- |
+| Snapshot batas waktu dari master | Ready to reuse | backend + `.../EmergencyInstallationManagement/Models/TrxEmergencyTriage.cs` + `MaxWaitingMinutesSnapshot` baris 39 + `e5331a0` |
+| Perhitungan deadline respons di sisi server | Ready to reuse | backend + `.../Controller/EmergencyTriageController.cs` + baris 218-220, `ResponseDueAt = StartedAt.AddMinutes(triageLevel.MaxWaitingMinutes)` + `e5331a0` |
+| Penanda breach pada triage | **Missing** | Tidak ada field breach pada `TrxEmergencyTriage` + `e5331a0` |
+| Preseden penanda breach di modul lain | Reuse with adapter | backend + `Areas/Corporate/HumanResource/HrServiceManagement/Models/TrxHrServiceRequest.cs` + `IsSlaBreached` baris 66 + `e5331a0` |
+| Kebijakan eskalasi berbasis waktu | Reuse with adapter | backend + `MasterData/Workflow/Models/MstWorkflowStep.cs` + `EscalationAfterHours` baris 67; `WorkflowManagement/Services/WorkflowService.cs` baris 1706 + `e5331a0` |
+| Pola background worker terjadwal | Ready to reuse | backend + lima hosted service pada `Areas/Corporate/HumanResource/` (Attendance, Leave Accrual, Leave Carry Forward, Leave Execution, Overtime) + `e5331a0` |
+| Worker pemantau SLA untuk IGD | **Missing** | Tidak ada hosted service satu pun di bawah `Areas/HealthServices/` + `e5331a0` |
+
+Kesimpulan: model timestamp dan deadline sudah authoritative dan dihitung di server, bukan di
+frontend. Yang belum ada hanyalah deteksi breach dan eskalasinya, dan keduanya punya pola
+matang di modul lain yang dapat diikuti.
+
+### `IGD-GAP-008` — Pemetaan authority dan approver
+
+| Kemampuan | Status | Bukti |
+| --- | --- | --- |
+| Infrastruktur pemetaan kewenangan | Extend | backend + `SysAccessPolicies` dijoin dengan Department dan Position pada `Services/Security/AccessPermissionService.cs` baris 85-112 + `e5331a0` |
+| Penugasan approver | Reuse with adapter | backend + `.../WorkflowManagement/Models/TrxWorkflowApproverAssignment.cs` + `e5331a0` |
+| Peran governance bernama: Clinical, Finance, Privacy, Security, Integration authority | **Missing** | Tidak ada representasi peran approval per domain; yang ada hanya kombinasi Department dan Position + `e5331a0` |
+
+### Rekomendasi untuk tahap desain
+
+1. **Jangan membangun capability framework baru.** Maker-checker, approval bertingkat, dan
+   delegasi sementara sudah tersedia dan generik lewat `ReferenceType`/`ReferenceId`. Yang perlu
+   dirancang adalah adapter dan penempatan namespace-nya, bukan mesinnya.
+2. **Rancang penambahan scope resource/unit pada jalur authorization**, karena inilah satu-satunya
+   kemampuan inti yang benar-benar belum ada dan dibutuhkan `IGD-DEC-026`.
+3. **Angkat bypass SuperAdmin sebagai keputusan tersendiri.** Ini conflict terhadap keputusan yang
+   sudah tercatat dan menyentuh seluruh modul, bukan hanya IGD.
+4. **Ikuti pola hosted service yang sudah ada** untuk pemantau SLA triase; jangan menciptakan
+   mekanisme penjadwalan baru.
+
+### Status gap setelah impact scan
+
+| ID | Status baru |
+| --- | --- |
+| `IGD-GAP-006` | `audited` — sebagian besar tersedia untuk dipakai ulang; kekurangan nyata hanya scope resource/unit dan credential check |
+| `IGD-GAP-007` | `audited` — model waktu sudah ada; deteksi breach dan eskalasi belum ada tetapi berpola |
+| `IGD-GAP-008` | `audited` — infrastruktur ada, peran governance bernama belum ada |
+| `IGD-CONFLICT-003` | **baru** — bypass SuperAdmin bertentangan dengan `IGD-DEC-026`; perlu keputusan pemilik security/privacy |

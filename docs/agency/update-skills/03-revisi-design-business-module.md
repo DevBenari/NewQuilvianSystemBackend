@@ -461,9 +461,18 @@ Sesuai DEC-RSK-008, penulisan ulang blueprint IGD adalah pekerjaan terpisah.
 
 | No | Langkah | Selesai |
 | ---: | --- | :---: |
-| 1 | Jalankan `/design-business-module` untuk modul IGD memakai skill yang sudah diperbarui | ☐ |
-| 2 | Periksa keluarannya terhadap kontrak baru; kekurangan yang muncul diperbaiki di skill, bukan ditambal manual pada dokumen | ☐ |
-| 3 | Naikkan `blueprint-manifest.md` IGD menjadi revision 4 | ☐ |
+| 1 | Jalankan `/design-business-module` untuk modul IGD memakai skill yang sudah diperbarui | ☑ |
+| 2 | Periksa keluarannya terhadap kontrak baru; kekurangan yang muncul diperbaiki di skill, bukan ditambal manual pada dokumen | ☑ |
+| 3 | Naikkan `blueprint-manifest.md` IGD menjadi revision 4 | ☑ |
+
+Dikerjakan pada 2026-08-14. Gerbang input tidak lolos pada percobaan pertama, sehingga
+didahului `grill-me` Closure Pass dan `trace-existing-capabilities` impact scan. Rinciannya
+ada pada bagian 11 `00-interview-decisions.md` dan bagian impact scan
+`01-existing-capability-map.md`.
+
+Catatan pelaksanaan: skill tidak dapat dipanggil lewat mekanisme skill karena dibuat setelah
+sesi dimulai. Prosedurnya dijalankan dengan membaca `SKILL.md` beserta ketiga reference-nya
+secara harfiah. Seluruh artefak wajib pada kontrak baru terbukti dapat dihasilkan.
 
 ## 11. Decision log wawancara
 

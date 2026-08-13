@@ -1,45 +1,52 @@
-# IGD — Context ERD
+# Context ERD — Modul IGD
 
-| Field | Value |
-|---|---|
-| Contract version/status | `0.1.0-draft` |
-| Owner | Cross-domain owners in `IGD-DEC-039`–`045` |
-| Approval | `—` |
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `IGD-BP-001` revision `4` |
+| Cakupan | Hubungan antar bounded context, bukan detail kolom |
+| Commit diaudit | backend `e5331a0` |
 
-This is a logical context ERD. It explicitly marks ownership and does not create duplicate patient,
-clinical, prescription, financial, or diagnostic masters.
+Diagram ini memperlihatkan bagaimana IGD terhubung ke modul lain. Aturannya satu: IGD
+**menunjuk**, tidak menyalin.
 
 ```mermaid
 erDiagram
-    MstPatient ||--o{ TrxPatientEncounter : definitive_identity
-    ProvisionalIdentity ||--o| TrxPatientEncounter : provisional_identity
-    TrxPatientEncounter ||--|| TrxEmergencyVisit : episode_extension
-    TrxEmergencyVisit ||--o{ TrxEmergencyTriage : has
-    TrxEmergencyVisit ||--o{ TrxEmergencyObservation : has
-    TrxEmergencyVisit ||--o{ TrxEmergencyResuscitation : has
-    TrxEmergencyVisit ||--o{ TrxEmergencyDisposition : has_history
-    TrxEmergencyVisit ||--o{ TrxEmergencyTransfer : has_history
-    TrxPatientEncounter ||--o{ ClinicalFactRef : context_for
-    TrxPatientEncounter ||--o{ PrescriptionRef : context_for
-    TrxPatientEncounter ||--o{ BillingHandoffRef : handoff
-    TrxPatientEncounter ||--o{ DiagnosticFollowUpRef : follows
-    ProvisionalIdentity ||--o{ IdentityReconciliationCase : subject
-    EmergencyIncidentOperation ||--o{ EmergencyIncidentEvent : records
-    TrxEmergencyVisit }o--o| EmergencyIncidentOperation : operating_context
-    TrxEmergencyVisit ||--o{ IgbStateLedger : audited_by
-    IgbOutboxMessage ||--o| IgbInboxReceipt : delivers
+    TrxPatientEncounter ||--o| TrxEmergencyVisit : "1:0..1 — Sudah ada"
+    Patient ||--o{ TrxEmergencyVisit : "1:N — Sudah ada, direferensikan"
+    MstServiceUnit ||--o{ TrxEmergencyVisit : "1:N — Sudah ada"
+    TrxEmergencyVisit ||--o{ TrxEmergencyTriage : "1:N — Sudah ada"
+    TrxEmergencyVisit ||--o{ TrxEmergencyResuscitation : "1:N — Sudah ada"
+    TrxEmergencyVisit ||--o{ TrxEmergencyObservation : "1:N — Sudah ada"
+    TrxEmergencyVisit ||--o{ TrxEmergencyDisposition : "1:N — Sudah ada"
+    TrxEmergencyVisit ||--o{ TrxEmergencyTransfer : "1:N — Sudah ada"
+    TrxPatientProcedure ||--o| TrxEmergencyProcedureDetail : "1:0..1 — Sudah ada"
+    TrxPatientVitalSign ||--o{ TrxEmergencyObservationDetail : "1:N — Sudah ada, direferensikan"
+    TrxPatientIntegratedProgressNote ||--o{ TrxEmergencyObservationDetail : "1:N — Sudah ada, direferensikan"
 ```
 
-| Logical entity | Classification / owner | Key relationship and boundary |
-|---|---|---|
-| `MstPatient` | Existing / Patient Management | Definitive master only; never owned or copied by IGD. |
-| `ProvisionalIdentity` | Extend / Registration Management with Patient Management approval | One controlled provisional identity may be resolved to one definitive patient; retains historical link. |
-| `TrxPatientEncounter` | Extend / Registration Management | Canonical `EncounterId`; identity is definitive **or** provisional, never neither/both active. |
-| `TrxEmergencyVisit` and child records | Existing + Extend / Emergency Installation | IGD extension of one encounter; unique active encounter relationship. |
-| `ClinicalFactRef`, `PrescriptionRef` | Adapter/View / Clinical and Pharmacy | References to owners’ records; no clinical/prescription payload copied. |
-| `BillingHandoffRef`, `DiagnosticFollowUpRef` | Adapter/View / Finance and Diagnostic Services | References/outcomes only; no invoice/result source-of-truth. |
-| `IdentityReconciliationCase`, `IgbStateLedger`, `IgbOutboxMessage`, `IgbInboxReceipt` | New / designated owner | Controlled workflow/audit/reliability records, not patient/clinical/financial masters. |
-| `EmergencyIncidentOperation`, `EmergencyIncidentEvent` | New / Emergency Installation | Local operational state pending approved external contract. |
+## Batas kepemilikan
 
-Physical schema naming, migrations, and external diagnostic/billing foreign keys require owner
-approval. Cross-domain references may be logical IDs only where database ownership is separate.
+| Bounded context | Modul pemilik | Cara IGD memakainya |
+| --- | --- | --- |
+| Encounter | Registration Management | `TrxEmergencyVisit.EncounterId` |
+| Pasien | Patient Management | `TrxEmergencyVisit.PatientId` |
+| Unit pelayanan, ruangan, bed | Master Data | `ServiceUnitId`, `FromRoomId`, `ToBedId`, dan sejenisnya |
+| Tindakan klinis | Clinical Management | `TrxEmergencyProcedureDetail.PatientProcedureId` |
+| Tanda vital | Clinical Management | `TrxEmergencyObservationDetail.PatientVitalSignId` |
+| CPPT | Clinical Management | `TrxEmergencyObservationDetail.ProgressNoteId` |
+| Approval dan delegasi | Workflow Management | `TrxWorkflowInstance.ReferenceType` = `EmergencyVisit`, `ReferenceId` = `TrxEmergencyVisit.Id` |
+| Billing | Billing Management | Melalui `EncounterId`; **tidak** menjadi syarat penutupan klinis sesuai `IGD-DEC-021` |
+
+## Arah ketergantungan
+
+IGD bergantung pada modul pusat, tidak sebaliknya. Modul pusat tidak boleh mengetahui adanya
+IGD. Konsekuensinya:
+
+- perubahan pada IGD tidak boleh memaksa perubahan pada Clinical Management;
+- IGD tidak boleh menambah kolom pada entitas milik modul lain;
+- kebutuhan lintas modul diselesaikan lewat relasi atau adapter, bukan penambahan kolom.
+
+## Yang tidak muncul di diagram ini
+
+Modul Laboratory dan Radiology terhubung ke IGD hanya melalui `EncounterId` yang sama, tanpa
+relasi langsung ke entitas IGD. Karena itu keduanya tidak digambar sebagai relasi.

@@ -1,37 +1,63 @@
-# IGD — Integration Contract
+# Integration Contract — Modul IGD
 
-| Field | Value |
-|---|---|
-| `contract_version` | `0.1.0-draft` |
-| Owner | Integration plus affected data owner |
-| Approval | Technical Integration **and** affected Clinical/Finance/Privacy/Security authority |
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `IGD-BP-001` revision `4` |
+| `contract_version` | `0.2.0-draft` |
+| Commit diaudit | backend `e5331a0` |
 
-## Universal envelope and delivery rule
+## Ruang lingkup
 
-Each command/event carries `MessageId`, `IdempotencyKey`, `CorrelationId`, `CausationId` when
-applicable, source/destination, schema version, aggregate/resource ID, `EncounterId` where
-relevant, and safe timestamps. Payloads contain minimum necessary data. Delivery is at-least-once
-with idempotent receiver side effects; it is not claimed as exactly-once.
+Modul IGD **tidak memanggil sistem di luar aplikasi** pada revisi ini. Tidak ada integrasi ke
+BPJS, SATUSEHAT, laboratorium eksternal, maupun layanan pihak ketiga lain yang terbukti di
+source code pada commit `e5331a0`.
 
-| Integration | Truth owner / target role | Pattern | Production activation gate |
-|---|---|---|---|
-| Registration ↔ Emergency | Registration owns encounter; Emergency owns visit extension | Local atomic episode creation in current monolith; outbox if boundary separates | Unique active encounter visit, idempotency, migration and controller/DI proof |
-| Emergency ↔ Clinical / Pharmacy | Clinical/Pharmacy own facts | Context adapter using canonical encounter, versioned request/event | Clinical/Registration/Pharmacy approval of provisional context (`DEC-040`) |
-| Emergency ↔ Finance | Finance owns charge/clearance/release outcome | Billing handoff/reference; async delivery/reconciliation | Named transactional Finance contract; current self-pay outstanding release flag false |
-| Diagnostic Services ↔ IGD | Diagnostic Services owns order/result | Stable external order/result IDs feed IGD review-task/reference adapter | Named system/owner, semantic/critical rules, approved Reliability Profile (`DEC-043`) |
-| Emergency ↔ incident/disaster | IGD owns temporary operational state | No automatic synchronisation; future adapter only | External incident owner/contract/approver/reliability evidence (`DEC-044`) |
+Yang ada adalah keterkaitan **antar modul di dalam satu aplikasi**, dan itu terjadi melalui
+relasi basis data, bukan melalui pemanggilan jaringan. Karena itu tidak diperlukan kontrak
+integrasi berupa endpoint, antrean pesan, atau webhook.
 
-## Reliability profile
+Dokumen ini tetap dibuat agar pembaca dapat membedakan "memang tidak diperlukan" dari
+"terlupa ditulis", sesuai aturan struktur keluaran.
 
-| Rule | Draft baseline from `IGD-DEC-033` |
-|---|---|
-| Internal synchronous call | 10-second timeout; at most 2 safe/idempotent interactive attempts |
-| External/vendor call | 30-second timeout |
-| Retry | Transient-only, bounded exponential backoff with jitter, same idempotency key |
-| State-changing vendor timeout | Retry only when native idempotency/status-query is proven; otherwise `OutcomeUnknown` + reconciliation |
-| Failure terminal | Dead-letter/`NeedsReconciliation`, owner queue, age/attempt metrics and audited reprocess |
-| Compensation | Domain command such as cancel/correct; no destructive cross-module rollback |
+## Keterkaitan antar modul di dalam aplikasi
 
-The vendor matrix must record native idempotency, status-query, correlation echo, async ack,
-retry-after, deduplication, cancellation/reversal, webhook callback, PHI classification, and
-retention. Unknown means unsupported and prevents production activation.
+| Modul lain | Cara terhubung | Arah | Catatan |
+| --- | --- | --- | --- |
+| Registration Management | `TrxEmergencyVisit.EncounterId` | IGD menunjuk | Encounter dimiliki Registration |
+| Patient Management | `TrxEmergencyVisit.PatientId` | IGD menunjuk | Boleh kosong untuk pasien tidak dikenal |
+| Clinical Management | `PatientProcedureId`, `PatientVitalSignId`, `ProgressNoteId` | IGD menunjuk | Tidak ada penyalinan data klinis |
+| Master Data | `ServiceUnitId`, `RoomId`, `BedId` | IGD menunjuk | Relasi ruangan dan bed menunggu entity final |
+| Workflow Management | `TrxWorkflowInstance.ReferenceType` dan `ReferenceId` | IGD menunjuk | Engine generik; IGD tidak membangun kerangka approval sendiri |
+| Billing Management | Melalui `EncounterId` yang sama | Tidak ada relasi langsung | Billing **bukan** syarat penyelesaian klinis |
+| Pharmacy, Laboratory, Radiology | Melalui `EncounterId` yang sama | Tidak ada relasi langsung | Order dan hasil dimiliki modul masing-masing |
+
+Arah ketergantungan selalu satu arah: IGD bergantung pada modul pusat, dan modul pusat tidak
+mengetahui adanya IGD.
+
+## Proses terjadwal di dalam aplikasi
+
+| Proses | Pemicu | Frekuensi | Status |
+| --- | --- | --- | --- |
+| `EmergencyTriageSlaMonitorHostedService` | Waktu | Berkala | **Baru** — memindai `ResponseDueAt` yang terlampaui lalu menandai `IsSlaBreached` |
+
+Proses ini berjalan di dalam aplikasi yang sama, bukan integrasi eksternal. Ia mengikuti pola
+lima hosted service yang sudah ada pada modul Human Resource, sehingga tidak memerlukan
+mekanisme penjadwalan baru.
+
+Sifat yang wajib dipenuhi:
+
+- **Idempotent** — menjalankan pemindaian dua kali tidak menghasilkan penandaan ganda.
+- **Tidak memblokir pelayanan** — kegagalan pemindaian tidak boleh menghalangi triage,
+  penanganan, maupun penyelesaian kunjungan.
+- **Tidak mengubah data klinis** — hanya mengisi penanda breach dan waktunya.
+
+## Bila kebutuhan integrasi eksternal muncul
+
+Dokumen ini ditinjau ulang apabila salah satu berikut terjadi:
+
+1. IGD perlu mengirim atau menerima data ke sistem di luar aplikasi;
+2. rujukan keluar perlu terhubung ke sistem fasilitas tujuan;
+3. pelaporan wajib ke sistem pemerintah dilakukan langsung dari modul IGD.
+
+Ketiganya belum menjadi kebutuhan pada revisi ini dan **tidak boleh** dirancang lebih dulu
+tanpa keputusan pemilik yang berwenang.

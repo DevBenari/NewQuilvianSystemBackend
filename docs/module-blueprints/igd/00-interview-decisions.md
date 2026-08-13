@@ -1252,3 +1252,78 @@ diasumsikan menunggu administrasi.
 - Governance mapping/evidence menunggu `IGD-OQ-025` dan `IGD-GAP-008`; high-impact
   correction/reopen detail masih diblokir oleh `IGD-OQ-026`.
   Pass cukup.
+
+## Closure Pass 2026-08-14
+
+Pass ini menutup blocker yang menghalangi `design-business-module` melewati gerbang input.
+Konteks lengkap ada di `docs/agency/update-skills/03-revisi-design-business-module.md`.
+
+### Fakta yang ditemukan dari source, bukan dari wawancara
+
+| ID | Fakta | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-005` | Skema warna triase belum ada di kode. `MstEmergencyTriageLevel` memiliki kolom `ColorName` dan `ColorHex`, tetapi tidak ada seeder level triase | `Areas/HealthServices/MasterData/Models/MstEmergencyTriageLevel.cs`; pencarian seeder tidak menemukan hasil |
+| `IGD-FACT-006` | Enum `EmergencyTriageSystem` hanya memuat `ATS` dan `ESI`, keduanya skala lima level, sedangkan Permenkes 47/2018 memakai empat kategori warna. Pemetaan warna ke level belum ditetapkan | `Areas/HealthServices/EmergencyInstallationManagement/Enums/EmergencyTriageSystem.cs` |
+| `IGD-FACT-007` | Modul IGD tidak memiliki satu pun rujukan ke billing. Status akhir kunjungan adalah `Disposed`, tidak ada status `Closed` terpisah | Pencarian pada seluruh `Areas/HealthServices/EmergencyInstallationManagement/`; `EmergencyVisitStatus.cs` |
+| `IGD-FACT-008` | Tidak ada file `.cs` maupun `src/` yang berubah antara snapshot manifest revision 3 dan HEAD kedua repository. Bukti source pada capability map masih sahih | Impact scan `fa772b71..HEAD` backend dan `e77ebd80..HEAD` frontend |
+
+### Keputusan
+
+| ID | Jenis | Isi | Owner | Status | Bukti | Catatan |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-046` | Decision | Product/Domain Owner IGD dipegang sementara oleh pemilik suite skill, berwenang atas scope, workflow, prioritisasi, dan penerimaan operasional. Clinical governance owner dan security/privacy owner tetap `OPEN` dan menjadi syarat go-live. Keputusan klinis tidak disahkan oleh Product/Domain Owner; keputusan tersebut memakai regulasi yang berlaku sebagai baseline sampai clinical governance owner ditunjuk | Product/domain owner | `approved` | Jawaban pemilik suite skill 14 Agustus 2026 | Menutup blocker kepemilikan pada gerbang `design-business-module`. Nama orang perlu diisi sebelum dipakai sebagai bukti approval formal |
+
+### Blocker yang tersisa dan penanganannya
+
+| ID | Status | Penanganan |
+| --- | --- | --- |
+| `IGD-CONFLICT-002` | Sedang ditutup pada pass ini | Skema kategori triase |
+| `IGD-CONFLICT-001` | Sedang ditutup pada pass ini | Penutupan klinis versus billing |
+| `IGD-GAP-006`, `IGD-GAP-007`, `IGD-GAP-008` | Bukan pertanyaan wawancara | Jawabannya ada di source code. Diteruskan ke `/trace-existing-capabilities` mode impact scan, bukan ditanyakan kepada pengguna |
+
+| `IGD-DEC-047` | Decision | Skema kategori triase IGD memakai baseline regulasi Permenkes 47/2018: Merah, Kuning, Hijau, dan Hitam. Klaim skema Merah/Jingga/Kuning/Hijau dari situs publik MMC dicatat sebagai evidence belum terverifikasi dan tidak dipakai. Klaim tersebut hanya boleh menggantikan baseline apabila SOP triase MMC yang disahkan dan masih berlaku diserahkan, disertai snapshot atau URL sumber | Product/domain owner, dengan clinical governance owner sebagai approver akhir saat ditunjuk | `approved` | Jawaban pemilik suite skill 14 Agustus 2026; hierarki sumber kebenaran project menaruh regulasi di urutan 1 dan klaim tanpa bukti di urutan 7 | Menutup `IGD-CONFLICT-002`. Tidak mengubah `IGD-DEC-007`, melainkan menegaskannya. Keputusan ini dibuat sebagai baseline regulasi sesuai `IGD-DEC-046`, bukan sebagai persetujuan klinis |
+| `IGD-DEC-048` | Decision | Skala triase tetap memakai `EmergencyTriageSystem` ATS atau ESI dengan `Level` 1 sampai 5 sebagaimana enum yang sudah ada di kode. Kategori warna Permenkes menjadi pengelompokan atas skala tersebut: Merah untuk level 1 dan 2, Kuning untuk level 3, Hijau untuk level 4 dan 5. Hitam adalah kategori tersendiri di luar skala antrean dan tidak menjadi nilai `Level` biasa | Product/domain owner, dengan clinical governance owner sebagai approver akhir saat ditunjuk | `approved` | Jawaban pemilik suite skill 14 Agustus 2026 | Menjaga makna frasa "pasien level 1–2" dan "pasien tak dikenal level 1" pada keputusan terdahulu tetap sama. Sejalan dengan keputusan bahwa Hitam bukan SLA antrean biasa dan tidak boleh ditentukan otomatis oleh aplikasi |
+
+### Hasil audit source untuk conflict dan gap
+
+| ID | Status baru | Temuan |
+| --- | --- | --- |
+| `IGD-CONFLICT-001` | `resolved — tidak terkonfirmasi` | Tidak ditemukan satu pun implementasi backend yang mensyaratkan billing `Final` untuk clinical completion. `BillingManagement` tidak merujuk `EncounterId` sama sekali, dan modul IGD tidak memiliki rujukan billing. Satu-satunya keterkaitan billing yang ditemukan ada di `PharmacyManagement/Services/PrescriptionWorkflowService.cs` baris 68, yaitu resep harus final sebelum billing dibuat — arah kebalikannya dan bukan tentang penutupan encounter. `IGD-DEC-021` tidak bertentangan dengan source |
+| `IGD-GAP-001` | `confirmed` | `TrxEmergencyVisit` memiliki `VisitCompletedAt` pada baris 67, tetapi `EmergencyVisitStatus` tidak memiliki nilai `Completed`. Status yang tersedia hanya `Arrived`, `WaitingForTriage`, `Triaged`, `InTreatment`, `UnderObservation`, `AwaitingDisposition`, `Disposed`, dan `Cancelled`. Model state memang belum memisahkan disposition dari clinical completion, persis seperti yang diduga gap ini |
+
+| ID | Jenis | Isi | Owner | Status | Bukti | Catatan |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-049` | Decision | `EmergencyVisitStatus` mendapat nilai baru `Completed` yang ditempatkan setelah `Disposed`. `Disposed` berarti dokter telah menetapkan tindak lanjut; `Completed` berarti seluruh kewajiban klinis dan transfer yang relevan telah tuntas dan `VisitCompletedAt` terisi. Transisi `Disposed` ke `Completed` hanya sah bila seluruh closure gate klinis dan transfer terpenuhi | Product/domain owner, dengan clinical governance owner sebagai approver akhir saat ditunjuk | `approved` | Jawaban pemilik suite skill 14 Agustus 2026; `IGD-GAP-001` terkonfirmasi di source | Menutup `IGD-GAP-001`. Tidak membuka keputusan baru karena `IGD-DEC-021` sudah menyatakan encounter dapat `Completed` setelah disposition. Konsekuensi implementasi: penambahan nilai enum berarti perubahan model dan migration, ditambah aturan transisi baru pada state-transition matrix |
+
+### Penutupan Closure Pass 2026-08-14
+
+| Blocker | Status akhir | Ditutup oleh |
+| --- | --- | --- |
+| B1 — Kepemilikan keputusan | `resolved` | `IGD-DEC-046` |
+| B2 — Skema kategori triase | `resolved` | `IGD-DEC-047` dan `IGD-DEC-048` |
+| B3 — Penutupan klinis versus billing | `resolved` | Audit source: `IGD-CONFLICT-001` tidak terkonfirmasi; `IGD-GAP-001` ditutup `IGD-DEC-049` |
+| B4 — Capability gap authorization, SLA, dan authority mapping | **masih terbuka** | Bukan pertanyaan wawancara. Diteruskan ke `/trace-existing-capabilities` mode impact scan untuk `IGD-GAP-006`, `IGD-GAP-007`, dan `IGD-GAP-008` |
+
+Catatan penting: decision log ini berubah pada pass tersebut, sehingga `input_hashes` pada
+`blueprint-manifest.md` menjadi stale dan wajib diperbarui saat blueprint dinaikkan ke
+revision 4.
+
+### Tambahan pasca impact scan 2026-08-14
+
+| ID | Jenis | Isi | Owner | Status | Bukti | Catatan |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-FACT-009` | Fact | Endpoint bertanda `IsSystemOnly` sengaja dikecualikan dari pencarian policy pada `AccessPermissionService`, sehingga saat ini hanya dapat diakses melalui bypass SuperAdmin. Contoh pemakaian ada pada `HumanResourceContextController` | — | `approved` | backend + `Services/Security/AccessPermissionService.cs` baris 65 dan 70; `Attributes/AccessControllerAttribute.cs` baris 30; `Areas/SelfServices/HumanResource/Controllers/HumanResourceContextController.cs` baris 23 dan 44 + `e5331a0` | Bypass SuperAdmin memiliki fungsi teknis yang sah dan sedang dipakai |
+| `IGD-FACT-010` | Fact | Tidak ada mekanisme break-glass atau emergency access pada kode aplikasi | — | `approved` | Pencarian pada seluruh source backend + `e5331a0` | Akses darurat klinis belum punya jalur resmi |
+| `IGD-DEC-050` | Decision | Kewenangan SuperAdmin dipisahkan menurut jenis endpoint. Untuk endpoint bertanda `IsSystemOnly`, SuperAdmin tetap berwenang penuh karena itu wilayah teknis. Untuk endpoint klinis dan bisnis, SuperAdmin wajib melewati pemeriksaan policy seperti pengguna lain dan tidak lagi memperoleh bypass. Akses darurat klinis ditangani mekanisme break-glass tersendiri yang tercatat, berbatas waktu, dan dapat ditinjau | Product/domain owner sebagai baseline desain; security/privacy owner sebagai approver akhir saat ditunjuk | `approved` | Jawaban pemilik suite skill 14 Agustus 2026 | Menutup `IGD-CONFLICT-003` tanpa memutus jalur teknis yang sedang berjalan. Mekanisme break-glass belum ada di kode sehingga menjadi kebutuhan desain baru. Persetujuan security/privacy owner menjadi syarat go-live sesuai `IGD-DEC-046` |
+
+### Status gerbang `design-business-module` setelah pass ini
+
+| Blocker | Status |
+| --- | --- |
+| B1 Kepemilikan keputusan | `resolved` — `IGD-DEC-046` |
+| B2 Skema kategori triase | `resolved` — `IGD-DEC-047`, `IGD-DEC-048` |
+| B3 Penutupan klinis versus billing | `resolved` — audit source dan `IGD-DEC-049` |
+| B4 Capability gap | `resolved` — impact scan 2026-08-14 pada capability map |
+| `IGD-CONFLICT-003` | `resolved` — `IGD-DEC-050` |
+
+Tidak ada blocker tersisa yang menghalangi penulisan blueprint revision 4.
