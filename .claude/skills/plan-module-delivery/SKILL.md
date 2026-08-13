@@ -7,9 +7,29 @@ description: Ubah blueprint bisnis Quilvian yang sudah disetujui menjadi roadmap
 
 Susun satu rencana delivery terpadu tanpa menggabungkan tanggung jawab backend dan frontend menjadi task yang kabur.
 
+## Effort dan model minimum
+
+| Field | Nilai |
+| --- | --- |
+| Minimum effort | `medium` |
+| Model Claude minimum | Claude Sonnet 5 |
+| Model Claude disarankan | Claude Opus 5 |
+| Model GPT setara | GPT-5, reasoning `medium` |
+| Alasan | Pemecahan vertical slice dan urutan dependency menuntut penalaran, tetapi seluruh bahannya sudah tersedia pada blueprint approved |
+
+Jika sesi berjalan di bawah batas ini, beritahu pengguna sebelum mulai dan minta konfirmasi.
+
+## Aturan output dokumentasi
+
+Roadmap dan traceability wajib mengikuti
+[aturan output dokumentasi](../../rules/rule-output/aturan-output-dokumentasi.md): Bahasa Indonesia,
+bahasa yang mudah dipahami orang umum, penjelasan detail beserta contoh, bisnis proses yang
+jelas, dan endpoint bergaya Swagger. Tulis outcome setiap task dengan kalimat yang dipahami
+pemilik proses bisnis, bukan hanya nama layer teknis.
+
 ## Input wajib
 
-Temukan blueprint canonical di `QuilvianBackend/docs/module-blueprints/<module>/`, lalu baca:
+Temukan blueprint canonical di `NewQuilvianSystemBackend/docs/module-blueprints/<module>/`, lalu baca:
 
 1. manifest dan status approval;
 2. decision log;
@@ -56,7 +76,7 @@ Urutkan fondasi kontrak, slice minimum yang dapat dipakai, integrasi lintas modu
 Gunakan format di [roadmap-template.md](references/roadmap-template.md). Simpan satu kali di:
 
 ```text
-QuilvianBackend/docs/module-blueprints/<module>/roadmap/
+NewQuilvianSystemBackend/docs/module-blueprints/<module>/roadmap/
   backend-roadmap.md
   frontend-roadmap.md
   requirement-traceability.md
@@ -72,10 +92,18 @@ Frontend hanya mereferensikan module ID, revision, task ID, dan contract version
 - Jangan menandai task selesai tanpa acceptance evidence.
 - Jika requirement tidak terhubung ke task atau test, keluarkan sebagai coverage gap.
 
-## Handoff
+## Tawarkan skill berikutnya
 
-Setelah approval roadmap:
+Setelah roadmap tuntas dan disetujui, **selalu** tawarkan langkah berikutnya secara eksplisit,
+lengkap dengan alasan singkatnya. Sebutkan task ID konkret yang paling siap dikerjakan, bukan
+sekadar nama skill:
 
-- jalankan `build-module-backend` untuk satu task backend yang dipilih;
-- jalankan `build-module-frontend` untuk satu task frontend yang dipilih;
-- jalankan `verify-module-readiness` setelah slice memiliki bukti implementasi.
+| Kondisi setelah roadmap | Skill yang ditawarkan |
+| --- | --- |
+| Ada task backend paling siap tanpa dependency terbuka | `/build-module-backend` untuk satu task ID tersebut |
+| Kontrak terkait sudah `APPROVED` dan hash terkunci | `/build-module-frontend` untuk satu task frontend, boleh paralel |
+| Satu vertical slice sudah punya bukti implementasi | `/verify-module-readiness` |
+| Roadmap menemukan requirement tanpa task atau tanpa test | `/design-business-module` atau `/grill-me` sesuai jenis gap |
+
+Satu pemanggilan skill build hanya untuk satu task. Tawarkan, jangan jalankan sendiri, dan
+jangan menggabungkan beberapa task menjadi satu permintaan.

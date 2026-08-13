@@ -7,13 +7,34 @@ description: Audit kemampuan existing Quilvian lintas backend dan frontend sebel
 
 Petakan kemampuan nyata, bukan sekadar nama file. Jangan memperbaiki kode dalam sesi audit.
 
+## Effort dan model minimum
+
+| Field | Nilai |
+| --- | --- |
+| Minimum effort | `high` |
+| Model Claude minimum | Claude Sonnet 5 |
+| Model Claude disarankan | Claude Opus 5 |
+| Model GPT setara | GPT-5, reasoning `high` |
+| Alasan | Audit menyisir dua repository sekaligus dan harus membedakan kemampuan nyata dari nama file yang mirip |
+
+Jika sesi berjalan di bawah batas ini, beritahu pengguna sebelum mulai dan minta konfirmasi.
+Effort rendah cenderung menghasilkan capability map yang tampak lengkap padahal dangkal.
+
+## Aturan output dokumentasi
+
+Capability map dan seluruh laporan skill ini wajib mengikuti
+[aturan output dokumentasi](../../rules/rule-output/aturan-output-dokumentasi.md): Bahasa Indonesia,
+bahasa yang mudah dipahami orang umum, penjelasan detail beserta contoh, bisnis proses yang
+jelas, dan endpoint bergaya Swagger. Untuk API as-is yang ditemukan, tuliskan judul grup
+persis nilai `[Tags(...)]` pada controller lalu sajikan tabel endpoint.
+
 ## Siapkan audit
 
 1. Temukan Git root backend dan frontend.
 2. Baca decision log modul dan identifikasi kebutuhan yang perlu dibuktikan.
 3. Catat commit SHA kedua repository sebelum menyisir.
 4. Gunakan output canonical:
-   `QuilvianBackend/docs/module-blueprints/<module>/01-existing-capability-map.md`.
+   `NewQuilvianSystemBackend/docs/module-blueprints/<module>/01-existing-capability-map.md`.
 5. Baca [capability map template](references/capability-map-template.md).
 
 Jika database, service eksternal, atau runtime environment tidak boleh diperiksa, nyatakan
@@ -85,3 +106,16 @@ yang relevan belum dapat dibuktikan.
 
 Jika SHA berubah sebelum tahap berikutnya, tandai map stale dan lakukan impact scan pada
 area berubah sebelum map dipakai kembali.
+
+## Tawarkan skill berikutnya
+
+Setelah capability map tuntas, **selalu** tawarkan langkah berikutnya secara eksplisit,
+lengkap dengan alasan singkatnya:
+
+| Kondisi setelah audit | Skill yang ditawarkan |
+| --- | --- |
+| Masih ada `Conflict`, `Unknown`, atau ownership yang belum jelas | `/grill-me` Closure Pass |
+| Capability sudah berstatus dan berbukti, keputusan sudah cukup | `/design-business-module` |
+| Audit dijalankan sebagai impact scan dan desain sudah ada | `/design-business-module` revisi, atau `/plan-module-delivery` bila kontrak tidak berubah |
+
+Tawarkan, jangan jalankan sendiri. Tunggu persetujuan pengguna sebelum berpindah skill.

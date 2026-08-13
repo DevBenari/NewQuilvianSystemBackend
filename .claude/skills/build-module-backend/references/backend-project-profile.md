@@ -2,7 +2,7 @@
 
 ## Project
 
-- Root: `QuilvianBackend/`
+- Root: `NewQuilvianSystemBackend/`
 - Stack utama: ASP.NET Core, Entity Framework Core, controller/service/DTO, SQL Server.
 - Project file: `QuilvianSystemBackend.csproj`.
 - Blueprint canonical: `docs/module-blueprints/<module>/`.

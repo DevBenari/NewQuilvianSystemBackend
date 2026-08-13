@@ -5,7 +5,7 @@
 | Status | Canonical usage guide |
 | Tanggal | 2026-08-13 |
 | Cakupan | Backend dan frontend, dari discovery sampai readiness |
-| Blueprint canonical | `QuilvianBackend/docs/module-blueprints/<module>/` |
+| Blueprint canonical | `NewQuilvianSystemBackend/docs/module-blueprints/<module>/` |
 | Skill canonical | 6 backend + 1 frontend |
 | Adapter frontend | 5 shared skills |
 
@@ -22,9 +22,19 @@ dan frontend authority tetap memutuskan area sesuai kewenangannya.
 
 ## 2. Cara Claude Code menemukan dan menjalankan skill
 
-Jalankan Claude Code dengan current working directory di `QuilvianBackend` untuk menggunakan enam
-skill yang tersedia di `.claude/skills/`. Ketik `/` untuk melihat daftar skill yang terdeteksi
-atau panggil secara eksplisit dengan `/nama-skill`.
+Buka satu sesi dari backend sambil menambahkan frontend:
+
+```bash
+cd NewQuilvianSystemBackend
+claude --add-dir ../QuilvianSystemFrontendDev
+```
+
+Sesi ini memuat **ketujuh** skill sekaligus: enam dari `.claude/skills/` backend, dan
+`build-module-frontend` dari frontend. `--add-dir` memuat `.claude/skills/` milik direktori
+yang ditambahkan secara otomatis, sekaligus memberi akses baca dan tulis ke source-nya.
+
+Ketik `/` untuk melihat daftar skill yang terdeteksi atau panggil secara eksplisit dengan
+`/nama-skill`.
 
 Contoh:
 
@@ -37,30 +47,46 @@ tetapi pemanggilan eksplisit lebih disarankan untuk workflow ini. Jika perubahan
 terlihat, restart/reopen sesi Claude Code. Perilaku discovery dan pemanggilan ini mengikuti
 [Claude Code Docs — Agent Skills](https://docs.claude.com/en/docs/claude-code/skills).
 
-Jangan membuka sesi dari parent `QuilvianFinal` lalu menganggap skill dalam dua child repo
-otomatis ditemukan. Untuk shared workflow, mulai sesi dari backend; untuk implementasi UI,
-mulai sesi terpisah dari frontend.
+Membuka sesi dari folder induk `Quilvian` saja **tidak** cukup. Skill di subfolder tidak
+dimuat saat sesi dimulai; ia baru muncul setelah Claude menyentuh file di subfolder itu, dan
+sebelum itu tidak tampil di daftar. Gunakan `--add-dir` seperti di atas.
+
+Perintah tersebut memerlukan Claude Code versi 2.1.203 atau lebih baru.
 
 ## 3. Daftar skill dan tanggung jawab
 
-| Urutan | Skill | Lokasi pemanggilan | Fungsi | Mengubah source aplikasi? |
-| ---: | --- | --- | --- | --- |
-| 1 | `/grill-me` | Backend atau adapter frontend | Wawancara kritis dan decision log | Tidak |
-| 2 | `/trace-existing-capabilities` | Backend atau adapter frontend | Audit capability dua repo | Tidak |
-| 3 | `/design-business-module` | Backend atau adapter frontend | Arsitektur, ERD, dan kontrak target | Tidak |
-| 4 | `/plan-module-delivery` | Backend atau adapter frontend | Roadmap backend/frontend | Tidak |
-| 5 | `/build-module-backend` | Backend | Satu task backend approved | Ya |
-| 6 | `/build-module-frontend` | Frontend | Satu task frontend approved | Ya |
-| 7 | `/verify-module-readiness` | Backend atau adapter frontend | Audit readiness end-to-end | Tidak secara default |
+Lokasi setiap skill ditentukan oleh satu aturan:
 
-Lima shared skill mempunyai prosedur canonical di backend. Frontend hanya mempunyai adapter
-berpengaman hash. Jangan menyalin atau mengubah prosedur shared secara independen di frontend.
+> **Lokasi skill = tempat skill menulis hasilnya, bukan tempat ia membaca.**
+
+Membaca boleh lintas repository. Menulis tidak pernah lintas repository.
+
+| Urutan | Skill | Membaca | Menulis | Lokasi | Mengubah source aplikasi? |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | `/grill-me` | jawaban pengguna | `docs/module-blueprints/` | Backend | Tidak |
+| 2 | `/trace-existing-capabilities` | dua repo | `docs/module-blueprints/` | Backend | Tidak |
+| 3 | `/design-business-module` | blueprint | `docs/module-blueprints/` | Backend | Tidak |
+| 4 | `/plan-module-delivery` | blueprint | `docs/module-blueprints/roadmap/` | Backend | Tidak |
+| 5 | `/build-module-backend` | blueprint + backend | source backend | Backend | Ya |
+| 6 | `/build-module-frontend` | blueprint + frontend | source frontend | Frontend | Ya |
+| 7 | `/verify-module-readiness` | dua repo | `docs/module-blueprints/testing/` | Backend | Tidak |
+
+Enam skill menulis ke backend, satu menulis ke frontend. Tidak ada adapter dan tidak ada
+mekanisme sidik jari; seluruh skill tersedia dalam satu sesi melalui `--add-dir`.
+
+Dua skill membaca dua repository sekaligus, yaitu `/trace-existing-capabilities` dan
+`/verify-module-readiness`. Keduanya tetap tinggal di backend karena hasil auditnya adalah
+satu dokumen gabungan yang tidak boleh punya dua salinan.
+
+`/verify-module-readiness` **tidak pernah** mengubah source, tanpa pengecualian. Perbaikan
+temuan dikembalikan ke `/build-module-backend` atau `/build-module-frontend` agar audit tetap
+netral.
 
 ## 4. Persiapan sebelum mulai
 
 Pastikan:
 
-1. `QuilvianBackend` dan `QuilvianFrontEnd` tersedia sebagai sibling dalam workspace yang
+1. `NewQuilvianSystemBackend` dan `QuilvianSystemFrontendDev` tersedia sebagai sibling dalam workspace yang
    sama;
 2. nama modul dan tujuan awal dapat dijelaskan, walaupun belum lengkap;
 3. owner bisnis/domain dan calon approver dapat diidentifikasi;
@@ -79,7 +105,7 @@ Gunakan nama folder modul dalam kebab-case, misalnya:
 Semua keputusan dan bukti lintas repo disimpan satu kali di backend:
 
 ```text
-QuilvianBackend/docs/module-blueprints/<module>/
+NewQuilvianSystemBackend/docs/module-blueprints/<module>/
 ├── blueprint-manifest.md
 ├── 00-interview-decisions.md
 ├── 01-existing-capability-map.md
@@ -96,9 +122,14 @@ QuilvianBackend/docs/module-blueprints/<module>/
     └── readiness-report.md
 ```
 
-Tidak semua file wajib dibuat bila tidak relevan. Jangan membuat dokumen kosong hanya untuk
-memenuhi struktur. Frontend mereferensikan blueprint ID, revision, decision ID, task ID, dan
-contract version; frontend tidak menyimpan salinan aturan canonical.
+Daftar file di atas bersifat pasti, bukan pilihan. File yang tidak relevan bagi sebuah modul
+tetap dibuat, berisi satu baris alasan yang menyebut sebabnya, misalnya "Tidak berlaku untuk
+modul ini karena IGD tidak memanggil sistem luar". Jangan menghapus file tanpa jejak, dan
+jangan pula membuat dokumen kosong tanpa keterangan. Dengan begitu pembaca selalu dapat
+membedakan file yang memang tidak diperlukan dari file yang terlupa ditulis.
+
+Frontend mereferensikan blueprint ID, revision, decision ID, task ID, dan contract version;
+frontend tidak menyimpan salinan aturan canonical.
 
 ## 6. Alur lengkap dari awal sampai tuntas
 
@@ -248,7 +279,7 @@ besar seperti “buat seluruh backend modul”.
 
 ### Tahap 7 — Implementasi satu task backend
 
-Mulai sesi Claude Code dari `QuilvianBackend`, lalu panggil task tertentu:
+Mulai sesi Claude Code dari `NewQuilvianSystemBackend`, lalu panggil task tertentu:
 
 ```text
 /build-module-backend
@@ -267,7 +298,7 @@ test/evidence, laporan perubahan, dan traceability diperbarui.
 
 ### Tahap 8 — Implementasi satu task frontend
 
-Mulai sesi terpisah dari `QuilvianFrontEnd`:
+Mulai sesi terpisah dari `QuilvianSystemFrontendDev`:
 
 ```text
 /build-module-frontend
@@ -406,10 +437,10 @@ Jika overlap tidak aman, hentikan task dan minta arahan developer.
 
 ## 12. Pemeliharaan suite
 
-- Ubah prosedur shared hanya pada canonical backend.
-- Setelah shared `SKILL.md` berubah, perbarui expected SHA-256 adapter frontend dalam
-  perubahan yang sama.
-- Jalankan `quick_validate.py` untuk canonical dan adapter yang berubah.
+- Setiap skill hanya ada di satu tempat. Tidak ada salinan, tidak ada adapter, dan tidak ada
+  sidik jari SHA-256 yang perlu dihitung ulang.
+- Mengubah prosedur skill cukup dikerjakan sekali, di file skill itu sendiri.
+- Jalankan `quick_validate.py` untuk skill yang berubah.
 - Forward-test suite pada minimal satu modul IGD dan satu modul non-IGD sebelum promosi ke
   global/plugin.
 - Jangan menaruh user guide ini di dalam folder package skill individual; package tetap fokus
@@ -440,3 +471,66 @@ Contoh:
 
 Command hanya pintasan prompt. Prosedur, gate approval, dan batas kewenangan tetap berasal
 dari `SKILL.md`; jangan memindahkan aturan canonical ke dalam file command.
+
+## 14. Aturan output dokumentasi
+
+Seluruh dokumen yang dihasilkan skill tunduk pada aturan canonical di
+[`.claude/rules/rule-output/`](rules/rule-output/README.md):
+
+1. Bahasa harus Bahasa Indonesia.
+2. Gunakan bahasa yang mudah dipahami orang umum.
+3. Jelaskan secara detail beserta contoh untuk hal yang sulit dipahami.
+4. Bisnis proses harus dijelaskan dengan jelas dan urut.
+5. Sajikan endpoint bergaya Swagger: judul grup persis nilai `[Tags(...)]` pada controller,
+   diikuti tabel API.
+
+Contoh judul grup yang dimaksud, diambil dari controller yang sudah ada:
+
+```text
+Corporate / Human Resource / Master Data / Allowance Type
+```
+
+Aturan lengkap ada di [aturan-output-dokumentasi.md](rules/rule-output/aturan-output-dokumentasi.md)
+dan contoh penerapannya di [contoh-dokumentasi-modul.md](rules/rule-output/contoh-dokumentasi-modul.md).
+
+Aturan ini mengikat bentuk dan gaya dokumen. Aturan ini tidak menggantikan gate approval atau
+batas kewenangan pada `SKILL.md`.
+
+## 15. Kebutuhan effort dan model per skill
+
+Setiap `SKILL.md` memuat tabel **Effort dan model minimum**. Ringkasannya:
+
+| Skill | Minimum effort | Model Claude minimum | Model GPT setara |
+| --- | --- | --- | --- |
+| `grill-me` | `medium` | Claude Sonnet 5 | GPT-5, reasoning `medium` |
+| `trace-existing-capabilities` | `high` | Claude Sonnet 5 | GPT-5, reasoning `high` |
+| `design-business-module` | `high` | Claude Opus 5 | GPT-5, reasoning `high` |
+| `plan-module-delivery` | `medium` | Claude Sonnet 5 | GPT-5, reasoning `medium` |
+| `build-module-backend` | `high` | Claude Sonnet 5 | GPT-5 / GPT-5-Codex, reasoning `high` |
+| `build-module-frontend` | `medium` | Claude Sonnet 5 | GPT-5 / GPT-5-Codex, reasoning `medium` |
+| `verify-module-readiness` | `high` | Claude Opus 5 | GPT-5, reasoning `high` |
+
+Claude Opus 5 disarankan untuk seluruh skill. Dua skill tidak menyediakan turunan model yang
+lebih kecil, yaitu `design-business-module` dan `verify-module-readiness`, karena kesalahannya
+mahal dan sulit terdeteksi.
+
+## 16. Penawaran skill berikutnya
+
+Setiap skill wajib menawarkan langkah berikutnya setelah pekerjaannya tuntas, beserta alasan
+singkatnya. Skill hanya menawarkan; perpindahan tetap menunggu persetujuan pengguna.
+
+Alur normalnya:
+
+```text
+/grill-me (Scope Pass)
+  -> /trace-existing-capabilities
+  -> /grill-me (Closure Pass)
+  -> /design-business-module
+  -> [approval owner]
+  -> /plan-module-delivery
+  -> /build-module-backend dan /build-module-frontend per task
+  -> /verify-module-readiness
+```
+
+Jika masih ada blocker, skill menyebutkan blocker tersebut lebih dulu dan tidak menawarkan
+langkah maju seolah pekerjaan sudah tuntas.

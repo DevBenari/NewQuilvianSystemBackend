@@ -7,6 +7,30 @@ description: Implementasikan tepat satu task backend Quilvian yang telah disetuj
 
 Kerjakan satu task backend sampai memiliki bukti acceptance tanpa memperluas scope diam-diam.
 
+## Effort dan model minimum
+
+| Field | Nilai |
+| --- | --- |
+| Minimum effort | `high` |
+| Model Claude minimum | Claude Sonnet 5 |
+| Model Claude disarankan | Claude Opus 5 |
+| Model GPT setara | GPT-5 atau GPT-5-Codex, reasoning `high` |
+| Alasan | Skill ini mengubah source, migration, dan permission; kesalahan berdampak langsung ke data produksi |
+
+Jika sesi berjalan di bawah batas ini, beritahu pengguna sebelum menyentuh source dan minta
+konfirmasi. Effort rendah cenderung melewatkan failure path dan concurrency.
+
+## Aturan output dokumentasi
+
+Laporan perubahan dan pembaruan traceability wajib mengikuti
+[aturan output dokumentasi](../../rules/rule-output/aturan-output-dokumentasi.md): Bahasa Indonesia,
+bahasa yang mudah dipahami orang umum, penjelasan detail beserta contoh, bisnis proses yang
+jelas, dan endpoint bergaya Swagger.
+
+Bila task ini menambah atau mengubah endpoint, dokumentasikan memakai judul grup `[Tags(...)]`
+milik controller terkait diikuti tabel API, sehingga pembaca dapat mencocokkannya dengan
+halaman Swagger.
+
 ## Gate sebelum mengubah source
 
 1. Baca instruksi repository yang aktif (`AGENTS.md`, `CLAUDE.md`, atau aturan setara jika tersedia).
@@ -63,4 +87,19 @@ Jangan menandai task selesai hanya karena source berhasil dikompilasi.
 
 ## Handoff
 
-Laporkan outcome, file utama, verifikasi yang dijalankan/tidak dijalankan, migration/config impact, risiko tersisa, dan task berikutnya. Setelah satu vertical slice lengkap, gunakan `verify-module-readiness` untuk audit netral.
+Laporkan outcome, file utama, verifikasi yang dijalankan/tidak dijalankan, migration/config impact, risiko tersisa, dan task berikutnya.
+
+## Tawarkan skill berikutnya
+
+Setelah task ini tuntas dan acceptance criteria punya bukti, **selalu** tawarkan langkah
+berikutnya secara eksplisit, lengkap dengan alasan singkatnya:
+
+| Kondisi setelah task | Skill yang ditawarkan |
+| --- | --- |
+| Masih ada task backend berikutnya pada slice yang sama | `/build-module-backend` untuk satu task ID berikutnya |
+| Kontrak yang dipakai frontend sudah tersedia dan approved | `/build-module-frontend` untuk task frontend pasangannya, dijalankan dari sesi repo frontend |
+| Satu vertical slice backend-frontend sudah lengkap | `/verify-module-readiness` untuk audit netral |
+| Muncul contract delta atau keputusan bisnis baru | `/design-business-module` atau `/grill-me` sesuai jenis gap |
+
+Tawarkan, jangan jalankan sendiri. Jika acceptance criteria belum semuanya terbukti, sebutkan
+sisa pekerjaannya lebih dulu dan jangan menawarkan langkah maju.

@@ -7,6 +7,29 @@ description: Audit kesiapan modul Quilvian secara read-only terhadap requirement
 
 Nilai kesiapan end-to-end berdasarkan bukti. Pisahkan kemajuan scaffold dari kesiapan operasional agar angka progress tidak menyesatkan.
 
+## Effort dan model minimum
+
+| Field | Nilai |
+| --- | --- |
+| Minimum effort | `high` |
+| Model Claude minimum | Claude Opus 5 |
+| Model Claude disarankan | Claude Opus 5 |
+| Model GPT setara | GPT-5, reasoning `high` |
+| Alasan | Verdict readiness dipakai sebagai dasar keputusan pakai/tidak pakai; audit dangkal berbahaya karena terlihat meyakinkan |
+
+Jika model minimum tidak tersedia, hentikan dan sampaikan ke pengguna. Lebih baik tidak ada
+verdict daripada verdict yang salah.
+
+## Aturan output dokumentasi
+
+Readiness report wajib mengikuti
+[aturan output dokumentasi](../../rules/rule-output/aturan-output-dokumentasi.md): Bahasa Indonesia,
+bahasa yang mudah dipahami orang umum, penjelasan detail beserta contoh, bisnis proses yang
+jelas, dan endpoint bergaya Swagger.
+
+Blocker ditulis dengan kalimat yang dipahami pemilik proses bisnis, disertai contoh kejadian
+nyata yang akan terjadi bila modul dipakai dalam kondisi sekarang.
+
 ## Prinsip operasi
 
 - Default read-only: audit dan laporkan; jangan memperbaiki source code.
@@ -76,7 +99,7 @@ Gunakan rubric di [readiness-rubric.md](references/readiness-rubric.md). Sebutka
 Simpan laporan canonical pada:
 
 ```text
-QuilvianBackend/docs/module-blueprints/<module>/testing/readiness-report.md
+NewQuilvianSystemBackend/docs/module-blueprints/<module>/testing/readiness-report.md
 ```
 
 ## Batas verdict
@@ -85,4 +108,23 @@ QuilvianBackend/docs/module-blueprints/<module>/testing/readiness-report.md
 - `READY_WITH_CONDITIONS`: fungsi utama terbukti, hanya risiko terbatas dengan owner dan mitigasi eksplisit.
 - `NOT_READY`: ada blocker alur utama, security/privacy, integritas data, contract drift, runtime, atau bukti kritis belum tersedia.
 
-Jika pengguna hanya meminta diagnosis, berhenti pada laporan. Tawarkan skill build yang sesuai untuk perbaikan, tetapi jangan menjalankannya tanpa permintaan implementasi.
+Jika pengguna hanya meminta diagnosis, berhenti pada laporan.
+
+## Tawarkan skill berikutnya
+
+Setelah readiness report tuntas, **selalu** tawarkan langkah berikutnya secara eksplisit
+berdasarkan jenis gap yang ditemukan, lengkap dengan alasan singkatnya:
+
+| Temuan | Skill yang ditawarkan |
+| --- | --- |
+| Keputusan, owner, atau invariant belum jelas | `/grill-me` Amendment/Closure Pass |
+| Capability atau commit SHA sudah stale | `/trace-existing-capabilities` impact scan |
+| Arsitektur, ERD, atau kontrak salah/kurang | `/design-business-module` revisi baru |
+| Ada requirement tanpa task atau dependency belum tercakup | `/plan-module-delivery` |
+| Gap implementasi backend | `/build-module-backend` untuk satu task |
+| Gap implementasi frontend | `/build-module-frontend` untuk satu task |
+| Perbaikan sudah selesai | `/verify-module-readiness` ulang |
+| Verdict `READY` | tidak ada langkah lanjutan; sampaikan syarat pemeliharaan bukti |
+
+Urutkan tawaran berdasarkan blocker paling berdampak lebih dulu. Tawarkan, jangan jalankan
+sendiri, dan jangan memperbaiki source dari skill ini agar audit tetap netral.
