@@ -28,33 +28,6 @@ Setiap dokumen yang ditulis skill ini wajib mengikuti
 bahasa yang mudah dipahami orang umum, penjelasan detail beserta contoh, bisnis proses yang
 jelas, dan endpoint bergaya Swagger. Baca aturan tersebut sebelum menulis decision log.
 
-## Gerbang wajib: registry sistem harus segar
-
-Skill ini **tidak boleh mengajukan pertanyaan pertama** sebelum keadaan sistem yang sekarang
-dipetakan. Aturan lengkapnya ada pada
-[aturan pra-scan](../../rules/rule-prascan/aturan-prascan-modul.md).
-
-Urutan yang wajib dijalankan lebih dulu:
-
-1. Baca `docs/system-registry/registry-manifest.md`.
-2. Bandingkan `backend_sha` dan `frontend_sha` pada manifest dengan `git rev-parse --short HEAD`
-   kedua repository.
-3. Bila registry belum ada atau statusnya `KADALUARSA`, **berhenti** dan tawarkan `/qv-scan full`.
-4. Bila statusnya `PERLU_REFRESH`, **berhenti** dan tawarkan `/qv-scan refresh`.
-5. Bila `SEGAR`, tampilkan **Kartu Konteks Pra-Wawancara** dengan lima bagian sesuai aturan
-   pra-scan: modul yang bersinggungan, yang sudah siap dipakai ulang, yang ada tetapi belum
-   lengkap, zona konflik yang menyentuh modul ini, dan daftar pertanyaan yang tidak akan
-   diajukan karena sudah terjawab registry.
-
-Jangan melewati gerbang ini dengan alasan modulnya kecil atau isinya sudah diketahui. Satu-satunya
-jalan lain adalah pengguna menyatakan secara eksplisit menerima risiko konflik, dan pernyataan itu
-dicatat di decision log sebagai asumsi terbuka beserta nama penyatanya.
-
-Registry menjawab "apa yang sudah ada di sistem". Wawancara ini menjawab "aturan bisnisnya
-bagaimana". Jangan menanyakan hal yang sudah terjawab registry, yaitu apakah suatu entity sudah
-ada, entity mana yang menyimpan suatu data, endpoint apa yang tersedia, dan modul mana yang
-memiliki suatu tabel.
-
 ## Tentukan mode
 
 Pilih salah satu mode dari keadaan blueprint:
@@ -87,9 +60,7 @@ pertama:
 1. Tuliskan nama modul dan satu kalimat batas scope-nya.
 2. Tuliskan daftar **Di dalam scope** dan **Di luar scope** berdasarkan permintaan pengguna,
    bukan berdasarkan kelengkapan sistem menurut agent.
-3. Periksa kedua daftar itu terhadap Kartu Konteks. Kemampuan yang sudah dimiliki modul lain
-   masuk **Di luar scope** beserta nama modul pemiliknya, bukan dibahas ulang di sini.
-4. Konfirmasikan kedua daftar itu ke pengguna, lalu simpan di decision log.
+3. Konfirmasikan kedua daftar itu ke pengguna, lalu simpan di decision log.
 
 Selama wawancara berjalan:
 
@@ -209,3 +180,4 @@ pengguna, lengkap dengan alasan singkat mengapa langkah itu yang tepat:
 Tawarkan, jangan jalankan sendiri. Tunggu persetujuan pengguna sebelum berpindah skill.
 Jika masih ada blocker, sebutkan blocker itu lebih dulu dan jangan menawarkan langkah maju
 seolah pekerjaan sudah tuntas.
+
