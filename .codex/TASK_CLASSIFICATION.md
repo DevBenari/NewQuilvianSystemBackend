@@ -35,6 +35,12 @@ The score below determines the classification. Score every factor, add the total
 
 Assess repository count; files inspected; files modified; business-logic complexity; API-contract impact; database impact; security/auth impact; and UI/workflow scope. Existing `AGENTS.md` rules determine whether any factor is permitted.
 
+## Module blueprint work
+
+A pure `MODULE BLUEPRINT MODE` task may inspect both application repositories while writing only tracked blueprint documentation. Do not classify it as HEAVY solely because of that cross-repository inspection; assess the documentation scope, architecture/dependency complexity, and unresolved decision risk in addition to the normal factors. Application implementation scoring remains unchanged.
+
+Classify blueprint work as HEAVY when it covers many modules or material dependencies, unresolved contracts, or high-risk security, financial, clinical, privacy, or regulatory decisions. Treat a broad architecture redesign or multi-module lifecycle change as EPIC: stop, decompose into bounded blueprint phases, and reclassify before writing.
+
 ## Execution rule
 
 Any architecture-wide redesign, multi-domain implementation, or scope that cannot be safely reviewed and validated as one bounded change is EPIC regardless of score.

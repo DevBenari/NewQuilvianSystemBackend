@@ -181,6 +181,17 @@ Only repositories explicitly authorized by the active task mode may be modified.
 
 Use for architecture audits, gap mapping, API contract inspection, cross-repository analysis, and planning.
 
+### MODULE BLUEPRINT MODE
+
+- Frontend application source: read-only.
+- Backend application source: read-only.
+- Skill repository: read-only.
+- Backend `docs/module-blueprints/**`: write target.
+
+Use this mode only to create or update persistent module-blueprint artifacts, including manifests, status, evidence-backed business and architecture documentation, decisions, contracts, ERD documentation, Mermaid flows, roadmaps, and readiness artifacts. It never authorizes application implementation, controller/service/entity changes, migrations or database actions, dependency/package changes, deployment, or Git publication. Do not invent business decisions or change source merely to make a blueprint match.
+
+Entry conditions are a clear module identity/intent, the backend as the approved blueprint host, and write scope limited to `docs/module-blueprints/**`. `AUDIT MODE` remains fully read-only; `BACKEND MODE` and `FRONTEND MODE` remain separate explicit implementation authorities.
+
 ### FRONTEND MODE
 
 - Frontend: write target.

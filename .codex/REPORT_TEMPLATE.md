@@ -15,6 +15,7 @@ Use this structure for ignored local reports under `.quilvian-local/`. Record ev
 - FILES INSPECTED:
 - FILES CHANGED:
 - IMPLEMENTATION:
+- BLUEPRINT STATUS/EVIDENCE: required for MODULE BLUEPRINT MODE; otherwise NOT APPLICABLE
 - API CONTRACT IMPACT:
 - DATABASE IMPACT:
 - SECURITY IMPACT:
@@ -22,6 +23,7 @@ Use this structure for ignored local reports under `.quilvian-local/`. Record ev
 - VALIDATION: command/check | result | classification | evidence/note
 - WARNINGS:
 - KNOWN ISSUES:
+- STALE EVIDENCE / BLOCKED PHASES: required for MODULE BLUEPRINT MODE; otherwise NOT APPLICABLE
 - MANUAL TEST: REQUIRED | PASS | FAIL | NOT FEASIBLE | NOT APPLICABLE
 - INCIDENTAL CHANGES: NONE | restored/removed item and reason
 - INTERRUPTIONS: NONE | interruption type and recovery performed
