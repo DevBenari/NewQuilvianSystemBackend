@@ -24,6 +24,14 @@ Before implementation, inspect the nearest comparable controller, DTO, model, se
 
 These documents supplement rather than replace the repository-specific safety, architecture, branch, security, validation, database, and write-scope rules in this file. Simple read-only questions do not require loading the full operating layer.
 
+## Language and Communication
+
+- Gunakan Bahasa Indonesia untuk komunikasi dengan pengguna, termasuk progress update, audit finding, warning, recommendation, validation result, review summary, dan final response.
+- Istilah teknis, nama file, class, method, property, endpoint, route, field database, enum, command, HTTP status, framework/library name, dan identifier source code tetap dalam bentuk aslinya. Source code dan identifier mengikuti konvensi existing repository; jangan menerjemahkan identifier hanya karena bahasa komunikasi menggunakan Bahasa Indonesia.
+- Code comment mengikuti konvensi existing repository; jangan melakukan mass translation terhadap comment existing. Jika tool/compiler/runtime menghasilkan error dalam Bahasa Inggris, pertahankan error asli saat perlu dikutip lalu jelaskan maknanya dalam Bahasa Indonesia.
+- Label kontrak/taxonomy canonical tetap menggunakan bentuknya, misalnya `READY TO REUSE`, `REUSE WITH ADAPTER`, `EXTEND`, `REPAIR`, `MISSING`, `CONFLICT`, dan `UNKNOWN`; penjelasannya tetap dalam Bahasa Indonesia.
+- Jangan beralih ke Bahasa Inggris kecuali pengguna secara eksplisit meminta bahasa lain atau output tertentu wajib memakai Bahasa Inggris karena kontrak/tooling.
+
 ## Repository Identity and Branch Workflow
 
 - Repository: `NewQuilvianSystemBackend`
