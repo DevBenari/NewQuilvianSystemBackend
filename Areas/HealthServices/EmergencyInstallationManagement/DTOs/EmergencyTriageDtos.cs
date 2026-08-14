@@ -16,7 +16,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public EmergencyTriageStatus TriageStatus { get; set; }
         public DateTime StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
-        public int MaxWaitingMinutesSnapshot { get; set; }
+        public int? MaxWaitingMinutesSnapshot { get; set; }
         public DateTime? ResponseDueAt { get; set; }
         public bool ImmediateCareAllowed { get; set; }
         public string? TriageReason { get; set; }
@@ -59,7 +59,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public DateTime? CompletedAt { get; set; }
 
-        public int MaxWaitingMinutesSnapshot { get; set; }
+        public int? MaxWaitingMinutesSnapshot { get; set; }
 
         public DateTime? ResponseDueAt { get; set; }
 

@@ -32,7 +32,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
         [MaxLength(20)]
         public string? ColorHex { get; set; }
 
-        public int MaxWaitingMinutes { get; set; }
+        /// <summary>
+        /// Target waktu respons dalam menit. Kosong berarti SOP belum menetapkan target,
+        /// bukan berarti nol menit. Nol menit berarti harus dilayani seketika.
+        /// </summary>
+        public int? MaxWaitingMinutes { get; set; }
 
         public bool AllowsTreatmentBeforeRegistration { get; set; }
 

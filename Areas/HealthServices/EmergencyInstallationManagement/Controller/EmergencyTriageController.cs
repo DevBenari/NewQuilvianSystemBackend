@@ -217,7 +217,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             entity.TriageSystem = triageLevel.TriageSystem;
             entity.MaxWaitingMinutesSnapshot = triageLevel.MaxWaitingMinutes;
             entity.ImmediateCareAllowed = triageLevel.AllowsTreatmentBeforeRegistration;
-            entity.ResponseDueAt = entity.StartedAt.AddMinutes(triageLevel.MaxWaitingMinutes);
+
+            // Target waktu yang belum ditetapkan SOP dibiarkan kosong, bukan dianggap 0 menit.
+            // Level dengan target 0 menit tetap menghasilkan batas waktu sama dengan StartedAt.
+            entity.ResponseDueAt = triageLevel.MaxWaitingMinutes.HasValue
+                ? entity.StartedAt.AddMinutes(triageLevel.MaxWaitingMinutes.Value)
+                : null;
 
             _dbContext.Set<TrxEmergencyTriage>().Add(entity);
             try

@@ -31,8 +31,8 @@ kosong, itu bukan kelalaian penulisan, melainkan temuan yang memang harus terlih
 
 | Requirement | Decision ID | Design/ERD | Contract | Backend task | Frontend task | Test/bukti | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Modul IGD dapat dipanggil saat aplikasi berjalan | `CAP-16` | `01-existing-capability-map.md#capability-register` | API `0.2.0` | `BE-IGD-001` | — | Test aktivasi controller | Planned |
-| Target waktu yang belum diatur tidak dianggap nol menit | `IGD-DEC-027`, `IGD-DEC-035` | `contracts/validation-matrix.md#2-triage` | Validation `0.2.0` | `BE-IGD-002` | `FE-IGD-003` | `AT-IGD-011`, `AT-IGD-012` | Planned |
+| Modul IGD dapat dipanggil saat aplikasi berjalan | `CAP-16` | `01-existing-capability-map.md#capability-register` | API `0.2.0` | `BE-IGD-001` | — | Build lulus + penelusuran constructor lengkap ([laporan](../../../hamzah/report/be-igd-001-registrasi-service-igd.md)); test aktivasi controller **belum ada** | In progress — kode terdaftar, bukti runtime tertunda |
+| Target waktu yang belum diatur tidak dianggap nol menit | `IGD-DEC-027`, `IGD-DEC-035` | `contracts/validation-matrix.md#2-triage` | Validation `0.2.0` | `BE-IGD-002` | `FE-IGD-003` | Build lulus + migration terbentuk ([laporan](../../../hamzah/report/be-igd-002-target-waktu-boleh-kosong.md)); `AT-IGD-011` dan `AT-IGD-012` **belum ada** | In progress — kode dan migration selesai, uji berjalan tertunda; penyimpangan 1 migration menunggu pengesahan owner |
 | Data master IGD tersedia sehingga modul dapat dipakai | `IGD-DEC-047`, `IGD-DEC-048` | `02-backend-architecture.md#7-rencana-data-master-awal` | — | `BE-IGD-003` | `FE-IGD-004`, `FE-IGD-008` | `AT-IGD-070`, `AT-IGD-073` | Planned |
 | Retriage append-only dan menunjuk penilaian sebelumnya | `IGD-DEC-004`, `IGD-DEC-048` | `erd/emergency-episode.md` | API `0.2.0`, State `0.2.0` | `BE-IGD-004` | `FE-IGD-004` | `AT-IGD-013`, `AT-IGD-014`, `AT-IGD-015` | Planned |
 | Pelampauan target respons tercatat pada penilaian | `IGD-DEC-027`, `IGD-GAP-007` | `erd/data-dictionary.md#62` | — | `BE-IGD-005` | — | Uji migration maju dan mundur | Planned |

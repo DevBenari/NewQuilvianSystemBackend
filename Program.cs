@@ -16,6 +16,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
@@ -280,6 +282,18 @@ try
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
+
+    // Instalasi Gawat Darurat (IGD). Tanpa pendaftaran ini seluruh controller IGD gagal
+    // dibuat oleh dependency injection, sehingga endpoint-nya membalas 500 sebelum kode
+    // modul sempat dijalankan. Pola mengikuti service lain: kelas konkret, tanpa interface.
+    builder.Services.AddScoped<EmergencyDocumentNumberService>();
+    builder.Services.AddScoped<EmergencyVisitService>();
+    builder.Services.AddScoped<EmergencyTriageService>();
+    builder.Services.AddScoped<EmergencyResuscitationService>();
+    builder.Services.AddScoped<EmergencyObservationService>();
+    builder.Services.AddScoped<EmergencyDispositionService>();
+    builder.Services.AddScoped<EmergencyTransferService>();
+    builder.Services.AddScoped<EmergencySettingService>();
 
     builder.Services.AddScoped<HumanResourceContextService>();
     builder.Services.AddScoped<EmployeeProfileChangeService>();
