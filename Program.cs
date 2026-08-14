@@ -17,6 +17,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.S
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
@@ -659,6 +660,67 @@ try
             "Seeder master kriteria telaah resep selesai.");
     }
 
+    static async Task SeedEmergencyMasterDataAsync(
+        IServiceProvider services,
+        CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("EmergencyMasterDataSeeder");
+
+        var systemUserId = await dbContext.Users
+            .AsNoTracking()
+            .Where(x =>
+                x.NormalizedUserName == "SUPERADMIN" ||
+                x.NormalizedEmail == "SUPERADMIN@ADMIN.COM")
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (systemUserId == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                "Seeder master data IGD membutuhkan akun SuperAdmin.");
+        }
+
+        logger.LogInformation("Memulai seeder master data IGD.");
+
+        var seedResult = await EmergencyMasterDataSeeder.SeedAsync(
+            dbContext,
+            systemUserId,
+            cancellationToken);
+
+        logger.LogInformation(
+            "Seeder master data IGD selesai. Baris baru: level triase {TriageLevel}, " +
+            "indikator {Indicator}, cara kedatangan {ArrivalMode}, jenis kasus {CaseType}, " +
+            "jenis tindak lanjut {DispositionType}, pengaturan {Setting}. Total {Total}.",
+            seedResult.TriageLevelInserted,
+            seedResult.TriageIndicatorInserted,
+            seedResult.ArrivalModeInserted,
+            seedResult.CaseTypeInserted,
+            seedResult.DispositionTypeInserted,
+            seedResult.SettingInserted,
+            seedResult.TotalInserted);
+
+        if (!string.IsNullOrWhiteSpace(seedResult.TriageIndicatorSkippedReason))
+        {
+            logger.LogWarning(
+                "Indikator triase dilewati: {Reason}",
+                seedResult.TriageIndicatorSkippedReason);
+        }
+
+        if (!string.IsNullOrWhiteSpace(seedResult.SettingSkippedReason))
+        {
+            logger.LogWarning(
+                "Pengaturan IGD dilewati: {Reason}",
+                seedResult.SettingSkippedReason);
+        }
+    }
+
     Log.Information(
         "Starting {Application} {BackendVersion} in {Environment} environment.",
         appName,
@@ -808,6 +870,17 @@ try
     if (runPrescriptionReviewCriterionSeed)
     {
         await SeedPrescriptionReviewCriteriaAsync(app.Services);
+    }
+
+    // Master data IGD. Bawaannya mati supaya menjalankan aplikasi tidak otomatis menulis ke
+    // basis data bersama. Nyalakan lewat konfigurasi bila lingkungannya memang perlu diisi.
+    var runEmergencyMasterDataSeed =
+        builder.Configuration.GetValue<bool>(
+            "Seeders:RunEmergencyMasterDataSeed");
+
+    if (runEmergencyMasterDataSeed)
+    {
+        await SeedEmergencyMasterDataAsync(app.Services);
     }
 
     // Seed Awal Saja

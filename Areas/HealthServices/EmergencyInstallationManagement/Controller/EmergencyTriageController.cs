@@ -359,6 +359,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return Ok(ApiResponse<EmergencyTriageResponse>.Ok(ToResponse(entity), "Status triage IGD berhasil diubah."));
         }
 
+        [HttpPost("{id:guid}/retriage")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyTriageResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Retriage Emergency Triage", Description = "Menilai ulang pasien IGD tanpa menghapus penilaian sebelumnya", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("EmergencyTriage", "Update")]
+        public async Task<IActionResult> Retriage(Guid id, [FromBody] RetriageEmergencyTriageRequest request, CancellationToken cancellationToken = default)
+        {
+            var outcome = await _emergencyTriageService.RetriageAsync(
+                id,
+                request,
+                GetCurrentUserId(),
+                cancellationToken);
+
+            if (!outcome.IsSuccess)
+            {
+                var failure = ApiResponse<object>.Fail(outcome.StatusCode, outcome.Message);
+
+                return outcome.StatusCode switch
+                {
+                    StatusCodes.Status404NotFound => NotFound(failure),
+                    StatusCodes.Status409Conflict => Conflict(failure),
+                    _ => BadRequest(failure)
+                };
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "EmergencyTriage.Retriage",
+                "Menilai ulang pasien IGD; penilaian sebelumnya ditandai Superseded.",
+                new
+                {
+                    EntityId = outcome.Retriage!.Id,
+                    PreviousTriageId = outcome.Previous!.Id,
+                    outcome.Retriage.EmergencyVisitId,
+                    outcome.Retriage.Sequence,
+                    Controller = "EmergencyTriage",
+                    Action = "Retriage"
+                }
+            );
+
+            return Ok(ApiResponse<EmergencyTriageResponse>.Ok(ToResponse(outcome.Retriage), outcome.Message));
+        }
+
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
