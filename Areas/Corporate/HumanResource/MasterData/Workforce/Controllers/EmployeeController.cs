@@ -389,7 +389,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
-            var operationalDate = AppDateTimeHelper.OperationalDate();
+            // EffectiveStartDate/EffectiveEndDate are mapped to PostgreSQL
+            // "timestamp with time zone". AppDateTimeHelper.OperationalDate()
+            // intentionally returns the application's calendar date, but that value
+            // has DateTimeKind.Unspecified. Npgsql rejects an unspecified DateTime
+            // when binding it to a timestamptz parameter, causing this read-only
+            // summary endpoint to fail before any aggregate can be returned.
+            var operationalDate = DateTime.SpecifyKind(
+                AppDateTimeHelper.OperationalDate(),
+                DateTimeKind.Utc
+            );
 
             var transportProfileQuery = _dbContext.Set<WfpTransportAllowance>()
                 .AsNoTracking()
