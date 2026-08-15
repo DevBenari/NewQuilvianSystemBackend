@@ -41,6 +41,43 @@ function Get-RelativePath([string]$file) {
     if ($full.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { return $full.Substring($root.Length).TrimStart('\','/') }
     return $file
 }
+function Invoke-Git {
+    param(
+        [Parameter(Mandatory)] [string[]] $Arguments,
+        [switch] $AllowExitCodeOne
+    )
+
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = 'git'
+    $startInfo.WorkingDirectory = $root
+    $startInfo.UseShellExecute = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.Arguments = (($Arguments | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join ' ')
+
+    $process = [System.Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+    [void]$process.Start()
+    $standardOutput = $process.StandardOutput.ReadToEnd()
+    $standardError = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+
+    if ($process.ExitCode -ne 0 -and -not ($AllowExitCodeOne -and $process.ExitCode -eq 1)) {
+        $details = $standardError.Trim()
+        if ([string]::IsNullOrWhiteSpace($details)) { $details = $standardOutput.Trim() }
+        if ([string]::IsNullOrWhiteSpace($details)) { $details = 'no diagnostic output' }
+        throw "Git command failed (exit $($process.ExitCode)): git $($Arguments -join ' '): $details"
+    }
+
+    return [pscustomobject]@{
+        ExitCode = $process.ExitCode
+        Output = @($standardOutput -split "`r?`n" | Where-Object { $_ -ne '' })
+    }
+}
+function Test-GitTracked([string]$relative) {
+    $result = Invoke-Git -Arguments @('ls-files', '--error-unmatch', '--', $relative) -AllowExitCodeOne
+    return $result.ExitCode -eq 0
+}
 function Add-Finding([string]$Rule, [string]$Level, [string]$Applicability, [string]$File, [int]$Line, [string]$Evidence, [string]$Reason, [string]$Action) {
     $script:findings.Add([pscustomobject]@{ RuleId=$Rule; Level=$Level; Applicability=$Applicability; File=$File; Line=$Line; Evidence=$Evidence; Reason=$Reason; RecommendedAction=$Action; Suppressed=$false; ExceptionId=$null })
 }
@@ -100,7 +137,7 @@ function Write-StructuredResult([string]$result, [object[]]$blockingRules) {
     $json | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $outputPath -Encoding utf8
 }
 function Get-AddedLines([string]$relative, [string]$base, [string]$head) {
-    $output = if ($head -eq 'WORKTREE') { & git -C $root diff --unified=0 $base -- $relative 2>$null } else { & git -C $root diff --unified=0 "$base..$head" -- $relative 2>$null }
+    $output = if ($head -eq 'WORKTREE') { (Invoke-Git -Arguments @('diff', '--unified=0', $base, '--', $relative)).Output } else { (Invoke-Git -Arguments @('diff', '--unified=0', "$base..$head", '--', $relative)).Output }
     $lines = @(); $lineNumber = 0
     foreach ($line in $output) {
         if ($line -match '^\+\+\+') { continue }
@@ -131,22 +168,27 @@ $files = @()
 $addedByFile = @{}
 switch ($scope) {
     'WorkingTree' {
-        $tracked = & git -C $root diff --name-only HEAD
-        $untracked = & git -C $root ls-files --others --exclude-standard
+        $tracked = (Invoke-Git -Arguments @('diff', '--name-only', 'HEAD')).Output
+        $untracked = (Invoke-Git -Arguments @('ls-files', '--others', '--exclude-standard')).Output
         $files = @($tracked + $untracked | Where-Object { $_ -match '\.cs$' } | Select-Object -Unique)
         foreach ($file in $files) {
             $full = Join-Path $root $file
-            if ((& git -C $root ls-files --error-unmatch -- $file 2>$null)) { $addedByFile[$file] = @(Get-AddedLines $file 'HEAD' 'WORKTREE') }
+            if (Test-GitTracked $file) { $addedByFile[$file] = @(Get-AddedLines $file 'HEAD' 'WORKTREE') }
             elseif (Test-Path -LiteralPath $full) { $i=0; $addedByFile[$file]=@(Get-Content $full | ForEach-Object { $i++; [pscustomobject]@{Number=$i;Text=$_} }) }
         }
     }
     'GitRange' {
-        $files = @(& git -C $root diff --name-only "$BaseRef..$HeadRef" -- '*.cs')
+        $files = @((Invoke-Git -Arguments @('diff', '--name-only', "$BaseRef..$HeadRef", '--', '*.cs')).Output)
         foreach ($file in $files) { $addedByFile[$file] = @(Get-AddedLines $file $BaseRef $HeadRef) }
     }
     'ExplicitFiles' {
         $files = @($Path | ForEach-Object { Get-RelativePath $_ } | Where-Object { $_ -match '\.cs$' } | Select-Object -Unique)
-        foreach ($file in $files) { $full=Join-Path $root $file; if(Test-Path $full){$i=0;$addedByFile[$file]=@(Get-Content $full|ForEach-Object{$i++;[pscustomobject]@{Number=$i;Text=$_}})} }
+        foreach ($file in $files) {
+            $full = Join-Path $root $file
+            if (-not (Test-Path -LiteralPath $full)) { continue }
+            if (Test-GitTracked $file) { $addedByFile[$file] = @(Get-AddedLines $file 'HEAD' 'WORKTREE') }
+            else { $i=0; $addedByFile[$file]=@(Get-Content -LiteralPath $full | ForEach-Object { $i++; [pscustomobject]@{Number=$i;Text=$_} }) }
+        }
     }
 }
 
@@ -156,7 +198,7 @@ foreach ($file in $files) {
     if (-not (Test-Path -LiteralPath $full)) { continue }
     $content = Get-Content -Raw -LiteralPath $full
     $added = @($addedByFile[$file])
-    $isNew = if ($scope -eq 'ExplicitFiles') { $true } elseif ($scope -eq 'GitRange') { -not ((@(& git -C $root ls-tree -r --name-only $BaseRef -- $file)) -contains $file) } else { -not (& git -C $root ls-files --error-unmatch -- $file 2>$null) }
+    $isNew = if ($scope -eq 'ExplicitFiles') { -not (Test-GitTracked $file) } elseif ($scope -eq 'GitRange') { -not ((@((Invoke-Git -Arguments @('ls-tree', '-r', '--name-only', $BaseRef, '--', $file)).Output)) -contains $file) } else { -not (Test-GitTracked $file) }
     foreach ($line in $added) {
         if ($line.Text -match '\b(class|DbSet|IEntityTypeConfiguration)\s*<?\s*(Trx\w+)' -or ($line.Number -eq 1 -and $file -match '(^|[\\/])Trx\w+(Configuration)?\.cs$')) {
             Add-Finding 'QBE-NAM-001' 'VIOLATION' $(if($isNew){'NEW CODE'}else{'TOUCHED LEGACY'}) $file $line.Number $line.Text 'New operational Trx naming is prohibited.' 'Use the approved registry prefix.'

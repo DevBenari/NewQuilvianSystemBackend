@@ -2,7 +2,7 @@
 
 `Invoke-QbeConformanceCheck.ps1` is a delta-aware checker for new and changed C# files. It reads `AGENTS.md`, the [Backend Engineering Contract](../../docs/engineering/BACKEND_ENGINEERING_CONTRACT.md), and the Module Ownership & Prefix Registry at runtime; those documents remain normative.
 
-Supported scopes are working tree (default), `-BaseRef` with `-HeadRef`, and `-Path`. Modes are `ReportOnly` (default) and `Strict`. Implemented detectors cover QBE-ENT-001, QBE-NAM-001, QBE-CFG-001, QBE-CODE-002, QBE-CODE-003, QBE-MOD-002 (partial), and QBE-SVC-001 (partial). Untouched legacy is excluded; changed legacy is evaluated only from added diff lines in both modes.
+Supported scopes are working tree (default), `-BaseRef` with `-HeadRef`, and `-Path`. Modes are `ReportOnly` (default) and `Strict`. Implemented detectors cover QBE-ENT-001, QBE-NAM-001, QBE-CFG-001, QBE-CODE-002, QBE-CODE-003, QBE-MOD-002 (partial), and QBE-SVC-001 (partial). Untouched legacy is excluded; changed legacy is evaluated only from added diff lines in both modes. With `-Path`, a tracked file is evaluated only from HEAD-to-WORKTREE added lines; an untracked/new file is evaluated in full as NEW CODE.
 
 Examples:
 
