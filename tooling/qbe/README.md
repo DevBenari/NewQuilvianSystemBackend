@@ -23,7 +23,7 @@ The terminal report always states checker mode, scope, counts, and a final resul
 - `Strict`: one or more `VIOLATION` findings exit `1` with `STRICT CONFORMANCE FAILURE` and the unique blocking QBE IDs. `REVIEW` and `INFO` remain advisory and exit `0` when no violation exists.
 - Tooling/governance failures, including an unsupported mode or missing canonical authority, exit `2` and report `Final result: TOOL ERROR` when the script can handle the failure.
 
-Strict mode enforces only the current delta-aware scope; it does not scan untouched legacy. It is suitable for future GitRange CI use, while CI integration remains deferred to G6-E2C. This tool does not implement, migrate, or remediate legacy code.
+Strict mode enforces only the current delta-aware scope; it does not scan untouched legacy. CI invokes it with GitRange comparisons. This tool does not implement, migrate, or remediate legacy code.
 
 ## Structured output and exceptions
 
@@ -33,4 +33,10 @@ The repository-owned authority is [QBE_EXCEPTIONS.json](../../docs/engineering/Q
 
 An ACTIVE matching exception leaves its finding visible as `SUPPRESSED` and prevents only that `VIOLATION` from blocking Strict. Expired or revoked records do not suppress. Exceptions do not change the QBE contract or establish convention. Developers and Codex must request explicit approval; they must not create or broaden an exception merely to make Strict pass.
 
-No CI integration is added here; G6-E2C owns CI integration.
+## CI pull-request enforcement
+
+The `QBE Conformance / QBE Strict GitRange` workflow runs for pull requests targeting `AgentCodexBackend`. It checks out full Git history, compares the exact pull-request base and head SHAs, and runs `Strict` GitRange mode. `VIOLATION` findings fail the job; `REVIEW` and `INFO` findings remain advisory. Untouched legacy is not scanned, and touched legacy is evaluated only on added lines.
+
+The workflow writes `qbe-conformance-result` as a JSON artifact and publishes a concise job summary. Artifact and summary steps run even after a conformance failure. The canonical exception registry is read from `docs/engineering/QBE_EXCEPTIONS.json`; CI never creates or mutates exceptions.
+
+Manual workflow dispatch requires explicit `base_ref` and `head_ref` inputs. This prevents an arbitrary fallback baseline or repository-wide legacy scan.
