@@ -154,11 +154,93 @@ function Test-PersistedEntity([string]$content, [string]$name) {
 function Test-Configuration([string]$name) {
     return @((Get-ChildItem -LiteralPath $root -Recurse -Filter '*.cs' | Select-String -Pattern "IEntityTypeConfiguration\s*<\s*$([regex]::Escape($name))\s*>" )).Count -gt 0
 }
-function Test-RegistryOwnership([string]$relative) {
-    $registry = Get-Content -Raw -LiteralPath (Join-Path $root 'docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md')
-    $segments = $relative -split '[\\/]'
-    foreach ($segment in $segments) { if ($segment -match 'Management$' -and $registry -match [regex]::Escape($segment)) { return $true } }
-    return $false
+function ConvertTo-SemanticToken([string]$value) {
+    if ([string]::IsNullOrWhiteSpace($value)) { return '' }
+    return ($value -replace '[^A-Za-z0-9]', '').ToLowerInvariant()
+}
+function Get-RegistryOwnershipRows {
+    $registryPath = Join-Path $root 'docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md'
+    $rows = [System.Collections.Generic.List[object]]::new()
+    foreach ($line in (Get-Content -LiteralPath $registryPath)) {
+        $cells = @($line.Trim() -split '\|' | ForEach-Object { $_.Trim() })
+        if ($cells.Count -ne 7 -or $line -notmatch '^\s*\|') { continue }
+        if ($cells[1] -eq 'Area' -or $cells[1] -match '^-+$') { continue }
+        $rows.Add([pscustomobject]@{
+            Area = $cells[1]
+            Owner = $cells[2]
+            Category = $cells[3]
+            Prefix = $cells[4]
+            Lifecycle = $cells[5]
+        })
+    }
+    if ($rows.Count -eq 0) { throw 'Canonical registry contains no parseable ownership rows.' }
+    return @($rows)
+}
+function Test-RegistryAreaMatch([object]$row, [string[]]$sourceHierarchy, [string]$sourceArea) {
+    $area = [string]$row.Area
+    if ($area -match '\s/\s') {
+        return @($area -split '\s/\s' | ForEach-Object { ConvertTo-SemanticToken $_ }) -contains $sourceArea
+    }
+    $required = @($area -split '/' | ForEach-Object { ConvertTo-SemanticToken $_ } | Where-Object { $_ -ne '' })
+    if ($required.Count -eq 1) { return $required[0] -eq $sourceArea }
+    if ($required.Count -gt $sourceHierarchy.Count) { return $false }
+    for ($i = 0; $i -lt $required.Count; $i++) { if ($required[$i] -ne $sourceHierarchy[$i]) { return $false } }
+    return $true
+}
+function Get-RegistryOwnerAliases([string]$owner) {
+    $aliases = [System.Collections.Generic.List[string]]::new()
+    foreach ($part in ($owner -split '/')) {
+        $alias = ConvertTo-SemanticToken $part
+        if ($alias -ne '') { $aliases.Add($alias) }
+        if ($alias -match 'operational$') { $aliases.Add($alias.Substring(0, $alias.Length - 'operational'.Length)) }
+    }
+    return @($aliases | Select-Object -Unique)
+}
+function Resolve-RegistryOwnership([string]$relative, [string]$entity) {
+    $segments = @($relative -split '[\\/]' | Where-Object { $_ -ne '' })
+    $areaIndex = [array]::IndexOf($segments, 'Areas')
+    if ($areaIndex -lt 0 -or $segments.Count -lt ($areaIndex + 3)) {
+        return [pscustomobject]@{ Resolved=$false; Reason='Source path is not under Areas/<Area>/<Domain>.' }
+    }
+    $modelsIndex = [array]::IndexOf($segments, 'Models')
+    if ($modelsIndex -lt 0 -or $modelsIndex -le ($areaIndex + 2)) {
+        return [pscustomobject]@{ Resolved=$false; Reason='Source path does not provide a domain/module segment before Models.' }
+    }
+    $sourceArea = ConvertTo-SemanticToken $segments[$areaIndex + 1]
+    $sourceHierarchy = @($segments[($areaIndex + 1)..($modelsIndex - 1)] | ForEach-Object { ConvertTo-SemanticToken $_ })
+    $moduleSegments = @($sourceHierarchy | Select-Object -Skip 1)
+    $candidates = [System.Collections.Generic.List[object]]::new()
+    foreach ($row in (Get-RegistryOwnershipRows)) {
+        if (-not (Test-RegistryAreaMatch $row $sourceHierarchy $sourceArea)) { continue }
+        $aliases = @(Get-RegistryOwnerAliases $row.Owner)
+        $matchingIndices = @()
+        for ($index = 0; $index -lt $moduleSegments.Count; $index++) {
+            if ($aliases -contains $moduleSegments[$index]) { $matchingIndices += $index }
+        }
+        if ($matchingIndices.Count -gt 0) {
+            $candidates.Add([pscustomobject]@{ Row=$row; Depth=($matchingIndices | Measure-Object -Maximum).Maximum })
+        }
+    }
+    if ($candidates.Count -eq 0) {
+        return [pscustomobject]@{ Resolved=$false; Reason="No registry owner matches source area '$($segments[$areaIndex + 1])' and domain/module path." }
+    }
+    $maxDepth = ($candidates | Measure-Object -Property Depth -Maximum).Maximum
+    $best = @($candidates | Where-Object { $_.Depth -eq $maxDepth })
+    if ($best.Count -ne 1) {
+        return [pscustomobject]@{ Resolved=$false; Reason='Registry ownership is ambiguous for the source area/domain path.' }
+    }
+    $row = $best[0].Row
+    $categoryAllowed = (ConvertTo-SemanticToken $row.Category) -match '^businessdomain'
+    $lifecycleTokens = @(([string]$row.Lifecycle) -split '/' | ForEach-Object { ConvertTo-SemanticToken $_ } | Where-Object { $_ -ne '' })
+    $authorizedLifecycleTokens = @('active', 'legacy')
+    $invalidLifecycleTokens = @($lifecycleTokens | Where-Object { $authorizedLifecycleTokens -notcontains $_ })
+    $lifecycleAllowed = $lifecycleTokens.Count -gt 0 -and $invalidLifecycleTokens.Count -eq 0
+    $prefix = [string]$row.Prefix
+    $prefixAllowed = $entity.StartsWith($prefix, [StringComparison]::Ordinal) -and $entity.Length -gt $prefix.Length -and [char]::IsUpper($entity[$prefix.Length])
+    if (-not $categoryAllowed) { return [pscustomobject]@{ Resolved=$false; Reason="Registry owner '$($row.Owner)' has non-operational Category '$($row.Category)'."; Row=$row } }
+    if (-not $lifecycleAllowed) { return [pscustomobject]@{ Resolved=$false; Reason="Registry owner '$($row.Owner)' has non-active Lifecycle '$($row.Lifecycle)'."; Row=$row } }
+    if (-not $prefixAllowed) { return [pscustomobject]@{ Resolved=$false; Reason="Entity '$entity' does not use approved registry prefix '$prefix' for owner '$($row.Owner)'."; Row=$row } }
+    return [pscustomobject]@{ Resolved=$true; Reason="Resolved Area '$($row.Area)', owner '$($row.Owner)', Category '$($row.Category)', Prefix '$prefix', Lifecycle '$($row.Lifecycle)'."; Row=$row }
 }
 
 $scope = $PSCmdlet.ParameterSetName
@@ -216,9 +298,9 @@ foreach ($file in $files) {
         if (Test-PersistedEntity $content $entity) {
             if ($content -notmatch "class\s+$([regex]::Escape($entity))\s*:\s*IdentityModel") { Add-Finding 'QBE-ENT-001' 'VIOLATION' 'NEW CODE' $file 0 $entity 'New persisted entity does not inherit IdentityModel.' 'Inherit IdentityModel.' }
             if (-not (Test-Configuration $entity)) { Add-Finding 'QBE-CFG-001' 'VIOLATION' 'NEW CODE' $file 0 $entity 'New persisted entity has no dedicated IEntityTypeConfiguration<T>.' 'Add dedicated mapping configuration.' }
-            if (-not (Test-RegistryOwnership $file)) {
-                $level = if ($file -match '(^|[\\/])Areas[\\/].+Management[\\/]') { 'VIOLATION' } else { 'REVIEW' }
-                Add-Finding 'QBE-MOD-002' $level 'NEW CODE' $file 0 $entity 'Area/Module ownership cannot be resolved to the approved registry.' 'Obtain registry decision; do not infer a prefix.'
+            $ownership = Resolve-RegistryOwnership $file $entity
+            if (-not $ownership.Resolved) {
+                Add-Finding 'QBE-MOD-002' 'VIOLATION' 'NEW CODE' $file 0 $entity $ownership.Reason 'Obtain registry decision; do not infer a prefix.'
             }
         }
     }
