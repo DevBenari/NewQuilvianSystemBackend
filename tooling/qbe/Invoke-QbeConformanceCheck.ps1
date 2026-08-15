@@ -3,11 +3,21 @@ param(
     [Parameter(ParameterSetName = 'GitRange', Mandatory)] [string] $BaseRef,
     [Parameter(ParameterSetName = 'GitRange', Mandatory)] [string] $HeadRef,
     [Parameter(ParameterSetName = 'ExplicitFiles', Mandatory)] [string[]] $Path,
+    [string] $Mode = 'ReportOnly',
     [string] $RepositoryRoot = (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+$toolingFailureExitCode = 2
+$conformanceFailureExitCode = 1
+trap {
+    Write-Output "TOOL ERROR: $($_.Exception.Message)"
+    Write-Output 'Final result: TOOL ERROR'
+    exit $toolingFailureExitCode
+}
+
+if ($Mode -notin @('ReportOnly', 'Strict')) { throw "Unsupported checker mode: $Mode. Supported modes: ReportOnly, Strict." }
 
 $requiredAuthority = @(
     'AGENTS.md',
@@ -112,8 +122,21 @@ foreach ($file in $files) {
 }
 
 Write-Output 'QBE Conformance Report'
+Write-Output "Checker mode: $Mode"
 Write-Output "Scope: $scope"
 Write-Output "Files evaluated: $($files.Count)"
 foreach ($level in @('VIOLATION','REVIEW','INFO')) { Write-Output "${level}: $(@($findings | Where-Object Level -eq $level).Count)" }
 if ($findings.Count -eq 0) { Write-Output 'Findings: none' } else { foreach ($finding in $findings) { Write-Output "[$($finding.Level)] $($finding.RuleId) | $($finding.File):$($finding.Line) | $($finding.Evidence) | Action: $($finding.RecommendedAction)" } }
-Write-Output 'REPORT ONLY: No enforcement/blocking performed.'
+if ($Mode -eq 'Strict') {
+    $blockingRuleIds = @($findings | Where-Object Level -eq 'VIOLATION' | Select-Object -ExpandProperty RuleId -Unique)
+    if ($blockingRuleIds.Count -gt 0) {
+        Write-Output 'STRICT CONFORMANCE FAILURE'
+        Write-Output 'Blocking rules:'
+        foreach ($ruleId in $blockingRuleIds) { Write-Output $ruleId }
+        Write-Output 'Final result: CONFORMANCE FAILURE'
+        exit $conformanceFailureExitCode
+    }
+}
+
+if ($Mode -eq 'ReportOnly') { Write-Output 'REPORT ONLY: No enforcement/blocking performed.' }
+Write-Output 'Final result: PASS'
