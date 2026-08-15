@@ -8,6 +8,8 @@ The primary rule is:
 
 > Follow existing code. Do not invent a new architecture.
 
+For NEW CODE, existing source/reference patterns are evidence only and MUST NOT override the canonical Backend Engineering Contract. Authority precedence is: (1) explicit task/write authority and repository safety rules; (2) `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`; (3) `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; (4) applicable `.codex` operational guidance; (5) existing source/reference patterns. A comparable `Trx*`, direct-controller-DbContext, Count/Max/Last+1, or generic persisted `SortOrder` legacy pattern does not authorize that pattern in NEW CODE. Apply the existing legacy ratchet without mass rewrite.
+
 Before implementation, inspect the nearest comparable controller, DTO, model, service, data-access usage, validation, authorization rule, workflow, EF configuration, migration, and endpoint as applicable.
 
 ## Codex Governance Operating Layer
@@ -15,6 +17,7 @@ Before implementation, inspect the nearest comparable controller, DTO, model, se
 `AGENTS.md` remains the authoritative repository constitution. Read the following only when their condition applies:
 
 - Every implementation task: `.codex/TASK_RULES.md`
+- Every backend application implementation: `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` and `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`
 - Classification and model selection: `.codex/TASK_CLASSIFICATION.md`
 - Cross-repository task: `.codex/CROSS_REPO_RULES.md`
 - Before completion: `.codex/REVIEW_RULES.md`
@@ -23,6 +26,10 @@ Before implementation, inspect the nearest comparable controller, DTO, model, se
 - Entity/EF/database/migration work: `.codex/DATABASE_RULES.md`
 
 These documents supplement rather than replace the repository-specific safety, architecture, branch, security, validation, database, and write-scope rules in this file. Simple read-only questions do not require loading the full operating layer.
+
+## Backend Engineering Contract Preflight
+
+Before changing backend application source, determine the Area, Module, registry owner/prefix, applicability (`NEW CODE`, `TOUCHED LEGACY`, or `LEGACY MIGRATION`), and applicable QBE rule IDs from the canonical contract. A new operational module/entity without an approved registry entry is BLOCKED under `QBE-MOD-002`; do not infer a prefix from its folder. Follow the legacy ratchet: do not mass-refactor untouched legacy.
 
 ## Language and Communication
 
@@ -36,7 +43,7 @@ These documents supplement rather than replace the repository-specific safety, a
 
 - Repository: `NewQuilvianSystemBackend`
 - Primary development branch: `AgentCodexBackend`
-- Frontend reference repository: `D:\Projects\QuilvianSystemFrontendDev`
+- Frontend reference repository: `QuilvianSystemFrontendDev` (locate from authorized workspace context; report a missing dependency rather than guessing a path)
 
 Before backend implementation, verify the current backend branch with read-only Git commands. If it differs from `AgentCodexBackend`, stop and report the mismatch. Do not switch branches or repair Git state automatically.
 
@@ -248,7 +255,7 @@ Do not stage, commit, or push unless explicitly requested.
 
 ## Local ChatGPT Handoff Reporting
 
-Shared local reporting lives in the frontend workspace at `D:\Projects\QuilvianSystemFrontendDev\.quilvian-local\`. Do not create duplicate tracked reporting infrastructure in this backend repository.
+Shared local reporting lives at `<frontend-repository-root>/.quilvian-local/`. Do not create duplicate tracked reporting infrastructure in this backend repository.
 
 After meaningful `BACKEND MODE` or `CROSS-REPO MODE` work, Codex may update the ignored local files:
 

@@ -2,6 +2,10 @@
 
 These rules preserve existing backend conventions. `AGENTS.md` remains authoritative; use the nearest mature implementation in the owning domain rather than introducing a parallel convention.
 
+## Canonical QBE alignment
+
+Read `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` before API work. Apply QBE-SVC-001, QBE-API-001, QBE-PERM-001, QBE-LOG-001, QBE-DTO-001, QBE-VAL-001 and applicable QBE-CODE rules. Reference implementations illustrate existing behavior only; they do not override the canonical contract.
+
 ## Contract authority and scope
 
 - Backend source is authoritative for API contracts and business/security behavior. Frontend code is a consumer reference, not an authority that silently redefines contracts.

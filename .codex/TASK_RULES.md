@@ -7,6 +7,7 @@ This document defines the repeatable operating lifecycle for implementation work
 `CLASSIFY → INSPECT → PLAN → IMPLEMENT → VALIDATE → REVIEW → REPORT`
 
 1. **CLASSIFY** the task using `TASK_CLASSIFICATION.md`; confirm task mode, write target, branch, and scope.
+   For backend application work, perform QBE preflight against `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` and the registry: Area, Module, owner/prefix, ratchet class, and applicable rule IDs.
 2. **INSPECT** the nearest comparable implementation and all directly affected contracts, authorization, workflow, persistence, and rules required by `AGENTS.md`.
 3. **PLAN** a short, bounded implementation plan before writing.
 4. **IMPLEMENT** only the authorized change, following the existing architecture and nearest pattern.

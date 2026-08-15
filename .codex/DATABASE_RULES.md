@@ -2,6 +2,10 @@
 
 These rules preserve the existing EF Core and PostgreSQL implementation. `AGENTS.md` remains authoritative; inspect the owning model, `ApplicationDbContext`, controller/service, and nearest migration before making persistence decisions.
 
+## Canonical QBE alignment
+
+Read `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` and the registry before persistence work. Apply QBE-ENT-001, QBE-CFG-001, QBE-NAM-001–003, QBE-DB-001–002, QBE-CODE-004 and QBE-MOD-002. A reference implementation does not supersede the canonical contract.
+
 ## Model and context discipline
 
 - Keep entity/model ownership inside the established domain. Preserve table/schema, base-model, relationship, audit, soft-delete, and active-status conventions.

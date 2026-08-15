@@ -2,6 +2,8 @@
 
 Before completion, perform and record a review proportionate to the task.
 
+- **QBE conformance:** identify applicable QBE IDs from `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`, verify compliance, and record any approved scoped exception.
+
 - **Diff review:** inspect every changed file and confirm the diff implements the requested behavior only.
 - **Scope review:** verify no unrelated source, dependency, configuration, workflow, migration, or generated-output change was introduced.
 - **Regression review:** consider affected callers, routes, contracts, state, workflows, and error paths; run relevant validation.
