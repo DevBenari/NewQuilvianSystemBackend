@@ -45,7 +45,13 @@ Before changing backend application source, determine the Area, Module, registry
 - Primary development branch: `AgentCodexBackend`
 - Frontend reference repository: `QuilvianSystemFrontendDev` (locate from authorized workspace context; report a missing dependency rather than guessing a path)
 
-Before backend implementation, verify the current backend branch with read-only Git commands. If it differs from `AgentCodexBackend`, stop and report the mismatch. Do not switch branches or repair Git state automatically.
+`AgentCodexBackend` is the protected integration and base branch. It remains the canonical backend development integration branch, but it is not required to be the current branch while implementing an authorized feature.
+
+Before backend application implementation, verify the current backend branch with read-only Git commands, the task/write authority, a clean or recoverable Git state, and the feature branch's base relationship to `AgentCodexBackend`. If the task requires `AgentCodexBackend` specifically, verify that exact branch. If the task authorizes a named feature branch, the current branch must match that authorized name; a mismatch is a blocker. Do not invent a branch name.
+
+For a newly created local feature branch, a missing upstream before its first authorized publication is valid and is not a blocker for local implementation, build, or validation. Upstream becomes relevant when a separate task authorizes publication. For an existing authorized feature branch, do not automatically switch, merge, or rebase merely to synchronize it; inspect and report synchronization requirements unless the task explicitly authorizes the Git operation.
+
+Normal backend feature implementation must follow the protected-branch workflow: an authorized feature branch based on an up-to-date `origin/AgentCodexBackend`, local implementation and validation, separately authorized commit/push, Pull Request, required QBE Strict GitRange check, then merge to `AgentCodexBackend`. Do not weaken the Pull Request requirement, required QBE check, or protected integration branch safeguards.
 
 Source implementation and Git publication are separate operations. Unless explicitly requested, do not commit, push, pull, merge, rebase, switch or checkout branches, reset, force checkout, stash, cherry-pick, create a pull request, or deploy.
 
