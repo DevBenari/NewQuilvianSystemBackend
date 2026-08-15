@@ -12,6 +12,7 @@ Examples:
 ./tooling/qbe/Invoke-QbeConformanceCheck.ps1 -BaseRef origin/main -HeadRef HEAD
 ./tooling/qbe/Invoke-QbeConformanceCheck.ps1 -BaseRef origin/main -HeadRef HEAD -Mode Strict
 ./tooling/qbe/Invoke-QbeConformanceCheck.ps1 -Path Areas/HealthServices/Foo.cs
+./tooling/qbe/Invoke-QbeConformanceCheck.ps1 -Mode Strict -JsonOutputPath tooling/qbe/qbe-result.json
 ```
 
 ## Exit behavior
@@ -22,4 +23,14 @@ The terminal report always states checker mode, scope, counts, and a final resul
 - `Strict`: one or more `VIOLATION` findings exit `1` with `STRICT CONFORMANCE FAILURE` and the unique blocking QBE IDs. `REVIEW` and `INFO` remain advisory and exit `0` when no violation exists.
 - Tooling/governance failures, including an unsupported mode or missing canonical authority, exit `2` and report `Final result: TOOL ERROR` when the script can handle the failure.
 
-Strict mode enforces only the current delta-aware scope; it does not scan untouched legacy. It is suitable for future GitRange CI use, but G6-E2A does not add CI integration, exceptions, or machine-readable output. This tool does not implement, migrate, or remediate legacy code.
+Strict mode enforces only the current delta-aware scope; it does not scan untouched legacy. It is suitable for future GitRange CI use, while CI integration remains deferred to G6-E2C. This tool does not implement, migrate, or remediate legacy code.
+
+## Structured output and exceptions
+
+`-JsonOutputPath` is optional. It preserves terminal output and writes deterministic JSON containing schema/checker version, mode, scope and Git range, counts, suppressed-violation count, blocking RuleIds, result, and visible findings. Finding fields include repository-relative file, line, evidence/reason, recommended action, `suppressed`, and `exceptionId`.
+
+The repository-owned authority is [QBE_EXCEPTIONS.json](../../docs/engineering/QBE_EXCEPTIONS.json). Each record requires `ExceptionId`, `RuleId`, a specific repository-relative file `Scope`, `Reason`, `Status` (`ACTIVE`, `EXPIRED`, or `REVOKED`), approval (`ApprovedBy` or `ApprovalReference`), and either `ExpiresAt` or `NoExpiryRationale`. Wildcards, whole-repository scope, absolute paths, traversal, empty RuleIds, and unknown QBE RuleIds are rejected. Malformed/invalid registries are tooling errors (`2`).
+
+An ACTIVE matching exception leaves its finding visible as `SUPPRESSED` and prevents only that `VIOLATION` from blocking Strict. Expired or revoked records do not suppress. Exceptions do not change the QBE contract or establish convention. Developers and Codex must request explicit approval; they must not create or broaden an exception merely to make Strict pass.
+
+No CI integration is added here; G6-E2C owns CI integration.

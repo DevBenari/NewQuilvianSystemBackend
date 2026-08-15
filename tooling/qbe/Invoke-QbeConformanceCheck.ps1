@@ -4,7 +4,9 @@ param(
     [Parameter(ParameterSetName = 'GitRange', Mandatory)] [string] $HeadRef,
     [Parameter(ParameterSetName = 'ExplicitFiles', Mandatory)] [string[]] $Path,
     [string] $Mode = 'ReportOnly',
-    [string] $RepositoryRoot = (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+    [string] $JsonOutputPath,
+    [string] $ExceptionRegistryPath,
+    [string] $RepositoryRoot
 )
 
 Set-StrictMode -Version Latest
@@ -18,6 +20,8 @@ trap {
 }
 
 if ($Mode -notin @('ReportOnly', 'Strict')) { throw "Unsupported checker mode: $Mode. Supported modes: ReportOnly, Strict." }
+
+if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) { $RepositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
 
 $requiredAuthority = @(
     'AGENTS.md',
@@ -38,7 +42,62 @@ function Get-RelativePath([string]$file) {
     return $file
 }
 function Add-Finding([string]$Rule, [string]$Level, [string]$Applicability, [string]$File, [int]$Line, [string]$Evidence, [string]$Reason, [string]$Action) {
-    $script:findings.Add([pscustomobject]@{ RuleId=$Rule; Level=$Level; Applicability=$Applicability; File=$File; Line=$Line; Evidence=$Evidence; Reason=$Reason; RecommendedAction=$Action })
+    $script:findings.Add([pscustomobject]@{ RuleId=$Rule; Level=$Level; Applicability=$Applicability; File=$File; Line=$Line; Evidence=$Evidence; Reason=$Reason; RecommendedAction=$Action; Suppressed=$false; ExceptionId=$null })
+}
+function Get-ExceptionRegistryPath {
+    if ([string]::IsNullOrWhiteSpace($ExceptionRegistryPath)) { return Join-Path $root 'docs/engineering/QBE_EXCEPTIONS.json' }
+    if ([IO.Path]::IsPathRooted($ExceptionRegistryPath)) { return [IO.Path]::GetFullPath($ExceptionRegistryPath) }
+    return [IO.Path]::GetFullPath((Join-Path $root $ExceptionRegistryPath))
+}
+function Get-ValidatedExceptions {
+    $registryPath = Get-ExceptionRegistryPath
+    if (-not (Test-Path -LiteralPath $registryPath -PathType Leaf)) {
+        if ([string]::IsNullOrWhiteSpace($ExceptionRegistryPath)) { return @() }
+        throw "Exception registry not found: $registryPath"
+    }
+    try { $registry = Get-Content -Raw -LiteralPath $registryPath | ConvertFrom-Json } catch { throw "Malformed exception registry: $registryPath" }
+    if ($null -eq $registry -or [string]::IsNullOrWhiteSpace($registry.schemaVersion) -or $null -eq $registry.exceptions) { throw "Malformed exception registry: schemaVersion and exceptions are required." }
+    $validated = @()
+    foreach ($exception in @($registry.exceptions)) {
+        foreach ($field in @('ExceptionId','RuleId','Scope','Reason','Status')) { if ([string]::IsNullOrWhiteSpace([string]$exception.$field)) { throw "Invalid exception record: $field is required." } }
+        $approvedBy = if ($null -ne $exception.PSObject.Properties['ApprovedBy']) { [string]$exception.ApprovedBy } else { '' }
+        $approvalReference = if ($null -ne $exception.PSObject.Properties['ApprovalReference']) { [string]$exception.ApprovalReference } else { '' }
+        $expiresAtValue = if ($null -ne $exception.PSObject.Properties['ExpiresAt']) { [string]$exception.ExpiresAt } else { '' }
+        $noExpiryRationale = if ($null -ne $exception.PSObject.Properties['NoExpiryRationale']) { [string]$exception.NoExpiryRationale } else { '' }
+        if ([string]::IsNullOrWhiteSpace($approvedBy) -and [string]::IsNullOrWhiteSpace($approvalReference)) { throw "Invalid exception record $($exception.ExceptionId): ApprovedBy or ApprovalReference is required." }
+        if ($exception.RuleId -notin $implementedRules) { throw "Invalid exception record $($exception.ExceptionId): unknown RuleId $($exception.RuleId)." }
+        if ($exception.Status -notin @('ACTIVE','EXPIRED','REVOKED')) { throw "Invalid exception record $($exception.ExceptionId): unsupported Status $($exception.Status)." }
+        $scope = ([string]$exception.Scope).Replace('\\','/')
+        if ([IO.Path]::IsPathRooted($scope) -or $scope -match '(^|/)\.\.(/|$)' -or $scope -match '[*?]' -or [string]::IsNullOrWhiteSpace($scope)) { throw "Invalid exception record $($exception.ExceptionId): Scope must be a specific repository-relative file." }
+        if ([string]::IsNullOrWhiteSpace($expiresAtValue) -and [string]::IsNullOrWhiteSpace($noExpiryRationale)) { throw "Invalid exception record $($exception.ExceptionId): ExpiresAt or NoExpiryRationale is required." }
+        $expiresAt = $null
+        if (-not [string]::IsNullOrWhiteSpace($expiresAtValue)) { try { $expiresAt = [datetime]::Parse($expiresAtValue).ToUniversalTime() } catch { throw "Invalid exception record $($exception.ExceptionId): ExpiresAt is invalid." } }
+        $validated += [pscustomobject]@{ ExceptionId=[string]$exception.ExceptionId; RuleId=[string]$exception.RuleId; Scope=$scope; Status=[string]$exception.Status; ExpiresAt=$expiresAt }
+    }
+    return $validated
+}
+function Write-StructuredResult([string]$result, [object[]]$blockingRules) {
+    if ([string]::IsNullOrWhiteSpace($JsonOutputPath)) { return }
+    $outputPath = if ([IO.Path]::IsPathRooted($JsonOutputPath)) { [IO.Path]::GetFullPath($JsonOutputPath) } else { [IO.Path]::GetFullPath((Join-Path $root $JsonOutputPath)) }
+    $parent = Split-Path -Parent $outputPath
+    if (-not (Test-Path -LiteralPath $parent -PathType Container)) { throw "JSON output directory not found: $parent" }
+    $json = [pscustomobject]@{
+        schemaVersion = '1.0'
+        checkerVersion = 'G6-E2B'
+        mode = $Mode
+        scope = $scope
+        baseRef = if ($scope -eq 'GitRange') { $BaseRef } else { $null }
+        headRef = if ($scope -eq 'GitRange') { $HeadRef } else { $null }
+        filesEvaluated = $files.Count
+        violationCount = @($findings | Where-Object Level -eq 'VIOLATION').Count
+        reviewCount = @($findings | Where-Object Level -eq 'REVIEW').Count
+        infoCount = @($findings | Where-Object Level -eq 'INFO').Count
+        suppressedViolationCount = @($findings | Where-Object { $_.Level -eq 'VIOLATION' -and $_.Suppressed }).Count
+        blockingRuleIds = @($blockingRules)
+        result = $result
+        findings = @($findings | ForEach-Object { [pscustomobject]@{ ruleId=$_.RuleId; level=$_.Level; file=$_.File; line=$_.Line; reason=$_.Reason; evidence=$_.Evidence; recommendedAction=$_.RecommendedAction; suppressed=$_.Suppressed; exceptionId=$_.ExceptionId } })
+    }
+    $json | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $outputPath -Encoding utf8
 }
 function Get-AddedLines([string]$relative, [string]$base, [string]$head) {
     $output = if ($head -eq 'WORKTREE') { & git -C $root diff --unified=0 $base -- $relative 2>$null } else { & git -C $root diff --unified=0 "$base..$head" -- $relative 2>$null }
@@ -66,6 +125,8 @@ function Test-RegistryOwnership([string]$relative) {
 }
 
 $scope = $PSCmdlet.ParameterSetName
+$exceptions = @(Get-ValidatedExceptions)
+$exceptionNotices = [System.Collections.Generic.List[string]]::new()
 $files = @()
 $addedByFile = @{}
 switch ($scope) {
@@ -121,22 +182,37 @@ foreach ($file in $files) {
     }
 }
 
+foreach ($finding in $findings) {
+    $matching = @($exceptions | Where-Object { $_.RuleId -eq $finding.RuleId -and $_.Scope -eq $finding.File })
+    foreach ($exception in $matching) {
+        $isExpired = $exception.Status -eq 'EXPIRED' -or ($null -ne $exception.ExpiresAt -and $exception.ExpiresAt -lt [datetime]::UtcNow)
+        if ($isExpired) { $exceptionNotices.Add("Exception $($exception.ExceptionId) is expired and did not suppress $($finding.RuleId).") ; continue }
+        if ($exception.Status -eq 'REVOKED') { $exceptionNotices.Add("Exception $($exception.ExceptionId) is revoked and did not suppress $($finding.RuleId).") ; continue }
+        $finding.Suppressed = $true
+        $finding.ExceptionId = $exception.ExceptionId
+        break
+    }
+}
+
 Write-Output 'QBE Conformance Report'
 Write-Output "Checker mode: $Mode"
 Write-Output "Scope: $scope"
 Write-Output "Files evaluated: $($files.Count)"
 foreach ($level in @('VIOLATION','REVIEW','INFO')) { Write-Output "${level}: $(@($findings | Where-Object Level -eq $level).Count)" }
-if ($findings.Count -eq 0) { Write-Output 'Findings: none' } else { foreach ($finding in $findings) { Write-Output "[$($finding.Level)] $($finding.RuleId) | $($finding.File):$($finding.Line) | $($finding.Evidence) | Action: $($finding.RecommendedAction)" } }
+if ($findings.Count -eq 0) { Write-Output 'Findings: none' } else { foreach ($finding in $findings) { $suppression = if ($finding.Suppressed) { " | SUPPRESSED: $($finding.ExceptionId)" } else { '' }; Write-Output "[$($finding.Level)] $($finding.RuleId) | $($finding.File):$($finding.Line) | $($finding.Evidence) | Action: $($finding.RecommendedAction)$suppression" } }
+foreach ($notice in $exceptionNotices) { Write-Output "Exception notice: $notice" }
 if ($Mode -eq 'Strict') {
-    $blockingRuleIds = @($findings | Where-Object Level -eq 'VIOLATION' | Select-Object -ExpandProperty RuleId -Unique)
+    $blockingRuleIds = @($findings | Where-Object { $_.Level -eq 'VIOLATION' -and -not $_.Suppressed } | Select-Object -ExpandProperty RuleId -Unique)
     if ($blockingRuleIds.Count -gt 0) {
         Write-Output 'STRICT CONFORMANCE FAILURE'
         Write-Output 'Blocking rules:'
         foreach ($ruleId in $blockingRuleIds) { Write-Output $ruleId }
         Write-Output 'Final result: CONFORMANCE FAILURE'
+        Write-StructuredResult 'CONFORMANCE_FAILURE' $blockingRuleIds
         exit $conformanceFailureExitCode
     }
 }
 
 if ($Mode -eq 'ReportOnly') { Write-Output 'REPORT ONLY: No enforcement/blocking performed.' }
 Write-Output 'Final result: PASS'
+Write-StructuredResult 'PASS' @()
