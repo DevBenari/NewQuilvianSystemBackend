@@ -479,7 +479,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxInvestigationEvidence> TrxInvestigationEvidences { get; set; }
         public DbSet<TrxDisciplinaryCase> TrxDisciplinaryCases { get; set; }
         public DbSet<TrxDisciplinaryDecision> TrxDisciplinaryDecisions { get; set; }
-        public DbSet<TrxEmployeeRecognition> TrxEmployeeRecognitions { get; set; }
+        public DbSet<HrdEmployeeRecognition> HrdEmployeeRecognitions { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - EMPLOYEE RELATION MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - HR SERVICE MANAGEMENT
