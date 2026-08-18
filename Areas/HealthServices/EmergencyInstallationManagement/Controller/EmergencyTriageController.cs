@@ -404,6 +404,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return Ok(ApiResponse<EmergencyTriageResponse>.Ok(ToResponse(outcome.Retriage), outcome.Message));
         }
 
+        /// <summary>
+        /// Daftar pasien yang melampaui batas waktu respons dan belum ditangani.
+        /// Rute ini didaftarkan sebelum rute "{id:guid}" tidak menjadi masalah karena
+        /// segmen "sla-breaches" bukan Guid, sehingga tidak pernah saling menangkap.
+        /// </summary>
+        [HttpGet("sla-breaches")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyTriageSlaBreachResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Triage SLA Breach", Description = "Melihat daftar pasien IGD yang melampaui batas waktu respons", AccessType = AccessTypes.Read, SortOrder = 7)]
+        [AccessPermission("EmergencyTriage", "Read")]
+        public async Task<IActionResult> GetSlaBreaches(
+            [FromQuery] Guid? serviceUnitId,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default
+        )
+        {
+            (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
+
+            var result = await _emergencyTriageService.GetSlaBreachesAsync(
+                serviceUnitId,
+                startDate,
+                endDate,
+                pageNumber,
+                pageSize,
+                cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<EmergencyTriageSlaBreachResponse>>.Ok(
+                result,
+                "Daftar pelampauan batas waktu respons triage IGD berhasil diambil."));
+        }
+
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

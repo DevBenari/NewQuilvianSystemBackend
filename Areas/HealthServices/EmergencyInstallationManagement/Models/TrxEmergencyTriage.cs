@@ -78,6 +78,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public bool IsActive { get; set; } = true;
 
+        /// <summary>
+        /// Menandai penilaian yang batas waktu responsnya sudah terlampaui. Diisi oleh
+        /// proses pemantau, bukan oleh petugas, dan tidak pernah dihitung ulang untuk
+        /// riwayat lama.
+        /// </summary>
+        public bool IsSlaBreached { get; set; } = false;
+
+        /// <summary>
+        /// Waktu pelampauan batas tercatat. Kosong selama batas belum terlampaui.
+        /// Setelah terisi nilainya tetap, supaya pemindaian berulang tidak menggeser
+        /// kapan keterlambatan sebenarnya terjadi.
+        /// </summary>
+        public DateTime? SlaBreachedAt { get; set; }
+
         public TrxEmergencyVisit? EmergencyVisit { get; set; }
 
         public MstEmergencyTriageLevel? TriageLevel { get; set; }

@@ -24,11 +24,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService.Emerge
             builder.Property(x => x.RedFlagSummary).HasMaxLength(1000);
             builder.Property(x => x.Notes).HasMaxLength(1000);
 
+            builder.Property(x => x.IsSlaBreached).HasDefaultValue(false);
+
             builder.HasIndex(x => new { x.EmergencyVisitId, x.Sequence }).IsUnique();
             builder.HasIndex(x => new { x.EmergencyVisitId, x.TriageStatus, x.StartedAt });
             builder.HasIndex(x => x.PatientVitalSignId);
             builder.HasIndex(x => x.PreviousTriageId);
             builder.HasIndex(x => x.ResponseDueAt);
+            builder.HasIndex(x => new { x.EmergencyVisitId, x.ResponseDueAt, x.IsSlaBreached });
 
             builder.HasOne(x => x.EmergencyVisit)
                 .WithMany(x => x.Triages)

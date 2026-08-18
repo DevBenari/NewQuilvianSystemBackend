@@ -296,6 +296,12 @@ try
     builder.Services.AddScoped<EmergencyTransferService>();
     builder.Services.AddScoped<EmergencySettingService>();
 
+    // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
+    // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
+    builder.Services.Configure<EmergencyTriageSlaMonitorOptions>(
+        builder.Configuration.GetSection("HealthServices:EmergencyTriageSlaMonitor"));
+    builder.Services.AddHostedService<EmergencyTriageSlaMonitorHostedService>();
+
     builder.Services.AddScoped<HumanResourceContextService>();
     builder.Services.AddScoped<EmployeeProfileChangeService>();
     builder.Services.AddScoped<WorkflowService>();
