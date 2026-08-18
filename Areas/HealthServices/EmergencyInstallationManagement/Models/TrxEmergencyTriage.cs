@@ -36,7 +36,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public DateTime? CompletedAt { get; set; }
 
-        public int MaxWaitingMinutesSnapshot { get; set; }
+        /// <summary>
+        /// Salinan target waktu master saat penilaian dibuat. Kosong berarti level triase
+        /// yang dipakai memang belum punya target, sehingga tidak ada batas yang dilanggar.
+        /// </summary>
+        public int? MaxWaitingMinutesSnapshot { get; set; }
 
         public DateTime? ResponseDueAt { get; set; }
 

@@ -76,7 +76,7 @@ classDiagram
         +Guid Id
         +int Level
         +string ColorName
-        +int MaxWaitingMinutes
+        +int? MaxWaitingMinutes
     }
     class MstEmergencyTriageIndicator {
         +Guid Id
@@ -304,7 +304,8 @@ merapikannya diam-diam di tengah task lain, dan perapian menjadi task tersendiri
 | Model atau berkas | Status | Perubahan | Dampak migration |
 | --- | --- | --- | --- |
 | `TrxEmergencyVisit` | Sudah ada | Tidak ada | Tidak ada |
-| `TrxEmergencyTriage` | **Diperbarui** | Tambah `IsSlaBreached` (`bool`, bawaan `false`) dan `SlaBreachedAt` (`DateTime?`); index pada `(EmergencyVisitId, ResponseDueAt, IsSlaBreached)` | Menambah dua kolom dan satu index |
+| `TrxEmergencyTriage` | **Diperbarui** | `MaxWaitingMinutesSnapshot` menjadi `int?` (`BE-IGD-002`); tambah `IsSlaBreached` (`bool`, bawaan `false`) dan `SlaBreachedAt` (`DateTime?`); index pada `(EmergencyVisitId, ResponseDueAt, IsSlaBreached)` | Melepas satu kolom dari kewajiban terisi, lalu menambah dua kolom dan satu index |
+| `MstEmergencyTriageLevel` | **Diperbarui** | `MaxWaitingMinutes` menjadi `int?` agar "target belum ditetapkan" dapat dibedakan dari "0 menit" (`BE-IGD-002`) | Melepas satu kolom dari kewajiban terisi |
 | `EmergencyVisitStatus` | **Diperbarui** | Tambah nilai `Completed = 9` setelah `Disposed` | Tidak ada, enum disimpan sebagai integer |
 | Tujuh model transaksi lain | Sudah ada | Tidak ada | Tidak ada |
 | Enam model master | Sudah ada | Tidak ada perubahan struktur; membutuhkan data awal | Tidak ada |
@@ -319,7 +320,20 @@ Nilai `Completed = 9` dipilih agar tidak menggeser nilai yang sudah tersimpan di
 
 | Urutan | Migration | Tanpa mematikan layanan | Pengisian data lama | Cara mundur |
 | ---: | --- | :---: | --- | --- |
-| 1 | `AddTriageSlaBreachMarker` | Ya | `IsSlaBreached` diisi `false` untuk seluruh baris lama. Tidak menghitung ulang breach historis karena `ResponseDueAt` lama tidak selalu terisi | Hapus dua kolom dan index; belum ada data yang bergantung |
+| 1 | `MakeTriageMaxWaitingMinutesNullable` | Ya | Tidak ada pengisian. `MstEmergencyTriageLevel.MaxWaitingMinutes` dan `TrxEmergencyTriage.MaxWaitingMinutesSnapshot` hanya dilepas dari kewajiban terisi (`DROP NOT NULL`), sehingga seluruh nilai lama tetap apa adanya dan tidak ada angka yang ditebak | Mengembalikan kewajiban terisi **mengubah setiap nilai kosong menjadi 0**. Lihat peringatan di bawah tabel |
+| 2 | `AddTriageSlaBreachMarker` | Ya | `IsSlaBreached` diisi `false` untuk seluruh baris lama. Tidak menghitung ulang breach historis karena `ResponseDueAt` lama tidak selalu terisi | Hapus dua kolom dan index; belum ada data yang bergantung |
+
+Migration nomor 1 **tidak tercatat pada rencana awal** dan ditambahkan saat `BE-IGD-002`
+dikerjakan. Alasannya: aturan `TargetUnconfigured` pada validation matrix bagian 2 mengharuskan
+sistem membedakan "target belum ditetapkan" dari "0 menit", dan tipe `int` biasa tidak mampu
+menyatakan keadaan kosong. Alternatifnya adalah menebak angka target, yang dilarang oleh
+`IGD-DEC-027` dan `IGD-DEC-035`. Penyimpangan ini perlu diketahui Product/Domain Owner.
+
+> **Peringatan cara mundur:** membatalkan migration nomor 1 mengisi setiap `MaxWaitingMinutes`
+> yang kosong dengan angka 0. Level 3 yang sengaja dibiarkan tanpa target akan berubah menjadi
+> "harus dilayani seketika" — yaitu persis kesalahan yang diperbaiki task ini. Karena itu,
+> setelah data master IGD terisi (`BE-IGD-003`), pembatalan migration ini tidak boleh dilakukan
+> tanpa mencatat lebih dulu level mana saja yang targetnya kosong.
 
 Penambahan nilai enum `Completed` tidak memerlukan migration karena disimpan sebagai integer
 dan tidak ada check constraint pada kolom tersebut. Bila kemudian check constraint

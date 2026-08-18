@@ -45,7 +45,7 @@ Sumber: `Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergenc
 | `TriageStatus` | `EmergencyTriageStatus` | Ya | `Draft` | Index | — | Tidak | `Draft`, `InProgress`, `Completed`, `Superseded`, `Cancelled` |
 | `StartedAt` | `DateTime` | Ya | `UtcNow` | Index | — | Tidak | Waktu penilaian dimulai |
 | `CompletedAt` | `DateTime?` | Tidak | — | — | — | Tidak | Waktu penilaian selesai |
-| `MaxWaitingMinutesSnapshot` | `int` | Ya | — | — | — | Tidak | Salinan target dari master saat penilaian dibuat |
+| `MaxWaitingMinutesSnapshot` | `int?` | Tidak | — | — | — | Tidak | Salinan target dari master saat penilaian dibuat. Kosong berarti level triase yang dipakai memang belum punya target, bukan 0 menit (`BE-IGD-002`) |
 | `ResponseDueAt` | `DateTime?` | Tidak | — | Index | — | Tidak | Batas waktu respons, dihitung server dari `StartedAt` + target master |
 | `ImmediateCareAllowed` | `bool` | Ya | `false` | — | — | Tidak | Pelayanan boleh dimulai tanpa menunggu administrasi |
 | `TriageReason` | `string(1000)` | Tidak | — | — | — | **Ya** | Alasan klinis penetapan level |
@@ -164,7 +164,7 @@ Sumber: `.../EmergencyInstallationManagement/Models/TrxEmergencyVisit.cs`
 
 | Tabel | Kolom kunci | Catatan |
 | --- | --- | --- |
-| `MstEmergencyTriageLevel` | `Id`, `Level`, `Code`, `Name`, `ColorName`, `ColorHex`, `MaxWaitingMinutes`, `Sequence`, `IsActive` | Warna dan target waktu wajib dari sini, tidak boleh di-hardcode |
+| `MstEmergencyTriageLevel` | `Id`, `Level`, `Code`, `Name`, `ColorName`, `ColorHex`, `MaxWaitingMinutes` (`int?`), `Sequence`, `IsActive` | Warna dan target waktu wajib dari sini, tidak boleh di-hardcode. `MaxWaitingMinutes` boleh kosong dan artinya target belum ditetapkan SOP (`BE-IGD-002`) |
 | `MstEmergencyTriageIndicator` | `Id`, `TriageLevelId`, `Code`, `Name`, `IndicatorGroup`, `Sequence`, `IsActive` | Checklist saat triage |
 | `MstEmergencyArrivalMode` | `Id`, `Code`, `Name`, `IsAmbulance`, `IsReferral`, `Sequence`, `IsActive` | Dasar pelaporan rujukan dan ambulans |
 | `MstEmergencyCaseType` | `Id`, `Code`, `Name`, `Sequence`, `IsActive` | Klasifikasi kasus |
@@ -254,7 +254,7 @@ CREATE TABLE public."TrxEmergencyTriage" (
     "TriageStatus"              integer       NOT NULL DEFAULT 1,  -- enum Draft=1 .. Cancelled=5
     "StartedAt"                 timestamp     NOT NULL,
     "CompletedAt"               timestamp,
-    "MaxWaitingMinutesSnapshot" integer       NOT NULL,
+    "MaxWaitingMinutesSnapshot" integer,                           -- kosong = target belum diatur
     "ResponseDueAt"             timestamp,
     "ImmediateCareAllowed"      boolean       NOT NULL DEFAULT false,
     "TriageReason"              varchar(1000),                     -- SENSITIF

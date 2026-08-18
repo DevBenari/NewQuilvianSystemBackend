@@ -16,7 +16,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public EmergencyTriageStatus TriageStatus { get; set; }
         public DateTime StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
-        public int MaxWaitingMinutesSnapshot { get; set; }
+        public int? MaxWaitingMinutesSnapshot { get; set; }
         public DateTime? ResponseDueAt { get; set; }
         public bool ImmediateCareAllowed { get; set; }
         public string? TriageReason { get; set; }
@@ -59,7 +59,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public DateTime? CompletedAt { get; set; }
 
-        public int MaxWaitingMinutesSnapshot { get; set; }
+        public int? MaxWaitingMinutesSnapshot { get; set; }
 
         public DateTime? ResponseDueAt { get; set; }
 
@@ -101,6 +101,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
     public class UpdateEmergencyTriageRequest : CreateEmergencyTriageRequest
     {
+    }
+
+    /// <summary>
+    /// Permintaan penilaian ulang. Nomor urut, penanda retriage, penunjuk penilaian sebelumnya,
+    /// target waktu, dan batas waktu respons ditetapkan server, bukan dikirim pemanggil.
+    /// </summary>
+    public class RetriageEmergencyTriageRequest
+    {
+        [Required]
+        public Guid TriageLevelId { get; set; }
+
+        public Guid? PatientVitalSignId { get; set; }
+
+        /// <summary>
+        /// Waktu penilaian ulang dimulai. Bila tidak diisi, memakai waktu server saat ini.
+        /// </summary>
+        public DateTime? StartedAt { get; set; }
+
+        [MaxLength(1000)]
+        public string? TriageReason { get; set; }
+
+        [MaxLength(1000)]
+        public string? AirwaySummary { get; set; }
+
+        [MaxLength(1000)]
+        public string? BreathingSummary { get; set; }
+
+        [MaxLength(1000)]
+        public string? CirculationSummary { get; set; }
+
+        [MaxLength(1000)]
+        public string? DisabilitySummary { get; set; }
+
+        [MaxLength(1000)]
+        public string? ExposureSummary { get; set; }
+
+        [MaxLength(1000)]
+        public string? RedFlagSummary { get; set; }
+
+        [MaxLength(1000)]
+        public string? Notes { get; set; }
     }
 
     public class UpdateEmergencyTriageTriageStatusRequest

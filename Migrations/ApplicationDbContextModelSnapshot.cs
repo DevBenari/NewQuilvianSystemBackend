@@ -58884,7 +58884,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("IsRetriage")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("MaxWaitingMinutesSnapshot")
+                    b.Property<int?>("MaxWaitingMinutesSnapshot")
                         .HasColumnType("integer");
 
                     b.Property<string>("Notes")
@@ -59647,7 +59647,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int>("Level")
                         .HasColumnType("integer");
 
-                    b.Property<int>("MaxWaitingMinutes")
+                    b.Property<int?>("MaxWaitingMinutes")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
