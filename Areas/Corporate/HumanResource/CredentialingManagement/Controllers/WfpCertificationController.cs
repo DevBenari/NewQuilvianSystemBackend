@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.CompetencyAndCredential.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -36,13 +37,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         private const string LogCategory = "Corporate.HumanResource.Credentialing";
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly WfpCertificationFileStorageService _fileStorage;
 
         public WfpCertificationController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            WfpCertificationFileStorageService fileStorage)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _fileStorage = fileStorage;
         }
 
         [HttpGet("filters/metadata")]
@@ -244,6 +248,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         }
 
         [HttpPost]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(ApiResponse<WfpCertificationDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -251,7 +256,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         [AccessPermission("WorkforceCertification", "Create")]
         public async Task<IActionResult> CreateCertification(
             Guid workforceProfileId,
-            [FromBody] CreateWfpCertificationRequest request,
+            [FromForm] CreateWfpCertificationRequest request,
             CancellationToken cancellationToken)
         {
             if (!await WorkforceProfileExistsAsync(workforceProfileId, cancellationToken))
@@ -266,8 +271,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             var actorUserId = GetCurrentUserId();
             var isVerified = request.IsVerified;
 
-            var entity = new WfpCertification
+            StoredCertificationFile? storedFile = null;
+            try
             {
+                if (request.File != null)
+                    storedFile = await _fileStorage.SaveAsync(request.File, cancellationToken);
+
+                var entity = new WfpCertification
+                {
                 Id = Guid.NewGuid(),
                 WorkforceProfileId = workforceProfileId,
                 CertificationTypeId = NormalizeNullableGuid(request.CertificationTypeId),
@@ -280,8 +291,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 IssueDate = NormalizeUtcDate(request.IssueDate),
                 ExpiredDate = request.IsLifetime ? null : NormalizeNullableUtcDate(request.ExpiredDate),
                 IsLifetime = request.IsLifetime,
-                FilePath = NormalizeNullableText(request.FilePath),
-                FileContentType = NormalizeNullableText(request.FileContentType),
+                FilePath = storedFile?.FilePath,
+                FileContentType = storedFile?.ContentType,
                 IsVerified = isVerified,
                 VerificationStatus = isVerified
                     ? "Verified"
@@ -296,21 +307,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 CreateBy = actorUserId,
                 IsDelete = false,
                 IsCancel = false
-            };
+                };
 
-            _dbContext.Set<WfpCertification>().Add(entity);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+                _dbContext.Set<WfpCertification>().Add(entity);
+                await _dbContext.SaveChangesAsync(cancellationToken);
 
-            await _loggerService.InfoAsync(
+                await _loggerService.InfoAsync(
                 LogCategory,
                 "WorkforceCertification.CreateCertification",
                 "Membuat sertifikasi workforce.",
                 new { entity.Id, entity.WorkforceProfileId, entity.CertificationType, entity.CertificateNumber });
 
-            return await GetCertificationById(workforceProfileId, entity.Id, cancellationToken);
+                return await GetCertificationById(workforceProfileId, entity.Id, cancellationToken);
+            }
+            catch (CertificationFileValidationException exception)
+            {
+                if (storedFile != null)
+                    await _fileStorage.DeleteAsync(storedFile.FilePath, cancellationToken);
+                return BadRequest(ApiResponse<object>.Fail(400, exception.Message));
+            }
+            catch
+            {
+                if (storedFile != null)
+                    await _fileStorage.DeleteAsync(storedFile.FilePath, cancellationToken);
+                throw;
+            }
         }
 
         [HttpPut("{id:guid}")]
+        [Consumes("multipart/form-data")]
         [ProducesResponseType(typeof(ApiResponse<WfpCertificationDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -319,7 +344,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         public async Task<IActionResult> UpdateCertification(
             Guid workforceProfileId,
             Guid id,
-            [FromBody] UpdateWfpCertificationRequest request,
+            [FromForm] UpdateWfpCertificationRequest request,
             CancellationToken cancellationToken)
         {
             var entity = await FindEntityAsync(workforceProfileId, id, cancellationToken);
@@ -344,8 +369,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             entity.IssueDate = NormalizeUtcDate(request.IssueDate);
             entity.ExpiredDate = request.IsLifetime ? null : NormalizeNullableUtcDate(request.ExpiredDate);
             entity.IsLifetime = request.IsLifetime;
-            entity.FilePath = NormalizeNullableText(request.FilePath);
-            entity.FileContentType = NormalizeNullableText(request.FileContentType);
+            StoredCertificationFile? storedFile = null;
+            var oldFilePath = entity.FilePath;
+            try
+            {
+                if (request.File != null)
+                {
+                    storedFile = await _fileStorage.SaveAsync(request.File, cancellationToken);
+                    entity.FilePath = storedFile.FilePath;
+                    entity.FileContentType = storedFile.ContentType;
+                }
+                // Keep the existing file reference when only certification metadata changes.
             entity.IsVerified = request.IsVerified;
             entity.VerificationStatus = request.IsVerified
                 ? "Verified"
@@ -359,8 +393,40 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            return await GetCertificationById(workforceProfileId, id, cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                if (storedFile != null && !string.Equals(oldFilePath, storedFile.FilePath, StringComparison.Ordinal))
+                    await _fileStorage.DeleteAsync(oldFilePath, cancellationToken);
+                return await GetCertificationById(workforceProfileId, id, cancellationToken);
+            }
+            catch (CertificationFileValidationException exception)
+            {
+                if (storedFile != null)
+                    await _fileStorage.DeleteAsync(storedFile.FilePath, cancellationToken);
+                return BadRequest(ApiResponse<object>.Fail(400, exception.Message));
+            }
+            catch
+            {
+                if (storedFile != null)
+                    await _fileStorage.DeleteAsync(storedFile.FilePath, cancellationToken);
+                throw;
+            }
+        }
+
+        [HttpGet("{id:guid}/file")]
+        [AccessAction("Read", "Read Workforce Certification File", Description = "Mengunduh berkas sertifikasi workforce", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("WorkforceCertification", "Read")]
+        public async Task<IActionResult> GetCertificationFile(
+            Guid workforceProfileId, Guid id, CancellationToken cancellationToken)
+        {
+            var entity = await FindEntityAsync(workforceProfileId, id, cancellationToken);
+            if (entity == null || string.IsNullOrWhiteSpace(entity.FilePath))
+                return NotFound(ApiResponse<object>.Fail(404, "Berkas sertifikasi tidak ditemukan."));
+
+            var physicalPath = _fileStorage.GetPhysicalPath(entity.FilePath);
+            if (!System.IO.File.Exists(physicalPath))
+                return NotFound(ApiResponse<object>.Fail(404, "Berkas sertifikasi tidak ditemukan."));
+
+            return PhysicalFile(physicalPath, entity.FileContentType ?? "application/octet-stream", "sertifikasi" + Path.GetExtension(physicalPath));
         }
 
         [HttpPatch("{id:guid}/status")]
@@ -449,6 +515,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             entity.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+            await _fileStorage.DeleteAsync(entity.FilePath, cancellationToken);
 
             await _loggerService.InfoAsync(
                 LogCategory,
@@ -583,8 +650,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
             if (request.ExpiredDate.HasValue && request.ExpiredDate.Value.Date < request.IssueDate.Date)
                 return (false, "Tanggal kedaluwarsa tidak boleh lebih kecil dari tanggal terbit.");
 
-            if (request.IsVerified && master?.RequiresDocument == true && string.IsNullOrWhiteSpace(request.FilePath))
-                return (false, "Dokumen sertifikasi wajib tersedia sebelum data diverifikasi.");
+            if (request.IsVerified && master?.RequiresDocument == true && request.File == null)
+            {
+                var existingFile = currentId.HasValue && await _dbContext.Set<WfpCertification>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == currentId.Value && !string.IsNullOrWhiteSpace(x.FilePath), cancellationToken);
+                if (!existingFile)
+                    return (false, "Dokumen sertifikasi wajib tersedia sebelum data diverifikasi.");
+            }
 
             var requirementId = NormalizeNullableGuid(request.CredentialingRequirementId);
             if (requirementId.HasValue)
@@ -686,7 +759,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 IsLifetime = x.IsLifetime,
                 IsExpired = !x.IsLifetime && x.ExpiredDate.HasValue && x.ExpiredDate.Value.Date < today,
                 DaysUntilExpiry = days,
-                FilePath = x.FilePath,
+                // Do not expose the server-side storage key; clients use the authorized file endpoint.
+                FilePath = null,
+                FileUrl = string.IsNullOrWhiteSpace(x.FilePath)
+                    ? null
+                    : $"/api/v1/corporate/human-resource/workforce-profiles/{x.WorkforceProfileId}/certifications/{x.Id}/file",
                 FileContentType = x.FileContentType,
                 HasFile = !string.IsNullOrWhiteSpace(x.FilePath),
                 IsVerified = x.IsVerified,
@@ -733,6 +810,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
                 IsExpired = value.IsExpired,
                 DaysUntilExpiry = value.DaysUntilExpiry,
                 FilePath = value.FilePath,
+                FileUrl = value.FileUrl,
                 FileContentType = value.FileContentType,
                 HasFile = value.HasFile,
                 IsVerified = value.IsVerified,
