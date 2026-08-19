@@ -4,11 +4,11 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManage
 
 namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResource.EmployeeRelationManagement
 {
-    public class TrxEmployeeRecognitionConfiguration : IEntityTypeConfiguration<TrxEmployeeRecognition>
+    public class HrdEmployeeRecognitionConfiguration : IEntityTypeConfiguration<HrdEmployeeRecognition>
     {
-        public void Configure(EntityTypeBuilder<TrxEmployeeRecognition> entity)
+        public void Configure(EntityTypeBuilder<HrdEmployeeRecognition> entity)
         {
-            entity.ToTable("TrxEmployeeRecognition", "public");
+            entity.ToTable("HrdEmployeeRecognition", "public");
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.RecognitionDate).HasColumnType("timestamp with time zone");
@@ -71,7 +71,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             ConfigureIdentity(entity);
         }
 
-        private static void ConfigureIdentity(EntityTypeBuilder<TrxEmployeeRecognition> entity)
+        private static void ConfigureIdentity(EntityTypeBuilder<HrdEmployeeRecognition> entity)
         {
             entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(x => x.UpdateDateTime).HasColumnType("timestamp with time zone");

@@ -267,6 +267,7 @@ try
     builder.Services.AddScoped<AccessPermissionService>();
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
+    builder.Services.AddScoped<LabOrderService>();
 
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();

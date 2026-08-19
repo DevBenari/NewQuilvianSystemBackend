@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260815182350_renameEmployeeRecognitionToHrd")]
+    partial class renameEmployeeRecognitionToHrd
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -58884,7 +58887,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("IsRetriage")
                         .HasColumnType("boolean");
 
-                    b.Property<int?>("MaxWaitingMinutesSnapshot")
+                    b.Property<int>("MaxWaitingMinutesSnapshot")
                         .HasColumnType("integer");
 
                     b.Property<string>("Notes")
@@ -59698,7 +59701,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int>("Level")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("MaxWaitingMinutes")
+                    b.Property<int>("MaxWaitingMinutes")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
