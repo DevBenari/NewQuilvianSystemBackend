@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services
 {
@@ -232,6 +233,179 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             }
 
             return RetriageOutcome.Success(retriage, previous);
+        }
+
+        /// <summary>
+        /// Menandai penilaian yang batas waktu responsnya sudah terlampaui sementara pasiennya
+        /// belum ditangani. Mengembalikan jumlah penilaian yang baru ditandai.
+        ///
+        /// Idempotensi ditegakkan oleh saringan <c>!x.IsSlaBreached</c>: penilaian yang sudah
+        /// bertanda tidak pernah masuk kandidat lagi, sehingga <c>SlaBreachedAt</c> yang sudah
+        /// terisi tidak dapat bergeser walau pemindaian dijalankan berkali-kali.
+        /// </summary>
+        public async Task<int> MarkSlaBreachesAsync(
+            int batchSize,
+            CancellationToken cancellationToken = default)
+        {
+            var now = DateTime.UtcNow;
+            var ukuranBatch = batchSize <= 0 ? 500 : batchSize;
+
+            // "Belum ditangani" dibaca dari TreatmentStartedAt, bukan disimpulkan dari status
+            // kunjungan. Kolom itu diisi sekali dengan ??= saat penanganan dimulai, sehingga
+            // merupakan penanda yang paling langsung dan tidak pernah tertimpa.
+            var kunjunganBelumDitangani = _dbContext.Set<TrxEmergencyVisit>()
+                .Where(v => !v.IsDelete
+                    && v.TreatmentStartedAt == null
+                    && v.VisitStatus != EmergencyVisitStatus.Cancelled)
+                .Select(v => v.Id);
+
+            var kandidat = await _dbContext.Set<TrxEmergencyTriage>()
+                .Where(x => !x.IsDelete
+                    && !x.IsSlaBreached
+                    // Target yang belum dikonfigurasi menghasilkan ResponseDueAt kosong
+                    // (BE-IGD-002) dan karena itu tidak pernah boleh dianggap terlambat.
+                    && x.ResponseDueAt != null
+                    && x.ResponseDueAt <= now
+                    // Penilaian yang dibatalkan tidak pernah berlaku.
+                    && x.TriageStatus != EmergencyTriageStatus.Cancelled
+                    && kunjunganBelumDitangani.Contains(x.EmergencyVisitId))
+                .OrderBy(x => x.ResponseDueAt)
+                .Take(ukuranBatch)
+                .ToListAsync(cancellationToken);
+
+            if (kandidat.Count == 0)
+                return 0;
+
+            foreach (var penilaian in kandidat)
+            {
+                // Hanya dua kolom penanda yang ditulis. Kolom klinis, kolom audit, dan
+                // ResponseDueAt sengaja tidak disentuh: menimpa UpdateBy dengan pelaku sistem
+                // akan menghapus jejak siapa terakhir mengubah penilaian klinisnya.
+                penilaian.IsSlaBreached = true;
+                penilaian.SlaBreachedAt = now;
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return kandidat.Count;
+        }
+
+        /// <summary>
+        /// Daftar pasien yang melampaui batas waktu respons dan <b>belum</b> ditangani.
+        ///
+        /// Penanda breach pada penilaian bersifat permanen sebagai riwayat, tetapi daftar ini
+        /// menyaring ulang terhadap TreatmentStartedAt. Akibatnya pasien yang sudah ditangani
+        /// hilang dari daftar tanpa penandanya dihapus.
+        /// </summary>
+        public async Task<PagedResult<EmergencyTriageSlaBreachResponse>> GetSlaBreachesAsync(
+            Guid? serviceUnitId,
+            DateTime? startDate,
+            DateTime? endDate,
+            int pageNumber,
+            int pageSize,
+            CancellationToken cancellationToken = default)
+        {
+            var now = DateTime.UtcNow;
+
+            var query =
+                from triage in _dbContext.Set<TrxEmergencyTriage>().AsNoTracking()
+                join visit in _dbContext.Set<TrxEmergencyVisit>().AsNoTracking()
+                    on triage.EmergencyVisitId equals visit.Id
+                where !triage.IsDelete
+                    && triage.IsSlaBreached
+                    && triage.TriageStatus != EmergencyTriageStatus.Cancelled
+                    && !visit.IsDelete
+                    && visit.TreatmentStartedAt == null
+                    && visit.VisitStatus != EmergencyVisitStatus.Cancelled
+                select new { triage, visit };
+
+            if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
+                query = query.Where(x => x.visit.ServiceUnitId == serviceUnitId.Value);
+
+            // Rentang waktu disaring pada saat pelampauan terjadi, bukan pada saat penilaian
+            // dibuat, karena yang dicari adalah kejadian keterlambatannya.
+            if (startDate.HasValue)
+                query = query.Where(x => x.triage.SlaBreachedAt >= startDate.Value);
+
+            if (endDate.HasValue)
+                query = query.Where(x => x.triage.SlaBreachedAt < endDate.Value.Date.AddDays(1));
+
+            var totalData = await query.CountAsync(cancellationToken);
+
+            var baris = await query
+                .OrderBy(x => x.triage.ResponseDueAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new
+                {
+                    x.triage.Id,
+                    x.triage.EmergencyVisitId,
+                    x.visit.PatientId,
+                    x.visit.IsUnknownPatient,
+                    x.visit.TemporaryPatientAlias,
+                    x.visit.ServiceUnitId,
+                    ServiceUnitName = x.visit.ServiceUnit != null
+                        ? x.visit.ServiceUnit.ServiceUnitName
+                        : null,
+                    PatientFullName = x.visit.Patient != null ? x.visit.Patient.FullName : null,
+                    MedicalRecordNumber = x.visit.Patient != null
+                        ? x.visit.Patient.MedicalRecordNumber
+                        : null,
+                    x.triage.TriageLevelId,
+                    TriageLevelName = x.triage.TriageLevel != null
+                        ? x.triage.TriageLevel.Name
+                        : null,
+                    TriageLevelColorName = x.triage.TriageLevel != null
+                        ? x.triage.TriageLevel.ColorName
+                        : null,
+                    TriageLevelNumber = x.triage.TriageLevel != null
+                        ? (int?)x.triage.TriageLevel.Level
+                        : null,
+                    x.triage.Sequence,
+                    x.triage.TriageStatus,
+                    x.triage.StartedAt,
+                    x.triage.MaxWaitingMinutesSnapshot,
+                    x.triage.ResponseDueAt,
+                    x.triage.SlaBreachedAt
+                })
+                .ToListAsync(cancellationToken);
+
+            var items = baris.Select(x => new EmergencyTriageSlaBreachResponse
+            {
+                Id = x.Id,
+                EmergencyVisitId = x.EmergencyVisitId,
+                PatientId = x.PatientId,
+                PatientName = !string.IsNullOrWhiteSpace(x.PatientFullName)
+                    ? x.PatientFullName!
+                    : (!string.IsNullOrWhiteSpace(x.TemporaryPatientAlias)
+                        ? x.TemporaryPatientAlias!
+                        : "Pasien belum teridentifikasi"),
+                MedicalRecordNumber = x.MedicalRecordNumber,
+                IsUnknownPatient = x.IsUnknownPatient,
+                ServiceUnitId = x.ServiceUnitId,
+                ServiceUnitName = x.ServiceUnitName,
+                TriageLevelId = x.TriageLevelId,
+                TriageLevelName = x.TriageLevelName,
+                TriageLevelColorName = x.TriageLevelColorName,
+                TriageLevel = x.TriageLevelNumber,
+                Sequence = x.Sequence,
+                TriageStatus = x.TriageStatus,
+                StartedAt = x.StartedAt,
+                MaxWaitingMinutesSnapshot = x.MaxWaitingMinutesSnapshot,
+                ResponseDueAt = x.ResponseDueAt,
+                SlaBreachedAt = x.SlaBreachedAt,
+                OverdueMinutes = x.ResponseDueAt.HasValue
+                    ? (int)Math.Max(0, Math.Floor((now - x.ResponseDueAt.Value).TotalMinutes))
+                    : 0
+            }).ToList();
+
+            return new PagedResult<EmergencyTriageSlaBreachResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
         }
 
         private static string? NormalizeText(string? value)

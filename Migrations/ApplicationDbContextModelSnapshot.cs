@@ -58884,6 +58884,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("IsRetriage")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsSlaBreached")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<int?>("MaxWaitingMinutesSnapshot")
                         .HasColumnType("integer");
 
@@ -58915,6 +58920,9 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<int>("Sequence")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SlaBreachedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("timestamp with time zone");
@@ -58954,6 +58962,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("EmergencyVisitId", "Sequence")
                         .IsUnique();
+
+                    b.HasIndex("EmergencyVisitId", "ResponseDueAt", "IsSlaBreached");
 
                     b.HasIndex("EmergencyVisitId", "TriageStatus", "StartedAt");
 
