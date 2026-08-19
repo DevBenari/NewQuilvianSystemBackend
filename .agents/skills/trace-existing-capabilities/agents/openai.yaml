@@ -1,4 +1,0 @@
-interface:
-  display_name: "Trace Existing Capabilities"
-  short_description: "Audit kemampuan lintas backend dan frontend"
-  default_prompt: "Use $trace-existing-capabilities to map reusable capabilities for this module."

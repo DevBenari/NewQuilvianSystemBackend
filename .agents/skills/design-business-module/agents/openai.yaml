@@ -1,4 +1,0 @@
-interface:
-  display_name: "Design Business Module"
-  short_description: "Rancang arsitektur kontrak dan ERD modul"
-  default_prompt: "Use $design-business-module to design the approved Quilvian module blueprint."
