@@ -12,6 +12,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Controllers
 {
@@ -61,6 +62,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             var result = new OnCallAllowancePolicyFilterMetadataResponse
             {
                 DefaultFilter = new OnCallAllowancePolicyDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 CalculationMethodOptions = AllowedMethods
                     .OrderBy(x => x)
                     .Select(x => new OnCallAllowancePolicyStringOptionResponse
@@ -112,6 +114,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [AccessAction("Read", "Read On Call Allowance Policy", Description = "Melihat data on call allowance policy", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("OnCallAllowancePolicy", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? allowanceTypeId,
             [FromQuery] Guid? onCallTypeId,
             [FromQuery] string? calculationMethod,
@@ -153,6 +158,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     (x.Description != null && x.Description.ToLower().Contains(keyword)));
             }
 
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
 
             var ordered = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase)
@@ -651,6 +657,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private static List<OnCallAllowancePolicyCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<OnCallAllowancePolicyCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
         }
     }
 }

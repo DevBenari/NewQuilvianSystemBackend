@@ -49,9 +49,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         [HttpGet]
         [AccessAction("Read", "Read Leave Adjustment Reason", Description = "Melihat data leave adjustment reason", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LeaveAdjustmentReason", "Read")]
-        public async Task<IActionResult> GetData(Guid? leaveTypeId, string? reasonCategory, string? allowedDirection, bool? allowOpeningBalance, bool? requiresApproval, bool? isActive, string? search, string? sortBy = "sortOrder", string? sortDirection = "asc", int pageNumber = 1, int pageSize = 25)
+        public async Task<IActionResult> GetData(DateTime? startDate, DateTime? endDate, string? customPeriod, Guid? leaveTypeId, string? reasonCategory, string? allowedDirection, bool? allowOpeningBalance, bool? requiresApproval, bool? isActive, string? search, string? sortBy = "sortOrder", string? sortDirection = "asc", int pageNumber = 1, int pageSize = 25)
         {
-            var result = await _service.GetDataAsync(leaveTypeId, reasonCategory, allowedDirection, allowOpeningBalance, requiresApproval, isActive, search, sortBy, sortDirection, pageNumber, pageSize);
+            var result = await _service.GetDataAsync(startDate, endDate, customPeriod, leaveTypeId, reasonCategory, allowedDirection, allowOpeningBalance, requiresApproval, isActive, search, sortBy, sortDirection, pageNumber, pageSize);
             return Ok(ApiResponse<PagedResult<LeaveAdjustmentReasonResponse>>.Ok(result, "Data leave adjustment reason berhasil diambil."));
         }
 

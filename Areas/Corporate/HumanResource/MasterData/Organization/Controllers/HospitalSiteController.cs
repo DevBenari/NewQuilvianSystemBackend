@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using HospitalSitePagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
@@ -66,6 +67,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             var result = new HospitalSiteFilterMetadataResponse
             {
                 DefaultFilter = new HospitalSiteDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 SiteTypeOptions = AllowedSiteTypes
                     .OrderBy(x => x)
                     .Select(x => new HospitalSiteStringOptionResponse
@@ -124,6 +126,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         [AccessAction("Read", "Read Hospital Site", Description = "Melihat data hospital site", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("HospitalSite", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? legalEntityId,
             [FromQuery] string? siteType,
             [FromQuery] bool? isMainSite,
@@ -144,6 +149,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 isActive,
                 search);
 
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
 
             var items = await ApplySorting(query, sortBy, sortDirection)
@@ -177,6 +183,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                     CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy
                 })
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(items.Select(x => x.CreateBy));
+            foreach (var item in items)
+                item.CreateByName = GetActorName(actorNames, item.CreateBy);
 
             var result = new HospitalSitePagedResult
             {
@@ -260,6 +270,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                     "Hospital site tidak ditemukan."));
             }
 
+            var actorNames = await GetActorNameMapAsync(new Guid?[] { entity.CreateBy, entity.UpdateBy });
+
             var result = new HospitalSiteDetailResponse
             {
                 Id = entity.Id,
@@ -286,8 +298,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 WorkLocationCount = entity.WorkLocations.Count(x => !x.IsDelete),
                 CreateDateTime = entity.CreateDateTime,
                 CreateBy = entity.CreateBy == Guid.Empty ? null : entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
                 UpdateDateTime = entity.UpdateDateTime,
-                UpdateBy = entity.UpdateBy == Guid.Empty ? null : entity.UpdateBy
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
 
             return Ok(ApiResponse<HospitalSiteDetailResponse>.Ok(
@@ -696,6 +710,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             return CodePrefix + next.ToString().PadLeft(CodeNumberLength, '0');
         }
 
+        private async Task<Dictionary<Guid, string>> GetActorNameMapAsync(IEnumerable<Guid?> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x.HasValue && x.Value != Guid.Empty)
+                .Select(x => x!.Value)
+                .Distinct()
+                .ToList();
+            if (ids.Count == 0) return new Dictionary<Guid, string>();
+
+            return await _dbContext.Users.AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode);
+        }
+
+        private static string? GetActorName(IReadOnlyDictionary<Guid, string> actorNames, Guid? actorId) =>
+            !actorId.HasValue || actorId.Value == Guid.Empty ? null : actorNames.GetValueOrDefault(actorId.Value);
+
         private Guid CurrentUserId()
         {
             var value =
@@ -733,6 +764,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         {
             return AllowedSiteTypes.First(x =>
                 x.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static List<HospitalSiteCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<HospitalSiteCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
         }
     }
 }

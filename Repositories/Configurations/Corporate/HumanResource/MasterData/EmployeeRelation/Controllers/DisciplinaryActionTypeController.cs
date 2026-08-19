@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Controllers
 {
@@ -50,6 +51,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Employe
             var result = new DisciplinaryActionTypeFilterMetadataResponse
             {
                 DefaultFilter = new DisciplinaryActionTypeDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 SortOptions = new List<EmployeeRelationSortOptionResponse>
                 {
                     new() { Value = "code", Label = "Kode" },
@@ -91,6 +93,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Employe
         [AccessAction("Read", "Read Disciplinary Action Type", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DisciplinaryActionType", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] bool? isActive,
             [FromQuery] string? search,
             [FromQuery] string? sortBy = "name",
@@ -104,6 +109,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Employe
             pageSize = paging.PageSize;
 
             var query = ApplyFilter(BuildBaseQuery(), isActive, search);
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync(cancellationToken);
 
             var items = await ApplySorting(query, sortBy, sortDirection)
@@ -424,6 +430,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Employe
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {
             return (pageNumber < 1 ? 1 : pageNumber, pageSize < 1 ? 25 : Math.Min(pageSize, 100));
+        }
+
+        private static List<EmployeeRelationCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<EmployeeRelationCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
         }
     }
 }
