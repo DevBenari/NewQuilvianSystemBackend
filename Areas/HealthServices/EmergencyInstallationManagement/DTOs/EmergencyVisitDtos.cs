@@ -112,4 +112,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [MaxLength(2000)]
         public string? Notes { get; set; }
     }
+
+    /// <summary>
+    /// Permintaan menyelesaikan kunjungan secara klinis. Waktu selesai tidak diterima dari
+    /// pemanggil melainkan diisi waktu server, supaya penutupan tidak dapat dimundurkan.
+    /// </summary>
+    public class CompleteVisitRequest
+    {
+        [MaxLength(2000)]
+        public string? Notes { get; set; }
+    }
 }

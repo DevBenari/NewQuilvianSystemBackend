@@ -11,7 +11,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// Saklar mematikan pemantau tanpa deploy ulang. Pemantau hanya menandai keterlambatan
         /// dan tidak pernah menghalangi pelayanan, sehingga aman dimatikan kapan pun.
         /// </summary>
-        public bool Enabled { get; set; } = true;
+        public bool Enabled { get; set; } = false;
 
         /// <summary>
         /// Jeda antar pemindaian. Nilai bawaan 60 detik dipilih karena target respons triage
