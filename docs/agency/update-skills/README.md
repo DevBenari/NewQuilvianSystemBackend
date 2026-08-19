@@ -40,9 +40,11 @@ Usulannya: **satu skill hanya tinggal di satu tempat**, yaitu tempat ia menulis 
 | [01-rencana-perubahan-skill.md](01-rencana-perubahan-skill.md) | Prinsip penempatan, keadaan sekarang, keadaan target, dan daftar perubahan per file |
 | [02-dampak-dan-cara-pakai.md](02-dampak-dan-cara-pakai.md) | Dampak bagi tim, cara kerja setelah perubahan, risiko, dan checklist eksekusi |
 | [03-revisi-design-business-module.md](03-revisi-design-business-module.md) | Revisi keluaran skill desain: class diagram, ERD dan kamus data, arsitektur folder backend, status model |
+| [04-prascan-registry-sistem.md](04-prascan-registry-sistem.md) | Skill baru `/qv-scan`: pemindaian seluruh sistem yang wajib dijalankan sebelum wawancara modul, beserta format registry dan gerbang pada `/grill-me` |
 
 Dokumen 01 dan 02 membahas **tempat** skill tinggal. Dokumen 03 membahas **isi keluaran**
-salah satu skill. Keduanya berdiri sendiri dan dapat disetujui terpisah.
+salah satu skill. Dokumen 04 menambah **satu tahap baru di paling depan** workflow. Keempatnya
+berdiri sendiri dan dapat disetujui terpisah.
 
 ## Yang sudah selesai dan yang belum
 

@@ -47,7 +47,7 @@ Base URL: `api/v1/health-services/emergency-installation-management/emergency-tr
 | `POST` | `/` | Membuat penilaian triage | `EmergencyTriage : Create` | `CreateEmergencyTriageRequest` | Sudah ada |
 | `PUT` | `/{id}` | Mengubah penilaian | `EmergencyTriage : Update` | `UpdateEmergencyTriageRequest` | Sudah ada |
 | `PATCH` | `/{id}/triage-status` | Mengubah status penilaian | `EmergencyTriage : Update` | Status baru | Sudah ada |
-| `POST` | `/{id}/retriage` | Menilai ulang pasien; penilaian lama menjadi `Superseded` dan penilaian baru menunjuk yang lama | `EmergencyTriage : Update` | `RetriageEmergencyTriageRequest` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/retriage` | Menilai ulang pasien; penilaian lama menjadi `Superseded` dan penilaian baru menunjuk yang lama | `EmergencyTriage : Update` | `RetriageEmergencyTriageRequest` | Sudah ada (`BE-IGD-004`) |
 | `GET` | `/sla-breaches` | Daftar pasien yang melewati `ResponseDueAt` dan belum ditangani | `EmergencyTriage : Read` | Query unit dan rentang waktu | **Rencana (belum tersedia)** |
 | `DELETE` | `/{id}` | Menandai penilaian terhapus | `EmergencyTriage : Delete` | Path `id` | Sudah ada |
 

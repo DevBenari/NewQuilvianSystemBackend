@@ -28,14 +28,35 @@ bahasa yang mudah dipahami orang umum, penjelasan detail beserta contoh, bisnis 
 jelas, dan endpoint bergaya Swagger. Untuk API as-is yang ditemukan, tuliskan judul grup
 persis nilai `[Tags(...)]` pada controller lalu sajikan tabel endpoint.
 
+## Batas dengan `/scan-system-registry`
+
+Kedua skill sama-sama membaca kode, tetapi menjawab pertanyaan yang berbeda:
+
+| | `/scan-system-registry` | Skill ini |
+| --- | --- | --- |
+| Pertanyaan yang dijawab | Sistem ini isinya apa dan siapa pemilik tiap bagian | Kebutuhan modul ini sudah tersedia atau belum |
+| Cakupan | Seluruh sistem | Satu modul |
+| Kedalaman | Tingkat kesiapan `L0`–`L4` per entity | Relasi, aturan bisnis, kontrak, dan bukti pemakaian |
+| Keluaran | `docs/system-registry/` | `docs/module-blueprints/<module>/01-existing-capability-map.md` |
+
+Mulailah dari registry, jangan menyisir dari nol. Registry sudah memberi daftar entity, tingkat
+kesiapan, pemilik data, dan zona konflik; tugas skill ini memperdalam bagian yang relevan dengan
+modul dan membuktikan hal yang tidak dapat dijawab registry.
+
+Bila menemukan fakta sistem yang belum tercatat di registry, misalnya entity tanpa pemilik atau
+enum ganda, catat sebagai bahan `/qv-scan refresh`. Jangan menulis langsung ke
+`docs/system-registry/`; berkas itu hanya boleh ditulis skill pemindaian.
+
 ## Siapkan audit
 
 1. Temukan Git root backend dan frontend.
-2. Baca decision log modul dan identifikasi kebutuhan yang perlu dibuktikan.
-3. Catat commit SHA kedua repository sebelum menyisir.
-4. Gunakan output canonical:
+2. Baca `docs/system-registry/registry-manifest.md` dan pastikan statusnya `SEGAR`. Bila tidak,
+   sampaikan dan tawarkan `/qv-scan refresh` lebih dulu.
+3. Baca decision log modul dan identifikasi kebutuhan yang perlu dibuktikan.
+4. Catat commit SHA kedua repository sebelum menyisir.
+5. Gunakan output canonical:
    `NewQuilvianSystemBackend/docs/module-blueprints/<module>/01-existing-capability-map.md`.
-5. Baca [capability map template](references/capability-map-template.md).
+6. Baca [capability map template](references/capability-map-template.md).
 
 Jika database, service eksternal, atau runtime environment tidak boleh diperiksa, nyatakan
 batas tersebut. Jangan menyimpulkan migration sudah diterapkan hanya karena file tersedia.

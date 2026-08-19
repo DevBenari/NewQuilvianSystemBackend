@@ -93,6 +93,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             CancellationToken cancellationToken = default)
             => ValidateRequestAsync((CreateEmergencyDispositionRequest)request, cancellationToken);
 
+        /// <summary>
+        /// Memeriksa closure gate penyelesaian kunjungan. Mengembalikan pesan penolakan bila
+        /// ada syarat yang belum tuntas, atau null bila kunjungan boleh diselesaikan.
+        ///
+        /// Sesuai IGD-DEC-021, status billing sengaja <b>tidak</b> diperiksa. Tagihan yang
+        /// belum final tidak membuat pasien dianggap masih aktif secara klinis.
+        /// </summary>
+        public async Task<string?> ValidateVisitClosureAsync(
+            TrxEmergencyVisit visit,
+            CancellationToken cancellationToken = default)
+        {
+            if (visit.VisitStatus != EmergencyVisitStatus.Disposed)
+                return "Kunjungan hanya dapat diselesaikan setelah keputusan tindak lanjut ditetapkan.";
+
+            var adaObservasiAktif = await _dbContext.Set<TrxEmergencyObservation>()
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.EmergencyVisitId == visit.Id
+                        && !x.IsDelete
+                        && x.ObservationStatus == EmergencyObservationStatus.Active,
+                    cancellationToken);
+
+            if (adaObservasiAktif)
+                return "Masih ada observasi yang belum diselesaikan.";
+
+            // Transfer dianggap tuntas hanya bila sudah Completed atau Rejected. Cancelled
+            // termasuk belum tuntas menurut validation matrix bagian 3, jadi tidak ikut
+            // dikecualikan di sini.
+            var adaTransferBelumTuntas = await _dbContext.Set<TrxEmergencyTransfer>()
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.EmergencyVisitId == visit.Id
+                        && !x.IsDelete
+                        && x.TransferStatus != EmergencyTransferStatus.Completed
+                        && x.TransferStatus != EmergencyTransferStatus.Rejected,
+                    cancellationToken);
+
+            if (adaTransferBelumTuntas)
+                return "Masih ada proses perpindahan yang belum selesai.";
+
+            return null;
+        }
+
         public bool CanTransition(
             EmergencyDispositionStatus current,
             EmergencyDispositionStatus target)

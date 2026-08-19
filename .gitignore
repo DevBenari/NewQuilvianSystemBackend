@@ -368,3 +368,6 @@ appsettings.Development.json
 .env.*
 
 agency-local/
+# Ignore Claude Code
+.claude
+CLAUDE.md
