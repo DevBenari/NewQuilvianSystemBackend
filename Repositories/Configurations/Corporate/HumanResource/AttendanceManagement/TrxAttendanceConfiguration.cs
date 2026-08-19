@@ -4,11 +4,11 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.M
 
 namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResource.AttendanceManagement
 {
-    public class TrxAttendanceConfiguration : IEntityTypeConfiguration<TrxAttendance>
+    public class TrxAttendanceConfiguration : IEntityTypeConfiguration<HrdAttendance>
     {
-        public void Configure(EntityTypeBuilder<TrxAttendance> builder)
+        public void Configure(EntityTypeBuilder<HrdAttendance> builder)
         {
-            builder.ToTable("TrxAttendance", "public");
+            builder.ToTable("HrdAttendance", "public");
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -56,7 +56,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             builder.HasOne(x => x.AttendanceLocation).WithMany().HasForeignKey(x => x.AttendanceLocationId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.CheckInDevice).WithMany().HasForeignKey(x => x.CheckInDeviceId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.CheckOutDevice).WithMany().HasForeignKey(x => x.CheckOutDeviceId).OnDelete(DeleteBehavior.Restrict);
-            builder.HasOne(x => x.AttendanceDaily).WithOne(x => x.Attendance).HasForeignKey<TrxAttendance>(x => x.AttendanceDailyId).OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne(x => x.AttendanceDaily).WithOne(x => x.Attendance).HasForeignKey<HrdAttendance>(x => x.AttendanceDailyId).OnDelete(DeleteBehavior.Restrict);
 
             builder.HasIndex(x => new { x.UserId, x.AttendanceDate }).IsUnique().HasFilter("\"IsDelete\" = false");
             builder.HasIndex(x => new { x.WorkforceProfileId, x.AttendanceDate });

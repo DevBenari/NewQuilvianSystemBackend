@@ -38,6 +38,7 @@ using Serilog.Events;
 using Serilog.Formatting.Compact;
 using System.Security.Claims;
 using System.Text;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
