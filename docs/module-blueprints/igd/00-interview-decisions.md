@@ -1359,3 +1359,72 @@ Pernyataan setuju dicatat sebagai dukungan pemilik proses, bukan sebagai pengesa
 Nama dan jabatan pemegang Product/Domain Owner belum tertulis. Sampai diisi, baris
 `approved_by` pada manifest bernilai peran, bukan orang, sehingga belum memenuhi syarat
 `GovernanceAssignment` pada `IGD-DEC-036` dan `IGD-DEC-045`.
+
+---
+
+## Closure Pass terbatas 2026-08-19 — amendment revision 4
+
+| Field | Value |
+| --- | --- |
+| Blueprint ID | `IGD-BP-001` |
+| Revision dasar | `4` |
+| Status pass | `draft` — wawancara berjalan; belum merupakan approval amendment |
+| Backend SHA saat pass dimulai | `a468a4506a03ad5795b4b581bcb72c582936d2d0` |
+| Frontend SHA saat pass dimulai | `db9fb86735207b3db25ec3ed82fe5e9a5e5823d9` |
+| Contract dasar | API, State, Validation, Integration, dan Permission/Audit `0.2.0` |
+
+### Scope yang dikonfirmasi
+
+Pass ini hanya menutup empat topik yang menghalangi kelanjutan roadmap backend:
+
+1. representasi kategori triase Hitam;
+2. relasi pengguna dengan unit pelayanan;
+3. mekanisme dan owner akses darurat *break-glass*;
+4. approval serta urutan `backend-roadmap.md`.
+
+Di luar scope pass ini adalah implementasi source dan migration, desain UI frontend, nilai
+target SLA level 2 sampai 5, serta coverage gap `CG-01` sampai `CG-07` selain titik yang
+bersinggungan langsung dengan empat topik di atas.
+
+### Decision log pass berjalan
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-051` | Decision | Closure Pass tetap dibatasi pada empat topik: kategori Hitam, relasi pengguna–unit, break-glass, dan approval/urutan roadmap backend. Coverage gap lain dibahas pada pass terpisah | Product/Domain Owner | `draft` — pilihan pengguna sudah jelas, tetapi identitas dan kewenangan formal pemberi jawaban belum dicatat | Jawaban pengguna 19 Agustus 2026; authority unverified | Pilihan A pada konfirmasi scope Closure Pass |
+| `IGD-OQ-035` | Open Question | Bagaimana kategori Hitam direpresentasikan tanpa menjadikannya level antrean biasa? | Product/Domain Owner + Clinical Governance | `superseded` oleh `IGD-DEC-052` | Jawaban pengguna 19 Agustus 2026; authority unverified | `IGD-DEC-047`, `IGD-DEC-048`; blocker pada laporan `BE-IGD-003` |
+| `IGD-OQ-036` | Open Question | Apa sumber kebenaran relasi pengguna dengan unit pelayanan dan masa berlakunya? | Product/Domain Owner + Security/Privacy + Workforce/Organization owner | `superseded` oleh `IGD-DEC-053` | Jawaban pengguna 19 Agustus 2026; authority unverified | `IGD-DEC-026`, `IGD-GAP-006` |
+| `IGD-OQ-037` | Open Question | Siapa yang boleh menerbitkan, memakai, meninjau, dan mencabut break-glass, serta berapa batas waktunya? | Security/Privacy + Clinical Governance | `draft` — memblokir desain `BE-IGD-011` dan aktivasi `BE-IGD-012` | — | `IGD-DEC-034`, `IGD-DEC-050` |
+| `IGD-OQ-038` | Open Question | Siapa approver bernama untuk roadmap backend dan apakah urutan `BE-IGD-001` sampai `BE-IGD-014` diterima? | Product/Domain Owner | `draft` — memblokir perubahan roadmap dari `DRAFT` menjadi approved | — | `IGD-DEC-046`; `backend-roadmap.md` revision 1 |
+| `IGD-DEC-052` | Decision | Hitam adalah kategori klinis tersendiri di luar `Level` 1 sampai 5. Hanya tenaga klinis berwenang yang boleh menetapkannya. Setiap penetapan wajib memuat alasan, waktu dari server, dan jejak audit yang tidak dapat diubah. Kategori ini memerlukan desain dan penyimpanan khusus; tidak memperoleh `ResponseDueAt`, tidak mengikuti SLA antrean biasa, dan tidak boleh ditetapkan otomatis oleh aplikasi | Product/Domain Owner, dengan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban dan approval Clinical Governance belum tercatat | Jawaban pengguna 19 Agustus 2026; authority unverified | Pilihan A; memperinci `IGD-DEC-048` tanpa mengubah skala triase level 1 sampai 5 |
+| `IGD-DEC-053` | Decision | Sumber kebenaran relasi pengguna dengan unit pelayanan adalah penugasan tersendiri yang memiliki tanggal mulai dan tanggal berakhir. Workforce/Organization mengelola penugasan tersebut dan authorization memakainya sebagai batas unit pelayanan. Penugasan unit tidak memberikan capability klinis atau bisnis dengan sendirinya; tindakan tetap memerlukan capability yang sesuai menurut `IGD-DEC-026` | Product/Domain Owner + Workforce/Organization owner, dengan Security/Privacy sebagai approver authorization | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval Workforce/Organization dan Security/Privacy belum tercatat | Jawaban pengguna 19 Agustus 2026; authority unverified | Pilihan A; menutup sumber kebenaran pada `IGD-OQ-036` dan melengkapi kekurangan scope unit pada `IGD-GAP-006` |
+
+### Acceptance criteria yang dapat diuji dari `IGD-DEC-052`
+
+1. Sistem tidak dapat menyimpan kategori Hitam melalui nilai `Level` 1 sampai 5.
+2. Permintaan dari pengguna yang bukan tenaga klinis berwenang ditolak dan tidak mengubah kategori pasien.
+3. Penetapan kategori Hitam tanpa alasan ditolak.
+4. Waktu penetapan berasal dari server, bukan waktu yang dikirim pengguna.
+5. Setiap penetapan menyimpan pelaku, alasan, waktu server, dan riwayat audit yang tidak dapat ditimpa.
+6. Pasien berkategori Hitam tidak menerima `ResponseDueAt`, tidak dihitung sebagai pelampauan SLA antrean biasa, dan tidak pernah ditetapkan Hitam secara otomatis.
+
+**Contoh:** tenaga klinis berwenang menetapkan kategori Hitam dengan alasan klinis yang
+tercatat. Sistem menyimpan waktu server dan pelakunya, mempertahankan riwayat tersebut untuk
+audit, serta tidak memasukkan pasien ke perhitungan keterlambatan respons level 1 sampai 5.
+
+### Acceptance criteria yang dapat diuji dari `IGD-DEC-053`
+
+1. Setiap penugasan menghubungkan satu pengguna dengan satu unit pelayanan serta memiliki
+   tanggal mulai dan tanggal berakhir.
+2. Authorization hanya menganggap penugasan berlaku ketika waktu server berada dalam masa
+   berlakunya.
+3. Penugasan yang belum dimulai atau sudah berakhir tidak dapat dipakai untuk membuka akses
+   unit pelayanan.
+4. Pengguna yang ditugaskan pada suatu unit tetapi tidak memiliki capability tindakan tetap
+   ditolak.
+5. Workforce/Organization menjadi pengelola penugasan; perubahan relasi tidak bersumber
+   hanya dari claim atau token sesi.
+
+**Contoh:** seorang perawat mendapat penugasan sementara di IGD dari 19 sampai 21 Agustus
+2026. Selama rentang itu, penugasan dapat memenuhi batas unit IGD, tetapi tindakan triase
+tetap ditolak jika perawat tersebut tidak memiliki capability triase. Setelah tanggal akhir,
+permintaan baru ke resource IGD ditolak meskipun sesi login lama masih aktif.

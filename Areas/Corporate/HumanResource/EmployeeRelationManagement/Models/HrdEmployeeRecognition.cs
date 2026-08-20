@@ -7,8 +7,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.EmployeeRelationManagement.Models
 {
-    [Table("TrxEmployeeRecognition", Schema = "public")]
-    public class TrxEmployeeRecognition : IdentityModel
+    [Table("HrdEmployeeRecognition", Schema = "public")]
+    public class HrdEmployeeRecognition : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 

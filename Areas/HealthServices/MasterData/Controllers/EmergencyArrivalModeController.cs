@@ -49,6 +49,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
         public async Task<IActionResult> GetAll(
             [FromQuery] string? search,
             [FromQuery] bool? isActive,
+            [FromQuery] bool? isAmbulance,
+            [FromQuery] bool? isReferral,
             [FromQuery] string? sortBy = null,
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -70,6 +72,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
 
             if (isActive.HasValue)
                 query = query.Where(x => x.IsActive == isActive.Value);
+
+            if (isAmbulance.HasValue)
+                query = query.Where(x => x.IsAmbulance == isAmbulance.Value);
+
+            if (isReferral.HasValue)
+                query = query.Where(x => x.IsReferral == isReferral.Value);
 
             var descending = !string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase);
             query = (sortBy ?? string.Empty).Trim().ToLowerInvariant() switch

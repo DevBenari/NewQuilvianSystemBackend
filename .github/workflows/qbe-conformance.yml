@@ -1,0 +1,101 @@
+name: QBE Conformance
+
+on:
+  pull_request:
+    branches:
+      - AgentCodexBackend
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: Base commit SHA or ref for the GitRange comparison
+        required: true
+        type: string
+      head_ref:
+        description: Head commit SHA or ref for the GitRange comparison
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  qbe-conformance:
+    name: QBE Strict GitRange
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve comparison refs
+        id: refs
+        shell: bash
+        env:
+          PR_BASE_REF: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.sha }}
+          DISPATCH_BASE_REF: ${{ inputs.base_ref }}
+          DISPATCH_HEAD_REF: ${{ inputs.head_ref }}
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base_ref="$PR_BASE_REF"
+            head_ref="$PR_HEAD_REF"
+          else
+            base_ref="$DISPATCH_BASE_REF"
+            head_ref="$DISPATCH_HEAD_REF"
+          fi
+
+          git rev-parse --verify "${base_ref}^{commit}"
+          git rev-parse --verify "${head_ref}^{commit}"
+          printf 'base_ref=%s\n' "$base_ref" >> "$GITHUB_OUTPUT"
+          printf 'head_ref=%s\n' "$head_ref" >> "$GITHUB_OUTPUT"
+
+      - name: Run QBE Strict GitRange
+        shell: pwsh
+        env:
+          QBE_BASE_REF: ${{ steps.refs.outputs.base_ref }}
+          QBE_HEAD_REF: ${{ steps.refs.outputs.head_ref }}
+          QBE_JSON_OUTPUT: ${{ runner.temp }}/qbe-conformance-result.json
+        run: |
+          & ./tooling/qbe/Invoke-QbeConformanceCheck.ps1 `
+            -BaseRef $env:QBE_BASE_REF `
+            -HeadRef $env:QBE_HEAD_REF `
+            -Mode Strict `
+            -JsonOutputPath $env:QBE_JSON_OUTPUT
+          exit $LASTEXITCODE
+
+      - name: Write QBE summary
+        if: always()
+        shell: pwsh
+        env:
+          QBE_JSON_OUTPUT: ${{ runner.temp }}/qbe-conformance-result.json
+        run: |
+          if (-not (Test-Path -LiteralPath $env:QBE_JSON_OUTPUT)) {
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "## QBE Conformance`n`nNo structured result was produced; inspect the checker log for the tooling or governance error."
+            exit 0
+          }
+
+          $result = Get-Content -Raw -LiteralPath $env:QBE_JSON_OUTPUT | ConvertFrom-Json
+          $blocking = @($result.blockingRuleIds) -join ', '
+          if ([string]::IsNullOrWhiteSpace($blocking)) { $blocking = 'None' }
+          @(
+            '## QBE Conformance'
+            ''
+            "- Mode: $($result.mode)"
+            "- Files evaluated: $($result.filesEvaluated)"
+            "- VIOLATION: $($result.violationCount)"
+            "- REVIEW: $($result.reviewCount)"
+            "- INFO: $($result.infoCount)"
+            "- Suppressed violations: $($result.suppressedViolationCount)"
+            "- Final result: $($result.result)"
+            "- Blocking QBE IDs: $blocking"
+          ) | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload QBE structured result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qbe-conformance-result
+          path: ${{ runner.temp }}/qbe-conformance-result.json
+          if-no-files-found: warn

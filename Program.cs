@@ -47,6 +47,7 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
     var backendVersionManifest = BackendVersionManifest.Load(builder.Environment.ContentRootPath);
 
     builder.Host.UseSerilog((context, services, loggerConfiguration) =>
@@ -267,6 +268,7 @@ try
     builder.Services.AddScoped<AccessPermissionService>();
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
+    builder.Services.AddScoped<LabOrderService>();
 
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
