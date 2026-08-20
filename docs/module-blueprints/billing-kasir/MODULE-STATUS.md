@@ -3,51 +3,35 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BIL-CASH-001` |
-| Module name | Billing dan Kasir |
-| Revision | `0.3` |
-| Module status | `PARTIAL` |
-| Current phase | `BIL-CASH-PH-005-DESIGN-APPROVAL` |
-| Last verified at | 20 Agustus 2026 |
-| Backend source SHA | `e6f6ecba1537783ea2eb379ac12cc97790707303` |
-| Frontend source SHA | `e555bf2ad6848a1d6cc097ab8c6c5f5259edb151` |
+| Revision | `0.4` |
+| Blueprint status | `APPROVED` |
+| Roadmap revision/status | `1` / `DRAFT_FORWARD_TEST` |
+| Current phase | `BKC-PH-001 — READY_FOR_TASK_APPROVAL` |
+| Approved at | 20 Agustus 2026, 13:41 WIB |
+| Approval evidence | Product/Domain Owner menyatakan “saya aprove” pada percakapan |
+| Backend snapshot | `c99f0a51577456c91831870892870f9ae633b4c2` (`Yasmina`) |
+| Frontend snapshot | `e555bf2ad6848a1d6cc097ab8c6c5f5259edb151` (`yasmina`) |
 
 ## Phase state
 
-| Phase | Status | Evidence / reason |
+| Phase | Status | Evidence |
 | --- | --- | --- |
-| `BIL-CASH-PH-001` Business discovery | `DONE` | Decision contract revision `0.2` approved, termasuk `BKC-DEC-031`–`044` |
-| `BIL-CASH-PH-002` Capability audit | `DONE` | Current V2 + attachment evidence audited; no runtime readiness claim |
-| `BIL-CASH-PH-003` Requirement gate | `DONE` | Gate revision `0.3`, `READY_FOR_DOMAIN_DESIGN`, seluruh 18 dimensions dinilai ulang |
-| `BIL-CASH-PH-004` Domain architecture/design | `DONE` | Architecture `0.3` ready dan blueprint `0.3-draft` selesai dikomposisi |
-| `BIL-CASH-PH-005` Owner closure/approval | `IN_PROGRESS` | Decision revision `0.2` approved; blueprint/contract revision `0.3-draft` menunggu approval desain |
-| `BIL-CASH-PH-006` Delivery planning | `BLOCKED` | Blueprint contracts belum approved |
+| Discovery/capability/gate/domain | `DONE` | Decision `0.2`, gate/domain `0.3` |
+| Business module design | `DONE` | Blueprint dan enam kontrak `0.4` approved |
+| Design approval | `DONE` | `BIL-APR-001` ditutup 20 Agustus 2026 |
+| Delivery planning | `DONE` | Roadmap revision `1`: 17 BE + 10 FE task |
+| Task approval | `READY` | Task pertama yang direkomendasikan `BE-BKC-001` |
+| Implementation/verification | `NOT_STARTED` | Belum ada source, migration execution, atau test delivery |
 
-## Delivery state
+## Delivery dependency
 
-| Backend | Frontend | Integration | Verification |
-| --- | --- | --- | --- |
-| `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` |
-
-## Blockers and owners
-
-| Blocker ID | Summary | Owner | Affected phase | Independent continuation |
-| --- | --- | --- | --- | --- |
-| `BIL-APR-001` | Blueprint `0.3-draft` dan enam contract groups belum mendapat approval desain | Product/Domain Owner + affected owners | Delivery planning dan build | Gate/architecture/design composition sudah current |
-
-## Stale evidence
-
-| Artifact/evidence | Recorded SHA | Current SHA | Required impact review |
-| --- | --- | --- | --- |
-| Current V2 capability map | `e6f6ecba...` | `f63572a9...` | Selesai; change tidak menambah transaction Billing |
-| `ServiceBilling.zip` | SHA-256 `2b948721...` | Sama | Selesai; diklasifikasikan legacy/reference |
-| Domain architecture | Revision `0.3` | Current | Tidak ada source-impact review tambahan |
-| Business blueprint | Revision `0.3-draft` | Current draft | Memerlukan human design approval |
-
-Tidak ada evidence source yang stale. Artefak requirement/design menjadi stale karena decision
-revision berubah, sehingga module tetap `PARTIAL` sampai reassessment dan approval desain selesai.
+| ID | Dependency | Dampak |
+| --- | --- | --- |
+| `BKC-BLK-FE-001` | Governance root frontend belum ditemukan | Menahan seluruh frontend write |
+| `BKC-BLK-INT-001` | Consumer contract AR/AP belum dibuktikan | Menahan final `BE-BKC-016` |
+| `BKC-BLK-PROV-001` | Provider sandbox/callback belum dipilih | Menahan provider E2E, tidak menahan interface |
+| `BKC-BLK-DATA-001` | Nilai seed Finance/Inpatient belum diserahkan | Menahan aktivasi master, tidak menahan model/API |
 
 ## Next recommended task
 
-Product/Domain Owner menyetujui atau merevisi business-module blueprint revision `0.3-draft` dan
-contract versions terkait. Setelah approval, jalankan `plan-module-delivery`; builder belum boleh
-berjalan tanpa task ID/acceptance/write authority.
+Tinjau dan setujui tepat satu task. Urutan aman dimulai dari `BE-BKC-001` (fondasi module dan test harness). Setelah approval task dan write authority backend eksplisit, task tersebut dapat diberikan kepada `$build-module-backend`. Builder tidak boleh mengerjakan task lain sekaligus atau menjalankan migration ke database tanpa izin terpisah.

@@ -7,7 +7,7 @@
 | Status | `source-audited`; belum menyatakan siap implementasi atau siap produksi |
 | Tanggal audit | 20 Agustus 2026 (`Asia/Jakarta`) |
 | Business input | [`00-interview-decisions.md`](./00-interview-decisions.md), approved decision revision `0.2` |
-| Supplemental evidence | [`05-servicebilling-attachment-evidence.md`](./05-servicebilling-attachment-evidence.md), ZIP SHA-256 `2b948721cee4154eaecaf9ac57d7621fb34cb7b61fb31a5fd6dff04df7ad218d` |
+| Supplemental evidence | [`05-servicebilling-attachment-evidence.md`](./evidence/05-servicebilling-attachment-evidence.md), ZIP SHA-256 `2b948721cee4154eaecaf9ac57d7621fb34cb7b61fb31a5fd6dff04df7ad218d` |
 | Backend snapshot | `e6f6ecba1537783ea2eb379ac12cc97790707303` (current branch `Yasmina`) |
 | Frontend snapshot | `e555bf2ad6848a1d6cc097ab8c6c5f5259edb151` |
 | Audit method | Pembacaan statis source, konfigurasi EF, migration, route, DI, state/service frontend, dan test inventory |
@@ -230,7 +230,7 @@ siap dipakai.
 
 Lampiran adalah potongan service generasi `QuilvianSystemBackendDev`, bukan source current-V2 dan
 bukan bukti runtime. Klasifikasi lengkap tersedia di
-[`05-servicebilling-attachment-evidence.md`](./05-servicebilling-attachment-evidence.md).
+[`05-servicebilling-attachment-evidence.md`](./evidence/05-servicebilling-attachment-evidence.md).
 
 | Capability legacy | Status terhadap target | Evidence/gap utama |
 | --- | --- | --- |

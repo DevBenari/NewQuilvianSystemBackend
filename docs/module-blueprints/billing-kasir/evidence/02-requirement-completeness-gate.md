@@ -8,8 +8,8 @@
 | Assessment status | `CURRENT` |
 | Overall readiness | `READY_FOR_DOMAIN_DESIGN` |
 | Ready destination | `hospital-domain-architect` |
-| Business evidence | [`00-interview-decisions.md`](./00-interview-decisions.md), approved revision `0.2` |
-| Capability evidence | [`01-existing-capability-map.md`](./01-existing-capability-map.md), revision `0.2` |
+| Business evidence | [`00-interview-decisions.md`](../00-interview-decisions.md), approved revision `0.2` |
+| Capability evidence | [`01-existing-capability-map.md`](../01-existing-capability-map.md), revision `0.2` |
 | Attachment evidence | [`05-servicebilling-attachment-evidence.md`](./05-servicebilling-attachment-evidence.md), ZIP SHA-256 `2b948721cee4154eaecaf9ac57d7621fb34cb7b61fb31a5fd6dff04df7ad218d` |
 | Backend snapshot | `e6f6ecba1537783ea2eb379ac12cc97790707303` |
 | Frontend snapshot | `e555bf2ad6848a1d6cc097ab8c6c5f5259edb151` |

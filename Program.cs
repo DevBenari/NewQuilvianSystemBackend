@@ -16,6 +16,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Services;
@@ -38,6 +39,7 @@ using Serilog.Events;
 using Serilog.Formatting.Compact;
 using System.Security.Claims;
 using System.Text;
+
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -269,6 +271,7 @@ try
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
     builder.Services.AddScoped<LabOrderService>();
+    builder.Services.AddBillingManagement();
 
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();

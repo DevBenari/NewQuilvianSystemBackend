@@ -1,12 +1,12 @@
-# Billing dan Kasir — Business Module Blueprint
+# Billing dan Kasir — Business Module Blueprint (arsip revision 0.3)
 
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `BIL-CASH-001` |
 | Blueprint revision | `0.3-draft` |
 | Status | `DRAFT_PENDING_APPROVAL` |
-| Decision contract | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `0.2`, approved |
-| Capability evidence | [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `0.2` |
+| Decision contract | [`00-interview-decisions.md`](../00-interview-decisions.md) revision `0.2`, approved |
+| Capability evidence | [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `0.2` |
 | Requirement gate | [`02-requirement-completeness-gate.md`](./02-requirement-completeness-gate.md) revision `0.3`, `READY_FOR_DOMAIN_DESIGN` |
 | Domain architecture | [`03-hospital-domain-architecture.md`](./03-hospital-domain-architecture.md) revision `0.3`, `DOMAIN_ARCHITECTURE_READY` |
 | Legacy evidence | [`05-servicebilling-attachment-evidence.md`](./05-servicebilling-attachment-evidence.md) revision `0.1` |

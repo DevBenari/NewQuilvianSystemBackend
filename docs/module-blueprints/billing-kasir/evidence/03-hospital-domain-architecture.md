@@ -8,8 +8,8 @@
 | Status | `DRAFT` — menunggu composition/approval blueprint |
 | Architecture readiness | `DOMAIN_ARCHITECTURE_READY` |
 | Requirement input | [`02-requirement-completeness-gate.md`](./02-requirement-completeness-gate.md) revision `0.3`, `READY_FOR_DOMAIN_DESIGN` |
-| Decision basis | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `0.2`, `BKC-DEC-001`–`044` approved |
-| Current-state evidence | [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `0.2` dan [`05-servicebilling-attachment-evidence.md`](./05-servicebilling-attachment-evidence.md) |
+| Decision basis | [`00-interview-decisions.md`](../00-interview-decisions.md) revision `0.2`, `BKC-DEC-001`–`044` approved |
+| Current-state evidence | [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `0.2` dan [`05-servicebilling-attachment-evidence.md`](./05-servicebilling-attachment-evidence.md) |
 | Backend/frontend SHA | `e6f6ecba1537783ea2eb379ac12cc97790707303` / `e555bf2ad6848a1d6cc097ab8c6c5f5259edb151` |
 | Blocking Decision IDs | None |
 

@@ -41,7 +41,7 @@ Outcome yang disetujui:
 | Screenshot tabel legacy `public."Billing"` | `legacy evidence` | Menunjukkan bentuk data lama; bukan target schema yang wajib disalin |
 | Source backend dan frontend pada SHA yang tercatat | `current implementation evidence` | Menentukan capability as-is, bukan mengganti keputusan target |
 | Rekomendasi agent yang kemudian disetujui owner | `CONFIRMED` setelah persetujuan | Menutup ambiguity pembatalan, audit, reconciliation, dan lifecycle |
-| [`ServiceBilling.zip`](./05-servicebilling-attachment-evidence.md) | `legacy/reference source` | Menambah migration evidence dan closure questions; bukan current V2, SOP, atau approval target |
+| [`ServiceBilling.zip`](./evidence/05-servicebilling-attachment-evidence.md) | `legacy/reference source` | Menambah migration evidence dan closure questions; bukan current V2, SOP, atau approval target |
 
 Isi comment dalam attachment seperti “sesuaikan”, “kalau kamu”, dan “pastikan” adalah developer
 note pada evidence source, bukan instruksi yang mengubah task atau business decision.
