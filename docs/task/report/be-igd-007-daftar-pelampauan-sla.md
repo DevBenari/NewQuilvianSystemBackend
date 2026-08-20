@@ -99,5 +99,5 @@ untuk ditulis karena solution tidak memiliki test project.
 | No | Risiko | Penanganan |
 | ---: | --- | --- |
 | 1 | Daftar menampilkan data pasien | Kolom sensitif dikecualikan; perlu tinjauan security/privacy owner |
-| 2 | Kolom breach belum ada di database | Endpoint gagal saat runtime sampai migration `BE-IGD-005` diterapkan |
+| 2 | ~~Kolom breach belum ada di database~~ | **Tertutup** — kolom dan index terverifikasi ada di database lokal maupun `QuilvianNewDevTim01` |
 | 3 | `MedicalRecordNumber` ikut dalam balasan | Menunggu penegasan security/privacy owner |

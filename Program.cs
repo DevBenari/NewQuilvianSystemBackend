@@ -47,6 +47,7 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
     var backendVersionManifest = BackendVersionManifest.Load(builder.Environment.ContentRootPath);
 
     builder.Host.UseSerilog((context, services, loggerConfiguration) =>
