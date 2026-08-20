@@ -341,6 +341,58 @@ namespace QuilvianSystemBackend.Shared.HumanResource.Services
             result.WorkLocationId = assignment.WorkLocationId;
             result.EmployeeGradeId = assignment.EmployeeGradeId;
             result.AssignmentType = assignment.AssignmentType;
+
+            result.HospitalSiteName = assignment.HospitalSiteId.HasValue
+                ? await _dbContext.MstHospitalSites
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.Id == assignment.HospitalSiteId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete)
+                    .Select(x => x.SiteName)
+                    .FirstOrDefaultAsync(cancellationToken)
+                : null;
+
+            result.OrganizationUnitName = assignment.OrganizationUnitId.HasValue
+                ? await _dbContext.MstOrganizationUnits
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.Id == assignment.OrganizationUnitId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete)
+                    .Select(x => x.UnitName)
+                    .FirstOrDefaultAsync(cancellationToken)
+                : null;
+
+            result.DepartmentName = await _dbContext.MstDepartments
+                .AsNoTracking()
+                .Where(x =>
+                    x.Id == assignment.DepartmentId &&
+                    x.IsActive &&
+                    !x.IsDelete)
+                .Select(x => x.DepartmentName)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            result.PositionName = await _dbContext.MstPositions
+                .AsNoTracking()
+                .Where(x =>
+                    x.Id == assignment.PositionId &&
+                    x.IsActive &&
+                    !x.IsDelete)
+                .Select(x => x.PositionName)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            result.WorkLocationName = assignment.WorkLocationId.HasValue
+                ? await _dbContext.MstWorkLocations
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.Id == assignment.WorkLocationId.Value &&
+                        x.IsActive &&
+                        !x.IsDelete)
+                    .Select(x => x.LocationName)
+                    .FirstOrDefaultAsync(cancellationToken)
+                : null;
+
             result.HasOrganizationAssignment = true;
         }
 

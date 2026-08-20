@@ -5,15 +5,17 @@
 | Status | Canonical usage guide |
 | Tanggal | 2026-08-13 |
 | Cakupan | Backend dan frontend, dari discovery sampai readiness |
+| Registry canonical | `NewQuilvianSystemBackend/docs/system-registry/` |
 | Blueprint canonical | `NewQuilvianSystemBackend/docs/module-blueprints/<module>/` |
-| Skill canonical | 6 backend + 1 frontend |
-| Adapter frontend | 5 shared skills |
+| Skill canonical | 7 backend + 1 frontend |
+| Adapter frontend | Tidak ada, dihapus pada 2026-08-13 |
 
 ## 1. Tujuan
 
-Gunakan panduan ini untuk menjalankan tujuh skill sebagai satu workflow pengembangan modul,
+Gunakan panduan ini untuk menjalankan delapan skill sebagai satu workflow pengembangan modul,
 baik untuk IGD, pengkajian rawat inap, maupun modul Quilvian lain. Workflow dimulai dari
-wawancara kebutuhan, membaca kemampuan project yang sudah ada, membuat blueprint dan ERD,
+pemindaian seluruh sistem, dilanjutkan wawancara kebutuhan, membaca kemampuan project yang
+sudah ada secara mendalam, membuat blueprint dan ERD,
 menyusun roadmap, mengimplementasikan task backend/frontend, lalu memverifikasi kesiapan
 end-to-end.
 
@@ -29,7 +31,7 @@ cd NewQuilvianSystemBackend
 claude --add-dir ../QuilvianSystemFrontendDev
 ```
 
-Sesi ini memuat **ketujuh** skill sekaligus: enam dari `.claude/skills/` backend, dan
+Sesi ini memuat **kedelapan** skill sekaligus: tujuh dari `.claude/skills/` backend, dan
 `build-module-frontend` dari frontend. `--add-dir` memuat `.claude/skills/` milik direktori
 yang ditambahkan secara otomatis, sekaligus memberi akses baca dan tulis ke source-nya.
 
@@ -63,7 +65,8 @@ Membaca boleh lintas repository. Menulis tidak pernah lintas repository.
 
 | Urutan | Skill | Membaca | Menulis | Lokasi | Mengubah source aplikasi? |
 | ---: | --- | --- | --- | --- | --- |
-| 1 | `/grill-me` | jawaban pengguna | `docs/module-blueprints/` | Backend | Tidak |
+| 0 | `/scan-system-registry` | dua repo | `docs/system-registry/` | Backend | Tidak |
+| 1 | `/grill-me` | registry + jawaban pengguna | `docs/module-blueprints/` | Backend | Tidak |
 | 2 | `/trace-existing-capabilities` | dua repo | `docs/module-blueprints/` | Backend | Tidak |
 | 3 | `/design-business-module` | blueprint | `docs/module-blueprints/` | Backend | Tidak |
 | 4 | `/plan-module-delivery` | blueprint | `docs/module-blueprints/roadmap/` | Backend | Tidak |
@@ -71,12 +74,16 @@ Membaca boleh lintas repository. Menulis tidak pernah lintas repository.
 | 6 | `/build-module-frontend` | blueprint + frontend | source frontend | Frontend | Ya |
 | 7 | `/verify-module-readiness` | dua repo | `docs/module-blueprints/testing/` | Backend | Tidak |
 
-Enam skill menulis ke backend, satu menulis ke frontend. Tidak ada adapter dan tidak ada
+Tujuh skill menulis ke backend, satu menulis ke frontend. Tidak ada adapter dan tidak ada
 mekanisme sidik jari; seluruh skill tersedia dalam satu sesi melalui `--add-dir`.
 
-Dua skill membaca dua repository sekaligus, yaitu `/trace-existing-capabilities` dan
-`/verify-module-readiness`. Keduanya tetap tinggal di backend karena hasil auditnya adalah
-satu dokumen gabungan yang tidak boleh punya dua salinan.
+Tiga skill membaca dua repository sekaligus, yaitu `/scan-system-registry`,
+`/trace-existing-capabilities`, dan `/verify-module-readiness`. Ketiganya tetap tinggal di
+backend karena hasil auditnya adalah satu dokumen gabungan yang tidak boleh punya dua salinan.
+
+`/scan-system-registry` berada di urutan 0 karena ia berlaku untuk **seluruh sistem**, bukan
+untuk satu modul. Ia dijalankan sekali, lalu hasilnya dipakai semua modul. Rinciannya ada pada
+[rule-prascan](rules/rule-prascan/README.md).
 
 `/verify-module-readiness` **tidak pernah** mengubah source, tanpa pengecualian. Perbaikan
 temuan dikembalikan ke `/build-module-backend` atau `/build-module-frontend` agar audit tetap
@@ -102,7 +109,21 @@ Gunakan nama folder modul dalam kebab-case, misalnya:
 
 ## 5. Artefak canonical
 
-Semua keputusan dan bukti lintas repo disimpan satu kali di backend:
+Ada dua kelompok artefak. Yang pertama berlaku untuk seluruh sistem dan hanya ada satu:
+
+```text
+NewQuilvianSystemBackend/docs/system-registry/
+├── registry-manifest.md
+├── 01-peta-area-dan-modul.md
+├── 02-entity-terdaftar.md
+├── 03-kepemilikan-data-bersama.md
+├── 04-kavling-nama-dan-endpoint.md
+├── 05-zona-konflik.md
+└── 06-indeks-entity.md
+```
+
+Yang kedua berlaku per modul. Semua keputusan dan bukti lintas repo disimpan satu kali di
+backend:
 
 ```text
 NewQuilvianSystemBackend/docs/module-blueprints/<module>/
@@ -133,7 +154,45 @@ frontend tidak menyimpan salinan aturan canonical.
 
 ## 6. Alur lengkap dari awal sampai tuntas
 
+### Tahap 0 — Pindai sistem dengan `/scan-system-registry` (wajib)
+
+Jalankan sekali sebelum modul apa pun dibahas:
+
+```text
+/qv-scan full
+```
+
+Skill memetakan seluruh area, modul, entity, tingkat kesiapan, kepemilikan data, kavling nama,
+grup endpoint, dan zona konflik pada kedua repository.
+
+Output minimum:
+
+```text
+docs/system-registry/registry-manifest.md
+docs/system-registry/01-peta-area-dan-modul.md
+docs/system-registry/02-entity-terdaftar.md
+docs/system-registry/03-kepemilikan-data-bersama.md
+docs/system-registry/04-kavling-nama-dan-endpoint.md
+docs/system-registry/05-zona-konflik.md
+docs/system-registry/06-indeks-entity.md
+```
+
+Registry hanya memuat **keadaan nyata**. Usulan entity baru, prioritas, dan urutan implementasi
+tidak boleh masuk ke sini; itu keluaran wawancara dan desain.
+
+Untuk pemakaian berikutnya cukup `/qv-scan refresh`, yang hanya menyisir berkas yang berubah
+sejak commit terakhir yang tercatat pada manifest.
+
+Tahap ini selesai bila manifest berstatus `SEGAR` terhadap `HEAD` kedua repository.
+
 ### Tahap 1 — Wawancara awal dengan `/grill-me`
+
+`/grill-me` **berhenti sebelum pertanyaan pertama** bila registry belum ada atau SHA-nya sudah
+berbeda dari `HEAD`. Bila registry segar, skill membuka sesi dengan Kartu Konteks Pra-Wawancara
+berisi modul yang bersinggungan, entity yang sudah siap dipakai ulang, entity yang belum
+lengkap, zona konflik terkait, dan daftar pertanyaan yang tidak akan diajukan karena sudah
+terjawab registry. Aturan lengkapnya ada di
+[rule-prascan](rules/rule-prascan/aturan-prascan-modul.md).
 
 Jalankan dari backend:
 
@@ -350,6 +409,7 @@ Gunakan jenis gap untuk menentukan skill berikutnya:
 
 | Temuan | Kembali ke skill |
 | --- | --- |
+| Registry sistem sudah tidak segar, atau ada area/modul baru | `/scan-system-registry` mode `refresh` atau `full` |
 | Keputusan/owner/invariant belum jelas | `/grill-me` Amendment/Closure Pass |
 | Capability atau SHA stale | `/trace-existing-capabilities` impact scan |
 | Arsitektur/ERD/contract salah atau kurang | `/design-business-module` revision baru |
@@ -454,6 +514,7 @@ agar tidak bentrok dengan nama skill.
 
 | Command | Skill yang dipanggil | Argumen |
 | --- | --- | --- |
+| `/qv-scan` | `scan-system-registry` | `[full\|refresh\|focus <area>]` |
 | `/qv-grill` | `grill-me` | `<module> [scope\|closure\|amendment] [tujuan]` |
 | `/qv-trace` | `trace-existing-capabilities` | `<module> [impact-scan]` |
 | `/qv-design` | `design-business-module` | `<module> [fokus]` |
@@ -502,6 +563,7 @@ Setiap `SKILL.md` memuat tabel **Effort dan model minimum**. Ringkasannya:
 
 | Skill | Minimum effort | Model Claude minimum | Model GPT setara |
 | --- | --- | --- | --- |
+| `scan-system-registry` | `high` untuk `full`, `medium` untuk `refresh` | Claude Sonnet 5 | GPT-5, reasoning `high` |
 | `grill-me` | `medium` | Claude Sonnet 5 | GPT-5, reasoning `medium` |
 | `trace-existing-capabilities` | `high` | Claude Sonnet 5 | GPT-5, reasoning `high` |
 | `design-business-module` | `high` | Claude Opus 5 | GPT-5, reasoning `high` |
@@ -522,7 +584,8 @@ singkatnya. Skill hanya menawarkan; perpindahan tetap menunggu persetujuan pengg
 Alur normalnya:
 
 ```text
-/grill-me (Scope Pass)
+/scan-system-registry (sekali, wajib, dan wajib segar)
+  -> /grill-me (Scope Pass)
   -> /trace-existing-capabilities
   -> /grill-me (Closure Pass)
   -> /design-business-module

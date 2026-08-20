@@ -10,13 +10,17 @@ namespace QuilvianSystemBackend.Services.Security
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly bool _enforceClinicalPolicyForSuperAdmin;
 
         public AccessPermissionService(
             ApplicationDbContext dbContext,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            IConfiguration configuration)
         {
             _dbContext = dbContext;
             _userManager = userManager;
+            _enforceClinicalPolicyForSuperAdmin = configuration.GetValue<bool>(
+                "Security:Authorization:EnforceClinicalPolicyForSuperAdmin");
         }
 
         public async Task<bool> HasAccessAsync(
@@ -51,9 +55,41 @@ namespace QuilvianSystemBackend.Services.Security
 
             var roles = await _userManager.GetRolesAsync(user);
 
-            if (IsSuperAdminUser(user, roles))
+            var isSuperAdmin = IsSuperAdminUser(user, roles);
+
+            if (isSuperAdmin && !_enforceClinicalPolicyForSuperAdmin)
             {
                 return true;
+            }
+
+            if (isSuperAdmin)
+            {
+                var systemOnlyAction = await _dbContext.SysActionAccesses
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.ActionName == actionName &&
+                        x.IsActive &&
+                        !x.IsDelete &&
+                        x.ControllerAccess != null &&
+                        x.ControllerAccess.ControllerName == controllerName &&
+                        x.ControllerAccess.IsActive &&
+                        !x.ControllerAccess.IsDelete)
+                    .Select(x => new
+                    {
+                        ActionIsSystemOnly = x.IsSystemOnly,
+                        ControllerIsSystemOnly = x.ControllerAccess!.IsSystemOnly
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (systemOnlyAction == null)
+                {
+                    return false;
+                }
+
+                if (systemOnlyAction.ActionIsSystemOnly || systemOnlyAction.ControllerIsSystemOnly)
+                {
+                    return true;
+                }
             }
 
             var actionAccess = await _dbContext.SysActionAccesses

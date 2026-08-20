@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
         public string Name { get; set; } = string.Empty;
         public string ColorName { get; set; } = string.Empty;
         public string? ColorHex { get; set; }
-        public int MaxWaitingMinutes { get; set; }
+        public int? MaxWaitingMinutes { get; set; }
         public bool AllowsTreatmentBeforeRegistration { get; set; }
         public int Sequence { get; set; }
         public string? Description { get; set; }
@@ -43,7 +43,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
         [MaxLength(20)]
         public string? ColorHex { get; set; }
 
-        public int MaxWaitingMinutes { get; set; }
+        public int? MaxWaitingMinutes { get; set; }
 
         public bool AllowsTreatmentBeforeRegistration { get; set; }
 
