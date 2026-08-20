@@ -108,6 +108,6 @@ Ketiganya menambah, tidak mengubah arah desain.
 
 | No | Risiko | Penanganan |
 | ---: | --- | --- |
-| 1 | Kolom `IsSlaBreached` belum ada di database | Pemantau gagal saat runtime, bukan saat build. Migration `BE-IGD-005` wajib diterapkan lebih dulu |
+| 1 | ~~Kolom `IsSlaBreached` belum ada di database~~ | **Tertutup** — migration `BE-IGD-005` sudah diterapkan dan kedua kolom terverifikasi di database lokal maupun `QuilvianNewDevTim01` |
 | 2 | Pemantau menyala sebelum data master terisi | `BE-IGD-003` belum tuntas; `Enabled=false` dapat dipakai sampai siap |
 | 3 | Beban basis data bila interval diturunkan drastis | Batas bawah 10 detik dipaksa di kode |

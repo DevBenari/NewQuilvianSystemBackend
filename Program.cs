@@ -48,12 +48,6 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    // Override khusus mesin developer. Berkas ini tidak disimpan ke Git sehingga host dan
-    // kredensial lokal tidak ikut terbawa ketika branch di-push atau di-merge.
-    builder.Configuration.AddJsonFile(
-        "appsettings.Local.json",
-        optional: true,
-        reloadOnChange: true);
     var backendVersionManifest = BackendVersionManifest.Load(builder.Environment.ContentRootPath);
 
     builder.Host.UseSerilog((context, services, loggerConfiguration) =>
