@@ -236,6 +236,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (entity.TriageStatus == EmergencyTriageStatus.Completed)
             {
+                // Waktu selesai diisi di sini juga, bukan hanya pada jalur ubah status.
+                // Penilaian yang dibuat langsung dalam keadaan selesai tetap harus punya
+                // waktu selesai, supaya perhitungan lama penanganan tidak kehilangan datanya.
+                entity.CompletedAt ??= now;
+
                 var visit = await _dbContext.Set<TrxEmergencyVisit>()
                     .FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
                 visit.VisitStatus = EmergencyVisitStatus.Triaged;

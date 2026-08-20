@@ -78,7 +78,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         )
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
-            IQueryable<TrxEmergencyVisit> query = _dbContext.Set<TrxEmergencyVisit>().AsNoTracking().Where(x => !x.IsDelete);
+            // Navigasi dimuat karena balasan kini memuat nama, bukan hanya identifier.
+            IQueryable<TrxEmergencyVisit> query = _dbContext.Set<TrxEmergencyVisit>()
+                .AsNoTracking()
+                .Include(x => x.Patient)
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.ArrivalMode)
+                .Include(x => x.CaseType)
+                .Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -186,11 +193,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 Id = Guid.NewGuid(),
                 EmergencyVisitNumber = string.IsNullOrWhiteSpace(request.EmergencyVisitNumber) ? await _emergencyVisitService.GenerateVisitNumberAsync(now, cancellationToken) : request.EmergencyVisitNumber.Trim(),
-                EncounterId = request.EncounterId,
-                PatientId = request.PatientId,
+                // Seluruh foreign key opsional dinormalkan. Validasi sengaja melewati
+                // Guid.Empty karena menganggapnya "tidak diisi", tetapi nilai itu tetap
+                // dikirim ke database dan ditolak sebagai pelanggaran foreign key.
+                EncounterId = ToNullableReference(request.EncounterId),
+                PatientId = ToNullableReference(request.PatientId),
                 ServiceUnitId = request.ServiceUnitId,
-                ArrivalModeId = request.ArrivalModeId,
-                CaseTypeId = request.CaseTypeId,
+                ArrivalModeId = ToNullableReference(request.ArrivalModeId),
+                CaseTypeId = ToNullableReference(request.CaseTypeId),
                 ArrivalDateTime = request.ArrivalDateTime == default ? now : request.ArrivalDateTime,
                 ChiefComplaint = NormalizeText(request.ChiefComplaint),
                 ArrivalLocation = NormalizeText(request.ArrivalLocation),
@@ -203,7 +213,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 RegistrationStatus = request.RegistrationStatus,
                 VisitStatus = request.VisitStatus,
                 RegistrationCompletedAt = request.RegistrationCompletedAt,
-                RegistrationCompletedByUserId = request.RegistrationCompletedByUserId ?? actorUserId,
+                // GUID nol diperlakukan sebagai tidak diisi. Operator ?? hanya menangkap null,
+                // sehingga 00000000-0000-0000-0000-000000000000 yang dikirim pemanggil lolos
+                // ke database dan melanggar FK_TrxEmergencyVisit_AspNetUsers.
+                RegistrationCompletedByUserId = ResolveUserIdOrNull(
+                    request.RegistrationCompletedByUserId,
+                    actorUserId),
                 TreatmentStartedAt = request.TreatmentStartedAt,
                 VisitCompletedAt = request.VisitCompletedAt,
                 Notes = NormalizeText(request.Notes),
@@ -221,7 +236,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             }
             catch (DbUpdateException)
             {
-                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Data kunjungan IGD gagal disimpan karena melanggar relasi atau data unik."));
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Data kunjungan IGD gagal disimpan. Kemungkinan encounter ini sudah memiliki kunjungan IGD, atau nomor kunjungan bentrok dengan data yang sudah ada."));
             }
 
             await _loggerService.InfoAsync(
@@ -258,11 +273,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
             entity.EmergencyVisitNumber = string.IsNullOrWhiteSpace(request.EmergencyVisitNumber) ? entity.EmergencyVisitNumber : request.EmergencyVisitNumber.Trim();
-            entity.EncounterId = request.EncounterId;
-            entity.PatientId = request.PatientId;
+            entity.EncounterId = ToNullableReference(request.EncounterId);
+            entity.PatientId = ToNullableReference(request.PatientId);
             entity.ServiceUnitId = request.ServiceUnitId;
-            entity.ArrivalModeId = request.ArrivalModeId;
-            entity.CaseTypeId = request.CaseTypeId;
+            entity.ArrivalModeId = ToNullableReference(request.ArrivalModeId);
+            entity.CaseTypeId = ToNullableReference(request.CaseTypeId);
             entity.ArrivalDateTime = request.ArrivalDateTime;
             entity.ChiefComplaint = NormalizeText(request.ChiefComplaint);
             entity.ArrivalLocation = NormalizeText(request.ArrivalLocation);
@@ -571,6 +586,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             };
         }
 
+        /// <summary>
+        /// Nama pasien yang selalu dapat ditampilkan.
+        ///
+        /// IGD melayani pasien tanpa identitas, sehingga PatientId boleh kosong. Urutannya:
+        /// nama pasien bila sudah dikenali, lalu alias sementara, lalu keterangan apa adanya.
+        /// Mengembalikan string kosong akan membuat layar menampilkan baris tanpa nama pada
+        /// pasien yang justru paling gawat.
+        /// </summary>
+        private static string ResolvePatientName(TrxEmergencyVisit x)
+        {
+            if (!string.IsNullOrWhiteSpace(x.Patient?.FullName))
+                return x.Patient!.FullName;
+
+            if (!string.IsNullOrWhiteSpace(x.TemporaryPatientAlias))
+                return x.TemporaryPatientAlias!;
+
+            return "Pasien belum teridentifikasi";
+        }
+
         private static EmergencyVisitResponse ToResponse(TrxEmergencyVisit x)
         {
             return new EmergencyVisitResponse
@@ -579,9 +613,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EmergencyVisitNumber = x.EmergencyVisitNumber,
                 EncounterId = x.EncounterId,
                 PatientId = x.PatientId,
+                PatientName = ResolvePatientName(x),
+                MedicalRecordNumber = x.Patient?.MedicalRecordNumber,
                 ServiceUnitId = x.ServiceUnitId,
+                ServiceUnitName = x.ServiceUnit?.ServiceUnitName,
                 ArrivalModeId = x.ArrivalModeId,
+                ArrivalModeName = x.ArrivalMode?.Name,
                 CaseTypeId = x.CaseTypeId,
+                CaseTypeName = x.CaseType?.Name,
                 ArrivalDateTime = x.ArrivalDateTime,
                 ChiefComplaint = x.ChiefComplaint,
                 ArrivalLocation = x.ArrivalLocation,
@@ -602,6 +641,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 CreateDateTime = x.CreateDateTime,
                 UpdateDateTime = x.UpdateDateTime
             };
+        }
+
+        /// <summary>
+        /// Mengubah Guid kosong menjadi null untuk kolom yang merujuk tabel lain.
+        /// Guid.Empty bukan baris yang ada di tabel mana pun, sehingga menyimpannya selalu
+        /// berakhir sebagai pelanggaran foreign key.
+        /// </summary>
+        private static Guid? ToNullableReference(Guid? value)
+            => value.HasValue && value.Value != Guid.Empty ? value.Value : null;
+
+        /// <summary>
+        /// Mengembalikan id pengguna yang benar-benar dapat dirujuk, atau null bila tidak ada.
+        /// GUID kosong bukan pengguna dan tidak boleh disimpan sebagai foreign key.
+        /// </summary>
+        private static Guid? ResolveUserIdOrNull(Guid? requested, Guid actorUserId)
+        {
+            if (requested.HasValue && requested.Value != Guid.Empty)
+                return requested.Value;
+
+            return actorUserId != Guid.Empty ? actorUserId : null;
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
