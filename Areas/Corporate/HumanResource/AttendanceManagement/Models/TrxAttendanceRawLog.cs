@@ -85,7 +85,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public MstAttendanceDevice? AttendanceDevice { get; set; }
         public MstAttendanceLocation? AttendanceLocation { get; set; }
         public MstHospitalSite? HospitalSite { get; set; }
-        public TrxAttendance? ProcessedAttendance { get; set; }
+        public HrdAttendance? ProcessedAttendance { get; set; }
         public TrxAttendanceDaily? ProcessedAttendanceDaily { get; set; }
     }
 }

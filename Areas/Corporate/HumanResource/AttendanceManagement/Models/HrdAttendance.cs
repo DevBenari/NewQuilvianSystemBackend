@@ -10,8 +10,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models
 {
-    [Table("TrxAttendance", Schema = "public")]
-    public class TrxAttendance : IdentityModel
+    [Table("HrdAttendance", Schema = "public")]
+    public class HrdAttendance : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
