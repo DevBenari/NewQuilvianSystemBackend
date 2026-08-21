@@ -1470,7 +1470,29 @@ titik serah-terima atau data bersama yang langsung dibutuhkan pengkajian keperaw
 | `IGD-DEC-054` | Decision | Pengkajian keperawatan IGD lengkap menjadi proses tersendiri setelah triase. Cakupannya meliputi primary survey ABCDE, secondary survey, tanda vital, nyeri, alergi, riwayat kesehatan yang relevan, risiko keperawatan, intervensi awal sesuai kewenangan, evaluasi atau pengkajian ulang, dan serah terima. Pengkajian tetap terhubung pada encounter IGD yang sama dan selesainya triase tidak berarti pengkajian keperawatan lengkap sudah selesai | Product/Domain Owner, dengan Clinical Governance dan Nursing authority sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval klinis dan keperawatan belum tercatat | — | Jawaban pengguna 20 Agustus 2026; pilihan A pada konfirmasi scope |
 | `IGD-OQ-039` | Open Question | Kapan pengkajian keperawatan lengkap wajib dimulai setelah triase, khususnya untuk pasien Merah yang memerlukan tindakan penyelamatan segera? | Product/Domain Owner + Clinical Governance + Nursing authority | `superseded` oleh `IGD-DEC-055` | Jawaban pengguna 20 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-054` |
 | `IGD-DEC-055` | Decision | Waktu mulai dan kelengkapan pengkajian mengikuti kegawatan. Pasien Merah langsung mendapat tindakan penyelamatan; pemeriksaan klinis serta dokumentasi minimum berjalan bersama resusitasi sejauh aman, sedangkan bagian lengkap diselesaikan setelah pasien stabil. Pasien selain Merah langsung menjalani pengkajian keperawatan setelah triase. Dokumentasi tidak boleh menunda tindakan penyelamatan | Product/Domain Owner, dengan Clinical Governance dan Nursing authority sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval klinis dan keperawatan belum tercatat | — | Jawaban pengguna 20 Agustus 2026; pilihan B untuk `IGD-OQ-039` |
-| `IGD-OQ-040` | Open Question | Bagian pengkajian apa yang wajib terisi agar pengkajian boleh dinyatakan selesai, dan bagaimana mencatat bagian yang tidak dapat dinilai karena kondisi pasien? | Product/Domain Owner + Clinical Governance + Nursing authority | `draft` — memblokir validation matrix dan definisi status selesai pengkajian | — | Tindak lanjut `IGD-DEC-054` dan `IGD-DEC-055` |
+| `IGD-OQ-040` | Open Question | Bagian pengkajian apa yang wajib terisi agar pengkajian boleh dinyatakan selesai, dan bagaimana mencatat bagian yang tidak dapat dinilai karena kondisi pasien? | Product/Domain Owner + Clinical Governance + Nursing authority | `superseded` oleh `IGD-DEC-056` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-054` dan `IGD-DEC-055` |
+| `IGD-DEC-056` | Decision | Syarat kelengkapan pengkajian menyesuaikan kondisi pasien. Data inti tetap wajib. Bagian yang secara klinis tidak relevan boleh ditandai tidak berlaku, sedangkan bagian yang relevan tetapi tidak dapat dinilai wajib disertai alasan. Sistem harus membedakan nilai normal, tidak berlaku, belum dinilai, dan tidak dapat dinilai; sistem tidak boleh mengisi nilai klinis secara otomatis untuk sekadar meloloskan validasi. Aturan ini berlaku antara lain untuk pasien tidak sadar, pasien anak, dan pasien tanpa keluarga atau sumber informasi | Product/Domain Owner, dengan Clinical Governance dan Nursing authority sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval klinis dan keperawatan belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-040` |
+| `IGD-OQ-041` | Open Question | Data apa saja yang menjadi data inti minimum dan harus tersedia sebelum pengkajian boleh dinyatakan selesai? | Product/Domain Owner + Clinical Governance + Nursing authority | `superseded` oleh `IGD-DEC-057` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-056` |
+| `IGD-DEC-057` | Decision | Data inti minimum pengkajian terdiri atas referensi encounter dan pasien definitif atau pasien sementara, identitas perawat pengkaji dan waktu server, sumber informasi, hasil primary survey ABCDE, tanda vital atau alasan tidak dapat diukur, hasil penilaian nyeri, status alergi, risiko utama, intervensi awal, evaluasi, dan serah terima. Seluruh unsur harus memiliki nilai yang sah atau status pengecualian yang diperbolehkan `IGD-DEC-056` sebelum pengkajian dinyatakan selesai. Identitas pasien sementara tidak boleh menghalangi pengkajian | Product/Domain Owner, dengan Clinical Governance dan Nursing authority sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval klinis dan keperawatan belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-041` |
+| `IGD-OQ-042` | Open Question | Siapa yang boleh membuat, menyelesaikan, mengoreksi, dan membatalkan pengkajian keperawatan IGD? | Product/Domain Owner + Nursing authority + Security/Privacy | `superseded` oleh `IGD-DEC-058` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-057` |
+| `IGD-DEC-058` | Decision | Perawat hanya boleh membuat dan menyelesaikan pengkajian bila memiliki penugasan IGD yang aktif dan capability pengkajian yang sesuai. Koreksi dilakukan secara append-only: nilai asli tetap tersimpan, sedangkan koreksi wajib mencatat pelaku, waktu server, dan alasan. Pembatalan hanya diperbolehkan untuk pengkajian duplikat atau keliru oleh perawat yang berwenang atau supervisor sesuai capability. Catatan yang sudah selesai tidak boleh dihapus. Penugasan unit saja tidak memberikan capability klinis dan capability saja tidak melewati batas penugasan unit | Product/Domain Owner, dengan Nursing authority dan Security/Privacy sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval keperawatan dan keamanan belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-042`; konsisten dengan `IGD-DEC-053` |
+| `IGD-OQ-043` | Open Question | Bagaimana memperlakukan pengkajian berstatus selesai yang kemudian terbukti duplikat dibandingkan pengkajian yang isi klinisnya salah? | Product/Domain Owner + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-059` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-058` |
+| `IGD-DEC-059` | Decision | Pengkajian duplikat dan pengkajian dengan kesalahan isi klinis memakai jalur berbeda. Catatan duplikat ditandai `Void` atau batal, tetap dipertahankan, dan wajib menunjuk pengkajian sah yang menggantikannya. Kesalahan isi klinis diperbaiki melalui amendment append-only; nilai asli tetap tersedia dan nilai hasil amendment menjadi nilai efektif terbaru. Seluruh referensi downstream harus tetap dapat ditelusuri ke catatan asal, status void, catatan sah, dan amendment terkait; tidak ada hard delete atau pemutusan referensi | Product/Domain Owner, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval klinis dan keperawatan belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-043` |
+| `IGD-OQ-044` | Open Question | Kapan evaluasi atau pengkajian ulang wajib dilakukan setelah pengkajian awal? | Product/Domain Owner + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-060` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut cakupan evaluasi pada `IGD-DEC-054` |
+| `IGD-DEC-060` | Decision | Evaluasi atau pengkajian ulang wajib mengikuti tingkat kegawatan dan kejadian klinis. Pemicu minimum adalah setelah intervensi, ketika kondisi berubah, pada perpindahan atau serah terima, dan sebelum disposition. Pengkajian ulang juga mengikuti interval SOP per tingkat kegawatan. Nilai interval tidak boleh ditebak atau di-hardcode; nilai tersebut harus dapat dikonfigurasi dari SOP yang disahkan. Interval yang belum dikonfigurasi harus ditandai sebagai belum tersedia dan tidak boleh dianggap patuh atau terlambat secara otomatis. Keterlambatan dokumentasi tidak boleh memblokir tindakan klinis yang dibutuhkan | Product/Domain Owner, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban, approval klinis/keperawatan, dan SOP interval belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-044` |
+| `IGD-OQ-045` | Open Question | Kapan serah terima pengkajian dianggap selesai dan apakah penerima wajib memberikan pengakuan? | Product/Domain Owner + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-061` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-057` dan `IGD-DEC-060` |
+| `IGD-DEC-061` | Decision | Serah terima pengkajian selesai hanya setelah penerima yang berwenang meninjau dan menyatakan menerima. Pengirim mengirim ringkasan dan status menjadi `Pending`; penerima dapat mengubahnya menjadi `Accepted` atau `Rejected`. Penolakan wajib menyimpan alasan, pelaku, dan waktu server. Serah terima yang belum diakui tetap berstatus tertunda dan mengikuti eskalasi yang dapat diaudit. Status tertunda atau penolakan tidak boleh menghentikan pelayanan klinis darurat | Product/Domain Owner, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban, approval klinis/keperawatan, dan aturan waktu eskalasi belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-045` |
+| `IGD-OQ-046` | Open Question | Siapa yang memegang tanggung jawab klinis selama serah terima masih `Pending` atau `Rejected`? | Product/Domain Owner + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-062` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-061` |
+| `IGD-DEC-062` | Decision | Tanggung jawab klinis mengikuti keberadaan fisik pasien. Status serah terima `Pending` atau `Rejected` tidak boleh menyebabkan pasien kehilangan owner klinis. Selama pasien masih berada di unit asal, tanggung jawab klinis tetap pada unit atau perawat pengirim. Setelah pasien berada di unit penerima, pelayanan klinis aktif menjadi tanggung jawab unit penerima. Unit atau perawat pengirim tetap bertanggung jawab melengkapi dan mengoreksi dokumentasi serah terima sampai handover berstatus `Accepted`; sebelum itu handover tetap tercatat sebagai outstanding | Product/Domain Owner, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pengguna menyatakan pilihan B disetujui, tetapi identitas/kewenangan formal pemberi persetujuan serta approval keperawatan dan clinical governance belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan B untuk `IGD-OQ-046`; melengkapi `IGD-DEC-061` |
+| `IGD-OQ-047` | Open Question | Bagaimana batas waktu dan jalur eskalasi handover `Pending` atau `Rejected` tanpa menghambat pelayanan klinis? | Product/Domain Owner + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-063` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-061` dan `IGD-DEC-062` |
+| `IGD-DEC-063` | Decision | Handover `Pending` mengikuti batas waktu berdasarkan tingkat kegawatan. Handover `Rejected` langsung menghasilkan notifikasi kepada pengirim. Jika handover belum diselesaikan, sistem melakukan eskalasi bertahap kepada penanggung jawab shift atau unit. Nilai batas waktu dan urutan eskalasi wajib berasal dari konfigurasi SOP yang disahkan dan tidak boleh di-hardcode. Reminder atau eskalasi tidak boleh otomatis mengubah handover menjadi `Accepted` dan tidak boleh menunda atau menghambat pelayanan klinis | Product/Domain Owner, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban, approval keperawatan/clinical governance, dan SOP waktu eskalasi belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan B untuk `IGD-OQ-047`; melengkapi `IGD-DEC-061` dan `IGD-DEC-062` |
+| `IGD-OQ-048` | Open Question | Bukti sistem apa yang menjadi sumber kebenaran bahwa pasien telah tiba secara fisik di unit penerima sehingga owner pelayanan klinis berpindah? | Product/Domain Owner + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-064` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-062`; harus tetap terpisah dari status penerimaan dokumentasi handover |
+| `IGD-DEC-064` | Decision | Petugas unit penerima yang berwenang mencatat event `Arrived` sebagai bukti sistem bahwa pasien telah tiba secara fisik. Event ini wajib mencatat pelaku, waktu server, dan waktu kedatangan aktual apabila pencatatannya terlambat. `Arrived` memindahkan owner pelayanan klinis aktif ke unit penerima, tetapi tidak otomatis mengubah handover dokumentasi menjadi `Accepted` | Product/Domain Owner, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval keperawatan dan clinical governance belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-048`; memperinci trigger pada `IGD-DEC-062` |
+| `IGD-OQ-049` | Open Question | Bagaimana menjaga ownership dan audit ketika pasien sudah tiba tetapi event `Arrived` belum dapat dicatat karena downtime atau kondisi darurat? | Product/Domain Owner + Nursing authority + Clinical Governance + Integration/Operations owner | `superseded` oleh `IGD-DEC-065` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-062` dan `IGD-DEC-064` |
+| `IGD-DEC-065` | Decision | Jika event `Arrived` tidak dapat dicatat karena downtime atau kondisi darurat, petugas memakai catatan downtime/manual dan melakukan pencatatan susulan setelah sistem tersedia. Tanggung jawab klinis berpindah ke unit penerima sejak waktu kedatangan aktual, bukan sejak waktu entri susulan. Entri susulan wajib menyimpan waktu kedatangan aktual, waktu server saat pencatatan, pelaku, alasan keterlambatan, dan referensi catatan downtime/manual | Product/Domain Owner, dengan Nursing authority, Clinical Governance, dan Integration/Operations owner sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban, approval owner terkait, dan SOP downtime belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-049`; melengkapi failure behavior `IGD-DEC-064` |
+| `IGD-OQ-050` | Open Question | Bagaimana memperbaiki event `Arrived` yang salah pasien, salah unit, atau salah waktu tanpa menghilangkan histori perpindahan ownership? | Product/Domain Owner + Nursing authority + Clinical Governance + Security/Privacy | `superseded` oleh `IGD-DEC-066` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-062`, `IGD-DEC-064`, dan `IGD-DEC-065` |
+| `IGD-DEC-066` | Decision | Koreksi event `Arrived` bersifat append-only dan mengikuti tingkat dampak. Kesalahan waktu dapat diperbaiki melalui amendment oleh petugas berwenang dengan alasan. Kesalahan pasien atau unit memerlukan reversal dan persetujuan petugas kedua atau supervisor; pembuat dan pemberi persetujuan harus berbeda. Event asli tidak dihapus, tetapi ditandai tidak berlaku dan dihubungkan ke amendment atau event pengganti yang sah | Product/Domain Owner, dengan Nursing authority, Clinical Governance, dan Security/Privacy sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban dan approval owner terkait belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-050`; melengkapi tata kelola koreksi `IGD-DEC-064` dan `IGD-DEC-065` |
+| `IGD-OQ-051` | Open Question | Apa yang wajib dilakukan terhadap unit, petugas, dan catatan downstream yang telah memakai event `Arrived` sebelum event tersebut dikoreksi atau dibalik? | Product/Domain Owner + Nursing authority + Clinical Governance + Integration owner | `draft` — memblokir aturan propagasi koreksi, notifikasi, dan penanganan dampak downstream | — | Tindak lanjut `IGD-DEC-066`; koreksi tidak boleh dilakukan diam-diam |
 
 ### Acceptance criteria awal dari `IGD-DEC-054`
 
@@ -1492,6 +1514,120 @@ titik serah-terima atau data bersama yang langsung dibutuhkan pengkajian keperaw
    instruksi dokter sebagai pemicu umum.
 9. Sistem tidak boleh menganggap tertundanya dokumentasi lengkap selama resusitasi sebagai
    alasan untuk menolak atau menghentikan tindakan klinis.
+10. Validasi kelengkapan menyesuaikan usia, kesadaran, kondisi klinis, dan ketersediaan
+    sumber informasi pasien.
+11. Bagian yang tidak relevan dan bagian yang relevan tetapi tidak dapat dinilai memiliki
+    makna berbeda dan tidak boleh disimpan sebagai keadaan yang sama.
+12. Bagian yang relevan tetapi tidak dapat dinilai wajib menyimpan alasan yang dapat dibaca
+    oleh petugas berikutnya dan auditor klinis.
+13. Sistem tidak boleh menganggap field kosong sebagai `Normal`, `Tidak Ada`, atau hasil
+    klinis lain tanpa pilihan eksplisit dari perawat.
+14. Pengkajian tidak dapat berstatus selesai bila referensi encounter, identitas pengkaji,
+    waktu, sumber informasi, ABCDE, tanda vital, nyeri, status alergi, risiko utama,
+    intervensi, evaluasi, atau serah terima belum memiliki nilai atau pengecualian yang sah.
+15. Waktu pencatatan inti berasal dari server dan identitas pengkaji berasal dari pengguna
+    yang terautentikasi, bukan teks bebas yang dapat mengganti pelaku.
+16. Pasien dengan identitas sementara tetap dapat menjalani pengkajian pada encounter yang
+    sama; rekonsiliasi identitas kemudian tidak membuat pengkajian baru.
+17. Alasan tanda vital tidak dapat diukur harus tersimpan sebagai alasan, bukan diubah
+    menjadi angka nol atau nilai normal.
+18. Permintaan membuat atau menyelesaikan pengkajian ditolak bila penugasan IGD tidak aktif
+    atau capability pengkajian tidak dimiliki.
+19. Koreksi tidak mengubah atau menghapus nilai lama; pembaca dapat mengetahui nilai
+    efektif terbaru beserta riwayat koreksinya.
+20. Koreksi tanpa alasan, pelaku terautentikasi, atau waktu server harus ditolak.
+21. Penghapusan permanen terhadap pengkajian yang sudah selesai tidak tersedia.
+22. Pembatalan hanya dapat diajukan ketika keberadaan catatannya keliru, termasuk catatan
+    duplikat; pembatalan tetap menyimpan pelaku, waktu, alasan, serta rekam asal untuk audit.
+23. Catatan duplikat berstatus void tidak boleh dibaca sebagai pengkajian klinis yang masih
+    berlaku dan wajib menunjuk catatan yang sah.
+24. Kesalahan nilai klinis tidak diselesaikan dengan void bila catatan memang mewakili
+    pengkajian yang benar-benar dilakukan; perbaikannya memakai amendment.
+25. Consumer downstream harus dapat menentukan nilai efektif terbaru tanpa kehilangan
+    kemampuan menelusuri nilai asli dan alasan perubahan.
+26. Operasi void atau amendment tidak boleh menghapus referensi yang sudah dibuat oleh
+    dokumentasi klinis lain.
+27. Pengkajian ulang wajib dapat ditautkan ke pemicu kejadian klinis atau jadwal SOP yang
+    mendasarinya.
+28. Intervensi, perubahan kondisi, perpindahan/serah terima, dan keadaan sebelum disposition
+    masing-masing dapat memicu pengkajian ulang tanpa menimpa pengkajian sebelumnya.
+29. Sistem tidak boleh membuat angka interval sendiri ketika konfigurasi SOP belum tersedia.
+30. Interval yang belum dikonfigurasi tidak boleh menghasilkan klaim pasien patuh atau
+    terlambat terhadap interval pengkajian ulang.
+31. Pengkajian ulang yang terlambat tetap dapat dicatat dan tindakan klinis tetap dapat
+    dilakukan; keterlambatan disimpan untuk audit dan tindak lanjut.
+32. Tindakan mengirim serah terima hanya menghasilkan status `Pending` dan belum membuktikan
+    bahwa penerima telah mengambil alih.
+33. Hanya penerima berwenang yang dapat menghasilkan status `Accepted` atau `Rejected`.
+34. Penolakan tanpa alasan, identitas penerima, atau waktu server harus ditolak.
+35. Riwayat pengiriman, penerimaan, penolakan, pengiriman ulang, dan eskalasi tidak boleh
+    ditimpa.
+36. Serah terima yang tertunda atau ditolak tidak boleh menutup akses terhadap tindakan
+    klinis darurat yang dibutuhkan pasien.
+37. Selama pasien masih berada di unit asal, sistem harus menunjukkan unit atau perawat
+    pengirim sebagai owner pelayanan klinis aktif.
+38. Ketika keberadaan fisik pasien tercatat sudah berpindah ke unit penerima, sistem harus
+    menunjukkan unit penerima sebagai owner pelayanan klinis aktif walaupun handover masih
+    `Pending` atau `Rejected`.
+39. Handover `Pending` atau `Rejected` tidak boleh menghasilkan keadaan tanpa owner klinis
+    maupun mengembalikan tanggung jawab klinis pasien yang sudah berada di unit penerima
+    kepada unit asal.
+40. Perpindahan owner klinis tidak otomatis mengubah handover menjadi `Accepted`.
+41. Sampai penerima menyatakan `Accepted`, unit atau perawat pengirim tetap menjadi owner
+    penyelesaian dokumentasi dan wajib dapat melengkapi atau mengoreksi ringkasan serah
+    terima tanpa mengubah histori pengiriman sebelumnya.
+42. Sistem harus dapat menampilkan secara terpisah owner pelayanan klinis aktif dan owner
+    penyelesaian dokumentasi handover agar pengguna tidak menganggap keduanya selalu pihak
+    yang sama.
+43. Handover `Pending` harus memperoleh batas waktu berdasarkan tingkat kegawatan dari
+    konfigurasi SOP aktif, bukan dari angka yang ditanam langsung dalam aplikasi.
+44. Handover `Rejected` harus langsung mengirim notifikasi kepada pengirim tanpa menunggu
+    batas waktu `Pending` berakhir.
+45. Handover yang belum selesai setelah batas waktunya harus dieskalasikan secara bertahap
+    kepada penanggung jawab shift atau unit sesuai konfigurasi SOP.
+46. Setiap reminder dan eskalasi harus mencatat handover, penerima notifikasi, tahap
+    eskalasi, waktu server, dan hasil pengiriman agar dapat diaudit.
+47. Reminder atau eskalasi tidak boleh otomatis mengubah status menjadi `Accepted`, karena
+    hanya penerima berwenang yang dapat menyatakan penerimaan.
+48. Kegagalan pengiriman notifikasi atau handover yang melewati batas waktu tidak boleh
+    memblokir pelayanan klinis, tetapi tetap harus tercatat sebagai outstanding dan dapat
+    dilihat oleh pihak yang bertanggung jawab.
+49. Jika konfigurasi SOP untuk tingkat kegawatan terkait belum tersedia, sistem tidak boleh
+    menebak batas waktu atau menyatakan handover patuh maupun terlambat; status konfigurasi
+    yang belum tersedia harus terlihat dan pelayanan klinis tetap berjalan.
+50. Hanya petugas unit penerima yang berwenang yang dapat mencatat event `Arrived`.
+51. Event `Arrived` harus menyimpan identitas pelaku dan waktu pencatatan dari server.
+52. Jika pencatatan dilakukan setelah pasien tiba, event harus membedakan waktu kedatangan
+    aktual dari waktu pencatatan server agar keterlambatan dokumentasi dapat ditelusuri.
+53. Event `Arrived` harus memindahkan owner pelayanan klinis aktif ke unit penerima.
+54. Event `Arrived` tidak boleh otomatis mengubah handover menjadi `Accepted`; penerimaan
+    dokumentasi tetap memerlukan tindakan terpisah dari penerima berwenang.
+55. Permintaan `Arrived` yang dikirim ulang tidak boleh menghasilkan perpindahan owner atau
+    event kedatangan ganda.
+56. Ketika sistem tidak tersedia, pelayanan dan perpindahan tanggung jawab klinis tidak
+    boleh menunggu pencatatan event elektronik.
+57. Catatan downtime/manual harus dapat direferensikan secara unik oleh entri susulan agar
+    auditor dapat mencocokkan kejadian fisik dengan pencatatan elektronik.
+58. Entri susulan harus menyimpan waktu kedatangan aktual secara terpisah dari waktu server
+    saat data dimasukkan.
+59. Entri susulan tanpa pelaku terautentikasi, alasan keterlambatan, atau referensi catatan
+    downtime/manual harus ditolak.
+60. Sistem harus merekonstruksi owner klinis berdasarkan waktu kedatangan aktual yang sah,
+    tanpa menyamarkan bahwa event elektronik dicatat kemudian.
+61. Pencatatan susulan yang dikirim ulang untuk referensi downtime yang sama tidak boleh
+    membuat event kedatangan atau perpindahan owner ganda.
+62. Kesalahan waktu kedatangan harus diperbaiki melalui amendment yang menyimpan nilai
+    lama, nilai baru, pelaku, waktu server, dan alasan koreksi.
+63. Kesalahan pasien atau unit tidak boleh diselesaikan dengan mengubah atau menghapus event
+    asli secara langsung.
+64. Reversal akibat salah pasien atau unit harus diajukan oleh petugas berwenang dan
+    disetujui petugas kedua atau supervisor dengan identitas pengguna berbeda.
+65. Event yang dibalik harus tetap tersedia untuk audit, ditandai tidak berlaku, dan
+    menunjuk event pengganti yang sah bila pengganti diperlukan.
+66. Sistem harus dapat merekonstruksi urutan event asli, permintaan koreksi, persetujuan atau
+    penolakan, reversal, serta event pengganti tanpa kehilangan histori ownership.
+67. Permintaan amendment atau reversal tanpa alasan, pelaku terautentikasi, dan waktu server
+    harus ditolak.
 
 **Contoh:** setelah triase pasien selesai, perawat melanjutkan pengkajian keperawatan pada
 encounter yang sama. Sistem tidak boleh menandai pengkajian lengkap hanya karena kategori
@@ -1504,9 +1640,89 @@ Riwayat kesehatan lengkap tidak boleh menjadi prasyarat untuk membuka atau menca
 tindakan tersebut. Setelah kondisi pasien stabil, perawat melengkapi bagian pengkajian yang
 tertunda pada encounter yang sama.
 
+**Contoh kelengkapan kontekstual:** pasien dewasa datang tidak sadar tanpa keluarga. Bagian
+riwayat alergi tetap relevan, tetapi belum dapat diperoleh dari pasien atau keluarga. Perawat
+tidak boleh memilih `Tidak Ada Alergi` hanya agar formulir selesai. Perawat mencatat bahwa
+alergi tidak dapat dinilai beserta alasannya. Sebaliknya, pertanyaan perkembangan khusus
+anak dapat ditandai tidak berlaku karena pasien adalah orang dewasa.
+
+**Contoh data inti:** pasien belum teridentifikasi definitif dan memakai identitas sementara.
+Perawat tetap mencatat ABCDE, tanda vital, nyeri, status alergi, risiko, intervensi, evaluasi,
+dan serah terima pada encounter tersebut. Ketika identitas pasien kemudian ditemukan,
+sistem mempertahankan pengkajian yang sama dan hanya merekonsiliasi referensi pasien sesuai
+workflow identitas yang berwenang.
+
+**Contoh kewenangan:** seorang perawat memiliki penugasan aktif di IGD tetapi belum memiliki
+capability pengkajian. Sistem menolak penyelesaian pengkajian. Setelah capability diberikan
+melalui proses yang berwenang, perawat dapat menyelesaikannya. Jika kemudian ada kesalahan
+isi, perawat membuat koreksi beralasan; sistem mempertahankan nilai sebelumnya dan tidak
+menghapus catatan yang sudah selesai.
+
+**Contoh void dan amendment:** dua pengkajian tidak sengaja dibuat untuk pemeriksaan yang
+sama. Perawat berwenang menandai salah satunya void dan menghubungkannya ke pengkajian yang
+sah. Bila pada pengkajian sah tekanan darah tertulis `120/80` padahal catatan sumber yang
+benar adalah `170/100`, perawat tidak membatalkan seluruh pengkajian. Perawat membuat
+amendment beralasan sehingga `170/100` menjadi nilai efektif, sementara `120/80` tetap dapat
+ditelusuri sebagai nilai asli.
+
+**Contoh pengkajian ulang:** setelah pemberian intervensi awal, perawat mencatat respons
+pasien sebagai pengkajian ulang baru. Ketika pasien kemudian akan dipindahkan, perawat
+melakukan pengkajian ulang sebelum serah terima. Jika SOP interval per tingkat kegawatan
+belum tersedia di konfigurasi, sistem tidak menebak angka menit dan tidak memberi label
+patuh atau terlambat, tetapi pemicu berbasis kejadian klinis tetap berlaku.
+
+**Contoh serah terima:** perawat IGD mengirim ringkasan kepada perawat unit penerima. Status
+menjadi `Pending`, bukan langsung selesai. Jika penerima menemukan informasi penting belum
+jelas, penerima menolak dengan alasan dan status menjadi `Rejected`. Pengirim memperbaiki
+atau melengkapi ringkasan lalu mengirim ulang. Seluruh kejadian tetap tersimpan, sementara
+pelayanan yang diperlukan pasien terus berjalan.
+
+**Contoh ownership selama handover:** ketika pasien masih berada di IGD dan handover ke
+unit rawat inap berstatus `Pending`, IGD tetap menjadi owner pelayanan klinis. Setelah pasien
+secara fisik tiba di unit rawat inap, unit tersebut menjadi owner pelayanan klinis aktif
+meskipun handover masih `Rejected` karena ringkasannya belum lengkap. Perawat IGD tetap wajib
+memperbaiki ringkasan sampai penerima menyatakan `Accepted`, tetapi kekurangan dokumentasi
+tersebut tidak membuat pasien kehilangan owner klinis di unit rawat inap.
+
+**Contoh eskalasi:** handover pasien dengan tingkat kegawatan tertentu masih `Pending`.
+Sistem memakai batas waktu dari konfigurasi SOP aktif dan mengirim reminder ketika batas
+tersebut tercapai. Jika penerima menolak ringkasan, sistem langsung memberi tahu pengirim.
+Apabila pengirim belum menyelesaikannya, sistem meneruskan eskalasi kepada penanggung jawab
+shift lalu unit sesuai urutan SOP. Eskalasi tidak mengubah status menjadi `Accepted` dan
+tidak menghentikan pelayanan pasien.
+
+**Contoh event kedatangan:** pasien tiba di unit rawat inap pada pukul 14.05 dan petugas
+penerima berwenang mencatat `Arrived`. Sistem menyimpan identitas petugas dan waktu server,
+lalu memindahkan owner pelayanan klinis aktif ke unit rawat inap. Jika ringkasan handover
+masih belum lengkap, status dokumentasinya tetap `Pending` atau `Rejected`, bukan otomatis
+`Accepted`.
+
+**Contoh downtime:** pasien tiba di unit rawat inap pukul 14.05 ketika sistem tidak dapat
+digunakan. Petugas penerima mencatat kedatangan pada formulir downtime dan langsung menjadi
+owner pelayanan klinis karena pasien sudah berada di unit tersebut. Sistem kembali tersedia
+pukul 14.40. Petugas membuat entri susulan yang menyimpan pukul 14.05 sebagai waktu
+kedatangan aktual, pukul 14.40 sebagai waktu pencatatan server, identitas pelaku, alasan
+keterlambatan, dan referensi formulir downtime. Sistem tidak boleh menyamarkan seolah-olah
+entri elektronik dibuat pukul 14.05.
+
+**Contoh koreksi:** petugas mencatat pasien tiba pukul 14.50, tetapi bukti kedatangan yang
+sah menunjukkan pukul 14.05. Petugas berwenang membuat amendment beralasan; sistem tetap
+menyimpan kedua nilai dan memakai nilai hasil amendment sebagai waktu efektif. Jika event
+ternyata dicatat untuk pasien atau unit yang salah, petugas mengajukan reversal dan petugas
+kedua atau supervisor menyetujuinya. Event asli tetap terlihat sebagai tidak berlaku dan
+ditautkan ke event pengganti yang benar.
+
 ### Blocker pass berjalan
 
-Urutan antara tindakan penyelamatan dan dokumentasi telah dipilih pada `IGD-DEC-055`, tetapi
-definisi data minimum, field wajib, alasan bagian tidak dapat dinilai, serta syarat status
-selesai belum diputuskan. Bagian validation matrix dan state pengkajian harus berhenti sampai
-`IGD-OQ-040` ditutup oleh owner berwenang.
+Urutan tindakan dan dokumentasi, kelengkapan, data inti, kewenangan, koreksi, void,
+pengkajian ulang, pengakuan serah terima, serta pembagian ownership klinis dan dokumentasi
+telah dipilih pada `IGD-DEC-055` sampai `IGD-DEC-062`. Keputusan terakhir tetap menunggu
+pencatatan identitas dan kewenangan formal pemberi persetujuan serta approval Nursing
+authority dan Clinical Governance. Aturan batas waktu dan jalur eskalasi untuk handover
+`Pending` atau `Rejected` telah dipilih pada `IGD-DEC-063`, tetapi nilai waktunya masih
+menunggu SOP yang disahkan. Event `Arrived` sebagai sumber kebenaran sistem untuk perpindahan
+owner klinis telah dipilih pada `IGD-DEC-064`. Failure behavior ketika event tersebut belum
+dapat dicatat akibat downtime atau kondisi darurat telah dipilih pada `IGD-DEC-065`, tetapi
+SOP downtime masih menunggu bukti dan approval. Mekanisme koreksi atau reversal event
+`Arrived` yang salah telah dipilih pada `IGD-DEC-066`. Propagasi koreksi kepada unit,
+petugas, dan catatan downstream yang telah memakai event lama belum diputuskan.

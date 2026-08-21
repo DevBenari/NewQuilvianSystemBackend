@@ -342,6 +342,50 @@ Keduanya pekerjaan berbeda pada waktu berbeda, dan daftar pasiennya pun berbeda:
 
 ---
 
+## 5c. Penyesuaian 21 Agustus 2026 — `FE-IGD-008` dan `FE-IGD-009` menempati layar pengkajian
+
+Kedua task tetap berlaku isinya, tetapi **tempatnya berubah**. Roadmap revisi 1 merencanakan
+keduanya sebagai route tersendiri. Keduanya dibangun sebagai bagian layar pengkajian pasien
+(`FE-IGD-011`), yang sudah memiliki tab Tindak Lanjut dan bagian Transfer Pasien dalam keadaan
+baca-saja.
+
+| | Rencana revisi 1 | Yang dibangun |
+| --- | --- | --- |
+| `FE-IGD-008` | Route disposition tersendiri | Tab **Tindak Lanjut** pada layar pengkajian |
+| `FE-IGD-009` | Route transfer tersendiri | Bagian **Transfer Pasien** pada layar pengkajian |
+
+Alasannya satu: perawat sudah membuka layar pengkajian untuk pasien yang sama. Route tersendiri
+berarti ia menutup layar, mencari pasien yang sama di daftar lain, lalu membukanya kembali —
+untuk melanjutkan pekerjaan pada pasien yang sedang ada di hadapannya. Tab baca-saja yang sudah
+ada di sana juga akan menjadi tandingan layar baru, dan dua tempat menampilkan fakta yang sama
+adalah cara paling cepat membuat keduanya berbeda isi.
+
+Yang **tidak** berubah: seluruh acceptance criteria kedua task, termasuk butir 5 `FE-IGD-008`
+(layar tidak boleh menyiratkan tindak lanjut sama dengan kunjungan selesai) dan butir 3
+`FE-IGD-009` (pengaju tidak melihat tombol menerima).
+
+### Keadaan acceptance criteria
+
+| Task | Kriteria | Keadaan |
+| --- | --- | --- |
+| `FE-IGD-008` | 1. Jenis tindak lanjut dipilih dari master | Terpenuhi — `GET /emergency-disposition-types` |
+| | 2. Unit tujuan wajib bila jenisnya mensyaratkan | Terpenuhi — penanda dari master, bukan daftar yang disalin |
+| | 3. Fasilitas rujukan wajib bila jenisnya mensyaratkan | Terpenuhi — sumber penanda sama |
+| | 4. Pembatalan wajib mengisi alasan | Terpenuhi — dijaga layar **dan** backend (`BE-IGD-016`) |
+| | 5. Layar tidak menyiratkan kunjungan selesai | Terpenuhi — pernyataan tetap di formulir dan pada dialog Jalankan |
+| `FE-IGD-009` | 1. Rangkaian status terlihat beserta pelaku dan waktunya | Terpenuhi sebagian — waktu tiap tahap tampil; **nama pelaku belum**, lihat catatan |
+| | 2. Penolakan wajib mengisi alasan | Terpenuhi — dijaga layar **dan** backend (`BE-IGD-016`) |
+| | 3. Pengaju tidak melihat tombol menerima | Terpenuhi — tombol disembunyikan, penegakan tetap di backend |
+| | 4. Ketujuh keadaan layar tertangani | Terpenuhi — lewat `EmergencyAssessmentSection` |
+
+> **Catatan `FE-IGD-009` butir 1.** Waktu setiap tahap sudah tampil, tetapi **nama** pengaju dan
+> penerima belum. `EmergencyTransferResponse` memuat `RequestedByUserId` dan `AcceptedByUserId`
+> sebagai identifier, dan `BE-IGD-016` hanya menambahkan nama unit — bukan nama pengguna.
+> Menampilkan identifier sebagai pengganti nama justru melanggar aturan yang sama, jadi kolom
+> pelaku sengaja belum ditampilkan sampai backend menyediakan namanya.
+
+---
+
 ## 6. Layar yang belum dapat direncanakan
 
 Empat kebutuhan berikut disebut pada decision log tetapi belum punya kontrak backend, sehingga

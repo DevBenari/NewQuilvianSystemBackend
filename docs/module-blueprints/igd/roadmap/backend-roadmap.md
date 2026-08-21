@@ -423,6 +423,33 @@ IGD, dan dicatat di sini supaya tidak menjadi pekerjaan tanpa jejak.
 
 ---
 
+## 6c. Tambahan setelah roadmap revisi 1 — `BE-IGD-016`
+
+Task berikut lahir dari pembangunan `FE-IGD-008` dan `FE-IGD-009`. Ia tidak ada pada roadmap
+revisi 1, dan dicatat di sini supaya tidak menjadi pekerjaan tanpa jejak.
+
+### `BE-IGD-016` — Balasan tindak lanjut dan perpindahan memuat nama, serta tiga cacat perilaku ditutup
+
+| Field | Isi |
+| --- | --- |
+| **Outcome** | Layar tindak lanjut dan perpindahan dapat menampilkan nama jenis, nama unit, dan nama dokter sebagai nama. Sebelum ini `EmergencyDispositionResponse` dan `EmergencyTransferResponse` hanya memuat identifier, sehingga lima kolom pada layar pengkajian selalu kosong berapa pun datanya |
+| **Trace** | Kebutuhan `FE-IGD-008` dan `FE-IGD-009`; `FE-IGD-010` acceptance criteria butir 3 "nama unit dan nama petugas tampil sebagai nama"; menutup kebocoran acceptance criteria `BE-IGD-008` butir 2 |
+| **Reuse** | Navigation property yang sudah ada pada `TrxEmergencyDisposition` dan `TrxEmergencyTransfer`; pola `.Include()` yang sudah dipakai controller IGD lain. Tidak ada tabel, kolom, maupun migration baru |
+| **Scope** | `EmergencyDispositionDtos.cs`, `EmergencyTransferDtos.cs`, `EmergencyDispositionController.cs`, `EmergencyTransferController.cs` |
+| **Dependency** | `BE-IGD-001` |
+| **Acceptance criteria** | 1. Balasan tindak lanjut memuat nama jenis, kode jenis, nama unit tujuan, nama dokter pemutus, serta dua penanda kewajiban dari master. 2. Balasan perpindahan memuat nama unit asal dan unit tujuan. 3. Aksi tulis mengembalikan nama yang sama dengan aksi baca. 4. `VisitCompletedAt` tidak lagi terisi ketika tindak lanjut dijalankan. 5. Membatalkan tindak lanjut wajib mengisi alasan. 6. Menolak perpindahan wajib mengisi alasan. 7. `AcceptedByUserId` tidak lagi terisi otomatis oleh pengaju saat perpindahan dibuat |
+| **Verification** | `dotnet build` lulus tanpa error; pemeriksaan silang kode terhadap `BE-IGD-008` acceptance criteria butir 2. `AT-IGD-*` **belum ada** karena solution masih tanpa proyek test |
+| **Risk/blocker** | Butir 4 mengubah perilaku yang sudah berjalan. Kunjungan yang tindak lanjutnya dijalankan setelah perubahan ini tidak lagi memperoleh `VisitCompletedAt` otomatis, sehingga penyelesaiannya harus lewat `PATCH /emergency-visits/{id}/complete`. Itu memang yang dikehendaki `BE-IGD-008`, tetapi baris lama tetap memakai arti kolom yang berbeda. Owner: Product/Domain |
+| **DoD** | Tujuh kriteria terbukti; build lulus; laporan perubahan menyebut bahwa task ini di luar revisi 1 dan mencatat ketiga cacat perilaku yang ditutup |
+
+> **Mengapa `BE-IGD-008` bocor.** Task itu memperbaiki `EmergencyVisitController`, tetapi
+> `VisitStatus` menjadi `Disposed` juga dari jalur kedua: menjalankan tindak lanjut pada
+> `EmergencyDispositionController`. Jalur kedua itu masih mengisi `VisitCompletedAt`, dan
+> justru jalur itulah yang dipakai sehari-hari. Akibatnya acceptance criteria butir 2
+> tercatat terpenuhi di kode, tetapi tidak terpenuhi dalam pemakaian.
+
+---
+
 ## 7. Requirement tanpa task — coverage gap
 
 Requirement berikut ada pada decision log tetapi **tidak** memiliki desain pada blueprint
