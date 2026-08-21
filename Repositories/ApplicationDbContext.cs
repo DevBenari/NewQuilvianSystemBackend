@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -530,6 +531,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstPatientCompanyGuarantor> MstPatientCompanyGuarantors { get; set; }
         public DbSet<MstPaymentMethod> MstPaymentMethods { get; set; }
         public DbSet<MstBillingItemCategory> MstBillingItemCategories { get; set; }
+        public DbSet<BilFolio> BilFolios { get; set; }
+        public DbSet<BilChargeLine> BilChargeLines { get; set; }
+        public DbSet<BilChargeComponent> BilChargeComponents { get; set; }
+        public DbSet<BilProcessingEffect> BilProcessingEffects { get; set; }
         public DbSet<MstProcedure> MstProcedures { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
