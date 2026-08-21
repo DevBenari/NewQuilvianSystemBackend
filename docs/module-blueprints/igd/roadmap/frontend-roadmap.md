@@ -306,6 +306,42 @@ Informasi. Aksesibilitas dan privasi tetap mengikat dan tidak pernah menjadi `DE
 
 ---
 
+## 5b. Tambahan setelah roadmap revisi 1 — `FE-IGD-011`
+
+Layar berikut tidak ada pada roadmap revisi 1.
+
+### `FE-IGD-011` — Perawat melanjutkan asuhan keperawatan pada layar pengkajian
+
+| Field | Isi |
+| --- | --- |
+| **Outcome** | Setelah pasien selesai ditriase, perawat membuka satu layar untuk seluruh asuhan keperawatan selama pasien di IGD: pengkajian awal, tanda vital, catatan terintegrasi, nosokomial, observasi, tindak lanjut, tindakan, dan perpindahan |
+| **Trace** | Kebutuhan operasional IGD; `BE-IGD-015` untuk tab nosokomial; endpoint Clinical Management dan IGD yang sudah ada untuk tab lainnya |
+| **Reuse** | `DataTable` dan `DataFilter` untuk daftar pasien; sumber daftar sama dengan triage, yaitu `GET /emergency-visits`; peta status kunjungan dari `FE-IGD-005` |
+| **Scope** | Route `/health-services/emergency-installation-management/emergency-assessment` dan `/[slug]`; slice, hook, view, dan komponen tab; satu entri menu sidebar |
+| **Dependency** | `FE-IGD-005` untuk peta status; `BE-IGD-015` untuk tab nosokomial |
+| **Acceptance criteria** | 1. Daftar hanya memuat pasien yang sudah ditriase dan asuhannya masih berjalan. 2. Ketujuh keadaan layar tertangani pada setiap tab, bukan hanya pada daftar. 3. Bagian yang endpoint-nya belum ada dinyatakan **belum tersambung**, bukan ditampilkan sebagai daftar kosong. 4. Nama pasien tampil sebagai nama; identifier tidak pernah menjadi label. 5. Kolom bertanda sensitif tidak tampil pada kartu identitas yang terlihat sepanjang layar dibuka |
+| **Verification** | Lint bersih; `next build` lulus dan kedua route terdaftar; uji komponen **belum ada** |
+| **Risk/blocker** | Tiga bagian belum tersambung: penunjang medis, pemakaian alat, dan tagihan pasien. Ketiganya ditampilkan apa adanya sebagai belum tersambung. Owner: Product/Domain |
+| **DoD** | Lima kriteria terbukti; tidak ada data contoh yang tampak nyata di layar yang dipakai petugas; lint dan build lulus |
+
+### Mengapa pengkajian dipisahkan dari triage
+
+Keduanya pekerjaan berbeda pada waktu berbeda, dan daftar pasiennya pun berbeda:
+
+| | Triage | Pengkajian |
+| --- | --- | --- |
+| Kapan | Sekali, saat pasien tiba | Berulang, selama pasien di IGD |
+| Menjawab | Seberapa cepat pasien harus dilayani | Bagaimana asuhan pasien berjalan |
+| Daftar pasien | Yang belum dinilai | Yang sudah dinilai dan sedang ditangani |
+| Pelaku | Perawat triage | Perawat pelaksana asuhan |
+
+> **Contoh akibat bila disatukan:** perawat triage membuka layar pada jam sibuk dan menemukan
+> daftar berisi seluruh pasien IGD, termasuk yang sudah ditangani dua jam lalu. Pasien yang
+> baru tiba dan belum dinilai tenggelam di antaranya — padahal merekalah yang sedang menunggu
+> keputusan prioritas.
+
+---
+
 ## 6. Layar yang belum dapat direncanakan
 
 Empat kebutuhan berikut disebut pada decision log tetapi belum punya kontrak backend, sehingga

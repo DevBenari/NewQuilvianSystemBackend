@@ -397,6 +397,32 @@ dibawa kembali ke owner.
 
 ---
 
+## 6b. Tambahan setelah roadmap revisi 1 — `BE-IGD-015`
+
+Task berikut tidak ada pada roadmap revisi 1. Ia lahir dari kebutuhan layar pengkajian pasien
+IGD, dan dicatat di sini supaya tidak menjadi pekerjaan tanpa jejak.
+
+### `BE-IGD-015` — Kejadian infeksi nosokomial dapat dicatat dan disurveilans
+
+| Field | Isi |
+| --- | --- |
+| **Outcome** | Perawat dapat mencatat kejadian infeksi yang diduga didapat selama pelayanan, dan tim pengendali infeksi dapat menelaah serta menetapkan statusnya. Sebelum ini tidak ada satu pun tempat menyimpannya — pencarian `nosokomial` di seluruh repository menghasilkan nol berkas |
+| **Trace** | Kebutuhan layar pengkajian IGD; tidak berasal dari decision log revisi 1, sehingga **belum melewati `/grill-me`** |
+| **Reuse** | Pola entity klinis milik pasien yang sudah dipakai `TrxPatientAllergy` dan `TrxPatientMedicalHistory`, termasuk cara menautkan pasien, encounter, dan unit pelayanan |
+| **Scope** | `Areas/HealthServices/ClinicalManagement/` — enum, model `TrxNosocomialInfection`, DTO, dan `NosocomialInfectionController`; konfigurasi EF; migration `AddNosocomialInfection` |
+| **Dependency** | `BE-IGD-001` |
+| **Acceptance criteria** | 1. Kejadian dapat dicatat beserta jenis, waktu munculnya gejala, kriteria, dan kaitannya dengan pemakaian alat. 2. Catatan baru selalu berstatus `Suspected`; konfirmasi adalah tindakan tersendiri. 3. Menyatakan bukan infeksi terkait pelayanan wajib mengisi alasan. 4. Kejadian hanya dapat dinyatakan teratasi setelah dikonfirmasi. 5. Catatan yang sudah ditutup tidak dapat diubah isinya. 6. Selisih waktu terhadap waktu mulai dirawat tersimpan sebagai salinan, bukan dihitung ulang setiap laporan dibuat |
+| **Verification** | Build lulus; pemeriksaan langsung ke basis data setelah migration diterapkan; `AT-IGD-*` **belum ada** karena solution masih tanpa proyek test |
+| **Risk/blocker** | **Belum melewati wawancara owner.** Daftar jenis infeksi memakai istilah surveilans yang lazim dipakai rumah sakit Indonesia, tetapi daftar final serta kriteria penetapannya adalah wewenang tim PPI dan clinical governance. Owner: Clinical governance + tim PPI |
+| **DoD** | Entity, controller, dan migration selesai; enam kriteria terbukti; daftar jenis infeksi disahkan tim PPI; laporan perubahan menyebut bahwa task ini di luar revisi 1 |
+
+> **Mengapa rumahnya di Clinical Management, bukan di modul IGD:** surveilans infeksi berlaku
+> untuk seluruh unit pelayanan — rawat inap, kamar operasi, dan ICU sama-sama melaporkannya.
+> Menaruhnya di modul IGD berarti unit lain kelak membuat tabel keduanya untuk fakta yang sama,
+> dan angka mutu rumah sakit dihitung dari dua sumber yang tidak pernah cocok.
+
+---
+
 ## 7. Requirement tanpa task — coverage gap
 
 Requirement berikut ada pada decision log tetapi **tidak** memiliki desain pada blueprint
