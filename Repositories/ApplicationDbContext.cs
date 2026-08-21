@@ -287,9 +287,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxAttendanceDaily> TrxAttendanceDailies { get; set; }
         public DbSet<TrxAttendanceDailySegment> TrxAttendanceDailySegments { get; set; }
         public DbSet<TrxAttendanceException> TrxAttendanceExceptions { get; set; }
-        public DbSet<TrxAttendanceCorrectionRequest> TrxAttendanceCorrectionRequests { get; set; }
-        public DbSet<TrxAttendanceCorrectionDetail> TrxAttendanceCorrectionDetails { get; set; }
-        public DbSet<TrxAttendanceCorrectionApproval> TrxAttendanceCorrectionApprovals { get; set; }
+        public DbSet<HrdAttendanceCorrectionRequest> HrdAttendanceCorrectionRequests { get; set; }
+        public DbSet<HrdAttendanceCorrectionDetail> HrdAttendanceCorrectionDetails { get; set; }
+        public DbSet<HrdAttendanceCorrectionApproval> HrdAttendanceCorrectionApprovals { get; set; }
         public DbSet<TrxMissingAttendance> TrxMissingAttendances { get; set; }
         public DbSet<TrxBusinessTripAttendance> TrxBusinessTripAttendances { get; set; }
         public DbSet<TrxRemoteAttendance> TrxRemoteAttendances { get; set; }

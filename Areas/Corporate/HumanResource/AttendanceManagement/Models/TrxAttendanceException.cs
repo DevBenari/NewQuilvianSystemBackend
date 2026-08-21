@@ -59,7 +59,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         public TrxAttendanceDaily? AttendanceDaily { get; set; }
         public MstWorkforceProfile? WorkforceProfile { get; set; }
-        public TrxAttendanceCorrectionRequest? CorrectionRequest { get; set; }
+        public HrdAttendanceCorrectionRequest? CorrectionRequest { get; set; }
         public ApplicationUser? ResolvedByUser { get; set; }
     }
 }

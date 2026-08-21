@@ -6,8 +6,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models
 {
-    [Table("TrxAttendanceCorrectionApproval", Schema = "public")]
-    public class TrxAttendanceCorrectionApproval : IdentityModel
+    [Table("HrdAttendanceCorrectionApproval", Schema = "public")]
+    public class HrdAttendanceCorrectionApproval : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -39,7 +39,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         public bool IsActive { get; set; } = true;
 
-        public TrxAttendanceCorrectionRequest? AttendanceCorrectionRequest { get; set; }
+        public HrdAttendanceCorrectionRequest? AttendanceCorrectionRequest { get; set; }
         public MstWorkflowStep? WorkflowStep { get; set; }
         public ApplicationUser? AssignedApproverUser { get; set; }
         public MstWorkforceProfile? AssignedApproverWorkforceProfile { get; set; }

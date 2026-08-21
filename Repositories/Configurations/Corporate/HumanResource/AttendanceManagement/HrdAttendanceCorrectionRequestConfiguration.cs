@@ -5,12 +5,12 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.M
 
 namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResource.AttendanceManagement
 {
-    public class TrxAttendanceCorrectionRequestConfiguration
-        : IEntityTypeConfiguration<TrxAttendanceCorrectionRequest>
+    public class HrdAttendanceCorrectionRequestConfiguration
+        : IEntityTypeConfiguration<HrdAttendanceCorrectionRequest>
     {
-        public void Configure(EntityTypeBuilder<TrxAttendanceCorrectionRequest> builder)
+        public void Configure(EntityTypeBuilder<HrdAttendanceCorrectionRequest> builder)
         {
-            builder.ToTable("TrxAttendanceCorrectionRequest", "public");
+            builder.ToTable("HrdAttendanceCorrectionRequest", "public");
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.CreateDateTime)

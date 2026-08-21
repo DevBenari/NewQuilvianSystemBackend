@@ -4,8 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models
 {
-    [Table("TrxAttendanceCorrectionDetail", Schema = "public")]
-    public class TrxAttendanceCorrectionDetail : IdentityModel
+    [Table("HrdAttendanceCorrectionDetail", Schema = "public")]
+    public class HrdAttendanceCorrectionDetail : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -44,7 +44,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public int SortOrder { get; set; } = 0;
         public bool IsActive { get; set; } = true;
 
-        public TrxAttendanceCorrectionRequest? AttendanceCorrectionRequest { get; set; }
+        public HrdAttendanceCorrectionRequest? AttendanceCorrectionRequest { get; set; }
         public ApplicationUser? AppliedByUser { get; set; }
     }
 }

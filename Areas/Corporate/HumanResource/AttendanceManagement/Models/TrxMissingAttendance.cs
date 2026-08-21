@@ -55,7 +55,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public MstWorkSchedule? WorkSchedule { get; set; }
         public MstShift? Shift { get; set; }
         public TrxAttendanceException? AttendanceException { get; set; }
-        public TrxAttendanceCorrectionRequest? AttendanceCorrectionRequest { get; set; }
+        public HrdAttendanceCorrectionRequest? AttendanceCorrectionRequest { get; set; }
         public ApplicationUser? ResolvedByUser { get; set; }
     }
 }

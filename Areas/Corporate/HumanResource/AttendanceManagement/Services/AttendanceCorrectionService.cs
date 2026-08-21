@@ -30,7 +30,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         {
             WorkflowReferenceLifecycleService.AttendanceCorrectionReferenceType,
             "AttendanceCorrection",
-            "TrxAttendanceCorrectionRequest",
+            "HrdAttendanceCorrectionRequest",
             "ATTENDANCE_CORRECTION_REQUEST"
         };
 
@@ -197,7 +197,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 Guid? ownerUserId = null,
                 CancellationToken cancellationToken = default)
         {
-            var request = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var request = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .AsNoTracking()
                 .Include(x => x.WorkforceProfile)
                 .Include(x => x.RequestReason)
@@ -280,7 +280,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     eligibilityError);
             }
 
-            var duplicate = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var duplicate = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .AsNoTracking()
                 .AnyAsync(x =>
                     x.AttendanceDailyId == daily.Id &&
@@ -317,7 +317,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             try
             {
                 var now = DateTime.UtcNow;
-                var entity = new TrxAttendanceCorrectionRequest
+                var entity = new HrdAttendanceCorrectionRequest
                 {
                     Id = Guid.NewGuid(),
                     RequestNumber = GenerateRequestNumber(),
@@ -340,7 +340,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 };
 
                 AddDetails(entity, daily, request.Details, actorUserId, now);
-                _dbContext.Set<TrxAttendanceCorrectionRequest>().Add(entity);
+                _dbContext.Set<HrdAttendanceCorrectionRequest>().Add(entity);
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
                 await LinkExceptionsAsync(
@@ -380,7 +380,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var entity = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .Include(x => x.Details)
                 .Include(x => x.AttendanceDaily)
                 .FirstOrDefaultAsync(
@@ -500,7 +500,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 Guid actorUserId,
                 CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var entity = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .Include(x => x.Details)
                 .Include(x => x.RequestReason)
                 .Include(x => x.AttendanceDaily)
@@ -699,7 +699,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 allowAutoApply: false,
                 cancellationToken);
 
-            entity = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            entity = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .AsNoTracking()
                 .FirstAsync(x => x.Id == id, cancellationToken);
 
@@ -715,7 +715,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 Guid actorUserId,
                 CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var entity = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
             {
@@ -807,7 +807,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 allowAutoApply: false,
                 cancellationToken);
 
-            entity = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            entity = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .AsNoTracking()
                 .FirstAsync(x => x.Id == id, cancellationToken);
 
@@ -822,7 +822,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 Guid? ownerUserId = null,
                 CancellationToken cancellationToken = default)
         {
-            var source = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var source = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (source == null ||
@@ -931,7 +931,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 Guid actorUserId,
                 CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var entity = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
             {
@@ -986,7 +986,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 Guid? ownerUserId = null,
                 CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var entity = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null ||
@@ -1027,7 +1027,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var entity = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
             {
@@ -1069,7 +1069,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var entity = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .Include(x => x.Details)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
@@ -1129,13 +1129,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 "Draft attendance correction berhasil dihapus.");
         }
 
-        private IQueryable<TrxAttendanceCorrectionRequest> BuildBaseQuery() =>
-            _dbContext.Set<TrxAttendanceCorrectionRequest>()
+        private IQueryable<HrdAttendanceCorrectionRequest> BuildBaseQuery() =>
+            _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
-        private static IQueryable<TrxAttendanceCorrectionRequest> ApplyFilter(
-            IQueryable<TrxAttendanceCorrectionRequest> query,
+        private static IQueryable<HrdAttendanceCorrectionRequest> ApplyFilter(
+            IQueryable<HrdAttendanceCorrectionRequest> query,
             AttendanceCorrectionQueryRequest request)
         {
             var range = ResolveDateRange(request.StartDate, request.EndDate, request.CustomPeriod);
@@ -1173,8 +1173,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return query;
         }
 
-        private static IOrderedQueryable<TrxAttendanceCorrectionRequest> ApplySorting(
-            IQueryable<TrxAttendanceCorrectionRequest> query,
+        private static IOrderedQueryable<HrdAttendanceCorrectionRequest> ApplySorting(
+            IQueryable<HrdAttendanceCorrectionRequest> query,
             string? sortBy,
             string? sortDirection)
         {
@@ -1192,7 +1192,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private AttendanceCorrectionListResponse MapList(
-            TrxAttendanceCorrectionRequest entity,
+            HrdAttendanceCorrectionRequest entity,
             TrxWorkflowInstance? workflow)
         {
             return new AttendanceCorrectionListResponse
@@ -1229,7 +1229,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private AttendanceCorrectionDetailResponse MapDetail(
-            TrxAttendanceCorrectionRequest entity,
+            HrdAttendanceCorrectionRequest entity,
             TrxWorkflowInstance? workflow,
             WorkflowInstanceDetailResponse? workflowDetail)
         {
@@ -1340,7 +1340,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static AttendanceCorrectionEvidenceResponse BuildEvidenceResponse(
-            TrxAttendanceCorrectionRequest entity)
+            HrdAttendanceCorrectionRequest entity)
         {
             return new AttendanceCorrectionEvidenceResponse
             {
@@ -1514,7 +1514,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private void AddDetails(
-            TrxAttendanceCorrectionRequest entity,
+            HrdAttendanceCorrectionRequest entity,
             TrxAttendanceDaily daily,
             IEnumerable<AttendanceCorrectionDetailInputRequest> details,
             Guid actorUserId,
@@ -1524,7 +1524,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             foreach (var input in details)
             {
                 AttendanceCorrectionFieldCatalog.TryGet(input.FieldName, out var definition);
-                entity.Details.Add(new TrxAttendanceCorrectionDetail
+                entity.Details.Add(new HrdAttendanceCorrectionDetail
                 {
                     Id = Guid.NewGuid(),
                     AttendanceCorrectionRequestId = entity.Id,
@@ -1595,7 +1595,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private async Task<WorkflowCodeResolutionResult> ResolveWorkflowCodeAsync(
-            TrxAttendanceCorrectionRequest source,
+            HrdAttendanceCorrectionRequest source,
             CancellationToken cancellationToken)
         {
             if (!source.WorkflowDefinitionId.HasValue || source.WorkflowDefinitionId == Guid.Empty)
@@ -1637,7 +1637,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static AttendanceCorrectionWorkflowResponse BuildWorkflowResponse(
-            TrxAttendanceCorrectionRequest source,
+            HrdAttendanceCorrectionRequest source,
             WorkflowInstanceDetailResponse workflow)
         {
             return new AttendanceCorrectionWorkflowResponse
