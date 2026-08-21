@@ -588,6 +588,14 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxPrescriptionFinalCheckItem> TrxPrescriptionFinalCheckItems { get; set; }
         public DbSet<TrxPrescriptionDrugSubstitution> TrxPrescriptionDrugSubstitutions { get; set; }
         public DbSet<TrxPrescriptionClarification> TrxPrescriptionClarifications { get; set; }
+        public DbSet<MstDiagnosisDrugRecommendation> MstDiagnosisDrugRecommendations { get; set; }
+        public DbSet<MstDiagnosisEducationRecommendation> MstDiagnosisEducationRecommendations { get; set; }
+        public DbSet<MstDiagnosisProcedureRecommendation> MstDiagnosisProcedureRecommendations { get; set; }
+        public DbSet<MstDrugSupplier> MstDrugSuppliers { get; set; }
+        public DbSet<MstSupplier> MstSuppliers { get; set; }
+
+        public DbSet<MstNurseStationClusterStaffClinic> MstNurseStationClusterStaffClinics { get; set; }
+
 
         #region HEALTH SERVICE - Laboratory Management
 
