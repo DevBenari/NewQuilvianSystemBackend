@@ -123,7 +123,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public MstGracePeriodPolicy? GracePeriodPolicy { get; set; }
         public MstPayrollPeriod? PayrollPeriod { get; set; }
         public TrxAttendancePeriod? AttendancePeriod { get; set; }
-        public TrxAttendance? Attendance { get; set; }
+        public HrdAttendance? Attendance { get; set; }
 
         public ICollection<TrxAttendanceRawLog> RawLogs { get; set; }
             = new List<TrxAttendanceRawLog>();

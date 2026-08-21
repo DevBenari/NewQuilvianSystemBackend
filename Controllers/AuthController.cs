@@ -1160,7 +1160,7 @@ namespace QuilvianSystemBackend.Controllers
             var nowJakarta = GetSystemNow();
             var attendanceDate = DateOnly.FromDateTime(nowJakarta);
 
-            var alreadyExists = await _dbContext.TrxAttendances
+            var alreadyExists = await _dbContext.HrdAttendances
                 .AnyAsync(x =>
                     x.UserId == user.Id &&
                     x.AttendanceDate == attendanceDate &&
@@ -1181,7 +1181,7 @@ namespace QuilvianSystemBackend.Controllers
                 schedule
             );
 
-            var attendance = new TrxAttendance
+            var attendance = new HrdAttendance
             {
                 Id = Guid.NewGuid(),
 
@@ -1238,7 +1238,7 @@ namespace QuilvianSystemBackend.Controllers
                 IsCancel = false
             };
 
-            _dbContext.TrxAttendances.Add(attendance);
+            _dbContext.HrdAttendances.Add(attendance);
 
             await _dbContext.SaveChangesAsync();
 
@@ -1649,14 +1649,14 @@ namespace QuilvianSystemBackend.Controllers
             };
         }
 
-        private async Task<TrxAttendance?> ResolveOpenAttendanceForCheckOutAsync(
+        private async Task<HrdAttendance?> ResolveOpenAttendanceForCheckOutAsync(
             Guid userId,
             DateTime nowJakarta)
         {
             var today = DateOnly.FromDateTime(nowJakarta);
             var yesterday = today.AddDays(-1);
 
-            var todayAttendance = await _dbContext.TrxAttendances
+            var todayAttendance = await _dbContext.HrdAttendances
                 .FirstOrDefaultAsync(x =>
                     x.UserId == userId &&
                     x.AttendanceDate == today &&
@@ -1668,7 +1668,7 @@ namespace QuilvianSystemBackend.Controllers
                 return todayAttendance;
             }
 
-            var overnightAttendance = await _dbContext.TrxAttendances
+            var overnightAttendance = await _dbContext.HrdAttendances
                 .FirstOrDefaultAsync(x =>
                     x.UserId == userId &&
                     x.AttendanceDate == yesterday &&
