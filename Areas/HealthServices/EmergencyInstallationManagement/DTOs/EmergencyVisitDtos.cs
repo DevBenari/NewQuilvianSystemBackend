@@ -9,9 +9,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public string EmergencyVisitNumber { get; set; } = string.Empty;
         public Guid? EncounterId { get; set; }
         public Guid? PatientId { get; set; }
+
+        /// <summary>
+        /// Nama pasien untuk ditampilkan. Untuk pasien yang belum teridentifikasi, diisi
+        /// alias sementara kunjungan supaya layar tidak pernah menampilkan kolom kosong.
+        /// </summary>
+        public string PatientName { get; set; } = string.Empty;
+
+        public string? MedicalRecordNumber { get; set; }
+
         public Guid ServiceUnitId { get; set; }
+        public string? ServiceUnitName { get; set; }
         public Guid? ArrivalModeId { get; set; }
+        public string? ArrivalModeName { get; set; }
         public Guid? CaseTypeId { get; set; }
+        public string? CaseTypeName { get; set; }
         public DateTime ArrivalDateTime { get; set; }
         public string? ChiefComplaint { get; set; }
         public string? ArrivalLocation { get; set; }

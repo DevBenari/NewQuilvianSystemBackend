@@ -1428,3 +1428,85 @@ audit, serta tidak memasukkan pasien ke perhitungan keterlambatan respons level 
 2026. Selama rentang itu, penugasan dapat memenuhi batas unit IGD, tetapi tindakan triase
 tetap ditolak jika perawat tersebut tidak memiliki capability triase. Setelah tanggal akhir,
 permintaan baru ke resource IGD ditolak meskipun sesi login lama masih aktif.
+
+---
+
+## Amendment Pass 2026-08-20 — Pengkajian Keperawatan IGD Setelah Triase
+
+| Field | Value |
+| --- | --- |
+| Blueprint ID | `IGD-BP-001` |
+| Revision dasar | `4` |
+| Status pass | `draft` — wawancara berjalan; belum merupakan approval amendment |
+| Backend SHA saat pass dimulai | `2285e303c0bb1930d847d5a408b58d8633decdd2` |
+| Frontend SHA saat pass dimulai | `db9fb86735207b3db25ec3ed82fe5e9a5e5823d9` |
+| Contract dasar | API, State, Validation, Integration, dan Permission/Audit `0.2.0` |
+
+### Scope yang dikonfirmasi
+
+**Batas scope:** pass ini menetapkan proses pengkajian keperawatan lengkap yang dilakukan
+setelah triase pada encounter IGD yang sama.
+
+Di dalam scope:
+
+1. primary survey ABCDE;
+2. secondary survey;
+3. tanda vital dan penilaian nyeri;
+4. alergi dan riwayat kesehatan yang relevan;
+5. penilaian risiko keperawatan;
+6. intervensi awal oleh perawat sesuai kewenangan;
+7. evaluasi atau pengkajian ulang; dan
+8. serah terima hasil pengkajian.
+
+Di luar scope pass ini adalah pengkajian medis dokter, penetapan diagnosis medis, order
+dokter, proses billing, bentuk menu atau layout frontend, implementasi source, migration,
+serta perubahan terhadap keputusan triase yang sudah ada. Modul lain hanya dibahas pada
+titik serah-terima atau data bersama yang langsung dibutuhkan pengkajian keperawatan IGD.
+
+### Decision log pass berjalan
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-054` | Decision | Pengkajian keperawatan IGD lengkap menjadi proses tersendiri setelah triase. Cakupannya meliputi primary survey ABCDE, secondary survey, tanda vital, nyeri, alergi, riwayat kesehatan yang relevan, risiko keperawatan, intervensi awal sesuai kewenangan, evaluasi atau pengkajian ulang, dan serah terima. Pengkajian tetap terhubung pada encounter IGD yang sama dan selesainya triase tidak berarti pengkajian keperawatan lengkap sudah selesai | Product/Domain Owner, dengan Clinical Governance dan Nursing authority sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval klinis dan keperawatan belum tercatat | — | Jawaban pengguna 20 Agustus 2026; pilihan A pada konfirmasi scope |
+| `IGD-OQ-039` | Open Question | Kapan pengkajian keperawatan lengkap wajib dimulai setelah triase, khususnya untuk pasien Merah yang memerlukan tindakan penyelamatan segera? | Product/Domain Owner + Clinical Governance + Nursing authority | `superseded` oleh `IGD-DEC-055` | Jawaban pengguna 20 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-054` |
+| `IGD-DEC-055` | Decision | Waktu mulai dan kelengkapan pengkajian mengikuti kegawatan. Pasien Merah langsung mendapat tindakan penyelamatan; pemeriksaan klinis serta dokumentasi minimum berjalan bersama resusitasi sejauh aman, sedangkan bagian lengkap diselesaikan setelah pasien stabil. Pasien selain Merah langsung menjalani pengkajian keperawatan setelah triase. Dokumentasi tidak boleh menunda tindakan penyelamatan | Product/Domain Owner, dengan Clinical Governance dan Nursing authority sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval klinis dan keperawatan belum tercatat | — | Jawaban pengguna 20 Agustus 2026; pilihan B untuk `IGD-OQ-039` |
+| `IGD-OQ-040` | Open Question | Bagian pengkajian apa yang wajib terisi agar pengkajian boleh dinyatakan selesai, dan bagaimana mencatat bagian yang tidak dapat dinilai karena kondisi pasien? | Product/Domain Owner + Clinical Governance + Nursing authority | `draft` — memblokir validation matrix dan definisi status selesai pengkajian | — | Tindak lanjut `IGD-DEC-054` dan `IGD-DEC-055` |
+
+### Acceptance criteria awal dari `IGD-DEC-054`
+
+1. Sistem membedakan status selesai triase dari status selesai pengkajian keperawatan
+   lengkap.
+2. Pengkajian keperawatan menggunakan encounter IGD yang sama dengan triase dan tidak
+   membuat kunjungan kedua.
+3. Pengkajian menyediakan cakupan minimum yang telah dipilih, tetapi field wajib, aturan
+   pengosongan, dan kewenangan final menunggu keputusan lanjutan dalam pass ini.
+4. Pengkajian medis dokter dan diagnosis medis tidak dianggap sebagai bagian yang harus
+   diisi perawat.
+5. Bentuk menu, halaman, tab, atau layout belum diputuskan dan tetap mengikuti hierarchy
+   kewenangan UI saat desain dilakukan.
+6. Pada pasien Merah, sistem tidak mewajibkan penyelesaian seluruh dokumentasi sebelum
+   tindakan penyelamatan dimulai.
+7. Pada pasien Merah, sistem dapat membedakan dokumentasi minimum saat resusitasi dari
+   pengkajian lengkap setelah pasien stabil.
+8. Pada pasien selain Merah, pengkajian keperawatan dimulai setelah triase tanpa menunggu
+   instruksi dokter sebagai pemicu umum.
+9. Sistem tidak boleh menganggap tertundanya dokumentasi lengkap selama resusitasi sebagai
+   alasan untuk menolak atau menghentikan tindakan klinis.
+
+**Contoh:** setelah triase pasien selesai, perawat melanjutkan pengkajian keperawatan pada
+encounter yang sama. Sistem tidak boleh menandai pengkajian lengkap hanya karena kategori
+triase sudah tersimpan. Perawat masih perlu mencatat bagian pengkajian yang diwajibkan dan
+menyelesaikan proses sesuai keputusan klinis yang akan ditutup dalam pass ini.
+
+**Contoh kegawatan:** pasien Merah datang dengan gangguan jalan napas. Perawat langsung
+membantu resusitasi dan mencatat data minimum yang aman dicatat saat tindakan berlangsung.
+Riwayat kesehatan lengkap tidak boleh menjadi prasyarat untuk membuka atau mencatat
+tindakan tersebut. Setelah kondisi pasien stabil, perawat melengkapi bagian pengkajian yang
+tertunda pada encounter yang sama.
+
+### Blocker pass berjalan
+
+Urutan antara tindakan penyelamatan dan dokumentasi telah dipilih pada `IGD-DEC-055`, tetapi
+definisi data minimum, field wajib, alasan bagian tidak dapat dinilai, serta syarat status
+selesai belum diputuskan. Bagian validation matrix dan state pengkajian harus berhenti sampai
+`IGD-OQ-040` ditutup oleh owner berwenang.
