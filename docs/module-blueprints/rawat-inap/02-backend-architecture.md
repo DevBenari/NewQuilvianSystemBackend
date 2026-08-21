@@ -3,17 +3,17 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.2` |
+| Revision | `0.3` |
 | Status | `draft` — belum disetujui manusia |
 | Tanggal | 21 Agustus 2026 (`Asia/Jakarta`) |
 | Modul | `InPatientManagement`, prefix entity `Inp`, lifecycle registry `PLANNED` |
 | Masukan arsitektur domain | [`evidence/03-hospital-domain-architecture.md`](./evidence/03-hospital-domain-architecture.md) revision `0.1`, kesiapan `DOMAIN_ARCHITECTURE_PARTIAL` |
 | Masukan requirement | [`evidence/02-requirement-completeness-gate.md`](./evidence/02-requirement-completeness-gate.md) revision `1.0`, kesiapan `PARTIALLY_READY` |
-| Masukan keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `3` |
+| Masukan keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `5` |
 | Masukan keadaan saat ini | [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `1.2` |
 | Backend SHA | `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
 | Frontend SHA | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
-| Scope | Sembilan slice yang dinyatakan siap pada arsitektur domain bagian N.2 |
+| Scope | Sembilan slice pada arsitektur domain bagian N.2, **ditambah `INP-S11`** penempatan menurut jenis kelamin dan isolasi yang terbuka sejak `RWI-DEC-064` |
 | Batas tulis | Hanya dokumen blueprint. Tidak ada source, migration, atau database yang disentuh |
 
 ### Perubahan pada revision `0.2`
@@ -29,6 +29,20 @@ yang dibatalkan; seluruhnya bersifat menambah atau melonggarkan.
 | `RWI-DEC-057` | Satu tabel baru `InpDischargeSummaryRevision` |
 
 `RWI-DEC-053` sengaja tidak mengubah apa pun: riwayat lokasi tetap dimiliki `InpBedPlacement`.
+
+### Perubahan pada revision `0.3`
+
+Revision ini memasukkan aturan keras jenis kelamin dan isolasi, yang sebelumnya berstatus slice
+terhenti. **`INP-S11` kini masuk scope.**
+
+| Keputusan | Yang berubah di dokumen ini |
+| --- | --- |
+| `RWI-DEC-064` | Jenis kelamin dan isolasi menjadi aturan yang **menolak penempatan**, bukan penyaring pencarian |
+| `RWI-DEC-065` | Enam kolom baru pada `InpEpisode`, satu enum baru `InpIsolationSource`, satu perintah bisnis, satu endpoint, dan satu daftar pantau |
+| `RWI-DEC-066` | Kelayakan Penempatan tumbuh dari tiga aturan menjadi delapan. **Tidak ada kolom baru pada `MstRoom`** |
+
+Titik penyisipannya sudah disiapkan sejak revision `0.1`, sehingga tidak satu pun perintah bisnis
+atau invariant yang harus dibongkar. Yang berubah hanyalah isi daftar aturan Kelayakan Penempatan.
 
 > **Peringatan.** Dokumen ini adalah **desain target**, bukan izin menulis kode. Modul
 > `InPatientManagement` masih berstatus `PLANNED` pada registry, dan menurut `RWI-FACT-002` status
@@ -124,6 +138,42 @@ lengkap dengan waktu, pelaku, dan alasan berakhirnya — ditambah dua kolom pada
 konsisten dengan `RWI-RULE-031` aturan 3 yang mewajibkan riwayat untuk **perubahan status**, bukan
 untuk setiap tindakan.
 
+### 1.7 Kelayakan Penempatan
+
+Perintah menempatkan dan memindahkan pasien tidak memeriksa syarat satu per satu di dalam badannya,
+melainkan memanggil satu pemeriksaan bernama **Kelayakan Penempatan** yang isinya berupa daftar
+aturan. Sejak revision `0.3` daftar itu berisi delapan aturan.
+
+| No | Aturan | Kode penolakan | Dasar |
+| ---: | --- | ---: | --- |
+| 1 | Tempat tidur aktif dan tidak sedang `Cleaning`, `Maintenance`, atau `Blocked` | 422 | `RWI-RULE-001` |
+| 2 | Tempat tidur tidak sedang dipegang pemesanan atau penempatan milik episode lain | 409 | `INV-INP-02` |
+| 3 | Bila ada pemesanan milik episode ini yang masih berlaku, pemesanan itu dipakai | — | `RWI-RULE-015` |
+| 4 | Penanda tempat tidur menerima jenis kelamin pasien | 422 | `RWI-RULE-012` B.1 |
+| 5 | Bila jenis kelamin pasien belum tercatat, tempat tidur harus menerima keduanya **dan** kamar belum berpenghuni | 422 | `RWI-RULE-012` B.2 |
+| 6 | Kamar belum dihuni pasien berjenis kelamin berbeda | 422 | `RWI-RULE-012` B.3 |
+| 7 | Pasien yang membutuhkan isolasi hanya boleh ke tempat tidur isolasi | 422 | `RWI-RULE-012` A.5 |
+| 8 | Pasien yang tidak membutuhkan isolasi tidak boleh ke tempat tidur isolasi | 422 | `RWI-RULE-012` A.6 |
+
+**Dua pengecualian boks bayi**, dan keduanya berlaku dua arah:
+
+| Pengecualian | Isinya |
+| --- | --- |
+| Menempatkan **ke** boks bayi | Aturan 4, 5, dan 6 dilewati. Bayi laki-laki boleh menempati boks di kamar ibunya |
+| Penghuni yang **berada di** boks bayi | Tidak dihitung saat aturan 6 memeriksa penghuni kamar. Bayi tidak menutup kamar bagi pasien lain |
+
+Aturan 6 diperiksa dari **penghuni yang sedang ada**, bukan dari penanda pada master kamar.
+Alasannya ada pada `RWI-DEC-066`: penanda `MstRoom.IsForMale` dan `IsForFemale` bernilai benar
+secara bawaan untuk setiap kamar, sehingga tidak dapat membedakan kamar yang boleh campur.
+
+**Kenapa bentuk daftar ini penting.** Bentuk ini dipilih sejak revision `0.1` justru supaya aturan
+jenis kelamin dan isolasi dapat ditambahkan tanpa membongkar perintah penempatan maupun
+perpindahan. Pada revision `0.3` bentuk itu terbukti: lima aturan bertambah, dan tidak satu baris
+pun perintah bisnisnya berubah.
+
+Pemeriksaan ini mengembalikan **daftar aturan yang gagal**, bukan hanya boleh atau tidak, supaya
+layar dapat menyebut alasan pastinya kepada petugas.
+
 ---
 
 ## 2. Tabel kepemilikan data
@@ -186,6 +236,10 @@ classDiagram
         +DateTime? DischargeDecidedAt
         +DateTime? ClosedAt
         +InpDischargeType DischargeType
+        +DateTime? PhysicallyLeftAt
+        +Guid? MotherEpisodeId
+        +bool RequiresIsolation
+        +InpIsolationSource? IsolationSource
         +bool IsClosedWithoutFinancialClearance
     }
     class InpDoctorAssignment {
@@ -250,6 +304,8 @@ classDiagram
         +InpBedPlacementEndReason? EndReason
         +string TransferReason
     }
+    note for InpBedPlacement "EndReason kini punya nilai PatientDeparted"
+
     class MstBed {
         +Guid Id
         +string BedCode
@@ -314,6 +370,14 @@ classDiagram
         +bool IsMandatory
         +bool IsActive
     }
+    class InpDischargeSummaryRevision {
+        +Guid Id
+        +Guid DischargeSummaryId
+        +int RevisionNumber
+        +DateTime SupersededAt
+        +Guid? CorrectionSessionId
+    }
+    InpDischargeSummary "1" --> "0..*" InpDischargeSummaryRevision : versi lama
     InpEpisode "1" --> "0..1" InpDischargeSummary : diringkas
     InpEpisode "1" --> "0..*" InpClearanceMark : menandai butir
     InpEpisode "1" --> "0..*" InpFinancialClearance : riwayat kelayakan
@@ -364,10 +428,10 @@ diulang pada tabel di bawah.
 | **Lokasi file** | `Areas/HealthServices/InPatientManagement/Models/InpEpisode.cs` |
 | Kategori | Transaksi Rawat Inap — aggregate root |
 | Tanggung jawab utama | Menyimpan satu episode perawatan menginap: dari admisi dibuka sampai episode ditutup. Seluruh catatan lain menempel padanya |
-| Field penting | `EpisodeNumber`, `EncounterId`, `PatientId`, `ServiceUnitId`, `PatientClassId`, `EpisodeStatus`, `AdmittedAt`, `DischargeDecidedAt`, `ClosedAt`, `DischargeType`, `IsClosedWithoutFinancialClearance`, `CancelReason` |
+| Field penting | `EpisodeNumber`, `EncounterId`, `PatientId`, `ServiceUnitId`, `PatientClassId`, `EpisodeStatus`, `AdmittedAt`, `DischargeDecidedAt`, `PhysicallyLeftAt`, `PhysicallyLeftByUserId`, `ClosedAt`, `DischargeType`, `MotherEpisodeId`, **`RequiresIsolation`**, **`IsolationSource`**, **`IsolationSetByUserId`**, **`IsolationSetByDoctorId`**, **`IsolationSetAt`**, **`IsolationNote`**, `IsClosedWithoutFinancialClearance`, `CancelReason` |
 | Navigation property dan relasi | Menunjuk `TrxPatientEncounter`, `MstPatient`, `MstServiceUnit`, `MstPatientClass`. Memiliki `InpDoctorAssignment`, `InpNurseAssignment`, `InpBedReservation`, `InpBedPlacement`, `InpDischargeSummary`, `InpClearanceMark`, `InpFinancialClearance`, `InpStatusHistory`, `InpCorrectionSession` |
 | Pemakaian dalam alur bisnis | Dibuat petugas admisi saat membuka admisi, dan hidup sampai episode ditutup |
-| Catatan desain | `PatientId` disimpan sebagai salinan dari kunjungan **hanya** untuk mempercepat census dan laporan; kunjungan tetap sumber kebenarannya. Jangan menyimpan lokasi terakhir di sini — lokasi selalu dibaca dari `InpBedPlacement` |
+| Catatan desain | `PatientId` disimpan sebagai salinan dari kunjungan **hanya** untuk mempercepat census dan laporan; kunjungan tetap sumber kebenarannya. Jangan menyimpan lokasi terakhir di sini — lokasi selalu dibaca dari `InpBedPlacement`. `PhysicallyLeftAt` **bukan** duplikasi baris penempatan: baris penempatan mencatat *kenapa penempatan berakhir*, sedangkan kolom ini mencatat *apakah pasien sudah pergi*, dan keberadaannya diperlukan supaya `INV-INP-10` dapat ditegakkan unique index parsial. Keduanya ditulis dalam transaksi yang sama. `MotherEpisodeId` menunjuk episode ibu pada kasus bayi rawat gabung, boleh kosong, dan **tidak boleh** menunjuk episode milik pasien yang sama. `RequiresIsolation` beserta lima kolom pendampingnya menyimpan **nilai yang berlaku sekarang** — bukan riwayat. Konsekuensinya dinyatakan pada bagian 9 |
 | Ekuivalen model lama | — |
 
 ### 4.2 `InpDoctorAssignment`
@@ -420,7 +484,7 @@ diulang pada tabel di bawah.
 | **Lokasi file** | `Areas/HealthServices/InPatientManagement/Models/InpBedPlacement.cs` |
 | Kategori | Transaksi Rawat Inap |
 | Tanggung jawab utama | **Sumber kebenaran penghunian tempat tidur.** Satu baris per tempat tidur yang pernah ditempati, lengkap dengan waktu mulai dan waktu berakhir |
-| Field penting | `EpisodeId`, `BedId`, `RoomId`, `ServiceUnitId`, `PatientClassId`, `StartDateTime`, `EndDateTime`, `EndReason`, `TransferReason`, `PlacedByUserId` |
+| Field penting | `EpisodeId`, `BedId`, `RoomId`, `ServiceUnitId`, `PatientClassId`, `StartDateTime`, `EndDateTime`, `EndReason`, `TransferReason`, `PlacedByUserId`, `EndedByUserId` |
 | Navigation property dan relasi | Milik `InpEpisode`; menunjuk `MstBed`, `MstRoom`, `MstServiceUnit`, `MstPatientClass` |
 | Pemakaian dalam alur bisnis | Dibuat saat pasien menempati tempat tidur, ditutup saat pasien pindah atau episode berakhir |
 | Catatan desain | `RoomId`, `ServiceUnitId`, dan `PatientClassId` adalah **salinan saat penempatan dibuat**, bukan pembacaan langsung. Kalau kamar dipindahkan ke kelas lain tahun depan, riwayat tahun ini tetap menunjukkan kelas yang benar-benar berlaku saat itu. Inilah yang membuat `RWI-RULE-007` dapat dijalankan |
@@ -440,7 +504,21 @@ diulang pada tabel di bawah.
 | Catatan desain | Isi diagnosis disimpan sebagai teks pada MVP, **bukan** rujukan ke diagnosis klinis, karena modul Clinical masih di luar scope. Ketika `DEC-INP-001` turun, kolom teks itu dilengkapi rujukan tanpa mengubah bentuk tabel. Seluruh kolom isi bertanda **sensitif** |
 | Ekuivalen model lama | — |
 
-### 4.7 `InpClearanceMark`
+### 4.7 `InpDischargeSummaryRevision`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` — ditambahkan pada revision `0.2` |
+| **Lokasi file** | `Areas/HealthServices/InPatientManagement/Models/InpDischargeSummaryRevision.cs` |
+| Kategori | Transaksi Rawat Inap |
+| Tanggung jawab utama | Menyimpan salinan resume pulang **versi sebelumnya**, setiap kali resume yang sudah ditandatangani diubah |
+| Field penting | `DischargeSummaryId`, `RevisionNumber`, seluruh kolom isi resume sebagai salinan, `PreviousSignedAt`, `PreviousSignedByDoctorId`, `SupersededAt`, `SupersededByUserId`, `CorrectionSessionId` |
+| Navigation property dan relasi | Milik `InpDischargeSummary`; menunjuk `InpCorrectionSession` bila perubahan lahir dari sesi koreksi |
+| Pemakaian dalam alur bisnis | Dibuat otomatis saat supervisor mengubah resume yang sudah ditandatangani lewat sesi koreksi |
+| Catatan desain | **Hanya versi yang sudah ditandatangani** yang disalin. Penyuntingan sebelum tanda tangan menimpa biasa tanpa membuat versi, sesuai `RWI-DEC-057`. Baris ini **tidak dapat diubah dan tidak dapat dihapus**; tidak disediakan endpoint update maupun delete. `InpDischargeSummary` tetap menyimpan versi yang berlaku, sehingga `INV-INP-05` tidak berubah |
+| Ekuivalen model lama | — |
+
+### 4.8 `InpClearanceMark`
 
 | Aspek | Penjelasan |
 | --- | --- |
@@ -454,7 +532,7 @@ diulang pada tabel di bawah.
 | Catatan desain | Butir yang **wajib** ditentukan master, bukan program. Butir yang dinonaktifkan admin tidak lagi menahan penutupan, dan penandaan lama tetap tersimpan |
 | Ekuivalen model lama | — |
 
-### 4.8 `InpFinancialClearance`
+### 4.9 `InpFinancialClearance`
 
 | Aspek | Penjelasan |
 | --- | --- |
@@ -468,7 +546,7 @@ diulang pada tabel di bawah.
 | Catatan desain | Kolom `IsManualMarking` selalu `true` selama MVP, dan wajib ditampilkan pada layar serta laporan. Ketika `BillingManagement` operasional, sumber nilainya berpindah dan kolom itu menjadi `false` — **aturan penutupannya tidak berubah**, sesuai `RWI-RULE-028` aturan 7 |
 | Ekuivalen model lama | — |
 
-### 4.9 `InpStatusHistory`
+### 4.10 `InpStatusHistory`
 
 | Aspek | Penjelasan |
 | --- | --- |
@@ -482,7 +560,7 @@ diulang pada tabel di bawah.
 | Catatan desain | Baris ini **tidak boleh** diubah dan **tidak boleh** dihapus; tidak disediakan endpoint update maupun delete. Perubahan yang dihitung sistem — pemesanan gugur dan episode `Draft` telantar — diberi `ActorType = System` dan `ChangedByUserId` kosong, sesuai `RWI-RULE-031` aturan 6 |
 | Ekuivalen model lama | Pola diambil dari `TrxWorkflowStatusHistory` milik modul Workflow, tetapi **tidak** menumpang padanya |
 
-### 4.10 `InpCorrectionSession`
+### 4.11 `InpCorrectionSession`
 
 | Aspek | Penjelasan |
 | --- | --- |
@@ -496,7 +574,7 @@ diulang pada tabel di bawah.
 | Catatan desain | Status episode **tetap** `Closed` selama sesi berjalan, sehingga `RWI-DEC-009` dan `RWI-AC-004` tidak dilanggar. Karena status tidak berubah, `InpStatusHistory` tidak akan mencatat apa pun — itulah sebabnya `ChangedFieldSummary` wajib diisi saat sesi ditutup. Tanpa itu, koreksi menjadi satu-satunya perubahan yang tidak berjejak |
 | Ekuivalen model lama | — |
 
-### 4.11 `MstInpatientSetting`
+### 4.12 `MstInpatientSetting`
 
 | Aspek | Penjelasan |
 | --- | --- |
@@ -510,7 +588,7 @@ diulang pada tabel di bawah.
 | Catatan desain | Mengikuti pola `MstEmergencySetting` yang sudah dipakai IGD. Nilai **tidak boleh** ditanam di controller maupun frontend. Perubahan berlaku pada pembacaan berikutnya tanpa aplikasi dinyalakan ulang |
 | Ekuivalen model lama | — |
 
-### 4.12 `MstInpatientClearanceItem`
+### 4.13 `MstInpatientClearanceItem`
 
 | Aspek | Penjelasan |
 | --- | --- |
@@ -524,7 +602,7 @@ diulang pada tabel di bawah.
 | Catatan desain | Butirnya **daftar baris**, bukan satu nilai, sehingga sengaja tidak disatukan ke `MstInpatientSetting` |
 | Ekuivalen model lama | — |
 
-### 4.13 `InpEpisodeService`
+### 4.14 `InpEpisodeService`
 
 | Aspek | Penjelasan |
 | --- | --- |
@@ -534,9 +612,9 @@ diulang pada tabel di bawah.
 | Tanggung jawab utama | Satu-satunya pintu perubahan status episode, penugasan DPJP, dan penugasan perawat |
 | Dipanggil oleh | `InpatientEpisodeController`, `InpDischargeService` |
 | Membuka transaksi database | **Ya** — untuk pengaktifan, pembatalan, dan penutupan |
-| Catatan desain | Method `ApplyStatusChangeAsync` adalah satu-satunya tempat status boleh berubah, dan ia selalu menulis `InpStatusHistory` di dalam transaksi yang sama. Tidak boleh ada controller yang menyetel `EpisodeStatus` langsung. Penjaga kewenangan DPJP juga di sini, bukan di mesin hak akses |
+| Catatan desain | Method `ApplyStatusChangeAsync` adalah satu-satunya tempat status boleh berubah, dan ia selalu menulis `InpStatusHistory` di dalam transaksi yang sama. Tidak boleh ada controller yang menyetel `EpisodeStatus` langsung. Penjaga kewenangan DPJP juga di sini, bukan di mesin hak akses. Sejak revision `0.2` service ini memeriksa `INV-INP-10` sebelum menempatkan pasien; sejak revision `0.3` ia juga mengurus `SetIsolationRequirementAsync` beserta penjaga siapa yang boleh mengubahnya |
 
-### 4.14 `InpBedOccupancyService`
+### 4.15 `InpBedOccupancyService`
 
 | Aspek | Penjelasan |
 | --- | --- |
@@ -546,9 +624,9 @@ diulang pada tabel di bawah.
 | Tanggung jawab utama | Memesan, menempatkan, memindahkan, dan melepas tempat tidur; menghitung kedaluwarsa pemesanan saat dibaca; memperbarui salinan status pada `MstBed` |
 | Dipanggil oleh | `InpatientBedOccupancyController`, `InpEpisodeService` |
 | Membuka transaksi database | **Ya** — seluruh operasinya |
-| Catatan desain | Method `TransferAsync` menutup penempatan lama dan membuka penempatan baru **dalam satu transaksi**; tidak boleh dipecah menjadi dua panggilan. Pemeriksaan `EvaluatePlacementEligibility` berbentuk daftar aturan supaya aturan isolasi dan jenis kelamin dapat ditambahkan kelak tanpa membongkar apa pun |
+| Catatan desain | Method `TransferAsync` menutup penempatan lama dan membuka penempatan baru **dalam satu transaksi**; tidak boleh dipecah menjadi dua panggilan. Pemeriksaan `EvaluatePlacementEligibility` berbentuk daftar aturan, dan sejak revision `0.3` daftar itu berisi delapan aturan termasuk jenis kelamin dan isolasi. Method itu mengembalikan **daftar aturan yang gagal**, bukan hanya boleh atau tidak, supaya layar dapat menyebut alasan pastinya |
 
-### 4.15 `InpDischargeService`
+### 4.16 `InpDischargeService`
 
 | Aspek | Penjelasan |
 | --- | --- |
@@ -558,9 +636,9 @@ diulang pada tabel di bawah.
 | Tanggung jawab utama | Keputusan pulang, resume pulang, penandaan daftar periksa, penandaan kelayakan keuangan, dan pemeriksaan lima syarat penutupan |
 | Dipanggil oleh | `InpatientDischargeController` |
 | Membuka transaksi database | Ya, untuk penandatanganan resume dan pemeriksaan penutupan |
-| Catatan desain | Method `EvaluateClosureReadinessAsync` mengembalikan daftar syarat yang belum terpenuhi, bukan sekadar boleh atau tidak. Ini supaya layar dapat menampilkan alasan pastinya kepada petugas |
+| Catatan desain | Method `EvaluateClosureReadinessAsync` mengembalikan daftar syarat yang belum terpenuhi, bukan sekadar boleh atau tidak. Ini supaya layar dapat menampilkan alasan pastinya kepada petugas. Sejak revision `0.2`, service ini juga mengurus `RecordPatientDepartureAsync` yang melepas tempat tidur tanpa mengubah status episode, dan penyalinan versi resume saat resume yang sudah ditandatangani diubah |
 
-### 4.16 `InpCensusQueryService`
+### 4.17 `InpCensusQueryService`
 
 | Aspek | Penjelasan |
 | --- | --- |
@@ -570,9 +648,9 @@ diulang pada tabel di bawah.
 | Tanggung jawab utama | Menyusun census, menghitung lama dirawat, menyusun papan ketersediaan tempat tidur, dua daftar pantau, dan laporan selisih tempat tidur |
 | Dipanggil oleh | `InpatientCensusController`, `InpatientMonitoringController` |
 | Membuka transaksi database | Tidak — hanya membaca |
-| Catatan desain | Seluruh query memakai `AsNoTracking` dan projection langsung ke DTO. Census **tidak** disimpan sebagai tabel; ia selalu dihitung dari penempatan yang masih aktif |
+| Catatan desain | Seluruh query memakai `AsNoTracking` dan projection langsung ke DTO. Census **tidak** disimpan sebagai tabel; ia selalu dihitung dari penempatan yang masih aktif. Sejak revision `0.2` census mengecualikan episode `DischargePending` yang kepergian fisiknya sudah dicatat. Sejak revision `0.3` service ini juga menyusun daftar pantau **penempatan tidak sesuai**, yaitu episode yang kebutuhan isolasinya tidak cocok dengan sifat tempat tidur yang sedang ditempatinya |
 
-### 4.17 `InpEpisodeNumberService`
+### 4.18 `InpEpisodeNumberService`
 
 | Aspek | Penjelasan |
 | --- | --- |
@@ -584,7 +662,7 @@ diulang pada tabel di bawah.
 | Membuka transaksi database | Ikut transaksi pemanggil |
 | Catatan desain | Awalan diambil dari `MstInpatientSetting.EpisodeNumberPrefix`, tidak ditanam di kode. Polanya mengikuti `EmergencyDocumentNumberService` yang sudah ada |
 
-### 4.18 `InpSettingService`
+### 4.19 `InpSettingService`
 
 | Aspek | Penjelasan |
 | --- | --- |
@@ -596,7 +674,7 @@ diulang pada tabel di bawah.
 | Membuka transaksi database | Tidak |
 | Catatan desain | Bila baris pengaturan belum ada, service mengembalikan nilai bawaan **dan** mencatat peringatan, supaya modul tetap jalan di lingkungan pengembangan tanpa diam-diam memakai angka yang salah di produksi |
 
-### 4.19 Controller
+### 4.20 Controller
 
 | Controller | Status | Lokasi file | Grup Swagger | Service yang dipakai |
 | --- | --- | --- | --- | --- |
@@ -632,6 +710,7 @@ Areas/HealthServices/InPatientManagement/          # Baru, seluruh folder
 │   ├── InpBedReservationStatus.cs                 # Baru
 │   ├── InpBedPlacementEndReason.cs                # Baru
 │   ├── InpFinancialClearanceStatus.cs             # Baru
+│   ├── InpIsolationSource.cs                      # Baru pada revision 0.3
 │   └── InpStatusChangeActorType.cs                # Baru
 ├── Models/                                        # Baru
 │   ├── InpEpisode.cs                              # Baru
@@ -640,6 +719,7 @@ Areas/HealthServices/InPatientManagement/          # Baru, seluruh folder
 │   ├── InpBedReservation.cs                       # Baru
 │   ├── InpBedPlacement.cs                         # Baru
 │   ├── InpDischargeSummary.cs                     # Baru
+│   ├── InpDischargeSummaryRevision.cs             # Baru pada revision 0.2
 │   ├── InpClearanceMark.cs                        # Baru
 │   ├── InpFinancialClearance.cs                   # Baru
 │   ├── InpStatusHistory.cs                        # Baru
@@ -673,6 +753,7 @@ Repositories/Configurations/HealthServices/InPatientManagement/   # Baru, seluru
 ├── InpBedReservationConfiguration.cs              # Baru
 ├── InpBedPlacementConfiguration.cs                # Baru
 ├── InpDischargeSummaryConfiguration.cs            # Baru
+├── InpDischargeSummaryRevisionConfiguration.cs    # Baru pada revision 0.2
 ├── InpClearanceMarkConfiguration.cs               # Baru
 ├── InpFinancialClearanceConfiguration.cs          # Baru
 ├── InpStatusHistoryConfiguration.cs               # Baru
@@ -682,7 +763,7 @@ Repositories/Configurations/HealthServices/MasterData/
 ├── MstInpatientSettingConfiguration.cs            # Baru
 └── MstInpatientClearanceItemConfiguration.cs      # Baru
 
-Repositories/ApplicationDbContext.cs               # Diperbarui — 12 DbSet baru
+Repositories/ApplicationDbContext.cs               # Diperbarui — 13 DbSet baru
 Program.cs                                         # Diperbarui — 6 pendaftaran service baru
 Migrations/                                        # Diperbarui — satu migration baru
 ```
@@ -714,12 +795,13 @@ pemilik arsitektur backend.
 
 | Model | Status | Kolom yang berubah | Dampak migration |
 | --- | --- | --- | --- |
-| `InpEpisode` | `Baru` | Seluruhnya | Tabel baru |
+| `InpEpisode` | `Baru` | Seluruhnya, termasuk enam kolom kebutuhan isolasi yang ditambahkan pada revision `0.3` | Tabel baru |
 | `InpDoctorAssignment` | `Baru` | Seluruhnya | Tabel baru |
 | `InpNurseAssignment` | `Baru` | Seluruhnya | Tabel baru |
 | `InpBedReservation` | `Baru` | Seluruhnya | Tabel baru |
 | `InpBedPlacement` | `Baru` | Seluruhnya | Tabel baru |
 | `InpDischargeSummary` | `Baru` | Seluruhnya | Tabel baru |
+| `InpDischargeSummaryRevision` | `Baru` pada revision `0.2` | Seluruhnya | Tabel baru |
 | `InpClearanceMark` | `Baru` | Seluruhnya | Tabel baru |
 | `InpFinancialClearance` | `Baru` | Seluruhnya | Tabel baru |
 | `InpStatusHistory` | `Baru` | Seluruhnya | Tabel baru |
@@ -729,9 +811,24 @@ pemilik arsitektur backend.
 | `MstBed` | **`Sudah ada`** | **Tidak ada kolom yang berubah** | Tidak ada migration. Yang berubah hanya siapa yang boleh menulis `BedStatus`, dan itu perubahan perilaku controller |
 | `TrxPatientEncounter` | **`Sudah ada`** | **Tidak ada kolom yang berubah** | Tidak ada migration |
 
-**Yang perlu diperhatikan:** tidak satu pun tabel milik modul lain berubah bentuknya. Dua belas
+**Yang perlu diperhatikan:** tidak satu pun tabel milik modul lain berubah bentuknya. **Tiga belas**
 tabel baru, nol perubahan kolom pada tabel existing. Ini sengaja, supaya migration modul ini tidak
 dapat merusak data modul lain.
+
+### 6.1 Kolom dan nilai yang ditambahkan pada revision `0.2`
+
+Karena `InpEpisode` dan `InpBedPlacement` belum pernah dibuat di database, penambahan berikut
+**tidak** menghasilkan migration perubahan kolom. Semuanya masuk ke migration pembuatan tabel yang
+sama.
+
+| Tabel atau enum | Yang ditambahkan | Dasar |
+| --- | --- | --- |
+| `InpEpisode` | `PhysicallyLeftAt`, `PhysicallyLeftByUserId`, `MotherEpisodeId` | `RWI-DEC-055`, `RWI-DEC-056` |
+| `InpEpisode` | `RequiresIsolation`, `IsolationSource`, `IsolationSetByUserId`, `IsolationSetByDoctorId`, `IsolationSetAt`, `IsolationNote` | `RWI-DEC-065` |
+| `InpIsolationSource` | Enum baru: `AdmissionRecord = 1`, `ClinicalDecision = 2` | `RWI-DEC-065` |
+| `InpEpisode` | Unique index parsial atas `PatientId` untuk episode yang hadir | `RWI-DEC-054` |
+| `InpBedPlacementEndReason` | Nilai `PatientDeparted = 4` | `RWI-DEC-055` |
+| `InpDischargeSummaryRevision` | Seluruh tabel | `RWI-DEC-057` |
 
 ---
 
@@ -743,9 +840,9 @@ dapat merusak data modul lain.
 | ---: | --- | :---: | --- |
 | 1 | Buat dua tabel master: `MstInpatientSetting`, `MstInpatientClearanceItem` | Ya | Tabel baru, tidak menyentuh apa pun |
 | 2 | Isi data master awal lewat seeder atau layar admin | Ya | Lihat bagian 8 |
-| 3 | Buat sepuluh tabel transaksi berawalan `Inp` | Ya | Tabel baru |
-| 4 | Buat index dan unique index parsial | Ya | Tabel masih kosong, sehingga pembuatan index cepat |
-| 5 | Daftarkan 12 `DbSet` pada `ApplicationDbContext` | Ya | Perubahan kode, bukan skema |
+| 3 | Buat sebelas tabel transaksi berawalan `Inp` | Ya | Tabel baru |
+| 4 | Buat index dan **empat** unique index parsial: penempatan aktif per tempat tidur, pemesanan aktif per tempat tidur, DPJP aktif per episode, dan episode hadir per pasien | Ya | Tabel masih kosong, sehingga pembuatan index cepat |
+| 5 | Daftarkan 13 `DbSet` pada `ApplicationDbContext` | Ya | Perubahan kode, bukan skema |
 | 6 | Daftarkan 6 service pada `Program.cs` | Ya | Perubahan kode |
 | 7 | Ubah perilaku `BedController.UpdateBedAvailability` agar menolak `Reserved` dan `Occupied` | **Tidak sepenuhnya** | Mengubah perilaku endpoint yang sudah dipakai. Lihat 7.3 |
 
@@ -838,6 +935,13 @@ isinya khas tiap rumah sakit.
 | Kolom `CurrentBedId` pada `InpEpisode` | Godaan yang wajar karena mempercepat query, tetapi membuat dua sumber kebenaran. Lokasi selalu dibaca dari `InpBedPlacement` yang `EndDateTime` kosong |
 | Tabel antrean untuk pasien rawat inap | `RWI-RULE-026` aturan 2 melarangnya secara tegas; laporan antrean poliklinik tidak boleh tercemar |
 | Program penjadwal untuk menggugurkan pemesanan | `RWI-DEC-007` menetapkan kedaluwarsa dihitung saat data dibaca, sehingga tidak perlu proses latar belakang |
+| Status episode keenam untuk "pasien sudah pergi" | Kepergian fisik bukan perubahan status. Episode tetap `DischargePending` dan tetap wajib ditutup. Menambah status akan melanggar `RWI-DEC-009` yang mengunci lima nilai |
+| Tabel tersendiri untuk mencatat kepergian fisik | Cukup dua kolom pada episode ditambah baris penempatan yang ditutup. Satu kejadian yang terjadi paling banyak sekali per episode tidak memerlukan tabel |
+| Versi untuk resume yang belum ditandatangani | `RWI-DEC-057` hanya mewajibkan versi untuk yang sudah ditandatangani. Menyimpan setiap suntingan draf hanya menumpuk baris tanpa nilai audit |
+| Tabel hubungan ibu dan bayi | Cukup satu kolom rujukan opsional pada episode bayi. Hubungannya satu arah dan paling banyak satu |
+| Kolom "boleh campur" pada `MstRoom` | Ditolak tegas oleh `RWI-DEC-066`. Penanda `IsForMale` dan `IsForFemale` yang sudah ada bernilai benar secara bawaan untuk setiap kamar, sehingga menambah penanda ketiga hanya menambah cara baru untuk salah setel. Aturan pencampuran diperiksa dari **penghuni yang sedang ada**, bukan dari penanda |
+| Tabel riwayat kebutuhan isolasi | `RWI-DEC-065` menyebutnya **atribut episode**, bukan riwayat. Yang tersimpan hanya nilai yang berlaku beserta siapa dan kapan terakhir mengubahnya. Keterbatasannya dinyatakan pada bagian 9.1 |
+| Penanda kebutuhan isolasi pada master pasien | Kebutuhan isolasi melekat pada satu masa perawatan, bukan pada orangnya selamanya. Menaruhnya di `MstPatient` akan membuat pasien tertandai butuh isolasi seumur hidup |
 
 ---
 
@@ -857,4 +961,11 @@ isinya khas tiap rumah sakit.
 | `InpCorrectionSession` | `RWI-RULE-020`, `RWI-DEC-028`, arsitektur domain bagian G.4 |
 | `MstInpatientSetting` | `RWI-RULE-034`, `RWI-DEC-050` |
 | Perubahan `BedController` | `RWI-RULE-027` aturan 4 dan 5, `RWI-DEC-039` |
-| Batas scope | Arsitektur domain bagian N.2 dan N.3 |
+| `InpDischargeSummaryRevision` | `RWI-DEC-057`, baseline `ID-INP-CAP-019` |
+| `INV-INP-10` dan unique index parsial per pasien | `RWI-RULE-035`, `RWI-DEC-054` |
+| `PhysicallyLeftAt`, `PhysicallyLeftByUserId`, `PatientDeparted` | `RWI-RULE-036`, `RWI-DEC-055` |
+| `MotherEpisodeId` | `RWI-DEC-056`, `RWI-RULE-014` |
+| `RequiresIsolation` dan lima kolom pendampingnya | `RWI-RULE-012` bagian A, `RWI-DEC-065` |
+| Aturan 4 sampai 8 pada Kelayakan Penempatan | `RWI-RULE-012` bagian A dan B, `RWI-DEC-064`, `RWI-DEC-066` |
+| `CMD-INP-16` | `RWI-RULE-012` A.2 s.d. A.4, `RWI-DEC-065` |
+| Batas scope | Arsitektur domain bagian N.2 dan N.3, ditambah `INP-S11` sejak `RWI-DEC-064` |

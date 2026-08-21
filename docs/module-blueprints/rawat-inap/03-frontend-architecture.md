@@ -3,11 +3,11 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.1` |
+| Revision | `0.2` |
 | Status | `draft` |
 | Frontend SHA | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
 | Backend SHA | `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
-| Masukan | `02-backend-architecture.md` revision `0.1`; `contracts/api-contract.md` revision `0.1.0` |
+| Masukan | `02-backend-architecture.md` revision `0.2`; `contracts/api-contract.md` revision `0.2.0` |
 | Batas tulis | Hanya dokumen blueprint |
 
 > **Batas kewenangan dokumen ini.** Dokumen ini menetapkan **kontrak fungsional**: layar apa yang
@@ -64,6 +64,7 @@ menggabungkan selama seluruh kemampuannya tercapai.
 | `FE-INP-11` | Sesi koreksi episode | Supervisor membuka, mengoreksi, lalu menutup sesi | Supervisor |
 | `FE-INP-12` | Pengaturan Rawat Inap | Mengubah batas waktu dan ambang | Admin master data |
 | `FE-INP-13` | Master butir administrasi | Menambah, mengubah, dan menonaktifkan butir daftar periksa | Admin master data |
+| `FE-INP-14` | Pencatatan kepergian pasien | Menandai bahwa pasien sudah meninggalkan ruangan, sehingga tempat tidur langsung bebas | Petugas admisi, perawat, kepala ruangan, supervisor |
 
 ---
 
@@ -89,6 +90,7 @@ diizinkan **harus disembunyikan atau dinonaktifkan**, bukan ditampilkan lalu dit
 | Menandai butir administrasi | Ya | – | – | – | – | Ya | – |
 | Menandai kelayakan keuangan | – | – | – | – | Ya | – | – |
 | Menutup episode | Ya | – | – | – | – | Ya | – |
+| Mencatat pasien sudah meninggalkan ruangan | Ya | Ya | Ya | – | – | Ya | – |
 | Menutup menembus gerbang keuangan | – | – | – | – | – | Ya | – |
 | Membuka sesi koreksi | – | – | – | – | – | Ya | – |
 | Mengubah pengaturan dan butir | – | – | – | – | – | – | Ya |
@@ -110,7 +112,8 @@ diizinkan **harus disembunyikan atau dinonaktifkan**, bukan ditampilkan lalu dit
 | --- | --- | --- |
 | `Draft` | Admisi sedang disiapkan | Pasien belum tentu ada di kamar |
 | `Admitted` | Sedang dirawat | Pasien menempati tempat tidur |
-| `DischargePending` | Rencana pulang | Sudah boleh pulang, episode belum ditutup, tempat tidur masih dipegang |
+| `DischargePending`, kepergian belum dicatat | Rencana pulang | Sudah boleh pulang, episode belum ditutup, tempat tidur **masih dipegang** |
+| `DischargePending`, kepergian sudah dicatat | Sudah pulang, menunggu penutupan | Pasien sudah tidak di ruangan dan tempat tidur **sudah bebas**, tetapi episodenya belum ditutup |
 | `Closed` | Selesai | Episode ditutup, tempat tidur sudah dilepas |
 | `Cancelled` | Batal | Admisi tidak jadi berjalan |
 
@@ -174,6 +177,7 @@ ada** karena bergantung pada slice yang masih menunggu `DEC-INP-001`.
 | `FE-INP-02` papan tempat tidur | Tinggi. Tempat tidur bisa direbut petugas lain dalam hitungan detik | Muat ulang saat layar difokuskan kembali, dan wajib muat ulang sebelum menampilkan dialog konfirmasi penempatan |
 | `FE-INP-01` census | Sedang | Muat ulang saat layar difokuskan kembali |
 | `FE-INP-07` penutupan | Sedang. Kelayakan keuangan bisa berubah saat layar terbuka | Panggil `closure-readiness` **tepat sebelum** tombol tutup dijalankan, bukan hanya saat layar dibuka |
+| `FE-INP-14` pencatatan kepergian | Sedang | Muat ulang detail episode sebelum menampilkan dialog konfirmasi, karena petugas lain mungkin sudah mencatatnya |
 
 **Yang tidak boleh dilakukan:** menyembunyikan tombol tutup berdasarkan data yang dimuat lima menit
 lalu, lalu menganggap keadaan tidak berubah.
@@ -192,6 +196,7 @@ berupa dialog konfirmasi:
 | Memindahkan pasien | Sama | Konfirmasi menyebut tempat tidur asal dan tujuan |
 | Menutup episode | Permintaan kedua ditolak 409 | Konfirmasi menyebut nama pasien dan cara pulang |
 | Menutup menembus gerbang keuangan | Sama, ditambah baris laporan pengecualian | Konfirmasi **wajib** menyebut bahwa episode akan masuk laporan pengecualian |
+| Mencatat kepergian pasien | Permintaan kedua ditolak 409 | Konfirmasi **wajib** menyebut bahwa tindakan ini **tidak dapat dibatalkan** dan tempat tidur akan langsung bebas untuk pasien berikutnya |
 
 ### 5.4 Menangani kode 409 dan 422
 
@@ -260,7 +265,8 @@ rawat inap tidak punya antrean. Menyalinnya akan membawa masalah yang sama.
 | `RWI-FE-002` | Bentuk tampilan daftar pantau | `DEV_DISCRETION` | Lama keterlambatan terbaca; daftar tidak menghalangi tindakan apa pun |
 | Baru | Nama menu, urutan menu, dan route final | `DEV_DISCRETION` | Mengikuti konvensi `src/app/health-services/` yang sudah ada |
 | Baru | Pemakaian tab, modal, atau drawer | `DEV_DISCRETION` | Bebas, selama aturan pengiriman ganda pada 5.3 dipenuhi |
-| Baru | Penggabungan layar | `DEV_DISCRETION` | Tiga belas layar pada bagian 2 boleh digabung, selama seluruh kemampuannya tercapai |
+| Baru | Penggabungan layar | `DEV_DISCRETION` | Empat belas layar pada bagian 2 boleh digabung, selama seluruh kemampuannya tercapai |
+| Baru | Penempatan tombol catat kepergian | `DEV_DISCRETION` | Bebas, selama konfirmasinya menyebut bahwa tindakan tidak dapat dibatalkan |
 
 **Yang bukan `DEV_DISCRETION`:** aturan tombol pada bagian 3, penanganan 409 dan 422 pada bagian
 5.4, privasi pada bagian 6, dan perbaikan pada bagian 7. Keempatnya menyentuh keamanan, privasi,
@@ -291,4 +297,6 @@ Dasar kewajiban test: `RWI-DEC-051`.
 | 5.3, 5.4 | `RWI-RULE-008`, `RWI-RULE-010`, `RWI-RULE-015` |
 | 6 | Kolom sensitif pada `erd/data-dictionary.md` |
 | 7 | `RWI-CON-TRC-001`, `RWI-DEC-049` |
+| `FE-INP-14` dan aturan kepergian | `RWI-RULE-036`, `RWI-DEC-055` |
+| Peringatan admisi ganda | `RWI-RULE-035`, `RWI-DEC-054` |
 | 10 | `RWI-DEC-051`, `RWI-RISK-002` |

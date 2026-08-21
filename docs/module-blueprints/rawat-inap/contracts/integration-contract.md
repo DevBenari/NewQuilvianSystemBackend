@@ -3,10 +3,10 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.1.0` |
+| `contract_version` | `0.2.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | `evidence/03-hospital-domain-architecture.md` revision `0.1` bagian J |
+| `input_revision` | `evidence/03-hospital-domain-architecture.md` revision `0.1` bagian J; `00-interview-decisions.md` revision `3` |
 | Backend SHA | `5afb54b` |
 | Dampak kompatibilitas | Satu arah tulis lintas modul yang baru. Tidak ada kontrak eksternal yang berubah |
 
@@ -63,6 +63,7 @@ Ini **satu-satunya** arah tulis modul ini ke luar batasnya sendiri.
 | Pemesanan dibuat | `Reserved` |
 | Pemesanan dibatalkan | `Available` |
 | Pemesanan gugur, terbaca saat query | `Available` |
+| **Kepergian fisik pasien dicatat** | `Available` |
 | Pasien ditempatkan | `Occupied` |
 | Pasien pindah — tempat tidur lama | `Available` |
 | Pasien pindah — tempat tidur tujuan | `Occupied` |
@@ -115,6 +116,7 @@ Ini keadaan yang disengaja, bukan bagian yang belum ditulis. Alasannya:
 | Kenapa tidak dirancang | Keputusannya belum ada. Tercatat sebagai `DEC-INP-005` dan `RWI-OQ-037` |
 | Apa yang belum diputuskan | Siapa pemiliknya, data apa yang wajib dikirim, kapan dipicu, dan **di mana riwayat lokasi disimpan** — pada catatan penempatan milik Rawat Inap, atau pada kunjungan milik Registrasi |
 | Kenapa itu mahal bila salah | Bila jawabannya "pada kunjungan", pemilik data riwayat lokasi berpindah dari Rawat Inap ke Registrasi |
+| **Sudah diputuskan pada 2026-08-21** | `RWI-DEC-053` menetapkan riwayat lokasi **tetap dimiliki Rawat Inap**. Pengiriman dibangun sebagai kemampuan tersendiri yang membacanya. Yang masih terbuka hanya isi kiriman, pemicunya, dan siapa pemiliknya |
 
 ### 4.1 Yang sudah disiapkan supaya keputusan itu tidak mahal
 
@@ -125,6 +127,8 @@ dalam bentuk yang dapat dibaca ulang**:
 | --- | --- |
 | Identitas encounter | `InpEpisode.EncounterId` |
 | Riwayat lokasi beserta periodenya | `InpBedPlacement`, berbentuk baris berperiode |
+| Waktu pasien meninggalkan ruangan | `InpEpisode.PhysicallyLeftAt` |
+| Versi resume sebelumnya, bila resume pernah diamandemen | `InpDischargeSummaryRevision` |
 | Riwayat penanggung jawab | `InpDoctorAssignment`, berbentuk baris berperiode |
 | Perubahan status episode beserta waktunya | `InpStatusHistory` |
 | Data terkait pemulangan | `InpDischargeSummary` |
@@ -148,6 +152,7 @@ Daftar berikut adalah **fakta bisnis**, bukan rancangan mekanisme pengiriman pes
 | `EVT-INP-05` | Pasien berpindah tempat tidur | Perpindahan berhasil | Billing bila kelas berubah, interoperabilitas |
 | `EVT-INP-06` | DPJP dialihkan | Pengalihan berhasil | Interoperabilitas, laporan |
 | `EVT-INP-07` | Pasien diputuskan boleh pulang | Episode menjadi `DischargePending` | Farmasi untuk obat pulang, kasir |
+| `EVT-INP-12` | Pasien meninggalkan ruangan | Kepergian fisik dicatat | Papan ketersediaan, kasir, kebersihan |
 | `EVT-INP-08` | Resume pulang ditandatangani | Penandatanganan | Interoperabilitas, rekam medis |
 | `EVT-INP-09` | Episode ditutup | Episode menjadi `Closed` | Billing, interoperabilitas, papan ketersediaan |
 | `EVT-INP-10` | Episode dibatalkan | Episode menjadi `Cancelled` | Papan ketersediaan, kunjungan |

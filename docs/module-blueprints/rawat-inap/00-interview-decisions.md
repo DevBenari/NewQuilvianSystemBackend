@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `3` |
+| Revision | `5` |
 | Status | `draft` |
 | Interview mode | `Amendment pass` tuntas 2026-08-21, 8 butir. Sebelumnya `Closure pass` 17 pertanyaan tuntas 2026-08-21, dan `Scope pass` 30 pertanyaan tuntas 2026-08-20 |
-| Product/domain owner | Pemilik suite skill Quilvian sebagai **pemegang sementara** sesuai `RWI-DEC-006`; nama formal perlu diisi |
-| Clinical governance owner | `OPEN` — menjadi syarat sebelum produksi |
+| Product/domain owner | **Muhammad Hamzah**, ditunjuk 2026-08-21 lewat `RWI-DEC-061`. Jabatan formal belum diisi |
+| Clinical governance owner | **Sebagian terisi.** Keputusan isolasi dan jenis kelamin diambil pemilik pada `RWI-DEC-064`. Belum dinyatakan apakah penunjukan itu mencakup seluruh peran clinical governance |
 | Security/privacy owner | `OPEN` — menjadi syarat sebelum produksi |
 | Backend SHA | `45dcfa1` (branch `MHamzah`) |
 | Frontend SHA | `dec4fdeff` |
@@ -28,10 +28,10 @@ Dokumen ini panjang. Bagian ini ada supaya pembaca tahu posisinya tanpa membaca 
 | Hal | Jumlah | Keterangan |
 |---|---:|---|
 | Aturan bisnis tertulis | 37 | `RWI-RULE-001` sampai `RWI-RULE-037`, seluruhnya disertai contoh berangka |
-| — di antaranya **belum final** | 4 | `RWI-RULE-012`, `RWI-RULE-021`, `RWI-RULE-025`, dan `RWI-RULE-037`. Keempatnya menunggu pemilik klinis atau pemilik privasi |
-| Keputusan tercatat | 60 | 51 berstatus `approved`, 8 berstatus `draft`, 1 berstatus `closed`. Satu keputusan `approved` di antaranya juga bertanda `superseded` sebagian, yaitu `RWI-DEC-011` |
+| — di antaranya **belum final** | 3 | `RWI-RULE-021`, `RWI-RULE-025`, dan `RWI-RULE-037`. `RWI-RULE-012` sudah final sejak `RWI-DEC-064`, walaupun sebagiannya belum dapat dijalankan |
+| Keputusan tercatat | 66 | 57 berstatus `approved`, 7 berstatus `draft`, 1 berstatus `closed`, 1 berstatus `superseded` penuh yaitu `RWI-DEC-018`. Satu keputusan `approved` juga bertanda `superseded` sebagian, yaitu `RWI-DEC-011` |
 | Fakta yang terbukti dari repository dan PRD | 12 | `RWI-FACT-001` sampai `RWI-FACT-012`. Dua terakhir berasal dari capability map, bukan dari PRD |
-| Acceptance criteria yang sudah dapat diuji | 127 | `RWI-AC-001` sampai `RWI-AC-127` |
+| Acceptance criteria yang sudah dapat diuji | 139 | `RWI-AC-001` sampai `RWI-AC-139` |
 | Keputusan yang didelegasikan ke pelaksana | 2 | `RWI-FE-001` dan `RWI-FE-002`, keduanya `DEV_DISCRETION` |
 | Konflik | **8 dari 8 tertutup** | Tujuh berasal dari PRD, satu ditemukan antar keputusan di dokumen ini sendiri |
 | Lubang cakupan | 9 dari 11 tertutup | Dua sisanya sudah dijawab tetapi menunggu pemilik klinis |
@@ -46,23 +46,18 @@ desain:**
 
 | Butir | Isinya | Memblokir |
 |---|---|---|
-| `RWI-OQ-023` / `RWI-DEC-037` | Siapa nama orang atau komite yang berwenang menyetujui modul ini | Sign-off |
-| `RWI-OQ-032` | Persetujuan pemilik `ClinicalManagement` dan `PharmacyManagement` atas pelonggaran `RWI-RULE-026` dan penanda obat pulang | Implementasi |
-| `RWI-OQ-033` | Persetujuan pemilik `MasterData` atas pembatasan endpoint ketersediaan tempat tidur | Implementasi |
-| `RWI-OQ-034` | Persetujuan pemilik `EmergencyInstallationManagement` atas serah terima IGD ke rawat inap | Implementasi |
-| `RWI-OQ-035` | Berapa lama riwayat perubahan status disimpan sebelum boleh diarsipkan | Slice berikutnya |
-| `RWI-OQ-037` | Siapa pemilik pengiriman data rawat inap ke SATUSEHAT, data apa yang wajib dikirim, kapan dipicu, dan di mana riwayat lokasi pasien disimpan | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-053` untuk bagian **kepemilikan data**: riwayat lokasi tetap milik Rawat Inap. Bagian isi kiriman dan pemicunya tetap di luar MVP dan menunggu pemilik integrasi |
-| `RWI-OQ-038` | Apakah serah terima klinis antar shift keperawatan wajib direkam sistem, dan apa isi minimalnya | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-058` untuk bagian **scope**: tidak masuk MVP. Bagian **isi** serah terima tetap terbuka dan menunggu pemilik klinis |
-| `RWI-OQ-040` | Apakah sistem perlu menyimpan penanda bahwa seorang bayi dirawat gabung dengan ibunya | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-056` — ya, berupa satu rujukan opsional pada episode bayi |
-| `RWI-OQ-041` | Apakah kepergian fisik pasien dicatat sebagai kejadian tersendiri sehingga tempat tidur dapat dilepas lebih awal | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-055` — ya, sebagai tindakan tersendiri yang melepas tempat tidur seketika. Dirinci pada `RWI-RULE-036` |
-| `RWI-OQ-042` | Apakah satu pasien boleh punya dua episode rawat inap aktif sekaligus | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-054` — dilarang untuk status `Admitted` dan `DischargePending`; `Draft` hanya diberi peringatan. Dirinci pada `RWI-RULE-035` |
-| `RWI-OQ-043` | Apakah resume pulang perlu menyimpan riwayat versi | `LATER SLICE` | `TERTUTUP` oleh `RWI-DEC-057` — ya, tetapi hanya versi yang sudah ditandatangani |
-| `RWI-OQ-039` | Aturan klinis pasien meninggal dan pasien kabur: siapa mencatat, dokumen wajib, apakah resume tetap wajib, kapan bed dilepas, dan pelaporannya | `DESIGN` | `DIJAWAB` oleh `RWI-DEC-059` dan dirinci pada `RWI-RULE-037`. **Tetap di luar MVP.** Menunggu pemilik klinis untuk menaikkannya ke `approved` |
-| `RWI-OQ-036` | Siapa yang bertanggung jawab mengisi data master tempat tidur dan kamar, dan kapan batasnya | Implementasi |
+| `RWI-OQ-035` | Berapa lama riwayat perubahan status disimpan. **Sudah dijawab** `RWI-DEC-060`, menunggu pemilik hukum | Slice berikutnya |
+| `RWI-OQ-038` | Isi minimal serah terima klinis antar shift. **Scope sudah tertutup** `RWI-DEC-058`; isinya menunggu pemilik klinis | Sign-off |
+| `RWI-OQ-039` | Aturan klinis pasien meninggal dan pasien kabur. **Sudah dijawab** `RWI-DEC-059`, menunggu pemilik klinis | Sign-off |
 
-Tidak satu pun dapat diselesaikan lewat wawancara maupun lewat delegasi `RWI-DEC-036` dan
-`RWI-DEC-044`, karena jawabannya adalah nama orang yang sungguh ada dan persetujuan pihak yang
-sungguh berwenang.
+**Seluruh butir organisasi sudah tertutup pada 2026-08-21** lewat `RWI-DEC-061` sampai
+`RWI-DEC-066`: pemilik berwenang ditunjuk, kepemilikan empat modul tetangga dinyatakan berada pada
+pemilik yang sama, penanggung jawab pengisian data master ditetapkan beserta target tanggalnya, dan
+aturan isolasi serta pemisahan jenis kelamin dikunci utuh.
+
+Tiga butir yang tersisa **sudah dijawab** tetapi jawabannya berada di area klinis dan hukum,
+sehingga belum dapat naik ke `approved`. Tidak satu pun memblokir desain maupun implementasi MVP;
+yang tertahan olehnya hanya kesiapan melayani pasien sungguhan.
 
 **Yang sudah dikerjakan per 2026-08-21:** audit kemampuan existing lewat `/qv-trace` selesai.
 Sembilan butir `RWI-TRC-001` sampai `RWI-TRC-009` terjawab seluruhnya, 44 kemampuan
@@ -106,17 +101,20 @@ mengubah blueprint**, sehingga blueprint wajib naik revision sebelum dipakai:
 `RWI-DEC-053` sengaja dipilih supaya **tidak** mengubah blueprint: riwayat lokasi tetap milik Rawat
 Inap, sehingga catatan penempatan dan seluruh kontrak yang sudah disusun tetap berlaku.
 
+**Blueprint sudah dinaikkan ke revision `2` pada 2026-08-21**, menyerap keempat perubahan Amendment
+Pass. Penanda STALE pada manifest dicabut, dan seluruh contract naik ke `0.2.0`.
+
+**Keempat pertanyaan memblokir sudah tertutup pada 2026-08-21** lewat `RWI-DEC-061` sampai
+`RWI-DEC-064`. Tiga dari empat gerbang implementasi dicabut; yang tersisa hanya kesiapan data master
+yang tertutup begitu datanya benar-benar terisi.
+
 **Yang harus dikerjakan berikutnya, urut:**
 
-1. `/qv-design` untuk menaikkan blueprint ke revision berikutnya, memasukkan empat perubahan dari
-   Amendment Pass di atas.
-2. Menjawab empat pertanyaan memblokir pada [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) bagian 20.2 —
-   nama pemilik berwenang, persetujuan pemilik `MasterData`, penanggung jawab pengisian data
-   master, dan keputusan isolasi serta jenis kelamin. Keempatnya tindakan organisasi, bukan
-   wawancara.
-3. Baru setelah itu `/qv-plan`.
-
-Blueprint **tidak boleh** diteruskan ke `/qv-plan` sebelum langkah 1 dan 2 selesai.
+1. `/qv-design` untuk menaikkan blueprint ke revision `3`, memasukkan aturan keras jenis kelamin
+   dan isolasi ke dalam Kelayakan Penempatan beserta atribut kebutuhan isolasi pada episode.
+2. `/hospital-domain-architect` untuk menyelaraskan arsitektur domain yang kini tertinggal dua
+   langkah. Tidak memblokir.
+3. Baru setelah butir 1 selesai, `/qv-plan`.
 
 Yang **belum** boleh dimulai adalah penulisan source code, karena empat gerbang implementasi masih
 terbuka — persetujuan pemilik empat modul tetangga, kesiapan data master, perbaikan tombol tempat
@@ -825,45 +823,108 @@ sudah `approved`.
 lagi, masih terbuka pada `OQ-RI-012`.
 
 
-### `RWI-RULE-012` — Pemisahan jenis kelamin dan isolasi — **BELUM FINAL**
+### `RWI-RULE-012` — Pemisahan jenis kelamin dan isolasi — **ATURAN KERAS**
 
-Dasar keputusan: `RWI-DEC-018`. Menjawab `RWI-OQ-017` dan `RWI-GAP-005`, tetapi **belum**
-berstatus `approved`. Baca peringatan di akhir bagian ini sebelum memakainya.
+Dasar keputusan: `RWI-DEC-064`, dilengkapi `RWI-DEC-065` dan `RWI-DEC-066`.
+**Menggantikan `RWI-DEC-018`** yang sebelumnya memilih keduanya hanya menjadi penyaring pencarian.
 
-Perilaku yang dipilih pemilik kebutuhan: mengikuti FR-RI-010 dan FR-RI-011 apa adanya.
+> **Perubahan arah pada 2026-08-21.** Sampai revisi sebelumnya, jenis kelamin dan isolasi hanya
+> menyaring hasil pencarian tempat tidur — sistem tetap **mengizinkan** penempatan yang bercampur.
+> Sejak `RWI-DEC-064`, keduanya menjadi **aturan yang menolak penempatan**. Ini keputusan
+> pengendalian infeksi dan privasi, diambil Muhammad Hamzah selaku pemilik berwenang.
 
-| Butir | Ketentuan |
-|---|---|
-| Jenis kelamin | **Bukan** aturan penolakan. Petugas boleh memasang penyaring jenis kelamin saat mencari tempat tidur, tetapi sistem tidak menolak penempatan yang mencampur laki-laki dan perempuan dalam satu kamar |
-| Isolasi | Sama. Penanda isolasi hanya dipakai sebagai penyaring pencarian, bukan sebagai syarat penempatan |
-| Yang benar-benar menolak penempatan | Hanya FR-RI-011, yaitu `IsActive = true` dan status ketersediaan tempat tidur |
-| Siapa yang bertanggung jawab atas kecocokan | Petugas yang menempatkan, bukan sistem |
+**Tujuan.** Sistem tidak boleh menempatkan pasien pada tempat tidur atau kamar yang secara klinis
+atau privasi tidak layak baginya, walaupun petugas memaksa.
 
-Contoh nyata:
+**Di mana aturan ini bekerja.** Di dalam pemeriksaan **Kelayakan Penempatan**, yang dipanggil pada
+dua tindakan: menempatkan pasien dan memindahkan pasien. Titik penyisipannya memang sudah disiapkan
+sejak arsitektur domain revision `0.1` untuk keperluan ini.
 
-> Pukul **23:40** IGD mengirim Ibu Sari untuk dirawat inap. Semua kamar perempuan penuh.
-> Petugas admisi mencari tempat tidur **tanpa** memasang penyaring jenis kelamin, menemukan
-> bed `MELATI-05` kosong di kamar yang sudah berisi dua pasien laki-laki, lalu menempatkan
-> Ibu Sari di sana. Sistem menerimanya tanpa penolakan dan tanpa peringatan.
+---
 
-Akibat yang tercatat:
+### Bagian A — Kebutuhan isolasi
 
-1. Sistem tidak mencegah pencampuran jenis kelamin dalam satu kamar.
-2. Sistem tidak mencegah pasien yang membutuhkan isolasi ditempatkan di kamar biasa yang sudah
-   berisi pasien lain. Kesalahan jenis kelamin masih bisa diperbaiki dengan memindahkan
-   pasien; penularan yang sudah terjadi tidak bisa ditarik kembali.
-3. Karena aturan ini tidak melarang apa pun, **tidak ada acceptance criteria** yang bisa
-   ditulis untuk mengujinya. Itu sebabnya bagian Acceptance Criteria tidak memuat baris untuk
-   `RWI-RULE-012`.
-4. Sebagai efek samping, bayi baru lahir yang dirawat gabung dengan ibunya (`RWI-GAP-011`)
-   tidak akan terbentur aturan jenis kelamin.
+**Di mana kebutuhan isolasi dicatat.** Pada **episode rawat inap**, bukan pada pasien dan bukan
+pada catatan klinis. Alasannya: kebutuhan isolasi melekat pada satu masa perawatan, bukan pada
+orangnya selamanya.
 
-> **PERINGATAN — aturan ini belum boleh dipakai melayani pasien sungguhan.** Isi keputusan ini
-> berada di dua area yang secara tegas dikecualikan oleh `RWI-DEC-006`, yaitu keputusan klinis
-> (pengendalian infeksi) dan keputusan privasi (pencampuran jenis kelamin). Pemegang sementara
-> **tidak berwenang** menutupnya. Status keputusan tetap `draft` sampai pemilik klinis dan
-> pemilik keamanan/privasi ditunjuk dan meninjau baris ini. Lihat Gate Sebelum Produksi.
+| No | Aturan |
+| ---: | --- |
+| 1 | Setiap episode punya penanda **membutuhkan isolasi**, bernilai tidak secara bawaan |
+| 2 | Keputusan klinisnya milik **DPJP**, dan dapat diperbarui kapan saja selama perawatan berjalan |
+| 3 | Pada admisi awal, petugas admisi **boleh merekam** nilainya berdasarkan instruksi atau keterangan dokter pengirim. Yang direkam petugas admisi ditandai sebagai **catatan awal**, bukan keputusan klinis |
+| 4 | Setelah episode aktif, hanya **DPJP aktif** yang boleh mengubahnya, dan perubahannya ditandai sebagai **keputusan klinis** |
+| 5 | Pasien yang membutuhkan isolasi **hanya boleh** ditempatkan pada tempat tidur bertanda isolasi. Penempatan lain ditolak |
+| 6 | Pasien yang **tidak** membutuhkan isolasi **tidak boleh** menempati tempat tidur isolasi, supaya kapasitas isolasi tidak terpakai sia-sia. Penempatan lain ditolak |
+| 7 | Bila kebutuhan isolasi berubah menjadi ya sementara pasien sudah berada di tempat tidur biasa, perubahan itu **tetap diterima**. Sistem tidak menahan pencatatan klinis. Episode itu muncul pada daftar pantau **penempatan tidak sesuai** sampai pasien dipindahkan |
 
+**Kenapa aturan nomor 3 dan 4 dipisah.** Petugas admisi sering menerima pasien rujukan dengan
+surat yang sudah menyebut kebutuhan isolasi, dan penempatan tidak boleh menunggu pengkajian klinis
+yang slice-nya masih di luar MVP. Tetapi merekam keterangan orang lain berbeda dari memutuskan
+secara klinis. Karena itu keduanya dibedakan penandanya, bukan disamakan.
+
+**Kenapa aturan nomor 7 tidak menahan.** Menahan pencatatan klinis demi menjaga aturan penempatan
+adalah urutan yang terbalik: yang benar adalah fakta klinis dicatat lebih dulu, lalu sistem
+menunjukkan bahwa penempatannya perlu dibetulkan.
+
+**Contoh konkret.**
+
+> Tn. Budi datang dari puskesmas dengan surat rujukan yang menyebut suspek penyakit menular. Pukul
+> 09:15 petugas admisi merekam "membutuhkan isolasi" sebagai catatan awal. Pencarian tempat tidur
+> otomatis hanya menampilkan tempat tidur isolasi, dan percobaan menempatkannya di `BD-RSMMC-00042`
+> yang bukan isolasi **ditolak**.
+>
+> Hari kedua, dr. Andi selaku DPJP menyatakan hasil pemeriksaan negatif dan mengubah penandanya
+> menjadi tidak membutuhkan isolasi. Perubahan itu ditandai keputusan klinis atas nama dr. Andi.
+> Tn. Budi kini justru **tidak boleh** tetap menempati tempat tidur isolasi, sehingga episodenya
+> muncul pada daftar pantau penempatan tidak sesuai sampai ia dipindahkan.
+
+---
+
+### Bagian B — Pemisahan jenis kelamin
+
+| No | Aturan |
+| ---: | --- |
+| 1 | Penempatan **ditolak** bila penanda tempat tidur tidak menerima jenis kelamin pasien |
+| 2 | Bila jenis kelamin pasien **belum tercatat**, penempatan hanya boleh ke tempat tidur yang menerima laki-laki dan perempuan sekaligus, **dan** ke kamar yang belum ada penghuninya |
+| 3 | **Seluruh kamar dianggap tidak boleh ditempati campur.** Penempatan ke kamar yang sudah punya penghuni berjenis kelamin berbeda **ditolak** |
+| 4 | Penghuni yang menempati **boks bayi** tidak dihitung saat memeriksa aturan nomor 3 |
+| 5 | Penempatan **ke** boks bayi dikecualikan dari aturan nomor 1, 2, dan 3 |
+| 6 | Kamar berisi satu tempat tidur tidak pernah tersentuh aturan nomor 3, karena tidak mungkin ada penghuni lain |
+| 7 | Aturan nomor 1 sampai 6 berlaku sama pada penempatan **dan** perpindahan |
+
+**Tidak ada kolom baru pada master kamar.** `RWI-DEC-066` secara tegas menolak menambah penanda
+"boleh campur" pada `MstRoom`. Alasannya: penanda `IsForMale` dan `IsForFemale` yang sudah ada
+bernilai benar secara bawaan untuk **setiap** kamar, sehingga menambah penanda ketiga hanya akan
+menambah cara baru untuk salah setel. Aturan nomor 3 dijalankan dengan memeriksa **penghuni yang
+sedang ada**, bukan dengan membaca penanda.
+
+**Kenapa aturan nomor 4 dan 5 dua arah.** Bayi laki-laki yang dirawat gabung di kamar ibunya tidak
+boleh membuat kamar itu tertutup bagi pasien perempuan lain, dan bayi itu sendiri tidak boleh
+ditolak hanya karena ibunya berjenis kelamin berbeda. Karena itu boks bayi dikecualikan dari kedua
+sisi pemeriksaan.
+
+**Contoh konkret.**
+
+> Kamar Melati 3 berisi tiga tempat tidur dan satu boks bayi. Pukul 08:00 Ny. Sari menempati
+> `MELATI-03-A`, dan bayinya menempati boks `BOX-MELATI-03-A`.
+>
+> Pukul 10:00 petugas mencoba menempatkan Tn. Budi di `MELATI-03-B`. **Ditolak**, karena kamar itu
+> sudah dihuni pasien perempuan. Bayi Ny. Sari tidak ikut dihitung, walaupun bayinya laki-laki.
+>
+> Pukul 10:30 petugas menempatkan Ny. Rina di `MELATI-03-B`. **Diterima**, karena sesama perempuan.
+
+---
+
+### Yang berubah dibanding revisi sebelumnya
+
+| Hal | Sebelum `RWI-DEC-064` | Sesudah |
+| --- | --- | --- |
+| Pasien butuh isolasi di kamar biasa | Diizinkan | **Ditolak** |
+| Kapasitas isolasi dipakai pasien biasa | Diizinkan | **Ditolak** |
+| Laki-laki dan perempuan sekamar | Diizinkan | **Ditolak**, kecuali boks bayi |
+| Peran penanda pada master | Hanya menyaring pencarian | Menolak penempatan |
+| Kebutuhan isolasi | Tidak tercatat di mana pun | Atribut episode, dengan pembeda catatan awal dan keputusan klinis |
 
 ### `RWI-RULE-013` — Pasien yang ditempatkan di kamar bukan haknya
 
@@ -1946,7 +2007,7 @@ menetapkan menu, route, tab, modal, warna, maupun tata letak berdasarkan seleran
 | `RWI-DEC-014` | Decision | Perpindahan adalah satu tindakan utuh: berhasil seluruhnya atau tidak ada yang berubah sama sekali. Pasien tidak pernah tercatat tanpa tempat tidur, sehingga INV-02 berlaku setiap saat. Urutan EPIC RI-09 dinyatakan tidak berlaku | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 10; menutup `RWI-CON-007`; dirinci pada `RWI-RULE-008` |
 | `RWI-DEC-015` | Decision | Kelayakan keuangan **memblokir** penutupan episode. Hanya `Cleared` yang membuka penutupan; `Pending`, `Blocked`, dan status yang belum ada sama-sama menahan. Supervisor boleh menutup dengan alasan wajib, dan episode itu ditandai serta masuk laporan tersendiri. Rumusan "tersedia" pada EPIC RI-10 dinyatakan tidak berlaku | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 11; menutup `RWI-CON-005` dan `OQ-RI-008`; dasar `RWI-FACT-007` dan `RWI-FACT-008`; dirinci pada `RWI-RULE-009` |
 | `RWI-DEC-016` | Decision | Keputusan pulang tetap milik DPJP sendiri. Penutupan episode dikerjakan petugas admisi atau Supervisor, dan hanya bisa berjalan bila kelima syarat penutupan terpenuhi. Frasa "sesuai SOP" pada baris `Close episode` diganti aturan tegas ini | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 12; menutup `RWI-CON-004` dan `OQ-RI-006`; dirinci pada `RWI-RULE-010` |
-| `RWI-DEC-018` | Decision | Pemisahan jenis kelamin dan isolasi **tetap berupa penyaring pencarian**, bukan aturan yang menolak penempatan. Sistem mengizinkan pasien laki-laki dan perempuan sekamar, dan mengizinkan pasien yang butuh isolasi ditempatkan di kamar biasa | Product/domain owner sementara | `draft` — **tidak dapat naik ke `approved`** | Belum di-approve. Berada di area klinis dan privasi yang dikecualikan `RWI-DEC-006` | Wawancara pertanyaan 14; menjawab `RWI-OQ-017` dan `RWI-GAP-005`; dasar `RWI-FACT-009`; dirinci pada `RWI-RULE-012` |
+| `RWI-DEC-018` | Decision | ~~Pemisahan jenis kelamin dan isolasi tetap berupa penyaring pencarian, bukan aturan yang menolak penempatan.~~ **`superseded` oleh `RWI-DEC-064` pada 2026-08-21.** Keduanya kini menjadi aturan keras yang menolak penempatan | Product/domain owner sementara | `superseded` | Digantikan `RWI-DEC-064` | Wawancara pertanyaan 14; digantikan setelah pemilik berwenang ditunjuk lewat `RWI-DEC-061` |
 | `RWI-DEC-019` | Decision | Pasien titipan **tidak masuk MVP**. Tidak ada kelas hak terpisah dan tidak ada penanda titipan; kelas tagihan tetap mengikuti kamar. Keringanan biaya diurus petugas billing di luar modul ini | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 15; menutup `RWI-OQ-016` dan `RWI-GAP-004`; dirinci pada `RWI-RULE-013` |
 | `RWI-DEC-020` | Decision | Bayi baru lahir masuk MVP dengan episode dan kunjungan sendiri, dan boks bayi didaftarkan sebagai tempat tidur tersendiri di kamar ibu. ICU tidak diberi aturan khusus; ICU diperlakukan sebagai unit layanan biasa | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 16; menutup `OQ-RI-010` dan `RWI-GAP-011`; dirinci pada `RWI-RULE-014` |
 | `RWI-DEC-021` | Decision | Keadaan tempat tidur diperiksa ulang saat admisi diaktifkan. Bila masih kosong, penempatan diteruskan tanpa peringatan walaupun pemesanan sudah gugur. Bila sudah diambil pasien lain, penempatan ditolak sementara episode tetap `Draft` dan seluruh isian admisi tetap utuh | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 17; menutup `RWI-OQ-024`; dirinci pada `RWI-RULE-015` |
@@ -1989,6 +2050,12 @@ menetapkan menu, route, tab, modal, warna, maupun tata letak berdasarkan seleran
 | `RWI-DEC-058` | Decision | Serah terima klinis antar shift keperawatan **tidak masuk MVP**. Alasannya bersebab: isi serah terima adalah keputusan klinis yang pemiliknya belum ditunjuk, dan slice dokumentasi klinis juga masih tertahan `DEC-INP-001` — serah terima tanpa dokumentasi klinis hanya akan setengah jalan. Pengganti selama MVP: riwayat perawat penanggung jawab sudah menjawab siapa yang bertanggung jawab pada waktu tertentu | Product/domain owner sementara | `approved` sebagai keputusan scope; **isi serah terima tetap terbuka secara klinis** | Pemegang sementara, 2026-08-21 — lewat delegasi `RWI-DEC-052` | Amendment Pass pertanyaan 6; menjawab bagian scope `RWI-OQ-038` dan `DEC-INP-006`; bagian isinya tetap terbuka. **Tidak mengubah blueprint** |
 | `RWI-DEC-059` | Decision | Usulan aturan pasien meninggal dan pasien kabur ditulis: pencatat, kewajiban resume, pelepasan tempat tidur lewat mekanisme kepergian fisik, dan dokumen tambahan. Kedua cara pulang **tetap di luar MVP** | Product/domain owner sementara | `draft` — **tidak dapat naik ke `approved`** | Belum di-approve. Area klinis, rekam medis, dan hukum yang dikecualikan `RWI-DEC-006` | Amendment Pass pertanyaan 7; menjawab `RWI-OQ-039` dan `DEC-INP-007`; dirinci pada `RWI-RULE-037`. **Tidak mengubah blueprint**, karena tetap di luar MVP |
 | `RWI-DEC-060` | Decision | Sampai pemilik hukum menetapkan angkanya, **tidak ada pengarsipan maupun penghapusan otomatis** atas riwayat status, riwayat penempatan, riwayat penanggung jawab, dan resume pulang. Seluruhnya disimpan apa adanya. Ini pilihan yang menahan diri, bukan penetapan masa simpan | Product/domain owner sementara | `draft` — **tidak dapat naik ke `approved`** | Belum di-approve. Keputusan hukum dan audit yang dikecualikan `RWI-DEC-006` | Amendment Pass pertanyaan 8; menjawab `RWI-OQ-035`. **Tidak mengubah blueprint** |
+| `RWI-DEC-061` | Decision | Pemilik kebutuhan yang menjalankan sesi ini menyatakan dirinya sebagai **pemilik yang berwenang menyetujui modul Rawat Inap**, menggantikan kedudukan "pemegang sementara". Sejak titik ini, kata "sementara" pada `RWI-DEC-006` tidak berlaku lagi | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-21. Jabatan formal belum diisi | Menutup `RWI-OQ-023` dan `RWI-DEC-037`. Men-`superseded` sebagian `RWI-DEC-006` pada bagian "sementara" |
+| `RWI-DEC-062` | Decision | Modul `ClinicalManagement`, `PharmacyManagement`, `MasterData` HealthServices, dan `EmergencyInstallationManagement` berada di bawah kepemilikan yang sama dengan pemilik pada `RWI-DEC-061`. Persetujuan atas seluruh perubahan lintas modul yang dituntut blueprint ini **diberikan** | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-21 | Menutup `RWI-OQ-032`, `RWI-OQ-033`, dan `RWI-OQ-034`. Mencabut tiga dari empat gerbang implementasi |
+| `RWI-DEC-063` | Decision | Pengisian dan validasi master kamar serta tempat tidur menjadi tanggung jawab **Admin Master Data / Tim Master Data**, dengan target selesai **22 Agustus 2026** | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-21 | Menutup `RWI-OQ-036`. Mencabut satu gerbang implementasi, dengan syarat target tanggalnya terpenuhi |
+| `RWI-DEC-064` | Decision | Pemisahan jenis kelamin dan isolasi diubah menjadi **aturan keras yang menolak penempatan**, dijalankan di dalam pemeriksaan Kelayakan Penempatan. Bagian jenis kelamin berbasis penanda tempat tidur sudah dapat dijalankan; bagian isolasi dan pencampuran sekamar belum, karena datanya tidak ada di sistem | Muhammad Hamzah | `approved` untuk arahnya; **sebagian belum dapat dijalankan** | Muhammad Hamzah, 2026-08-21 | Menutup `RWI-OQ-017`, `RWI-GAP-005`, dan `DEC-INP-004`. **Men-`superseded` `RWI-DEC-018`**. Memunculkan `RWI-OQ-044`. Dirinci pada `RWI-RULE-012` |
+| `RWI-DEC-065` | Decision | Kebutuhan isolasi menjadi **atribut episode rawat inap** dan dipakai di dalam Kelayakan Penempatan. Keputusan klinisnya milik DPJP dan dapat diperbarui selama perawatan. Pada admisi awal, petugas admisi boleh merekam nilainya berdasarkan keterangan dokter pengirim, ditandai sebagai catatan awal dan bukan keputusan klinis, supaya penempatan tidak menunggu pengkajian klinis yang slice-nya masih di luar MVP. Pasien yang butuh isolasi hanya boleh di tempat tidur isolasi, dan sebaliknya | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-21 | Menutup bagian isolasi pada `RWI-OQ-044` dan `DEC-INP-004A`; dirinci pada `RWI-RULE-012` bagian A. **Mengubah blueprint:** menambah kolom pada episode, satu enum, satu endpoint, dan satu daftar pantau |
+| `RWI-DEC-066` | Decision | Seluruh kamar dianggap **tidak boleh ditempati campur** laki-laki dan perempuan. Penempatan dan perpindahan ditolak bila kamar sudah punya penghuni berjenis kelamin berbeda. Penghuni boks bayi tidak dihitung, dan penempatan ke boks bayi dikecualikan. **Tidak** ditambahkan kolom boleh-campur pada `MstRoom` | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-21 | Menutup bagian jenis kelamin pada `RWI-OQ-044` dan `DEC-INP-004B`; dirinci pada `RWI-RULE-012` bagian B. **Mengubah blueprint:** menambah aturan pada Kelayakan Penempatan, tanpa kolom baru pada modul lain |
 | `RWI-DEC-017` | Decision | Diakui lima cara pulang: atas izin DPJP, atas permintaan sendiri, dirujuk, meninggal, dan kabur. Syarat penutupan menyesuaikan cara pulangnya, dan kelimanya sama-sama melepas tempat tidur. Baris meninggal dan kabur tetap **terbuka secara klinis** sesuai `RWI-DEC-006` | Product/domain owner sementara | `approved` untuk keputusan produk; **terbuka** untuk sisi klinis | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 13; menutup `RWI-OQ-013`, `RWI-OQ-014`, `RWI-GAP-001`, dan `RWI-GAP-002`; dirinci pada `RWI-RULE-011` |
 
 ---
@@ -2005,14 +2072,13 @@ tidak menghalangi penyusunan desain, tetapi menghalangi penulisan source code.
 | Gate | Keterangan |
 |---|---|
 | Clinical governance owner | Belum ditunjuk. Semua aturan klinis pada dokumen ini memakai praktik umum dan regulasi sebagai dasar, bukan persetujuan komite klinis. Termasuk batas waktu pengkajian awal, verifikasi CPPT oleh DPJP, aturan pasien meninggal, dan syarat pasien boleh pulang |
-| `RWI-RULE-012` — isolasi | **Gerbang keras.** `RWI-DEC-018` memilih isolasi tetap berupa penyaring pencarian, sehingga sistem mengizinkan pasien yang butuh isolasi ditempatkan di kamar biasa berisi pasien lain. Ini keputusan pengendalian infeksi dan wajib ditinjau pemilik klinis sebelum modul dipakai melayani pasien sungguhan |
-| `RWI-RULE-012` — jenis kelamin | **Gerbang keras.** `RWI-DEC-018` juga membuat sistem mengizinkan pasien laki-laki dan perempuan sekamar. Ini keputusan privasi dan wajib ditinjau pemilik keamanan/privasi |
+| `RWI-RULE-012` — isolasi dan jenis kelamin | **Sebagian dicabut 2026-08-21.** `RWI-DEC-064` mengubah keduanya menjadi aturan keras yang menolak penempatan, diputuskan pemilik berwenang. Bagian jenis kelamin berbasis penanda tempat tidur sudah dapat dijalankan. Yang **masih menjadi gerbang**: aturan isolasi dan pencampuran sekamar belum dapat dijalankan karena datanya tidak ada, lihat `RWI-OQ-044` |
 | `RWI-RULE-025` — persetujuan umum | **Gerbang keras.** `RWI-DEC-035` mewajibkan satu persetujuan umum tetapi tidak menahan admisi, sehingga ada jeda ketika pasien dirawat tanpa persetujuan tertulis. Ini keputusan privasi dan hukum, wajib ditinjau pemilik keamanan/privasi sebelum modul dipakai melayani pasien sungguhan |
 | `RWI-RULE-021` — batas waktu klinis | **Gerbang keras.** `RWI-DEC-029` menetapkan target 24 jam untuk pengkajian awal dan verifikasi CPPT, dan angka itu diambil dari praktik akreditasi yang lazim, bukan dari persetujuan komite klinis. Wajib ditinjau pemilik klinis sebelum modul dipakai melayani pasien sungguhan |
 | `RWI-RULE-037` — meninggal dan kabur | **Gerbang keras.** `RWI-DEC-059` menuliskan usulan aturan pasien meninggal dan pasien kabur, tetapi keduanya menyangkut rekam medis, pelaporan wajib, dan dokumen hukum. Wajib ditinjau pemilik klinis. Kedua cara pulang tetap di luar MVP sampai peninjauan itu selesai |
 | Security/privacy owner | Belum ditunjuk. Hak akses ke rekam medis rawat inap, penelusuran audit, dan aturan koreksi data harus disetujui pemiliknya |
-| Persetujuan pemilik modul tetangga | **Gerbang implementasi.** `RWI-RULE-026`, `RWI-RULE-027`, `RWI-RULE-029`, dan `RWI-DEC-046` menuntut perubahan pada empat modul berstatus `ACTIVE` yang bukan milik Rawat Inap: `ClinicalManagement`, `PharmacyManagement`, `MasterData`, dan `EmergencyInstallationManagement`. Desain boleh disusun, implementasi tidak boleh dimulai. Lihat `RWI-OQ-032`, `RWI-OQ-033`, dan `RWI-OQ-034` |
-| Kesiapan data master | **Gerbang implementasi.** Data tempat tidur, kamar, unit layanan, dan kelas pasien harus sudah terisi lewat layar aplikasi, bukan lewat perintah database. Sesuai `RWI-DEC-048`; penanggung jawabnya masih terbuka pada `RWI-OQ-036` |
+| ~~Persetujuan pemilik modul tetangga~~ | **DICABUT 2026-08-21** oleh `RWI-DEC-062`. Keempat modul berada di bawah kepemilikan yang sama, dan persetujuannya sudah diberikan |
+| Kesiapan data master | **Penanggung jawab sudah ditetapkan** `RWI-DEC-063`: Admin Master Data / Tim Master Data, target 22 Agustus 2026. Gerbang ini **tertutup begitu datanya benar-benar terisi**, bukan begitu penanggung jawabnya ditunjuk |
 | Perbaikan tombol tempat tidur | **Gerbang implementasi.** Tombol aktifkan dan nonaktifkan pada halaman detail tempat tidur hari ini memanggil endpoint yang tidak ada dan selalu gagal. Harus diperbaiki lebih dulu sesuai `RWI-DEC-049`, karena tanpa itu admin tidak dapat menutup tempat tidur yang sedang rusak |
 | Test regresi modul tetangga | **Gerbang implementasi.** Tidak ada satu pun test yang menjaga jalur poliklinik, IGD, dan farmasi hari ini, padahal keempat modul itu akan disentuh. Sesuai `RWI-DEC-051`, test regresi menjadi syarat selesainya setiap task yang menyentuh modul tetangga |
 | Registry lifecycle | Modul `InPatientManagement` masih `PLANNED`. Sesuai `RWI-FACT-002`, status ini hanya memberi hak penamaan, belum memberi izin implementasi, migration, atau database |
@@ -2154,6 +2220,18 @@ sengaja tidak dimasukkan.
 | `RWI-AC-125` | Mengubah resume yang sudah ditandatangani lewat sesi koreksi menyimpan salinan versi sebelumnya | `RWI-DEC-057` |
 | `RWI-AC-126` | Versi resume yang tersimpan tidak dapat diubah maupun dihapus | `RWI-DEC-057` |
 | `RWI-AC-127` | Riwayat lokasi satu episode terbaca lengkap dari catatan penempatan milik Rawat Inap, tanpa perlu membaca tabel milik modul Registrasi | `RWI-DEC-053` |
+| `RWI-AC-128` | Penempatan pasien perempuan ke tempat tidur yang hanya menerima laki-laki ditolak | `RWI-RULE-012` |
+| `RWI-AC-129` | Pasien yang jenis kelaminnya belum tercatat hanya dapat ditempatkan pada tempat tidur yang menerima keduanya, dan hanya ke kamar yang belum ada penghuninya | `RWI-RULE-012` |
+| `RWI-AC-130` | Penempatan ke kamar yang sudah dihuni pasien berjenis kelamin berbeda ditolak, disertai pesan yang menyebut kamarnya | `RWI-RULE-012` |
+| `RWI-AC-131` | Bayi pada boks bayi tidak menghalangi penempatan pasien lain di kamar yang sama, apa pun jenis kelaminnya | `RWI-RULE-012` |
+| `RWI-AC-132` | Penempatan bayi ke boks bayi di kamar ibunya berhasil walaupun jenis kelamin bayi berbeda dari ibunya | `RWI-RULE-012` |
+| `RWI-AC-133` | Perpindahan ke kamar yang sudah dihuni jenis kelamin berbeda ditolak, sama seperti penempatan | `RWI-RULE-012` |
+| `RWI-AC-134` | Pasien yang ditandai membutuhkan isolasi hanya dapat ditempatkan pada tempat tidur isolasi | `RWI-RULE-012` |
+| `RWI-AC-135` | Pasien yang tidak membutuhkan isolasi ditolak saat ditempatkan pada tempat tidur isolasi | `RWI-RULE-012` |
+| `RWI-AC-136` | Petugas admisi dapat merekam kebutuhan isolasi saat episode masih `Draft`, dan nilainya tertandai sebagai catatan awal | `RWI-RULE-012` |
+| `RWI-AC-137` | Setelah episode aktif, hanya DPJP aktif yang dapat mengubah kebutuhan isolasi, dan perubahannya tertandai sebagai keputusan klinis | `RWI-RULE-012` |
+| `RWI-AC-138` | Mengubah kebutuhan isolasi menjadi ya saat pasien berada di tempat tidur biasa tetap diterima, dan episode itu muncul pada daftar pantau penempatan tidak sesuai | `RWI-RULE-012` |
+| `RWI-AC-139` | Percobaan mengubah kebutuhan isolasi oleh dokter yang bukan DPJP aktif ditolak | `RWI-RULE-012` |
 
 ---
 
@@ -2204,6 +2282,14 @@ sengaja tidak dimasukkan.
 | `RWI-OQ-035` | Berapa lama baris riwayat perubahan status episode wajib disimpan sebelum boleh diarsipkan, dan siapa yang berwenang menyetujuinya | `LATER SLICE` | `DIJAWAB` oleh `RWI-DEC-060` — sampai angkanya ditetapkan, tidak ada pengarsipan maupun penghapusan otomatis sama sekali. Menunggu pemilik hukum untuk menaikkannya ke `approved` |
 | `RWI-OQ-034` | Siapa pemilik modul `EmergencyInstallationManagement`, dan apakah pemilik itu menyetujui serah terima IGD ke rawat inap yang dituntut `RWI-RULE-029`, termasuk menjalankan penanda `ClosesEmergencyVisit` yang selama ini tidak pernah dipakai | `IMPLEMENTATION` | `TERBUKA` — tindakan organisasi. Desain boleh berjalan, implementasi tidak boleh dimulai sebelum persetujuan ini ada |
 | `RWI-OQ-033` | Siapa pemilik modul `MasterData` HealthServices, dan apakah pemilik itu menyetujui pembatasan endpoint `/beds/{id}/availability` yang dituntut `RWI-RULE-027` | `IMPLEMENTATION` | `TERBUKA` — tindakan organisasi. Desain boleh berjalan, implementasi tidak boleh dimulai sebelum persetujuan ini ada |
+| `RWI-OQ-037` | Siapa pemilik pengiriman data rawat inap ke SATUSEHAT, data apa yang wajib dikirim, kapan dipicu, dan di mana riwayat lokasi pasien disimpan | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-053` untuk bagian **kepemilikan data**: riwayat lokasi tetap milik Rawat Inap. Bagian isi kiriman dan pemicunya tetap di luar MVP dan menunggu pemilik integrasi |
+| `RWI-OQ-038` | Apakah serah terima klinis antar shift keperawatan wajib direkam sistem, dan apa isi minimalnya | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-058` untuk bagian **scope**: tidak masuk MVP. Bagian **isi** serah terima tetap terbuka dan menunggu pemilik klinis |
+| `RWI-OQ-039` | Aturan klinis pasien meninggal dan pasien kabur: siapa mencatat, dokumen wajib, apakah resume tetap wajib, kapan bed dilepas, dan pelaporannya | `DESIGN` | `DIJAWAB` oleh `RWI-DEC-059` dan dirinci pada `RWI-RULE-037`. **Tetap di luar MVP.** Menunggu pemilik klinis untuk menaikkannya ke `approved` |
+| `RWI-OQ-040` | Apakah sistem perlu menyimpan penanda bahwa seorang bayi dirawat gabung dengan ibunya | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-056` — ya, berupa satu rujukan opsional pada episode bayi |
+| `RWI-OQ-041` | Apakah kepergian fisik pasien dicatat sebagai kejadian tersendiri sehingga tempat tidur dapat dilepas lebih awal | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-055` — ya, sebagai tindakan tersendiri yang melepas tempat tidur seketika. Dirinci pada `RWI-RULE-036` |
+| `RWI-OQ-042` | Apakah satu pasien boleh punya dua episode rawat inap aktif sekaligus | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-054` — dilarang untuk status `Admitted` dan `DischargePending`; `Draft` hanya diberi peringatan. Dirinci pada `RWI-RULE-035` |
+| `RWI-OQ-044` | Di mana kebutuhan isolasi dicatat dan siapa menetapkannya; bagaimana membedakan kamar yang boleh ditempati campur | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-065` dan `RWI-DEC-066` — kebutuhan isolasi menjadi atribut episode; seluruh kamar dianggap tidak boleh campur tanpa kolom baru |
+| `RWI-OQ-043` | Apakah resume pulang perlu menyimpan riwayat versi | `LATER SLICE` | `TERTUTUP` oleh `RWI-DEC-057` — ya, tetapi hanya versi yang sudah ditandatangani |
 
 ### Blocker desain saat ini
 
@@ -2301,6 +2387,9 @@ Hal berikut **sudah bukan** blocker:
 
 | Tanggal | Pass | Ringkasan |
 |---|---|---|
+| 2026-08-21 | Penutupan `RWI-OQ-044` | Dua sub-keputusan yang melengkapi aturan keras jenis kelamin dan isolasi ditutup. Kebutuhan isolasi ditetapkan sebagai atribut episode rawat inap, keputusan klinisnya milik DPJP dan dapat diperbarui selama perawatan, sedangkan petugas admisi hanya boleh merekam catatan awal berdasarkan keterangan dokter pengirim supaya penempatan tidak menunggu slice dokumentasi klinis (`RWI-DEC-065`). Seluruh kamar dianggap tidak boleh ditempati campur, diperiksa dari penghuni yang sedang ada dan bukan dari penanda master, tanpa menambah kolom apa pun pada `MstRoom`; penghuni boks bayi dikecualikan dari kedua sisi pemeriksaan (`RWI-DEC-066`). `RWI-RULE-012` ditulis ulang penuh menjadi dua bagian, 12 acceptance criteria baru ditulis, dan nama pemilik berwenang diisi menjadi Muhammad Hamzah menggantikan penanda akun |
+| 2026-08-21 | Penutupan butir organisasi | Empat butir yang selama ini hanya dapat diselesaikan lewat tindakan organisasi ditutup. Pemilik berwenang ditunjuk menggantikan pemegang sementara (`RWI-DEC-061`), sehingga kata "sementara" pada `RWI-DEC-006` tidak berlaku lagi. Kepemilikan `ClinicalManagement`, `PharmacyManagement`, `MasterData`, dan `EmergencyInstallationManagement` dinyatakan berada pada pemilik yang sama beserta persetujuannya (`RWI-DEC-062`), mencabut tiga gerbang implementasi sekaligus. Penanggung jawab pengisian data master ditetapkan beserta target 22 Agustus 2026 (`RWI-DEC-063`). Pemisahan jenis kelamin dan isolasi **diubah menjadi aturan keras** yang menolak penempatan (`RWI-DEC-064`), men-`superseded` `RWI-DEC-018` dan menulis ulang `RWI-RULE-012`. Ditemukan bahwa bagian isolasi **belum dapat dijalankan** karena tidak ada satu pun kolom di source yang mencatat kebutuhan isolasi seorang pasien; dicatat sebagai `RWI-OQ-044`. Butir terbuka turun dari delapan menjadi empat, dan tidak satu pun memblokir desain maupun implementasi MVP |
+| 2026-08-21 | Business module blueprint revision 2 | Empat keputusan Amendment Pass diserap ke blueprint. Satu tabel baru `InpDischargeSummaryRevision`, tiga kolom baru pada `InpEpisode` yaitu waktu kepergian, pencatat kepergian, dan rujukan episode ibu; satu nilai enum baru `PatientDeparted`; satu endpoint baru pencatatan kepergian; satu invariant baru `INV-INP-10` beserta unique index parsial keempat; dan `INV-INP-01` dilonggarkan untuk episode yang pasiennya sudah pergi. Enam functional requirement baru `FR-RI-148` s.d. `FR-RI-153`, lima skenario UAT baru, 23 skenario acceptance test baru. Tidak ada kemampuan `MUST HAVE` yang dicabut, tidak ada epic baru, dan tidak ada gelombang pengiriman yang bergeser. Seluruh contract naik ke `0.2.0`. Manifest naik ke revision `2` dan penanda STALE dicabut. Satu artefak hulu dicatat tertinggal, yaitu arsitektur domain revision `0.1` |
 | 2026-08-21 | Amendment pass revision 3 | Delapan butir terbuka ditangani. Pemilik kebutuhan kembali mendelegasikan seluruh jawaban kepada rekomendasi agent (`RWI-DEC-052`), dan delegasi itu dinyatakan **tidak berlaku surut maupun ke pass berikutnya**. Lima butir tertutup penuh: riwayat lokasi tetap milik Rawat Inap sehingga blueprint tidak perlu dibongkar (`RWI-DEC-053`), satu pasien satu episode aktif (`RWI-DEC-054`), kepergian fisik pasien melepas tempat tidur lebih awal (`RWI-DEC-055`), penanda rawat gabung bayi (`RWI-DEC-056`), dan riwayat versi resume (`RWI-DEC-057`). Tiga butir dijawab tetapi **tidak dapat naik ke `approved`**: scope serah terima antar shift tertutup sedangkan isinya tetap klinis (`RWI-DEC-058`), aturan meninggal dan kabur (`RWI-DEC-059`), dan masa simpan riwayat (`RWI-DEC-060`). `RWI-RULE-035`, `RWI-RULE-036`, dan `RWI-RULE-037` ditulis; dua belas acceptance criteria baru; satu baris gerbang keras baru. **Empat keputusan mengubah blueprint**, sehingga blueprint wajib naik revision lewat `/qv-design` sebelum dipakai |
 | 2026-08-21 | Business module blueprint | Blueprint modul disusun untuk sembilan slice yang lolos arsitektur domain, menghasilkan 13 berkas canonical pada folder ini beserta [`blueprint-manifest.md`](./blueprint-manifest.md) revision `1` berstatus `draft`. Isi utamanya: dua bounded context, satu aggregate root `InpEpisode`, dua belas tabel baru berawalan `Inp` dan `MstInpatient`, **nol perubahan kolom** pada tabel milik modul lain, 13 epic `EPIC RI-21` s.d. `RI-33`, 47 functional requirement `FR-RI-101` s.d. `FR-RI-147`, 23 skenario UAT, dan 82 skenario acceptance test yang 28 di antaranya jalur gagal. Satu-satunya perubahan pada modul lain bersifat perilaku, yaitu `PATCH /beds/{id}/availability` menolak nilai terisi dan dipesan. Urutan pengiriman disusun sebagai lima gelombang `MVP-0` s.d. `MVP-4`; delapan kemampuan yang ditunda seluruhnya berada di `POST-MVP` dan tidak satu pun masuk gelombang. Empat pertanyaan ditandai memblokir sebelum development lock |
 | 2026-08-21 | Hospital domain architecture | Arsitektur domain disusun untuk sembilan slice yang lolos gerbang requirement, menghasilkan [`evidence/03-hospital-domain-architecture.md`](./evidence/03-hospital-domain-architecture.md) revision `0.1` berstatus `draft`. Kesiapan `DOMAIN_ARCHITECTURE_PARTIAL`. Dua bounded context ditetapkan, 14 konsep dimiliki Rawat Inap, 10 konsep dipakai ulang tanpa duplikasi, 8 konsep ditolak beserta alasannya, dan sepuluh invariant dinyatakan. Dua ketegangan diselesaikan secara arsitektur tanpa mengubah keputusan bisnis: pemesanan tempat tidur yang gugur membuat episode `Draft` boleh hidup tanpa pemesanan (`INV-INP-09`), dan pembukaan kembali episode dimodelkan sebagai sesi koreksi supaya tidak melanggar `RWI-DEC-009` yang mengunci lima status. Tujuh gap arsitektur dicatat; empat di antaranya dikembalikan ke wawancara sebagai `RWI-OQ-040` s.d. `RWI-OQ-043` |

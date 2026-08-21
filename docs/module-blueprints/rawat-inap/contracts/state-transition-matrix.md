@@ -3,10 +3,10 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.1.0` |
+| `contract_version` | `0.2.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | `00-interview-decisions.md` revision `2`; `evidence/03-hospital-domain-architecture.md` revision `0.1` |
+| `input_revision` | `00-interview-decisions.md` revision `3`; `evidence/03-hospital-domain-architecture.md` revision `0.1` |
 | Dampak kompatibilitas | Seluruhnya baru. Tidak ada state machine existing yang berubah |
 
 Dokumen ini memuat perpindahan yang **sah** dan perpindahan yang **tidak sah**. Keduanya sama
@@ -29,6 +29,7 @@ Status awal: `Draft`. Status akhir: `Closed` dan `Cancelled`.
 | `Admitted` | Batalkan admisi | `Cancelled` | Supervisor atau kepala ruangan | Belum ada catatan klinis; alasan wajib | 422 bila sudah ada catatan klinis |
 | `Admitted` | Pindahkan pasien | `Admitted` | Kepala ruangan, perawat pelaksana, supervisor, atau DPJP aktif | Tempat tidur tujuan lolos Kelayakan Penempatan; alasan wajib | 409 bila tempat tidur tujuan terisi; 403 bila dokter bukan DPJP aktif |
 | `Admitted` | Putuskan pasien boleh pulang | `DischargePending` | **DPJP aktif** | Cara pulang dipilih | 403 bila bukan DPJP aktif; 400 bila cara pulang kosong |
+| `DischargePending` | **Catat kepergian fisik pasien** | `DischargePending` — **status tidak berubah** | Petugas admisi, perawat, kepala ruangan, supervisor | Kepergian belum pernah dicatat | 409 bila sudah pernah dicatat |
 | `DischargePending` | Tutup episode | `Closed` | Petugas admisi | Kelima syarat penutupan terpenuhi | 422 disertai daftar syarat yang belum terpenuhi |
 | `DischargePending` | Tutup menembus gerbang keuangan | `Closed` | **Supervisor** | Empat syarat selain kelayakan keuangan terpenuhi; alasan wajib | 422 bila ada syarat lain yang belum terpenuhi; 403 bila bukan supervisor |
 | `Closed` | Buka sesi koreksi | `Closed` | **Supervisor** | Alasan wajib; tidak ada sesi lain yang masih terbuka | 409 bila sudah ada sesi terbuka |
@@ -41,6 +42,9 @@ Status awal: `Draft`. Status akhir: `Closed` dan `Cancelled`.
 | `Draft` | Tutup episode | Sama seperti di atas | 422 | "Episode belum berjalan, jadi belum dapat ditutup." |
 | `Admitted` | Tutup episode langsung | Keputusan pulang milik DPJP dan tidak boleh dilewati | 422 | "Episode hanya dapat ditutup setelah DPJP menyatakan pasien boleh pulang." |
 | `DischargePending` | Pindahkan pasien | Pasien sudah diputuskan pulang; perpindahan akan mengaburkan lokasi terakhir | 422 | "Pasien sudah diputuskan boleh pulang, sehingga tidak dapat dipindahkan lagi." |
+| `DischargePending` yang kepergiannya sudah dicatat | Catat kepergian lagi | Kepergian fisik terjadi paling banyak sekali per episode | 409 | "Kepergian pasien sudah dicatat pada pukul 10:15." |
+| `DischargePending` yang kepergiannya sudah dicatat | Batalkan pencatatan kepergian | Tidak disediakan. Pasien yang ternyata belum jadi pulang menjalani admisi baru | 404 | Endpoint tidak ada |
+| `Admitted` | Catat kepergian fisik | Pasien belum diputuskan boleh pulang | 422 | "Kepergian hanya dapat dicatat setelah DPJP menyatakan pasien boleh pulang." |
 | `DischargePending` | Kembali ke `Admitted` | Membatalkan keputusan pulang bukan perpindahan status, melainkan koreksi | 422 | "Keputusan pulang tidak dapat dibatalkan. Hubungi supervisor untuk koreksi." |
 | `DischargePending` | Batalkan admisi | Pembatalan hanya untuk admisi yang tidak jadi berjalan, bukan untuk episode yang sudah selesai dirawat | 422 | "Episode yang sudah diputuskan pulang tidak dapat dibatalkan." |
 | `Closed` | Tempatkan pasien, pindahkan, atau putuskan pulang | Episode sudah berakhir. Pasien yang kembali dirawat mendapat episode baru | 409 | "Episode sudah ditutup. Pasien yang kembali dirawat memerlukan admisi baru." |
@@ -104,11 +108,34 @@ Status awal: `Aktif`, yaitu `EndDateTime` kosong. Status akhir: `Berakhir`.
 | --- | --- | --- | --- | --- |
 | — | Pasien menempati | `Aktif` | Penempatan atau perpindahan | `MstBed.BedStatus` menjadi `Occupied` |
 | `Aktif` | Pasien pindah | `Berakhir`, `EndReason = Transfer` | Perpindahan | Penempatan baru dibuka; tempat tidur lama menjadi `Available` |
+| `Aktif` | Kepergian fisik pasien dicatat | `Berakhir`, `EndReason = PatientDeparted` | Pencatatan kepergian | Tempat tidur menjadi `Available`. **Status episode tidak berubah** |
 | `Aktif` | Episode ditutup | `Berakhir`, `EndReason = EpisodeClosed` | Penutupan | Tempat tidur menjadi `Available` |
 | `Aktif` | Admisi dibatalkan | `Berakhir`, `EndReason = AdmissionCancelled` | Pembatalan | Tempat tidur menjadi `Available` |
 
-**Tidak ada satu pun jalur** yang menutup penempatan tanpa menutup atau memindahkan episodenya.
-Inilah bentuk nyata `INV-INP-01` dan `INV-INP-07`.
+Sejak `contract_version` `0.2.0` ada **satu** jalur yang menutup penempatan tanpa mengubah status
+episode, yaitu pencatatan kepergian fisik pasien. Ini pelonggaran `INV-INP-01` yang disengaja dan
+hanya berlaku untuk episode `DischargePending`, sesuai `RWI-DEC-055`.
+
+Di luar jalur itu, tidak ada satu pun cara menutup penempatan tanpa menutup atau memindahkan
+episodenya. `INV-INP-07` tetap berlaku utuh: pasien yang masih dirawat tidak pernah tercatat tanpa
+tempat tidur.
+
+## 3A. Kehadiran pasien — `INV-INP-10`
+
+Ini bukan status yang disimpan, melainkan keadaan yang diturunkan. Dipakai menegakkan aturan satu
+pasien satu episode.
+
+| Keadaan | Artinya | Menghalangi admisi baru pasien yang sama |
+| --- | --- | :---: |
+| Episode `Draft` | Admisi sedang disiapkan, pasien belum tentu ada | Tidak. Hanya memunculkan peringatan |
+| Episode `Admitted` | Pasien berada di ruangan | **Ya** |
+| Episode `DischargePending`, kepergian belum dicatat | Pasien masih berada di ruangan | **Ya** |
+| Episode `DischargePending`, kepergian sudah dicatat | Pasien sudah pulang, tinggal urusan administrasi | Tidak |
+| Episode `Closed` atau `Cancelled` | Selesai | Tidak |
+
+Baris keempat itulah alasan batasnya kepergian fisik, bukan penutupan: pasien yang sudah pulang
+pukul 10:15 dan kembali dengan keluhan baru pukul 12:00 tidak boleh tertahan hanya karena episode
+lamanya baru ditutup pukul 13:10.
 
 ---
 
@@ -142,7 +169,7 @@ belum ditutup.
 | Belum ditandatangani | Ubah isi | Belum ditandatangani | DPJP aktif | Episode belum `Closed` |
 | Belum ditandatangani | Tandatangani | Tertandatangani | **DPJP aktif** | Isi wajib sesuai cara pulang sudah lengkap |
 | Tertandatangani | Ubah isi | Tertandatangani | DPJP aktif | Hanya selama episode belum `Closed`. Tanda tangan diperbarui |
-| Tertandatangani | Ubah isi setelah episode `Closed` | Tertandatangani | Supervisor | **Hanya** bila ada sesi koreksi terbuka |
+| Tertandatangani | Ubah isi setelah episode `Closed` | Tertandatangani, **versi lama disalin** | Supervisor | **Hanya** bila ada sesi koreksi terbuka |
 
 ### 5.1 Perpindahan yang **tidak sah**
 
@@ -150,6 +177,7 @@ belum ditutup.
 | --- | --- | ---: |
 | Dokter yang bukan DPJP aktif menandatangani | `RWI-RULE-032` aturan 4 | 403 |
 | Membuat resume kedua untuk episode yang sama | `INV-INP-05` | 409 |
+| Mengubah atau menghapus salinan versi resume yang tersimpan | `RWI-DEC-057` — salinan versi tidak dapat diubah | 404 |
 | Menandatangani sementara cara pulang `Referred` tetapi tujuan rujukan kosong | `RWI-RULE-032` aturan 5 | 400 |
 
 ---
@@ -186,4 +214,7 @@ keenam, dan yang membuat `RWI-DEC-009` serta `RWI-AC-004` tidak dilanggar.
 | Kelayakan keuangan | `RWI-RULE-009`, `RWI-RULE-028`, `RWI-DEC-015`, `RWI-DEC-040` |
 | Resume pulang | `RWI-RULE-032`, `RWI-DEC-045` |
 | Sesi koreksi | `RWI-RULE-020`, `RWI-DEC-028`, arsitektur domain bagian G.4 |
+| Kepergian fisik pasien | `RWI-RULE-036`, `RWI-DEC-055` |
+| Kehadiran pasien dan satu episode aktif | `RWI-RULE-035`, `RWI-DEC-054` |
+| Versi resume pulang | `RWI-DEC-057` |
 | Kewenangan DPJP | `RWI-RULE-030`, `RWI-DEC-042` |

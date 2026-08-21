@@ -7,13 +7,24 @@
 | Produk | Quilvian Hospital Information System |
 | Modul | Rawat Inap — `InPatientManagement`, prefix entity `Inp`, lifecycle registry `PLANNED` |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.1.0` |
+| `contract_version` | `0.2.0` |
 | Status | `draft` — **belum disetujui manusia** |
 | Repository target | `NewQuilvianSystemBackend` dan `QuilvianSystemFrontendDev` |
 | Backend SHA baseline | `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
 | Frontend SHA baseline | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
-| Masukan | `02-backend-architecture.md` rev `0.1`; seluruh `contracts/` rev `0.1.0`; `erd/` rev `0.1`; `evidence/03-hospital-domain-architecture.md` rev `0.1` (`DOMAIN_ARCHITECTURE_PARTIAL`) |
+| Masukan | `02-backend-architecture.md` rev `0.2`; seluruh `contracts/` rev `0.2.0`; `erd/` rev `0.2`; `00-interview-decisions.md` rev `3`; `evidence/03-hospital-domain-architecture.md` rev `0.1` (`DOMAIN_ARCHITECTURE_PARTIAL`) |
 | Ringkasan cakupan | Satu pasien dapat dirawat inap dari admisi sampai episode ditutup dan tempat tidur kembali kosong, tanpa dokumentasi klinis, tanpa resep, dan tanpa jalur masuk IGD |
+
+**Perubahan pada `contract_version` `0.2.0`.** Empat keputusan Amendment Pass 2026-08-21 masuk ke
+dokumen ini. Tidak ada kemampuan `MUST HAVE` yang dicabut dan tidak ada epic baru; keempatnya
+menempel pada epic yang sudah ada.
+
+| Keputusan | Masuk ke |
+| --- | --- |
+| `RWI-DEC-054` satu pasien satu episode | `EPIC RI-23`, `FR-RI-148` |
+| `RWI-DEC-055` kepergian fisik pasien | `EPIC RI-28`, `FR-RI-149` s.d. `FR-RI-151` |
+| `RWI-DEC-056` hubungan bayi dan ibu | `EPIC RI-33`, `FR-RI-152` |
+| `RWI-DEC-057` versi resume pulang | `EPIC RI-27`, `FR-RI-153` |
 
 **Penomoran.** Dokumen ini memakai rentang nomor **baru** — `EPIC RI-21` ke atas, `FR-RI-101` ke
 atas — supaya tidak mendaur ulang nomor yang sudah dipakai PRD asli (`docs/Modul-RS/PRD-Modul-Rawat-Inap.md`)
@@ -145,6 +156,10 @@ sampai akhir?* dan *kalau tidak bisa, apakah ada jalan sementara yang aman dan t
 | Daftar periksa administrasi | `RWI-CAP-028` | Wajib; syarat penutupan episode |
 | Kelayakan keuangan | `RWI-CAP-027` | Wajib; syarat penutupan episode. Sumbernya penandaan manual, lihat bagian 15 |
 | Penutupan episode dan pelepasan tempat tidur | `RWI-CAP-029` | Wajib; tanpa ini tempat tidur tidak pernah kembali kosong |
+| Pencatatan kepergian fisik pasien | `RWI-CAP-029` | Wajib; tanpa ini tempat tidur tertahan berjam-jam setelah pasien pulang. Ditambahkan pada `0.2.0` |
+| Satu pasien satu episode aktif | `RWI-CAP-008` | Wajib; tanpa ini satu pasien bisa tercatat dirawat di dua tempat. Ditambahkan pada `0.2.0` |
+| Riwayat versi resume pulang | `RWI-CAP-025` | Wajib; koreksi resume adalah amandemen rekam medis dan harus dapat ditelusuri. Ditambahkan pada `0.2.0` |
+| Penanda bayi dirawat gabung dengan ibunya | `RWI-CAP-032` | Wajib; menyangkut kepastian identitas. Ditambahkan pada `0.2.0` |
 | Sesi koreksi episode | `RWI-CAP-030` | Wajib; tanpa ini kesalahan cara pulang tidak dapat dibetulkan sama sekali |
 | Riwayat status episode | `RWI-CAP-037` | Wajib; sumber data laporan pengecualian dan daftar pantau |
 | Daftar pantau | `RWI-CAP-039` | Wajib; dua dari tiga daftar tersedia pada MVP |
@@ -190,9 +205,10 @@ Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 10. DPJP menyusun resume pulang lalu menandatanganinya.
 11. Petugas admisi menandai butir daftar periksa administrasi.
 12. Petugas kasir menandai kelayakan keuangan `Cleared` disertai catatan.
-13. Petugas admisi menutup episode. Episode menjadi `Closed`, penempatan ditutup, tempat tidur kembali `Available`.
-14. Bila kelayakan keuangan belum `Cleared` sementara pasien harus segera pulang, supervisor menutup episode disertai alasan. Episode ditandai dan masuk laporan pengecualian.
-15. Bila kemudian ditemukan kesalahan catatan, supervisor membuka sesi koreksi, membetulkan, lalu menutup sesinya. Status episode tetap `Closed` sepanjang sesi.
+13. Keluarga menjemput dan pasien meninggalkan kamar. Petugas ruangan mencatat kepergiannya. Tempat tidur **langsung bebas** dan boleh dipesan pasien berikutnya, walaupun episodenya belum ditutup.
+14. Petugas admisi menutup episode. Episode menjadi `Closed`.
+15. Bila kelayakan keuangan belum `Cleared` sementara pasien harus segera pulang, supervisor menutup episode disertai alasan. Episode ditandai dan masuk laporan pengecualian.
+16. Bila kemudian ditemukan kesalahan catatan, supervisor membuka sesi koreksi, membetulkan, lalu menutup sesinya. Status episode tetap `Closed` sepanjang sesi, dan versi resume sebelumnya tersimpan.
 
 ---
 
@@ -267,6 +283,17 @@ Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 > **`FR-RI-112` — Penolakan penempatan tidak menghapus isian admisi**
 > **Contoh:** penempatan ditolak karena tempat tidur diambil pasien lain. Episode tetap `Draft`,
 > dan penjamin, DPJP, serta kelas yang sudah diisi tetap tersimpan.
+
+> **`FR-RI-148` — Satu pasien satu episode yang benar-benar hadir**
+> Sistem menolak menempatkan pasien yang sudah punya episode berjalan.
+> **Contoh:** Tn. Budi sedang dirawat di Melati 3B. Pukul 14:00 petugas lain mencoba
+> menempatkannya di Anggrek 1A karena mengira ia pasien baru. Ditolak dengan pesan "Tn. Budi sudah
+> dirawat pada episode RI-2026-09-000123 di Melati 3B" dan kode 409, sehingga petugas langsung tahu
+> bahwa yang dibutuhkan adalah perpindahan.
+>
+> Sebaliknya, bila Tn. Budi sudah pulang pukul 10:15 dan kepergiannya sudah dicatat, lalu ia
+> kembali pukul 12:00 dengan keluhan baru, admisi barunya **diterima** walaupun episode lama belum
+> ditutup.
 
 ### `EPIC RI-24` — Census dan lama dirawat
 
@@ -346,6 +373,12 @@ Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 > **`FR-RI-128` — Resume terkunci setelah episode ditutup**
 > **Contoh:** percobaan mengubah resume episode `Closed` tanpa sesi koreksi ditolak dengan kode 409.
 
+> **`FR-RI-153` — Perubahan resume yang sudah ditandatangani menyimpan versi lamanya**
+> **Contoh:** resume Ibu Sari ditandatangani dr. Andi 15 Agustus dengan cara pulang "kabur". Pada
+> 17 Agustus supervisor membuka sesi koreksi dan mengubahnya menjadi "atas permintaan sendiri".
+> Sistem menyimpan salinan versi 15 Agustus lengkap dengan isi dan nama penandatangan lamanya.
+> Menyunting resume yang **belum** ditandatangani tidak membuat versi apa pun.
+
 ### `EPIC RI-28` — Daftar periksa, kelayakan keuangan, dan penutupan
 
 **Tujuan:** episode hanya dapat ditutup bila kelima syaratnya benar-benar terpenuhi.
@@ -370,6 +403,21 @@ Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 > **`FR-RI-133` — Butir daftar periksa yang dinonaktifkan tidak lagi menahan penutupan**
 > **Contoh:** admin menonaktifkan butir `DISCHARGE-MED`. Episode berikutnya dapat ditutup tanpa
 > menandai butir itu, dan penandaan lama tetap tersimpan.
+
+> **`FR-RI-149` — Kepergian fisik pasien melepas tempat tidur seketika**
+> **Contoh:** Tn. Budi diputuskan boleh pulang pukul 09:20. Keluarga menjemput dan ia meninggalkan
+> kamar pukul 10:15; perawat mencatatnya. Bed `BD-RSMMC-00105` langsung tersedia, dan pukul 10:40
+> sudah dipesankan untuk Ny. Sari. Episode Tn. Budi baru ditutup pukul 13:10. Tanpa aturan ini,
+> tempat tidur itu baru bebas pukul 13:10 — selisih dua setengah jam pada satu tempat tidur saja.
+
+> **`FR-RI-150` — Kepergian fisik bukan penutupan**
+> **Contoh:** setelah kepergian dicatat, episode Tn. Budi tetap berstatus rencana pulang, tetap
+> wajib ditutup, dan tetap muncul pada daftar pantau penutupan tertunda. Yang berubah hanya tempat
+> tidurnya.
+
+> **`FR-RI-151` — Pasien yang sudah pergi tidak dapat dipindahkan dan tidak muncul di census**
+> **Contoh:** percobaan memindahkan Tn. Budi pukul 11:00 ditolak dengan pesan "Pasien sudah tercatat
+> meninggalkan ruangan". Census pukul 11:00 juga tidak lagi memuat namanya.
 
 ### `EPIC RI-29` — Riwayat status dan daftar pantau
 
@@ -452,17 +500,24 @@ Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 > **`FR-RI-147` — Episode ibu dan bayi sepenuhnya terpisah**
 > **Contoh:** menutup episode Ny. Sari tidak menutup episode bayinya, dan tidak melepas boks bayi.
 
+> **`FR-RI-152` — Episode bayi menyimpan penanda rawat gabung dengan ibunya**
+> **Contoh:** perawat membuka detail boks `BOX-MELATI-03-A` dan sistem menjawab bahwa penghuninya
+> adalah bayi Ny. Sari yang dirawat di Melati 3. Tanpa penanda ini, satu-satunya petunjuk hanyalah
+> kesamaan kamar. Penanda ini boleh kosong untuk episode yang bukan bayi rawat gabung, dan
+> **tidak boleh** menunjuk episode milik pasien yang sama.
+
 ---
 
 ## 11. Model status yang diusulkan
 
 | Objek | Status | Invariant utama |
 | --- | --- | --- |
-| Episode | `Draft`, `Admitted`, `DischargePending`, `Closed`, `Cancelled` | `Admitted` dan `DischargePending` wajib punya tepat satu penempatan aktif |
+| Episode | `Draft`, `Admitted`, `DischargePending`, `Closed`, `Cancelled` | `Admitted` wajib punya tepat satu penempatan aktif. `DischargePending` wajib punya satu **sampai kepergian pasien dicatat**, setelah itu nol |
+| Kehadiran pasien | Bukan status yang disimpan; diturunkan dari status episode dan waktu kepergian | Satu pasien paling banyak satu episode yang benar-benar hadir |
 | Pemesanan tempat tidur | `Active`, `Consumed`, `Expired`, `Cancelled` | Satu tempat tidur paling banyak satu pemesanan aktif |
 | Penempatan tempat tidur | `Aktif`, `Berakhir` | Satu tempat tidur paling banyak satu penempatan aktif |
 | Kelayakan keuangan | `Pending`, `Cleared`, `Blocked` | Hanya `Cleared` yang membuka penutupan |
-| Resume pulang | Belum ditandatangani, Tertandatangani | Satu episode paling banyak satu resume |
+| Resume pulang | Belum ditandatangani, Tertandatangani | Satu episode paling banyak satu resume **yang berlaku**; versi sebelumnya tersimpan sebagai salinan |
 | Sesi koreksi | `Terbuka`, `Tertutup` | Satu episode paling banyak satu sesi terbuka |
 
 Rincian lengkap beserta perpindahan yang **tidak sah** ada pada
@@ -521,6 +576,7 @@ Base URL: `api/v1/health-services/inpatient-management/discharges`
 | Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `POST` | `/{episodeId}/decide` | Menyatakan pasien boleh pulang | `InpatientDischarge : Update` | `DecideDischargeRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | `EPIC RI-27` | **Rencana (belum tersedia)** |
+| `POST` | `/{episodeId}/record-departure` | Mencatat pasien sudah meninggalkan ruangan | `InpatientDischarge : RecordDeparture` | `RecordDepartureRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | `EPIC RI-28` | **Rencana (belum tersedia)** |
 | `PATCH` | `/{episodeId}/summary/sign` | Menandatangani resume | `InpatientDischarge : Sign` | `SignDischargeSummaryRequest` | `ApiResponse<DischargeSummaryResponse>` | `EPIC RI-27` | **Rencana (belum tersedia)** |
 | `POST` | `/{episodeId}/financial-clearance` | Menandai kelayakan keuangan | `InpatientFinancialClearance : Update` | `MarkFinancialClearanceRequest` | `ApiResponse<FinancialClearanceResponse>` | `EPIC RI-28` | **Rencana (belum tersedia)** |
 | `GET` | `/{episodeId}/closure-readiness` | Memeriksa kelima syarat penutupan | `InpatientDischarge : Read` | – | `ApiResponse<ClosureReadinessResponse>` | `EPIC RI-28` | **Rencana (belum tersedia)** |
@@ -576,6 +632,7 @@ String hak akses di bawah sama persis dengan
 | Menyatakan pasien boleh pulang, menyusun resume | DPJP | `[AccessPermission("InpatientDischarge", "Update")]` |
 | Menandatangani resume | DPJP | `[AccessPermission("InpatientDischarge", "Sign")]` |
 | Menandai kelayakan keuangan | Kasir, Billing | `[AccessPermission("InpatientFinancialClearance", "Update")]` |
+| Mencatat pasien sudah meninggalkan ruangan | Petugas admisi, Perawat, Kepala ruangan, Supervisor | `[AccessPermission("InpatientDischarge", "RecordDeparture")]` |
 | Menutup episode | Petugas admisi, Supervisor | `[AccessPermission("InpatientEpisode", "Close")]` |
 | Menutup menembus gerbang keuangan | Supervisor | `[AccessPermission("InpatientEpisode", "CloseOverride")]` |
 | Membuka dan menutup sesi koreksi | Supervisor | `[AccessPermission("InpatientEpisode", "Reopen")]` |
@@ -648,7 +705,7 @@ melayani pasien sungguhan sebelum keempatnya terjawab, walaupun MVP-nya sudah se
 | ID | Kebutuhan | Isinya |
 | --- | --- | --- |
 | `NFR-001` | Keutuhan tindakan | Penempatan, perpindahan, pembatalan, dan penutupan bersifat utuh: berhasil seluruhnya atau tidak ada yang berubah |
-| `NFR-002` | Pencegahan tabrakan | Satu tempat tidur tidak pernah dipegang dua episode. Dijaga penguncian baris ditambah dua unique index parsial |
+| `NFR-002` | Pencegahan tabrakan | Satu tempat tidur tidak pernah dipegang dua episode, dan satu pasien tidak pernah punya dua episode yang hadir. Dijaga penguncian baris ditambah **empat** unique index parsial |
 | `NFR-003` | Jejak audit | Setiap perpindahan status meninggalkan baris riwayat yang tidak dapat diubah, ditulis dalam transaksi yang sama |
 | `NFR-004` | Otorisasi | Hak akses per peran memakai mesin yang sudah ada; kewenangan per pasien dijaga di dalam service |
 | `NFR-005` | Koreksi | Kesalahan dibetulkan lewat sesi koreksi, bukan lewat penyuntingan diam-diam |
@@ -771,6 +828,37 @@ Setiap epic `MUST HAVE` punya sekurang-kurangnya satu skenario berhasil dan satu
 > **Hasil yang diharapkan:** census menampilkan dua baris. Menutup episode Ny. Sari tidak menutup
 > episode bayinya.
 
+> **`UAT-24` — Tempat tidur bebas sejak pasien meninggalkan kamar** (`EPIC RI-28`)
+> **Kondisi awal:** Tn. Budi berstatus rencana pulang di `BD-RSMMC-00105`.
+> **Langkah:** keluarga menjemput pukul 10:15. Perawat mencatat kepergiannya. Pukul 10:40 petugas
+> admisi memesan tempat tidur itu untuk Ny. Sari. Episode Tn. Budi baru ditutup pukul 13:10.
+> **Hasil yang diharapkan:** pemesanan pukul 10:40 berhasil. Episode Tn. Budi tetap berstatus
+> rencana pulang sampai 13:10 dan tetap muncul pada daftar pantau penutupan tertunda.
+
+> **`UAT-25` — Mencatat kepergian pasien yang belum diputuskan pulang** (`EPIC RI-28`, gagal)
+> **Langkah:** perawat mencatat kepergian pada episode yang masih berstatus sedang dirawat.
+> **Hasil yang diharapkan:** ditolak dengan pesan yang menyebut bahwa DPJP harus menyatakan pasien
+> boleh pulang lebih dulu. Tempat tidur tidak berubah.
+
+> **`UAT-26` — Satu pasien tidak dapat dirawat di dua tempat** (`EPIC RI-23`, gagal)
+> **Kondisi awal:** Tn. Budi sedang dirawat di Melati 3B.
+> **Langkah:** petugas lain menempatkan Tn. Budi di Anggrek 1A.
+> **Hasil yang diharapkan:** ditolak dengan pesan yang menyebut nomor episode dan lokasi yang
+> sedang ditempati, sehingga petugas tahu yang dibutuhkan adalah perpindahan.
+
+> **`UAT-27` — Koreksi resume menyimpan versi lamanya** (`EPIC RI-27`)
+> **Kondisi awal:** resume Ibu Sari sudah ditandatangani dr. Andi dengan cara pulang "kabur".
+> **Langkah:** supervisor membuka sesi koreksi, mengubah cara pulang menjadi "atas permintaan
+> sendiri", lalu menutup sesi.
+> **Hasil yang diharapkan:** resume yang berlaku menampilkan cara pulang baru, dan versi lama
+> beserta nama penandatangannya tetap dapat dibaca.
+
+> **`UAT-28` — Perawat menemukan bayi siapa yang ada di boks** (`EPIC RI-33`)
+> **Kondisi awal:** bayi Ny. Sari ditempatkan di `BOX-MELATI-03-A`.
+> **Langkah:** perawat membuka detail boks tersebut.
+> **Hasil yang diharapkan:** sistem menyebut bahwa penghuninya bayi Ny. Sari yang dirawat di
+> Melati 3, bukan hanya menampilkan nama bayi tanpa hubungan.
+
 > **`UAT-23` — Membatalkan admisi setelah pasien dirawat** (`EPIC RI-21`, gagal)
 > **Langkah:** petugas admisi membatalkan episode berstatus Sedang dirawat.
 > **Hasil yang diharapkan:** ditolak. Hanya supervisor atau kepala ruangan yang boleh.
@@ -800,6 +888,11 @@ Setiap epic `MUST HAVE` punya sekurang-kurangnya satu skenario berhasil dan satu
 | Admin tetap dapat menutup tempat tidur yang rusak | `UAT-20` |
 | Status penghunian hanya lahir dari modul Rawat Inap | `UAT-21` |
 | Bayi mendapat episode sendiri di boks kamar ibunya | `UAT-22` |
+| Sistem dapat menjawab bayi siapa yang berada di boks kamar mana | `UAT-28` |
+| Tempat tidur bebas sejak pasien meninggalkan kamar, tanpa menunggu penutupan | `UAT-24` |
+| Kepergian hanya dapat dicatat setelah DPJP menyatakan pasien boleh pulang | `UAT-25` |
+| Satu pasien tidak pernah tercatat dirawat di dua tempat | `UAT-26` |
+| Koreksi resume yang sudah ditandatangani menyimpan versi lamanya | `UAT-27` |
 | Pembatalan setelah pasien dirawat hanya oleh peran yang berwenang | `UAT-23` |
 | Seluruh tabel master MVP sudah terisi | Rencana data master awal pada `02-backend-architecture.md` bagian 8 |
 | Setiap task yang menyentuh modul lain membawa test regresi | `RWI-AC-114`, `testing/acceptance-test-matrix.md` bagian 12 |
@@ -815,10 +908,10 @@ Ditulis sebagai gelombang, bukan tanggal. Penjadwalan tetap wewenang manusia.
 | Gelombang | Epic yang tercakup | Syarat mulai |
 | --- | --- | --- |
 | `MVP-0` | `EPIC RI-21` fondasi, `EPIC RI-31` pengaturan, `EPIC RI-32` perbaikan tempat tidur | Blueprint disetujui; persetujuan pemilik Master Data untuk `RI-32` |
-| `MVP-1` | `EPIC RI-22` pemesanan, `EPIC RI-23` penempatan, `EPIC RI-24` census | `MVP-0` selesai; master kamar dan tempat tidur terisi |
+| `MVP-1` | `EPIC RI-22` pemesanan, `EPIC RI-23` penempatan beserta aturan satu pasien satu episode, `EPIC RI-24` census | `MVP-0` selesai; master kamar dan tempat tidur terisi |
 | `MVP-2` | `EPIC RI-25` penanggung jawab, `EPIC RI-26` perpindahan | `MVP-1` selesai |
-| `MVP-3` | `EPIC RI-27` pulang dan resume, `EPIC RI-28` penutupan | `MVP-2` selesai |
-| `MVP-4` | `EPIC RI-29` riwayat dan daftar pantau, `EPIC RI-30` sesi koreksi, `EPIC RI-33` bayi | `MVP-3` selesai |
+| `MVP-3` | `EPIC RI-27` pulang, resume, dan versi resume; `EPIC RI-28` penutupan dan pencatatan kepergian fisik | `MVP-2` selesai |
+| `MVP-4` | `EPIC RI-29` riwayat dan daftar pantau, `EPIC RI-30` sesi koreksi, `EPIC RI-33` bayi beserta penanda rawat gabung | `MVP-3` selesai |
 | `POST-MVP` | Seluruh kemampuan yang ditunda pada bagian 8 | Di luar cakupan rilis pertama; masing-masing menunggu Decision ID-nya |
 
 **`MVP-1` adalah gelombang pertama yang menghasilkan data nyata.** Setelah gelombang itu selesai,

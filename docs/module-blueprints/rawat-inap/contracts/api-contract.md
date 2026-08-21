@@ -3,13 +3,33 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.1.0` |
+| `contract_version` | `0.3.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; nama belum diisi |
 | `approved_by` / `approved_at` | Belum ada |
-| `input_revision` | `02-backend-architecture.md` revision `0.1`; `00-interview-decisions.md` revision `2` |
+| `input_revision` | `02-backend-architecture.md` revision `0.3`; `00-interview-decisions.md` revision `5` |
 | Backend SHA | `5afb54b` |
 | Dampak kompatibilitas | **Seluruhnya aditif.** Tidak ada endpoint existing yang berubah bentuknya. Satu endpoint existing berubah **perilakunya**, lihat bagian 7 |
+
+### Perubahan pada `contract_version` `0.2.0`
+
+| Yang berubah | Dasar |
+| --- | --- |
+| Endpoint baru `POST /discharges/{episodeId}/record-departure` | `RWI-DEC-055` |
+| Kode 409 baru pada penempatan: pasien sudah punya episode yang hadir | `RWI-DEC-054` |
+| `POST /bed-occupancies/placements/transfer` menolak pasien yang kepergiannya sudah dicatat | `RWI-DEC-055` |
+| `GET /discharges/{episodeId}/summary` dapat menyertakan riwayat versi resume | `RWI-DEC-057` |
+
+Tidak ada endpoint yang dihapus dan tidak ada bentuk request atau response yang berubah.
+
+### Perubahan pada `contract_version` `0.3.0`
+
+| Yang berubah | Dasar |
+| --- | --- |
+| Endpoint baru `PATCH /episodes/{id}/isolation-requirement` | `RWI-DEC-065` |
+| Endpoint baru `GET /monitoring/isolation-mismatch` | `RWI-DEC-065` aturan 7 |
+| Penempatan dan perpindahan menolak lima keadaan baru: jenis kelamin tidak cocok, jenis kelamin belum tercatat, kamar sudah dihuni jenis kelamin berbeda, dan dua aturan isolasi | `RWI-DEC-064`, `RWI-DEC-066` |
+| `GET /bed-occupancies/available-beds` menyaring hasil memakai kedelapan aturan Kelayakan Penempatan | `RWI-DEC-064` |
 
 > **Seluruh endpoint pada dokumen ini berstatus `Rencana (belum tersedia)`,** kecuali yang
 > disebutkan lain. Tidak satu pun sudah ada di dalam kode pada SHA `5afb54b`.
@@ -35,6 +55,7 @@ Base URL: `api/v1/health-services/inpatient-management/episodes`
 | `POST` | `/{id}/doctor-assignments` | Mengalihkan DPJP. Menutup penugasan lama dan membuka penugasan baru | `InpatientEpisode : Update` | `HandoverDoctorRequest` | `ApiResponse<InpatientDoctorAssignmentResponse>` | **Rencana (belum tersedia)** |
 | `GET` | `/{id}/doctor-assignments` | Riwayat DPJP episode | `InpatientEpisode : Read` | – | `ApiResponse<List<InpatientDoctorAssignmentResponse>>` | **Rencana (belum tersedia)** |
 | `POST` | `/{id}/nurse-assignments` | Menugaskan atau mengganti perawat penanggung jawab | `InpatientEpisode : Update` | `AssignNurseRequest` | `ApiResponse<InpatientNurseAssignmentResponse>` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/isolation-requirement` | Menetapkan atau mengubah kebutuhan isolasi episode | `InpatientEpisode : SetIsolation` | `SetIsolationRequirementRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | **Rencana (belum tersedia)** |
 | `GET` | `/{id}/nurse-assignments` | Riwayat perawat penanggung jawab | `InpatientEpisode : Read` | – | `ApiResponse<List<InpatientNurseAssignmentResponse>>` | **Rencana (belum tersedia)** |
 | `POST` | `/{id}/correction-sessions` | Membuka sesi koreksi pada episode yang sudah ditutup | `InpatientEpisode : Reopen` | `OpenCorrectionSessionRequest` | `ApiResponse<InpatientCorrectionSessionResponse>` | **Rencana (belum tersedia)** |
 | `PATCH` | `/{id}/correction-sessions/{sessionId}/close` | Menutup sesi koreksi beserta daftar perubahannya | `InpatientEpisode : Reopen` | `CloseCorrectionSessionRequest` | `ApiResponse<InpatientCorrectionSessionResponse>` | **Rencana (belum tersedia)** |
@@ -72,7 +93,11 @@ Kode status tambahan yang khas bagian ini:
 | Kode | Arti bagi pengguna |
 | --- | --- |
 | 409 | Tempat tidur sudah ditempati atau sudah dipesan pasien lain. Ini yang muncul ketika dua petugas merebut tempat tidur yang sama |
-| 422 | Tempat tidur tidak lolos pemeriksaan kelayakan, misalnya sedang diperbaiki atau sudah dinonaktifkan |
+| 422 | Tempat tidur tidak lolos pemeriksaan kelayakan. Sejak `0.3.0` ini mencakup lima alasan baru: penanda tempat tidur tidak menerima jenis kelamin pasien, jenis kelamin pasien belum tercatat, kamar sudah dihuni pasien berjenis kelamin berbeda, pasien butuh isolasi tetapi tempat tidurnya bukan isolasi, dan pasien tidak butuh isolasi tetapi tempat tidurnya isolasi |
+
+**Bentuk jawaban penolakan kelayakan.** Jawaban 422 menyertakan **daftar aturan yang gagal**, bukan
+satu kalimat umum. Petugas perlu tahu apakah yang menghalangi jenis kelaminnya, isolasinya, atau
+keadaan tempat tidurnya, karena tindakan lanjutannya berbeda.
 
 ---
 
@@ -83,7 +108,8 @@ Base URL: `api/v1/health-services/inpatient-management/discharges`
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | `POST` | `/{episodeId}/decide` | DPJP memutuskan pasien boleh pulang beserta cara pulangnya | `InpatientDischarge : Update` | `DecideDischargeRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/{episodeId}/summary` | Mengambil resume pulang episode | `InpatientDischarge : Read` | – | `ApiResponse<DischargeSummaryResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{episodeId}/record-departure` | Mencatat pasien sudah meninggalkan ruangan. Melepas tempat tidur seketika **tanpa** menutup episode | `InpatientDischarge : RecordDeparture` | `RecordDepartureRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{episodeId}/summary` | Mengambil resume pulang episode beserta daftar versi sebelumnya bila ada | `InpatientDischarge : Read` | Query `includeRevisions` | `ApiResponse<DischargeSummaryResponse>` | **Rencana (belum tersedia)** |
 | `PUT` | `/{episodeId}/summary` | Menyusun atau memperbarui resume pulang | `InpatientDischarge : Update` | `UpsertDischargeSummaryRequest` | `ApiResponse<DischargeSummaryResponse>` | **Rencana (belum tersedia)** |
 | `PATCH` | `/{episodeId}/summary/sign` | DPJP menandatangani resume pulang | `InpatientDischarge : Sign` | `SignDischargeSummaryRequest` | `ApiResponse<DischargeSummaryResponse>` | **Rencana (belum tersedia)** |
 | `GET` | `/{episodeId}/clearance` | Daftar butir administrasi beserta status penandaannya | `InpatientDischarge : Read` | – | `ApiResponse<ClearanceChecklistResponse>` | **Rencana (belum tersedia)** |
@@ -98,6 +124,15 @@ Kode status tambahan yang khas bagian ini:
 | Kode | Arti bagi pengguna |
 | --- | --- |
 | 422 | Ada syarat penutupan yang belum terpenuhi. Jawabannya menyebut syarat mana saja, bukan sekadar menolak |
+
+**Catatan bentuk jawaban `/record-departure`.** Endpoint ini **tidak** mengubah status episode.
+Episode tetap `DischargePending` dan tetap wajib ditutup. Yang berubah hanya tiga hal: kolom waktu
+kepergian pada episode terisi, baris penempatan ditutup dengan alasan kepergian pasien, dan salinan
+status tempat tidur kembali `Available`. Jawabannya tetap berupa detail episode supaya layar dapat
+langsung memperbarui tampilannya.
+
+Endpoint ini juga tidak dapat dibatalkan. Bila ternyata pasien belum jadi pulang, jalannya adalah
+menutup episode lalu menjalankan admisi baru, sesuai `RWI-RULE-036`.
 
 **Catatan bentuk jawaban `closure-readiness`.** Endpoint ini sengaja mengembalikan **daftar syarat
 yang belum terpenuhi**, bukan sekadar boleh atau tidak. Petugas admisi perlu tahu apa yang harus
@@ -127,6 +162,7 @@ Base URL: `api/v1/health-services/inpatient-management/monitoring`
 | `GET` | `/closures-without-financial-clearance` | Daftar pantau episode yang ditutup menembus gerbang keuangan | `InpatientMonitoring : Read` | Query | `ApiResponse<OverrideClosurePagedResult>` | **Rencana (belum tersedia)** |
 | `GET` | `/unassigned-nurse-episodes` | Daftar episode aktif yang belum punya perawat penanggung jawab | `InpatientMonitoring : Read` | Query | `ApiResponse<UnassignedNursePagedResult>` | **Rencana (belum tersedia)** |
 | `GET` | `/bed-drift` | Laporan selisih antara salinan status tempat tidur dan catatan penempatan | `InpatientMonitoring : Read` | Query | `ApiResponse<BedDriftPagedResult>` | **Rencana (belum tersedia)** |
+| `GET` | `/isolation-mismatch` | Daftar pantau episode yang kebutuhan isolasinya tidak cocok dengan sifat tempat tidur yang sedang ditempati | `InpatientMonitoring : Read` | Query | `ApiResponse<IsolationMismatchPagedResult>` | **Rencana (belum tersedia)** |
 
 **Daftar pantau ketiga yang tidak ada di sini.** `RWI-RULE-023` menyebut tiga daftar pantau, dan
 salah satunya adalah kepatuhan pengkajian awal dan verifikasi CPPT. Daftar itu **tidak** dirancang
@@ -187,6 +223,8 @@ ada.
 | Endpoint yang tidak dibuat | Alasan |
 | --- | --- |
 | Endpoint apa pun untuk mengubah atau menghapus `InpStatusHistory` | Riwayat status tidak dapat diubah dan tidak dapat dihapus, sesuai `RWI-RULE-031` aturan 5 |
+| Endpoint apa pun untuk mengubah atau menghapus `InpDischargeSummaryRevision` | Salinan versi resume juga tidak dapat diubah dan tidak dapat dihapus, sesuai `RWI-DEC-057` |
+| Endpoint untuk membatalkan pencatatan kepergian fisik | `RWI-RULE-036` menetapkan tidak ada pembatalan. Pasien yang ternyata belum jadi pulang menjalani admisi baru |
 | `PATCH /episodes/{id}/status` yang menerima status bebas | Melanggar `RWI-RULE-031` aturan 4 tentang satu pintu. Setiap perpindahan status punya endpoint bermakna sendiri |
 | Endpoint pengkajian, catatan dokter, tindakan, dan resep | Memakai modul Clinical dan Pharmacy yang sudah ada. Menunggu `DEC-INP-001` |
 | Endpoint serah terima dari IGD | Menunggu `DEC-INP-002` |
@@ -204,8 +242,8 @@ cacat yang sudah ditemukan pada `PatientEncounterController` dan tercatat sebaga
 | Grup endpoint | Requirement dan decision asal |
 | --- | --- |
 | Inpatient Episode | `RWI-RULE-003`, `RWI-RULE-004`, `RWI-RULE-005`, `RWI-RULE-020`, `RWI-RULE-030`, `RWI-RULE-033` |
-| Bed Occupancy | `RWI-RULE-001`, `RWI-RULE-002`, `RWI-RULE-006`, `RWI-RULE-007`, `RWI-RULE-008`, `RWI-RULE-015`, `RWI-RULE-027` |
-| Inpatient Discharge | `RWI-RULE-009`, `RWI-RULE-010`, `RWI-RULE-011`, `RWI-RULE-018`, `RWI-RULE-028`, `RWI-RULE-032` |
+| Bed Occupancy | `RWI-RULE-001`, `RWI-RULE-002`, `RWI-RULE-006`, `RWI-RULE-007`, `RWI-RULE-008`, `RWI-RULE-012`, `RWI-RULE-015`, `RWI-RULE-027` |
+| Inpatient Discharge | `RWI-RULE-009`, `RWI-RULE-010`, `RWI-RULE-011`, `RWI-RULE-018`, `RWI-RULE-028`, `RWI-RULE-032`, `RWI-RULE-036` |
 | Inpatient Census | `RWI-RULE-019`, CAP-008 |
 | Inpatient Monitoring | `RWI-RULE-023`, `RWI-RULE-027` aturan 6 |
 | Master Data Inpatient Setting dan Clearance Item | `RWI-RULE-018`, `RWI-RULE-034` |

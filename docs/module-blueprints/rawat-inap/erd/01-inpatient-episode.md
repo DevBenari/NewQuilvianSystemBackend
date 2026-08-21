@@ -3,7 +3,7 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.1` |
+| Revision | `0.3` |
 | Status | `draft` |
 | Backend SHA | `5afb54b` |
 
@@ -28,8 +28,14 @@ erDiagram
         int EpisodeStatus "enum disimpan sebagai int"
         timestamp AdmittedAt "kosong selama Draft"
         timestamp DischargeDecidedAt
+        timestamp PhysicallyLeftAt "kosong berarti pasien masih di ruangan"
+        uuid PhysicallyLeftByUserId FK
         timestamp ClosedAt
         int DischargeType "enum, kosong sampai keputusan pulang"
+        uuid MotherEpisodeId FK "episode ibu, hanya untuk bayi rawat gabung"
+        boolean RequiresIsolation "dipakai Kelayakan Penempatan"
+        int IsolationSource "1 catatan awal admisi, 2 keputusan klinis DPJP"
+        uuid IsolationSetByDoctorId FK "diisi bila keputusan klinis"
         boolean IsClosedWithoutFinancialClearance
         varchar CancelReason
     }
@@ -68,6 +74,7 @@ erDiagram
         uuid PatientId FK
         int EncounterType "3 berarti Inpatient"
     }
+    InpEpisode |o--o| InpEpisode : "0:1 — Baru, episode ibu"
     TrxPatientEncounter ||--|| InpEpisode : "1:1 — Sudah ada"
     InpEpisode ||--o{ InpDoctorAssignment : "1:N — Baru"
     InpEpisode ||--o{ InpNurseAssignment : "1:N — Baru"
@@ -102,7 +109,8 @@ erDiagram
         uuid PatientClassId FK "salinan saat penempatan dibuat"
         timestamp StartDateTime
         timestamp EndDateTime "kosong berarti masih ditempati"
-        int EndReason "enum, kosong bila masih aktif"
+        int EndReason "enum: Transfer, EpisodeClosed, AdmissionCancelled, PatientDeparted"
+        uuid EndedByUserId FK "siapa yang mengakhiri penempatan"
         varchar TransferReason
         uuid PlacedByUserId FK
     }
@@ -128,12 +136,14 @@ erDiagram
     MstRoom ||--o{ MstBed : "1:N — Sudah ada"
 ```
 
-**Dua unique index parsial yang menjaga `INV-INP-02`:**
+**Empat unique index parsial yang menjaga invariant antar-baris:**
 
 | Index | Berlaku pada baris | Menjaga |
 | --- | --- | --- |
-| `IX_InpBedPlacement_BedId_Active` unik atas `BedId` | `EndDateTime IS NULL` | Satu tempat tidur hanya punya satu penempatan aktif |
-| `IX_InpBedReservation_BedId_Active` unik atas `BedId` | `ReservationStatus = 1` | Satu tempat tidur hanya punya satu pemesanan aktif |
+| `IX_InpBedPlacement_BedId_Active` unik atas `BedId` | `EndDateTime IS NULL` | `INV-INP-02` — satu tempat tidur satu penempatan aktif |
+| `IX_InpBedReservation_BedId_Active` unik atas `BedId` | `ReservationStatus = 1` | `INV-INP-02` — satu tempat tidur satu pemesanan aktif |
+| `IX_InpDoctorAssignment_EpisodeId_Active` unik atas `EpisodeId` | `EndDateTime IS NULL` | `INV-INP-03` — satu episode satu DPJP aktif |
+| `IX_InpEpisode_PatientId_Present` unik atas `PatientId` | `EpisodeStatus = 1` **atau** (`EpisodeStatus = 2` dan `PhysicallyLeftAt IS NULL`) | `INV-INP-10` — satu pasien satu episode yang benar-benar hadir |
 
 ---
 
@@ -194,6 +204,18 @@ erDiagram
         boolean IsMandatory
         boolean IsActive
     }
+    InpDischargeSummaryRevision {
+        uuid Id PK
+        uuid DischargeSummaryId FK
+        int RevisionNumber "unik bersama DischargeSummaryId"
+        uuid CorrectionSessionId FK "sesi yang menyebabkan penggantian"
+        timestamp PreviousSignedAt
+        uuid PreviousSignedByDoctorId FK
+        timestamp SupersededAt
+        uuid SupersededByUserId FK
+    }
+    InpDischargeSummary ||--o{ InpDischargeSummaryRevision : "1:N — Baru"
+    InpCorrectionSession ||--o{ InpDischargeSummaryRevision : "1:N — Baru"
     InpEpisode ||--o| InpDischargeSummary : "1:0..1 — Baru"
     InpEpisode ||--o{ InpClearanceMark : "1:N — Baru"
     InpEpisode ||--o{ InpFinancialClearance : "1:N — Baru"
@@ -212,7 +234,8 @@ erDiagram
 | `InpNurseAssignment` | `Baru` | InPatient Management | Riwayat berperiode, boleh kosong |
 | `InpBedReservation` | `Baru` | InPatient Management | Kedaluwarsa dihitung saat dibaca |
 | `InpBedPlacement` | `Baru` | InPatient Management | Sumber kebenaran penghunian |
-| `InpDischargeSummary` | `Baru` | InPatient Management | Seluruh kolom isi bertanda sensitif |
+| `InpDischargeSummary` | `Baru` | InPatient Management | Seluruh kolom isi bertanda sensitif. Menyimpan versi yang **berlaku** |
+| `InpDischargeSummaryRevision` | `Baru` pada revision `0.2` | InPatient Management | Salinan versi resume yang sudah tidak berlaku. Tidak dapat diubah |
 | `InpClearanceMark` | `Baru` | InPatient Management | — |
 | `InpFinancialClearance` | `Baru` | InPatient Management | Sementara sampai Billing operasional |
 | `InpStatusHistory` | `Baru` | InPatient Management | Tidak dapat diubah dan tidak dapat dihapus |
@@ -238,6 +261,17 @@ ketika sebuah master dihapus.
 Relasi di dalam aggregate `InpEpisode` juga memakai `Restrict`, bukan `Cascade`. Penghapusan
 memang tidak pernah terjadi secara fisik — seluruh tabel memakai penandaan `IsDelete`.
 
-**Satu pengecualian yang perlu ditegaskan:** `InpStatusHistory` **tidak** boleh ditandai
-`IsDelete` lewat endpoint mana pun. Tidak ada endpoint update maupun delete yang disediakan
-untuknya.
+**Dua pengecualian yang perlu ditegaskan:** `InpStatusHistory` dan `InpDischargeSummaryRevision`
+**tidak** boleh ditandai `IsDelete` lewat endpoint mana pun. Tidak ada endpoint update maupun delete
+yang disediakan untuk keduanya.
+
+## 6. Perubahan pada revision `0.2`
+
+| Yang berubah | Dasar |
+| --- | --- |
+| `InpEpisode` bertambah `PhysicallyLeftAt`, `PhysicallyLeftByUserId`, dan `MotherEpisodeId` | `RWI-DEC-055`, `RWI-DEC-056` |
+| Pada revision `0.3`: `InpEpisode` bertambah enam kolom kebutuhan isolasi | `RWI-DEC-065` |
+| Relasi baru `InpEpisode` ke dirinya sendiri untuk hubungan bayi dan ibu | `RWI-DEC-056` |
+| `InpBedPlacementEndReason` bertambah nilai `PatientDeparted` | `RWI-DEC-055` |
+| Unique index parsial keempat menjaga `INV-INP-10` | `RWI-DEC-054` |
+| Entity baru `InpDischargeSummaryRevision` | `RWI-DEC-057` |

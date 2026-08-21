@@ -3,10 +3,10 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.1.0` |
+| `contract_version` | `0.3.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; pemilik keamanan/privasi **belum ditunjuk** |
-| `input_revision` | `00-interview-decisions.md` revision `2`; `contracts/api-contract.md` revision `0.1.0` |
+| `input_revision` | `00-interview-decisions.md` revision `5`; `contracts/api-contract.md` revision `0.3.0` |
 | Backend SHA | `5afb54b` |
 | Dampak kompatibilitas | Butir hak akses baru bersifat aditif. Terdaftar otomatis oleh `AccessMenuSeeder` saat aplikasi dinyalakan |
 
@@ -64,6 +64,7 @@ atribut yang sama, dan butir haknya muncul sendiri.
 | `GET /episodes/{id}/doctor-assignments` | `InpatientEpisode` | `Read` | `[AccessPermission("InpatientEpisode", "Read")]` | Tidak |
 | `POST /episodes/{id}/nurse-assignments` | `InpatientEpisode` | `Update` | `[AccessPermission("InpatientEpisode", "Update")]` | Ya |
 | `GET /episodes/{id}/nurse-assignments` | `InpatientEpisode` | `Read` | `[AccessPermission("InpatientEpisode", "Read")]` | Tidak |
+| `PATCH /episodes/{id}/isolation-requirement` | `InpatientEpisode` | `SetIsolation` | `[AccessPermission("InpatientEpisode", "SetIsolation")]` | Ya |
 | `POST /episodes/{id}/correction-sessions` | `InpatientEpisode` | `Reopen` | `[AccessPermission("InpatientEpisode", "Reopen")]` | Ya |
 | `PATCH /episodes/{id}/correction-sessions/{sessionId}/close` | `InpatientEpisode` | `Reopen` | `[AccessPermission("InpatientEpisode", "Reopen")]` | Ya |
 
@@ -84,6 +85,7 @@ atribut yang sama, dan butir haknya muncul sendiri.
 | Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
 | --- | --- | --- | --- | :---: |
 | `POST /discharges/{episodeId}/decide` | `InpatientDischarge` | `Update` | `[AccessPermission("InpatientDischarge", "Update")]` | Ya |
+| `POST /discharges/{episodeId}/record-departure` | `InpatientDischarge` | `RecordDeparture` | `[AccessPermission("InpatientDischarge", "RecordDeparture")]` | Ya |
 | `GET /discharges/{episodeId}/summary` | `InpatientDischarge` | `Read` | `[AccessPermission("InpatientDischarge", "Read")]` | Tidak |
 | `PUT /discharges/{episodeId}/summary` | `InpatientDischarge` | `Update` | `[AccessPermission("InpatientDischarge", "Update")]` | Ya |
 | `PATCH /discharges/{episodeId}/summary/sign` | `InpatientDischarge` | `Sign` | `[AccessPermission("InpatientDischarge", "Sign")]` | Ya |
@@ -105,6 +107,7 @@ atribut yang sama, dan butir haknya muncul sendiri.
 | `GET /monitoring/closures-without-financial-clearance` | `InpatientMonitoring` | `Read` | `[AccessPermission("InpatientMonitoring", "Read")]` | Tidak |
 | `GET /monitoring/unassigned-nurse-episodes` | `InpatientMonitoring` | `Read` | `[AccessPermission("InpatientMonitoring", "Read")]` | Tidak |
 | `GET /monitoring/bed-drift` | `InpatientMonitoring` | `Read` | `[AccessPermission("InpatientMonitoring", "Read")]` | Tidak |
+| `GET /monitoring/isolation-mismatch` | `InpatientMonitoring` | `Read` | `[AccessPermission("InpatientMonitoring", "Read")]` | Tidak |
 
 ### 2.5 Master Data
 
@@ -128,10 +131,10 @@ dilakukan admin lewat layar Role Access yang sudah ada, dan pemilik keamanan bel
 
 | Peran | Butir hak akses yang diusulkan |
 | --- | --- |
-| Petugas admisi | `InpatientEpisode : Read/Create/Update/Close`, `InpatientBedOccupancy : Read/Create/Update`, `InpatientDischarge : Read/Update`, `InpatientCensus : Read`, `InpatientMonitoring : Read` |
-| Perawat pelaksana | `InpatientEpisode : Read`, `InpatientBedOccupancy : Read/Transfer`, `InpatientCensus : Read` |
+| Petugas admisi | `InpatientEpisode : Read/Create/Update/Close/SetIsolation`, `InpatientBedOccupancy : Read/Create/Update`, `InpatientDischarge : Read/Update/RecordDeparture`, `InpatientCensus : Read`, `InpatientMonitoring : Read`. `SetIsolation` hanya berlaku selagi episode `Draft`, dijaga service |
+| Perawat pelaksana | `InpatientEpisode : Read`, `InpatientBedOccupancy : Read/Transfer`, `InpatientDischarge : RecordDeparture`, `InpatientCensus : Read` |
 | Kepala ruangan | Seperti perawat pelaksana, ditambah `InpatientEpisode : Update` untuk penugasan perawat dan pengalihan DPJP, serta `InpatientMonitoring : Read` |
-| Dokter dan DPJP | `InpatientEpisode : Read`, `InpatientBedOccupancy : Read/Transfer`, `InpatientDischarge : Read/Update/Sign`, `InpatientCensus : Read` |
+| Dokter dan DPJP | `InpatientEpisode : Read/SetIsolation`, `InpatientBedOccupancy : Read/Transfer`, `InpatientDischarge : Read/Update/Sign`, `InpatientCensus : Read`. **Tanpa** `RecordDeparture`, karena kepergian dicatat petugas ruangan |
 | Petugas kasir atau billing | `InpatientEpisode : Read`, `InpatientFinancialClearance : Update`, `InpatientCensus : Read` |
 | Supervisor | Seluruh butir di atas, ditambah `InpatientEpisode : Reopen` dan `InpatientEpisode : CloseOverride` |
 | Admin master data | `InpatientSetting : Read/Update`, `InpatientClearanceItem : Read/Create/Update/Delete` |
@@ -153,6 +156,7 @@ Padahal `RWI-RULE-030` menuntut tiga penjaga yang bersifat per-pasien:
 | `GUARD-INP-01` | Permintaan perpindahan oleh **dokter** hanya diterima bila dokter itu DPJP aktif episode tersebut | `InpBedOccupancyService.TransferAsync` |
 | `GUARD-INP-02` | Keputusan pulang hanya diterima dari DPJP aktif | `InpDischargeService.DecideDischargeAsync` |
 | `GUARD-INP-03` | Penandatanganan resume hanya diterima dari DPJP aktif | `InpDischargeService.SignSummaryAsync` |
+| `GUARD-INP-04` | Perubahan kebutuhan isolasi setelah episode aktif hanya diterima dari DPJP aktif. Selagi `Draft`, petugas admisi juga boleh, tetapi hasilnya ditandai catatan awal | `InpEpisodeService.SetIsolationRequirementAsync` |
 
 ### 4.1 Kenapa ini berisiko
 
@@ -193,6 +197,9 @@ tidak dicabut, dan risikonya sudah diterima secara sadar sebagai `RWI-RISK-001`.
 | Penandaan kelayakan keuangan | `InpFinancialClearance` | Nilai, pelaku, waktu, catatan, penanda manual |
 | Penandaan butir administrasi | `InpClearanceMark` | Butir, pelaku, waktu |
 | Penandatanganan resume | `InpDischargeSummary` | Penandatangan, waktu |
+| Perubahan kebutuhan isolasi | `InpEpisode` | Nilai baru, sumber catatan awal atau keputusan klinis, pelaku, dokter bila keputusan klinis, waktu, dan keterangan |
+| Kepergian fisik pasien | `InpEpisode` + `InpBedPlacement` | Waktu kepergian, pencatat, dan baris penempatan yang ditutup dengan alasan kepergian |
+| Penggantian versi resume yang sudah ditandatangani | `InpDischargeSummaryRevision` | Salinan isi versi lama, penandatangan lama, waktu digantikan, pengganti, dan sesi koreksi yang menyebabkannya |
 | Penutupan menembus gerbang keuangan | `InpEpisode` + `InpStatusHistory` | Supervisor, waktu, alasan, penanda |
 | Sesi koreksi | `InpCorrectionSession` | Supervisor, waktu buka dan tutup, alasan, daftar perubahan |
 
@@ -202,7 +209,12 @@ tidak dicabut, dan risikonya sudah diterima secara sadar sebagai `RWI-RISK-001`.
 | --- | --- |
 | Ditulis bersamaan | Baris jejak ditulis dalam transaksi yang sama dengan perubahan yang dijejakinya |
 | Satu pintu | Seluruh perubahan status lewat `InpEpisodeService.ApplyStatusChangeAsync`. Tidak ada jalur lain |
-| Tidak dapat diubah | Tidak disediakan endpoint update maupun delete untuk `InpStatusHistory` |
+| Tidak dapat diubah | Tidak disediakan endpoint update maupun delete untuk `InpStatusHistory` dan `InpDischargeSummaryRevision` |
+
+**Kenapa kepergian fisik tidak menulis `InpStatusHistory`.** Karena status episode memang tidak
+berubah — episode tetap `DischargePending`. `RWI-RULE-031` aturan 3 mewajibkan riwayat untuk
+**perubahan status**, bukan untuk setiap tindakan. Jejak kepergian tersimpan pada baris penempatan
+yang ditutup, lengkap dengan waktu, pelaku, dan alasan, ditambah dua kolom pada episode.
 
 ### 5.4 Kolom sensitif dan aturan logging
 
@@ -213,6 +225,8 @@ modul ini, kolom itu adalah:
 | --- | --- |
 | `InpEpisode` | `Notes` |
 | `InpDischargeSummary` | `PrimaryDiagnosisText`, `SecondaryDiagnosisText`, `ProcedureSummary`, `DischargeMedicationNote`, `FollowUpInstruction`, `ClinicalSummary` |
+| `InpDischargeSummaryRevision` | Seluruh kolom salinan isi resume, sama seperti baris di atas |
+| `InpEpisode` | `IsolationNote` — memuat alasan klinis kebutuhan isolasi |
 
 Payload log untuk endpoint yang menyentuh tabel di atas hanya boleh memuat `EntityId`, nama
 controller, nama action, dan kode status. **Tidak** boleh memuat isi diagnosis, isi instruksi
@@ -226,7 +240,7 @@ kontrol, maupun ringkasan klinis.
 | --- | --- | --- |
 | Siapa boleh membaca resume pulang | Peran klinis dan admisi yang punya `InpatientDischarge : Read` | Usulan; menunggu pemilik privasi |
 | Penyamaran isi resume pada daftar | Daftar hanya menampilkan nomor episode, nama pasien, dan cara pulang. Isi klinis hanya pada layar detail | Usulan |
-| Masa simpan riwayat status | **Belum diputuskan** | `RWI-OQ-035`, keputusan hukum |
+| Masa simpan riwayat status | **Dijawab sementara:** tidak ada pengarsipan maupun penghapusan otomatis sampai angkanya ditetapkan | `RWI-DEC-060`, `draft`, menunggu pemilik hukum |
 | Masa simpan riwayat penempatan | **Belum diputuskan** | Mengikuti `RWI-OQ-035` |
 
 Pemilik keamanan dan privasi **belum ditunjuk**. Seluruh baris pada bagian ini berstatus usulan dan

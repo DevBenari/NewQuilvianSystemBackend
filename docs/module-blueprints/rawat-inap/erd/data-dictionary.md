@@ -3,7 +3,7 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.1` |
+| Revision | `0.3` |
 | Status | `draft` |
 | Backend SHA | `5afb54b` |
 
@@ -26,12 +26,21 @@ contoh berisi data asli, dan perlu ditinjau kebutuhan penyamarannya pada respons
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
 | `EpisodeNumber` | `string(50)` | Ya | — | Unique | — | — | Tidak | Nomor episode terbaca manusia, awalan dari master pengaturan |
 | `EncounterId` | `Guid` | Ya | — | **Unique** | FK ke `TrxPatientEncounter` | `Restrict` | Tidak | Jangkar episode. Unique menjaga `INV-INP-04` |
-| `PatientId` | `Guid` | Ya | — | Index | FK ke `MstPatient` | `Restrict` | Tidak | Salinan dari kunjungan, hanya untuk mempercepat census |
+| `PatientId` | `Guid` | Ya | — | Index + **unique parsial** | FK ke `MstPatient` | `Restrict` | Tidak | Salinan dari kunjungan, hanya untuk mempercepat census. Unique parsial menjaga `INV-INP-10`, lihat bagian 16 |
 | `ServiceUnitId` | `Guid` | Ya | — | Index | FK ke `MstServiceUnit` | `Restrict` | Tidak | Unit layanan tempat pasien dirawat saat admisi dibuka |
 | `PatientClassId` | `Guid` | Ya | — | Index | FK ke `MstPatientClass` | `Restrict` | Tidak | Kelas saat admisi dibuka. Kelas yang ditagihkan dibaca dari penempatan |
 | `EpisodeStatus` | `InpEpisodeStatus` | Ya | `Draft` | Index | — | — | Tidak | Disimpan sebagai `int` |
 | `AdmittedAt` | `DateTime?` | Tidak | — | Index | — | — | Tidak | Diisi saat pasien menempati tempat tidur. Titik mulai lama dirawat |
 | `DischargeDecidedAt` | `DateTime?` | Tidak | — | Index | — | — | Tidak | Diisi saat DPJP memutuskan pasien boleh pulang |
+| `PhysicallyLeftAt` | `DateTime?` | Tidak | — | Index | — | — | Tidak | Diisi saat kepergian fisik pasien dicatat. Kosong berarti pasien masih berada di ruangan. Dipakai `INV-INP-10` dan census |
+| `PhysicallyLeftByUserId` | `Guid?` | Tidak | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | Siapa yang mencatat kepergian |
+| `MotherEpisodeId` | `Guid?` | Tidak | — | Index | FK ke `InpEpisode` | `Restrict` | Tidak | Episode ibu, hanya untuk bayi rawat gabung. **Tidak boleh** menunjuk episode milik pasien yang sama |
+| `RequiresIsolation` | `bool` | Ya | `false` | Index | — | — | Tidak | Penanda kebutuhan isolasi. Dipakai aturan 7 dan 8 pada Kelayakan Penempatan |
+| `IsolationSource` | `InpIsolationSource?` | Tidak | — | — | — | — | Tidak | `AdmissionRecord` bila direkam petugas admisi dari keterangan dokter pengirim; `ClinicalDecision` bila ditetapkan DPJP |
+| `IsolationSetByUserId` | `Guid?` | Tidak | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | Siapa yang terakhir mengubah penanda isolasi |
+| `IsolationSetByDoctorId` | `Guid?` | Tidak | — | Index | FK ke `MstDoctor` | `Restrict` | Tidak | Diisi hanya bila `IsolationSource` bernilai `ClinicalDecision` |
+| `IsolationSetAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Kapan penanda isolasi terakhir diubah |
+| `IsolationNote` | `string(500)?` | Tidak | — | — | — | — | **Ya** | Alasan klinis atau keterangan dokter pengirim |
 | `ClosedAt` | `DateTime?` | Tidak | — | Index | — | — | Tidak | Diisi saat episode ditutup. Titik akhir lama dirawat |
 | `DischargeType` | `InpDischargeType` | Ya | `Unknown` | — | — | — | Tidak | Diisi saat keputusan pulang. Disimpan sebagai `int` |
 | `IsClosedWithoutFinancialClearance` | `bool` | Ya | `false` | Index | — | — | Tidak | Menandai penutupan yang menembus gerbang keuangan |
@@ -94,7 +103,7 @@ contoh berisi data asli, dan perlu ditinjau kebutuhan penyamarannya pada respons
 | `SequenceNumber` | `int` | Ya | — | Unique bersama `EpisodeId` | — | — | Tidak | Urutan penempatan di dalam episode |
 | `StartDateTime` | `DateTime` | Ya | `UtcNow` | Index | — | — | Tidak | Mulai ditempati |
 | `EndDateTime` | `DateTime?` | Tidak | — | Index | — | — | Tidak | Kosong berarti masih ditempati |
-| `EndReason` | `InpBedPlacementEndReason?` | Tidak | — | — | — | — | Tidak | Kenapa penempatan berakhir. Disimpan sebagai `int` |
+| `EndReason` | `InpBedPlacementEndReason?` | Tidak | — | — | — | — | Tidak | Kenapa penempatan berakhir: perpindahan, penutupan episode, pembatalan admisi, atau **kepergian fisik pasien**. Disimpan sebagai `int` |
 | `TransferReason` | `string(500)?` | Tidak | — | — | — | — | Tidak | Alasan medis perpindahan. Wajib bila baris ini lahir dari perpindahan |
 | `PlacedByUserId` | `Guid` | Ya | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | Siapa yang menempatkan |
 | `EndedByUserId` | `Guid?` | Tidak | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | Siapa yang mengakhiri penempatan |
@@ -117,7 +126,36 @@ contoh berisi data asli, dan perlu ditinjau kebutuhan penyamarannya pada respons
 | `SignedByDoctorId` | `Guid?` | Tidak | — | Index | FK ke `MstDoctor` | `Restrict` | Tidak | DPJP yang menandatangani |
 | `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | — |
 
-## 7. `InpClearanceMark` — status `Baru`
+## 7. `InpDischargeSummaryRevision` — status `Baru` pada revision `0.2`
+
+Menyimpan salinan resume pulang **versi sebelumnya**, dibuat setiap kali resume yang sudah
+ditandatangani diubah. Penyuntingan sebelum tanda tangan tidak membuat baris di sini.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `DischargeSummaryId` | `Guid` | Ya | — | Index | FK ke `InpDischargeSummary` | `Restrict` | Tidak | Resume yang versinya disalin |
+| `RevisionNumber` | `int` | Ya | — | Unique bersama `DischargeSummaryId` | — | — | Tidak | Urutan versi, dimulai dari 1 |
+| `CorrectionSessionId` | `Guid?` | Tidak | — | Index | FK ke `InpCorrectionSession` | `Restrict` | Tidak | Sesi koreksi yang menyebabkan penggantian |
+| `PrimaryDiagnosisText` | `string(1000)` | Ya | — | — | — | — | **Ya** | Salinan isi versi lama |
+| `SecondaryDiagnosisText` | `string(2000)?` | Tidak | — | — | — | — | **Ya** | Salinan isi versi lama |
+| `ProcedureSummary` | `string(2000)?` | Tidak | — | — | — | — | **Ya** | Salinan isi versi lama |
+| `DischargeMedicationNote` | `string(2000)?` | Tidak | — | — | — | — | **Ya** | Salinan isi versi lama |
+| `FollowUpInstruction` | `string(2000)?` | Tidak | — | — | — | — | **Ya** | Salinan isi versi lama |
+| `ReferralDestination` | `string(250)?` | Tidak | — | — | — | — | Tidak | Salinan isi versi lama |
+| `ClinicalSummary` | `string(4000)?` | Tidak | — | — | — | — | **Ya** | Salinan isi versi lama |
+| `PreviousDischargeType` | `InpDischargeType` | Ya | — | — | — | — | Tidak | Cara pulang yang berlaku pada versi lama |
+| `PreviousSignedAt` | `DateTime` | Ya | — | — | — | — | Tidak | Kapan versi lama ditandatangani |
+| `PreviousSignedByDoctorId` | `Guid` | Ya | — | Index | FK ke `MstDoctor` | `Restrict` | Tidak | Siapa yang menandatangani versi lama |
+| `SupersededAt` | `DateTime` | Ya | `UtcNow` | Index | — | — | Tidak | Kapan versi ini digantikan |
+| `SupersededByUserId` | `Guid` | Ya | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | Siapa yang menggantikan |
+| `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Baris ini tidak pernah dinonaktifkan |
+
+**Aturan yang mengikat tabel ini.** Baris di sini **tidak dapat diubah dan tidak dapat dihapus**;
+tidak disediakan endpoint update maupun delete. `InpDischargeSummary` tetap menyimpan versi yang
+berlaku, sehingga `INV-INP-05` — satu episode paling banyak satu resume — tidak berubah.
+
+## 8. `InpClearanceMark` — status `Baru`
 
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 | --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
@@ -129,7 +167,7 @@ contoh berisi data asli, dan perlu ditinjau kebutuhan penyamarannya pada respons
 | `Note` | `string(500)?` | Tidak | — | — | — | — | Tidak | Keterangan tambahan |
 | `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | — |
 
-## 8. `InpFinancialClearance` — status `Baru`
+## 9. `InpFinancialClearance` — status `Baru`
 
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 | --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
@@ -143,7 +181,7 @@ contoh berisi data asli, dan perlu ditinjau kebutuhan penyamarannya pada respons
 | `IsManualMarking` | `bool` | Ya | `true` | — | — | — | Tidak | Selalu `true` selama MVP. Wajib ditampilkan pada layar dan laporan |
 | `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | — |
 
-## 9. `InpStatusHistory` — status `Baru`
+## 10. `InpStatusHistory` — status `Baru`
 
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 | --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
@@ -159,7 +197,7 @@ contoh berisi data asli, dan perlu ditinjau kebutuhan penyamarannya pada respons
 | `Reason` | `string(1000)?` | Tidak | — | — | — | — | Tidak | Alasan perpindahan |
 | `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Baris ini tidak pernah dinonaktifkan |
 
-## 10. `InpCorrectionSession` — status `Baru`
+## 11. `InpCorrectionSession` — status `Baru`
 
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 | --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
@@ -174,7 +212,7 @@ contoh berisi data asli, dan perlu ditinjau kebutuhan penyamarannya pada respons
 | `ChangedFieldSummary` | `string(4000)?` | Tidak | — | — | — | — | Tidak | **Wajib saat sesi ditutup.** Daftar apa saja yang berubah |
 | `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | — |
 
-## 11. `MstInpatientSetting` — status `Baru`
+## 12. `MstInpatientSetting` — status `Baru`
 
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 | --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
@@ -191,7 +229,7 @@ contoh berisi data asli, dan perlu ditinjau kebutuhan penyamarannya pada respons
 | `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | — |
 | `Notes` | `string(1000)?` | Tidak | — | — | — | — | Tidak | Keterangan admin |
 
-## 12. `MstInpatientClearanceItem` — status `Baru`
+## 13. `MstInpatientClearanceItem` — status `Baru`
 
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 | --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
@@ -205,12 +243,12 @@ contoh berisi data asli, dan perlu ditinjau kebutuhan penyamarannya pada respons
 
 ---
 
-## 13. Tabel milik modul lain — status `Sudah ada`
+## 14. Tabel milik modul lain — status `Sudah ada`
 
 Hanya kolom kunci dan kolom yang dipakai aturan bisnis modul ini. Sumber lengkapnya ada pada file
 model masing-masing.
 
-### 13.1 `TrxPatientEncounter` — sumber `Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounter.cs`
+### 14.1 `TrxPatientEncounter` — sumber `Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounter.cs`
 
 | Kolom | Tipe | Dipakai modul ini untuk | Keterangan |
 | --- | --- | --- | --- |
@@ -225,7 +263,7 @@ model masing-masing.
 **Yang tidak boleh dilakukan:** menyimpan status episode ke dalam `EncounterStatus`. Keduanya
 lifecycle yang berbeda dan pemiliknya berbeda.
 
-### 13.2 `MstBed` — sumber `Areas/HealthServices/MasterData/Models/MstBed.cs`
+### 14.2 `MstBed` — sumber `Areas/HealthServices/MasterData/Models/MstBed.cs`
 
 | Kolom | Tipe | Dipakai modul ini untuk | Keterangan |
 | --- | --- | --- | --- |
@@ -238,7 +276,7 @@ lifecycle yang berbeda dan pemiliknya berbeda.
 | `IsForNewborn` | `bool` | Menandai boks bayi | `RWI-RULE-014` |
 | `IsForMale`, `IsForFemale`, `IsIsolationBed` | `bool` | **Belum dipakai** sebagai aturan penolak | Menunggu `DEC-INP-004` |
 
-### 13.3 `MstRoom`, `MstServiceUnit`, `MstPatientClass`
+### 14.3 `MstRoom`, `MstServiceUnit`, `MstPatientClass`
 
 | Tabel | Kolom kunci yang dipakai | Sumber |
 | --- | --- | --- |
@@ -246,7 +284,7 @@ lifecycle yang berbeda dan pemiliknya berbeda.
 | `MstServiceUnit` | `Id`, `ServiceUnitType`, `IsQueueRequired` | `Areas/HealthServices/MasterData/Models/MstServiceUnit.cs` |
 | `MstPatientClass` | `Id`, `PatientClassName`, `ClassLevel`, `IsForInpatient`, `DefaultDailyRoomRate` | `Areas/HealthServices/MasterData/Models/MstPatientClass.cs` |
 
-### 13.4 `MstDoctor` dan `MstEmployee`
+### 14.4 `MstDoctor` dan `MstEmployee`
 
 | Tabel | Kolom kunci yang dipakai | Sumber |
 | --- | --- | --- |
@@ -255,15 +293,16 @@ lifecycle yang berbeda dan pemiliknya berbeda.
 
 ---
 
-## 14. Enum
+## 15. Enum
 
 | Enum | Nilai | Bawaan | Lokasi file |
 | --- | --- | --- | --- |
 | `InpEpisodeStatus` | `Draft = 0`, `Admitted = 1`, `DischargePending = 2`, `Closed = 3`, `Cancelled = 4` | `Draft` | `Areas/HealthServices/InPatientManagement/Enums/InpEpisodeStatus.cs` |
 | `InpDischargeType` | `Unknown = 0`, `DoctorApproved = 1`, `AgainstMedicalAdvice = 2`, `Referred = 3` | `Unknown` | `.../Enums/InpDischargeType.cs` |
 | `InpBedReservationStatus` | `Active = 1`, `Consumed = 2`, `Expired = 3`, `Cancelled = 4` | `Active` | `.../Enums/InpBedReservationStatus.cs` |
-| `InpBedPlacementEndReason` | `Transfer = 1`, `EpisodeClosed = 2`, `AdmissionCancelled = 3` | — | `.../Enums/InpBedPlacementEndReason.cs` |
+| `InpBedPlacementEndReason` | `Transfer = 1`, `EpisodeClosed = 2`, `AdmissionCancelled = 3`, **`PatientDeparted = 4`** | — | `.../Enums/InpBedPlacementEndReason.cs` |
 | `InpFinancialClearanceStatus` | `Pending = 0`, `Cleared = 1`, `Blocked = 2` | `Pending` | `.../Enums/InpFinancialClearanceStatus.cs` |
+| `InpIsolationSource` | `AdmissionRecord = 1`, `ClinicalDecision = 2` | — | `.../Enums/InpIsolationSource.cs` |
 | `InpStatusChangeActorType` | `User = 1`, `System = 2` | `User` | `.../Enums/InpStatusChangeActorType.cs` |
 
 **Catatan tentang `InpDischargeType`.** Nilai `4` dan `5` **sengaja dikosongkan** untuk cara pulang
@@ -272,7 +311,7 @@ nomornya sekarang membuat penambahan kelak tidak mengubah angka yang sudah tersi
 
 ---
 
-## 15. Skema dalam bentuk DDL
+## 16. Skema dalam bentuk DDL
 
 > **Peringatan wajib dibaca lebih dulu.** Basis data project ini dibentuk EF Core Migrations,
 > bukan skrip SQL manual. DDL di bawah adalah **dokumentasi bentuk tabel**, bukan skrip yang
@@ -293,8 +332,17 @@ CREATE TABLE public."InpEpisode" (
     "EpisodeStatus"                       integer       NOT NULL,  -- enum, HasConversion<int>
     "AdmittedAt"                          timestamp,
     "DischargeDecidedAt"                  timestamp,
+    "PhysicallyLeftAt"                    timestamp,               -- kosong = pasien masih di ruangan
+    "PhysicallyLeftByUserId"              uuid,
     "ClosedAt"                            timestamp,
     "DischargeType"                       integer       NOT NULL,  -- enum
+    "MotherEpisodeId"                     uuid,                    -- episode ibu, hanya bayi rawat gabung
+    "RequiresIsolation"                   boolean       NOT NULL,
+    "IsolationSource"                     integer,                 -- enum, 1 catatan awal, 2 keputusan klinis
+    "IsolationSetByUserId"                uuid,
+    "IsolationSetByDoctorId"              uuid,
+    "IsolationSetAt"                      timestamp,
+    "IsolationNote"                       varchar(500),            -- SENSITIF
     "IsClosedWithoutFinancialClearance"   boolean       NOT NULL,
     "ClosedWithoutClearanceReason"        varchar(500),
     "CancelReason"                        varchar(500),
@@ -303,13 +351,24 @@ CREATE TABLE public."InpEpisode" (
 
     CONSTRAINT "PK_InpEpisode" PRIMARY KEY ("Id"),
     CONSTRAINT "FK_InpEpisode_TrxPatientEncounter_EncounterId"
-        FOREIGN KEY ("EncounterId") REFERENCES public."TrxPatientEncounter" ("Id") ON DELETE RESTRICT
+        FOREIGN KEY ("EncounterId") REFERENCES public."TrxPatientEncounter" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_InpEpisode_InpEpisode_MotherEpisodeId"
+        FOREIGN KEY ("MotherEpisodeId") REFERENCES public."InpEpisode" ("Id") ON DELETE RESTRICT
 );
 
 CREATE UNIQUE INDEX "IX_InpEpisode_EpisodeNumber" ON public."InpEpisode" ("EpisodeNumber");
 CREATE UNIQUE INDEX "IX_InpEpisode_EncounterId"   ON public."InpEpisode" ("EncounterId");
 CREATE INDEX "IX_InpEpisode_EpisodeStatus"        ON public."InpEpisode" ("EpisodeStatus");
 CREATE INDEX "IX_InpEpisode_PatientId"            ON public."InpEpisode" ("PatientId");
+CREATE INDEX "IX_InpEpisode_MotherEpisodeId"      ON public."InpEpisode" ("MotherEpisodeId");
+CREATE INDEX "IX_InpEpisode_RequiresIsolation"    ON public."InpEpisode" ("RequiresIsolation");
+
+-- Menjaga INV-INP-10: satu pasien paling banyak satu episode yang benar-benar hadir.
+-- 1 = Admitted, 2 = DischargePending.
+CREATE UNIQUE INDEX "IX_InpEpisode_PatientId_Present"
+    ON public."InpEpisode" ("PatientId")
+    WHERE "EpisodeStatus" = 1
+       OR ("EpisodeStatus" = 2 AND "PhysicallyLeftAt" IS NULL);
 
 
 CREATE TABLE public."InpBedPlacement" (
@@ -322,7 +381,7 @@ CREATE TABLE public."InpBedPlacement" (
     "SequenceNumber"   integer       NOT NULL,
     "StartDateTime"    timestamp     NOT NULL,
     "EndDateTime"      timestamp,
-    "EndReason"        integer,                 -- enum
+    "EndReason"        integer,                 -- enum: 1 Transfer, 2 EpisodeClosed, 3 AdmissionCancelled, 4 PatientDeparted
     "TransferReason"   varchar(500),
     "PlacedByUserId"   uuid          NOT NULL,
     "EndedByUserId"    uuid,
@@ -435,8 +494,56 @@ CREATE UNIQUE INDEX "IX_InpDischargeSummary_EpisodeId"
     ON public."InpDischargeSummary" ("EpisodeId");
 ```
 
+```sql
+-- Baru pada revision 0.2. Bentuk tabel sebagaimana akan dihasilkan EF Core. Bukan skrip untuk dijalankan.
+CREATE TABLE public."InpDischargeSummaryRevision" (
+    "Id"                          uuid           NOT NULL,
+    "DischargeSummaryId"          uuid           NOT NULL,
+    "RevisionNumber"              integer        NOT NULL,
+    "CorrectionSessionId"         uuid,
+    "PrimaryDiagnosisText"        varchar(1000)  NOT NULL,  -- SENSITIF
+    "SecondaryDiagnosisText"      varchar(2000),            -- SENSITIF
+    "ProcedureSummary"            varchar(2000),            -- SENSITIF
+    "DischargeMedicationNote"     varchar(2000),            -- SENSITIF
+    "FollowUpInstruction"         varchar(2000),            -- SENSITIF
+    "ReferralDestination"         varchar(250),
+    "ClinicalSummary"             varchar(4000),            -- SENSITIF
+    "PreviousDischargeType"       integer        NOT NULL,  -- enum
+    "PreviousSignedAt"            timestamp      NOT NULL,
+    "PreviousSignedByDoctorId"    uuid           NOT NULL,
+    "SupersededAt"                timestamp      NOT NULL,
+    "SupersededByUserId"          uuid           NOT NULL,
+    "IsActive"                    boolean        NOT NULL,
+
+    CONSTRAINT "PK_InpDischargeSummaryRevision" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_InpDischargeSummaryRevision_InpDischargeSummary_DischargeSummaryId"
+        FOREIGN KEY ("DischargeSummaryId")
+        REFERENCES public."InpDischargeSummary" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_InpDischargeSummaryRevision_InpCorrectionSession_CorrectionSessionId"
+        FOREIGN KEY ("CorrectionSessionId")
+        REFERENCES public."InpCorrectionSession" ("Id") ON DELETE RESTRICT
+);
+
+CREATE UNIQUE INDEX "IX_InpDischargeSummaryRevision_SummaryId_RevisionNumber"
+    ON public."InpDischargeSummaryRevision" ("DischargeSummaryId", "RevisionNumber");
+```
+
 Enam tabel sisanya — `InpNurseAssignment`, `InpClearanceMark`, `InpFinancialClearance`,
 `InpCorrectionSession`, `MstInpatientSetting`, dan `MstInpatientClearanceItem` — mengikuti pola
 yang sama persis: `Id` sebagai kunci utama, foreign key ke induknya dengan `ON DELETE RESTRICT`,
 enum sebagai `integer`, dan unique index sesuai kolom Index pada tabel kamus data di atas. Bentuk
 DDL-nya tidak ditulis ulang di sini karena tidak menambah informasi baru.
+
+---
+
+## 17. Perubahan pada revision `0.2`
+
+| Yang berubah | Dasar |
+| --- | --- |
+| `InpEpisode` bertambah `PhysicallyLeftAt`, `PhysicallyLeftByUserId`, `MotherEpisodeId`, satu foreign key ke dirinya sendiri, dan satu unique index parsial | `RWI-DEC-054`, `RWI-DEC-055`, `RWI-DEC-056` |
+| `InpBedPlacementEndReason` bertambah nilai `PatientDeparted` | `RWI-DEC-055` |
+| Pada revision `0.3`: `InpEpisode` bertambah enam kolom kebutuhan isolasi, dan enum baru `InpIsolationSource` | `RWI-DEC-065` |
+| Tabel baru `InpDischargeSummaryRevision` beserta DDL-nya | `RWI-DEC-057` |
+| Penomoran bagian bergeser karena satu tabel baru disisipkan pada urutan 7 | — |
+
+Tidak ada kolom yang dihapus dan tidak ada tipe yang berubah pada revision ini.

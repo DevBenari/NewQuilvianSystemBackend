@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.1.0` |
+| `contract_version` | `0.2.0` |
 | Status | `draft` |
-| Masukan | `00-interview-decisions.md` revision `2` (115 acceptance criteria); seluruh kontrak revision `0.1.0` |
+| Masukan | `00-interview-decisions.md` revision `3` (127 acceptance criteria); seluruh kontrak revision `0.2.0` |
 | Backend SHA | `5afb54b` |
 | Frontend SHA | `dec4fdeff` |
 
@@ -30,6 +30,10 @@ Keadaan hari ini yang harus disadari: backend hanya punya **satu** berkas test
 | **Gagal** | Memesan tempat tidur berstatus `Maintenance` | Integrasi | 422 dengan pesan yang menyebut keadaan tempat tidur |
 | **Gagal** | Membuka admisi pada kunjungan yang sudah punya episode | Integrasi | 409, dan `INV-INP-04` tidak dilanggar |
 | **Gagal** | Membuka admisi tanpa DPJP | Integrasi | 400, dan `INV-INP-03` tidak dilanggar |
+| `RWI-AC-116` | Menempatkan pasien yang sudah punya episode `Admitted` | Integrasi | 409 disertai nomor episode dan lokasi yang sedang ditempati. Membuktikan `INV-INP-10` |
+| `RWI-AC-117` | Membuka admisi untuk pasien yang punya episode `Draft` lain | Integrasi | Berhasil, disertai peringatan. **Bukan** penolakan |
+| **Gagal** | Menempatkan pasien yang episode lamanya `DischargePending` dan kepergiannya belum dicatat | Integrasi | 409 |
+| — | Menempatkan pasien yang episode lamanya `DischargePending` tetapi kepergiannya **sudah** dicatat | Integrasi | **Berhasil.** Membuktikan batasnya kepergian fisik, bukan penutupan |
 
 ## 2. Penempatan pasien dan pencegahan tempat tidur ganda
 
@@ -54,6 +58,7 @@ Keadaan hari ini yang harus disadari: backend hanya punya **satu** berkas test
 | `RWI-AC-083` | Dokter yang tanggung jawabnya sudah berakhir meminta perpindahan | Integrasi | 403 |
 | **Gagal** | Perpindahan tanpa alasan | Integrasi | 400 |
 | **Gagal** | Perpindahan ke tempat tidur yang sedang ditempati | Integrasi | 409 |
+| **Gagal** | Memindahkan pasien yang kepergiannya sudah dicatat | Integrasi | 422 |
 
 ## 4. Penanggung jawab
 
@@ -67,6 +72,21 @@ Keadaan hari ini yang harus disadari: backend hanya punya **satu** berkas test
 | `RWI-AC-102` | Peran selain kepala ruangan menugaskan perawat | Integrasi | 403 |
 | `RWI-AC-104` | Episode tanpa perawat tetap dapat menerima perpindahan | Integrasi | Perpindahan berhasil walaupun perawat belum ditugaskan |
 | `RWI-AC-105` | Episode tanpa perawat muncul pada daftar pantau | Integrasi | `GET /monitoring/unassigned-nurse-episodes` memuat episode itu |
+
+## 4A. Kepergian fisik pasien
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `RWI-AC-118` | Mencatat kepergian melepas tempat tidur seketika | Integrasi | Baris penempatan tertutup dengan `EndReason = PatientDeparted`; `MstBed.BedStatus` menjadi `Available`; tempat tidur muncul pada pencarian berikutnya |
+| `RWI-AC-119` | Setelah kepergian dicatat, episode tetap `DischargePending` | Integrasi | Status tidak berubah, dan episode tetap muncul pada daftar pantau penutupan tertunda |
+| `RWI-AC-120` | Pasien yang sudah pergi tidak muncul di census dan tidak dapat dipindahkan | Integrasi | Census tidak memuatnya; perpindahan ditolak 422 |
+| `RWI-AC-121` | Menutup episode tanpa mencatat kepergian tetap berhasil | Integrasi | Tempat tidur dilepas saat penutupan, `EndReason = EpisodeClosed` |
+| — | Kepergian **tidak** menulis baris riwayat status | Integrasi | Jumlah baris `InpStatusHistory` tidak bertambah |
+| **Gagal** | Mencatat kepergian pada episode `Admitted` | Integrasi | 422 |
+| **Gagal** | Mencatat kepergian dua kali | Integrasi | 409 |
+| **Gagal** | Waktu kepergian mendahului keputusan pulang | Integrasi | 400 |
+| **Gagal** | Kepergian dicatat peran yang tidak berwenang | Integrasi | 403 |
+| **Gagal** | Pelepasan tempat tidur gagal di tengah jalan | Integrasi | Kolom kepergian pada episode juga tidak terisi |
 
 ## 5. Census dan lama dirawat
 
@@ -95,6 +115,9 @@ Keadaan hari ini yang harus disadari: backend hanya punya **satu** berkas test
 | `RWI-AC-092` | Membuat resume kedua untuk episode yang sama | Integrasi | 409. Membuktikan `INV-INP-05` |
 | `RWI-AC-096` | Cara pulang `Referred` tetapi tujuan rujukan kosong | Integrasi | 400 |
 | `RWI-AC-097` | Mengubah resume setelah episode ditutup tanpa sesi koreksi | Integrasi | 409 dengan pesan yang mengarahkan pada sesi koreksi |
+| `RWI-AC-124` | Menyunting resume yang belum ditandatangani | Integrasi | Isi berubah, **tidak** ada baris versi yang dibuat |
+| `RWI-AC-125` | Mengubah resume yang sudah ditandatangani lewat sesi koreksi | Integrasi | Satu baris `InpDischargeSummaryRevision` berisi salinan isi lama, penandatangan lama, dan sesi koreksi yang menyebabkannya |
+| `RWI-AC-126` | Mengubah atau menghapus salinan versi resume | Integrasi | Tidak ada endpoint; percobaan menghasilkan 404 |
 | **Gagal** | Dokter bukan DPJP aktif menyatakan pasien boleh pulang | Integrasi | 403. Membuktikan `GUARD-INP-02` |
 | **Gagal** | Dokter bukan DPJP aktif menandatangani resume | Integrasi | 403. Membuktikan `GUARD-INP-03` |
 | **Gagal** | Menandatangani resume tanpa diagnosis utama | Integrasi | 400 |
@@ -158,6 +181,17 @@ Keadaan hari ini yang harus disadari: backend hanya punya **satu** berkas test
 | `RWI-AC-114` | Setiap task yang menyentuh Master Data membawa test regresi jalur lama | Integrasi | Endpoint bed lain tetap berperilaku sama |
 | `RWI-AC-115` | Penjaga kewenangan DPJP punya test yang membuktikan dokter bukan DPJP ditolak | Integrasi | Sudah tercakup pada bagian 3 dan 7 |
 
+## 12A. Bayi baru lahir dan hubungan dengan ibu
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `RWI-AC-122` | Episode bayi menyimpan rujukan ke episode ibunya | Integrasi | Detail episode bayi memuat episode ibu; pencarian bayi yang dirawat gabung di kamar tertentu berhasil |
+| `RWI-AC-123` | Menutup episode ibu tidak menutup episode bayi | Integrasi | Episode bayi tetap `Admitted`, boks bayi tetap terisi |
+| `RWI-AC-127` | Riwayat lokasi satu episode terbaca lengkap dari catatan penempatan milik Rawat Inap | Integrasi | Tidak ada query ke tabel milik modul Registrasi |
+| **Gagal** | Episode bayi menunjuk episode milik pasien yang sama | Integrasi | 422 |
+| **Gagal** | Episode menunjuk dirinya sendiri sebagai episode ibu | Integrasi | 400 |
+| **Gagal** | Episode ibu yang ditunjuk sudah `Closed` | Integrasi | 422 |
+
 ## 13. Data master awal
 
 | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
@@ -189,20 +223,22 @@ terlupa.
 
 | Kelompok | Skenario berhasil | Skenario gagal |
 | --- | ---: | ---: |
-| Admisi dan pemesanan | 3 | 4 |
+| Admisi dan pemesanan | 5 | 6 |
 | Penempatan dan tempat tidur ganda | 4 | 2 |
-| Perpindahan | 3 | 5 |
+| Perpindahan | 3 | 6 |
 | Penanggung jawab | 6 | 2 |
+| **Kepergian fisik pasien** | 5 | 5 |
 | Census dan lama dirawat | 4 | 0 |
 | Pembatalan | 2 | 3 |
-| Pulang dan resume | 3 | 4 |
+| Pulang dan resume | 6 | 4 |
 | Kelayakan dan penutupan | 6 | 4 |
 | Daftar periksa | 2 | 1 |
 | Riwayat dan koreksi | 7 | 3 |
 | Pengaturan | 5 | 0 |
 | Perbaikan dan regresi | 6 | 0 |
+| Bayi dan hubungan dengan ibu | 3 | 3 |
 | Data master | 3 | 0 |
-| **Total** | **54** | **28** |
+| **Total** | **67** | **38** |
 
 Empat skenario gagal yang paling penting, dan tidak boleh dilewati:
 
@@ -212,3 +248,21 @@ Empat skenario gagal yang paling penting, dan tidak boleh dilewati:
    yang tidak dijaga mesin hak akses.
 4. **Supervisor menembus gerbang keuangan sementara resume belum ditandatangani** — membuktikan
    jalan keluar itu benar-benar sempit.
+5. **Menempatkan pasien yang sudah punya episode aktif** — membuktikan `INV-INP-10`.
+6. **Menempatkan pasien yang episode lamanya sudah ditinggalkan secara fisik** — membuktikan
+   batasnya kepergian, bukan penutupan. Ini kebalikan nomor 5 dan sama pentingnya: yang pertama
+   mencegah data ganda, yang kedua mencegah pasien tertahan oleh urusan administrasi.
+
+---
+
+## 16. Perubahan pada `contract_version` `0.2.0`
+
+| Yang ditambahkan | Dasar |
+| --- | --- |
+| Bagian 4A kepergian fisik pasien, 10 skenario | `RWI-DEC-055` |
+| Empat skenario satu pasien satu episode pada bagian 1 | `RWI-DEC-054` |
+| Tiga skenario versi resume pada bagian 7 | `RWI-DEC-057` |
+| Bagian 12A hubungan bayi dan ibu, 6 skenario | `RWI-DEC-056` |
+| Satu skenario kepemilikan riwayat lokasi pada bagian 12A | `RWI-DEC-053` |
+
+Tidak ada skenario yang dihapus pada revision ini.

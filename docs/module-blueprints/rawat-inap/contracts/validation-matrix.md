@@ -3,10 +3,10 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.1.0` |
+| `contract_version` | `0.3.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | `00-interview-decisions.md` revision `2`; `02-backend-architecture.md` revision `0.1` |
+| `input_revision` | `00-interview-decisions.md` revision `5`; `02-backend-architecture.md` revision `0.3` |
 | Dampak kompatibilitas | Seluruhnya baru, kecuali satu baris pada bagian 8 yang mengubah perilaku endpoint existing |
 
 Pesan pada kolom "Pesan bagi pengguna" ditulis sebagaimana akan dibaca petugas di layar. Bukan
@@ -45,6 +45,22 @@ istilah teknis, bukan nama kolom.
 | Seluruh aturan Kelayakan Penempatan | idem | Salah satu aturan pada bagian 2 tidak terpenuhi | Sama seperti pesan di bagian 2 | 409 atau 422 |
 | Pemesanan yang gugur tidak menghalangi | idem | Pemesanan sudah `Expired` tetapi tempat tidur masih kosong | **Tidak ada penolakan.** Penempatan diteruskan tanpa peringatan | — |
 | Isian admisi tetap utuh saat ditolak | idem | Penempatan ditolak karena tempat tidur diambil pasien lain | "Tempat tidur BD-RSMMC-00042 sudah ditempati pasien lain. Silakan pilih tempat tidur lain; isian admisi Anda tetap tersimpan." | 409 |
+| **Satu pasien satu episode yang hadir** | idem | Pasien sudah punya episode `Admitted`, atau `DischargePending` yang kepergiannya belum dicatat | "Tn. Budi sudah dirawat pada episode RI-2026-09-000123 di Melati 3B. Bila memang pindah kamar, pakai perpindahan, bukan admisi baru." | 409 |
+| Peringatan admisi `Draft` ganda | `POST /episodes` | Pasien sudah punya episode `Draft` lain | **Bukan penolakan.** "Pasien ini punya admisi lain yang sedang disiapkan sejak kemarin." Petugas boleh lanjut atau membatalkan yang lama | 200 |
+| **Jenis kelamin tidak diterima tempat tidur** | idem | Penanda tempat tidur tidak menerima jenis kelamin pasien | "Tempat tidur ini hanya untuk pasien laki-laki." | 422 |
+| **Jenis kelamin belum tercatat** | idem | `MstPatient.Gender` kosong dan tempat tidur tidak menerima keduanya, atau kamarnya sudah berpenghuni | "Jenis kelamin pasien belum tercatat. Pilih tempat tidur yang menerima laki-laki dan perempuan, di kamar yang belum ada penghuninya." | 422 |
+| **Kamar sudah dihuni jenis kelamin berbeda** | idem | Ada penempatan aktif di kamar yang sama dengan jenis kelamin berbeda, di luar boks bayi | "Kamar Melati 3 sedang dihuni pasien perempuan, sehingga tidak dapat menerima pasien laki-laki." | 422 |
+| **Butuh isolasi, tempat tidur bukan isolasi** | idem | `RequiresIsolation` benar dan `MstBed.IsIsolationBed` salah | "Pasien ini membutuhkan isolasi, sehingga hanya dapat ditempatkan pada tempat tidur isolasi." | 422 |
+| **Tidak butuh isolasi, tempat tidur isolasi** | idem | `RequiresIsolation` salah dan `MstBed.IsIsolationBed` benar | "Tempat tidur isolasi hanya untuk pasien yang membutuhkan isolasi." | 422 |
+| Pengecualian boks bayi | idem | Tempat tidur bertanda `IsForNewborn` | **Tidak ada penolakan** dari tiga aturan jenis kelamin di atas | — |
+
+**Contoh berangka aturan satu pasien satu episode.** Tn. Budi sedang dirawat di Melati 3B. Pukul
+14:00 petugas lain mencoba menempatkannya di Anggrek 1A karena mengira ia pasien baru. Ditolak 409
+disertai nomor episode dan lokasi yang sedang ditempati, sehingga petugas langsung tahu bahwa yang
+dibutuhkan adalah perpindahan, bukan admisi baru.
+
+Sebaliknya, bila Tn. Budi sudah pulang pukul 10:15 — kepergiannya dicatat — lalu kembali pukul
+12:00 dengan keluhan baru, admisi barunya **diterima** walaupun episode lama belum ditutup.
 
 **Contoh berangka aturan baris ketiga.** Sdri. Wati memesan `BD-RSMMC-00042` pukul 09:15 untuk
 Ny. Sari. Batasnya 2 jam, jadi gugur pukul 11:15. Ny. Sari baru sampai kamar pukul 11:40. Karena
@@ -60,6 +76,8 @@ Ini sesuai `RWI-RULE-015`.
 | Tempat tidur tujuan berbeda | idem | Tempat tidur tujuan sama dengan yang sekarang | "Tempat tidur tujuan sama dengan tempat tidur saat ini." | 400 |
 | Seluruh aturan Kelayakan Penempatan | idem | Tidak terpenuhi | Sama seperti bagian 2 | 409 atau 422 |
 | **Kewenangan per pasien** | idem | Pemohon adalah dokter, tetapi bukan DPJP aktif episode itu | "Hanya DPJP episode ini yang dapat memindahkan pasien. Alihkan tanggung jawab DPJP lebih dulu bila diperlukan." | 403 |
+| Pasien yang sudah pergi tidak dapat dipindahkan | idem | Kepergian fisik pasien sudah dicatat | "Pasien sudah tercatat meninggalkan ruangan, sehingga tidak dapat dipindahkan." | 422 |
+| Aturan jenis kelamin dan isolasi | idem | Salah satu dari lima aturan pada bagian 3 tidak terpenuhi | Sama seperti pesan di bagian 3 | 422 |
 | Perpindahan utuh | idem | Salah satu langkah gagal di tengah jalan | "Perpindahan gagal. Pasien tetap berada di tempat tidur semula." | 500 |
 
 **Catatan tentang baris kewenangan.** Aturan ini berlaku **hanya untuk pemohon berperan dokter**.
@@ -81,6 +99,46 @@ pemeriksaan "sudah ada catatan klinis" **belum dapat dijalankan sepenuhnya**. Pa
 memakai penanda pengganti yang tercatat pada `04-prd-to-mvp.md`, dan ini adalah pengurangan
 kemampuan yang disadari, bukan kelalaian.
 
+## 4A. Menetapkan kebutuhan isolasi
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | ---: |
+| Wewenang saat episode `Draft` | `PATCH /episodes/{id}/isolation-requirement` | Bukan petugas admisi dan bukan DPJP | "Anda tidak punya hak akses untuk tindakan ini." | 403 |
+| Wewenang setelah episode aktif | idem | Bukan **DPJP aktif** episode tersebut | "Setelah pasien dirawat, hanya DPJP episode ini yang dapat mengubah kebutuhan isolasi." | 403 |
+| Sumber ditetapkan sistem | idem | — | Petugas admisi menghasilkan `AdmissionRecord`; DPJP menghasilkan `ClinicalDecision`. **Pemanggil tidak boleh menentukannya sendiri** | — |
+| Keterangan wajib bila menyalakan | idem | `RequiresIsolation` diubah menjadi benar tanpa `IsolationNote` | "Tuliskan alasan atau keterangan kebutuhan isolasi." | 400 |
+| Episode belum ditutup | idem | Episode `Closed` tanpa sesi koreksi | "Episode sudah ditutup." | 409 |
+| Perubahan tidak ditahan penempatan | idem | Pasien sedang menempati tempat tidur yang tidak sesuai | **Tidak ada penolakan.** Perubahan diterima, dan episode muncul pada daftar pantau penempatan tidak sesuai | 200 |
+
+**Kenapa baris terakhir tidak menahan.** Menahan pencatatan klinis demi menjaga aturan penempatan
+adalah urutan yang terbalik. Yang benar: fakta klinis dicatat lebih dulu, lalu sistem menunjukkan
+bahwa penempatannya perlu dibetulkan. Dasarnya `RWI-RULE-012` bagian A aturan 7.
+
+## 5A. Mencatat kepergian fisik pasien
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | ---: |
+| Episode wajib `DischargePending` | `POST /discharges/{id}/record-departure` | Status lain | "Kepergian hanya dapat dicatat setelah DPJP menyatakan pasien boleh pulang." | 422 |
+| Hanya sekali per episode | idem | Kepergian sudah pernah dicatat | "Kepergian pasien sudah dicatat pada pukul 10:15." | 409 |
+| Wewenang | idem | Bukan petugas admisi, perawat, kepala ruangan, atau supervisor | "Anda tidak punya hak akses untuk tindakan ini." | 403 |
+| Waktu kepergian tidak boleh di masa depan | idem | Waktu yang dikirim melewati waktu sekarang | "Waktu kepergian tidak boleh melewati waktu sekarang." | 400 |
+| Waktu kepergian tidak boleh sebelum keputusan pulang | idem | Waktu yang dikirim mendahului `DischargeDecidedAt` | "Waktu kepergian tidak boleh mendahului keputusan pulang." | 400 |
+| Pelepasan tempat tidur menyatu | idem | Pelepasan tempat tidur gagal | "Pencatatan kepergian gagal. Tidak ada data yang berubah." | 500 |
+
+**Yang tidak divalidasi, dan itu disengaja.** Sistem **tidak** memeriksa apakah butir administrasi
+atau kelayakan keuangan sudah selesai. Kepergian fisik adalah fakta, bukan izin — pasien yang sudah
+pulang tetap harus dicatat pulang walaupun administrasinya belum beres. Episode tetap `DischargePending`
+dan tetap muncul pada daftar pantau penutupan tertunda.
+
+## 5B. Hubungan episode bayi dan ibu
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | ---: |
+| Boleh kosong | `POST /episodes`, `PUT /episodes/{id}` | `MotherEpisodeId` tidak diisi | **Bukan penolakan.** Sebagian besar episode memang bukan bayi rawat gabung | 200 |
+| Tidak boleh menunjuk diri sendiri | idem | `MotherEpisodeId` sama dengan episode itu sendiri | "Episode tidak dapat menunjuk dirinya sendiri sebagai episode ibu." | 400 |
+| Tidak boleh pasien yang sama | idem | Episode ibu milik pasien yang sama | "Episode ibu harus milik pasien yang berbeda." | 422 |
+| Episode ibu harus ada dan belum ditutup | idem | Episode ibu tidak ditemukan atau sudah `Closed`/`Cancelled` | "Episode ibu tidak ditemukan atau sudah selesai." | 422 |
+
 ## 6. Keputusan pulang dan resume
 
 | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
@@ -92,6 +150,8 @@ kemampuan yang disadari, bukan kelalaian.
 | Tujuan rujukan wajib bila dirujuk | idem | Cara pulang `Referred` dan `ReferralDestination` kosong | "Tujuan rujukan wajib diisi untuk pasien yang dirujuk." | 400 |
 | Hanya DPJP aktif yang menandatangani | idem | Penandatangan bukan DPJP aktif | "Hanya DPJP episode ini yang dapat menandatangani resume." | 403 |
 | Satu resume per episode | `PUT /discharges/{id}/summary` | Sudah ada resume | Resume yang ada diperbarui, bukan ditolak | — |
+| Perubahan sebelum tanda tangan tidak membuat versi | idem | Resume belum ditandatangani | Isi ditimpa biasa, tanpa salinan versi | — |
+| Perubahan setelah tanda tangan menyimpan versi lama | idem, lewat sesi koreksi | Resume sudah ditandatangani | Salinan versi lama tersimpan otomatis; pengguna tidak perlu melakukan apa pun | — |
 
 ## 7. Penutupan episode
 
@@ -163,6 +223,9 @@ tercatat **1 hari**, bukan 0 hari.
 | 6 | `RWI-RULE-011`, `RWI-RULE-032`, `RWI-DEC-045` |
 | 7 | `RWI-RULE-009`, `RWI-RULE-010`, `RWI-RULE-018` |
 | 8 | `RWI-RULE-028`, `RWI-DEC-040` |
-| 9 | `RWI-RULE-020`, `RWI-DEC-028` |
+| 4A | `RWI-RULE-012` bagian A, `RWI-DEC-065` |
+| 5A | `RWI-RULE-036`, `RWI-DEC-055` |
+| 5B | `RWI-DEC-056`, `RWI-RULE-014` |
+| 9 | `RWI-RULE-020`, `RWI-DEC-028`, `RWI-DEC-057` |
 | 10 | `RWI-RULE-027`, `RWI-DEC-039` |
 | 11 | `RWI-RULE-002`, `RWI-RULE-019`, `RWI-RULE-022` |
