@@ -135,8 +135,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                     .ToListAsync(cancellationToken);
 
             var attendances = dailyIds.Count == 0
-                ? new List<TrxAttendance>()
-                : await _dbContext.TrxAttendances
+                ? new List<HrdAttendance>()
+                : await _dbContext.HrdAttendances
                     .AsNoTracking()
                     .Where(x =>
                         x.AttendanceDailyId.HasValue &&
@@ -223,7 +223,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
             MstOvertimePolicy policy,
             IReadOnlyCollection<TrxAttendanceDaily> attendanceDailies,
             IReadOnlyCollection<TrxAttendanceDailySegment> attendanceSegments,
-            IReadOnlyDictionary<Guid, TrxAttendance> attendanceByDaily,
+            IReadOnlyDictionary<Guid, HrdAttendance> attendanceByDaily,
             IReadOnlyCollection<MstOvertimeRate> allRates,
             PreviewOvertimeRealizationRequest request)
         {
@@ -498,7 +498,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
             ApprovedWindow window,
             IReadOnlyCollection<TrxAttendanceDaily> relevantDailies,
             IReadOnlyCollection<TrxAttendanceDailySegment> attendanceSegments,
-            IReadOnlyDictionary<Guid, TrxAttendance> attendanceByDaily,
+            IReadOnlyDictionary<Guid, HrdAttendance> attendanceByDaily,
             bool requireAttendanceMatch)
         {
             var result = new List<WorkingInterval>();
@@ -591,7 +591,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
             ApprovedWindow window,
             IReadOnlyCollection<TrxAttendanceDaily> relevantDailies,
             IReadOnlyCollection<TrxAttendanceDailySegment> attendanceSegments,
-            IReadOnlyDictionary<Guid, TrxAttendance> attendanceByDaily)
+            IReadOnlyDictionary<Guid, HrdAttendance> attendanceByDaily)
         {
             var breaks = new List<WorkingInterval>();
 

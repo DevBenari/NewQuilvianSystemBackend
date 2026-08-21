@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using LeaveTypePagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.DTOs.LeaveTypeResponse>;
 
@@ -56,6 +57,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             var result = new LeaveTypeFilterMetadataResponse
             {
                 DefaultFilter = new LeaveTypeDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 LeaveCategoryOptions = AllowedLeaveCategories.OrderBy(x => x)
                     .Select(x => new LeaveTypeStringOptionResponse { Value = x, Label = x }).ToList(),
                 SortOptions = new List<LeaveTypeSortOptionResponse>
@@ -97,6 +99,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         [AccessAction("Read", "Read Leave Type", Description = "Melihat data leave type", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LeaveType", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] string? leaveCategory,
             [FromQuery] bool? isPaidLeave,
             [FromQuery] bool? isBalanceDeducted,
@@ -109,6 +114,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         {
             NormalizePaging(ref pageNumber, ref pageSize);
             var query = ApplyFilter(BaseQuery(), leaveCategory, isPaidLeave, isBalanceDeducted, isActive, search);
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
             var entities = await ApplySorting(query, sortBy, sortDirection)
                 .Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -480,5 +486,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         }
         private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         private static string NormalizeLeaveCategory(string value) => AllowedLeaveCategories.First(x => x.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        private static List<LeaveTypeCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<LeaveTypeCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
+        }
     }
 }

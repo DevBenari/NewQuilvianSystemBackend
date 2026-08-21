@@ -90,6 +90,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
     {
         public string ResetButtonLabel { get; set; } = "Reset";
         public OvertimePolicyDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<OvertimePolicyCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<OvertimePolicyStringOptionResponse> RoundingMethodOptions { get; set; } = new();
         public List<OvertimePolicySortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
@@ -98,6 +99,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
 
     public class OvertimePolicyDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? LegalEntityId { get; set; }
         public Guid? HospitalSiteId { get; set; }
         public Guid? OrganizationUnitId { get; set; }
@@ -112,6 +116,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class OvertimePolicyCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class OvertimePolicyStringOptionResponse

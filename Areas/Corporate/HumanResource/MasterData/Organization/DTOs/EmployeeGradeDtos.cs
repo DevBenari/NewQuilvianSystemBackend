@@ -23,12 +23,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class EmployeeGradeDetailResponse : EmployeeGradeResponse
     {
         public DateTime? UpdateDateTime { get; set; }
         public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class EmployeeGradeOptionResponse
@@ -53,6 +55,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
     public class EmployeeGradeFilterMetadataResponse
     {
         public EmployeeGradeDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<EmployeeGradeCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<EmployeeGradeSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
@@ -60,6 +63,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
 
     public class EmployeeGradeDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? JobLevelId { get; set; }
         public bool? IsActive { get; set; }
         public string? Search { get; set; }
@@ -67,6 +73,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class EmployeeGradeCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class EmployeeGradeSortOptionResponse

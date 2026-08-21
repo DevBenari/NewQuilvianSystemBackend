@@ -12,6 +12,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using OvertimeRatePagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.DTOs.OvertimeRateResponse>;
 
@@ -55,6 +56,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             var result = new OvertimeRateFilterMetadataResponse
             {
                 DefaultFilter = new OvertimeRateDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 DayTypeOptions = AllowedDayTypes.Select(x => new OvertimeRateStringOptionResponse { Value = x, Label = x }).ToList(),
                 TimeBandOptions = AllowedTimeBands.Select(x => new OvertimeRateStringOptionResponse { Value = x, Label = x }).ToList(),
                 CalculationMethodOptions = AllowedCalculationMethods.Select(x => new OvertimeRateStringOptionResponse { Value = x, Label = x }).ToList(),
@@ -93,10 +95,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         [HttpGet]
         [AccessAction("Read", "Read Overtime Rate", Description = "Melihat data overtime rate", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("OvertimeRate", "Read")]
-        public async Task<IActionResult> GetData(Guid? overtimePolicyId, string? dayType, string? timeBand, string? calculationMethod, bool? isActive, string? search, string? sortBy = "priority", string? sortDirection = "asc", int pageNumber = 1, int pageSize = 25)
+        public async Task<IActionResult> GetData(DateTime? startDate, DateTime? endDate, string? customPeriod, Guid? overtimePolicyId, string? dayType, string? timeBand, string? calculationMethod, bool? isActive, string? search, string? sortBy = "priority", string? sortDirection = "asc", int pageNumber = 1, int pageSize = 25)
         {
             NormalizePaging(ref pageNumber, ref pageSize);
             var q = ApplyFilter(BaseQuery(), overtimePolicyId, dayType, timeBand, calculationMethod, isActive, search);
+            q = WorkflowMasterDataSupport.ApplyDateFilter(q, startDate, endDate, customPeriod);
             var totalData = await q.CountAsync();
             var entities = await ApplySorting(q, sortBy, sortDirection).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
             var actors = await GetActorNameMapAsync(entities.Select(x => x.CreateBy));
@@ -513,5 +516,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         private static void NormalizePaging(ref int pageNumber, ref int pageSize) { pageNumber = pageNumber < 1 ? 1 : pageNumber; pageSize = pageSize < 1 ? 25 : Math.Min(pageSize, 100); }
         private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         private static string NormalizeToken(string value, HashSet<string> allowed) => allowed.First(x => x.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        private static List<OvertimeRateCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<OvertimeRateCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
+        }
     }
 }

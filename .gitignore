@@ -366,3 +366,8 @@ FodyWeavers.xsd
 appsettings.Development.json
 .env
 .env.*
+
+agency-local/
+# Ignore Claude Code
+.claude
+CLAUDE.md

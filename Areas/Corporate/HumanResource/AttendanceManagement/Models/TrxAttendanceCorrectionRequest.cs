@@ -72,7 +72,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public TrxAttendanceDaily? AttendanceDaily { get; set; }
-        public TrxAttendance? Attendance { get; set; }
+        public HrdAttendance? Attendance { get; set; }
         public MstRequestReason? RequestReason { get; set; }
         public MstRejectionReason? RejectionReason { get; set; }
         public MstWorkflowDefinition? WorkflowDefinition { get; set; }

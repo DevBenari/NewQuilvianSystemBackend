@@ -74,6 +74,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
     {
         public string DateFormat { get; set; } = "yyyy-MM-dd";
         public PerformanceCycleDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<PerformanceCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<PerformanceStringOptionResponse> CycleTypeOptions { get; set; } = new();
         public List<PerformanceStringOptionResponse> CycleStatusOptions { get; set; } = new();
         public List<PerformanceSortOptionResponse> SortOptions { get; set; } = new();
@@ -83,6 +84,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
 
     public class PerformanceCycleDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public string? CycleType { get; set; }
         public string? CycleStatus { get; set; }
         public bool? IsCurrent { get; set; }
@@ -145,6 +149,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
     }
 
     public class PerformanceSortOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+    }
+
+    public class PerformanceCustomPeriodOptionResponse
     {
         public string Value { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;

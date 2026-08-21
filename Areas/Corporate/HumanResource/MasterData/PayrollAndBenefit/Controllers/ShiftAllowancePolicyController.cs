@@ -12,6 +12,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Controllers
 {
@@ -59,6 +60,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             var result = new ShiftAllowancePolicyFilterMetadataResponse
             {
                 DefaultFilter = new ShiftAllowancePolicyDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 CalculationMethodOptions = AllowedMethods
                     .OrderBy(x => x)
                     .Select(x => new ShiftAllowancePolicyStringOptionResponse
@@ -110,6 +112,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [AccessAction("Read", "Read Shift Allowance Policy", Description = "Melihat data shift allowance policy", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("ShiftAllowancePolicy", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? allowanceTypeId,
             [FromQuery] Guid? shiftId,
             [FromQuery] Guid? shiftGroupId,
@@ -155,6 +160,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     (x.Description != null && x.Description.ToLower().Contains(keyword)));
             }
 
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
 
             var ordered = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase)
@@ -669,6 +675,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private static List<ShiftAllowancePolicyCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<ShiftAllowancePolicyCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
         }
     }
 }

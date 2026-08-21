@@ -279,7 +279,7 @@ namespace QuilvianSystemBackend.Repositories
         #endregion CORPORATE - HUMAN RESOURCE - LIFECYCLE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - ATTENDANCE MANAGEMENT
-        public DbSet<TrxAttendance> TrxAttendances { get; set; }
+        public DbSet<HrdAttendance> HrdAttendances { get; set; }
         public DbSet<TrxAttendanceRawLog> TrxAttendanceRawLogs { get; set; }
         public DbSet<TrxAttendanceProcessingRun> TrxAttendanceProcessingRuns { get; set; }
         public DbSet<TrxAttendancePeriod> TrxAttendancePeriods { get; set; }

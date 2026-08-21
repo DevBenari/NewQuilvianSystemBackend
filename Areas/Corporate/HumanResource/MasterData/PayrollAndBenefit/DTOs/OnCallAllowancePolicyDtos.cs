@@ -72,6 +72,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
     public class OnCallAllowancePolicyFilterMetadataResponse
     {
         public OnCallAllowancePolicyDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<OnCallAllowancePolicyCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<OnCallAllowancePolicyStringOptionResponse> CalculationMethodOptions { get; set; } = new();
         public List<OnCallAllowancePolicySortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
@@ -80,6 +81,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
     public class OnCallAllowancePolicyDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? AllowanceTypeId { get; set; }
         public Guid? OnCallTypeId { get; set; }
         public string? CalculationMethod { get; set; }
@@ -90,6 +94,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class OnCallAllowancePolicyCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class CreateOnCallAllowancePolicyRequest

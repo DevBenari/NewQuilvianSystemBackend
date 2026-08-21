@@ -158,6 +158,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public bool CanTransition(EmergencyVisitStatus current, EmergencyVisitStatus target)
         {
+            // Penyelesaian klinis bersifat final. Diperiksa sebelum jalan pintas status-sama
+            // di bawah, supaya Completed ke Completed pun ikut tertolak.
+            if (current == EmergencyVisitStatus.Completed)
+                return false;
+
             if (current == target)
                 return true;
 
@@ -182,6 +187,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EmergencyVisitStatus.AwaitingDisposition => target is EmergencyVisitStatus.Disposed
                     or EmergencyVisitStatus.InTreatment
                     or EmergencyVisitStatus.Cancelled,
+                // Sah menurut state matrix, tetapi closure gate-nya hanya ditegakkan oleh
+                // PATCH /{id}/complete. UpdateStatus menolak target ini secara terpisah.
+                EmergencyVisitStatus.Disposed => target is EmergencyVisitStatus.Completed,
                 _ => false
             };
         }

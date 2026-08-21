@@ -2484,7 +2484,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("MstSupplier", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.TrxAttendance", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendance", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -2772,7 +2772,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("Status", "IsProcessed", "AttendanceDate");
 
-                    b.ToTable("TrxAttendance", "public");
+                    b.ToTable("HrdAttendance", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.TrxAttendanceCorrectionApproval", b =>
@@ -58884,7 +58884,12 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("IsRetriage")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("MaxWaitingMinutesSnapshot")
+                    b.Property<bool>("IsSlaBreached")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int?>("MaxWaitingMinutesSnapshot")
                         .HasColumnType("integer");
 
                     b.Property<string>("Notes")
@@ -58915,6 +58920,9 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<int>("Sequence")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SlaBreachedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("timestamp with time zone");
@@ -58954,6 +58962,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("EmergencyVisitId", "Sequence")
                         .IsUnique();
+
+                    b.HasIndex("EmergencyVisitId", "ResponseDueAt", "IsSlaBreached");
 
                     b.HasIndex("EmergencyVisitId", "TriageStatus", "StartedAt");
 
@@ -59698,7 +59708,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int>("Level")
                         .HasColumnType("integer");
 
-                    b.Property<int>("MaxWaitingMinutes")
+                    b.Property<int?>("MaxWaitingMinutes")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")
@@ -69562,11 +69572,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ServiceUnit");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.TrxAttendance", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendance", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.TrxAttendanceDaily", "AttendanceDaily")
                         .WithOne("Attendance")
-                        .HasForeignKey("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.TrxAttendance", "AttendanceDailyId")
+                        .HasForeignKey("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendance", "AttendanceDailyId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models.MstAttendanceLocation", "AttendanceLocation")
@@ -69782,7 +69792,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("AttendanceDailyId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.TrxAttendance", "Attendance")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendance", "Attendance")
                         .WithMany()
                         .HasForeignKey("AttendanceId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -70167,7 +70177,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("ProcessedAttendanceDailyId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.TrxAttendance", "ProcessedAttendance")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendance", "ProcessedAttendance")
                         .WithMany()
                         .HasForeignKey("ProcessedAttendanceId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -79414,7 +79424,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("AttendanceDailyId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.TrxAttendance", "Attendance")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendance", "Attendance")
                         .WithMany()
                         .HasForeignKey("AttendanceId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -79520,7 +79530,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("AttendanceDailyId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.TrxAttendance", "Attendance")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendance", "Attendance")
                         .WithMany()
                         .HasForeignKey("AttendanceId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -79676,7 +79686,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("AttendanceDailyId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.TrxAttendance", "Attendance")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendance", "Attendance")
                         .WithMany()
                         .HasForeignKey("AttendanceId")
                         .OnDelete(DeleteBehavior.Restrict);
