@@ -134,7 +134,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public ICollection<TrxAttendanceException> Exceptions { get; set; }
             = new List<TrxAttendanceException>();
 
-        public ICollection<TrxAttendanceCorrectionRequest> CorrectionRequests { get; set; }
-            = new List<TrxAttendanceCorrectionRequest>();
+        public ICollection<HrdAttendanceCorrectionRequest> CorrectionRequests { get; set; }
+            = new List<HrdAttendanceCorrectionRequest>();
     }
 }

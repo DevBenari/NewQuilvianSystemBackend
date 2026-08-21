@@ -608,7 +608,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     dailyIdsQuery.Contains(x.AttendanceDailyId),
                     cancellationToken);
 
-            var activeCorrection = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var activeCorrection = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .AsNoTracking()
                 .CountAsync(x =>
                     !x.IsDelete &&

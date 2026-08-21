@@ -4,11 +4,11 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.M
 
 namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResource.AttendanceManagement
 {
-    public class TrxAttendanceCorrectionDetailConfiguration : IEntityTypeConfiguration<TrxAttendanceCorrectionDetail>
+    public class HrdAttendanceCorrectionDetailConfiguration : IEntityTypeConfiguration<HrdAttendanceCorrectionDetail>
     {
-        public void Configure(EntityTypeBuilder<TrxAttendanceCorrectionDetail> builder)
+        public void Configure(EntityTypeBuilder<HrdAttendanceCorrectionDetail> builder)
         {
-            builder.ToTable("TrxAttendanceCorrectionDetail", "public");
+            builder.ToTable("HrdAttendanceCorrectionDetail", "public");
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");

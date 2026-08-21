@@ -19,7 +19,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         {
             "ATTENDANCE_CORRECTION",
             "AttendanceCorrection",
-            "TrxAttendanceCorrectionRequest"
+            "HrdAttendanceCorrectionRequest"
         };
 
         private static readonly string[] OpenAssignmentStatuses =
@@ -440,7 +440,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             CancellationToken cancellationToken,
             Guid? correctionRequestId = null)
         {
-            var query = _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var query = _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 

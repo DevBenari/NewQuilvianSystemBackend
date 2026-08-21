@@ -809,7 +809,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             detail.Segments = await BuildSegmentsQuery(attendanceDailyId).ToListAsync(cancellationToken);
             detail.Exceptions = await BuildExceptionsQuery(attendanceDailyId).ToListAsync(cancellationToken);
             detail.RawLogs = await BuildRawLogsQuery(attendanceDailyId).ToListAsync(cancellationToken);
-            detail.CorrectionRequests = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            detail.CorrectionRequests = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .AsNoTracking()
                 .Where(x => x.AttendanceDailyId == attendanceDailyId && !x.IsDelete && x.IsActive)
                 .OrderByDescending(x => x.CreateDateTime)

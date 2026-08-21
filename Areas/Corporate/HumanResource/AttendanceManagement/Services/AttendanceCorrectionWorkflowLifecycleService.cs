@@ -45,7 +45,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             bool allowAutoApply,
             CancellationToken cancellationToken = default)
         {
-            var request = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var request = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .FirstOrDefaultAsync(
                     x => x.Id == workflow.ReferenceId && !x.IsDelete,
                     cancellationToken);
@@ -195,7 +195,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             try
             {
-                var request = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+                var request = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                     .Include(x => x.Details)
                     .Include(x => x.AttendanceDaily)
                     .ThenInclude(x => x!.AttendancePolicy)
@@ -556,7 +556,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static void ApplyLifecycleAudit(
-            TrxAttendanceCorrectionRequest request,
+            HrdAttendanceCorrectionRequest request,
             TrxWorkflowInstance workflow,
             string targetStatus,
             Guid actorUserId,
@@ -626,7 +626,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             DateTime now,
             CancellationToken cancellationToken)
         {
-            var details = await _dbContext.Set<TrxAttendanceCorrectionDetail>()
+            var details = await _dbContext.Set<HrdAttendanceCorrectionDetail>()
                 .Where(x =>
                     x.AttendanceCorrectionRequestId == requestId &&
                     !x.IsDelete)
@@ -894,7 +894,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static AttendanceCorrectionApplyResponse BuildAlreadyAppliedResponse(
-            TrxAttendanceCorrectionRequest request)
+            HrdAttendanceCorrectionRequest request)
         {
             return new AttendanceCorrectionApplyResponse
             {

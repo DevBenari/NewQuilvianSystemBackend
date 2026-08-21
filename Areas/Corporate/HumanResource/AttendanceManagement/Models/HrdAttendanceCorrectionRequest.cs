@@ -8,8 +8,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models
 {
-    [Table("TrxAttendanceCorrectionRequest", Schema = "public")]
-    public class TrxAttendanceCorrectionRequest : IdentityModel
+    [Table("HrdAttendanceCorrectionRequest", Schema = "public")]
+    public class HrdAttendanceCorrectionRequest : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -81,12 +81,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public ApplicationUser? RequestedByUser { get; set; }
         public ApplicationUser? AppliedByUser { get; set; }
 
-        public ICollection<TrxAttendanceCorrectionDetail> Details { get; set; }
-            = new List<TrxAttendanceCorrectionDetail>();
+        public ICollection<HrdAttendanceCorrectionDetail> Details { get; set; }
+            = new List<HrdAttendanceCorrectionDetail>();
 
         // Legacy compatibility only. Approval baru memakai Generic Workflow Engine.
-        public ICollection<TrxAttendanceCorrectionApproval> Approvals { get; set; }
-            = new List<TrxAttendanceCorrectionApproval>();
+        public ICollection<HrdAttendanceCorrectionApproval> Approvals { get; set; }
+            = new List<HrdAttendanceCorrectionApproval>();
 
         public ICollection<TrxAttendanceException> Exceptions { get; set; }
             = new List<TrxAttendanceException>();
