@@ -9,8 +9,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models
 {
-    [Table("TrxAttendanceRawLog", Schema = "public")]
-    public class TrxAttendanceRawLog : IdentityModel
+    [Table("HrdAttendanceRawLog", Schema = "public")]
+    public class HrdAttendanceRawLog : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -86,6 +86,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public MstAttendanceLocation? AttendanceLocation { get; set; }
         public MstHospitalSite? HospitalSite { get; set; }
         public HrdAttendance? ProcessedAttendance { get; set; }
-        public TrxAttendanceDaily? ProcessedAttendanceDaily { get; set; }
+        public HrdAttendanceDaily? ProcessedAttendanceDaily { get; set; }
     }
 }

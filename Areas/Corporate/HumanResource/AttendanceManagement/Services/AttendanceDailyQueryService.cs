@@ -414,9 +414,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 "Detail attendance user login berhasil diambil.");
         }
 
-        private IQueryable<TrxAttendanceDaily> BuildQuery(AttendanceDailyQueryRequest request)
+        private IQueryable<HrdAttendanceDaily> BuildQuery(AttendanceDailyQueryRequest request)
         {
-            var query = _dbContext.Set<TrxAttendanceDaily>()
+            var query = _dbContext.Set<HrdAttendanceDaily>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive);
 
@@ -528,8 +528,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return query;
         }
 
-        private static IQueryable<TrxAttendanceDaily> ApplySelfScope(
-            IQueryable<TrxAttendanceDaily> query,
+        private static IQueryable<HrdAttendanceDaily> ApplySelfScope(
+            IQueryable<HrdAttendanceDaily> query,
             Guid userId,
             Guid? workforceProfileId)
         {
@@ -538,8 +538,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 : query.Where(x => x.UserId == userId);
         }
 
-        private static IOrderedQueryable<TrxAttendanceDaily> ApplySorting(
-            IQueryable<TrxAttendanceDaily> query,
+        private static IOrderedQueryable<HrdAttendanceDaily> ApplySorting(
+            IQueryable<HrdAttendanceDaily> query,
             string? sortBy,
             string? sortDirection)
         {
@@ -568,7 +568,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static IQueryable<AttendanceDailyResponse> ProjectDaily(
-            IQueryable<TrxAttendanceDaily> query)
+            IQueryable<HrdAttendanceDaily> query)
         {
             return query.Select(x => new AttendanceDailyResponse
             {
@@ -678,7 +678,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid? scopedWorkforceProfileId,
             CancellationToken cancellationToken)
         {
-            var query = _dbContext.Set<TrxAttendanceDaily>()
+            var query = _dbContext.Set<HrdAttendanceDaily>()
                 .AsNoTracking()
                 .Where(x => x.Id == attendanceDailyId && !x.IsDelete && x.IsActive);
 
@@ -835,7 +835,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private IQueryable<AttendanceDailySegmentResponse> BuildSegmentsQuery(Guid attendanceDailyId)
         {
-            return _dbContext.Set<TrxAttendanceDailySegment>()
+            return _dbContext.Set<HrdAttendanceDailySegment>()
                 .AsNoTracking()
                 .Where(x => x.AttendanceDailyId == attendanceDailyId && !x.IsDelete && x.IsActive)
                 .OrderBy(x => x.SegmentOrder)
@@ -870,7 +870,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private IQueryable<AttendanceDailyExceptionResponse> BuildExceptionsQuery(Guid attendanceDailyId)
         {
-            return _dbContext.Set<TrxAttendanceException>()
+            return _dbContext.Set<HrdAttendanceException>()
                 .AsNoTracking()
                 .Where(x => x.AttendanceDailyId == attendanceDailyId && !x.IsDelete && x.IsActive)
                 .OrderByDescending(x => x.ExceptionStatus == AttendanceValueConstants.AttendanceExceptionStatus.Open)
@@ -903,7 +903,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private IQueryable<AttendanceDailyRawLogResponse> BuildRawLogsQuery(Guid attendanceDailyId)
         {
-            return _dbContext.Set<TrxAttendanceRawLog>()
+            return _dbContext.Set<HrdAttendanceRawLog>()
                 .AsNoTracking()
                 .Where(x => x.ProcessedAttendanceDailyId == attendanceDailyId && !x.IsDelete && x.IsActive)
                 .OrderBy(x => x.EventAt)
@@ -933,7 +933,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private async Task<AttendanceDailySummaryResponse> BuildSummaryAsync(
-            IQueryable<TrxAttendanceDaily> query,
+            IQueryable<HrdAttendanceDaily> query,
             CancellationToken cancellationToken)
         {
             var total = await query.CountAsync(cancellationToken);
@@ -981,7 +981,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private async Task<AttendancePayrollReadinessSummaryResponse> BuildPayrollSummaryAsync(
-            IQueryable<TrxAttendanceDaily> query,
+            IQueryable<HrdAttendanceDaily> query,
             CancellationToken cancellationToken)
         {
             return new AttendancePayrollReadinessSummaryResponse
@@ -1088,7 +1088,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid attendanceDailyId,
             CancellationToken cancellationToken)
         {
-            return await _dbContext.Set<TrxAttendanceDaily>()
+            return await _dbContext.Set<HrdAttendanceDaily>()
                 .AsNoTracking()
                 .AnyAsync(x => x.Id == attendanceDailyId && !x.IsDelete && x.IsActive, cancellationToken);
         }

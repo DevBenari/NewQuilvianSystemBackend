@@ -258,7 +258,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     "Akun login belum terhubung dengan workforce profile.");
             }
 
-            var daily = await _dbContext.Set<TrxAttendanceDaily>()
+            var daily = await _dbContext.Set<HrdAttendanceDaily>()
                 .Include(x => x.AttendancePolicy)
                 .Include(x => x.WorkforceProfile)
                 .FirstOrDefaultAsync(
@@ -458,7 +458,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
                 AddDetails(entity, daily, request.Details, actorUserId, now);
 
-                var previousLinks = await _dbContext.Set<TrxAttendanceException>()
+                var previousLinks = await _dbContext.Set<HrdAttendanceException>()
                     .Where(x => x.CorrectionRequestId == entity.Id && !x.IsDelete)
                     .ToListAsync(cancellationToken);
                 foreach (var exception in previousLinks)
@@ -1108,7 +1108,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 detail.DeleteBy = actorUserId;
             }
 
-            var exceptions = await _dbContext.Set<TrxAttendanceException>()
+            var exceptions = await _dbContext.Set<HrdAttendanceException>()
                 .Where(x => x.CorrectionRequestId == entity.Id && !x.IsDelete)
                 .ToListAsync(cancellationToken);
             foreach (var exception in exceptions)
@@ -1354,7 +1354,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private async Task<string?> ValidateRequestContentAsync(
-            TrxAttendanceDaily daily,
+            HrdAttendanceDaily daily,
             string correctionType,
             Guid? requestReasonId,
             List<AttendanceCorrectionDetailInputRequest> details,
@@ -1477,7 +1477,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             var normalizedExceptionIds = exceptionIds.Where(x => x != Guid.Empty).Distinct().ToList();
             if (normalizedExceptionIds.Count > 0)
             {
-                var validCount = await _dbContext.Set<TrxAttendanceException>()
+                var validCount = await _dbContext.Set<HrdAttendanceException>()
                     .AsNoTracking()
                     .CountAsync(x =>
                         normalizedExceptionIds.Contains(x.Id) &&
@@ -1493,7 +1493,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return null;
         }
 
-        private static string? ValidateCorrectionEligibility(TrxAttendanceDaily daily)
+        private static string? ValidateCorrectionEligibility(HrdAttendanceDaily daily)
         {
             if (!daily.WorkforceProfileId.HasValue)
                 return "Attendance daily belum terhubung dengan workforce profile.";
@@ -1515,7 +1515,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private void AddDetails(
             HrdAttendanceCorrectionRequest entity,
-            TrxAttendanceDaily daily,
+            HrdAttendanceDaily daily,
             IEnumerable<AttendanceCorrectionDetailInputRequest> details,
             Guid actorUserId,
             DateTime now)
@@ -1557,7 +1557,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             if (ids.Count == 0)
                 return;
 
-            var exceptions = await _dbContext.Set<TrxAttendanceException>()
+            var exceptions = await _dbContext.Set<HrdAttendanceException>()
                 .Where(x => ids.Contains(x.Id) && x.AttendanceDailyId == attendanceDailyId && !x.IsDelete)
                 .ToListAsync(cancellationToken);
             foreach (var exception in exceptions)
@@ -1674,7 +1674,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             string.Equals(workflowStatus, WorkflowValueConstants.WorkflowStatus.Submitted, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(workflowStatus, WorkflowValueConstants.WorkflowStatus.InProgress, StringComparison.OrdinalIgnoreCase);
 
-        private static string BuildDailySummaryJson(TrxAttendanceDaily daily) =>
+        private static string BuildDailySummaryJson(HrdAttendanceDaily daily) =>
             JsonSerializer.Serialize(new
             {
                 daily.Id,

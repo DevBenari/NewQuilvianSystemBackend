@@ -7,48 +7,52 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models
 {
-    [Table("TrxAttendanceProcessingRun", Schema = "public")]
-    public class TrxAttendanceProcessingRun : IdentityModel
+    [Table("HrdAttendanceSchedulerJob", Schema = "public")]
+    public class HrdAttendanceSchedulerJob : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
         [MaxLength(60)]
-        public string RunNumber { get; set; } = string.Empty;
+        public string JobNumber { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(30)]
-        public string ProcessingMode { get; set; }
-            = AttendanceValueConstants.ProcessingRunMode.Batch;
+        public string JobType { get; set; }
+            = AttendanceValueConstants.AttendanceSchedulerJobType.ProcessRange;
 
         [Required]
         [MaxLength(30)]
-        public string RunStatus { get; set; }
-            = AttendanceValueConstants.ProcessingRunStatus.Pending;
+        public string JobStatus { get; set; }
+            = AttendanceValueConstants.AttendanceSchedulerJobStatus.Pending;
 
-        [Required]
-        [MaxLength(30)]
-        public string TriggerSource { get; set; }
-            = AttendanceValueConstants.ProcessingTriggerSource.System;
-
+        public Guid? AttendancePeriodId { get; set; }
         public DateOnly StartDate { get; set; }
         public DateOnly EndDate { get; set; }
 
-        public Guid? TargetWorkforceProfileId { get; set; }
+        public Guid? WorkforceProfileId { get; set; }
         public Guid? HospitalSiteId { get; set; }
         public Guid? OrganizationUnitId { get; set; }
         public Guid? DepartmentId { get; set; }
 
-        public int ProcessingVersion { get; set; } = 1;
-        public int TargetCount { get; set; } = 0;
-        public int SuccessCount { get; set; } = 0;
-        public int FailedCount { get; set; } = 0;
-        public int SkippedCount { get; set; } = 0;
+        public bool ForceReprocess { get; set; } = false;
+        public int Priority { get; set; } = 100;
+        public int RetryCount { get; set; } = 0;
+        public int MaxRetryCount { get; set; } = 3;
 
+        public DateTime ScheduledAt { get; set; } = DateTime.UtcNow;
+        public DateTime AvailableAt { get; set; } = DateTime.UtcNow;
         public DateTime? StartedAt { get; set; }
+        public DateTime? HeartbeatAt { get; set; }
         public DateTime? CompletedAt { get; set; }
+        public DateTime? FailedAt { get; set; }
         public DateTime? CancelledAt { get; set; }
+        public DateTime? NextRetryAt { get; set; }
 
+        [MaxLength(200)]
+        public string? WorkerInstanceId { get; set; }
+
+        public Guid? ProcessingRunId { get; set; }
         public Guid? TriggeredByUserId { get; set; }
         public Guid? CancelledByUserId { get; set; }
 
@@ -57,18 +61,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         public string? ParametersJson { get; set; }
 
-        [MaxLength(2000)]
-        public string? ErrorSummary { get; set; }
+        [MaxLength(4000)]
+        public string? LastError { get; set; }
 
         [MaxLength(1000)]
         public string? Notes { get; set; }
 
         public bool IsActive { get; set; } = true;
 
-        public MstWorkforceProfile? TargetWorkforceProfile { get; set; }
+        public HrdAttendancePeriod? AttendancePeriod { get; set; }
+        public MstWorkforceProfile? WorkforceProfile { get; set; }
         public MstHospitalSite? HospitalSite { get; set; }
         public MstOrganizationUnit? OrganizationUnit { get; set; }
         public MstDepartment? Department { get; set; }
+        public HrdAttendanceProcessingRun? ProcessingRun { get; set; }
         public ApplicationUser? TriggeredByUser { get; set; }
         public ApplicationUser? CancelledByUser { get; set; }
     }

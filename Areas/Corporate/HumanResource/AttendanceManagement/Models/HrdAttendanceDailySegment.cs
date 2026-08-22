@@ -6,8 +6,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models
 {
-    [Table("TrxAttendanceDailySegment", Schema = "public")]
-    public class TrxAttendanceDailySegment : IdentityModel
+    [Table("HrdAttendanceDailySegment", Schema = "public")]
+    public class HrdAttendanceDailySegment : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -55,9 +55,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         public bool IsActive { get; set; } = true;
 
-        public TrxAttendanceDaily? AttendanceDaily { get; set; }
+        public HrdAttendanceDaily? AttendanceDaily { get; set; }
         public TrxShiftAssignment? ShiftAssignment { get; set; }
-        public TrxAttendanceRawLog? StartRawLog { get; set; }
-        public TrxAttendanceRawLog? EndRawLog { get; set; }
+        public HrdAttendanceRawLog? StartRawLog { get; set; }
+        public HrdAttendanceRawLog? EndRawLog { get; set; }
     }
 }

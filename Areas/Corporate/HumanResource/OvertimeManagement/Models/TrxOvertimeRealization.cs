@@ -93,7 +93,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         public MstDepartment? Department { get; set; }
         public MstPosition? Position { get; set; }
         public MstCostCenter? CostCenter { get; set; }
-        public TrxAttendanceDaily? AttendanceDaily { get; set; }
+        public HrdAttendanceDaily? AttendanceDaily { get; set; }
         public MstPayrollPeriod? PayrollPeriod { get; set; }
         public MstPayrollComponent? PayrollComponent { get; set; }
         public ApplicationUser? SubmittedByUser { get; set; }
