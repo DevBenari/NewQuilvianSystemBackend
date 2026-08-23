@@ -5,12 +5,12 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.M
 
 namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResource.AttendanceManagement
 {
-    public class TrxAttendanceProcessingRunConfiguration
-        : IEntityTypeConfiguration<TrxAttendanceProcessingRun>
+    public class HrdAttendanceProcessingRunConfiguration
+        : IEntityTypeConfiguration<HrdAttendanceProcessingRun>
     {
-        public void Configure(EntityTypeBuilder<TrxAttendanceProcessingRun> builder)
+        public void Configure(EntityTypeBuilder<HrdAttendanceProcessingRun> builder)
         {
-            builder.ToTable("TrxAttendanceProcessingRun", "public");
+            builder.ToTable("HrdAttendanceProcessingRun", "public");
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.CreateDateTime)

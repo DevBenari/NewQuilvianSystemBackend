@@ -348,7 +348,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 daily.UpdateDateTime = now;
                 daily.UpdateBy = actorUserId;
 
-                var linkedExceptions = await _dbContext.Set<TrxAttendanceException>()
+                var linkedExceptions = await _dbContext.Set<HrdAttendanceException>()
                     .Where(x =>
                         x.CorrectionRequestId == request.Id &&
                         !x.IsDelete &&
@@ -386,7 +386,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     .ToList();
 
                 var hasPayrollBlockingException = await _dbContext
-                    .Set<TrxAttendanceException>()
+                    .Set<HrdAttendanceException>()
                     .AsNoTracking()
                     .AnyAsync(x =>
                         x.AttendanceDailyId == daily.Id &&
@@ -399,7 +399,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                         x.ExceptionStatus != AttendanceValueConstants.AttendanceExceptionStatus.Waived,
                         cancellationToken);
 
-                daily.ExceptionCount = await _dbContext.Set<TrxAttendanceException>()
+                daily.ExceptionCount = await _dbContext.Set<HrdAttendanceException>()
                     .AsNoTracking()
                     .CountAsync(x =>
                         x.AttendanceDailyId == daily.Id &&
@@ -667,7 +667,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static string? ApplyFieldValue(
-            TrxAttendanceDaily daily,
+            HrdAttendanceDaily daily,
             string fieldName,
             string? value)
         {
@@ -767,7 +767,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static void RecalculateDaily(
-            TrxAttendanceDaily daily,
+            HrdAttendanceDaily daily,
             HashSet<string> correctedFields)
         {
             if (!correctedFields.Contains("ActualWorkMinutes"))
@@ -870,7 +870,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             }
         }
 
-        private static string ResolveAttendanceStatus(TrxAttendanceDaily daily)
+        private static string ResolveAttendanceStatus(HrdAttendanceDaily daily)
         {
             if (daily.IsBusinessTrip)
                 return AttendanceValueConstants.AttendanceStatus.BusinessTrip;

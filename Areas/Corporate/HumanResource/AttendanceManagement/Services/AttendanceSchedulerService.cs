@@ -223,7 +223,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             if (!string.IsNullOrWhiteSpace(request.CorrelationId))
             {
-                var existing = await _dbContext.Set<TrxAttendanceSchedulerJob>()
+                var existing = await _dbContext.Set<HrdAttendanceSchedulerJob>()
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => !x.IsDelete && x.CorrelationId == request.CorrelationId.Trim(), cancellationToken);
                 if (existing != null)
@@ -234,7 +234,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             }
 
             var now = DateTime.UtcNow;
-            var job = new TrxAttendanceSchedulerJob
+            var job = new HrdAttendanceSchedulerJob
             {
                 Id = Guid.NewGuid(),
                 JobNumber = await GenerateJobNumberAsync(cancellationToken),
@@ -273,7 +273,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 UpdateBy = actorUserId
             };
 
-            _dbContext.Set<TrxAttendanceSchedulerJob>().Add(job);
+            _dbContext.Set<HrdAttendanceSchedulerJob>().Add(job);
             await _dbContext.SaveChangesAsync(cancellationToken);
             var detail = await GetDetailAsync(job.Id, cancellationToken);
             return AttendancePeriodSchedulerServiceResult<AttendanceSchedulerJobDetailResponse>.Ok(detail!, "Attendance scheduler job berhasil dibuat.");
@@ -285,7 +285,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var period = await _dbContext.Set<TrxAttendancePeriod>()
+            var period = await _dbContext.Set<HrdAttendancePeriod>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == periodId && !x.IsDelete, cancellationToken);
             if (period == null)
@@ -317,7 +317,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             if (enqueueResult.Success && enqueueResult.Data != null)
             {
-                var entity = await _dbContext.Set<TrxAttendanceSchedulerJob>()
+                var entity = await _dbContext.Set<HrdAttendanceSchedulerJob>()
                     .FirstAsync(x => x.Id == enqueueResult.Data.Id, cancellationToken);
                 entity.AttendancePeriodId = period.Id;
                 entity.UpdateDateTime = DateTime.UtcNow;
@@ -341,7 +341,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 return AttendancePeriodSchedulerServiceResult<AttendanceSchedulerJobActionResponse>.Fail(StatusCodes.Status400BadRequest, "Alasan pembatalan wajib diisi.");
             }
 
-            var job = await _dbContext.Set<TrxAttendanceSchedulerJob>()
+            var job = await _dbContext.Set<HrdAttendanceSchedulerJob>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (job == null)
             {
@@ -376,7 +376,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var job = await _dbContext.Set<TrxAttendanceSchedulerJob>()
+            var job = await _dbContext.Set<HrdAttendanceSchedulerJob>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (job == null)
             {
@@ -418,7 +418,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         {
             var timeoutMinutes = Math.Clamp(_options.RunningJobTimeoutMinutes, 5, 1440);
             var threshold = utcNow.AddMinutes(-timeoutMinutes);
-            var jobs = await _dbContext.Set<TrxAttendanceSchedulerJob>()
+            var jobs = await _dbContext.Set<HrdAttendanceSchedulerJob>()
                 .Where(x =>
                     !x.IsDelete &&
                     x.IsActive &&
@@ -459,7 +459,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 return 0;
             }
 
-            var periodIds = await _dbContext.Set<TrxAttendancePeriod>()
+            var periodIds = await _dbContext.Set<HrdAttendancePeriod>()
                 .AsNoTracking()
                 .Where(x =>
                     !x.IsDelete &&
@@ -530,7 +530,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             {
                 var date = DateOnly.FromDateTime(localNow.Date.AddDays(-offset));
                 var correlationId = $"ATT-AUTO-DAILY-{date:yyyyMMdd}";
-                var exists = await _dbContext.Set<TrxAttendanceSchedulerJob>()
+                var exists = await _dbContext.Set<HrdAttendanceSchedulerJob>()
                     .AsNoTracking()
                     .AnyAsync(x => !x.IsDelete && x.CorrelationId == correlationId, cancellationToken);
                 if (exists)
@@ -560,14 +560,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return created;
         }
 
-        public async Task<TrxAttendanceSchedulerJob?> ClaimNextJobAsync(
+        public async Task<HrdAttendanceSchedulerJob?> ClaimNextJobAsync(
             string workerInstanceId,
             CancellationToken cancellationToken = default)
         {
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, cancellationToken);
-            var job = await _dbContext.Set<TrxAttendanceSchedulerJob>()
+            var job = await _dbContext.Set<HrdAttendanceSchedulerJob>()
                 .FromSqlRaw(
-                    "SELECT * FROM \"TrxAttendanceSchedulerJob\" " +
+                    "SELECT * FROM \"HrdAttendanceSchedulerJob\" " +
                     "WHERE \"IsDelete\" = false AND \"IsActive\" = true " +
                     "AND (\"JobStatus\" = {0} OR \"JobStatus\" = {1}) " +
                     "AND \"AvailableAt\" <= CURRENT_TIMESTAMP " +
@@ -598,7 +598,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid jobId,
             CancellationToken cancellationToken = default)
         {
-            var job = await _dbContext.Set<TrxAttendanceSchedulerJob>()
+            var job = await _dbContext.Set<HrdAttendanceSchedulerJob>()
                 .FirstOrDefaultAsync(x => x.Id == jobId && !x.IsDelete, cancellationToken);
             if (job == null || job.JobStatus != AttendanceValueConstants.AttendanceSchedulerJobStatus.Running)
             {
@@ -648,7 +648,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
                 if (job.AttendancePeriodId.HasValue)
                 {
-                    var period = await _dbContext.Set<TrxAttendancePeriod>()
+                    var period = await _dbContext.Set<HrdAttendancePeriod>()
                         .FirstOrDefaultAsync(x => x.Id == job.AttendancePeriodId.Value && !x.IsDelete, cancellationToken);
                     if (period != null)
                     {
@@ -671,7 +671,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private async Task HandleExecutionFailureAsync(
-            TrxAttendanceSchedulerJob job,
+            HrdAttendanceSchedulerJob job,
             string error,
             DateTime now,
             CancellationToken cancellationToken)
@@ -697,11 +697,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        private IQueryable<TrxAttendanceSchedulerJob> BuildBaseQuery() =>
-            _dbContext.Set<TrxAttendanceSchedulerJob>().AsNoTracking().Where(x => !x.IsDelete);
+        private IQueryable<HrdAttendanceSchedulerJob> BuildBaseQuery() =>
+            _dbContext.Set<HrdAttendanceSchedulerJob>().AsNoTracking().Where(x => !x.IsDelete);
 
-        private static IQueryable<TrxAttendanceSchedulerJob> ApplyFilter(
-            IQueryable<TrxAttendanceSchedulerJob> query,
+        private static IQueryable<HrdAttendanceSchedulerJob> ApplyFilter(
+            IQueryable<HrdAttendanceSchedulerJob> query,
             AttendanceSchedulerJobQueryRequest request)
         {
             if (request.StartDate.HasValue) query = query.Where(x => x.EndDate >= request.StartDate.Value);
@@ -724,8 +724,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return query;
         }
 
-        private static IOrderedQueryable<TrxAttendanceSchedulerJob> ApplySorting(
-            IQueryable<TrxAttendanceSchedulerJob> query,
+        private static IOrderedQueryable<HrdAttendanceSchedulerJob> ApplySorting(
+            IQueryable<HrdAttendanceSchedulerJob> query,
             string? sortBy,
             string? direction)
         {
@@ -753,7 +753,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         private async Task<string> GenerateJobNumberAsync(CancellationToken cancellationToken)
         {
             var prefix = $"ATJ-{DateTime.UtcNow:yyyyMMdd}-";
-            var count = await _dbContext.Set<TrxAttendanceSchedulerJob>()
+            var count = await _dbContext.Set<HrdAttendanceSchedulerJob>()
                 .AsNoTracking()
                 .CountAsync(x => !x.IsDelete && x.JobNumber.StartsWith(prefix), cancellationToken);
             return prefix + (count + 1).ToString("D6") + "-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
@@ -786,7 +786,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             status == AttendanceValueConstants.AttendanceSchedulerJobStatus.Cancelled;
 
         private static AttendanceSchedulerJobActionResponse MapAction(
-            TrxAttendanceSchedulerJob job,
+            HrdAttendanceSchedulerJob job,
             string previousStatus,
             DateTime actionAt) => new()
         {

@@ -71,7 +71,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public bool IsActive { get; set; } = true;
 
         public MstWorkforceProfile? WorkforceProfile { get; set; }
-        public TrxAttendanceDaily? AttendanceDaily { get; set; }
+        public HrdAttendanceDaily? AttendanceDaily { get; set; }
         public HrdAttendance? Attendance { get; set; }
         public MstRequestReason? RequestReason { get; set; }
         public MstRejectionReason? RejectionReason { get; set; }
@@ -88,7 +88,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public ICollection<HrdAttendanceCorrectionApproval> Approvals { get; set; }
             = new List<HrdAttendanceCorrectionApproval>();
 
-        public ICollection<TrxAttendanceException> Exceptions { get; set; }
-            = new List<TrxAttendanceException>();
+        public ICollection<HrdAttendanceException> Exceptions { get; set; }
+            = new List<HrdAttendanceException>();
     }
 }

@@ -98,7 +98,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
             var minDate = detailWindows.Min(x => DateOnly.FromDateTime(x.StartAt));
             var maxDate = detailWindows.Max(x => DateOnly.FromDateTime(x.EndAt));
 
-            var attendanceDailies = await _dbContext.TrxAttendanceDailies
+            var attendanceDailies = await _dbContext.HrdAttendanceDailies
                 .AsNoTracking()
                 .Where(x =>
                     x.WorkforceProfileId == overtimeRequest.WorkforceProfileId &&
@@ -122,8 +122,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
             var dailyIds = selectedDailies.Select(x => x.Id).ToList();
 
             var attendanceSegments = dailyIds.Count == 0
-                ? new List<TrxAttendanceDailySegment>()
-                : await _dbContext.TrxAttendanceDailySegments
+                ? new List<HrdAttendanceDailySegment>()
+                : await _dbContext.HrdAttendanceDailySegments
                     .AsNoTracking()
                     .Where(x =>
                         dailyIds.Contains(x.AttendanceDailyId) &&
@@ -221,8 +221,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         private static OvertimeRequestDetailCalculationPreviewResponse BuildDetailPreview(
             TrxOvertimeRequestDetail detail,
             MstOvertimePolicy policy,
-            IReadOnlyCollection<TrxAttendanceDaily> attendanceDailies,
-            IReadOnlyCollection<TrxAttendanceDailySegment> attendanceSegments,
+            IReadOnlyCollection<HrdAttendanceDaily> attendanceDailies,
+            IReadOnlyCollection<HrdAttendanceDailySegment> attendanceSegments,
             IReadOnlyDictionary<Guid, HrdAttendance> attendanceByDaily,
             IReadOnlyCollection<MstOvertimeRate> allRates,
             PreviewOvertimeRealizationRequest request)
@@ -496,8 +496,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         private static List<WorkingInterval> BuildSourceIntervals(
             TrxOvertimeRequestDetail detail,
             ApprovedWindow window,
-            IReadOnlyCollection<TrxAttendanceDaily> relevantDailies,
-            IReadOnlyCollection<TrxAttendanceDailySegment> attendanceSegments,
+            IReadOnlyCollection<HrdAttendanceDaily> relevantDailies,
+            IReadOnlyCollection<HrdAttendanceDailySegment> attendanceSegments,
             IReadOnlyDictionary<Guid, HrdAttendance> attendanceByDaily,
             bool requireAttendanceMatch)
         {
@@ -589,8 +589,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
 
         private static List<WorkingInterval> BuildBreakIntervals(
             ApprovedWindow window,
-            IReadOnlyCollection<TrxAttendanceDaily> relevantDailies,
-            IReadOnlyCollection<TrxAttendanceDailySegment> attendanceSegments,
+            IReadOnlyCollection<HrdAttendanceDaily> relevantDailies,
+            IReadOnlyCollection<HrdAttendanceDailySegment> attendanceSegments,
             IReadOnlyDictionary<Guid, HrdAttendance> attendanceByDaily)
         {
             var breaks = new List<WorkingInterval>();

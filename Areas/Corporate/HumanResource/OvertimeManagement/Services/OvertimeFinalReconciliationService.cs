@@ -188,7 +188,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
                     .ToListAsync(cancellationToken);
 
             var attendanceRows = requireAttendanceFinal && requestIds.Count > 0
-                ? await _dbContext.TrxAttendanceDailies
+                ? await _dbContext.HrdAttendanceDailies
                     .AsNoTracking()
                     .Where(x =>
                         !x.IsDelete &&

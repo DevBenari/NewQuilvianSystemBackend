@@ -280,19 +280,19 @@ namespace QuilvianSystemBackend.Repositories
 
         #region CORPORATE - HUMAN RESOURCE - ATTENDANCE MANAGEMENT
         public DbSet<HrdAttendance> HrdAttendances { get; set; }
-        public DbSet<TrxAttendanceRawLog> TrxAttendanceRawLogs { get; set; }
-        public DbSet<TrxAttendanceProcessingRun> TrxAttendanceProcessingRuns { get; set; }
-        public DbSet<TrxAttendancePeriod> TrxAttendancePeriods { get; set; }
-        public DbSet<TrxAttendanceSchedulerJob> TrxAttendanceSchedulerJobs { get; set; }
-        public DbSet<TrxAttendanceDaily> TrxAttendanceDailies { get; set; }
-        public DbSet<TrxAttendanceDailySegment> TrxAttendanceDailySegments { get; set; }
-        public DbSet<TrxAttendanceException> TrxAttendanceExceptions { get; set; }
+        public DbSet<HrdAttendanceRawLog> HrdAttendanceRawLogs { get; set; }
+        public DbSet<HrdAttendanceProcessingRun> HrdAttendanceProcessingRuns { get; set; }
+        public DbSet<HrdAttendancePeriod> HrdAttendancePeriods { get; set; }
+        public DbSet<HrdAttendanceSchedulerJob> HrdAttendanceSchedulerJobs { get; set; }
+        public DbSet<HrdAttendanceDaily> HrdAttendanceDailies { get; set; }
+        public DbSet<HrdAttendanceDailySegment> HrdAttendanceDailySegments { get; set; }
+        public DbSet<HrdAttendanceException> HrdAttendanceExceptions { get; set; }
         public DbSet<HrdAttendanceCorrectionRequest> HrdAttendanceCorrectionRequests { get; set; }
         public DbSet<HrdAttendanceCorrectionDetail> HrdAttendanceCorrectionDetails { get; set; }
         public DbSet<HrdAttendanceCorrectionApproval> HrdAttendanceCorrectionApprovals { get; set; }
-        public DbSet<TrxMissingAttendance> TrxMissingAttendances { get; set; }
-        public DbSet<TrxBusinessTripAttendance> TrxBusinessTripAttendances { get; set; }
-        public DbSet<TrxRemoteAttendance> TrxRemoteAttendances { get; set; }
+        public DbSet<HrdMissingAttendance> HrdMissingAttendances { get; set; }
+        public DbSet<HrdBusinessTripAttendance> HrdBusinessTripAttendances { get; set; }
+        public DbSet<HrdRemoteAttendance> HrdRemoteAttendances { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - ATTENDANCE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - SCHEDULING MANAGEMENT

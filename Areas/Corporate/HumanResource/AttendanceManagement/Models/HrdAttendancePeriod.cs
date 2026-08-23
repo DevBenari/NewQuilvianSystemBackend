@@ -6,8 +6,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models
 {
-    [Table("TrxAttendancePeriod", Schema = "public")]
-    public class TrxAttendancePeriod : IdentityModel
+    [Table("HrdAttendancePeriod", Schema = "public")]
+    public class HrdAttendancePeriod : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -58,14 +58,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public MstHospitalSite? HospitalSite { get; set; }
         public MstOrganizationUnit? OrganizationUnit { get; set; }
         public MstDepartment? Department { get; set; }
-        public TrxAttendanceProcessingRun? LastProcessingRun { get; set; }
+        public HrdAttendanceProcessingRun? LastProcessingRun { get; set; }
         public ApplicationUser? ClosedByUser { get; set; }
         public ApplicationUser? ReopenedByUser { get; set; }
 
-        public ICollection<TrxAttendanceDaily> AttendanceDailies { get; set; }
-            = new List<TrxAttendanceDaily>();
+        public ICollection<HrdAttendanceDaily> AttendanceDailies { get; set; }
+            = new List<HrdAttendanceDaily>();
 
-        public ICollection<TrxAttendanceSchedulerJob> SchedulerJobs { get; set; }
-            = new List<TrxAttendanceSchedulerJob>();
+        public ICollection<HrdAttendanceSchedulerJob> SchedulerJobs { get; set; }
+            = new List<HrdAttendanceSchedulerJob>();
     }
 }

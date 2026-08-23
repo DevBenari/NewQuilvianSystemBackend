@@ -12,8 +12,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models
 {
-    [Table("TrxAttendanceDaily", Schema = "public")]
-    public class TrxAttendanceDaily : IdentityModel
+    [Table("HrdAttendanceDaily", Schema = "public")]
+    public class HrdAttendanceDaily : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -122,17 +122,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public MstAttendancePolicy? AttendancePolicy { get; set; }
         public MstGracePeriodPolicy? GracePeriodPolicy { get; set; }
         public MstPayrollPeriod? PayrollPeriod { get; set; }
-        public TrxAttendancePeriod? AttendancePeriod { get; set; }
+        public HrdAttendancePeriod? AttendancePeriod { get; set; }
         public HrdAttendance? Attendance { get; set; }
 
-        public ICollection<TrxAttendanceRawLog> RawLogs { get; set; }
-            = new List<TrxAttendanceRawLog>();
+        public ICollection<HrdAttendanceRawLog> RawLogs { get; set; }
+            = new List<HrdAttendanceRawLog>();
 
-        public ICollection<TrxAttendanceDailySegment> Segments { get; set; }
-            = new List<TrxAttendanceDailySegment>();
+        public ICollection<HrdAttendanceDailySegment> Segments { get; set; }
+            = new List<HrdAttendanceDailySegment>();
 
-        public ICollection<TrxAttendanceException> Exceptions { get; set; }
-            = new List<TrxAttendanceException>();
+        public ICollection<HrdAttendanceException> Exceptions { get; set; }
+            = new List<HrdAttendanceException>();
 
         public ICollection<HrdAttendanceCorrectionRequest> CorrectionRequests { get; set; }
             = new List<HrdAttendanceCorrectionRequest>();

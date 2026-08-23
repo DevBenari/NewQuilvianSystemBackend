@@ -57,7 +57,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public MstPayrollPeriod? PayrollPeriod { get; set; }
         public TrxPayrollRunEmployee? PayrollRunEmployee { get; set; }
-        public TrxAttendanceDaily? AttendanceDaily { get; set; }
+        public HrdAttendanceDaily? AttendanceDaily { get; set; }
         public ApplicationUser? PostedByUser { get; set; }
     }
 }

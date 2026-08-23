@@ -475,13 +475,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             {
                 query = request.IsPayrollBlocking.Value
                     ? query.Where(x => x.AttendanceDailyId.HasValue &&
-                        _dbContext.Set<TrxAttendanceException>().Any(e =>
+                        _dbContext.Set<HrdAttendanceException>().Any(e =>
                             e.AttendanceDailyId == x.AttendanceDailyId.Value &&
                             e.IsActive && !e.IsDelete &&
                             e.IsPayrollBlocking &&
                             (e.ExceptionStatus == "Open" || e.ExceptionStatus == "UnderReview")))
                     : query.Where(x => !x.AttendanceDailyId.HasValue ||
-                        !_dbContext.Set<TrxAttendanceException>().Any(e =>
+                        !_dbContext.Set<HrdAttendanceException>().Any(e =>
                             e.AttendanceDailyId == x.AttendanceDailyId.Value &&
                             e.IsActive && !e.IsDelete &&
                             e.IsPayrollBlocking &&
@@ -548,7 +548,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     IsAttendanceLocked = x.AttendanceDaily != null && x.AttendanceDaily.IsLocked,
                     IsAttendanceCorrected = x.AttendanceDaily != null && x.AttendanceDaily.IsCorrected,
                     PayrollBlockingExceptionCount = x.AttendanceDailyId.HasValue
-                        ? _dbContext.Set<TrxAttendanceException>().Count(e =>
+                        ? _dbContext.Set<HrdAttendanceException>().Count(e =>
                             e.AttendanceDailyId == x.AttendanceDailyId.Value &&
                             e.IsActive && !e.IsDelete &&
                             e.IsPayrollBlocking &&

@@ -5,11 +5,11 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.M
 
 namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResource.AttendanceManagement
 {
-    public class TrxAttendanceDailyConfiguration : IEntityTypeConfiguration<TrxAttendanceDaily>
+    public class HrdAttendanceDailyConfiguration : IEntityTypeConfiguration<HrdAttendanceDaily>
     {
-        public void Configure(EntityTypeBuilder<TrxAttendanceDaily> builder)
+        public void Configure(EntityTypeBuilder<HrdAttendanceDaily> builder)
         {
-            builder.ToTable("TrxAttendanceDaily", "public");
+            builder.ToTable("HrdAttendanceDaily", "public");
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.CreateDateTime)
