@@ -544,6 +544,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstInsuranceTariff> MstInsuranceTariffs { get; set; }
         public DbSet<MstDoctorSchedule> MstDoctorSchedules { get; set; }
         public DbSet<MstDoctorServiceRule> MstDoctorServiceRules { get; set; }
+        public DbSet<MstInpatientSetting> MstInpatientSettings { get; set; }
+        public DbSet<MstInpatientClearanceItem> MstInpatientClearanceItems { get; set; }
         public DbSet<TrxKioskScanSession> TrxKioskScanSessions { get; set; }
         public DbSet<TrxPatientEncounter> TrxPatientEncounters { get; set; }
         public DbSet<TrxPatientEncounterGuarantor> TrxPatientEncounterGuarantors { get; set; }
