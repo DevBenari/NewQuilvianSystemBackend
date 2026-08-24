@@ -115,7 +115,7 @@ Fakta ketiga yang paling mudah terlewat, jadi contohnya ditulis di sini:
 
 | Slice | Hasil yang dapat diperiksa | Gelombang PRD | Task |
 | --- | --- | --- | --- |
-| **S0 — Modul benar-benar berdiri** | Tabel ada, master terisi, service terdaftar, endpoint master dapat dipanggil | `MVP-0` | ✅ `BE-RWI-001`; `BE-RWI-002` s.d. `BE-RWI-006` |
+| **S0 — Modul benar-benar berdiri** | Tabel ada, master terisi, service terdaftar, endpoint master dapat dipanggil | `MVP-0` | ✅ `BE-RWI-001`; `BE-RWI-002`; ✅ `BE-RWI-003`; `BE-RWI-004` s.d. `BE-RWI-006` |
 | **S1 — Petugas dapat membuka admisi dan memesan tempat tidur** | Episode `Draft` lahir bernomor, pemesanan mengunci 2 jam dan gugur sendiri | `MVP-1` | `BE-RWI-007` s.d. `BE-RWI-010` |
 | **S2 — Pasien punya lokasi, dan penempatan yang tidak layak ditolak** | Tempat tidur ganda mustahil; jenis kelamin dan isolasi menolak | `MVP-1` | `BE-RWI-011` s.d. `BE-RWI-015` |
 | **S3 — Sistem dapat menjawab siapa dirawat di mana** | Census dan lama dirawat | `MVP-1` | `BE-RWI-016` |
@@ -131,7 +131,7 @@ Fakta ketiga yang paling mudah terlewat, jadi contohnya ditulis di sini:
 ```text
 BE-RWI-001 (dua tabel master)  ✅ SELESAI
    └── BE-RWI-002 (seeder master) ──┐
-   └── BE-RWI-003 (11 tabel + 4 unique index parsial)
+   └── BE-RWI-003 (11 tabel + 4 unique index parsial)  ✅ SELESAI
           └── BE-RWI-004 (DI 6 service + setting + nomor episode)
                  ├── BE-RWI-005 (controller master) ──────────────┤
                  │                                                │
@@ -182,7 +182,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 24 Agustus 2026.** Keempat acceptance criteria dan seluruh butir DoD terbukti. Bukti: [laporan](../../../task/report/be-rwi-001-tabel-master-rawat-inap.md). Migration **belum** diterapkan ke database mana pun selain Postgres lokal sekali pakai |
+| **Status** | ✅ **SELESAI 24 Agustus 2026.** Keempat acceptance criteria dan seluruh butir DoD terbukti. Bukti: [laporan](../task/report/backend/be-rwi-001-tabel-master-rawat-inap.md). Migration **belum** diterapkan ke database mana pun selain Postgres lokal sekali pakai |
 | **Outcome** | Sistem punya tempat menyimpan angka batas waktu dan daftar butir administrasi, sehingga tidak ada satu pun angka yang perlu ditanam di kode |
 | **Trace** | `RWI-DEC-008`, `RWI-DEC-026`, `RWI-DEC-032`; `02-backend-architecture.md` §4.12, §4.13, §7.1 langkah 1; `erd/02-inpatient-configuration.md` |
 | **Reuse** | Pola `MstEmergencySetting` pada `Areas/HealthServices/MasterData/Models/`. Bentuk kolom audit, soft delete, dan konfigurasi EF mengikuti preseden itu apa adanya |
@@ -211,10 +211,11 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### `BE-RWI-003` — Sebelas tabel transaksi beserta empat penjaga keunikannya
+### ✅ `BE-RWI-003` — Sebelas tabel transaksi beserta empat penjaga keunikannya
 
 | Field | Isi |
 | --- | --- |
+| **Status** | ✅ **SELESAI 24 Agustus 2026.** Kelima acceptance criteria dan seluruh butir DoD terbukti. Bukti: [laporan](../task/report/backend/be-rwi-003-tabel-transaksi-rawat-inap.md). Migration **belum** diterapkan ke database mana pun selain Postgres lokal sekali pakai |
 | **Outcome** | Fondasi data seluruh modul berdiri, dan empat keadaan mustahil benar-benar dijadikan mustahil oleh database, bukan hanya oleh kode |
 | **Trace** | `02-backend-architecture.md` §3, §4.1 s.d. §4.11, §6, §7.1 langkah 3 dan 4; `INV-INP-01` s.d. `INV-INP-10`; `erd/01-inpatient-episode.md`; `erd/data-dictionary.md` |
 | **Reuse** | Pola tabel transaksi berawalan `Trx` pada `EmergencyInstallationManagement`, termasuk kolom audit dan soft delete. Bentuk unique index parsial mengikuti preseden yang sudah dipakai project |

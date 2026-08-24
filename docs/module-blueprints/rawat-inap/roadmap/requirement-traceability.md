@@ -87,19 +87,24 @@ benar-benar terpenuhi** menurut aturan roadmap sendiri.
 
 | Task | Requirement yang dijawab | Bukti | Status |
 | --- | --- | --- | :---: |
-| `BE-RWI-001` | Angka batas waktu dan butir administrasi punya tempat tinggal di master, bukan di kode (`RWI-DEC-008`, `RWI-DEC-026`, `RWI-DEC-032`) | Build Release lulus; `has-pending-model-changes` bersih; migration **maju dan mundur lulus** pada PostgreSQL 16 lokal sekali pakai; bentuk kolom cocok kolom demi kolom dengan `erd/data-dictionary.md` bagian 12 dan 13; unique `ItemCode` terbukti menolak duplikat di database sungguhan ([laporan](../../../task/report/be-rwi-001-tabel-master-rawat-inap.md)) | ✅ **Selesai** |
-| `BE-RWI-002` s.d. `BE-RWI-033` | — | Belum dikerjakan | Planned |
+| `BE-RWI-001` | Angka batas waktu dan butir administrasi punya tempat tinggal di master, bukan di kode (`RWI-DEC-008`, `RWI-DEC-026`, `RWI-DEC-032`) | Build Release lulus; `has-pending-model-changes` bersih; migration **maju dan mundur lulus** pada PostgreSQL 16 lokal sekali pakai; bentuk kolom cocok kolom demi kolom dengan `erd/data-dictionary.md` bagian 12 dan 13; unique `ItemCode` terbukti menolak duplikat di database sungguhan ([laporan](../task/report/backend/be-rwi-001-tabel-master-rawat-inap.md)) | ✅ **Selesai** |
+| `BE-RWI-003` | Fondasi data seluruh modul berdiri; empat keadaan mustahil dijadikan mustahil oleh database (`INV-INP-02`, `INV-INP-03`, `INV-INP-10`; `RWI-DEC-054`, `RWI-DEC-055`, `RWI-DEC-065`) | Build Release lulus; `has-pending-model-changes` bersih; migration **maju dan mundur lulus** pada PostgreSQL 16 lokal sekali pakai; 251 kolom cocok kolom demi kolom dengan kamus data; **enam** unique index parsial terbentuk dan **terbukti menolak** pada database sungguhan (sepuluh uji, tujuh penolakan tiga penerimaan); enam test enum lulus ([laporan](../task/report/backend/be-rwi-003-tabel-transaksi-rawat-inap.md)) | ✅ **Selesai** |
+| `BE-RWI-002`, `BE-RWI-004` s.d. `BE-RWI-033` | — | Belum dikerjakan | Planned |
 
-**1 dari 33 task backend selesai (3%).** Tidak ada task yang berstatus selesai-sebagian.
+**2 dari 33 task backend selesai (6%).** Tidak ada task yang berstatus selesai-sebagian.
 
 ### Yang perlu diputuskan pemilik pekerjaan
 
 | Butir | Sifat | Terdampak |
 | --- | --- | --- |
-| Tidak ada connection string lokal — `dotnet ef database update` polos mengenai database dev bersama `QuilvianNewDevTim01` | Operasional, dapat dikerjakan | Setiap task bermigration berikutnya, terutama `BE-RWI-003` |
-| Ketiga berkas migration `BE-RWI-001` belum di-commit | Operasional | Rekan yang menarik branch `MHamzah` |
+| Tidak ada connection string lokal — `dotnet ef database update` polos mengenai database dev bersama `QuilvianNewDevTim01` | Operasional, dapat dikerjakan | Setiap task bermigration berikutnya — jebakan ini **terbukti relevan kembali** pada `BE-RWI-003` |
+| Berkas `BE-RWI-001` dan `BE-RWI-003` belum di-commit | Operasional | Rekan yang menarik branch `MHamzah` |
 | Letak konfigurasi EF master: `HealthServices/MasterData/` versus `HealthServices/` | Konvensi, tanpa akibat teknis | Konsistensi folder, sejalan `BE-IGD-013` |
+| Folder konfigurasi EF transaksi: roadmap menulis `HealthService/` (tanpa `s`), kenyataan `HealthServices/` | Salah ketik pada roadmap, **bukan** keputusan desain — penyimpangan tercatat pada [laporan BE-RWI-003](../task/report/backend/be-rwi-003-tabel-transaksi-rawat-inap.md) bagian 5.3 | Konsistensi roadmap |
 | `RWI-RULE-021` belum final secara klinis — nilai `24` jam terpasang sebagai bawaan | Klinis | Menahan pemakaian untuk pasien sungguhan, bukan MVP |
+| `IX_InpNurseAssignment_EpisodeId_Active` membatasi satu perawat aktif per episode — perlu dipastikan cocok kenyataan ruangan | Domain | `BE-RWI-018`, keputusan kembali ke `/qv-design` |
+| Perbaikan `Program.cs` di luar scope `BE-RWI-003` | Operasional | Commit strategy — lihat [laporan](../task/report/backend/be-rwi-003-tabel-transaksi-rawat-inap.md) bagian 5.2 |
+| Project Tests di dalam folder project web — `MSB3030` berulang | Struktural, di luar scope modul ini | Build stability — lihat [laporan](../task/report/backend/be-rwi-003-tabel-transaksi-rawat-inap.md) bagian 6.2 |
 
 ---
 
@@ -232,7 +237,7 @@ Bagian ini memeriksa kebalikannya: adakah task yang tidak ada yang memintanya?
 
 | Task | Epic yang dilayani | Bila tidak menempel epic, apa dasarnya |
 | --- | --- | --- |
-| `BE-RWI-001` ✅ s.d. `BE-RWI-004` | `EPIC RI-21` | — |
+| `BE-RWI-001` ✅, `BE-RWI-002`, `BE-RWI-003` ✅, `BE-RWI-004` | `EPIC RI-21` | — |
 | `BE-RWI-005` | `EPIC RI-31` | — |
 | `BE-RWI-006`, `BE-RWI-032` | `EPIC RI-32` | — |
 | `BE-RWI-007` s.d. `BE-RWI-009` | `EPIC RI-21` | — |
@@ -371,12 +376,12 @@ Sebelas butir, **seluruhnya beralasan tertulis**. Tidak ada satu pun yang berbun
 
 | Butir | Kenapa belum | Kapan dapat diperiksa |
 | --- | --- | --- |
-| 139 acceptance criteria → berkas test yang benar-benar ada | Belum ada satu pun berkas test Rawat Inap di repository | `BE-RWI-033` |
-| 49 endpoint baru → status tersedia pada api contract | Seluruhnya masih "Rencana (belum tersedia)". Baris ke-50 adalah perubahan perilaku pada endpoint yang sudah ada, dinilai terpisah | `BE-RWI-033` |
+| 139 acceptance criteria → berkas test yang benar-benar ada | Baru ada satu berkas test Rawat Inap (`InpatientEnumFoundationTests.cs`, 6 test dari `BE-RWI-003`) | `BE-RWI-033` |
+| 49 endpoint baru → status tersedia pada api contract | Seluruhnya masih "Rencana (belum tersedia)". Baris ke-50 adalah perubahan perilaku pada endpoint yang sudah ada, dinilai terpisah. `BE-RWI-001` dan `BE-RWI-003` tidak menyentuh endpoint | `BE-RWI-033` |
 | Cakupan e2e frontend | Frontend baru punya empat berkas test, tidak satu pun menyentuh Rawat Inap | `FE-RWI-019` |
 
-Ketiganya adalah **konsekuensi wajar** dari modul yang belum satu baris pun ditulis, bukan lubang
-perencanaan. Keduanya punya task penutup yang memeriksanya.
+Ketiganya adalah **konsekuensi wajar** dari modul yang baru punya tabel tanpa endpoint, bukan lubang
+perencanaan. Ketiganya punya task penutup yang memeriksanya.
 
 ---
 
