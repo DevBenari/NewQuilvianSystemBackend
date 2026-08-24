@@ -19,6 +19,7 @@
     <Compile Remove="Areas\HealthServices\PatientManagement\Patient\**" />
     <Compile Remove="Areas\SelfServices\Models\**" />
     <Compile Remove="Areas\SelfServices\Views\**" />
+    <Compile Remove="QuilvianSystemBackend.Tests\**" />
     <Content Remove="Areas\HealthServices\DeviceManagement\**" />
     <Content Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <Content Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
@@ -26,6 +27,7 @@
     <Content Remove="Areas\HealthServices\PatientManagement\Patient\**" />
     <Content Remove="Areas\SelfServices\Models\**" />
     <Content Remove="Areas\SelfServices\Views\**" />
+    <Content Remove="QuilvianSystemBackend.Tests\**" />
     <EmbeddedResource Remove="Areas\HealthServices\DeviceManagement\**" />
     <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
@@ -40,6 +42,7 @@
     <None Remove="Areas\HealthServices\PatientManagement\Patient\**" />
     <None Remove="Areas\SelfServices\Models\**" />
     <None Remove="Areas\SelfServices\Views\**" />
+    <None Remove="QuilvianSystemBackend.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>
