@@ -8,7 +8,7 @@ Test otomatis untuk modul Billing Operational, Area `HealthServices`.
 | Framework | xUnit `2.9.2` |
 | Target framework | `net9.0` |
 | Jenis test | Integration di level service, terhadap PostgreSQL sungguhan |
-| Cakupan saat ini | Tiga acceptance criteria `RJ-BIL-BE-001` |
+| Cakupan saat ini | Keempat acceptance criteria `RJ-BIL-BE-001` |
 
 ## Cara menjalankan
 
@@ -80,7 +80,7 @@ lulus tanpa membuktikan apa pun — hasilnya justru menyesatkan.
 
 Pengujian lewat HTTP tidak dipakai karena controller memakai `[Authorize]` dengan JWT bearer,
 dan `Program.cs` memakai top-level statements tanpa `public partial class Program`. Keduanya
-menuntut perubahan pada file yang dipakai seluruh tim, sementara ketiga acceptance criteria
+menuntut perubahan pada file yang dipakai seluruh tim, sementara keempat acceptance criteria
 tidak memerlukan lapisan transport untuk dibuktikan.
 
 ## Susunan folder
@@ -110,7 +110,7 @@ meninggalkan jejak pada database bersama.
 
 ## Cakupan yang belum ditutup
 
-Test di sini menutup tiga acceptance criteria `RJ-BIL-BE-001` saja. Skenario berikut berasal
+Test di sini menutup keempat acceptance criteria `RJ-BIL-BE-001` saja. Skenario berikut berasal
 dari `docs/module-blueprints/rawat-jalan/testing/acceptance-test-matrix.md` dan masih menjadi
 cakupan `RJ-BIL-BE-009`:
 

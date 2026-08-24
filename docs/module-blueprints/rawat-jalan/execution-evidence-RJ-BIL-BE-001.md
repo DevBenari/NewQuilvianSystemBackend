@@ -7,7 +7,7 @@
 | CURRENT_EXECUTION_ACTION | `MIGRATION_APPLY_AND_TEST_EVIDENCE` |
 | IMPLEMENTATION_STATUS | `COMPLETE` |
 | SOURCE_FILES_CHANGED | Perubahan source task sudah ada pada working tree: `Areas/HealthServices/BillingManagement/Operational/**`, `Program.cs`, dan `Repositories/ApplicationDbContext.cs`. Tidak diduplikasi atau ditimpa pada eksekusi ini. |
-| CONTRACT_CONFLICT | `NONE` teridentifikasi dari inspeksi source terhadap contract API/State/Validation `1.0.0`; verifikasi runtime tetap menunggu build/test. |
+| CONTRACT_CONFLICT | `NONE` — inspeksi source terhadap contract API/State/Validation `1.0.0` dan Permission `RJ-BIL-PERM-001@1.0.0`, diverifikasi runtime melalui `10` test yang lulus. |
 | SOURCE_COMPILE_EVIDENCE | `PASS` |
 | HOST_BUILD | `PASS` — build manual dari host di `C:\ProjectX\QuilvianV2\NewQuilvianSystemBackend` dengan `dotnet build`; restore dan compilation berhasil. |
 | HOST_BUILD_ERROR_COUNT | `0` |
@@ -18,9 +18,11 @@
 | ERROR_COUNT | `0` pada host build |
 | WARNING_COUNT | `125` pada host build |
 | TEST_PROJECT_AVAILABLE | `YES` — `Tests/QuilvianSystemBackend.BillingTests/`, xUnit `2.9.2`, terdaftar pada solution. |
-| TEST_EVIDENCE | `PASS` — `4` test dijalankan, `4` lulus, `0` gagal. |
-| TEST_SCOPE | Tiga acceptance criteria `RJ-BIL-BE-001` saja; bukan seluruh acceptance matrix modul Billing. |
+| TEST_EVIDENCE | `PASS` — `10` test dijalankan, `10` lulus, `0` gagal. |
+| TEST_SCOPE | Keempat acceptance criteria `RJ-BIL-BE-001`; bukan seluruh acceptance matrix modul Billing. |
 | TEST_TEARDOWN_VERIFIED | `PASS` — tidak ada sisa data test pada database target. |
+| PERMISSION_REVIEW | `PASS` — ketiga endpoint yang terimplementasi cocok dengan `RJ-BIL-PERM-001@1.0.0`. |
+| AUDIT_REVIEW | `PASS` — endpoint recognize memanggil `LoggerService.AuditAsync` pada jalur sukses dan konflik versi; idempotency key disimpan sebagai hash. |
 | MIGRATION_GENERATION_AUTHORITY | `GRANTED` |
 | MIGRATION_REQUIRED | `YES` — model/configuration dan `DbSet` task ini memiliki dampak schema/index/concurrency. |
 | MIGRATION_GENERATED | `YES` |
@@ -59,8 +61,8 @@ dan `QBE-AUD-001`.
 Inspeksi menunjukkan adanya authorization metadata pada controller, validasi server-side,
 actor dari authenticated claims, idempotency key dan fingerprint, unique/index constraint,
 optimistic concurrency melalui `Version`, transaksi serializable, retry untuk konflik yang
-dapat dipulihkan, serta audit logging. Bukti build/test belum cukup untuk menandai task
-`COMPLETE`.
+dapat dipulihkan, serta audit logging. Seluruhnya kemudian dibuktikan melalui permission
+review dan `10` test yang lulus.
 
 ## Perubahan yang sudah ada sebelum eksekusi ini
 
@@ -335,7 +337,7 @@ urutan roadmap apa adanya, `RJ-BIL-BE-001` tidak akan pernah dapat ditutup sampa
 `BE-002` sampai `BE-008` selesai.
 
 Pemilik backend memutuskan pada `2026-08-21` untuk menarik sebagian scope `RJ-BIL-BE-009` ke
-depan, terbatas pada tiga acceptance criteria `RJ-BIL-BE-001`. Sisa scope `RJ-BIL-BE-009`
+depan, terbatas pada keempat acceptance criteria `RJ-BIL-BE-001`. Sisa scope `RJ-BIL-BE-009`
 tetap berada pada task aslinya.
 
 ### Test project
@@ -377,8 +379,8 @@ provider InMemory, cara menambah test baru, dan daftar cakupan yang masih menjad
 
 ### Pilihan level pengujian
 
-Ketiga acceptance criteria adalah invariant persistence dan concurrency, bukan invariant
-transport. Pengujian dilakukan pada level service terhadap PostgreSQL sungguhan.
+Keempat acceptance criteria adalah invariant persistence, concurrency, dan validasi sumber —
+bukan invariant transport. Pengujian dilakukan pada level service terhadap PostgreSQL sungguhan.
 
 Provider InMemory **tidak** dipakai karena tidak menegakkan unique index; test folio-uniqueness
 akan lulus secara semu dan justru membuktikan kebalikan dari yang diklaim.
@@ -389,14 +391,20 @@ Pengujian lewat HTTP tidak dipilih karena controller `[Authorize]` dengan JWT be
 
 ### Hasil
 
-| Test | Acceptance criteria | Hasil | Durasi |
-|---|---|---|---|
-| `DuaMilestoneBerbedaPadaEncounterSama_HanyaMenghasilkanSatuFolio` | Folio unik per encounter | `PASS` | `260 ms` |
-| `FolioKeduaUntukEncounterSama_DitolakUniqueIndexDatabase` | Folio unik per encounter | `PASS` | `155 ms` |
-| `IdempotencyKeySamaDenganPayloadSama_MenghasilkanReplayTanpaChargeGanda` | Duplicate key menghasilkan replay | `PASS` | `2 s` |
-| `VersiLamaSetelahVersiBaruApplied_DitolakDenganVersionConflict` | Stale version ditolak | `PASS` | `253 ms` |
+| Test | Acceptance criteria | Hasil |
+|---|---|---|
+| `DuaMilestoneBerbedaPadaEncounterSama_HanyaMenghasilkanSatuFolio` | Folio unik per encounter | `PASS` |
+| `FolioKeduaUntukEncounterSama_DitolakUniqueIndexDatabase` | Folio unik per encounter | `PASS` |
+| `IdempotencyKeySamaDenganPayloadSama_MenghasilkanReplayTanpaChargeGanda` | Duplicate key menghasilkan replay | `PASS` |
+| `VersiLamaSetelahVersiBaruApplied_DitolakDenganVersionConflict` | Stale version ditolak | `PASS` |
+| `KonteksKlinis_TidakDapatMembuatMutasiFinansial` — `Pharmacy` | Tidak ada clinical financial mutation | `PASS` |
+| `KonteksKlinis_TidakDapatMembuatMutasiFinansial` — `Prescription` | Tidak ada clinical financial mutation | `PASS` |
+| `KonteksKlinis_TidakDapatMembuatMutasiFinansial` — `Procedure` | Tidak ada clinical financial mutation | `PASS` |
+| `KonteksKlinis_TidakDapatMembuatMutasiFinansial` — `Laboratory` | Tidak ada clinical financial mutation | `PASS` |
+| `KonteksKlinis_TidakDapatMembuatMutasiFinansial` — `Radiology` | Tidak ada clinical financial mutation | `PASS` |
+| `EffectTypeDiluarKontrak_TidakDapatMembuatMutasiFinansial` | Tidak ada clinical financial mutation | `PASS` |
 
-`Total tests: 4`, `Passed: 4`, `Failed: 0`, exit code `0`.
+`Total tests: 10`, `Passed: 10`, `Failed: 0`, exit code `0`.
 
 Yang dibuktikan masing-masing:
 
@@ -408,7 +416,37 @@ Yang dibuktikan masing-masing:
   `ProcessingEffectId` dan `ChargeLineId` yang sama, serta tetap `1` processing effect dan
   `1` charge line;
 - versi `1` yang datang setelah versi `2` applied ditolak `BIL_VERSION_CONFLICT` dengan
-  `AppliedVersion = 2`, dan histori versi `2` tetap utuh pada processing effect maupun charge line.
+  `AppliedVersion = 2`, dan histori versi `2` tetap utuh pada processing effect maupun charge line;
+- lima konteks klinis — `Pharmacy`, `Prescription`, `Procedure`, `Laboratory`, `Radiology` —
+  serta `EffectType` di luar kontrak ditolak `BIL_SOURCE_INVALID`, dan penolakan terjadi
+  **sebelum** jejak finansial tertulis: nol folio, nol charge line, dan nol processing effect
+  pada encounter tersebut. Ini menegakkan invariant `#1` decision log, yaitu order klinis tidak
+  otomatis menjadi final charge.
+
+## Permission dan audit review
+
+Kolom Verifikasi `RJ-BIL-BE-001` menuntut permission review. Hasil terhadap
+`RJ-BIL-PERM-001@1.0.0`:
+
+| Endpoint | Kontrak | Implementasi | Hasil |
+|---|---|---|---|
+| `GET /by-encounter/{encounterId}` | `BillingFolio` / `Read` | `[AccessPermission("BillingFolio", "Read")]` | `MATCH` |
+| `GET /{folioId}` | `BillingFolio` / `Read` | `[AccessPermission("BillingFolio", "Read")]` | `MATCH` |
+| `POST /internal/milestones/recognize` | `BillingMilestone` / `RecognizeInternal` | `[AccessPermission("BillingMilestone", "RecognizeInternal")]` | `MATCH` |
+
+Controller memakai `[Authorize]` pada level class. Enam baris lain pada matrix — allocations,
+financial-actions, close, reopen, execute, resolve — adalah endpoint task berikutnya dan berada
+di luar cakupan `RJ-BIL-BE-001`.
+
+Matrix mewajibkan audit logger pada endpoint recognize. Terpenuhi melalui
+`LoggerService.AuditAsync` pada dua jalur:
+
+| Jalur | Action | Isi yang dicatat |
+|---|---|---|
+| Sukses | `BillingMilestone.RecognizeInternal` | actor, `ProcessingEffectId`, `FolioId`, `ChargeLineId`, `IsReplay`, `Outcome`, `CalculationStatus`, identitas source, `CorrelationId` |
+| Konflik versi | `BillingMilestone.VersionConflict` | actor, incoming versus applied version, identitas source, `DetectedAt`, outcome |
+
+Sesuai ketentuan matrix, idempotency key dicatat sebagai `HashReference(...)`, bukan nilai mentah.
 
 ### Target database test dan teardown
 
@@ -454,12 +492,23 @@ Database target ditinggalkan dalam keadaan seperti sebelum test dijalankan.
 `DATABASE_CHANGED = YES` pada `QuilvianNewDevTim01`, `DATABASE_APPLY_VERIFIED = PASS`,
 `TEST_PROJECT_AVAILABLE = YES`, `TEST_EVIDENCE = PASS`.
 
-`RJ-BIL-BE-001` dinyatakan `COMPLETE`. Seluruh butir DoD terpenuhi: source evidence, build
-evidence, test evidence, migration artifact reviewed, dan tidak ada database apply tanpa
-otorisasi.
+`RJ-BIL-BE-001` dinyatakan `COMPLETE`.
 
-Batas yang melekat pada status ini: bukti test menutup **tiga acceptance criteria
-`RJ-BIL-BE-001`**, bukan seluruh acceptance matrix modul Billing. Skenario seperti
+Seluruh butir DoD terpenuhi: source evidence, build evidence, test evidence, migration artifact
+reviewed, dan tidak ada database apply tanpa otorisasi. Keempat item kolom Verifikasi juga
+terpenuhi: build backend, targeted integration test, migration review, dan permission review.
+
+Keempat acceptance criteria terbukti:
+
+| Acceptance criteria | Bukti |
+|---|---|
+| Folio unik per encounter | `2` test, termasuk penolakan level database `23505` |
+| Duplicate key menghasilkan replay | `1` test |
+| Stale version ditolak | `1` test |
+| Tidak ada clinical financial mutation | `6` test |
+
+Batas yang melekat pada status ini: bukti test menutup **acceptance criteria `RJ-BIL-BE-001`**,
+bukan seluruh acceptance matrix modul Billing. Skenario seperti
 `BIL_IDEMPOTENCY_CONFLICT`, outcome unknown, partial component, multi-payer allocation,
 financial correction, maker-checker, dan folio close belum diuji dan tetap menjadi cakupan
 `RJ-BIL-BE-009`. `COMPLETE` pada `RJ-BIL-BE-001` tidak berarti modul Billing sudah terverifikasi

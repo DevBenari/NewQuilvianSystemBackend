@@ -260,5 +260,73 @@ namespace QuilvianSystemBackend.BillingTests.Operational
             Assert.Single(charges);
             Assert.Equal(2, charges[0].MilestoneFactVersion);
         }
+
+        // ---------------------------------------------------------------------
+        // Acceptance criteria 4 — Tidak ada clinical financial mutation
+        // ---------------------------------------------------------------------
+
+        [Theory]
+        [InlineData("Pharmacy")]
+        [InlineData("Prescription")]
+        [InlineData("Procedure")]
+        [InlineData("Laboratory")]
+        [InlineData("Radiology")]
+        public async Task KonteksKlinis_TidakDapatMembuatMutasiFinansial(string sourceContext)
+        {
+            var seed = await NewEncounterAsync();
+            var idempotencyKey = $"key-klinis-{Guid.NewGuid():N}";
+            var milestoneFactId = Guid.NewGuid();
+
+            await using var context = _fixture.CreateContext();
+            var service = new BillingFolioService(context);
+
+            var request = BuildRequest(seed.EncounterId, idempotencyKey, milestoneFactId);
+            request.SourceContext = sourceContext;
+
+            var hasil = await service.RecognizeMilestoneAsync(request, seed.ActorUserId);
+
+            Assert.Equal(BillingServiceResultKind.Validation, hasil.Kind);
+            Assert.Equal("BIL_SOURCE_INVALID", hasil.ErrorCode);
+
+            // Invariant: order klinis tidak otomatis menjadi charge. Penolakan harus terjadi
+            // sebelum jejak finansial apa pun tertulis, bukan sesudahnya.
+            await using var verify = _fixture.CreateContext();
+
+            Assert.Equal(0, await verify.BilFolios
+                .CountAsync(x => x.EncounterId == seed.EncounterId));
+
+            Assert.Equal(0, await verify.BilChargeLines
+                .CountAsync(x => x.MilestoneFactId == milestoneFactId));
+
+            Assert.Equal(0, await verify.BilProcessingEffects
+                .CountAsync(x => x.IdempotencyKey == idempotencyKey));
+        }
+
+        [Fact]
+        public async Task EffectTypeDiluarKontrak_TidakDapatMembuatMutasiFinansial()
+        {
+            var seed = await NewEncounterAsync();
+            var idempotencyKey = $"key-effect-{Guid.NewGuid():N}";
+            var milestoneFactId = Guid.NewGuid();
+
+            await using var context = _fixture.CreateContext();
+            var service = new BillingFolioService(context);
+
+            var request = BuildRequest(seed.EncounterId, idempotencyKey, milestoneFactId);
+            request.EffectType = "DispenseMedication";
+
+            var hasil = await service.RecognizeMilestoneAsync(request, seed.ActorUserId);
+
+            Assert.Equal(BillingServiceResultKind.Validation, hasil.Kind);
+            Assert.Equal("BIL_SOURCE_INVALID", hasil.ErrorCode);
+
+            await using var verify = _fixture.CreateContext();
+
+            Assert.Equal(0, await verify.BilFolios
+                .CountAsync(x => x.EncounterId == seed.EncounterId));
+
+            Assert.Equal(0, await verify.BilProcessingEffects
+                .CountAsync(x => x.IdempotencyKey == idempotencyKey));
+        }
     }
 }
