@@ -9,22 +9,22 @@
 | Contract | `RJ-BIL-CONTRACT-001@1.0.0` |
 | Decision revision | `10` |
 | Domain architecture | revision `1`, core independen dari `DOMAIN_ARCHITECTURE_PARTIAL` |
-| Backend source SHA | `36456ead5d8d116e5631aef859df3d55b0ec7e81` cabang `sukmagp` |
+| Backend source SHA | `92108587e69b9a935b2fd264882100149f80ed02` cabang `sukmagp`; working tree `RJ-BIL-BE-002` belum di-commit |
 | Frontend source SHA | `29422c83eaf6fd231cbb72f2ba04e306367934e1` cabang `QuilvianDevV2` |
 | Approval | `OWNER_APPROVED` pada `2026-08-21` |
 | External adapter | `RJ-BIL-DEP-009 = INACTIVE / OUT OF CURRENT DELIVERY SCOPE` |
 | Task approval | `RJ-BIL-BE-001` s.d. `RJ-BIL-BE-009` disetujui pengguna pada `2026-08-21` |
 | Status seluruh task revision 1 | `APPROVED_FOR_EXECUTION` |
-| IMPLEMENTATION_AUTHORITY | `GRANTED` untuk `RJ-BIL-BE-001` saja |
-| BUILDER_EXECUTION | `EXECUTED` untuk `RJ-BIL-BE-001`; task lain `NOT_AUTHORIZED` |
-| Progress | `1` dari `9` task backend selesai per `2026-08-24` |
+| IMPLEMENTATION_AUTHORITY | `GRANTED` untuk `RJ-BIL-BE-001` dan `RJ-BIL-BE-002` |
+| BUILDER_EXECUTION | `EXECUTED` untuk `RJ-BIL-BE-001` dan `RJ-BIL-BE-002`; task lain `NOT_AUTHORIZED` |
+| Progress | `2` dari `9` task backend selesai per `2026-08-24` |
 
 ## Progress eksekusi
 
 | Task | Status | Bukti |
 |---|---|---|
 | `RJ-BIL-BE-001` | `COMPLETE` | [execution-evidence-RJ-BIL-BE-001.md](../execution-evidence-RJ-BIL-BE-001.md) |
-| `RJ-BIL-BE-002` | `BLOCKED` — menunggu keputusan owner atas `RJ-BIL-CONFLICT-006` | [owner-decision-request-RJ-BIL-001.md](../owner-decision-request-RJ-BIL-001.md) pertanyaan `1A` dan `1B` |
+| `RJ-BIL-BE-002` | `COMPLETE` | [execution-evidence-RJ-BIL-BE-002.md](../execution-evidence-RJ-BIL-BE-002.md) |
 | `RJ-BIL-BE-005` | `BLOCKED` — menunggu keputusan owner atas `RJ-BIL-CONFLICT-001` | [RJ-BIL-CONFLICT-001-source-audit.md](../RJ-BIL-CONFLICT-001-source-audit.md); pertanyaan `RJ-BIL-OQ-001` s.d. `OQ-007` |
 | `RJ-BIL-BE-003`, `RJ-BIL-BE-004` | `NOT_STARTED` — tidak diblokir konflik mana pun | Memerlukan owner Lab atau Radiology beserta Clinical Governance |
 | `RJ-BIL-BE-006` s.d. `RJ-BIL-BE-009` | `NOT_STARTED` | Menunggu dependency sequence |
@@ -39,6 +39,16 @@ atas hasil allocation.
 Migration `20260821033911_AddBillingOperationalBaseline` sudah diterapkan ke database
 `QuilvianNewDevTim01` atas otorisasi terpisah yang diberikan pengguna pada `2026-08-21`.
 Otorisasi tersebut terbatas pada satu migration itu dan tidak berlaku untuk task berikutnya.
+
+Dua migration `RJ-BIL-BE-002` — `20260824074649_AddClinicalMilestoneFactHandoff` dan
+`20260824080430_StoreClinicalFactSnapshotAsText` — ikut diterapkan ke database yang sama karena
+`BillingTestDatabaseFixture` memanggil `Database.Migrate()` sebelum test pertama. Ini bukan
+otorisasi baru; penjelasan dan dampaknya ada pada bagian `8`
+[execution-evidence-RJ-BIL-BE-002.md](../execution-evidence-RJ-BIL-BE-002.md).
+
+`RJ-BIL-BE-002` menyisakan satu blocker kebijakan, `RJ-BIL-BE-002-BLOCKER-001`, yaitu pintu
+masuk telaah farmasi setelah kewenangan finansial klinis dihapus. Blocker itu tidak menahan
+acceptance criteria `RJ-BIL-BE-002` dan tidak menahan task berikutnya.
 
 ## Aturan eksekusi
 

@@ -1,6 +1,9 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
+using QuilvianSystemBackend.Services.Logging;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -146,6 +149,14 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
 
         public Task DisposeAsync() => Task.CompletedTask;
 
+        /// <summary>
+        /// Menyediakan LoggerService untuk service yang membutuhkannya. Test tidak menjalankan
+        /// HTTP request, sehingga HttpContext-nya memang kosong; LoggerService sudah menangani
+        /// keadaan tersebut dengan menulis tanda "-".
+        /// </summary>
+        public static LoggerService CreateLoggerService() =>
+            new(NullLogger<LoggerService>.Instance, new HttpContextAccessor());
+
         public ApplicationDbContext CreateContext()
         {
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -262,6 +273,12 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
                     .Where(x => folioIds.Contains(x.Id))
                     .ExecuteDeleteAsync(cancellationToken);
             }
+
+            // Ledger fakta klinis (RJ-BIL-BE-002) memiliki FK Restrict ke encounter, sehingga
+            // wajib dihapus sebelum encounter-nya.
+            await context.TrxClinicalMilestoneFacts
+                .Where(x => x.EncounterId == seed.EncounterId)
+                .ExecuteDeleteAsync(cancellationToken);
 
             await context.TrxPatientEncounters
                 .Where(x => x.Id == seed.EncounterId)

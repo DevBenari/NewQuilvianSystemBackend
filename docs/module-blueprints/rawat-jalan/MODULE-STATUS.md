@@ -4,14 +4,14 @@
 |---|---|
 | Blueprint ID | `RJ-BIL-BP-001` |
 | Module name | Dokter / Rawat Jalan Billing |
-| Revision | `13` |
+| Revision | `14` |
 | Module status | `PARTIAL` |
 | Current phase | `RJ-BIL-PH-009` — Delivery Execution |
 | Last verified at | `2026-08-24T00:00:00+07:00` |
-| Backend source SHA | `36456ead5d8d116e5631aef859df3d55b0ec7e81` cabang `sukmagp` |
+| Backend source SHA | `92108587e69b9a935b2fd264882100149f80ed02` cabang `sukmagp`; working tree `RJ-BIL-BE-002` belum di-commit |
 | Frontend source SHA | `29422c83eaf6fd231cbb72f2ba04e306367934e1` cabang `QuilvianDevV2` |
-| IMPLEMENTATION_AUTHORITY | `GRANTED` untuk `RJ-BIL-BE-001` saja; task lain tetap memerlukan handoff tersendiri |
-| BUILDER_EXECUTION | `EXECUTED` untuk `RJ-BIL-BE-001`; `NOT_AUTHORIZED` untuk task lain |
+| IMPLEMENTATION_AUTHORITY | `GRANTED` untuk `RJ-BIL-BE-001` dan `RJ-BIL-BE-002`; task lain tetap memerlukan handoff tersendiri |
+| BUILDER_EXECUTION | `EXECUTED` untuk `RJ-BIL-BE-001` dan `RJ-BIL-BE-002`; `NOT_AUTHORIZED` untuk task lain |
 | External adapter | `RJ-BIL-DEP-009 = INACTIVE / OUT_OF_SCOPE` |
 
 ## Phase state
@@ -24,14 +24,14 @@
 
 | Backend | Frontend | Integration | Verification |
 |---|---|---|---|
-| `IN_PROGRESS` — `1` dari `9` task selesai | `APPROVED_FOR_EXECUTION`, belum dimulai | `NOT_STARTED` | `PARTIAL` — hanya `RJ-BIL-BE-001` |
+| `IN_PROGRESS` — `2` dari `9` task selesai | `APPROVED_FOR_EXECUTION`, belum dimulai | `NOT_STARTED` | `PARTIAL` — `RJ-BIL-BE-001` dan `RJ-BIL-BE-002` |
 
 ### Progress task backend
 
 | Task | Status | Bukti |
 |---|---|---|
 | `RJ-BIL-BE-001` | `COMPLETE` | [execution-evidence-RJ-BIL-BE-001.md](execution-evidence-RJ-BIL-BE-001.md) |
-| `RJ-BIL-BE-002` | `BLOCKED` | Menunggu keputusan owner atas `RJ-BIL-CONFLICT-006` |
+| `RJ-BIL-BE-002` | `COMPLETE` | [execution-evidence-RJ-BIL-BE-002.md](execution-evidence-RJ-BIL-BE-002.md) |
 | `RJ-BIL-BE-005` | `BLOCKED` | Menunggu keputusan owner atas `RJ-BIL-CONFLICT-001` |
 | `RJ-BIL-BE-003`, `RJ-BIL-BE-004` | `NOT_STARTED` | Tidak diblokir konflik mana pun; memerlukan owner domain dan handoff tersendiri |
 | `RJ-BIL-BE-006` s.d. `RJ-BIL-BE-009` | `NOT_STARTED` | Menunggu dependency roadmap |
@@ -41,21 +41,43 @@ Baseline persistence Billing Operational sudah berdiri: empat tabel `BilFolio`,
 diterapkan ke database `QuilvianNewDevTim01`, dan keempat acceptance criteria `RJ-BIL-BE-001`
 terbukti melalui `10` automated test yang lulus.
 
+`RJ-BIL-BE-002` menutup `RJ-BIL-CONFLICT-006` dan memindahkan kewenangan finansial dari modul
+klinis ke Billing. Modul klinis kini hanya menerbitkan fakta melalui tabel baru
+`TrxClinicalMilestoneFact`, dan Billing yang menentukan akibat finansialnya. Seluruhnya terbukti
+melalui `22` automated test yang lulus.
+
 ## Blockers and owners
 
 | Blocker ID | Summary | Owner | Affected phase | Independent continuation |
 |---|---|---|---|---|
 | `RJ-BIL-DEP-009` | Kontrak, keamanan, sandbox/UAT, idempotency, status-query, dan reconciliation external adapter belum tersedia | Payer/Insurance + Integration | External activation | Manual/internal payer workflow tetap berjalan |
 | `RJ-BIL-CONFLICT-001` | Payment source encounter as-is one-to-one bertentangan dengan multi-payer target; memblokir `RJ-BIL-BE-005` | Registration + Billing/Finance | `RJ-BIL-BE-005` | Sudah diaudit; `CONFIRMED` dengan source confidence `HIGH`. Lihat temuan di bawah |
-| `RJ-BIL-CONFLICT-006` | Pharmacy masih memiliki financial mutation legacy; memblokir `RJ-BIL-BE-002` | Pharmacy + Billing/Payer | `RJ-BIL-BE-002` | Lihat temuan di bawah — keputusan menjadi jauh lebih sempit |
+| `RJ-BIL-CONFLICT-006` | Pharmacy memiliki financial mutation legacy | Pharmacy + Billing/Payer | — | `CLOSED` pada `2026-08-24` oleh keputusan author `1A` dan `1B`; dilaksanakan pada `RJ-BIL-BE-002` |
 
-Kedua blocker di atas sudah dituangkan menjadi pertanyaan siap dijawab pada
-[owner-decision-request-RJ-BIL-001.md](owner-decision-request-RJ-BIL-001.md). Yang menahan
-`RJ-BIL-BE-002` dan `RJ-BIL-BE-005` sekarang adalah keputusan owner, bukan kekurangan bukti.
+`RJ-BIL-CONFLICT-006` sudah dijawab author dan ditutup; pelaksanaannya ada pada
+[execution-evidence-RJ-BIL-BE-002.md](execution-evidence-RJ-BIL-BE-002.md).
+`RJ-BIL-CONFLICT-001` masih terbuka dan pertanyaannya tersedia siap jawab pada
+[owner-decision-request-RJ-BIL-001.md](owner-decision-request-RJ-BIL-001.md).
 
-### Temuan `RJ-BIL-CONFLICT-006` per `2026-08-24`
+### Temuan `RJ-BIL-CONFLICT-006` per `2026-08-24` — `CLOSED`
 
-`Areas/HealthServices/PharmacyManagement/Controllers/PrescriptionController.cs` masih memuat
+Bagian ini disimpan sebagai riwayat. Keadaan yang dijelaskan di bawah adalah keadaan **sebelum**
+`RJ-BIL-BE-002` dikerjakan.
+
+| Field | Nilai |
+|---|---|
+| Status | `CLOSED` |
+| Keputusan author | `1A` menyetujui penonaktifan empat endpoint; `1B` mencabut kewenangan `PaymentStatus` dari pembatalan klinis |
+| Pelaksanaan | `RJ-BIL-BE-002` |
+| Bukti | [execution-evidence-RJ-BIL-BE-002.md](execution-evidence-RJ-BIL-BE-002.md) |
+
+Keempat endpoint dan lima method workflow finansialnya sudah dihapus dari source, bukan sekadar
+disembunyikan dari Swagger. Pembatalan resep tetap ada sebagai alur klinis, tetapi tidak lagi
+menulis status pembayaran.
+
+Keadaan sebelum perbaikan, disimpan sebagai riwayat:
+
+`Areas/HealthServices/PharmacyManagement/Controllers/PrescriptionController.cs` memuat
 empat endpoint yang menetapkan status finansial dari alur klinis:
 
 | Route | Method | Hak akses | Baris |
@@ -154,48 +176,54 @@ angka dari lapisan klinis ke Billing.
 
 ## Evidence state
 
-Source `BillingManagement/Operational/**`, `Program.cs`, dan
-`Repositories/ApplicationDbContext.cs` sudah di-commit dan tidak lagi berstatus provisional.
+Source `RJ-BIL-BE-001` sudah di-commit. Source `RJ-BIL-BE-002` masih berupa working tree yang
+belum di-commit.
 
 | Bukti | Keadaan |
 |---|---|
-| Build backend | `PASS` — `0` error |
-| Migration | `20260821033911_AddBillingOperationalBaseline` di-review statis lalu diterapkan |
-| Database | `QuilvianNewDevTim01`; `86` migration terdaftar, `0` pending |
+| Build backend | `PASS` — `0` error, `0` warning |
+| Migration | `3` migration modul ini: baseline Billing, ledger fakta klinis, dan perubahan tipe kolom snapshot |
+| Database | `QuilvianNewDevTim01`; `88` migration terdaftar, `0` pending |
 | Test project | `Tests/QuilvianSystemBackend.BillingTests/`, xUnit, terdaftar pada solution |
-| Automated test | `10` test, `10` lulus, `0` gagal |
+| Automated test | `22` test, `22` lulus, `0` gagal |
 | Permission review | `PASS` terhadap `RJ-BIL-PERM-001@1.0.0` |
-| Audit | `LoggerService.AuditAsync` pada jalur sukses dan konflik versi; idempotency key disimpan sebagai hash |
+| Security review | `PASS` untuk `RJ-BIL-BE-002` |
+| Audit | `LoggerService.AuditAsync` pada jalur Billing dan jalur penyerahan fakta klinis; idempotency key disimpan sebagai hash |
 
-Rincian lengkap ada pada [execution-evidence-RJ-BIL-BE-001.md](execution-evidence-RJ-BIL-BE-001.md).
+Rincian ada pada [execution-evidence-RJ-BIL-BE-001.md](execution-evidence-RJ-BIL-BE-001.md) dan
+[execution-evidence-RJ-BIL-BE-002.md](execution-evidence-RJ-BIL-BE-002.md).
 
-Cakupan test masih terbatas pada acceptance criteria `RJ-BIL-BE-001`. Skenario
-`BIL_IDEMPOTENCY_CONFLICT`, outcome unknown, partial component, multi-payer allocation,
-financial correction, maker-checker, dan folio close belum diuji dan tetap menjadi cakupan
-`RJ-BIL-BE-009`.
+Perlu diketahui: `BillingTestDatabaseFixture` menjalankan `Database.Migrate()` sebelum test
+pertama, sehingga menjalankan `dotnet test` ikut menerapkan migration ke `QuilvianNewDevTim01`.
+Penjelasan dan dampaknya ada pada bagian `8` execution evidence `RJ-BIL-BE-002`.
+
+Cakupan test menutup acceptance criteria `RJ-BIL-BE-001` dan `RJ-BIL-BE-002`. Skenario partial
+component, multi-payer allocation, financial correction, maker-checker, dan folio close belum
+diuji dan tetap menjadi cakupan `RJ-BIL-BE-009`.
 
 ## Next recommended task
 
 Urutan dependency roadmap adalah `BE-001 → BE-002/BE-003/BE-004 → BE-005 → BE-006/BE-007 →
-BE-008 → BE-009`. `RJ-BIL-BE-001` sudah selesai, sehingga tiga task dapat dipertimbangkan.
+BE-008 → BE-009`. `RJ-BIL-BE-001` dan `RJ-BIL-BE-002` sudah selesai.
 
 | Urutan | Task | Kesiapan |
 |---|---|---|
-| 1 | Mengirim [owner-decision-request-RJ-BIL-001.md](owner-decision-request-RJ-BIL-001.md) ke owner | Siap; bukti kedua blocker sudah lengkap dan pertanyaannya sudah berbentuk pilihan |
-| 2 | `RJ-BIL-BE-002` | `BLOCKED` sampai pertanyaan `1A` dan `1B` dijawab |
-| 3 | `RJ-BIL-BE-005` | `BLOCKED` sampai `RJ-BIL-OQ-001`, `OQ-002`, `OQ-005` dijawab |
-| 4 | `RJ-BIL-BE-003` atau `RJ-BIL-BE-004` | Dapat dimulai tanpa menunggu jawaban owner mana pun; memerlukan owner Lab atau Radiology beserta Clinical Governance |
+| 1 | Keputusan atas `RJ-BIL-BE-002-BLOCKER-001` | Alur telaah farmasi tidak lagi memiliki pintu masuk setelah kewenangan finansial klinis dihapus. Keputusan kebijakan farmasi; opsi dan dampaknya sudah disiapkan |
+| 2 | `RJ-BIL-BE-003` atau `RJ-BIL-BE-004` | Tidak diblokir konflik mana pun; memerlukan owner Lab atau Radiology beserta Clinical Governance dan handoff tersendiri |
+| 3 | Mengirim [owner-decision-request-RJ-BIL-001.md](owner-decision-request-RJ-BIL-001.md) ke owner | Siap; menutup `RJ-BIL-CONFLICT-001` |
+| 4 | `RJ-BIL-BE-005` | `BLOCKED` sampai `RJ-BIL-OQ-001`, `OQ-002`, `OQ-005` dijawab |
 
-Dua blocker menunggu orang, bukan menunggu pekerjaan teknis. Karena itu langkah pertama adalah
-mengirim permintaan keputusan, bukan menunggu lebih lama. Dokumen tersebut menyusun sembilan
-pertanyaan beserta pilihan jawaban dan akibat masing-masing, ditambah satu formulir isian, agar
-owner dapat menjawab tanpa membaca source.
+`RJ-BIL-BE-002-BLOCKER-001` perlu dijelaskan agar tidak disalahpahami sebagai kerusakan baru.
+`PrescriptionReviewService` mensyaratkan status pemenuhan `ReadyForPharmacy` sebelum telaah
+farmasi dapat dimulai, dan satu-satunya penulis status itu adalah method pembayaran yang baru
+saja dihapus. Karena tidak ada layar yang pernah memanggil endpoint tersebut, alur ini memang
+sudah tidak dapat dicapai dari frontend sebelum `RJ-BIL-BE-002` dikerjakan. Penghapusan endpoint
+membuat celah yang sudah ada menjadi terlihat, bukan menciptakannya.
 
-Bila jawaban owner belum tersedia, `RJ-BIL-BE-003` dan `RJ-BIL-BE-004` tetap dapat dimulai karena
-keduanya tidak bergantung pada `RJ-BIL-CONFLICT-001` maupun `RJ-BIL-CONFLICT-006`. Keduanya
-menghasilkan fact klinis, bukan alokasi finansial. Yang tetap dibutuhkan adalah owner domain
-masing-masing, karena lifecycle Lab dan Radiology belum ada pada source, serta handoff task dan
-wewenang tulis tersendiri — `IMPLEMENTATION_AUTHORITY` saat ini hanya mencakup `RJ-BIL-BE-001`.
+`RJ-BIL-BE-003` dan `RJ-BIL-BE-004` menghasilkan fact klinis, bukan alokasi finansial, sehingga
+tidak bergantung pada `RJ-BIL-CONFLICT-001`. Keduanya tetap memerlukan owner domain
+masing-masing karena lifecycle Lab dan Radiology belum ada pada source, serta handoff task dan
+wewenang tulis tersendiri.
 
 Builder tetap memerlukan handoff task, wewenang tulis, dan preflight eksekusi untuk setiap task.
 Jangan mengaktifkan external adapter `RJ-BIL-DEP-009`.

@@ -265,10 +265,13 @@ namespace QuilvianSystemBackend.BillingTests.Operational
         // Acceptance criteria 4 — Tidak ada clinical financial mutation
         // ---------------------------------------------------------------------
 
+        // Catatan RJ-BIL-BE-002: konteks `Prescription` dan `Procedure` kini sudah masuk
+        // kontrak dan diuji pada ClinicalMilestoneFactProducerTests. Yang tersisa di sini
+        // adalah konteks yang memang belum dikontrak — `Laboratory` dan `Radiology` menjadi
+        // cakupan RJ-BIL-BE-003 dan RJ-BIL-BE-004, sedangkan `Pharmacy` bukan nama konteks
+        // yang sah karena fakta resep memakai konteks `Prescription`.
         [Theory]
         [InlineData("Pharmacy")]
-        [InlineData("Prescription")]
-        [InlineData("Procedure")]
         [InlineData("Laboratory")]
         [InlineData("Radiology")]
         public async Task KonteksKlinis_TidakDapatMembuatMutasiFinansial(string sourceContext)
