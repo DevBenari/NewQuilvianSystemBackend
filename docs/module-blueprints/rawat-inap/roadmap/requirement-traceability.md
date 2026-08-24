@@ -4,25 +4,25 @@
 
 ```yaml
 module_id: rawat-inap
-roadmap_revision: 1
+roadmap_revision: 2
 status: APPROVED
 approval_gate: BLUEPRINT_APPROVED
 approved_by:
-  - "Muhammad Hamzah — Product/Domain owner (RWI-DEC-061), lewat RWI-DEC-067"
+  - "Muhammad Hamzah — Product/Domain owner (RWI-DEC-061), lewat RWI-DEC-067; sinkronisasi revision 2 lewat RWI-DEC-074"
 approved_at: "2026-08-24"
 input_revisions:
-  blueprint-manifest.md: 3
-  00-interview-decisions.md: 5
-  04-prd-to-mvp.md: 0.3.0
-  testing/acceptance-test-matrix.md: 0.3.0
+  blueprint-manifest.md: 4
+  00-interview-decisions.md: 6
+  04-prd-to-mvp.md: 0.4.0
+  testing/acceptance-test-matrix.md: 0.4.0
 contract_versions:
-  - "API 0.3.0"
-  - "State transition 0.3.0"
-  - "Validation 0.3.0"
-  - "Integration 0.3.0"
-  - "Permission/Audit 0.3.0"
-  - "Acceptance test 0.3.0"
-  - "PRD ke MVP 0.3.0"
+  - "API 0.4.0"
+  - "State transition 0.4.0"
+  - "Validation 0.4.0"
+  - "Integration 0.4.0"
+  - "Permission/Audit 0.4.0"
+  - "Acceptance test 0.4.0"
+  - "PRD ke MVP 0.4.0"
 counts:
   epic: 14
   functional_requirement: 62
@@ -305,6 +305,12 @@ ada pada bagian 6.
 | `RWI-DEC-064` | Jenis kelamin dan isolasi **menolak** | `BE-RWI-013`, `BE-RWI-015`, `BE-RWI-019` |
 | `RWI-DEC-065` | Isolasi atribut episode | `BE-RWI-003`, `BE-RWI-014`, `FE-RWI-006`, `FE-RWI-009` |
 | `RWI-DEC-066` | Seluruh kamar tidak boleh campur, tanpa kolom baru | `BE-RWI-013` |
+| `RWI-DEC-069` | Pemilik `EmergencyInstallationManagement` bernama: Rizki Gunawan | Gerbang bagi `INP-S09`; tidak ada task MVP |
+| `RWI-DEC-070` | Pelonggaran mesin klinis meluas ke kunjungan `Emergency` | Tidak ada task modul ini — pelaksananya modul IGD lewat `IGD-DEC-068` |
+| `RWI-DEC-071` | Justifikasi `RWI-DEC-041` ditulis ulang | Tidak ada task — keputusannya tidak berubah |
+| `RWI-DEC-072` | Waktu tiba milik IGD; penempatan menunggu event `Tiba` | `BE-RWI-011` kriteria 7 sebagai penjaga; aturan penuhnya menunggu `INP-S09` |
+| `RWI-DEC-073` | `OriginEncounterId` dikerjakan modul IGD | `BE-RWI-003` — menegaskan kriteria 5 tetap utuh; tidak ada pekerjaan kolom di modul ini |
+| `RWI-DEC-074` | Blueprint revision `4` disetujui | Gerbang `BLUEPRINT_APPROVED` bagi `roadmap_revision` `2` |
 
 ---
 

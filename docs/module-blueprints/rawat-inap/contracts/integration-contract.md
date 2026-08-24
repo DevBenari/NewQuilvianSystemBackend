@@ -3,10 +3,10 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.3.0` |
+| `contract_version` | `0.4.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | `evidence/03-hospital-domain-architecture.md` revision `0.1` bagian J; `00-interview-decisions.md` revision `5` |
+| `input_revision` | `evidence/03-hospital-domain-architecture.md` revision `0.1` bagian J; `00-interview-decisions.md` revision `6` |
 | Backend SHA | `5afb54b` |
 | Dampak kompatibilitas | Satu arah tulis lintas modul yang baru. Tidak ada kontrak eksternal yang berubah |
 
@@ -30,8 +30,15 @@ database. Alasannya ada di bagian 4.
 | `INT-INP-02` | `MasterData` HealthServices | Rawat Inap | Tempat tidur, kamar, unit layanan, kelas pasien | Master Data | Sinkron, baca langsung |
 | `INT-INP-04` | `Corporate/HumanResource` | Rawat Inap | Dokter untuk DPJP, pegawai untuk perawat | HR Workforce | Sinkron, baca langsung |
 | `INT-INP-05` | `PatientManagement` | Rawat Inap | Identitas pasien untuk census dan resume | Patient Management | Sinkron, baca lewat kunjungan |
+| `INT-INP-06` | `EmergencyInstallationManagement` | Rawat Inap | Waktu pasien tiba di bangsal, dari event `Tiba` pada catatan kepergian IGD | **IGD** | Sinkron, baca langsung. Hanya pada jalur serah terima IGD |
+| `INT-INP-07` | `RegistrationManagement` | Rawat Inap | Rangkaian kedatangan, lewat `TrxPatientEncounter.OriginEncounterId` | Registrasi | Sinkron, baca langsung. Kolomnya dibuat dan diisi modul IGD |
 
-Keempatnya **tidak** menyalin data. Yang disimpan modul ini hanya Id-nya, dan nama ditampilkan
+**Dua integrasi terakhir ditambahkan pada `0.4.0`** lewat `RWI-DEC-072` dan `RWI-DEC-073`.
+Keduanya arah **baca**, keduanya hanya menyala pada jalur serah terima IGD, dan jalur itu adalah
+`INP-S09` yang di luar scope revisi ini. Tidak satu pun kolom milik modul lain ditulis atau
+dibuat oleh Rawat Inap karena keduanya.
+
+Keenamnya **tidak** menyalin data. Yang disimpan modul ini hanya Id-nya, dan nama ditampilkan
 lewat `Include` atau projection saat query.
 
 Satu pengecualian yang disengaja: `InpBedPlacement` menyimpan salinan `RoomId`, `ServiceUnitId`,
@@ -187,7 +194,7 @@ kelak. Itu pekerjaan yang belum ada pemintanya.
 | --- | --- | --- |
 | `ClinicalManagement` | Dokumentasi klinis rawat inap di luar scope | `DEC-INP-001` |
 | `PharmacyManagement` | Resep dan obat pulang di luar scope | `DEC-INP-001` |
-| `EmergencyInstallationManagement` | Serah terima IGD ke rawat inap di luar scope | `DEC-INP-002` |
+| `EmergencyInstallationManagement` | Serah terima IGD ke rawat inap di luar scope. **Sejak `0.4.0` arah bacanya sudah dirancang** lewat `INT-INP-06`, tetapi belum terhubung karena `INP-S09` belum dikerjakan. Pemiliknya bernama sejak `RWI-DEC-069`: Rizki Gunawan | `DEC-INP-002` |
 | `BillingManagement` | Belum punya kemampuan transaksi. Digantikan penandaan manual sesuai `RWI-RULE-028` | — |
 
 Untuk `BillingManagement`, perlu ditegaskan: modul Rawat Inap **tidak** membangun faktur, tagihan

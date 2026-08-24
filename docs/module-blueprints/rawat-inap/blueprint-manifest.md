@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `RWI-BP-001` |
-| `revision` | `3` |
-| `status` | `approved` — disetujui **Muhammad Hamzah** 2026-08-24 lewat `RWI-DEC-067` |
+| `revision` | `4` |
+| `status` | `approved` — revision `4` disetujui **Muhammad Hamzah** 2026-08-24 lewat `RWI-DEC-074`; revision `3` sebelumnya lewat `RWI-DEC-067` |
 | `module` | `rawat-inap` / `InPatientManagement`, prefix entity `Inp` |
 | `registry_lifecycle` | `ACTIVE` — dinaikkan dari `PLANNED` 2026-08-24 lewat `RWI-DEC-068`. Wewenang eksekusi database dan deployment tetap terpisah |
-| `design_snapshot_at` | `2026-08-21`, revision `3` pada hari yang sama |
+| `design_snapshot_at` | `2026-08-24` untuk revision `4`; `2026-08-21` untuk revision `3` |
 | `backend_commit_sha` | `5afb54bd75281648010e50ef14f43ca1f80d8efd` (branch `MHamzah`) |
 | `frontend_commit_sha` | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` (branch `HamzahV2`) |
 | `owners` | Product/Domain: **Muhammad Hamzah**, ditunjuk `RWI-DEC-061` 2026-08-21; jabatan formal belum diisi. Clinical governance: **sebagian terisi** — keputusan isolasi dan jenis kelamin diambil pemilik yang sama lewat `RWI-DEC-064`, cakupan peran selebihnya belum dinyatakan. Security/Privacy: `OPEN`. API dan Frontend authority: sesuai decision log |
@@ -23,10 +23,9 @@
 
 ## 0. Status kesegaran
 
-**Blueprint tertinggal satu pass.** Revision `3` memasukkan tiga keputusan penutupan butir
-organisasi 2026-08-21 yang sebelumnya membuat revision `2` tertinggal. Sesudahnya, Amendment
-Pass 2026-08-24 menghasilkan empat keputusan baru yang **belum diserap** ke berkas blueprint;
-rinciannya pada bagian 0.2.
+**Blueprint sudah sejalan dengan masukannya.** Revision `4` menyerap empat keputusan Amendment
+Pass 2026-08-24; revision `3` sebelumnya menyerap tiga keputusan penutupan butir organisasi
+2026-08-21. Rincian penyerapan terakhir ada pada bagian 0.2.
 
 | Keputusan | Sudah masuk ke |
 |---|---|
@@ -70,28 +69,31 @@ sejalan. Yang tertinggal hanya catatan arsitektur domainnya.
 
 ---
 
-### 0.2 Yang belum diserap — Amendment Pass 2026-08-24
+### 0.2 Yang diserap revision `4` — Amendment Pass 2026-08-24
 
-Empat keputusan lahir dari tiga usulan lintas modul yang datang dari blueprint IGD. Seluruhnya
-sudah `approved` pada decision log; **belum satu pun** masuk ke berkas blueprint di bawah ini.
+Empat keputusan lahir dari tiga usulan lintas modul yang datang dari blueprint IGD. Keempatnya
+sudah `approved` pada decision log dan **seluruhnya sudah masuk** ke berkas di bawah.
 
-| Keputusan | Isinya | Berkas yang menunggu penyelarasan |
-|---|---|---|
-| `RWI-DEC-070` | Pelonggaran `RWI-RULE-026` diperluas ke kunjungan `Emergency`, mencakup aturan 3, 4, dan 5; aturan 6 direvisi | `02-backend-architecture.md`, `contracts/validation-matrix.md`, `testing/acceptance-test-matrix.md`, `04-prd-to-mvp.md` |
-| `RWI-DEC-071` | `RWI-DEC-041` tetap berlaku, justifikasinya ditulis ulang | Tidak ada perubahan desain — hanya alasan yang diperbarui, dan itu sudah selesai di decision log |
-| `RWI-DEC-072` | Penempatan jalur IGD menunggu event `Tiba` milik IGD; `StartDateTime` diisi dari waktu itu | `02-backend-architecture.md`, `erd/data-dictionary.md`, `contracts/api-contract.md`, `contracts/validation-matrix.md`, `contracts/integration-contract.md`, `roadmap/backend-roadmap.md` pada `BE-RWI-011` |
-| `RWI-DEC-073` | `OriginEncounterId` dikerjakan modul IGD; `compatibility_impact` ditulis ulang | Field `compatibility_impact` **sudah** diperbarui di atas. Menunggu: `erd/00-context-erd.md`, `erd/data-dictionary.md`, `contracts/integration-contract.md` |
+| Keputusan | Sudah masuk ke |
+|---|---|
+| `RWI-DEC-070` pelonggaran mesin klinis meluas ke `Emergency` | Decision log: `RWI-RULE-026` aturan 3 s.d. 6 beserta blok prasyarat tipe kunjungan. **Tidak ada berkas desain yang berubah** — dokumentasi klinis rawat inap memang di luar scope sesuai `02-backend-architecture.md` bagian 2 |
+| `RWI-DEC-071` justifikasi `RWI-DEC-041` ditulis ulang | Decision log: `RWI-RULE-029` bagian “Keadaan yang menjadi masalah”. Keputusannya tidak berubah, jadi tidak ada desain yang bergeser |
+| `RWI-DEC-072` waktu tiba milik IGD | `02-backend-architecture.md` §1.7 aturan **9** dan §4.5; `erd/00-context-erd.md` §1 dan §2 (`CTX_EMG`); `erd/data-dictionary.md` `StartDateTime`; `contracts/api-contract.md`, `validation-matrix.md`, `state-transition-matrix.md`, `integration-contract.md` (`INT-INP-06`); `testing/acceptance-test-matrix.md` bagian 2 dan 14 |
+| `RWI-DEC-073` `OriginEncounterId` dikerjakan IGD | Field `compatibility_impact`; `02-backend-architecture.md` bagian 2; `erd/00-context-erd.md` §2; `erd/data-dictionary.md` catatan kolom modul lain; `contracts/integration-contract.md` (`INT-INP-07`) |
 
-Sepuluh acceptance criteria baru, `RWI-AC-140` sampai `RWI-AC-149`, juga belum masuk ke matriks
-acceptance test.
+Sepuluh acceptance criteria baru `RWI-AC-140` s.d. `RWI-AC-149` sudah masuk matriks acceptance
+test: satu di bagian 2 karena dapat diuji sekarang, sembilan di bagian 14 karena miliknya slice
+yang di luar scope.
 
-**Yang harus dikerjakan berikutnya:** penyerapan ini adalah pekerjaan `/qv-design`, bukan
-pekerjaan pass wawancara. Hasilnya nanti menaikkan manifest ke revision `4`. Sampai itu terjadi,
-revision `3` tetap sah dipakai untuk seluruh task MVP yang sedang berjalan — tidak satu pun dari
-keempat keputusan di atas mengubah task `BE-RWI-001` sampai `BE-RWI-010`.
+**Temuan yang paling penting dari penyerapan ini.** Ketiga usulan IGD ternyata **tidak menahan
+satu pun task MVP.** Aturan 9 pada Kelayakan Penempatan hanya menyala bila episode lahir dari
+serah terima IGD, dan jalur itu adalah `INP-S09` yang sengaja tidak dirancang pada revisi ini.
+`BE-RWI-011` karena itu **tidak terkunci**; ia hanya bertambah satu acceptance criteria penjaga,
+yaitu `RWI-AC-147`, yang membuktikan jalur datang langsung tidak ikut berubah.
 
-**Satu task yang benar-benar terdampak:** `BE-RWI-011` penempatan tempat tidur. Jangan dikerjakan
-sebelum `RWI-DEC-072` diserap ke kontrak dan roadmapnya.
+**Satu artefak sengaja tidak disentuh.** `03-frontend-architecture.md` tidak berubah: pesan
+penolakan baru muncul lewat bentuk jawaban 422 yang sudah ada, yaitu daftar aturan yang gagal,
+sehingga layar tidak perlu komponen baru.
 
 ---
 ## 1. Peringatan sebelum membaca
@@ -99,8 +101,10 @@ sebelum `RWI-DEC-072` diserap ke kontrak dan roadmapnya.
 Seluruh dokumen pada folder ini berstatus `draft`. Tidak satu pun boleh dipakai sebagai izin
 menulis source code.
 
-Empat gerbang implementasi masih terbuka, dan modul `InPatientManagement` masih berstatus `PLANNED`
-pada registry.
+Dua gerbang implementasi masih terbuka: kesiapan data master, dan persetujuan pemilik
+`EmergencyInstallationManagement` yang hanya menahan `INP-S09`. Modul `InPatientManagement`
+berstatus `ACTIVE` pada registry sejak `RWI-DEC-068`, dan penulisan source code sudah dibuka
+lewat `RWI-DEC-067` — satu task per pengerjaan mengikuti roadmap.
 
 ---
 
@@ -108,23 +112,23 @@ pada registry.
 
 | Artefak | Revision | Status | SHA-256 |
 |---|---|---|---|
-| [`00-interview-decisions.md`](./00-interview-decisions.md) | `5` | `draft` | `47354fa36db2eb4a3c1148ed2c0e840b22df795af5ee9bf2ed92c4989844b1e2` |
+| [`00-interview-decisions.md`](./00-interview-decisions.md) | `6` | `draft` | `775e92c9d974b646c484d88553bc7f5dcbb4cf6539425ed7ddb7c02c59ec2dfd` |
 | [`01-existing-capability-map.md`](./01-existing-capability-map.md) | `1.2` | `source-audited` | `567d7f7ea57537f419efca28d551e965524d27ea1889a00cc7707d17ec74c3b6` |
-| [`evidence/02-requirement-completeness-gate.md`](./evidence/02-requirement-completeness-gate.md) | `1.0` | `CURRENT` | `cc32db172b2441b2967ce3507c89b81f12fc103bbd3b3a92bc7bc49d77005ffe` |
+| [`evidence/02-requirement-completeness-gate.md`](./evidence/02-requirement-completeness-gate.md) | `1.0` | `CURRENT` | `cd59325e17ee6ec66b7d9e331ba7cd1c94a20ce4651c9dd77e22070e550fbed9` |
 | [`evidence/03-hospital-domain-architecture.md`](./evidence/03-hospital-domain-architecture.md) | `0.1` | `draft` | `721268f11edd4aff047b6fcf03fce28e4f051cb4d1cf5134c32d11f0f52615d3` |
-| [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.3` | `draft` | `9d7aaa8cbf38bac000d7b3c4487594638363086586bf6ac7f0954bc711154d76` |
+| [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.4` | `draft` | `50c6c0986a4b9cda4443d8cb515a038804f1de1f92d36d0c4dc2ab12d5f4baea` |
 | [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.3` | `draft` | `3c5c55b20ed7b10d49fe2dd2487c03c6a174fe852ec4a5b9dfc5f8bd0b429c4a` |
-| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.3.0` | `draft` | `4f3a9bb8fa7e66ddc544c52deecf1a3929e56407f47625102eeac6f6047321e3` |
-| [`erd/00-context-erd.md`](./erd/00-context-erd.md) | `0.2` | `draft` | `8736b28a7ee4cda7b6ecbb2c211cfe74987102e534a4770183de78f161de2eda` |
+| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.4.0` | `draft` | `58b1f281d15d2c5e00ca296762cc1d2968a287363481df68da1ae3e8d0a8f51a` |
+| [`erd/00-context-erd.md`](./erd/00-context-erd.md) | `0.3` | `draft` | `2d7baab5a4c3c76fa11149faa8fc99bc7ca0b2aefbe30f5b8327089f2ed3b4e0` |
 | [`erd/01-inpatient-episode.md`](./erd/01-inpatient-episode.md) | `0.3` | `draft` | `aaf6aa46591d78a8e48ea7fd02ff1900525e329b5f34f85b098fae9a3ebc17c7` |
 | [`erd/02-inpatient-configuration.md`](./erd/02-inpatient-configuration.md) | `0.1` | `draft` | `3645ee9d1788270ee7cef88d2cc6b74beddddec0a1a5d2b538e45c25c66f2065` |
-| [`erd/data-dictionary.md`](./erd/data-dictionary.md) | `0.3` | `draft` | `a1492eec3c0d333a48046bdf89f725dd35fdea0cbf84e6b174c67f5fd996c718` |
-| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.3.0` | `draft` | `f4cd133ca7e63940960c6762d2544e749b98db07b4df785468a1e0f3a31f8a38` |
-| [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.3.0` | `draft` | `a0c185454776adb3e09623ef021a5b2c4054973525e7ac0136d7413a9a2cb3b3` |
-| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.3.0` | `draft` | `a69a5b68b3c254b03cea1113860169b0748826ab1832b29c05e5ae430857929b` |
-| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.3.0` | `draft` | `b1c397bfd8e69d6e6127b6f7062e1b68bbe064cc84bc8dc2fd70f79e25d22d91` |
-| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.3.0` | `draft` | `1bdf2914f1ec513364b794248551a275389bd16d82325347ebfc3ec2016811d6` |
-| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | `0.3.0` | `draft` | `86c6dd98a6b97580dedbbc6a7046cbfb127ad09990870d0eebac98b79f6bce84` |
+| [`erd/data-dictionary.md`](./erd/data-dictionary.md) | `0.4` | `draft` | `85551a5a5c966685937aa97cf79cc40c5b247e902d151a4daa6a132540e7f170` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.4.0` | `draft` | `a451e778e37a6596977ce6c2c9e24bc1548cd9dd4efa9a63e642ba02539b709b` |
+| [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.4.0` | `draft` | `35e8e769461a05b32da5d9e6d11ef92dc45c254b2c1a7d4eb08d228a5d9c1fc7` |
+| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.4.0` | `draft` | `6ff47efa675605e78bcdb8836fb636bd8744a1c07f2522508aa64261fd3f838d` |
+| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.4.0` | `draft` | `e6e86731ae4da27f482e6f659336a74cb0d2d9465f6a04e26fa7bcc6ac331fe1` |
+| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | `0.4.0` | `draft` | `50a48e990ac9aaf1d97fc6f7448fd60f513292fd7da717faaaba2eced4d4e19b` |
+| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | `0.4.0` | `draft` | `357cb6ca9b35b9c2a2ce55597dd2cad5c68bd132c4d40a903f07e4d693b3a45c` |
 
 Hash di atas dipakai mendeteksi perubahan yang tidak tercatat. Bila salah satu berubah tanpa
 revision naik, blueprint dianggap tidak konsisten.
@@ -133,19 +137,24 @@ revision naik, blueprint dianggap tidak konsisten.
 
 ## 3. Contract version
 
-| Kontrak | Version | Status | Berubah isinya pada `0.3.0`? |
+| Kontrak | Version | Status | Berubah isinya pada `0.4.0`? |
 |---|---|---|---|
-| API | `0.3.0` | `draft` | Ya — dua endpoint baru |
-| State transition | `0.3.0` | `draft` | **Tidak.** Kebutuhan isolasi adalah atribut, bukan status |
-| Validation | `0.3.0` | `draft` | Ya — lima aturan penolakan baru |
-| Integration | `0.3.0` | `draft` | **Tidak.** Tidak ada arah tulis baru ke modul lain |
-| Permission dan audit | `0.3.0` | `draft` | Ya — satu hak akses baru dan `GUARD-INP-04` |
-| Acceptance test | `0.3.0` | `draft` | Ya — bagian 2A, 26 skenario |
-| PRD ke MVP | `0.3.0` | `draft` | Ya — `EPIC RI-34` dan sembilan functional requirement |
+| API | `0.4.0` | `draft` | Ya — satu penolakan baru dan satu perubahan asal waktu mulai. Tidak ada endpoint baru |
+| State transition | `0.4.0` | `draft` | Ya — satu prasyarat baru pada perpindahan ke `Aktif` |
+| Validation | `0.4.0` | `draft` | Ya — satu aturan penolakan baru dan satu aturan penanganan waktu |
+| Integration | `0.4.0` | `draft` | Ya — dua integrasi **arah baca** baru, `INT-INP-06` dan `INT-INP-07`. Arah tulis tidak bertambah |
+| Permission dan audit | `0.4.0` | `draft` | **Tidak.** Tidak ada aktor, endpoint, atau kewenangan yang bergeser |
+| Acceptance test | `0.4.0` | `draft` | Ya — satu skenario baru di bagian 2, sembilan butir di bagian 14 |
+| PRD ke MVP | `0.4.0` | `draft` | **Tidak.** Hanya nama pemilik `DEC-INP-002` dan lifecycle registry yang dicatat |
 
 Dua kontrak yang **tidak** berubah isinya tetap dinaikkan versinya supaya seluruh kontrak sebaris
 dan mudah dicocokkan. Keduanya memuat catatan tegas kenapa isinya tidak bertambah, supaya pembaca
 berikutnya tidak mengira ada yang terlupa.
+
+**Catatan penting untuk `0.4.0`.** Empat kontrak berubah isinya, tetapi seluruh perubahan itu
+hanya menyala pada jalur serah terima IGD — `INP-S09`, di luar scope revisi ini. Untuk setiap
+endpoint, aturan, dan transisi yang benar-benar dipakai MVP, `0.4.0` berperilaku sama persis
+dengan `0.3.0`. Tidak ada task berjalan yang perlu diulang karenanya.
 
 ---
 
@@ -272,6 +281,7 @@ Blueprint ditandai stale dan wajib melewati impact scan bila salah satu berikut 
 
 | Revision | Tanggal | Ringkasan |
 |---|---|---|
+| `4` | 2026-08-24 | **Disetujui Muhammad Hamzah lewat `RWI-DEC-074`.** Menyerap empat keputusan Amendment Pass 2026-08-24 yang lahir dari tiga usulan lintas modul milik blueprint IGD. Kelayakan Penempatan tumbuh menjadi **sembilan** aturan; dua integrasi arah baca baru, `INT-INP-06` ke IGD dan `INT-INP-07` ke Registrasi; `InpBedPlacement.StartDateTime` berubah **asal nilainya** untuk jalur serah terima tanpa satu kolom pun berubah bentuk; sepuluh acceptance criteria baru. **Nol tabel baru, nol kolom baru, nol endpoint baru.** Seluruh perubahan hanya menyala pada `INP-S09` yang di luar scope, sehingga tidak satu pun task MVP tertahan |
 | `3` | 2026-08-21 | Menyerap tiga keputusan penutupan butir organisasi. **Satu epic baru `EPIC RI-34`** — satu-satunya epic baru sejak blueprint disusun — beserta 9 functional requirement, 5 skenario UAT, dan 26 skenario acceptance test. Enam kolom baru pada `InpEpisode`, satu enum `InpIsolationSource`, dua endpoint baru, satu penjaga service `GUARD-INP-04`, satu daftar pantau baru, satu layar `FE-INP-15`. Kelayakan Penempatan tumbuh dari tiga aturan menjadi delapan. **Nol tabel baru dan nol perubahan kolom pada tabel modul lain.** `INP-S11` berpindah dari slice yang dihentikan menjadi slice yang dirancang. Satu gerbang produksi dan tiga gerbang implementasi berubah keadaan. Kolom `owners` terisi |
 | `2` | 2026-08-21 | Menyerap empat keputusan Amendment Pass. Satu tabel baru `InpDischargeSummaryRevision`, tiga kolom baru pada `InpEpisode`, satu nilai enum baru, satu endpoint baru, satu invariant baru `INV-INP-10`, dan `INV-INP-01` dilonggarkan. 6 functional requirement baru, 5 skenario UAT baru, 23 skenario acceptance test baru. Tidak ada kemampuan `MUST HAVE` yang dicabut dan tidak ada epic baru |
 | `1` | 2026-08-21 | Blueprint pertama. Dua bounded context, satu aggregate root, dua belas tabel baru, nol perubahan kolom pada tabel modul lain. Sembilan slice dirancang, delapan sengaja dihentikan. 13 epic, 47 functional requirement, 23 skenario UAT, 82 skenario acceptance test |

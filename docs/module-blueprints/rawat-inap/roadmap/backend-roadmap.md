@@ -6,7 +6,7 @@
 module_id: rawat-inap
 module_name: InPatientManagement
 entity_prefix: Inp
-roadmap_revision: 1
+roadmap_revision: 2
 status: APPROVED
 approval_gate: BLUEPRINT_APPROVED
 owners:
@@ -14,30 +14,30 @@ owners:
   - "Clinical governance: sebagian terisi (RWI-DEC-064)"
   - "Security/Privacy: OPEN"
 approved_by:
-  - "Muhammad Hamzah — Product/Domain owner (RWI-DEC-061), lewat RWI-DEC-067"
+  - "Muhammad Hamzah — Product/Domain owner (RWI-DEC-061), lewat RWI-DEC-067; sinkronisasi revision 2 lewat RWI-DEC-074"
 approved_at: "2026-08-24"
 input_revisions:
-  blueprint-manifest.md: 3
-  00-interview-decisions.md: 5
+  blueprint-manifest.md: 4
+  00-interview-decisions.md: 6
   01-existing-capability-map.md: 1.2
-  02-backend-architecture.md: 0.3
-  04-prd-to-mvp.md: 0.3.0
+  02-backend-architecture.md: 0.4
+  04-prd-to-mvp.md: 0.4.0
 artifact_hashes:
-  blueprint-manifest.md: "3017a62b6168ac13a2d4cc1a6dd5b5d6069577f381349819199715f45ec54107"
-  contracts/api-contract.md: "f4cd133ca7e63940960c6762d2544e749b98db07b4df785468a1e0f3a31f8a38"
-  contracts/state-transition-matrix.md: "a0c185454776adb3e09623ef021a5b2c4054973525e7ac0136d7413a9a2cb3b3"
-  contracts/validation-matrix.md: "a69a5b68b3c254b03cea1113860169b0748826ab1832b29c05e5ae430857929b"
-  contracts/permission-audit-matrix.md: "1bdf2914f1ec513364b794248551a275389bd16d82325347ebfc3ec2016811d6"
-  contracts/integration-contract.md: "b1c397bfd8e69d6e6127b6f7062e1b68bbe064cc84bc8dc2fd70f79e25d22d91"
-  testing/acceptance-test-matrix.md: "86c6dd98a6b97580dedbbc6a7046cbfb127ad09990870d0eebac98b79f6bce84"
+  blueprint-manifest.md: "07f4ed008a53bab5186e0de059ab593b48966ef684d9702216354ba9891ebba0"
+  contracts/api-contract.md: "a451e778e37a6596977ce6c2c9e24bc1548cd9dd4efa9a63e642ba02539b709b"
+  contracts/state-transition-matrix.md: "35e8e769461a05b32da5d9e6d11ef92dc45c254b2c1a7d4eb08d228a5d9c1fc7"
+  contracts/validation-matrix.md: "6ff47efa675605e78bcdb8836fb636bd8744a1c07f2522508aa64261fd3f838d"
+  contracts/permission-audit-matrix.md: "50a48e990ac9aaf1d97fc6f7448fd60f513292fd7da717faaaba2eced4d4e19b"
+  contracts/integration-contract.md: "e6e86731ae4da27f482e6f659336a74cb0d2d9465f6a04e26fa7bcc6ac331fe1"
+  testing/acceptance-test-matrix.md: "357cb6ca9b35b9c2a2ce55597dd2cad5c68bd132c4d40a903f07e4d693b3a45c"
 contract_versions:
-  - "API 0.3.0"
-  - "State transition 0.3.0"
-  - "Validation 0.3.0"
-  - "Integration 0.3.0"
-  - "Permission/Audit 0.3.0"
-  - "Acceptance test 0.3.0"
-  - "PRD ke MVP 0.3.0"
+  - "API 0.4.0"
+  - "State transition 0.4.0"
+  - "Validation 0.4.0"
+  - "Integration 0.4.0"
+  - "Permission/Audit 0.4.0"
+  - "Acceptance test 0.4.0"
+  - "PRD ke MVP 0.4.0"
 source_commits:
   backend: "5afb54bd75281648010e50ef14f43ca1f80d8efd"
   frontend: "dec4fdeff07c3c96ad9f07f41f184c54cf771371"
@@ -220,6 +220,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Reuse** | Pola tabel transaksi berawalan `Trx` pada `EmergencyInstallationManagement`, termasuk kolom audit dan soft delete. Bentuk unique index parsial mengikuti preseden yang sudah dipakai project |
 | **Scope** | Sebelas model `Inp*`; sebelas konfigurasi EF pada `Repositories/Configurations/HealthService/InPatientManagement/`; sebelas `DbSet`; enum `InpIsolationSource`, `InpBedPlacementEndReason`, `InpEpisodeStatus`; migration `CreateInpatientTransactionTables` |
 | **Dependency** | `BE-RWI-001` |
+| **Catatan revision `4`** | `RWI-DEC-073` menempatkan kolom `TrxPatientEncounter.OriginEncounterId` sebagai pekerjaan **modul IGD**, bukan modul ini. Acceptance criteria nomor 5 di bawah karena itu **tetap utuh dan tetap dapat diuji**: migration task ini tidak boleh menyentuh satu kolom pun milik tabel modul lain |
 | **Acceptance criteria** | 1. Kesebelas tabel terbentuk sesuai kamus data, termasuk enam kolom kebutuhan isolasi pada `InpEpisode`. 2. **Empat unique index parsial** terbentuk: penempatan aktif per tempat tidur, pemesanan aktif per tempat tidur, DPJP aktif per episode, dan episode hadir per pasien. 3. `InpEpisodeStatus` memuat tepat **lima** nilai; `InCare` tidak ada. 4. Migration maju dan mundur berhasil. 5. Tidak ada kolom tabel modul lain yang berubah |
 | **Verification** | Uji migration maju-mundur; **empat** test yang masing-masing mencoba menyisipkan baris kedua yang melanggar satu index parsial dan membuktikan database menolaknya; unit test yang menghitung jumlah nilai enum status |
 | **Risk/blocker** | Index parsial adalah satu-satunya pertahanan terhadap tabrakan dua petugas. Bila dialek database yang dipakai tidak mendukungnya, **berhenti dan naikkan ke pemilik arsitektur** — jangan diganti dengan pemeriksaan di kode saja, karena pemeriksaan di kode dapat dilewati dua transaksi bersamaan. Owner: Backend/API |
@@ -344,12 +345,13 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | Field | Isi |
 | --- | --- |
 | **Outcome** | Pasien yang sampai di kamar tercatat lokasinya, episode menjadi aktif, dan dua petugas yang menekan tombol pada saat hampir bersamaan tidak pernah menghasilkan dua penempatan di satu tempat tidur |
-| **Trace** | `RWI-DEC-021`, `RWI-DEC-039`; `RWI-RULE-015`, `RWI-RULE-027`; `INV-INP-01`, `INV-INP-02`; api contract `POST /placements`; `RWI-AC-059`, `RWI-AC-062` |
+| **Trace** | `RWI-DEC-021`, `RWI-DEC-039`, `RWI-DEC-072`; `RWI-RULE-015`, `RWI-RULE-027`, `RWI-RULE-029` aturan 8; `INV-INP-01`, `INV-INP-02`; api contract `0.4.0` `POST /placements`; `RWI-AC-059`, `RWI-AC-062`, `RWI-AC-147` |
 | **Reuse** | Unique index parsial dari `BE-RWI-003`. Salinan `MstBed.BedStatus` ditulis lewat jalur yang sama dengan modul master, bukan lewat SQL langsung |
 | **Scope** | `InpBedOccupancyService.PlacePatientAsync`; pemanggilan `InpEpisodeService.ApplyStatusChangeAsync` menjadi `Admitted`; penulisan salinan `MstBed.BedStatus` **dalam transaksi yang sama** |
 | **Dependency** | `BE-RWI-010` |
-| **Acceptance criteria** | 1. Setelah penempatan, sistem menjawab siapa menempati dan sejak jam berapa. 2. **Dua transaksi bersamaan pada satu tempat tidur:** satu berhasil, satu ditolak 409, dan tepat **satu** baris penempatan aktif tersimpan. 3. Bila penulisan salinan status gagal, catatan penempatan juga tidak tersimpan dan episode tetap `Draft`. 4. Keadaan tempat tidur diperiksa **ulang** saat penempatan, bukan hanya saat pemesanan. 5. Penolakan penempatan **tidak** menghapus isian admisi yang sudah diisi. 6. Pemesanan milik episode ini yang masih berlaku dipakai, bukan ditolak |
+| **Acceptance criteria** | 1. Setelah penempatan, sistem menjawab siapa menempati dan sejak jam berapa. 2. **Dua transaksi bersamaan pada satu tempat tidur:** satu berhasil, satu ditolak 409, dan tepat **satu** baris penempatan aktif tersimpan. 3. Bila penulisan salinan status gagal, catatan penempatan juga tidak tersimpan dan episode tetap `Draft`. 4. Keadaan tempat tidur diperiksa **ulang** saat penempatan, bukan hanya saat pemesanan. 5. Penolakan penempatan **tidak** menghapus isian admisi yang sudah diisi. 6. Pemesanan milik episode ini yang masih berlaku dipakai, bukan ditolak. 7. `RWI-AC-147` — untuk jalur datang langsung dan poliklinik, waktu mulai penempatan tetap waktu penempatan dibuat dan tidak menunggu apa pun |
 | **Verification** | Integration test dua transaksi bersamaan — ini yang paling penting dan tidak boleh dilewati; test kegagalan di tengah transaksi; test yang membuktikan isian admisi utuh setelah penolakan |
+| **Catatan revision `4`** | `RWI-DEC-072` menambah aturan 9 pada Kelayakan Penempatan — penempatan pasien asal IGD menunggu event `Tiba` milik IGD. Aturan itu **tidak menyala pada task ini**, karena hanya berlaku bila `TrxPatientEncounter.OriginEncounterId` terisi, dan jalur itu adalah `INP-S09` yang di luar MVP. Yang wajib dikerjakan di sini hanya kriteria 7 sebagai penjaga |
 | **Risk/blocker** | Pemeriksaan "tempat tidur kosong" di dalam kode **tidak cukup** — dua transaksi dapat sama-sama lolos pemeriksaan sebelum salah satunya menyimpan. Penguncian baris ditambah unique index parsial adalah pertahanan sebenarnya. Owner: Backend/API |
 | **DoD** | Endpoint sesuai kontrak; keenam kriteria lulus; test tabrakan lulus; api contract diperbarui |
 
