@@ -555,6 +555,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxPatientDiagnosis> TrxPatientDiagnoses { get; set; }
         public DbSet<TrxPatientProcedure> TrxPatientProcedures { get; set; }
         public DbSet<TrxPatientAllergy> TrxPatientAllergies { get; set; }
+
+        public DbSet<TrxNosocomialInfection> TrxNosocomialInfections { get; set; }
         public DbSet<TrxPatientMedicalHistory> TrxPatientMedicalHistories { get; set; }
         public DbSet<TrxPatientFamilyHistory> TrxPatientFamilyHistories { get; set; }
         public DbSet<TrxPatientVitalSign> TrxPatientVitalSigns { get; set; }

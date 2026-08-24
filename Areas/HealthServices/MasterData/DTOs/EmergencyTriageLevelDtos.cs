@@ -25,7 +25,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
     {
         public EmergencyTriageSystem TriageSystem { get; set; } = EmergencyTriageSystem.ATS;
 
-        [Range(1, 5)]
+        /// <summary>
+        /// 1 sampai 5 untuk skala antrean biasa; 0 khusus kategori Hitam yang berada di
+        /// luar skala antrean.
+        /// </summary>
+        [Range(0, 5)]
         public int Level { get; set; }
 
         [Required]

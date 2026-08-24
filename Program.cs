@@ -717,11 +717,40 @@ try
             seedResult.SettingInserted,
             seedResult.TotalInserted);
 
+        if (seedResult.TriageLevelSkipped > 0)
+        {
+            logger.LogWarning(
+                "{Count} level triase dilewati karena slot (sistem triase, level)-nya sudah " +
+                "dipakai baris lain. Seeder tidak pernah menimpa master yang sudah ada.",
+                seedResult.TriageLevelSkipped);
+        }
+
         if (!string.IsNullOrWhiteSpace(seedResult.TriageIndicatorSkippedReason))
         {
             logger.LogWarning(
                 "Indikator triase dilewati: {Reason}",
                 seedResult.TriageIndicatorSkippedReason);
+        }
+
+        if (!string.IsNullOrWhiteSpace(seedResult.ArrivalModeSkippedReason))
+        {
+            logger.LogWarning(
+                "Cara kedatangan dilewati: {Reason}",
+                seedResult.ArrivalModeSkippedReason);
+        }
+
+        if (!string.IsNullOrWhiteSpace(seedResult.CaseTypeSkippedReason))
+        {
+            logger.LogWarning(
+                "Jenis kasus dilewati: {Reason}",
+                seedResult.CaseTypeSkippedReason);
+        }
+
+        if (!string.IsNullOrWhiteSpace(seedResult.DispositionTypeSkippedReason))
+        {
+            logger.LogWarning(
+                "Jenis tindak lanjut dilewati: {Reason}",
+                seedResult.DispositionTypeSkippedReason);
         }
 
         if (!string.IsNullOrWhiteSpace(seedResult.SettingSkippedReason))

@@ -68,7 +68,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         )
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
-            IQueryable<TrxEmergencyTransfer> query = _dbContext.Set<TrxEmergencyTransfer>().AsNoTracking().Where(x => !x.IsDelete);
+            IQueryable<TrxEmergencyTransfer> query = _dbContext.Set<TrxEmergencyTransfer>()
+                .AsNoTracking()
+                .Include(x => x.FromServiceUnit)
+                .Include(x => x.ToServiceUnit)
+                .Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -135,7 +139,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTransfer", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyTransfer>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<TrxEmergencyTransfer>()
+                .AsNoTracking()
+                .Include(x => x.FromServiceUnit)
+                .Include(x => x.ToServiceUnit)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data transfer pasien IGD tidak ditemukan."));
 
@@ -176,7 +184,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 RequestedAt = request.RequestedAt == default ? now : request.RequestedAt,
                 RequestedByUserId = request.RequestedByUserId == Guid.Empty ? actorUserId : request.RequestedByUserId,
                 AcceptedAt = request.AcceptedAt,
-                AcceptedByUserId = request.AcceptedByUserId ?? actorUserId,
+
+                // Penerima tidak boleh terisi otomatis oleh pengaju. Perpindahan yang baru
+                // diajukan belum diterima siapa pun, dan mengisinya di sini membuat kolom
+                // penerima berisi nama orang yang justru tidak boleh menerimanya.
+                AcceptedByUserId = request.AcceptedByUserId,
                 DepartedAt = request.DepartedAt,
                 ArrivedAt = request.ArrivedAt,
                 SendingNurseUserId = request.SendingNurseUserId,
@@ -208,6 +220,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 "Membuat data Emergency Transfer.",
                 new { EntityId = entity.Id, Controller = "EmergencyTransfer", Action = "Create" }
             );
+
+            await LoadTransferNamesAsync(entity, cancellationToken);
 
             return Ok(ApiResponse<EmergencyTransferResponse>.Ok(ToResponse(entity), "Data transfer pasien IGD berhasil dibuat."));
         }
@@ -277,6 +291,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new { EntityId = id, Controller = "EmergencyTransfer", Action = "Update" }
             );
 
+            await LoadTransferNamesAsync(entity, cancellationToken);
+
             return Ok(ApiResponse<EmergencyTransferResponse>.Ok(ToResponse(entity), "Data transfer pasien IGD berhasil diubah."));
         }
 
@@ -294,6 +310,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (!_emergencyTransferService.CanTransition(entity.TransferStatus, request.TransferStatus))
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, $"Perubahan status dari {entity.TransferStatus} ke {request.TransferStatus} tidak diperbolehkan."));
+
+            // Unit pengaju perlu tahu apa yang harus diperbaiki sebelum mengajukan ulang.
+            // Penolakan tanpa alasan membuat pasien menunggu lebih lama tanpa ada yang tahu
+            // apa yang sedang menghalangi.
+            if (request.TransferStatus == EmergencyTransferStatus.Rejected &&
+                string.IsNullOrWhiteSpace(request.RejectionReason) &&
+                string.IsNullOrWhiteSpace(request.Notes))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan penolakan wajib diisi ketika perpindahan ditolak."));
+            }
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
@@ -323,10 +351,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (request.TransferStatus == EmergencyTransferStatus.Completed)
                 entity.ArrivedAt ??= now;
             if (request.TransferStatus == EmergencyTransferStatus.Rejected)
-                entity.RejectionReason = NormalizeText(request.Notes) ?? entity.RejectionReason;
-            if (!string.IsNullOrWhiteSpace(request.Notes) && entity.GetType().GetProperty("Notes") != null)
             {
-                entity.GetType().GetProperty("Notes")?.SetValue(entity, NormalizeText(request.Notes));
+                // RejectionReason adalah isian yang benar; Notes hanya dipakai sebagai
+                // cadangan supaya pemanggil lama yang masih mengirim alasan lewat Notes
+                // tidak mendadak kehilangan alasan penolakannya.
+                entity.RejectionReason = NormalizeText(request.RejectionReason)
+                    ?? NormalizeText(request.Notes)
+                    ?? entity.RejectionReason;
+            }
+            if (!string.IsNullOrWhiteSpace(request.Notes))
+            {
+                entity.Notes = NormalizeText(request.Notes);
             }
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
@@ -339,6 +374,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 "Memperbarui proses Emergency Transfer melalui aksi UpdateTransferStatus.",
                 new { EntityId = id, Controller = "EmergencyTransfer", Action = "UpdateTransferStatus" }
             );
+
+            await LoadTransferNamesAsync(entity, cancellationToken);
 
             return Ok(ApiResponse<EmergencyTransferResponse>.Ok(ToResponse(entity), "Status transfer pasien IGD berhasil diubah."));
         }
@@ -425,6 +462,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             };
         }
 
+        /// <summary>
+        /// Memuat relasi unit asal dan unit tujuan untuk entity yang baru saja ditulis,
+        /// supaya balasan aksi tulis memuat nama unit sama seperti balasan aksi baca.
+        /// </summary>
+        private async Task LoadTransferNamesAsync(
+            TrxEmergencyTransfer entity,
+            CancellationToken cancellationToken)
+        {
+            var entry = _dbContext.Entry(entity);
+
+            if (entity.FromServiceUnitId.HasValue &&
+                !entry.Reference(x => x.FromServiceUnit).IsLoaded)
+                await entry.Reference(x => x.FromServiceUnit).LoadAsync(cancellationToken);
+
+            if (!entry.Reference(x => x.ToServiceUnit).IsLoaded)
+                await entry.Reference(x => x.ToServiceUnit).LoadAsync(cancellationToken);
+        }
+
         private static EmergencyTransferResponse ToResponse(TrxEmergencyTransfer x)
         {
             return new EmergencyTransferResponse
@@ -433,7 +488,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EmergencyVisitId = x.EmergencyVisitId,
                 TransferNumber = x.TransferNumber,
                 FromServiceUnitId = x.FromServiceUnitId,
+                FromServiceUnitName = x.FromServiceUnit?.ServiceUnitName,
                 ToServiceUnitId = x.ToServiceUnitId,
+                ToServiceUnitName = x.ToServiceUnit?.ServiceUnitName,
                 FromRoomId = x.FromRoomId,
                 ToRoomId = x.ToRoomId,
                 FromBedId = x.FromBedId,
