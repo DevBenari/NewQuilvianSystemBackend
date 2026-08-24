@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Mo
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -560,6 +561,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilCashVarianceReview> BilCashVarianceReviews { get; set; }
         public DbSet<BilCashierShiftHandover> BilCashierShiftHandovers { get; set; }
         public DbSet<BilCashierShiftCommand> BilCashierShiftCommands { get; set; }
+        public DbSet<BilFolio> BilFolios { get; set; }
+        public DbSet<BilChargeLine> BilChargeLines { get; set; }
+        public DbSet<BilChargeComponent> BilChargeComponents { get; set; }
+        public DbSet<BilProcessingEffect> BilProcessingEffects { get; set; }
         public DbSet<MstProcedure> MstProcedures { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
