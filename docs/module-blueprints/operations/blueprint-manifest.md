@@ -3,7 +3,7 @@
 | Field | Nilai |
 |---|---|
 | `blueprint_id` | `operations` |
-| `revision` | `2` |
+| `revision` | `3` |
 | `status` | `approved` |
 | Product/domain owner | Pemilik kebutuhan |
 | API owner | Belum ditetapkan |
@@ -23,7 +23,7 @@
 
 | Input | Revision | SHA-256 |
 |---|---:|---|
-| `00-interview-decisions.md` | 5 | `67E35F8BC7B04C1DFE762A4917C8D0B60136C51D7847747D2B24D1AF23D1DC30` |
+| `00-interview-decisions.md` | 6 | `CE952136A125B238CFC101904C42CC7BD85A73C290545D785D64A6AE25FB734F` |
 | `01-existing-capability-map.md` | 2 | `A3AAC5454A38667BD2FF0B64375CFD5D3B32886D009AC7183EE9305802FF6158` |
 | `02-requirement-completeness-assessment.md` | 3 | `261DCEA7996E02A596DD5766DB70D09D95D2B476C2A2A965321ADA09D6AE9950` |
 | `03-domain-architecture.md` | 1 | `3E06A61A9500C25C9DFEB8F6F82672C1854B926115EF4619397DDD2D1DBBA5AD` |
@@ -36,7 +36,7 @@
 | `03-frontend-architecture.md` | `55E0217B19E520E6120BAF10B3DE263B9FB38DE1A85CD4C7670C5A6F42BDE872` |
 | `erd/00-context-erd.md` | `29E3971F3ADEA568D6D2530A62402724ADB22914A50772C10F50FECC744E6A63` |
 | `erd/operating-room-management.md` | `345FEA7801E9EEF445B6F7F1DDA40C4248B34A0579D10A535BC44768E91AA9A4` |
-| `erd/data-dictionary.md` | `4A06DBA91D068756B86307C2176231740ACD81EBD4785F051AC8F0884BA6CE2C` |
+| `erd/data-dictionary.md` | `70595306BDA325070B845DCACE3354AF5A0E2B2C1616895E27326C41D6477ADD` |
 | `contracts/api-contract.md` | `AC7D998C66D9274FB291A52CBBFEC5B575D1B40B4553D2C8B8D8CE0E9BC22176` |
 | `contracts/integration-contract.md` | `61E9FEC2592135E780AD9294C8CF473451FFCF54BED3085AA6BA2A8FAEAC3058` |
 | `contracts/permission-audit-matrix.md` | `CC3AD77CD8D5B24EE07DB46EA1CE08B535D1AF4205C204888FEEDF74C6FCA4DC` |
@@ -46,6 +46,15 @@
 
 Hash manifest tidak dicatat di dalam dirinya sendiri karena perubahan hash akan berulang. Perubahan material setelah approval wajib menaikkan revision dan memicu impact scan backend/frontend.
 
+## Riwayat Revision
+
+| Revision | Tanggal | Perubahan | Dampak |
+|---:|---|---|---|
+| 2 | 2026-08-21 | Approval awal blueprint | Menjadi dasar seluruh task `BE-OPR-001` sampai `BE-OPR-011` |
+| 3 | 2026-08-24 | `OPS-DEC-026` ditambahkan: sign-off kesiapan disimpan sebagai `OprStatusHistory` beridentitas `Action = "ReadinessSignOff"` | Tidak mengubah skema maupun endpoint. Menutup celah antara `opr-api-v1` yang mensyaratkan `POST /sign-offs` dan ERD yang belum memuat tabel sign-off |
+
+Dua penyimpangan lain terhadap kontrak masih terbuka dan belum berstatus keputusan: permission baca di luar `opr-permission-v1` pada enam endpoint `GET`, serta validasi item wajib checklist yang belum bersumber dari master template. Keduanya tercatat pada `testing/readiness-report.md` dan menunggu owner.
+
 ## Traceability
 
-Blueprint mempertahankan `OPS-REQ-001`–`OPS-REQ-011`, `OPS-DEC-001`–`OPS-DEC-025`, dan `OPS-CON-001`–`OPS-CON-018`.
+Blueprint mempertahankan `OPS-REQ-001`–`OPS-REQ-011`, `OPS-DEC-001`–`OPS-DEC-026`, dan `OPS-CON-001`–`OPS-CON-018`.

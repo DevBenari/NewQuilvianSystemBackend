@@ -18,6 +18,32 @@ Seluruh tabel baru mewarisi `IdentityModel`: `CreateDateTime`, `CreateBy`, `Upda
 | `OprRecovery` | `Id`; `OprCaseId`; `Status int`; `ScoreSystem varchar(100)`; `ScoreValue decimal?`; `ObservationJson jsonb`; `Decision int`; `DecisionNote text?`; `ReleasedBy?`; `ReleasedAt?`; `Version int` | UK case; concurrency version | Ya |
 | `OprHandover` | `Id`; `OprCaseId`; `DestinationUnitId`; `Status int`; `ConditionSummary text`; `DeviceTherapySummary text?`; `RiskSummary text?`; `InstructionSummary text?`; `SentBy`; `SentAt`; `ReceivedBy?`; `AcceptedAt?`; `RejectionReason text?`; `Revision` | UK case+revision; index destination/status | Ya |
 | `OprStatusHistory` | `Id`; `OprCaseId`; `FromStatus int?`; `ToStatus int`; `Action varchar(50)`; `Reason varchar(1000)?`; `ActorUserId`; `OccurredAt`; `Source varchar(50)`; `CorrelationId varchar(100)?` | index case/time; append-only | Alasan dapat sensitif |
+
+### Pemakaian `OprStatusHistory` di luar perpindahan status
+
+Tabel ini tidak hanya menyimpan perpindahan status. Beberapa kejadian dicatat sebagai baris
+histori dengan `FromStatus` dan `ToStatus` yang sama, sehingga jejaknya tetap append-only tanpa
+menambah tabel baru.
+
+| Nilai `Action` | Kejadian yang dicatat | Isi `Reason` | Dasar |
+|---|---|---|---|
+| `UpdateRequest` | Perbaikan data permintaan sebelum dijadwalkan | Kosong | Implementasi `BE-OPR-003` |
+| `SaveChecklist` | Penyimpanan checklist keselamatan per fase | `<Fase>:<Draft\|Completed>` | `BE-OPR-005` |
+| `ReadinessSignOff` | **Sign-off kesiapan satu peran** | `<Peran>` atau `<Peran>\|<catatan>` | `OPS-DEC-026` |
+| `EmergencyBypass` | Pencatatan jalur darurat | `EmergencyBypass` | `BE-OPR-005` |
+
+Nilai peran yang sah pada `ReadinessSignOff` hanya `PrimarySurgeon`, `Anesthesiologist`, dan
+`Nurse`. Gerbang menuju `Ready` menghitung peran unik dari baris-baris tersebut; baris kedua
+untuk peran yang sama ditolak dengan kode `OPR006`.
+
+> **Contoh.** Perawat sirkuler memberi sign-off ketiga. Sistem menulis satu baris
+> `Action = "ReadinessSignOff"`, `Reason = "Nurse"`, lalu satu baris
+> `Action = "CompleteReadiness"` dengan `FromStatus = Scheduled` dan `ToStatus = Ready`.
+> Jadi tiga sign-off menghasilkan **satu** perpindahan status, bukan tiga.
+
+Keterbatasan yang diterima: peran bukan kolom tersendiri, sehingga penyaringan sign-off
+berupa pencocokan teks. Bila kebutuhan pelaporan sign-off bertambah, gantikan dengan tabel
+`OprReadinessSignOff` beserta migration-nya.
 | `OprIntegrationDelivery` | `Id`; `OprCaseId`; `Destination varchar(50)`; `MessageType varchar(100)`; `IdempotencyKey varchar(150)`; `CorrelationId varchar(100)`; `PayloadReference varchar(250)`; `Status int`; `RetryCount`; `LastAttemptAt?`; `LastErrorCode varchar(100)?`; `AcceptedReference varchar(150)?` | UK destination+key; index status/retry | Tidak; payload klinis tidak disimpan di log |
 
 Semua ID wajib, kecuali ditandai `?`. Enum disimpan sebagai integer. Timestamp disimpan UTC. String klinis diberi batas panjang pada configuration dan tidak boleh masuk custom logger.

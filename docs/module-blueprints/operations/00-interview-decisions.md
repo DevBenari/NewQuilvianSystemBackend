@@ -3,7 +3,7 @@
 | Field | Nilai |
 |---|---|
 | Blueprint ID | `operations` |
-| Revision | `5` |
+| Revision | `6` |
 | Status | `approved` |
 | Product/domain owner | Pemilik kebutuhan |
 | Backend SHA | `767470f742bc6f2eebadbd653a873f69d6f93121` |
@@ -125,6 +125,46 @@ Setelah status `In Progress`, kasus tidak boleh menjadi `Cancelled`. Tindakan ya
 | `OPS-DEC-023` | Decision | Charge tindakan saat selesai dan material sesuai pemakaian aktual dengan idempotency | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-21 | Persetujuan seluruh rekomendasi |
 | `OPS-DEC-024` | Decision | Laporan dan notifikasi minimum mengikuti rekomendasi | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-21 | Persetujuan seluruh rekomendasi |
 | `OPS-DEC-025` | Decision | `Completed` berarti seluruh kasus perioperatif selesai dan ditetapkan sistem setelah catatan operasi, recovery, serta serah terima lengkap | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-21 | Persetujuan koreksi arsitektur domain |
+| `OPS-DEC-026` | Decision | Tiga sign-off kesiapan disimpan sebagai baris `OprStatusHistory` beridentitas `Action = "ReadinessSignOff"`, bukan tabel tersendiri | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-24 | Keputusan saat implementasi `BE-OPR-005` |
+
+### OPS-DEC-026 — Tempat penyimpanan sign-off kesiapan
+
+| Field | Nilai |
+|---|---|
+| Status | `approved` |
+| Owner | Pemilik kebutuhan |
+| Keputusan | Setiap sign-off kesiapan dicatat sebagai satu baris `OprStatusHistory` dengan `Action = "ReadinessSignOff"`. Peran penanda tangan disimpan pada kolom `Reason`, dan catatan tambahan dipisahkan dengan tanda `\|` |
+| `approved_by` / `approved_at` | Pemilik kebutuhan / 2026-08-24 |
+
+**Masalah yang diputuskan.** `opr-api-v1` mensyaratkan endpoint `POST /sign-offs`, tetapi ERD
+yang disetujui tidak memuat tabel sign-off. Satu-satunya tempat yang tersedia adalah
+`OprSafetyChecklist`, dan tabel itu hanya menyediakan **satu** penanda tangan per fase dengan
+kunci unik `case + phase + revision`. Tiga sign-off dari tiga peran berbeda tidak muat di sana.
+
+**Alasan memilih `OprStatusHistory`.** Tabel ini sudah bersifat append-only dan sudah membawa
+`ActorUserId`, `OccurredAt`, `CorrelationId`, serta `Source`, sehingga seluruh kebutuhan audit
+sign-off sudah terpenuhi. Tidak perlu entity baru, tidak perlu migration tambahan, dan tidak
+perlu menaikkan revision blueprint. Preseden pemakaian `Action` untuk kejadian yang bukan
+perpindahan status sudah ada di modul ini, yaitu `Action = "UpdateRequest"`.
+
+**Contoh isi baris.**
+
+> Dokter anestesi bernama samaran "Dokter B" memberi sign-off pukul 07.40 dengan catatan
+> "Pasien puasa sejak 22.00". Sistem menyimpan satu baris `OprStatusHistory` dengan
+> `Action = "ReadinessSignOff"`, `Reason = "Anesthesiologist|Pasien puasa sejak 22.00"`,
+> `FromStatus = Scheduled`, `ToStatus = Scheduled`, dan `ActorUserId` milik Dokter B.
+> Ketika sign-off ketiga masuk, sistem menulis **satu** baris tambahan dengan
+> `Action = "CompleteReadiness"`, `FromStatus = Scheduled`, dan `ToStatus = Ready`.
+
+**Konsekuensi yang diterima.** Peran penanda tangan tidak menjadi kolom tersendiri, sehingga
+pemeriksaan "apakah dokter bedah sudah tanda tangan" berupa pencocokan teks, bukan pencarian
+lewat index. Bila kelak sign-off perlu disaring atau dilaporkan dalam jumlah besar, keputusan
+ini perlu ditinjau ulang dan diganti tabel `OprReadinessSignOff` tersendiri.
+
+**Alternatif yang ditolak.** Menyimpan sign-off di dalam `ItemsJson` milik checklist ditolak
+karena status bisnis yang menentukan perpindahan ke `Ready` akan hidup di dalam JSON bebas
+tanpa skema, sulit diaudit per orang, dan bertentangan dengan semangat aturan project soal
+rule production di dalam JSON.
 
 ## Open Questions dan Blocker
 

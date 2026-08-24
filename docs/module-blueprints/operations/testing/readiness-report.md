@@ -2,17 +2,16 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `operations`, revision 2, `approved` |
+| Blueprint | `operations`, revision 3, `approved` |
 | Cakupan laporan | `BE-OPR-001` sampai `BE-OPR-011` (backend saja) |
-| Backend commit yang diaudit | `767470f742bc6f2eebadbd653a873f69d6f93121`, cabang `Ikbal` |
+| Backend commit yang diaudit | `0bde207`, cabang `Ikbal`, sudah didorong ke `origin` |
 | Frontend commit yang diaudit | `400104f2a0f3239c14c40f5905b419977a538450` |
 | Kontrak terkunci | `opr-api-v1`, `opr-state-v1`, `opr-integration-v1`, `opr-validation-v1`, `opr-permission-v1` |
 | Verdict | `NOT_READY` untuk dipakai pengguna; `READY_FOR_REVIEW` untuk tinjauan kode dan otorisasi migration |
 
-> **Peringatan bukti.** Seluruh source modul Operasi masih berupa perubahan kerja yang
-> **belum di-commit** pada cabang `Ikbal`. Commit SHA di atas adalah keadaan repository
-> **sebelum** modul ini ditulis. Selama belum di-commit, setiap klaim di laporan ini hanya
-> dapat diverifikasi pada direktori kerja, bukan pada riwayat git. Ini blocker nomor 1.
+> **Catatan bukti.** Seluruh source modul Operasi sudah di-commit pada `0bde207` dan didorong
+> ke `origin/Ikbal`, sehingga setiap klaim di laporan ini dapat diverifikasi lewat riwayat git.
+> Perubahan dokumen pada revision 3 berada pada commit setelahnya.
 
 ---
 
@@ -205,7 +204,7 @@ Bagian ini sengaja dibuat menonjol. Ketiganya perlu keputusan pemilik sebelum mo
 
 | No | Penyimpangan | Alasan implementasi | Yang dibutuhkan |
 | ---: | --- | --- | --- |
-| 1 | Tiga sign-off kesiapan disimpan sebagai baris `OprStatusHistory` dengan `Action = "ReadinessSignOff"`, bukan tabel tersendiri | `opr-api-v1` mensyaratkan `POST /sign-offs`, tetapi ERD yang disetujui tidak memuat tabel sign-off. `OprSafetyChecklist` hanya menyediakan satu penanda tangan per fase, sehingga tiga sign-off tidak muat | Keputusan pemilik sudah diambil pada 2026-08-24 memilih opsi ini. Perlu dicatat resmi di decision log dan data dictionary |
+| 1 | ~~Tiga sign-off kesiapan disimpan sebagai baris `OprStatusHistory` dengan `Action = "ReadinessSignOff"`, bukan tabel tersendiri~~ **Sudah ditutup** | `opr-api-v1` mensyaratkan `POST /sign-offs`, tetapi ERD yang disetujui tidak memuat tabel sign-off. `OprSafetyChecklist` hanya menyediakan satu penanda tangan per fase, sehingga tiga sign-off tidak muat | Selesai. Tercatat sebagai `OPS-DEC-026` pada `00-interview-decisions.md` revision 6, dijelaskan pada `erd/data-dictionary.md`, dan blueprint naik ke revision 3 |
 | 2 | Enam endpoint `GET` memakai permission baca yang belum ada di `opr-permission-v1`: `OperatingRoomAnesthesia : Read`, `OperatingRoomMaterial : Read`, `OperatingRoomHandover : Read`, `OperatingRoomIntegration : Read` | Frontend perlu memuat ulang satu bagian tanpa menarik seluruh workspace kasus. Permission dibuat lebih ketat daripada `OperatingRoomCase : Read`, bukan lebih longgar | Revisi `opr-permission-v1` dan `opr-api-v1`, lalu persetujuan security owner |
 | 3 | Item wajib checklist divalidasi dari isi permintaan, bukan dari master template | Blueprint melarang hardcode master checklist dan master-nya memang belum ditetapkan | Master template checklist perlu ditetapkan; setelah itu validasi harus pindah ke sisi server |
 
@@ -219,15 +218,14 @@ memakainya pada endpoint yang mengubah data, pengujian gagal.
 
 | No | Blocker | Dampak nyata bila modul dipakai sekarang |
 | ---: | --- | --- |
-| 1 | Seluruh source modul belum di-commit | Pekerjaan bisa hilang, tidak bisa direview, dan tidak bisa ditelusuri siapa mengubah apa |
-| 2 | Migration `AddOperatingRoomFoundation` belum dijalankan di lingkungan mana pun | Setiap endpoint modul ini akan gagal begitu dipanggil di luar komputer developer, karena tabelnya belum ada |
-| 3 | Belum ada layar frontend | Dokter, koordinator, dan perawat tidak punya cara memakai modul ini |
-| 4 | Owner API Billing dan Inventory belum ditetapkan | Pemakaian material dan tagihan tindakan berhenti di antrean pengiriman dan tidak pernah sampai ke modul keuangan maupun stok |
-| 5 | Resolver item Inventory belum tersedia | Item yang dicatat tim operasi tidak dapat dipastikan benar-benar ada di master barang |
-| 6 | Consumer serah terima Rawat Inap/ICU belum tersedia | Kasus tidak akan pernah mencapai `Completed` di lingkungan nyata, karena tidak ada unit yang menekan tombol terima |
-| 7 | Belum ada pengujian ujung ke ujung terhadap database sungguhan | Perilaku unique index, filtered index, dan concurrency token baru terbukti pada database dalam memori |
+| 1 | Migration `AddOperatingRoomFoundation` belum dijalankan di lingkungan mana pun | Setiap endpoint modul ini akan gagal begitu dipanggil di luar komputer developer, karena tabelnya belum ada |
+| 2 | Belum ada layar frontend | Dokter, koordinator, dan perawat tidak punya cara memakai modul ini |
+| 3 | Owner API Billing dan Inventory belum ditetapkan | Pemakaian material dan tagihan tindakan berhenti di antrean pengiriman dan tidak pernah sampai ke modul keuangan maupun stok |
+| 4 | Resolver item Inventory belum tersedia | Item yang dicatat tim operasi tidak dapat dipastikan benar-benar ada di master barang |
+| 5 | Consumer serah terima Rawat Inap/ICU belum tersedia | Kasus tidak akan pernah mencapai `Completed` di lingkungan nyata, karena tidak ada unit yang menekan tombol terima |
+| 6 | Belum ada pengujian ujung ke ujung terhadap database sungguhan | Perilaku unique index, filtered index, dan concurrency token baru terbukti pada database dalam memori |
 
-Blocker 4, 5, dan 6 adalah dependency eksternal yang memang sudah ditandai `BLOCKED` pada
+Blocker 3, 4, dan 5 adalah dependency eksternal yang memang sudah ditandai `BLOCKED` pada
 roadmap. Ketiganya bukan kegagalan implementasi, tetapi tetap menghalangi pemakaian nyata.
 
 ---
@@ -269,10 +267,13 @@ kerja cabang `Ikbal`. Commit SHA belum dapat dicantumkan karena berkasnya belum 
 
 ## 8. Langkah berikutnya yang disarankan
 
-1. Commit seluruh perubahan modul Operasi agar dapat direview dan ditelusuri.
-2. Tutup tiga penyimpangan pada bagian 4 melalui revisi kontrak dan persetujuan owner.
+1. ~~Commit seluruh perubahan modul Operasi~~ **Selesai** pada `0bde207`, sudah didorong ke `origin/Ikbal`.
+2. ~~Catat keputusan penyimpanan sign-off~~ **Selesai** sebagai `OPS-DEC-026`, blueprint naik ke revision 3.
 3. Beri otorisasi eksekusi migration di lingkungan uji, lalu ulangi verifikasi terhadap
-   database sungguhan.
-4. Tetapkan owner API Billing, Inventory, dan unit tujuan serah terima.
-5. Mulai `FE-OPR-001` setelah endpoint kasus terbukti berjalan di lingkungan uji.
-6. Jalankan `/qv-verify` ulang setelah langkah 1 sampai 3 selesai.
+   database sungguhan. Ini blocker nomor 1 yang tersisa.
+4. Tutup dua penyimpangan yang masih terbuka pada bagian 4: permission baca di luar kontrak
+   memerlukan persetujuan security owner, dan validasi item wajib checklist memerlukan
+   master template dari pemilik proses kamar operasi.
+5. Tetapkan owner API Billing, Inventory, dan unit tujuan serah terima.
+6. Mulai `FE-OPR-001` setelah endpoint kasus terbukti berjalan di lingkungan uji.
+7. Jalankan `/qv-verify` ulang setelah langkah 3 selesai.
