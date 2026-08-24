@@ -108,17 +108,22 @@ Pass. Penanda STALE pada manifest dicabut, dan seluruh contract naik ke `0.2.0`.
 `RWI-DEC-064`. Tiga dari empat gerbang implementasi dicabut; yang tersisa hanya kesiapan data master
 yang tertutup begitu datanya benar-benar terisi.
 
+**Blueprint sudah dinaikkan ke revision `3` pada 2026-08-21**, menyerap `RWI-DEC-064` sampai
+`RWI-DEC-066`. Satu epic baru `EPIC RI-34` lahir, `INP-S11` berpindah dari slice yang dihentikan
+menjadi slice yang dirancang, dan seluruh contract naik ke `0.3.0`. Tidak ada tabel baru dan tidak
+ada perubahan kolom pada tabel modul lain.
+
 **Yang harus dikerjakan berikutnya, urut:**
 
-1. `/qv-design` untuk menaikkan blueprint ke revision `3`, memasukkan aturan keras jenis kelamin
-   dan isolasi ke dalam Kelayakan Penempatan beserta atribut kebutuhan isolasi pada episode.
-2. `/hospital-domain-architect` untuk menyelaraskan arsitektur domain yang kini tertinggal dua
-   langkah. Tidak memblokir.
-3. Baru setelah butir 1 selesai, `/qv-plan`.
+1. `/hospital-domain-architect` untuk menyelaraskan arsitektur domain yang kini tertinggal tiga
+   langkah — `INV-INP-10`, `CMD-INP-15`, `CMD-INP-16`, dan masuknya `INP-S11` ke dalam scope.
+   **Tidak memblokir**, karena isi blueprint dan decision log sudah sejalan.
+2. `/qv-plan` untuk menurunkan blueprint revision `3` menjadi task berukuran kecil.
 
-Yang **belum** boleh dimulai adalah penulisan source code, karena empat gerbang implementasi masih
-terbuka — persetujuan pemilik empat modul tetangga, kesiapan data master, perbaikan tombol tempat
-tidur, dan kesiapan test regresi.
+Yang **belum** boleh dimulai adalah penulisan source code. Satu gerbang implementasi masih terbuka —
+kesiapan data master, yang sejak revision `3` menuntut penandanya **benar**, bukan sekadar terisi —
+ditambah dua pekerjaan yang bukan keputusan: perbaikan tombol tempat tidur dan kesiapan test
+regresi.
 
 **Yang belum boleh dikerjakan:** implementasi, migration, dan pekerjaan database. Modul
 `InPatientManagement` masih berstatus `PLANNED` pada registry, dan menurut `RWI-FACT-002` status
@@ -2057,6 +2062,8 @@ menetapkan menu, route, tab, modal, warna, maupun tata letak berdasarkan seleran
 | `RWI-DEC-065` | Decision | Kebutuhan isolasi menjadi **atribut episode rawat inap** dan dipakai di dalam Kelayakan Penempatan. Keputusan klinisnya milik DPJP dan dapat diperbarui selama perawatan. Pada admisi awal, petugas admisi boleh merekam nilainya berdasarkan keterangan dokter pengirim, ditandai sebagai catatan awal dan bukan keputusan klinis, supaya penempatan tidak menunggu pengkajian klinis yang slice-nya masih di luar MVP. Pasien yang butuh isolasi hanya boleh di tempat tidur isolasi, dan sebaliknya | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-21 | Menutup bagian isolasi pada `RWI-OQ-044` dan `DEC-INP-004A`; dirinci pada `RWI-RULE-012` bagian A. **Mengubah blueprint:** menambah kolom pada episode, satu enum, satu endpoint, dan satu daftar pantau |
 | `RWI-DEC-066` | Decision | Seluruh kamar dianggap **tidak boleh ditempati campur** laki-laki dan perempuan. Penempatan dan perpindahan ditolak bila kamar sudah punya penghuni berjenis kelamin berbeda. Penghuni boks bayi tidak dihitung, dan penempatan ke boks bayi dikecualikan. **Tidak** ditambahkan kolom boleh-campur pada `MstRoom` | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-21 | Menutup bagian jenis kelamin pada `RWI-OQ-044` dan `DEC-INP-004B`; dirinci pada `RWI-RULE-012` bagian B. **Mengubah blueprint:** menambah aturan pada Kelayakan Penempatan, tanpa kolom baru pada modul lain |
 | `RWI-DEC-017` | Decision | Diakui lima cara pulang: atas izin DPJP, atas permintaan sendiri, dirujuk, meninggal, dan kabur. Syarat penutupan menyesuaikan cara pulangnya, dan kelimanya sama-sama melepas tempat tidur. Baris meninggal dan kabur tetap **terbuka secara klinis** sesuai `RWI-DEC-006` | Product/domain owner sementara | `approved` untuk keputusan produk; **terbuka** untuk sisi klinis | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 13; menutup `RWI-OQ-013`, `RWI-OQ-014`, `RWI-GAP-001`, dan `RWI-GAP-002`; dirinci pada `RWI-RULE-011` |
+| `RWI-DEC-067` | Decision | Blueprint modul Rawat Inap revision `3` **disetujui**. `blueprint-manifest.md` naik dari `draft` menjadi `approved`, dan kedua roadmap delivery naik dari `PROVISIONAL` menjadi `APPROVED`. Sejak titik ini penulisan source code dibuka, dikerjakan **satu task per pengerjaan** mengikuti urutan dependency pada roadmap | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-24 | Mencabut gerbang “Approval blueprint” yang sebelumnya menahan **seluruh** task `BE-RWI-001` s.d. `BE-RWI-033` dan `FE-RWI-001` s.d. `FE-RWI-019`. **Tidak mengubah isi desain** — tidak ada kontrak, ERD, aturan, atau acceptance criteria yang berubah; yang berubah hanya status persetujuannya. Gerbang sebelum produksi pada dokumen ini **tidak** ikut tercabut |
+| `RWI-DEC-068` | Decision | Lifecycle modul `InPatientManagement` pada `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` dinaikkan dari `PLANNED` menjadi `ACTIVE`. Prefix `Inp` yang sudah terdaftar tidak berubah. Sejak titik ini `QBE-MOD-002` tidak lagi menahan pembuatan entity operasional `Inp*` | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-24 | Mencabut gerbang “Registry lifecycle” yang menahan seluruh task. Men-`superseded` bagian `RWI-FACT-002` yang menyatakan modul hanya berhak atas penamaan. **Wewenang eksekusi database di luar lokal dan deployment tetap terpisah** dan tidak diberikan oleh keputusan ini |
 
 ---
 
@@ -2081,7 +2088,7 @@ tidak menghalangi penyusunan desain, tetapi menghalangi penulisan source code.
 | Kesiapan data master | **Penanggung jawab sudah ditetapkan** `RWI-DEC-063`: Admin Master Data / Tim Master Data, target 22 Agustus 2026. Gerbang ini **tertutup begitu datanya benar-benar terisi**, bukan begitu penanggung jawabnya ditunjuk |
 | Perbaikan tombol tempat tidur | **Gerbang implementasi.** Tombol aktifkan dan nonaktifkan pada halaman detail tempat tidur hari ini memanggil endpoint yang tidak ada dan selalu gagal. Harus diperbaiki lebih dulu sesuai `RWI-DEC-049`, karena tanpa itu admin tidak dapat menutup tempat tidur yang sedang rusak |
 | Test regresi modul tetangga | **Gerbang implementasi.** Tidak ada satu pun test yang menjaga jalur poliklinik, IGD, dan farmasi hari ini, padahal keempat modul itu akan disentuh. Sesuai `RWI-DEC-051`, test regresi menjadi syarat selesainya setiap task yang menyentuh modul tetangga |
-| Registry lifecycle | Modul `InPatientManagement` masih `PLANNED`. Sesuai `RWI-FACT-002`, status ini hanya memberi hak penamaan, belum memberi izin implementasi, migration, atau database |
+| ~~Registry lifecycle~~ | **DICABUT 2026-08-24** oleh `RWI-DEC-068`. Modul `InPatientManagement` naik `PLANNED` → `ACTIVE`. Wewenang eksekusi database di luar lokal dan deployment tetap terpisah |
 
 ---
 
@@ -2387,6 +2394,7 @@ Hal berikut **sudah bukan** blocker:
 
 | Tanggal | Pass | Ringkasan |
 |---|---|---|
+| 2026-08-21 | Blueprint revision `3` | Ketiga keputusan `RWI-DEC-064` s.d. `RWI-DEC-066` diserap ke seluruh berkas blueprint. `EPIC RI-34` ditulis beserta `FR-RI-154` s.d. `FR-RI-162`, lima skenario UAT `UAT-29` s.d. `UAT-33`, dan bagian 2A pada matriks acceptance test berisi 26 skenario yang menutup seluruh `RWI-AC-128` s.d. `RWI-AC-139`. Kemampuan "penolakan penempatan karena isolasi atau jenis kelamin" berpindah dari daftar ditunda ke dalam MVP, dan `INP-S11` berpindah dari slice yang dihentikan menjadi slice yang dirancang. Satu gerbang keras sebelum produksi berubah bentuk: bukan lagi menunggu keputusan, melainkan menunggu `EPIC RI-34` lolos uji. Seluruh contract naik ke `0.3.0`; dua di antaranya — state transition dan integration — naik versi **tanpa** berubah isinya, disertai catatan kenapa |
 | 2026-08-21 | Penutupan `RWI-OQ-044` | Dua sub-keputusan yang melengkapi aturan keras jenis kelamin dan isolasi ditutup. Kebutuhan isolasi ditetapkan sebagai atribut episode rawat inap, keputusan klinisnya milik DPJP dan dapat diperbarui selama perawatan, sedangkan petugas admisi hanya boleh merekam catatan awal berdasarkan keterangan dokter pengirim supaya penempatan tidak menunggu slice dokumentasi klinis (`RWI-DEC-065`). Seluruh kamar dianggap tidak boleh ditempati campur, diperiksa dari penghuni yang sedang ada dan bukan dari penanda master, tanpa menambah kolom apa pun pada `MstRoom`; penghuni boks bayi dikecualikan dari kedua sisi pemeriksaan (`RWI-DEC-066`). `RWI-RULE-012` ditulis ulang penuh menjadi dua bagian, 12 acceptance criteria baru ditulis, dan nama pemilik berwenang diisi menjadi Muhammad Hamzah menggantikan penanda akun |
 | 2026-08-21 | Penutupan butir organisasi | Empat butir yang selama ini hanya dapat diselesaikan lewat tindakan organisasi ditutup. Pemilik berwenang ditunjuk menggantikan pemegang sementara (`RWI-DEC-061`), sehingga kata "sementara" pada `RWI-DEC-006` tidak berlaku lagi. Kepemilikan `ClinicalManagement`, `PharmacyManagement`, `MasterData`, dan `EmergencyInstallationManagement` dinyatakan berada pada pemilik yang sama beserta persetujuannya (`RWI-DEC-062`), mencabut tiga gerbang implementasi sekaligus. Penanggung jawab pengisian data master ditetapkan beserta target 22 Agustus 2026 (`RWI-DEC-063`). Pemisahan jenis kelamin dan isolasi **diubah menjadi aturan keras** yang menolak penempatan (`RWI-DEC-064`), men-`superseded` `RWI-DEC-018` dan menulis ulang `RWI-RULE-012`. Ditemukan bahwa bagian isolasi **belum dapat dijalankan** karena tidak ada satu pun kolom di source yang mencatat kebutuhan isolasi seorang pasien; dicatat sebagai `RWI-OQ-044`. Butir terbuka turun dari delapan menjadi empat, dan tidak satu pun memblokir desain maupun implementasi MVP |
 | 2026-08-21 | Business module blueprint revision 2 | Empat keputusan Amendment Pass diserap ke blueprint. Satu tabel baru `InpDischargeSummaryRevision`, tiga kolom baru pada `InpEpisode` yaitu waktu kepergian, pencatat kepergian, dan rujukan episode ibu; satu nilai enum baru `PatientDeparted`; satu endpoint baru pencatatan kepergian; satu invariant baru `INV-INP-10` beserta unique index parsial keempat; dan `INV-INP-01` dilonggarkan untuk episode yang pasiennya sudah pergi. Enam functional requirement baru `FR-RI-148` s.d. `FR-RI-153`, lima skenario UAT baru, 23 skenario acceptance test baru. Tidak ada kemampuan `MUST HAVE` yang dicabut, tidak ada epic baru, dan tidak ada gelombang pengiriman yang bergeser. Seluruh contract naik ke `0.2.0`. Manifest naik ke revision `2` dan penanda STALE dicabut. Satu artefak hulu dicatat tertinggal, yaitu arsitektur domain revision `0.1` |

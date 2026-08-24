@@ -274,7 +274,14 @@ lifecycle yang berbeda dan pemiliknya berbeda.
 | `IsReservable` | `bool` | Aturan Kelayakan Penempatan | — |
 | `IsActive` | `bool` | Aturan Kelayakan Penempatan | — |
 | `IsForNewborn` | `bool` | Menandai boks bayi | `RWI-RULE-014` |
-| `IsForMale`, `IsForFemale`, `IsIsolationBed` | `bool` | **Belum dipakai** sebagai aturan penolak | Menunggu `DEC-INP-004` |
+| `IsForMale`, `IsForFemale` | `bool` | Aturan 4 dan 5 Kelayakan Penempatan — **menolak** penempatan | `RWI-RULE-012` B.1 dan B.2. Sejak revision `0.3` bukan lagi penyaring pencarian |
+| `IsIsolationBed` | `bool` | Aturan 7 dan 8 Kelayakan Penempatan — **menolak** penempatan dari dua arah | `RWI-RULE-012` A.5 dan A.6 |
+
+> **Kenaikan taruhan pada revision `0.3`.** Keempat penanda di atas sebelumnya hanya menyembunyikan
+> tempat tidur dari hasil pencarian; salah setel berarti tempat tidur tidak muncul, dan petugas
+> tetap dapat menempatkan pasien secara paksa. Sejak `RWI-DEC-064` keduanya **menolak**, sehingga
+> penanda yang salah setel akan menolak penempatan yang sah. Karena itu `RWI-DEC-063` memberi
+> penanggung jawab pengisian master data beserta target tanggalnya.
 
 ### 14.3 `MstRoom`, `MstServiceUnit`, `MstPatientClass`
 
