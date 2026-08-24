@@ -9,14 +9,27 @@
 | Contract | `RJ-BIL-CONTRACT-001@1.0.0` |
 | Decision revision | `10` |
 | Domain architecture | revision `1`, core independen dari `DOMAIN_ARCHITECTURE_PARTIAL` |
-| Backend source SHA | `9b26be382ce1c7f3be8555bd2d98fc0aab3d39fc` + working tree Billing Operational |
-| Frontend source SHA | `ab4bd836e05c72d0679e02899258f3773f3869a2` |
+| Backend source SHA | `36456ead5d8d116e5631aef859df3d55b0ec7e81` cabang `sukmagp` |
+| Frontend source SHA | `29422c83eaf6fd231cbb72f2ba04e306367934e1` cabang `QuilvianDevV2` |
 | Approval | `OWNER_APPROVED` pada `2026-08-21` |
 | External adapter | `RJ-BIL-DEP-009 = INACTIVE / OUT OF CURRENT DELIVERY SCOPE` |
 | Task approval | `RJ-BIL-BE-001` s.d. `RJ-BIL-BE-009` disetujui pengguna pada `2026-08-21` |
 | Status seluruh task revision 1 | `APPROVED_FOR_EXECUTION` |
-| IMPLEMENTATION_AUTHORITY | `NOT_GRANTED` |
-| BUILDER_EXECUTION | `NOT_AUTHORIZED` |
+| IMPLEMENTATION_AUTHORITY | `GRANTED` untuk `RJ-BIL-BE-001` saja |
+| BUILDER_EXECUTION | `EXECUTED` untuk `RJ-BIL-BE-001`; task lain `NOT_AUTHORIZED` |
+| Progress | `1` dari `9` task backend selesai per `2026-08-24` |
+
+## Progress eksekusi
+
+| Task | Status | Bukti |
+|---|---|---|
+| `RJ-BIL-BE-001` | `COMPLETE` | [execution-evidence-RJ-BIL-BE-001.md](../execution-evidence-RJ-BIL-BE-001.md) |
+| `RJ-BIL-BE-002` | `BLOCKED` — menunggu keputusan owner atas `RJ-BIL-CONFLICT-006` | Lihat `MODULE-STATUS.md` |
+| `RJ-BIL-BE-003` s.d. `RJ-BIL-BE-009` | `NOT_STARTED` | — |
+
+Migration `20260821033911_AddBillingOperationalBaseline` sudah diterapkan ke database
+`QuilvianNewDevTim01` atas otorisasi terpisah yang diberikan pengguna pada `2026-08-21`.
+Otorisasi tersebut terbatas pada satu migration itu dan tidak berlaku untuk task berikutnya.
 
 ## Aturan eksekusi
 
