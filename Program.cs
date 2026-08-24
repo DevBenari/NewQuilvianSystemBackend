@@ -306,6 +306,7 @@ try
     builder.Services.AddScoped<ResignationLifecycleHandoffService>();
 
     builder.Services.AddScoped<AttendanceRawLogService>();
+    builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();
     builder.Services.AddScoped<AttendanceScheduleResolverService>();
     builder.Services.AddScoped<AttendanceProcessingService>();
     builder.Services.AddScoped<AttendanceDailyQueryService>();

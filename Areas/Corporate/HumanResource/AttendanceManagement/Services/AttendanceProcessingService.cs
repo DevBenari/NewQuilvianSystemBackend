@@ -547,6 +547,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 DetachProcessingItemEntries();
                 return result;
             }
+            catch (DbUpdateConcurrencyException exception)
+            {
+                var concurrencyConflict = DescribeConcurrencyConflict(exception);
+                await transaction.RollbackAsync(cancellationToken);
+                DetachChangedEntries();
+
+                return new AttendanceProcessingItemResponse
+                {
+                    WorkforceProfileId = workforce.WorkforceProfileId,
+                    WorkforceProfileCode = workforce.ProfileCode,
+                    WorkforceDisplayName = workforce.DisplayName,
+                    WorkDate = workDate,
+                    Success = false,
+                    IsSkipped = false,
+                    AttendanceStatus = AttendanceValueConstants.AttendanceStatus.Unprocessed,
+                    ProcessingStatus = AttendanceValueConstants.AttendanceProcessingStatus.Error,
+                    ScheduleSource = AttendanceValueConstants.ScheduleSource.Unresolved,
+                    Message = LimitMessage(concurrencyConflict, 1000),
+                    PayrollInputStatus = AttendanceValueConstants.PayrollInputStatus.Blocked,
+                    IsPayrollEligible = false
+                };
+            }
             catch (Exception exception)
             {
                 await transaction.RollbackAsync(cancellationToken);
@@ -577,9 +599,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid actorUserId,
             CancellationToken cancellationToken)
         {
-            var existingDaily = await _dbContext.Set<HrdAttendanceDaily>()
-                .Include(x => x.Segments.Where(y => !y.IsDelete))
-                .Include(x => x.Exceptions.Where(y => !y.IsDelete && y.IsAutoDetected))
+            IQueryable<HrdAttendanceDaily> existingDailyQuery = _dbContext.Set<HrdAttendanceDaily>()
+                .Include(x => x.Exceptions.Where(y => !y.IsDelete && y.IsAutoDetected));
+
+            if (!forceReprocess)
+            {
+                existingDailyQuery = existingDailyQuery
+                    .Include(x => x.Segments.Where(y => !y.IsDelete));
+            }
+
+            var existingDaily = await existingDailyQuery
                 .FirstOrDefaultAsync(x =>
                     x.WorkforceProfileId == workforce.WorkforceProfileId &&
                     x.AttendanceDate == workDate &&
@@ -696,10 +725,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             daily.UpdateDateTime = DateTime.UtcNow;
             daily.UpdateBy = actorUserId;
 
-            RemoveProcessorSegments(daily, actorUserId);
-            // Simpan soft-delete segment lama lebih dahulu agar unique filtered index
-            // AttendanceDailyId + SegmentOrder tidak bentrok dengan segment hasil hitung ulang.
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await SoftDeleteProcessorSegmentsAsync(daily.Id, actorUserId, cancellationToken);
 
             var punchResult = BuildPunchResult(rawLogs, schedule, policy);
             ApplyPunchResult(daily, punchResult, schedule, policy);
@@ -1192,7 +1218,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return result;
         }
 
-        private static void SynchronizeExceptions(
+        private void SynchronizeExceptions(
             HrdAttendanceDaily daily,
             List<ExceptionDraft> desired,
             Guid actorUserId)
@@ -1241,8 +1267,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 };
 
                 ApplyExceptionDraft(entity, draft, actorUserId, now);
-                daily.Exceptions.Add(entity);
+                AddNewException(daily, entity);
             }
+        }
+
+        private void AddNewException(
+            HrdAttendanceDaily daily,
+            HrdAttendanceException exceptionEntity)
+        {
+            daily.Exceptions.Add(exceptionEntity);
+
+            // Exception hasil auto-detection yang baru harus menjadi INSERT.
+            // Pada reprocess, parent Daily sudah existing/tracked sehingga entity
+            // baru dengan GUID non-empty dapat salah diperlakukan sebagai Modified.
+            _dbContext.Entry(exceptionEntity).State = EntityState.Added;
         }
 
         private static void ApplyExceptionDraft(
@@ -1269,25 +1307,41 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             entity.UpdateBy = actorUserId;
         }
 
-        private static void RemoveProcessorSegments(HrdAttendanceDaily daily, Guid actorUserId)
+        private async Task SoftDeleteProcessorSegmentsAsync(
+            Guid attendanceDailyId,
+            Guid actorUserId,
+            CancellationToken cancellationToken)
         {
             var now = DateTime.UtcNow;
-            foreach (var segment in daily.Segments.Where(x =>
-                         !x.IsDelete &&
-                         !x.IsCorrected &&
-                         (x.SegmentSource == AttendanceValueConstants.AttendanceSegmentSource.Processor ||
-                          x.SegmentSource == AttendanceValueConstants.AttendanceSegmentSource.Roster)))
-            {
-                segment.IsDelete = true;
-                segment.IsActive = false;
-                segment.DeleteDateTime = now;
-                segment.DeleteBy = actorUserId;
-                segment.UpdateDateTime = now;
-                segment.UpdateBy = actorUserId;
-            }
+            await _dbContext.Set<HrdAttendanceDailySegment>()
+                .Where(x =>
+                    x.AttendanceDailyId == attendanceDailyId &&
+                    !x.IsDelete &&
+                    !x.IsCorrected &&
+                    (x.SegmentSource == AttendanceValueConstants.AttendanceSegmentSource.Processor ||
+                     x.SegmentSource == AttendanceValueConstants.AttendanceSegmentSource.Roster))
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.IsDelete, true)
+                    .SetProperty(x => x.IsActive, false)
+                    .SetProperty(x => x.DeleteDateTime, (DateTime?)now)
+                    .SetProperty(x => x.DeleteBy, actorUserId)
+                    .SetProperty(x => x.UpdateDateTime, (DateTime?)now)
+                    .SetProperty(x => x.UpdateBy, actorUserId), cancellationToken);
         }
 
-        private static void CreateSegments(
+        private void AddNewSegment(
+            HrdAttendanceDaily daily,
+            HrdAttendanceDailySegment segment)
+        {
+            daily.Segments.Add(segment);
+
+            // Semua segment hasil processor/roster pada proses ini adalah row baru.
+            // Paksa state Added agar EF menghasilkan INSERT, bukan UPDATE terhadap
+            // GUID baru yang belum pernah ada di database.
+            _dbContext.Entry(segment).State = EntityState.Added;
+        }
+
+        private void CreateSegments(
             HrdAttendanceDaily daily,
             AttendanceScheduleResolutionResponse schedule,
             PunchResult punch,
@@ -1324,11 +1378,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 IsDelete = false,
                 IsCancel = false
             };
-            daily.Segments.Add(workSegment);
+            AddNewSegment(daily, workSegment);
 
             foreach (var pair in punch.BreakPairs)
             {
-                daily.Segments.Add(new HrdAttendanceDailySegment
+                var breakSegment = new HrdAttendanceDailySegment
                 {
                     Id = Guid.NewGuid(),
                     AttendanceDailyId = daily.Id,
@@ -1349,7 +1403,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     CreateBy = actorUserId,
                     IsDelete = false,
                     IsCancel = false
-                });
+                };
+
+                AddNewSegment(daily, breakSegment);
             }
 
             foreach (var assignment in schedule.AdditionalAssignments.OrderBy(x => x.ScheduledStartAt))
@@ -1360,7 +1416,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     continue;
                 }
 
-                daily.Segments.Add(new HrdAttendanceDailySegment
+                var additionalSegment = new HrdAttendanceDailySegment
                 {
                     Id = Guid.NewGuid(),
                     AttendanceDailyId = daily.Id,
@@ -1379,7 +1435,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     CreateBy = actorUserId,
                     IsDelete = false,
                     IsCancel = false
-                });
+                };
+
+                AddNewSegment(daily, additionalSegment);
             }
         }
 
@@ -1874,6 +1932,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private static string LimitMessage(string value, int length) =>
             value.Length <= length ? value : value[..length];
+
+        private static string DescribeConcurrencyConflict(DbUpdateConcurrencyException exception)
+        {
+            var entries = exception.Entries
+                .Select(entry => $"{entry.Metadata.ClrType.Name} ({entry.State}, Id={entry.Property("Id").CurrentValue})")
+                .ToList();
+
+            return entries.Count == 0
+                ? exception.GetBaseException().Message
+                : $"Attendance concurrency conflict: {string.Join("; ", entries)}.";
+        }
 
         private void DetachChangedEntries()
         {
