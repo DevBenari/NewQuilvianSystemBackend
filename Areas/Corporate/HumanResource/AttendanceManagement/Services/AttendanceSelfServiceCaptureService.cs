@@ -14,25 +14,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
     {
         private const string DefaultTimeZoneId = "Asia/Jakarta";
         private const int OpenPunchLookbackHours = 48;
+        private const decimal DefaultMaxAccuracyMeters = 250m;
 
         private readonly ApplicationDbContext _dbContext;
         private readonly HumanResourceContextService _humanResourceContextService;
         private readonly AttendanceRawLogService _rawLogService;
         private readonly AttendanceScheduleResolverService _scheduleResolverService;
         private readonly AttendanceProcessingService _processingService;
+        private readonly IConfiguration _configuration;
 
         public AttendanceSelfServiceCaptureService(
             ApplicationDbContext dbContext,
             HumanResourceContextService humanResourceContextService,
             AttendanceRawLogService rawLogService,
             AttendanceScheduleResolverService scheduleResolverService,
-            AttendanceProcessingService processingService)
+            AttendanceProcessingService processingService,
+            IConfiguration configuration)
         {
             _dbContext = dbContext;
             _humanResourceContextService = humanResourceContextService;
             _rawLogService = rawLogService;
             _scheduleResolverService = scheduleResolverService;
             _processingService = processingService;
+            _configuration = configuration;
         }
 
         public async Task<AttendanceRawLogServiceResult<AttendanceSelfServiceCaptureStatusResponse>> GetStatusAsync(
@@ -188,6 +192,26 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 return AttendanceRawLogServiceResult<AttendanceSelfServiceCaptureResponse>.Fail(
                     StatusCodes.Status400BadRequest,
                     "Koordinat GPS tidak valid.");
+            }
+
+            var maxAccuracyMeters = _configuration.GetValue<decimal?>("AttendanceCapture:MaxAccuracyMeters")
+                ?? DefaultMaxAccuracyMeters;
+
+            if (maxAccuracyMeters > 0)
+            {
+                if (!request.AccuracyMeters.HasValue)
+                {
+                    return AttendanceRawLogServiceResult<AttendanceSelfServiceCaptureResponse>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Akurasi lokasi tidak terbaca. Aktifkan GPS/lokasi dengan akurasi tinggi.");
+                }
+
+                if (request.AccuracyMeters.Value > maxAccuracyMeters)
+                {
+                    return AttendanceRawLogServiceResult<AttendanceSelfServiceCaptureResponse>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        $"Akurasi lokasi terlalu rendah. Akurasi saat ini {request.AccuracyMeters.Value:0} meter, maksimal {maxAccuracyMeters:0} meter.");
+                }
             }
 
             var externalLogId = request.ClientRequestId.ToString("N");
