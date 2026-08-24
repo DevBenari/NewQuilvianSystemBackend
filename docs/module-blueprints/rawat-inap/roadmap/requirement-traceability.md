@@ -80,6 +80,29 @@ Dua task tidak menempel pada epic mana pun, dan itu disengaja: `BE-RWI-033` bukt
 
 ---
 
+## 1b. Progres delivery per 24 Agustus 2026
+
+Bagian ini memisahkan dua hal yang sering dicampur: **kode yang selesai**, versus **DoD yang
+benar-benar terpenuhi** menurut aturan roadmap sendiri.
+
+| Task | Requirement yang dijawab | Bukti | Status |
+| --- | --- | --- | :---: |
+| `BE-RWI-001` | Angka batas waktu dan butir administrasi punya tempat tinggal di master, bukan di kode (`RWI-DEC-008`, `RWI-DEC-026`, `RWI-DEC-032`) | Build Release lulus; `has-pending-model-changes` bersih; migration **maju dan mundur lulus** pada PostgreSQL 16 lokal sekali pakai; bentuk kolom cocok kolom demi kolom dengan `erd/data-dictionary.md` bagian 12 dan 13; unique `ItemCode` terbukti menolak duplikat di database sungguhan ([laporan](../../../task/report/be-rwi-001-tabel-master-rawat-inap.md)) | ✅ **Selesai** |
+| `BE-RWI-002` s.d. `BE-RWI-033` | — | Belum dikerjakan | Planned |
+
+**1 dari 33 task backend selesai (3%).** Tidak ada task yang berstatus selesai-sebagian.
+
+### Yang perlu diputuskan pemilik pekerjaan
+
+| Butir | Sifat | Terdampak |
+| --- | --- | --- |
+| Tidak ada connection string lokal — `dotnet ef database update` polos mengenai database dev bersama `QuilvianNewDevTim01` | Operasional, dapat dikerjakan | Setiap task bermigration berikutnya, terutama `BE-RWI-003` |
+| Ketiga berkas migration `BE-RWI-001` belum di-commit | Operasional | Rekan yang menarik branch `MHamzah` |
+| Letak konfigurasi EF master: `HealthServices/MasterData/` versus `HealthServices/` | Konvensi, tanpa akibat teknis | Konsistensi folder, sejalan `BE-IGD-013` |
+| `RWI-RULE-021` belum final secara klinis — nilai `24` jam terpasang sebagai bawaan | Klinis | Menahan pemakaian untuk pasien sungguhan, bukan MVP |
+
+---
+
 ## 2. Functional requirement → task → acceptance criteria → test
 
 Kolom **AC** merujuk `00-interview-decisions.md` revision `5`. Kolom **Test** merujuk
@@ -209,7 +232,7 @@ Bagian ini memeriksa kebalikannya: adakah task yang tidak ada yang memintanya?
 
 | Task | Epic yang dilayani | Bila tidak menempel epic, apa dasarnya |
 | --- | --- | --- |
-| `BE-RWI-001` s.d. `BE-RWI-004` | `EPIC RI-21` | — |
+| `BE-RWI-001` ✅ s.d. `BE-RWI-004` | `EPIC RI-21` | — |
 | `BE-RWI-005` | `EPIC RI-31` | — |
 | `BE-RWI-006`, `BE-RWI-032` | `EPIC RI-32` | — |
 | `BE-RWI-007` s.d. `BE-RWI-009` | `EPIC RI-21` | — |
@@ -355,10 +378,11 @@ perencanaan. Keduanya punya task penutup yang memeriksanya.
 
 | Gerbang | Keadaannya |
 | --- | --- |
-| **Approval blueprint** | `approved_by` kosong. **Menahan seluruh task** |
-| Kesiapan data master beserta penanda yang benar | `RWI-DEC-063`, target 22 Agustus 2026 |
+| ~~**Approval blueprint**~~ | **DICABUT 24 Agustus 2026** oleh `RWI-DEC-067`. Disetujui Muhammad Hamzah; `approved_by` pada metadata sudah terisi |
+| Kesiapan data master beserta penanda yang benar | `RWI-DEC-063`, target 22 Agustus 2026. Menahan `BE-RWI-010` ke atas, **tidak** menahan `BE-RWI-001` s.d. `BE-RWI-004` |
 | `FE-RWI-001` sebelum `BE-RWI-006` | Lintas repository, wajib diurutkan |
-| Registry lifecycle `PLANNED` | Hanya memberi hak penamaan — `RWI-FACT-002` |
+| ~~Registry lifecycle `PLANNED`~~ | **DICABUT 24 Agustus 2026** oleh `RWI-DEC-068`. Modul naik `PLANNED` → `ACTIVE` |
+| Tidak ada connection string lokal | Baru — ditemukan saat `BE-RWI-001`. Menahan **cara aman** menjalankan migration, bukan penulisan kodenya |
 
 Ketiga gerbang produksi pada `blueprint-manifest.md` bagian 7.2 — masa simpan data,
 interoperabilitas nasional, dan persetujuan pasien — **tidak** menahan pengerjaan MVP. Yang
