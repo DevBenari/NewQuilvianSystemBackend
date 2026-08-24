@@ -4,8 +4,8 @@
 |---|---|
 | TASK_ID | `RJ-BIL-BE-001` |
 | IMPLEMENTATION_ORIGIN | `PRE-EXISTING_STAGED_CHANGES` |
-| CURRENT_EXECUTION_ACTION | `MIGRATION_GENERATION_AND_STATIC_REVIEW` |
-| IMPLEMENTATION_STATUS | `IMPLEMENTED_AWAITING_TEST_EVIDENCE` |
+| CURRENT_EXECUTION_ACTION | `MIGRATION_APPLY_AND_TEST_EVIDENCE` |
+| IMPLEMENTATION_STATUS | `COMPLETE` |
 | SOURCE_FILES_CHANGED | Perubahan source task sudah ada pada working tree: `Areas/HealthServices/BillingManagement/Operational/**`, `Program.cs`, dan `Repositories/ApplicationDbContext.cs`. Tidak diduplikasi atau ditimpa pada eksekusi ini. |
 | CONTRACT_CONFLICT | `NONE` teridentifikasi dari inspeksi source terhadap contract API/State/Validation `1.0.0`; verifikasi runtime tetap menunggu build/test. |
 | SOURCE_COMPILE_EVIDENCE | `PASS` |
@@ -17,8 +17,10 @@
 | BUILD | `PASS` berdasarkan bukti build host; bukti build sandbox dicatat terpisah sebagai blocker environment. |
 | ERROR_COUNT | `0` pada host build |
 | WARNING_COUNT | `125` pada host build |
-| TEST_PROJECT_AVAILABLE | `NO` |
-| TEST_EVIDENCE | `PENDING` — tidak ada test project yang terdeteksi pada inspeksi solution; acceptance runtime belum dapat dibuktikan. |
+| TEST_PROJECT_AVAILABLE | `YES` — `Tests/QuilvianSystemBackend.BillingTests/`, xUnit `2.9.2`, terdaftar pada solution. |
+| TEST_EVIDENCE | `PASS` — `4` test dijalankan, `4` lulus, `0` gagal. |
+| TEST_SCOPE | Tiga acceptance criteria `RJ-BIL-BE-001` saja; bukan seluruh acceptance matrix modul Billing. |
+| TEST_TEARDOWN_VERIFIED | `PASS` — tidak ada sisa data test pada database target. |
 | MIGRATION_GENERATION_AUTHORITY | `GRANTED` |
 | MIGRATION_REQUIRED | `YES` — model/configuration dan `DbSet` task ini memiliki dampak schema/index/concurrency. |
 | MIGRATION_GENERATED | `YES` |
@@ -34,9 +36,12 @@
 | DECIMAL_PRECISION_REVIEW | `PASS` |
 | AUDIT_PERSISTENCE_REVIEW | `PASS` |
 | FINANCIAL_HISTORY_IMMUTABILITY_REVIEW | `PASS` |
-| MIGRATION_APPLIED | `NO` |
-| DATABASE_CHANGED | `NO` — tidak ada database mutation atau database apply yang dijalankan. |
-| DATABASE_APPLY_READY | `YES` |
+| DATABASE_APPLY_AUTHORITY | `GRANTED` — otorisasi terpisah dan menyusul, diberikan pengguna pada `2026-08-21` dengan menyebut database target secara eksplisit. Otorisasi awal `RJ-BIL-BE-001` melarang apply; lihat bagian eksekusi database apply. |
+| DATABASE_APPLY_READY | `YES` (sudah dipakai) |
+| MIGRATION_APPLIED | `YES` |
+| DATABASE_CHANGED | `YES` — `QuilvianNewDevTim01` pada `160.22.250.77:5432`. |
+| DATABASE_APPLY_VERIFIED | `PASS` — `dotnet ef migrations list` pasca-apply: `86` migration terdaftar, `0` pending. |
+| DATABASE_APPLY_SCOPE | `1` migration; tidak ada migration milik branch lain yang ikut diterapkan. |
 | FRONTEND_CHANGED | `NO` |
 | RJ-BIL-DEP-009 | `INACTIVE / OUT_OF_SCOPE` |
 | RJ-BIL-DEP-009_CHANGED | `NO` |
@@ -233,22 +238,235 @@ masih fresh (`bin/Debug/net9.0/QuilvianSystemBackend.dll`, tidak ada file source
 Baris `HostAbortedException` pada log EF adalah perilaku normal tooling `dotnet ef` saat
 menghentikan host setelah service provider terbentuk, bukan kegagalan aplikasi.
 
-## Status akhir
+## Eksekusi database apply
 
-`MIGRATION_GENERATED = YES`, `MIGRATION_STATIC_REVIEW = PASS`, `DATABASE_APPLY_READY = YES`,
-`MIGRATION_APPLIED = NO`, `DATABASE_CHANGED = NO`.
+### Jejak otorisasi
 
-`RJ-BIL-BE-001` tetap `IMPLEMENTED_AWAITING_TEST_EVIDENCE`. Task tidak ditandai `COMPLETE`
-karena `TEST_PROJECT_AVAILABLE = NO` dan `TEST_EVIDENCE = PENDING`.
+Otorisasi awal `RJ-BIL-BE-001` secara eksplisit menempatkan `dotnet ef database update`,
+`applying migration to any database`, dan `production/shared database access` pada daftar
+**NOT AUTHORIZED**, serta menetapkan `database access would be required` sebagai **STOP
+CONDITION**. Atas dasar itu eksekusi review statis berhenti tanpa apply.
 
-`RJ-BIL-BE-002` tidak dimulai. `RJ-BIL-DEP-009` tetap `INACTIVE / OUT_OF_SCOPE`. Tidak ada
-`dotnet ef database update`, database apply, mutasi database, seed, perubahan frontend,
-deployment, commit, atau push yang dijalankan.
+Otorisasi apply diberikan **menyusul dan terpisah** oleh pengguna pada `2026-08-21`, setelah
+target database dilaporkan dan dikonfirmasi secara eksplisit dengan menyebut nama database.
+Otorisasi awal `RJ-BIL-BE-001` tidak mencakup apply; jejak ini dicatat terpisah agar tidak
+terbaca seolah apply berada dalam cakupan otorisasi semula.
 
-Perintah apply berikut sengaja **tidak** dijalankan dan memerlukan otorisasi terpisah:
+### Target
+
+| Field | Nilai |
+|---|---|
+| DATABASE | `QuilvianNewDevTim01` |
+| HOST | `160.22.250.77:5432` |
+| KLASIFIKASI | Database dev tim bersama, bukan lokal dan bukan production |
+| SUMBER KONFIGURASI | `appsettings.Development.json` → `ConnectionStrings:DefaultConnection` |
+| OVERRIDE | Tidak ada override pada `appsettings.json` maupun environment variable |
+
+### Pre-flight
+
+Sebelum apply, state migration pada database target dibaca read-only:
 
 ```
-dotnet ef database update --project QuilvianSystemBackend.csproj \
+dotnet ef migrations list --no-build --project QuilvianSystemBackend.csproj \
+  --startup-project QuilvianSystemBackend.csproj --context ApplicationDbContext
+```
+
+| Pemeriksaan | Hasil |
+|---|---|
+| Koneksi | Berhasil, exit `0` |
+| Migration terdaftar | `86` |
+| Pending sebelum apply | `1` — hanya `20260821033911_AddBillingOperationalBaseline` |
+| Migration branch lain yang pending | Nihil |
+
+Pemeriksaan ini diperlukan karena `dotnet ef database update` menerapkan seluruh migration
+pending sampai target. Branch `sukmagp` baru saja di-merge dari beberapa branch tim, sehingga
+kemungkinan tertinggalnya migration milik anggota tim lain harus dibuktikan nihil lebih dulu.
+Hasilnya nihil, sehingga apply tidak melampaui cakupan yang diotorisasi.
+
+### Perintah apply
+
+Target migration dipatok eksplisit agar apply tidak dapat melangkah melewati satu migration ini:
+
+```
+dotnet ef database update 20260821033911_AddBillingOperationalBaseline --no-build \
+  --project QuilvianSystemBackend.csproj \
   --startup-project QuilvianSystemBackend.csproj \
   --context ApplicationDbContext
 ```
+
+Hasil: `Done.` dengan exit code `0`, tanpa error, tanpa warning.
+
+### Verifikasi pasca-apply
+
+```
+dotnet ef migrations list --no-build ... --context ApplicationDbContext
+```
+
+| Pemeriksaan | Hasil |
+|---|---|
+| Exit code | `0` |
+| Migration terdaftar | `86` |
+| Pending setelah apply | `0` |
+| `20260821033911_AddBillingOperationalBaseline` | Tidak lagi berlabel `(Pending)` — tercatat pada `__EFMigrationsHistory` |
+
+### Artefak SQL pendamping
+
+Script idempotent dihasilkan sebagai artefak review sebelum apply, tanpa membuka koneksi
+database:
+
+```
+dotnet ef migrations script 20260818084734_AddTriageSlaBreachMarker \
+  20260821033911_AddBillingOperationalBaseline --idempotent --no-build ...
+```
+
+Script berisi `198` baris, dibungkus satu `START TRANSACTION; … COMMIT;`, dengan `13` blok
+`DO $EF$` dengan guard `IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" …)`. Isinya `4`
+`CREATE TABLE`, `5` `CREATE UNIQUE INDEX`, `3` `CREATE INDEX`, tanpa satu pun `DROP`,
+`ALTER TABLE`, atau `TRUNCATE`. Script tidak dieksekusi; apply dilakukan melalui
+`dotnet ef database update` karena `psql` tidak tersedia pada host.
+
+## Bukti test
+
+### Keputusan menarik scope test ke depan
+
+DoD `RJ-BIL-BE-001` menuntut test evidence, sementara pembuatan test project di-scope ke
+`RJ-BIL-BE-009` yang berada di ujung rantai dependency `BE-001 → … → BE-008 → BE-009`. Dengan
+urutan roadmap apa adanya, `RJ-BIL-BE-001` tidak akan pernah dapat ditutup sampai seluruh
+`BE-002` sampai `BE-008` selesai.
+
+Pemilik backend memutuskan pada `2026-08-21` untuk menarik sebagian scope `RJ-BIL-BE-009` ke
+depan, terbatas pada tiga acceptance criteria `RJ-BIL-BE-001`. Sisa scope `RJ-BIL-BE-009`
+tetap berada pada task aslinya.
+
+### Test project
+
+| Field | Nilai |
+|---|---|
+| LOKASI | `Tests/QuilvianSystemBackend.BillingTests/` |
+| FRAMEWORK | xUnit `2.9.2`, `Microsoft.NET.Test.Sdk` `17.12.0` |
+| SOLUTION | Terdaftar pada `QuilvianSystemBackend.sln` |
+| BUILD | `PASS` — `0` error, `1` warning `MSB3277` (konflik versi `Microsoft.Extensions.DependencyModel` antara test SDK dan project Web; tidak menghalangi eksekusi) |
+| PERUBAHAN PROJECT UTAMA | `QuilvianSystemBackend.csproj` ditambah `<Compile Remove="Tests\**" />` dan `<Content Remove="Tests\**" />`, mengikuti pola exclude yang sudah dipakai project tersebut. Tanpa ini, glob `**/*.cs` project utama ikut mengompilasi file test karena `csproj` berada di root repository. |
+
+Tidak ada model, controller, enum, atau grup `[Tags(...)]` baru yang dibuat, sehingga tidak ada
+kavling nama atau endpoint yang diambil.
+
+Susunan folder:
+
+```text
+Tests/QuilvianSystemBackend.BillingTests/
+├── QuilvianSystemBackend.BillingTests.csproj
+├── README.md
+├── Infrastructure/
+│   ├── BillingTestDatabaseFixture.cs   # resolusi connection string, migration, seed, teardown
+│   └── EncounterSeed.cs                # identitas prasyarat satu test
+└── Operational/
+    └── BillingFolioServiceTests.cs     # test submodule Billing Operational
+```
+
+`Infrastructure/` memisahkan perkakas bersama dari test. Folder di sebelahnya mengikuti nama
+submodule pada `Areas/HealthServices/BillingManagement/`, sehingga test dapat ditemukan dari
+lokasi source-nya dan penambahan test `MasterData` pada task berikutnya tinggal menjadi folder
+sejajar. Namespace mengikuti struktur folder: `QuilvianSystemBackend.BillingTests.Infrastructure`
+dan `QuilvianSystemBackend.BillingTests.Operational`.
+
+`README.md` mendokumentasikan cara menjalankan, urutan resolusi connection string, perilaku
+pengaman per nama database, urutan teardown, alasan memakai PostgreSQL sungguhan alih-alih
+provider InMemory, cara menambah test baru, dan daftar cakupan yang masih menjadi bagian
+`RJ-BIL-BE-009`.
+
+### Pilihan level pengujian
+
+Ketiga acceptance criteria adalah invariant persistence dan concurrency, bukan invariant
+transport. Pengujian dilakukan pada level service terhadap PostgreSQL sungguhan.
+
+Provider InMemory **tidak** dipakai karena tidak menegakkan unique index; test folio-uniqueness
+akan lulus secara semu dan justru membuktikan kebalikan dari yang diklaim.
+
+Pengujian lewat HTTP tidak dipilih karena controller `[Authorize]` dengan JWT bearer dan
+`Program.cs` memakai top-level statements tanpa `public partial class Program`, sehingga
+`WebApplicationFactory<Program>` menuntut perubahan pada `Program.cs` yang dipakai seluruh tim.
+
+### Hasil
+
+| Test | Acceptance criteria | Hasil | Durasi |
+|---|---|---|---|
+| `DuaMilestoneBerbedaPadaEncounterSama_HanyaMenghasilkanSatuFolio` | Folio unik per encounter | `PASS` | `260 ms` |
+| `FolioKeduaUntukEncounterSama_DitolakUniqueIndexDatabase` | Folio unik per encounter | `PASS` | `155 ms` |
+| `IdempotencyKeySamaDenganPayloadSama_MenghasilkanReplayTanpaChargeGanda` | Duplicate key menghasilkan replay | `PASS` | `2 s` |
+| `VersiLamaSetelahVersiBaruApplied_DitolakDenganVersionConflict` | Stale version ditolak | `PASS` | `253 ms` |
+
+`Total tests: 4`, `Passed: 4`, `Failed: 0`, exit code `0`.
+
+Yang dibuktikan masing-masing:
+
+- dua milestone berbeda pada encounter yang sama menghasilkan `1` folio dan `2` charge line;
+- penyisipan folio kanonik kedua langsung ke database ditolak `PostgresException` `23505` pada
+  constraint `IX_BilFolio_EncounterId` — jadi invariant ditegakkan database, bukan hanya logika
+  aplikasi;
+- idempotency key yang sama dengan payload identik mengembalikan `IsReplay = true` dengan
+  `ProcessingEffectId` dan `ChargeLineId` yang sama, serta tetap `1` processing effect dan
+  `1` charge line;
+- versi `1` yang datang setelah versi `2` applied ditolak `BIL_VERSION_CONFLICT` dengan
+  `AppliedVersion = 2`, dan histori versi `2` tetap utuh pada processing effect maupun charge line.
+
+### Target database test dan teardown
+
+Test dijalankan terhadap `QuilvianNewDevTim01`, atas keputusan pemilik backend untuk memakai
+database yang sudah ada alih-alih membuat database test baru. Connection string diambil fixture
+dari `ConnectionStrings:DefaultConnection` pada `appsettings.Development.json` ketika
+environment variable `QUILVIAN_BILLING_TEST_DB` kosong, sehingga tidak ada kredensial yang perlu
+disalin ke environment variable atau perintah shell.
+
+Fixture menolak database yang namanya mengandung `prod` atau `production` tanpa mekanisme
+override, dan mencetak peringatan ke output test ketika targetnya database dev bersama.
+
+Teardown menghapus seluruh baris yang dibuat setiap test, urut dari anak ke induk mengikuti
+`DeleteBehavior.Restrict`: processing effect, charge component, charge line, folio, encounter,
+pasien, unit layanan, lalu user.
+
+Verifikasi sisa data setelah eksekusi:
+
+| Yang dihitung | Sisa |
+|---|---|
+| `BilFolio` (seluruh tabel) | `0` |
+| `BilChargeLine` `SourceContext = InternalTest` | `0` |
+| `BilChargeComponent` (seluruh tabel) | `0` |
+| `BilProcessingEffect` `SourceContext = InternalTest` | `0` |
+| `ApplicationUser` `UserCode` berawalan `TST` | `0` |
+| `MstPatient` `PatientCode` berawalan `PC` | `0` |
+
+Encounter dan unit layanan tidak dapat dibedakan lewat prefix karena data tim memakai awalan
+`ENC` dan `SU` yang sama. Keduanya tetap terbukti terhapus melalui dua alasan:
+
+1. penghapusan user adalah langkah **terakhir** teardown dan hasilnya `0`; sebuah rantai yang
+   langkah terakhirnya selesai berarti seluruh langkah sebelumnya juga selesai, karena
+   `ExecuteDeleteAsync` yang gagal akan melempar exception dan menggagalkan test;
+2. `MstPatient` adalah FK wajib ber-`Restrict` dari encounter, sehingga pasien mustahil terhapus
+   selama masih ada encounter yang menunjuknya; pasien `0` berarti encounter test sudah lebih
+   dulu terhapus.
+
+Database target ditinggalkan dalam keadaan seperti sebelum test dijalankan.
+
+## Status akhir
+
+`MIGRATION_GENERATED = YES`, `MIGRATION_STATIC_REVIEW = PASS`, `MIGRATION_APPLIED = YES`,
+`DATABASE_CHANGED = YES` pada `QuilvianNewDevTim01`, `DATABASE_APPLY_VERIFIED = PASS`,
+`TEST_PROJECT_AVAILABLE = YES`, `TEST_EVIDENCE = PASS`.
+
+`RJ-BIL-BE-001` dinyatakan `COMPLETE`. Seluruh butir DoD terpenuhi: source evidence, build
+evidence, test evidence, migration artifact reviewed, dan tidak ada database apply tanpa
+otorisasi.
+
+Batas yang melekat pada status ini: bukti test menutup **tiga acceptance criteria
+`RJ-BIL-BE-001`**, bukan seluruh acceptance matrix modul Billing. Skenario seperti
+`BIL_IDEMPOTENCY_CONFLICT`, outcome unknown, partial component, multi-payer allocation,
+financial correction, maker-checker, dan folio close belum diuji dan tetap menjadi cakupan
+`RJ-BIL-BE-009`. `COMPLETE` pada `RJ-BIL-BE-001` tidak berarti modul Billing sudah terverifikasi
+menyeluruh.
+
+`RJ-BIL-BE-002` tidak dimulai. `RJ-BIL-DEP-009` tetap `INACTIVE / OUT_OF_SCOPE`. Tidak ada seed
+execution, perubahan frontend, deployment, atau perubahan source aplikasi Billing yang dijalankan
+pada eksekusi ini. Commit `fe6d15c` beserta push ke `origin/sukmagp` dilakukan oleh pengguna.
+Perubahan setelah commit tersebut — dokumen ini, test project, `QuilvianSystemBackend.csproj`,
+dan `QuilvianSystemBackend.sln` — belum di-commit.

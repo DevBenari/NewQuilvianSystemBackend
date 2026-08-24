@@ -12,6 +12,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Tests\**" />
+    <Content Remove="Tests\**" />
     <Compile Remove="Areas\HealthServices\DeviceManagement\**" />
     <Compile Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <Compile Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
