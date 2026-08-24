@@ -17,14 +17,16 @@
 | `domain_architecture_revision` | `0.1` |
 | `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_PARTIAL` |
 | `scope` | **Sepuluh** slice: sembilan yang dinyatakan siap arsitektur domain, ditambah `INP-S11` yang terbuka sejak `RWI-DEC-064`. Tujuh slice lain sengaja tidak dirancang |
-| `compatibility_impact` | **Tiga belas** tabel baru, **nol** perubahan kolom pada tabel modul lain — janji ini tetap utuh pada revision `3`. Satu perubahan **perilaku** pada `PATCH /beds/{id}/availability`. Satu perbaikan pemanggilan di frontend |
+| `compatibility_impact` | **Tiga belas** tabel baru. **Nol perubahan kolom pada tabel modul lain oleh task Rawat Inap** — janji itu tetap utuh dan tetap diuji lewat `BE-RWI-003` kriteria 5. Di luar itu, `RWI-RULE-029` aturan 2 menuntut satu kolom baru `OriginEncounterId` pada `TrxPatientEncounter` milik `RegistrationManagement`; kolom itu **dikerjakan modul IGD** lewat `IGD-DEC-075`, bukan oleh blueprint ini — lihat `RWI-DEC-073`. **Dua** perubahan perilaku: `PATCH /beds/{id}/availability`, dan penempatan jalur IGD yang kini menunggu event `Tiba` milik IGD sesuai `RWI-DEC-072`. Satu perbaikan pemanggilan di frontend |
 
 ---
 
 ## 0. Status kesegaran
 
-**Blueprint sudah sejalan dengan masukannya.** Revision `3` memasukkan tiga keputusan penutupan
-butir organisasi 2026-08-21 yang sebelumnya membuat revision `2` tertinggal.
+**Blueprint tertinggal satu pass.** Revision `3` memasukkan tiga keputusan penutupan butir
+organisasi 2026-08-21 yang sebelumnya membuat revision `2` tertinggal. Sesudahnya, Amendment
+Pass 2026-08-24 menghasilkan empat keputusan baru yang **belum diserap** ke berkas blueprint;
+rinciannya pada bagian 0.2.
 
 | Keputusan | Sudah masuk ke |
 |---|---|
@@ -68,6 +70,30 @@ sejalan. Yang tertinggal hanya catatan arsitektur domainnya.
 
 ---
 
+### 0.2 Yang belum diserap — Amendment Pass 2026-08-24
+
+Empat keputusan lahir dari tiga usulan lintas modul yang datang dari blueprint IGD. Seluruhnya
+sudah `approved` pada decision log; **belum satu pun** masuk ke berkas blueprint di bawah ini.
+
+| Keputusan | Isinya | Berkas yang menunggu penyelarasan |
+|---|---|---|
+| `RWI-DEC-070` | Pelonggaran `RWI-RULE-026` diperluas ke kunjungan `Emergency`, mencakup aturan 3, 4, dan 5; aturan 6 direvisi | `02-backend-architecture.md`, `contracts/validation-matrix.md`, `testing/acceptance-test-matrix.md`, `04-prd-to-mvp.md` |
+| `RWI-DEC-071` | `RWI-DEC-041` tetap berlaku, justifikasinya ditulis ulang | Tidak ada perubahan desain — hanya alasan yang diperbarui, dan itu sudah selesai di decision log |
+| `RWI-DEC-072` | Penempatan jalur IGD menunggu event `Tiba` milik IGD; `StartDateTime` diisi dari waktu itu | `02-backend-architecture.md`, `erd/data-dictionary.md`, `contracts/api-contract.md`, `contracts/validation-matrix.md`, `contracts/integration-contract.md`, `roadmap/backend-roadmap.md` pada `BE-RWI-011` |
+| `RWI-DEC-073` | `OriginEncounterId` dikerjakan modul IGD; `compatibility_impact` ditulis ulang | Field `compatibility_impact` **sudah** diperbarui di atas. Menunggu: `erd/00-context-erd.md`, `erd/data-dictionary.md`, `contracts/integration-contract.md` |
+
+Sepuluh acceptance criteria baru, `RWI-AC-140` sampai `RWI-AC-149`, juga belum masuk ke matriks
+acceptance test.
+
+**Yang harus dikerjakan berikutnya:** penyerapan ini adalah pekerjaan `/qv-design`, bukan
+pekerjaan pass wawancara. Hasilnya nanti menaikkan manifest ke revision `4`. Sampai itu terjadi,
+revision `3` tetap sah dipakai untuk seluruh task MVP yang sedang berjalan — tidak satu pun dari
+keempat keputusan di atas mengubah task `BE-RWI-001` sampai `BE-RWI-010`.
+
+**Satu task yang benar-benar terdampak:** `BE-RWI-011` penempatan tempat tidur. Jangan dikerjakan
+sebelum `RWI-DEC-072` diserap ke kontrak dan roadmapnya.
+
+---
 ## 1. Peringatan sebelum membaca
 
 Seluruh dokumen pada folder ini berstatus `draft`. Tidak satu pun boleh dipakai sebagai izin
@@ -185,11 +211,11 @@ Blueprint ini adalah desain target, bukan spesifikasi implementasi yang disetuju
 
 | Gate | Keadaannya |
 |---|---|
-| ~~Persetujuan pemilik modul tetangga~~ | **DICABUT** 2026-08-21 oleh `RWI-DEC-062`. Keempat modul berada di bawah kepemilikan yang sama, dan persetujuannya diberikan |
+| Persetujuan pemilik modul tetangga | **TERBUKA SEBAGIAN.** Dicabut 2026-08-21 oleh `RWI-DEC-062` untuk `ClinicalManagement`, `PharmacyManagement`, dan `MasterData` HealthServices. Bagian `EmergencyInstallationManagement` terbuka kembali 2026-08-24 lewat `RWI-DEC-069` — pemiliknya **Rizki Gunawan**, persetujuan formalnya belum tercatat. Hanya menahan `INP-S09`, yang memang di luar MVP |
 | Kesiapan data master | **MASIH TERBUKA.** Penanggung jawabnya sudah ditetapkan `RWI-DEC-063` — Admin Master Data / Tim Master Data, target 22 Agustus 2026. Gerbang ini tertutup begitu datanya benar-benar terisi, bukan begitu penanggung jawabnya ditunjuk. Sejak revision `3` syaratnya bertambah: penanda jenis kelamin, isolasi, dan boks bayi harus **benar**, karena kini menolak penempatan |
 | Perbaikan tombol tempat tidur | Hari ini selalu gagal 404. Lihat `RWI-DEC-049`. Pekerjaan perbaikan, bukan keputusan |
 | Test regresi modul tetangga | Tidak ada satu pun test yang menjaga jalur poliklinik, IGD, dan farmasi. Lihat `RWI-DEC-051`. Pekerjaan uji, bukan keputusan |
-| Registry lifecycle | Modul masih `PLANNED` |
+| ~~Registry lifecycle~~ | **DICABUT** 2026-08-24 oleh `RWI-DEC-068`. Modul `InPatientManagement` naik `PLANNED` → `ACTIVE`. Wewenang eksekusi database di luar lokal dan deployment tetap terpisah |
 
 ### 7.2 Gerbang sebelum produksi — klinis dan privasi
 
