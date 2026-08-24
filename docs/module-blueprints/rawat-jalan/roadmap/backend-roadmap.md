@@ -24,8 +24,17 @@
 | Task | Status | Bukti |
 |---|---|---|
 | `RJ-BIL-BE-001` | `COMPLETE` | [execution-evidence-RJ-BIL-BE-001.md](../execution-evidence-RJ-BIL-BE-001.md) |
-| `RJ-BIL-BE-002` | `BLOCKED` — menunggu keputusan owner atas `RJ-BIL-CONFLICT-006` | Lihat `MODULE-STATUS.md` |
-| `RJ-BIL-BE-003` s.d. `RJ-BIL-BE-009` | `NOT_STARTED` | — |
+| `RJ-BIL-BE-002` | `BLOCKED` — menunggu keputusan owner atas `RJ-BIL-CONFLICT-006` | [owner-decision-request-RJ-BIL-001.md](../owner-decision-request-RJ-BIL-001.md) pertanyaan `1A` dan `1B` |
+| `RJ-BIL-BE-005` | `BLOCKED` — menunggu keputusan owner atas `RJ-BIL-CONFLICT-001` | [RJ-BIL-CONFLICT-001-source-audit.md](../RJ-BIL-CONFLICT-001-source-audit.md); pertanyaan `RJ-BIL-OQ-001` s.d. `OQ-007` |
+| `RJ-BIL-BE-003`, `RJ-BIL-BE-004` | `NOT_STARTED` — tidak diblokir konflik mana pun | Memerlukan owner Lab atau Radiology beserta Clinical Governance |
+| `RJ-BIL-BE-006` s.d. `RJ-BIL-BE-009` | `NOT_STARTED` | Menunggu dependency sequence |
+
+Audit read-only `RJ-BIL-CONFLICT-001` per `2026-08-24` menyimpulkan konflik `CONFIRMED` dengan
+source confidence `HIGH`, tanpa memerlukan perubahan code saat ini. Cakupan `RJ-BIL-BE-005` pada
+tabel di bawah — allocation multi-payer dan patient responsibility — belum dapat dirancang sebelum
+`RJ-BIL-OQ-001`, `OQ-002`, dan `OQ-005` dijawab, karena bentuk allocation-nya ditentukan jawaban
+tersebut. `RJ-BIL-BE-006` dan `RJ-BIL-BE-008` terdampak tidak langsung karena keduanya bekerja di
+atas hasil allocation.
 
 Migration `20260821033911_AddBillingOperationalBaseline` sudah diterapkan ke database
 `QuilvianNewDevTim01` atas otorisasi terpisah yang diberikan pengguna pada `2026-08-21`.
