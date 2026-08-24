@@ -33,6 +33,7 @@ using QuilvianSystemBackend.Shared.HumanResource.Services;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
+using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
@@ -647,6 +648,14 @@ try
             "Seeder master kriteria telaah resep selesai.");
     }
 
+    static async Task RunStartupSeederAsync(string seederName, Func<Task> seed)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        await seed();
+        stopwatch.Stop();
+        Log.Information("[StartupSeed] {Seeder} completed in {ElapsedMilliseconds} ms", seederName, stopwatch.ElapsedMilliseconds);
+    }
+
     Log.Information(
         "Starting {Application} {BackendVersion} in {Environment} environment.",
         appName,
@@ -784,10 +793,10 @@ try
 
     app.MapHealthChecks("/health");
 
-    await AppVersionSeeder.SeedAsync(app.Services);
-    await DefaultWorkScheduleSeeder.SeedAsync(app.Services);
-    await SuperAdminSeeder.SeedAsync(app.Services);
-    await AccessMenuSeeder.SeedAsync(app.Services);
+    await RunStartupSeederAsync("AppVersionSeeder", () => AppVersionSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
 
     var runPrescriptionReviewCriterionSeed =
      builder.Configuration.GetValue<bool>(
@@ -795,7 +804,9 @@ try
 
     if (runPrescriptionReviewCriterionSeed)
     {
-        await SeedPrescriptionReviewCriteriaAsync(app.Services);
+        await RunStartupSeederAsync(
+            "PrescriptionReviewCriterionSeeder",
+            () => SeedPrescriptionReviewCriteriaAsync(app.Services));
     }
 
     // Seed Awal Saja
