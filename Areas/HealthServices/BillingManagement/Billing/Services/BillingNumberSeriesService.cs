@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -11,6 +12,22 @@ public sealed class BillingInvoiceNumberOptions
     public string Prefix { get; set; } = "BIL";
     public string ResetPolicy { get; set; } = BillingNumberResetPolicies.Daily;
     public int SequenceDigits { get; set; } = 8;
+}
+
+public sealed class BillingDepositAccountNumberOptions
+{
+    public const string SectionName = "Billing:DepositAccountNumber";
+    public string Prefix { get; set; } = "DEP";
+    public string ResetPolicy { get; set; } = BillingNumberResetPolicies.Never;
+    public int SequenceDigits { get; set; } = 8;
+}
+
+public sealed class BillingCashierShiftNumberOptions
+{
+    public const string SectionName = "Billing:CashierShiftNumber";
+    public string Prefix { get; set; } = "CSH";
+    public string ResetPolicy { get; set; } = BillingNumberResetPolicies.Daily;
+    public int SequenceDigits { get; set; } = 6;
 }
 
 public static class BillingNumberResetPolicies
@@ -25,24 +42,88 @@ public static class BillingNumberResetPolicies
 public sealed class BillingNumberSeriesService
 {
     private const string InvoiceSequenceKey = "BILLING_INVOICE";
+    private const string DepositAccountSequenceKey = "BILLING_DEPOSIT_ACCOUNT";
+    private const string CashierShiftSequenceKey = "BILLING_CASHIER_SHIFT";
     private readonly ApplicationDbContext _dbContext;
-    private readonly BillingInvoiceNumberOptions _options;
+    private readonly BillingInvoiceNumberOptions _invoiceOptions;
+    private readonly BillingDepositAccountNumberOptions _depositOptions;
+    private readonly BillingCashierShiftNumberOptions _cashierShiftOptions;
 
-    public BillingNumberSeriesService(ApplicationDbContext dbContext, IOptions<BillingInvoiceNumberOptions> options)
+    public BillingNumberSeriesService(
+        ApplicationDbContext dbContext,
+        IOptions<BillingInvoiceNumberOptions> invoiceOptions,
+        IOptions<BillingDepositAccountNumberOptions>? depositOptions = null,
+        IOptions<BillingCashierShiftNumberOptions>? cashierShiftOptions = null)
     {
         _dbContext = dbContext;
-        _options = options.Value;
+        _invoiceOptions = invoiceOptions.Value;
+        _depositOptions = depositOptions?.Value ?? new BillingDepositAccountNumberOptions();
+        _cashierShiftOptions = cashierShiftOptions?.Value ?? new BillingCashierShiftNumberOptions();
     }
 
-    public async Task<string> AllocateInvoiceNumberAsync(Guid actorUserId, DateTimeOffset instant, CancellationToken cancellationToken)
+    public Task<string> AllocateInvoiceNumberAsync(
+        Guid actorUserId,
+        DateTimeOffset instant,
+        CancellationToken cancellationToken) =>
+        AllocateNumberAsync(
+            InvoiceSequenceKey,
+            _invoiceOptions.Prefix,
+            _invoiceOptions.ResetPolicy,
+            _invoiceOptions.SequenceDigits,
+            "invoice",
+            message => new BillingInvoiceValidationException(message),
+            actorUserId,
+            instant,
+            cancellationToken);
+
+    public Task<string> AllocateDepositAccountNumberAsync(
+        Guid actorUserId,
+        DateTimeOffset instant,
+        CancellationToken cancellationToken) =>
+        AllocateNumberAsync(
+            DepositAccountSequenceKey,
+            _depositOptions.Prefix,
+            _depositOptions.ResetPolicy,
+            _depositOptions.SequenceDigits,
+            "akun deposit",
+            message => new BillingDepositValidationException(message),
+            actorUserId,
+            instant,
+            cancellationToken);
+
+    public Task<string> AllocateCashierShiftNumberAsync(
+        Guid actorUserId,
+        DateTimeOffset instant,
+        CancellationToken cancellationToken) =>
+        AllocateNumberAsync(
+            CashierShiftSequenceKey,
+            _cashierShiftOptions.Prefix,
+            _cashierShiftOptions.ResetPolicy,
+            _cashierShiftOptions.SequenceDigits,
+            "shift kasir",
+            message => new CashierShiftValidationException(message),
+            actorUserId,
+            instant,
+            cancellationToken);
+
+    private async Task<string> AllocateNumberAsync(
+        string sequenceKey,
+        string? configuredPrefix,
+        string? configuredResetPolicy,
+        int sequenceDigits,
+        string numberName,
+        Func<string, Exception> validationException,
+        Guid actorUserId,
+        DateTimeOffset instant,
+        CancellationToken cancellationToken)
     {
-        var prefix = Required(_options.Prefix, "Prefix").ToUpperInvariant();
-        if (prefix.Length > 15) throw new BillingInvoiceValidationException("Prefix nomor invoice maksimal 15 karakter.");
-        var resetPolicy = Required(_options.ResetPolicy, "ResetPolicy").ToUpperInvariant();
+        var prefix = Required(configuredPrefix, "Prefix", numberName, validationException).ToUpperInvariant();
+        if (prefix.Length > 15) throw validationException($"Prefix nomor {numberName} maksimal 15 karakter.");
+        var resetPolicy = Required(configuredResetPolicy, "ResetPolicy", numberName, validationException).ToUpperInvariant();
         if (!BillingNumberResetPolicies.All.Contains(resetPolicy))
-            throw new BillingInvoiceValidationException("ResetPolicy nomor invoice harus NEVER, YEARLY, MONTHLY, atau DAILY.");
-        if (_options.SequenceDigits is < 4 or > 12)
-            throw new BillingInvoiceValidationException("SequenceDigits nomor invoice harus antara 4 dan 12.");
+            throw validationException($"ResetPolicy nomor {numberName} harus NEVER, YEARLY, MONTHLY, atau DAILY.");
+        if (sequenceDigits is < 4 or > 12)
+            throw validationException($"SequenceDigits nomor {numberName} harus antara 4 dan 12.");
 
         var local = TimeZoneInfo.ConvertTime(instant, ResolveBusinessTimeZone());
         var scopeKey = resetPolicy switch
@@ -51,25 +132,25 @@ public sealed class BillingNumberSeriesService
             BillingNumberResetPolicies.Yearly => local.ToString("yyyy"),
             BillingNumberResetPolicies.Monthly => local.ToString("yyyyMM"),
             BillingNumberResetPolicies.Daily => local.ToString("yyyyMMdd"),
-            _ => throw new BillingInvoiceValidationException("ResetPolicy nomor invoice tidak didukung.")
+            _ => throw validationException($"ResetPolicy nomor {numberName} tidak didukung.")
         };
 
         if (_dbContext.Database.IsRelational())
         {
             if (_dbContext.Database.CurrentTransaction is null)
-                throw new InvalidOperationException("Alokasi nomor invoice relational wajib berada di dalam transaction.");
-            var lockKey = $"BIL_NUMBER_{InvoiceSequenceKey}_{scopeKey}";
+                throw new InvalidOperationException($"Alokasi nomor {numberName} relational wajib berada di dalam transaction.");
+            var lockKey = $"BIL_NUMBER_{sequenceKey}_{scopeKey}";
             await _dbContext.Database.ExecuteSqlRawAsync(
                 "SELECT pg_advisory_xact_lock(hashtext({0}));", [lockKey], cancellationToken);
         }
 
         var series = await _dbContext.BilNumberSeries.SingleOrDefaultAsync(
-            x => x.SequenceKey == InvoiceSequenceKey && x.ScopeKey == scopeKey, cancellationToken);
+            x => x.SequenceKey == sequenceKey && x.ScopeKey == scopeKey, cancellationToken);
         if (series is null)
         {
             series = new BilNumberSeries
             {
-                SequenceKey = InvoiceSequenceKey,
+                SequenceKey = sequenceKey,
                 ScopeKey = scopeKey,
                 ResetPolicy = resetPolicy,
                 CurrentValue = 1,
@@ -87,7 +168,7 @@ public sealed class BillingNumberSeriesService
             series.UpdateBy = actorUserId;
         }
 
-        var sequence = series.CurrentValue.ToString($"D{_options.SequenceDigits}");
+        var sequence = series.CurrentValue.ToString($"D{sequenceDigits}");
         return scopeKey == "GLOBAL" ? $"{prefix}-{sequence}" : $"{prefix}-{scopeKey}-{sequence}";
     }
 
@@ -96,9 +177,14 @@ public sealed class BillingNumberSeriesService
         try { return TimeZoneInfo.FindSystemTimeZoneById("Asia/Jakarta"); }
         catch (TimeZoneNotFoundException) { return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"); }
     }
-    private static string Required(string? value, string field)
+    private static string Required(
+        string? value,
+        string field,
+        string numberName,
+        Func<string, Exception> validationException)
     {
-        if (string.IsNullOrWhiteSpace(value)) throw new BillingInvoiceValidationException($"Konfigurasi {field} nomor invoice wajib diisi.");
+        if (string.IsNullOrWhiteSpace(value))
+            throw validationException($"Konfigurasi {field} nomor {numberName} wajib diisi.");
         return value.Trim();
     }
 }

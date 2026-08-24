@@ -19,17 +19,20 @@ public sealed class BillingInvoiceService
     private readonly ApplicationDbContext _dbContext;
     private readonly IBillingChargeSourceAdapter _sourceAdapter;
     private readonly BillingNumberSeriesService _numberSeries;
+    private readonly BillingCalculationService _calculationService;
     private readonly LoggerService _loggerService;
 
     public BillingInvoiceService(
         ApplicationDbContext dbContext,
         IBillingChargeSourceAdapter sourceAdapter,
         BillingNumberSeriesService numberSeries,
+        BillingCalculationService calculationService,
         LoggerService loggerService)
     {
         _dbContext = dbContext;
         _sourceAdapter = sourceAdapter;
         _numberSeries = numberSeries;
+        _calculationService = calculationService;
         _loggerService = loggerService;
     }
 
@@ -81,7 +84,10 @@ public sealed class BillingInvoiceService
 
     public async Task<InvoiceDetailResponse> GetDetailAsync(Guid id, CancellationToken cancellationToken)
     {
-        var invoice = await _dbContext.BilInvoices.AsNoTracking().Include(x => x.Items)
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .Include(x => x.Items)
+            .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
+            .Include(x => x.CalculationVersions)
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Invoice Billing tidak ditemukan.");
         return MapDetail(invoice, false);
@@ -127,6 +133,7 @@ public sealed class BillingInvoiceService
             if (!categoryExists) throw new BillingInvoiceValidationException("Kategori billing tidak ditemukan atau tidak aktif.");
 
             var invoice = await _dbContext.BilInvoices.Include(x => x.Items)
+                .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
                 .FirstOrDefaultAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete, cancellationToken);
             var createdInvoice = invoice is null;
             if (invoice is null)
@@ -224,12 +231,146 @@ public sealed class BillingInvoiceService
         }
     }
 
+    public async Task<InvoiceDetailResponse> VoidItemAsync(
+        Guid invoiceId,
+        Guid itemId,
+        VoidInvoiceItemRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ValidateVoidRequest(invoiceId, itemId, request, idempotencyKey);
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            if (_dbContext.Database.IsRelational())
+            {
+                transaction = await _dbContext.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken);
+                await AcquireLockAsync($"BIL_ITEM_{itemId:N}", cancellationToken);
+            }
+
+            var invoice = await _dbContext.BilInvoices
+                .Include(x => x.Items).ThenInclude(x => x.Category)
+                .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
+                .Include(x => x.CalculationVersions)
+                .FirstOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Invoice Billing tidak ditemukan.");
+            var item = invoice.Items.FirstOrDefault(x => x.Id == itemId && !x.IsDelete)
+                ?? throw new KeyNotFoundException("Item invoice Billing tidak ditemukan.");
+
+            if (_dbContext.Database.IsRelational())
+                await AcquireLockAsync($"BIL_SOURCE_{item.SourceDomain}_{item.SourceDetailId}", cancellationToken);
+
+            var voidPayloadHash = ComputeVoidPayloadHash(invoiceId, item, request);
+            if (item.Status == BillingInvoiceItemStatuses.Voided)
+            {
+                if (item.SourcePayloadHash != voidPayloadHash)
+                    throw new BillingInvoiceConflictException(
+                        "Item sudah dibatalkan oleh permintaan yang berbeda.");
+                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+                return MapDetail(invoice, true);
+            }
+
+            if (invoice.Status != BillingInvoiceStatuses.Open)
+                throw new BillingInvoiceValidationException(
+                    "Invoice final tidak dapat diedit; ajukan adjustment.");
+            if (invoice.RowVersion != request.ExpectedRowVersion)
+                throw new BillingInvoiceConflictException(
+                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
+            if (invoice.CalculationVersions.Any(x => !x.IsDelete && x.IsLocked))
+                throw new BillingInvoiceValidationException(
+                    "Item tidak dapat dibatalkan karena pelayanan atau pembayaran sudah diproses.");
+
+            var voidSource = _sourceAdapter.ValidateVoid(item, request);
+            var previousSourceVersion = item.SourceVersion;
+            var previousSourceStatus = item.SourceStatus;
+            var previousCalculationVersion = invoice.CurrentCalculationVersion;
+            var beforeGross = invoice.Items
+                .Where(x => !x.IsDelete && x.Status != BillingInvoiceItemStatuses.Voided)
+                .Sum(x => x.Quantity * x.UnitPrice);
+
+            item.Status = BillingInvoiceItemStatuses.Voided;
+            item.VoidReason = request.Reason.Trim();
+            item.SourceVersion = voidSource.SourceVersion;
+            item.SourceStatus = voidSource.SourceStatus;
+            item.SourceContractVersion = voidSource.ContractVersion;
+            item.LastIdempotencyKey = idempotencyKey;
+            item.LastCorrelationId = request.CorrelationId;
+            item.LastCausationId = request.CausationId;
+            item.SourcePayloadHash = voidPayloadHash;
+            item.UpdateDateTime = DateTime.UtcNow;
+            item.UpdateBy = actorUserId;
+
+            // Token sementara ini memastikan calculation memakai mutation yang sama. SaveChanges
+            // dilakukan sekali oleh calculation service di dalam transaction yang sama.
+            invoice.RowVersion = Guid.NewGuid();
+            invoice.UpdateDateTime = DateTime.UtcNow;
+            invoice.UpdateBy = actorUserId;
+            try
+            {
+                await _calculationService.RecalculateAsync(
+                    invoice.Id,
+                    new RecalculateInvoiceRequest
+                    {
+                        ExpectedRowVersion = invoice.RowVersion,
+                        Reason = $"Void item: {request.Reason.Trim()}"
+                    },
+                    actorUserId,
+                    cancellationToken);
+            }
+            catch (BillingCalculationConflictException exception)
+            {
+                throw new BillingInvoiceConflictException(exception.Message, exception);
+            }
+            catch (BillingCalculationValidationException exception)
+            {
+                throw new BillingInvoiceValidationException(exception.Message);
+            }
+
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+
+            var afterGross = invoice.Items
+                .Where(x => !x.IsDelete && x.Status != BillingInvoiceItemStatuses.Voided)
+                .Sum(x => x.Quantity * x.UnitPrice);
+            await AuditVoidAsync(
+                invoice,
+                item,
+                previousSourceVersion,
+                previousSourceStatus,
+                previousCalculationVersion,
+                beforeGross,
+                afterGross,
+                request.CorrelationId,
+                actorUserId);
+            return MapDetail(invoice, false);
+        }
+        catch (DbUpdateException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingInvoiceConflictException(
+                "Item tidak dapat dibatalkan karena invoice telah berubah.", exception);
+        }
+        catch
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
     private async Task<BilInvoice> LoadInvoiceByItemAsync(Guid itemId, CancellationToken cancellationToken)
     {
         var invoiceId = await _dbContext.BilInvoiceItems.AsNoTracking()
             .Where(x => x.Id == itemId).Select(x => x.InvoiceId).SingleOrDefaultAsync(cancellationToken);
         if (invoiceId == Guid.Empty) throw new BillingInvoiceConflictException("Receipt idempotency tidak memiliki item Billing yang valid.");
-        return await _dbContext.BilInvoices.AsNoTracking().Include(x => x.Items)
+        return await _dbContext.BilInvoices.AsNoTracking()
+            .Include(x => x.Items)
+            .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
+            .Include(x => x.CalculationVersions)
             .SingleAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
     }
 
@@ -250,6 +391,35 @@ public sealed class BillingInvoiceService
             CorrelationId = correlationId,
             ActorUserId = actorUserId,
             IsReplay = replay
+        });
+
+    private Task AuditVoidAsync(
+        BilInvoice invoice,
+        BilInvoiceItem item,
+        long previousSourceVersion,
+        string previousSourceStatus,
+        int previousCalculationVersion,
+        decimal beforeGross,
+        decimal afterGross,
+        Guid correlationId,
+        Guid actorUserId) =>
+        _loggerService.AuditAsync(LogCategory, "BillingInvoice.VoidItem", "Item invoice dibatalkan tanpa menghapus histori.", new
+        {
+            InvoiceId = invoice.Id,
+            InvoiceItemId = item.Id,
+            item.SourceDomain,
+            PreviousSourceVersion = previousSourceVersion,
+            CurrentSourceVersion = item.SourceVersion,
+            PreviousSourceStatus = previousSourceStatus,
+            CurrentSourceStatus = item.SourceStatus,
+            PreviousCalculationVersion = previousCalculationVersion,
+            CurrentCalculationVersion = invoice.CurrentCalculationVersion,
+            BeforeGrossAmount = beforeGross,
+            AfterGrossAmount = afterGross,
+            Reason = item.VoidReason,
+            CorrelationId = correlationId,
+            UserId = actorUserId,
+            ActorUserId = actorUserId
         });
 
     private static void ApplySource(BilInvoiceItem item, UpsertChargeRequest request, BillingChargeSourceSnapshot source,
@@ -294,6 +464,32 @@ public sealed class BillingInvoiceService
             throw new BillingInvoiceValidationException("DoctorShare tidak boleh melebihi gross item.");
     }
 
+    private static void ValidateVoidRequest(
+        Guid invoiceId,
+        Guid itemId,
+        VoidInvoiceItemRequest request,
+        Guid idempotencyKey)
+    {
+        if (invoiceId == Guid.Empty || itemId == Guid.Empty)
+            throw new BillingInvoiceValidationException("InvoiceId dan ItemId wajib diisi.");
+        if (idempotencyKey == Guid.Empty)
+            throw new BillingInvoiceValidationException("Idempotency-Key wajib diisi.");
+        if (request.ExpectedRowVersion == Guid.Empty)
+            throw new BillingInvoiceValidationException("ExpectedRowVersion wajib diisi.");
+        if (request.SourceVersion <= 0)
+            throw new BillingInvoiceValidationException("SourceVersion harus lebih besar dari nol.");
+        if (string.IsNullOrWhiteSpace(request.SourceStatus))
+            throw new BillingInvoiceValidationException("SourceStatus wajib diisi.");
+        if (string.IsNullOrWhiteSpace(request.ContractVersion))
+            throw new BillingInvoiceValidationException("ContractVersion wajib diisi.");
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            throw new BillingInvoiceValidationException("Alasan pembatalan wajib diisi.");
+        if (request.Reason.Trim().Length > 500)
+            throw new BillingInvoiceValidationException("Alasan pembatalan maksimal 500 karakter.");
+        if (request.CorrelationId == Guid.Empty || request.CausationId == Guid.Empty)
+            throw new BillingInvoiceValidationException("CorrelationId dan CausationId wajib diisi.");
+    }
+
     private static string ComputePayloadHash(UpsertChargeRequest request, BillingChargeSourceSnapshot source)
     {
         var canonical = string.Join('|', request.EncounterId.ToString("N"), source.SourceDomain, source.SourceDetailId,
@@ -302,6 +498,26 @@ public sealed class BillingInvoiceService
             request.DescriptionSnapshot.Trim(), request.Quantity.ToString(CultureInfo.InvariantCulture),
             request.UnitPrice.ToString(CultureInfo.InvariantCulture), request.DoctorShare.ToString(CultureInfo.InvariantCulture),
             request.ContractVersion.Trim(), request.CorrelationId.ToString("N"), request.CausationId.ToString("N"));
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+    }
+
+    private static string ComputeVoidPayloadHash(
+        Guid invoiceId,
+        BilInvoiceItem item,
+        VoidInvoiceItemRequest request)
+    {
+        var canonical = string.Join('|',
+            invoiceId.ToString("N"),
+            item.Id.ToString("N"),
+            item.SourceDomain,
+            item.SourceDetailId,
+            request.ExpectedRowVersion.ToString("N"),
+            request.SourceVersion.ToString(CultureInfo.InvariantCulture),
+            request.SourceStatus.Trim().ToUpperInvariant(),
+            request.ContractVersion.Trim(),
+            request.Reason.Trim(),
+            request.CorrelationId.ToString("N"),
+            request.CausationId.ToString("N"));
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
 
@@ -317,7 +533,7 @@ public sealed class BillingInvoiceService
 
     private static InvoiceDetailResponse MapDetail(BilInvoice invoice, bool isReplay)
     {
-        var activeItems = invoice.Items.Where(x => !x.IsDelete && x.Status != BillingInvoiceItemStatuses.Voided)
+        var items = invoice.Items.Where(x => !x.IsDelete)
             .OrderBy(x => x.CreateDateTime).Select(x => new InvoiceItemResponse
             {
                 Id = x.Id,
@@ -333,8 +549,10 @@ public sealed class BillingInvoiceService
                 UnitPrice = x.UnitPrice,
                 DoctorShare = x.DoctorShare,
                 GrossAmount = x.Quantity * x.UnitPrice,
-                Status = x.Status
+                Status = x.Status,
+                VoidReason = x.VoidReason
             }).ToList();
+        var activeItems = items.Where(x => x.Status != BillingInvoiceItemStatuses.Voided).ToList();
         return new InvoiceDetailResponse
         {
             Id = invoice.Id,
@@ -350,7 +568,17 @@ public sealed class BillingInvoiceService
             InvoiceDate = invoice.InvoiceDate,
             ClosedAt = invoice.ClosedAt,
             IsReplay = isReplay,
-            Items = activeItems
+            Items = items,
+            Discounts = invoice.DiscountApplications
+                .Where(x => !x.IsDelete)
+                .OrderByDescending(x => x.CreateDateTime)
+                .Select(x => BillingDiscountService.Map(x, invoice.RowVersion))
+                .ToList(),
+            CalculationVersions = invoice.CalculationVersions
+                .Where(x => !x.IsDelete)
+                .OrderByDescending(x => x.VersionNo)
+                .Select(x => BillingCalculationService.MapResponse(x, invoice.RowVersion))
+                .ToList()
         };
     }
 }

@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -538,8 +539,27 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilInvoice> BilInvoices { get; set; }
         public DbSet<BilInvoiceItem> BilInvoiceItems { get; set; }
         public DbSet<BilCalculationVersion> BilCalculationVersions { get; set; }
+        public DbSet<BilDiscountApplication> BilDiscountApplications { get; set; }
         public DbSet<BilChargeReceipt> BilChargeReceipts { get; set; }
         public DbSet<BilNumberSeries> BilNumberSeries { get; set; }
+        public DbSet<BilDepositAccount> BilDepositAccounts { get; set; }
+        public DbSet<BilDepositMovement> BilDepositMovements { get; set; }
+        public DbSet<BilSettlement> BilSettlements { get; set; }
+        public DbSet<BilTender> BilTenders { get; set; }
+        public DbSet<BilPaymentAllocation> BilPaymentAllocations { get; set; }
+        public DbSet<BilRefundableCredit> BilRefundableCredits { get; set; }
+        public DbSet<BilRefundCase> BilRefundCases { get; set; }
+        public DbSet<BilRefundLine> BilRefundLines { get; set; }
+        public DbSet<BilAdjustment> BilAdjustments { get; set; }
+        public DbSet<BilWriteOffCase> BilWriteOffCases { get; set; }
+        public DbSet<BilFinalizationRecord> BilFinalizationRecords { get; set; }
+        public DbSet<BilArHandoff> BilArHandoffs { get; set; }
+        public DbSet<BilApHandoff> BilApHandoffs { get; set; }
+        public DbSet<BilHandoffAdjustment> BilHandoffAdjustments { get; set; }
+        public DbSet<BilCashierShift> BilCashierShifts { get; set; }
+        public DbSet<BilCashVarianceReview> BilCashVarianceReviews { get; set; }
+        public DbSet<BilCashierShiftHandover> BilCashierShiftHandovers { get; set; }
+        public DbSet<BilCashierShiftCommand> BilCashierShiftCommands { get; set; }
         public DbSet<MstProcedure> MstProcedures { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }

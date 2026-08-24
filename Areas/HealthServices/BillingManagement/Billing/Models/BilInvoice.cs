@@ -18,6 +18,7 @@ public sealed class BilInvoice : IdentityModel
     public Guid RowVersion { get; set; } = Guid.NewGuid();
     public ICollection<BilInvoiceItem> Items { get; set; } = new List<BilInvoiceItem>();
     public ICollection<BilCalculationVersion> CalculationVersions { get; set; } = new List<BilCalculationVersion>();
+    public ICollection<BilDiscountApplication> DiscountApplications { get; set; } = new List<BilDiscountApplication>();
 }
 
 public static class BillingInvoiceStatuses
