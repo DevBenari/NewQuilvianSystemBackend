@@ -3,12 +3,18 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.2.0` |
+| `contract_version` | `0.3.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | `evidence/03-hospital-domain-architecture.md` revision `0.1` bagian J; `00-interview-decisions.md` revision `3` |
+| `input_revision` | `evidence/03-hospital-domain-architecture.md` revision `0.1` bagian J; `00-interview-decisions.md` revision `5` |
 | Backend SHA | `5afb54b` |
 | Dampak kompatibilitas | Satu arah tulis lintas modul yang baru. Tidak ada kontrak eksternal yang berubah |
+
+> **`0.3.0` sengaja tidak menambah satu integrasi pun.** `RWI-DEC-066` menolak menambah kolom
+> "boleh campur" pada `MstRoom`, sehingga aturan pencampuran kamar dijalankan dengan **membaca**
+> penghuni yang sedang ada — data milik Rawat Inap sendiri. Tidak ada arah tulis baru ke modul lain,
+> dan janji "nol perubahan kolom pada tabel modul lain" tetap utuh. Yang naik hanyalah
+> `contract_version`, supaya seluruh kontrak tetap sebaris.
 
 **Modul ini tidak memanggil satu pun sistem di luar aplikasi Quilvian pada revisi ini.** Seluruh
 integrasi yang dibahas di sini bersifat internal, yaitu antar modul di dalam satu aplikasi dan satu

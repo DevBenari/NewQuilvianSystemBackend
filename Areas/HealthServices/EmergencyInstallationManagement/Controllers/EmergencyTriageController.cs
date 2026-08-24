@@ -71,7 +71,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         )
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
-            IQueryable<TrxEmergencyTriage> query = _dbContext.Set<TrxEmergencyTriage>().AsNoTracking().Where(x => !x.IsDelete);
+            // Level dimuat karena balasan kini membawa nama dan warnanya, bukan hanya id.
+            IQueryable<TrxEmergencyTriage> query = _dbContext.Set<TrxEmergencyTriage>()
+                .AsNoTracking()
+                .Include(x => x.TriageLevel)
+                .Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -543,6 +547,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 Id = x.Id,
                 EmergencyVisitId = x.EmergencyVisitId,
                 TriageLevelId = x.TriageLevelId,
+                TriageLevelName = x.TriageLevel?.Name,
+                TriageLevelColorName = x.TriageLevel?.ColorName,
+                TriageLevelColorHex = x.TriageLevel?.ColorHex,
                 PatientVitalSignId = x.PatientVitalSignId,
                 Sequence = x.Sequence,
                 IsRetriage = x.IsRetriage,

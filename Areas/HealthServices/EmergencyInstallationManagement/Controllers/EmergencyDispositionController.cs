@@ -70,7 +70,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         )
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
-            IQueryable<TrxEmergencyDisposition> query = _dbContext.Set<TrxEmergencyDisposition>().AsNoTracking().Where(x => !x.IsDelete);
+            IQueryable<TrxEmergencyDisposition> query = _dbContext.Set<TrxEmergencyDisposition>()
+                .AsNoTracking()
+                .Include(x => x.DispositionType)
+                .Include(x => x.DestinationServiceUnit)
+                .Include(x => x.DecidedByDoctor)
+                .Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -141,7 +146,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyDisposition", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyDisposition>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<TrxEmergencyDisposition>()
+                .AsNoTracking()
+                .Include(x => x.DispositionType)
+                .Include(x => x.DestinationServiceUnit)
+                .Include(x => x.DecidedByDoctor)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data tindak lanjut IGD tidak ditemukan."));
 
@@ -211,6 +221,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new { EntityId = entity.Id, Controller = "EmergencyDisposition", Action = "Create" }
             );
 
+            await LoadDispositionNamesAsync(entity, cancellationToken);
+
             return Ok(ApiResponse<EmergencyDispositionResponse>.Ok(ToResponse(entity), "Data tindak lanjut IGD berhasil dibuat."));
         }
 
@@ -277,6 +289,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new { EntityId = id, Controller = "EmergencyDisposition", Action = "Update" }
             );
 
+            await LoadDispositionNamesAsync(entity, cancellationToken);
+
             return Ok(ApiResponse<EmergencyDispositionResponse>.Ok(ToResponse(entity), "Data tindak lanjut IGD berhasil diubah."));
         }
 
@@ -295,6 +309,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (!_emergencyDispositionService.CanTransition(entity.DispositionStatus, request.DispositionStatus))
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, $"Perubahan status dari {entity.DispositionStatus} ke {request.DispositionStatus} tidak diperbolehkan."));
 
+            // Membatalkan keputusan tindak lanjut berarti mencabut penentuan ke mana pasien
+            // pergi setelah meninggalkan IGD. Tanpa alasan tertulis, pencabutan itu tidak
+            // dapat ditinjau siapa pun sesudahnya.
+            if (request.DispositionStatus == EmergencyDispositionStatus.Cancelled &&
+                string.IsNullOrWhiteSpace(request.Notes))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan pembatalan wajib diisi ketika tindak lanjut dibatalkan."));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
             entity.DispositionStatus = request.DispositionStatus;
@@ -308,13 +333,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 entity.ExecutedAt ??= now;
                 var visit = await _dbContext.Set<TrxEmergencyVisit>().FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
                 visit.VisitStatus = EmergencyVisitStatus.Disposed;
-                visit.VisitCompletedAt ??= now;
+
+                // VisitCompletedAt sengaja TIDAK diisi di sini, sejalan dengan BE-IGD-008.
+                // "Keputusan tindak lanjut sudah ditetapkan" bukan berarti "urusan pasien di
+                // IGD sudah tuntas": pasien masih dapat menunggu observasi selesai atau
+                // menunggu proses perpindahan. Waktu selesai hanya diisi oleh
+                // PATCH /emergency-visits/{id}/complete setelah closure gate lulus.
                 visit.UpdateDateTime = now;
                 visit.UpdateBy = actorUserId;
             }
-            if (!string.IsNullOrWhiteSpace(request.Notes) && entity.GetType().GetProperty("Notes") != null)
+            if (!string.IsNullOrWhiteSpace(request.Notes))
             {
-                entity.GetType().GetProperty("Notes")?.SetValue(entity, NormalizeText(request.Notes));
+                entity.Notes = NormalizeText(request.Notes);
             }
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
@@ -327,6 +357,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 "Memperbarui proses Emergency Disposition melalui aksi UpdateDispositionStatus.",
                 new { EntityId = id, Controller = "EmergencyDisposition", Action = "UpdateDispositionStatus" }
             );
+
+            await LoadDispositionNamesAsync(entity, cancellationToken);
 
             return Ok(ApiResponse<EmergencyDispositionResponse>.Ok(ToResponse(entity), "Status tindak lanjut IGD berhasil diubah."));
         }
@@ -411,6 +443,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             };
         }
 
+        /// <summary>
+        /// Memuat relasi jenis tindak lanjut, unit tujuan, dan dokter pemutus untuk entity
+        /// yang baru saja ditulis, supaya balasan aksi tulis memuat nama sama seperti balasan
+        /// aksi baca. Tanpa ini layar harus memuat ulang daftar hanya untuk memperoleh nama
+        /// dari data yang baru saja dikirimnya sendiri.
+        /// </summary>
+        private async Task LoadDispositionNamesAsync(
+            TrxEmergencyDisposition entity,
+            CancellationToken cancellationToken)
+        {
+            var entry = _dbContext.Entry(entity);
+
+            if (!entry.Reference(x => x.DispositionType).IsLoaded)
+                await entry.Reference(x => x.DispositionType).LoadAsync(cancellationToken);
+
+            if (entity.DestinationServiceUnitId.HasValue &&
+                !entry.Reference(x => x.DestinationServiceUnit).IsLoaded)
+                await entry.Reference(x => x.DestinationServiceUnit).LoadAsync(cancellationToken);
+
+            if (entity.DecidedByDoctorId.HasValue &&
+                !entry.Reference(x => x.DecidedByDoctor).IsLoaded)
+                await entry.Reference(x => x.DecidedByDoctor).LoadAsync(cancellationToken);
+        }
+
         private static EmergencyDispositionResponse ToResponse(TrxEmergencyDisposition x)
         {
             return new EmergencyDispositionResponse
@@ -418,13 +474,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 Id = x.Id,
                 EmergencyVisitId = x.EmergencyVisitId,
                 DispositionTypeId = x.DispositionTypeId,
+                DispositionTypeCode = x.DispositionType?.Code,
+                DispositionTypeName = x.DispositionType?.Name,
+                RequiresDestinationServiceUnit = x.DispositionType?.RequiresDestinationServiceUnit ?? false,
+                RequiresReferralFacility = x.DispositionType?.RequiresReferralFacility ?? false,
+                ClosesEmergencyVisit = x.DispositionType?.ClosesEmergencyVisit ?? false,
                 DispositionStatus = x.DispositionStatus,
                 DecidedAt = x.DecidedAt,
                 DecidedByDoctorId = x.DecidedByDoctorId,
+                DecidedByDoctorName = x.DecidedByDoctor?.FullName,
                 ConfirmedByUserId = x.ConfirmedByUserId,
                 ConfirmedAt = x.ConfirmedAt,
                 ExecutedAt = x.ExecutedAt,
                 DestinationServiceUnitId = x.DestinationServiceUnitId,
+                DestinationServiceUnitName = x.DestinationServiceUnit?.ServiceUnitName,
                 DestinationFacilityName = x.DestinationFacilityName,
                 ReferralNumber = x.ReferralNumber,
                 DispositionReason = x.DispositionReason,

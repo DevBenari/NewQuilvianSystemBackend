@@ -29,9 +29,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Maste
             builder.Property(x => x.ColorHex).HasMaxLength(20);
             builder.Property(x => x.Description).HasMaxLength(1000);
 
+            // 0 disediakan untuk kategori Hitam yang berada di luar skala antrean, sehingga
+            // kelima nilai skala antrean (1-5) tetap utuh untuk L1 sampai L5.
             builder.HasCheckConstraint(
                 "CK_MstEmergencyTriageLevel_Level",
-                "\"Level\" >= 1 AND \"Level\" <= 5");
+                "\"Level\" >= 0 AND \"Level\" <= 5");
 
             builder.HasCheckConstraint(
                 "CK_MstEmergencyTriageLevel_MaxWaitingMinutes",

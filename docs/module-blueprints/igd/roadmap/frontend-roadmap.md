@@ -306,6 +306,86 @@ Informasi. Aksesibilitas dan privasi tetap mengikat dan tidak pernah menjadi `DE
 
 ---
 
+## 5b. Tambahan setelah roadmap revisi 1 — `FE-IGD-011`
+
+Layar berikut tidak ada pada roadmap revisi 1.
+
+### `FE-IGD-011` — Perawat melanjutkan asuhan keperawatan pada layar pengkajian
+
+| Field | Isi |
+| --- | --- |
+| **Outcome** | Setelah pasien selesai ditriase, perawat membuka satu layar untuk seluruh asuhan keperawatan selama pasien di IGD: pengkajian awal, tanda vital, catatan terintegrasi, nosokomial, observasi, tindak lanjut, tindakan, dan perpindahan |
+| **Trace** | Kebutuhan operasional IGD; `BE-IGD-015` untuk tab nosokomial; endpoint Clinical Management dan IGD yang sudah ada untuk tab lainnya |
+| **Reuse** | `DataTable` dan `DataFilter` untuk daftar pasien; sumber daftar sama dengan triage, yaitu `GET /emergency-visits`; peta status kunjungan dari `FE-IGD-005` |
+| **Scope** | Route `/health-services/emergency-installation-management/emergency-assessment` dan `/[slug]`; slice, hook, view, dan komponen tab; satu entri menu sidebar |
+| **Dependency** | `FE-IGD-005` untuk peta status; `BE-IGD-015` untuk tab nosokomial |
+| **Acceptance criteria** | 1. Daftar hanya memuat pasien yang sudah ditriase dan asuhannya masih berjalan. 2. Ketujuh keadaan layar tertangani pada setiap tab, bukan hanya pada daftar. 3. Bagian yang endpoint-nya belum ada dinyatakan **belum tersambung**, bukan ditampilkan sebagai daftar kosong. 4. Nama pasien tampil sebagai nama; identifier tidak pernah menjadi label. 5. Kolom bertanda sensitif tidak tampil pada kartu identitas yang terlihat sepanjang layar dibuka |
+| **Verification** | Lint bersih; `next build` lulus dan kedua route terdaftar; uji komponen **belum ada** |
+| **Risk/blocker** | Tiga bagian belum tersambung: penunjang medis, pemakaian alat, dan tagihan pasien. Ketiganya ditampilkan apa adanya sebagai belum tersambung. Owner: Product/Domain |
+| **DoD** | Lima kriteria terbukti; tidak ada data contoh yang tampak nyata di layar yang dipakai petugas; lint dan build lulus |
+
+### Mengapa pengkajian dipisahkan dari triage
+
+Keduanya pekerjaan berbeda pada waktu berbeda, dan daftar pasiennya pun berbeda:
+
+| | Triage | Pengkajian |
+| --- | --- | --- |
+| Kapan | Sekali, saat pasien tiba | Berulang, selama pasien di IGD |
+| Menjawab | Seberapa cepat pasien harus dilayani | Bagaimana asuhan pasien berjalan |
+| Daftar pasien | Yang belum dinilai | Yang sudah dinilai dan sedang ditangani |
+| Pelaku | Perawat triage | Perawat pelaksana asuhan |
+
+> **Contoh akibat bila disatukan:** perawat triage membuka layar pada jam sibuk dan menemukan
+> daftar berisi seluruh pasien IGD, termasuk yang sudah ditangani dua jam lalu. Pasien yang
+> baru tiba dan belum dinilai tenggelam di antaranya — padahal merekalah yang sedang menunggu
+> keputusan prioritas.
+
+---
+
+## 5c. Penyesuaian 21 Agustus 2026 — `FE-IGD-008` dan `FE-IGD-009` menempati layar pengkajian
+
+Kedua task tetap berlaku isinya, tetapi **tempatnya berubah**. Roadmap revisi 1 merencanakan
+keduanya sebagai route tersendiri. Keduanya dibangun sebagai bagian layar pengkajian pasien
+(`FE-IGD-011`), yang sudah memiliki tab Tindak Lanjut dan bagian Transfer Pasien dalam keadaan
+baca-saja.
+
+| | Rencana revisi 1 | Yang dibangun |
+| --- | --- | --- |
+| `FE-IGD-008` | Route disposition tersendiri | Tab **Tindak Lanjut** pada layar pengkajian |
+| `FE-IGD-009` | Route transfer tersendiri | Bagian **Transfer Pasien** pada layar pengkajian |
+
+Alasannya satu: perawat sudah membuka layar pengkajian untuk pasien yang sama. Route tersendiri
+berarti ia menutup layar, mencari pasien yang sama di daftar lain, lalu membukanya kembali —
+untuk melanjutkan pekerjaan pada pasien yang sedang ada di hadapannya. Tab baca-saja yang sudah
+ada di sana juga akan menjadi tandingan layar baru, dan dua tempat menampilkan fakta yang sama
+adalah cara paling cepat membuat keduanya berbeda isi.
+
+Yang **tidak** berubah: seluruh acceptance criteria kedua task, termasuk butir 5 `FE-IGD-008`
+(layar tidak boleh menyiratkan tindak lanjut sama dengan kunjungan selesai) dan butir 3
+`FE-IGD-009` (pengaju tidak melihat tombol menerima).
+
+### Keadaan acceptance criteria
+
+| Task | Kriteria | Keadaan |
+| --- | --- | --- |
+| `FE-IGD-008` | 1. Jenis tindak lanjut dipilih dari master | Terpenuhi — `GET /emergency-disposition-types` |
+| | 2. Unit tujuan wajib bila jenisnya mensyaratkan | Terpenuhi — penanda dari master, bukan daftar yang disalin |
+| | 3. Fasilitas rujukan wajib bila jenisnya mensyaratkan | Terpenuhi — sumber penanda sama |
+| | 4. Pembatalan wajib mengisi alasan | Terpenuhi — dijaga layar **dan** backend (`BE-IGD-016`) |
+| | 5. Layar tidak menyiratkan kunjungan selesai | Terpenuhi — pernyataan tetap di formulir dan pada dialog Jalankan |
+| `FE-IGD-009` | 1. Rangkaian status terlihat beserta pelaku dan waktunya | Terpenuhi sebagian — waktu tiap tahap tampil; **nama pelaku belum**, lihat catatan |
+| | 2. Penolakan wajib mengisi alasan | Terpenuhi — dijaga layar **dan** backend (`BE-IGD-016`) |
+| | 3. Pengaju tidak melihat tombol menerima | Terpenuhi — tombol disembunyikan, penegakan tetap di backend |
+| | 4. Ketujuh keadaan layar tertangani | Terpenuhi — lewat `EmergencyAssessmentSection` |
+
+> **Catatan `FE-IGD-009` butir 1.** Waktu setiap tahap sudah tampil, tetapi **nama** pengaju dan
+> penerima belum. `EmergencyTransferResponse` memuat `RequestedByUserId` dan `AcceptedByUserId`
+> sebagai identifier, dan `BE-IGD-016` hanya menambahkan nama unit — bukan nama pengguna.
+> Menampilkan identifier sebagai pengganti nama justru melanggar aturan yang sama, jadi kolom
+> pelaku sengaja belum ditampilkan sampai backend menyediakan namanya.
+
+---
+
 ## 6. Layar yang belum dapat direncanakan
 
 Empat kebutuhan berikut disebut pada decision log tetapi belum punya kontrak backend, sehingga

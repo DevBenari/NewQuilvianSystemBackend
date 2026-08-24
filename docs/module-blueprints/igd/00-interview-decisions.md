@@ -1470,7 +1470,29 @@ titik serah-terima atau data bersama yang langsung dibutuhkan pengkajian keperaw
 | `IGD-DEC-054` | Decision | Pengkajian keperawatan IGD lengkap menjadi proses tersendiri setelah triase. Cakupannya meliputi primary survey ABCDE, secondary survey, tanda vital, nyeri, alergi, riwayat kesehatan yang relevan, risiko keperawatan, intervensi awal sesuai kewenangan, evaluasi atau pengkajian ulang, dan serah terima. Pengkajian tetap terhubung pada encounter IGD yang sama dan selesainya triase tidak berarti pengkajian keperawatan lengkap sudah selesai | Product/Domain Owner, dengan Clinical Governance dan Nursing authority sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval klinis dan keperawatan belum tercatat | — | Jawaban pengguna 20 Agustus 2026; pilihan A pada konfirmasi scope |
 | `IGD-OQ-039` | Open Question | Kapan pengkajian keperawatan lengkap wajib dimulai setelah triase, khususnya untuk pasien Merah yang memerlukan tindakan penyelamatan segera? | Product/Domain Owner + Clinical Governance + Nursing authority | `superseded` oleh `IGD-DEC-055` | Jawaban pengguna 20 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-054` |
 | `IGD-DEC-055` | Decision | Waktu mulai dan kelengkapan pengkajian mengikuti kegawatan. Pasien Merah langsung mendapat tindakan penyelamatan; pemeriksaan klinis serta dokumentasi minimum berjalan bersama resusitasi sejauh aman, sedangkan bagian lengkap diselesaikan setelah pasien stabil. Pasien selain Merah langsung menjalani pengkajian keperawatan setelah triase. Dokumentasi tidak boleh menunda tindakan penyelamatan | Product/Domain Owner, dengan Clinical Governance dan Nursing authority sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval klinis dan keperawatan belum tercatat | — | Jawaban pengguna 20 Agustus 2026; pilihan B untuk `IGD-OQ-039` |
-| `IGD-OQ-040` | Open Question | Bagian pengkajian apa yang wajib terisi agar pengkajian boleh dinyatakan selesai, dan bagaimana mencatat bagian yang tidak dapat dinilai karena kondisi pasien? | Product/Domain Owner + Clinical Governance + Nursing authority | `draft` — memblokir validation matrix dan definisi status selesai pengkajian | — | Tindak lanjut `IGD-DEC-054` dan `IGD-DEC-055` |
+| `IGD-OQ-040` | Open Question | Bagian pengkajian apa yang wajib terisi agar pengkajian boleh dinyatakan selesai, dan bagaimana mencatat bagian yang tidak dapat dinilai karena kondisi pasien? | Product/Domain Owner + Clinical Governance + Nursing authority | `superseded` oleh `IGD-DEC-056` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-054` dan `IGD-DEC-055` |
+| `IGD-DEC-056` | Decision | Syarat kelengkapan pengkajian menyesuaikan kondisi pasien. Data inti tetap wajib. Bagian yang secara klinis tidak relevan boleh ditandai tidak berlaku, sedangkan bagian yang relevan tetapi tidak dapat dinilai wajib disertai alasan. Sistem harus membedakan nilai normal, tidak berlaku, belum dinilai, dan tidak dapat dinilai; sistem tidak boleh mengisi nilai klinis secara otomatis untuk sekadar meloloskan validasi. Aturan ini berlaku antara lain untuk pasien tidak sadar, pasien anak, dan pasien tanpa keluarga atau sumber informasi | Product/Domain Owner, dengan Clinical Governance dan Nursing authority sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval klinis dan keperawatan belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-040` |
+| `IGD-OQ-041` | Open Question | Data apa saja yang menjadi data inti minimum dan harus tersedia sebelum pengkajian boleh dinyatakan selesai? | Product/Domain Owner + Clinical Governance + Nursing authority | `superseded` oleh `IGD-DEC-057` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-056` |
+| `IGD-DEC-057` | Decision | Data inti minimum pengkajian terdiri atas referensi encounter dan pasien definitif atau pasien sementara, identitas perawat pengkaji dan waktu server, sumber informasi, hasil primary survey ABCDE, tanda vital atau alasan tidak dapat diukur, hasil penilaian nyeri, status alergi, risiko utama, intervensi awal, evaluasi, dan serah terima. Seluruh unsur harus memiliki nilai yang sah atau status pengecualian yang diperbolehkan `IGD-DEC-056` sebelum pengkajian dinyatakan selesai. Identitas pasien sementara tidak boleh menghalangi pengkajian | Product/Domain Owner, dengan Clinical Governance dan Nursing authority sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval klinis dan keperawatan belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-041` |
+| `IGD-OQ-042` | Open Question | Siapa yang boleh membuat, menyelesaikan, mengoreksi, dan membatalkan pengkajian keperawatan IGD? | Product/Domain Owner + Nursing authority + Security/Privacy | `superseded` oleh `IGD-DEC-058` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-057` |
+| `IGD-DEC-058` | Decision | Perawat hanya boleh membuat dan menyelesaikan pengkajian bila memiliki penugasan IGD yang aktif dan capability pengkajian yang sesuai. Koreksi dilakukan secara append-only: nilai asli tetap tersimpan, sedangkan koreksi wajib mencatat pelaku, waktu server, dan alasan. Pembatalan hanya diperbolehkan untuk pengkajian duplikat atau keliru oleh perawat yang berwenang atau supervisor sesuai capability. Catatan yang sudah selesai tidak boleh dihapus. Penugasan unit saja tidak memberikan capability klinis dan capability saja tidak melewati batas penugasan unit | Product/Domain Owner, dengan Nursing authority dan Security/Privacy sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval keperawatan dan keamanan belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-042`; konsisten dengan `IGD-DEC-053` |
+| `IGD-OQ-043` | Open Question | Bagaimana memperlakukan pengkajian berstatus selesai yang kemudian terbukti duplikat dibandingkan pengkajian yang isi klinisnya salah? | Product/Domain Owner + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-059` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-058` |
+| `IGD-DEC-059` | Decision | Pengkajian duplikat dan pengkajian dengan kesalahan isi klinis memakai jalur berbeda. Catatan duplikat ditandai `Void` atau batal, tetap dipertahankan, dan wajib menunjuk pengkajian sah yang menggantikannya. Kesalahan isi klinis diperbaiki melalui amendment append-only; nilai asli tetap tersedia dan nilai hasil amendment menjadi nilai efektif terbaru. Seluruh referensi downstream harus tetap dapat ditelusuri ke catatan asal, status void, catatan sah, dan amendment terkait; tidak ada hard delete atau pemutusan referensi | Product/Domain Owner, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval klinis dan keperawatan belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-043` |
+| `IGD-OQ-044` | Open Question | Kapan evaluasi atau pengkajian ulang wajib dilakukan setelah pengkajian awal? | Product/Domain Owner + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-060` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut cakupan evaluasi pada `IGD-DEC-054` |
+| `IGD-DEC-060` | Decision | Evaluasi atau pengkajian ulang wajib mengikuti tingkat kegawatan dan kejadian klinis. Pemicu minimum adalah setelah intervensi, ketika kondisi berubah, pada perpindahan atau serah terima, dan sebelum disposition. Pengkajian ulang juga mengikuti interval SOP per tingkat kegawatan. Nilai interval tidak boleh ditebak atau di-hardcode; nilai tersebut harus dapat dikonfigurasi dari SOP yang disahkan. Interval yang belum dikonfigurasi harus ditandai sebagai belum tersedia dan tidak boleh dianggap patuh atau terlambat secara otomatis. Keterlambatan dokumentasi tidak boleh memblokir tindakan klinis yang dibutuhkan | Product/Domain Owner, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban, approval klinis/keperawatan, dan SOP interval belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-044` |
+| `IGD-OQ-045` | Open Question | Kapan serah terima pengkajian dianggap selesai dan apakah penerima wajib memberikan pengakuan? | Product/Domain Owner + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-061` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-057` dan `IGD-DEC-060` |
+| `IGD-DEC-061` | Decision | Serah terima pengkajian selesai hanya setelah penerima yang berwenang meninjau dan menyatakan menerima. Pengirim mengirim ringkasan dan status menjadi `Pending`; penerima dapat mengubahnya menjadi `Accepted` atau `Rejected`. Penolakan wajib menyimpan alasan, pelaku, dan waktu server. Serah terima yang belum diakui tetap berstatus tertunda dan mengikuti eskalasi yang dapat diaudit. Status tertunda atau penolakan tidak boleh menghentikan pelayanan klinis darurat | Product/Domain Owner, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban, approval klinis/keperawatan, dan aturan waktu eskalasi belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-045` |
+| `IGD-OQ-046` | Open Question | Siapa yang memegang tanggung jawab klinis selama serah terima masih `Pending` atau `Rejected`? | Product/Domain Owner + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-062` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-061` |
+| `IGD-DEC-062` | Decision | Tanggung jawab klinis mengikuti keberadaan fisik pasien. Status serah terima `Pending` atau `Rejected` tidak boleh menyebabkan pasien kehilangan owner klinis. Selama pasien masih berada di unit asal, tanggung jawab klinis tetap pada unit atau perawat pengirim. Setelah pasien berada di unit penerima, pelayanan klinis aktif menjadi tanggung jawab unit penerima. Unit atau perawat pengirim tetap bertanggung jawab melengkapi dan mengoreksi dokumentasi serah terima sampai handover berstatus `Accepted`; sebelum itu handover tetap tercatat sebagai outstanding | Product/Domain Owner, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pengguna menyatakan pilihan B disetujui, tetapi identitas/kewenangan formal pemberi persetujuan serta approval keperawatan dan clinical governance belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan B untuk `IGD-OQ-046`; melengkapi `IGD-DEC-061` |
+| `IGD-OQ-047` | Open Question | Bagaimana batas waktu dan jalur eskalasi handover `Pending` atau `Rejected` tanpa menghambat pelayanan klinis? | Product/Domain Owner + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-063` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-061` dan `IGD-DEC-062` |
+| `IGD-DEC-063` | Decision | Handover `Pending` mengikuti batas waktu berdasarkan tingkat kegawatan. Handover `Rejected` langsung menghasilkan notifikasi kepada pengirim. Jika handover belum diselesaikan, sistem melakukan eskalasi bertahap kepada penanggung jawab shift atau unit. Nilai batas waktu dan urutan eskalasi wajib berasal dari konfigurasi SOP yang disahkan dan tidak boleh di-hardcode. Reminder atau eskalasi tidak boleh otomatis mengubah handover menjadi `Accepted` dan tidak boleh menunda atau menghambat pelayanan klinis | Product/Domain Owner, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban, approval keperawatan/clinical governance, dan SOP waktu eskalasi belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan B untuk `IGD-OQ-047`; melengkapi `IGD-DEC-061` dan `IGD-DEC-062` |
+| `IGD-OQ-048` | Open Question | Bukti sistem apa yang menjadi sumber kebenaran bahwa pasien telah tiba secara fisik di unit penerima sehingga owner pelayanan klinis berpindah? | Product/Domain Owner + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-064` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-062`; harus tetap terpisah dari status penerimaan dokumentasi handover |
+| `IGD-DEC-064` | Decision | Petugas unit penerima yang berwenang mencatat event `Arrived` sebagai bukti sistem bahwa pasien telah tiba secara fisik. Event ini wajib mencatat pelaku, waktu server, dan waktu kedatangan aktual apabila pencatatannya terlambat. `Arrived` memindahkan owner pelayanan klinis aktif ke unit penerima, tetapi tidak otomatis mengubah handover dokumentasi menjadi `Accepted` | Product/Domain Owner, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban serta approval keperawatan dan clinical governance belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-048`; memperinci trigger pada `IGD-DEC-062` |
+| `IGD-OQ-049` | Open Question | Bagaimana menjaga ownership dan audit ketika pasien sudah tiba tetapi event `Arrived` belum dapat dicatat karena downtime atau kondisi darurat? | Product/Domain Owner + Nursing authority + Clinical Governance + Integration/Operations owner | `superseded` oleh `IGD-DEC-065` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-062` dan `IGD-DEC-064` |
+| `IGD-DEC-065` | Decision | Jika event `Arrived` tidak dapat dicatat karena downtime atau kondisi darurat, petugas memakai catatan downtime/manual dan melakukan pencatatan susulan setelah sistem tersedia. Tanggung jawab klinis berpindah ke unit penerima sejak waktu kedatangan aktual, bukan sejak waktu entri susulan. Entri susulan wajib menyimpan waktu kedatangan aktual, waktu server saat pencatatan, pelaku, alasan keterlambatan, dan referensi catatan downtime/manual | Product/Domain Owner, dengan Nursing authority, Clinical Governance, dan Integration/Operations owner sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban, approval owner terkait, dan SOP downtime belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-049`; melengkapi failure behavior `IGD-DEC-064` |
+| `IGD-OQ-050` | Open Question | Bagaimana memperbaiki event `Arrived` yang salah pasien, salah unit, atau salah waktu tanpa menghilangkan histori perpindahan ownership? | Product/Domain Owner + Nursing authority + Clinical Governance + Security/Privacy | `superseded` oleh `IGD-DEC-066` | Jawaban pengguna 21 Agustus 2026; authority unverified | Tindak lanjut `IGD-DEC-062`, `IGD-DEC-064`, dan `IGD-DEC-065` |
+| `IGD-DEC-066` | Decision | Koreksi event `Arrived` bersifat append-only dan mengikuti tingkat dampak. Kesalahan waktu dapat diperbaiki melalui amendment oleh petugas berwenang dengan alasan. Kesalahan pasien atau unit memerlukan reversal dan persetujuan petugas kedua atau supervisor; pembuat dan pemberi persetujuan harus berbeda. Event asli tidak dihapus, tetapi ditandai tidak berlaku dan dihubungkan ke amendment atau event pengganti yang sah | Product/Domain Owner, dengan Nursing authority, Clinical Governance, dan Security/Privacy sebagai approver akhir | `draft` — pilihan pengguna sudah jelas, tetapi identitas/kewenangan formal pemberi jawaban dan approval owner terkait belum tercatat | — | Jawaban pengguna 21 Agustus 2026; pilihan A untuk `IGD-OQ-050`; melengkapi tata kelola koreksi `IGD-DEC-064` dan `IGD-DEC-065` |
+| `IGD-OQ-051` | Open Question | Apa yang wajib dilakukan terhadap unit, petugas, dan catatan downstream yang telah memakai event `Arrived` sebelum event tersebut dikoreksi atau dibalik? | Product/Domain Owner + Nursing authority + Clinical Governance + Integration owner | `draft` — memblokir aturan propagasi koreksi, notifikasi, dan penanganan dampak downstream | — | Tindak lanjut `IGD-DEC-066`; koreksi tidak boleh dilakukan diam-diam |
 
 ### Acceptance criteria awal dari `IGD-DEC-054`
 
@@ -1492,6 +1514,120 @@ titik serah-terima atau data bersama yang langsung dibutuhkan pengkajian keperaw
    instruksi dokter sebagai pemicu umum.
 9. Sistem tidak boleh menganggap tertundanya dokumentasi lengkap selama resusitasi sebagai
    alasan untuk menolak atau menghentikan tindakan klinis.
+10. Validasi kelengkapan menyesuaikan usia, kesadaran, kondisi klinis, dan ketersediaan
+    sumber informasi pasien.
+11. Bagian yang tidak relevan dan bagian yang relevan tetapi tidak dapat dinilai memiliki
+    makna berbeda dan tidak boleh disimpan sebagai keadaan yang sama.
+12. Bagian yang relevan tetapi tidak dapat dinilai wajib menyimpan alasan yang dapat dibaca
+    oleh petugas berikutnya dan auditor klinis.
+13. Sistem tidak boleh menganggap field kosong sebagai `Normal`, `Tidak Ada`, atau hasil
+    klinis lain tanpa pilihan eksplisit dari perawat.
+14. Pengkajian tidak dapat berstatus selesai bila referensi encounter, identitas pengkaji,
+    waktu, sumber informasi, ABCDE, tanda vital, nyeri, status alergi, risiko utama,
+    intervensi, evaluasi, atau serah terima belum memiliki nilai atau pengecualian yang sah.
+15. Waktu pencatatan inti berasal dari server dan identitas pengkaji berasal dari pengguna
+    yang terautentikasi, bukan teks bebas yang dapat mengganti pelaku.
+16. Pasien dengan identitas sementara tetap dapat menjalani pengkajian pada encounter yang
+    sama; rekonsiliasi identitas kemudian tidak membuat pengkajian baru.
+17. Alasan tanda vital tidak dapat diukur harus tersimpan sebagai alasan, bukan diubah
+    menjadi angka nol atau nilai normal.
+18. Permintaan membuat atau menyelesaikan pengkajian ditolak bila penugasan IGD tidak aktif
+    atau capability pengkajian tidak dimiliki.
+19. Koreksi tidak mengubah atau menghapus nilai lama; pembaca dapat mengetahui nilai
+    efektif terbaru beserta riwayat koreksinya.
+20. Koreksi tanpa alasan, pelaku terautentikasi, atau waktu server harus ditolak.
+21. Penghapusan permanen terhadap pengkajian yang sudah selesai tidak tersedia.
+22. Pembatalan hanya dapat diajukan ketika keberadaan catatannya keliru, termasuk catatan
+    duplikat; pembatalan tetap menyimpan pelaku, waktu, alasan, serta rekam asal untuk audit.
+23. Catatan duplikat berstatus void tidak boleh dibaca sebagai pengkajian klinis yang masih
+    berlaku dan wajib menunjuk catatan yang sah.
+24. Kesalahan nilai klinis tidak diselesaikan dengan void bila catatan memang mewakili
+    pengkajian yang benar-benar dilakukan; perbaikannya memakai amendment.
+25. Consumer downstream harus dapat menentukan nilai efektif terbaru tanpa kehilangan
+    kemampuan menelusuri nilai asli dan alasan perubahan.
+26. Operasi void atau amendment tidak boleh menghapus referensi yang sudah dibuat oleh
+    dokumentasi klinis lain.
+27. Pengkajian ulang wajib dapat ditautkan ke pemicu kejadian klinis atau jadwal SOP yang
+    mendasarinya.
+28. Intervensi, perubahan kondisi, perpindahan/serah terima, dan keadaan sebelum disposition
+    masing-masing dapat memicu pengkajian ulang tanpa menimpa pengkajian sebelumnya.
+29. Sistem tidak boleh membuat angka interval sendiri ketika konfigurasi SOP belum tersedia.
+30. Interval yang belum dikonfigurasi tidak boleh menghasilkan klaim pasien patuh atau
+    terlambat terhadap interval pengkajian ulang.
+31. Pengkajian ulang yang terlambat tetap dapat dicatat dan tindakan klinis tetap dapat
+    dilakukan; keterlambatan disimpan untuk audit dan tindak lanjut.
+32. Tindakan mengirim serah terima hanya menghasilkan status `Pending` dan belum membuktikan
+    bahwa penerima telah mengambil alih.
+33. Hanya penerima berwenang yang dapat menghasilkan status `Accepted` atau `Rejected`.
+34. Penolakan tanpa alasan, identitas penerima, atau waktu server harus ditolak.
+35. Riwayat pengiriman, penerimaan, penolakan, pengiriman ulang, dan eskalasi tidak boleh
+    ditimpa.
+36. Serah terima yang tertunda atau ditolak tidak boleh menutup akses terhadap tindakan
+    klinis darurat yang dibutuhkan pasien.
+37. Selama pasien masih berada di unit asal, sistem harus menunjukkan unit atau perawat
+    pengirim sebagai owner pelayanan klinis aktif.
+38. Ketika keberadaan fisik pasien tercatat sudah berpindah ke unit penerima, sistem harus
+    menunjukkan unit penerima sebagai owner pelayanan klinis aktif walaupun handover masih
+    `Pending` atau `Rejected`.
+39. Handover `Pending` atau `Rejected` tidak boleh menghasilkan keadaan tanpa owner klinis
+    maupun mengembalikan tanggung jawab klinis pasien yang sudah berada di unit penerima
+    kepada unit asal.
+40. Perpindahan owner klinis tidak otomatis mengubah handover menjadi `Accepted`.
+41. Sampai penerima menyatakan `Accepted`, unit atau perawat pengirim tetap menjadi owner
+    penyelesaian dokumentasi dan wajib dapat melengkapi atau mengoreksi ringkasan serah
+    terima tanpa mengubah histori pengiriman sebelumnya.
+42. Sistem harus dapat menampilkan secara terpisah owner pelayanan klinis aktif dan owner
+    penyelesaian dokumentasi handover agar pengguna tidak menganggap keduanya selalu pihak
+    yang sama.
+43. Handover `Pending` harus memperoleh batas waktu berdasarkan tingkat kegawatan dari
+    konfigurasi SOP aktif, bukan dari angka yang ditanam langsung dalam aplikasi.
+44. Handover `Rejected` harus langsung mengirim notifikasi kepada pengirim tanpa menunggu
+    batas waktu `Pending` berakhir.
+45. Handover yang belum selesai setelah batas waktunya harus dieskalasikan secara bertahap
+    kepada penanggung jawab shift atau unit sesuai konfigurasi SOP.
+46. Setiap reminder dan eskalasi harus mencatat handover, penerima notifikasi, tahap
+    eskalasi, waktu server, dan hasil pengiriman agar dapat diaudit.
+47. Reminder atau eskalasi tidak boleh otomatis mengubah status menjadi `Accepted`, karena
+    hanya penerima berwenang yang dapat menyatakan penerimaan.
+48. Kegagalan pengiriman notifikasi atau handover yang melewati batas waktu tidak boleh
+    memblokir pelayanan klinis, tetapi tetap harus tercatat sebagai outstanding dan dapat
+    dilihat oleh pihak yang bertanggung jawab.
+49. Jika konfigurasi SOP untuk tingkat kegawatan terkait belum tersedia, sistem tidak boleh
+    menebak batas waktu atau menyatakan handover patuh maupun terlambat; status konfigurasi
+    yang belum tersedia harus terlihat dan pelayanan klinis tetap berjalan.
+50. Hanya petugas unit penerima yang berwenang yang dapat mencatat event `Arrived`.
+51. Event `Arrived` harus menyimpan identitas pelaku dan waktu pencatatan dari server.
+52. Jika pencatatan dilakukan setelah pasien tiba, event harus membedakan waktu kedatangan
+    aktual dari waktu pencatatan server agar keterlambatan dokumentasi dapat ditelusuri.
+53. Event `Arrived` harus memindahkan owner pelayanan klinis aktif ke unit penerima.
+54. Event `Arrived` tidak boleh otomatis mengubah handover menjadi `Accepted`; penerimaan
+    dokumentasi tetap memerlukan tindakan terpisah dari penerima berwenang.
+55. Permintaan `Arrived` yang dikirim ulang tidak boleh menghasilkan perpindahan owner atau
+    event kedatangan ganda.
+56. Ketika sistem tidak tersedia, pelayanan dan perpindahan tanggung jawab klinis tidak
+    boleh menunggu pencatatan event elektronik.
+57. Catatan downtime/manual harus dapat direferensikan secara unik oleh entri susulan agar
+    auditor dapat mencocokkan kejadian fisik dengan pencatatan elektronik.
+58. Entri susulan harus menyimpan waktu kedatangan aktual secara terpisah dari waktu server
+    saat data dimasukkan.
+59. Entri susulan tanpa pelaku terautentikasi, alasan keterlambatan, atau referensi catatan
+    downtime/manual harus ditolak.
+60. Sistem harus merekonstruksi owner klinis berdasarkan waktu kedatangan aktual yang sah,
+    tanpa menyamarkan bahwa event elektronik dicatat kemudian.
+61. Pencatatan susulan yang dikirim ulang untuk referensi downtime yang sama tidak boleh
+    membuat event kedatangan atau perpindahan owner ganda.
+62. Kesalahan waktu kedatangan harus diperbaiki melalui amendment yang menyimpan nilai
+    lama, nilai baru, pelaku, waktu server, dan alasan koreksi.
+63. Kesalahan pasien atau unit tidak boleh diselesaikan dengan mengubah atau menghapus event
+    asli secara langsung.
+64. Reversal akibat salah pasien atau unit harus diajukan oleh petugas berwenang dan
+    disetujui petugas kedua atau supervisor dengan identitas pengguna berbeda.
+65. Event yang dibalik harus tetap tersedia untuk audit, ditandai tidak berlaku, dan
+    menunjuk event pengganti yang sah bila pengganti diperlukan.
+66. Sistem harus dapat merekonstruksi urutan event asli, permintaan koreksi, persetujuan atau
+    penolakan, reversal, serta event pengganti tanpa kehilangan histori ownership.
+67. Permintaan amendment atau reversal tanpa alasan, pelaku terautentikasi, dan waktu server
+    harus ditolak.
 
 **Contoh:** setelah triase pasien selesai, perawat melanjutkan pengkajian keperawatan pada
 encounter yang sama. Sistem tidak boleh menandai pengkajian lengkap hanya karena kategori
@@ -1504,9 +1640,1235 @@ Riwayat kesehatan lengkap tidak boleh menjadi prasyarat untuk membuka atau menca
 tindakan tersebut. Setelah kondisi pasien stabil, perawat melengkapi bagian pengkajian yang
 tertunda pada encounter yang sama.
 
+**Contoh kelengkapan kontekstual:** pasien dewasa datang tidak sadar tanpa keluarga. Bagian
+riwayat alergi tetap relevan, tetapi belum dapat diperoleh dari pasien atau keluarga. Perawat
+tidak boleh memilih `Tidak Ada Alergi` hanya agar formulir selesai. Perawat mencatat bahwa
+alergi tidak dapat dinilai beserta alasannya. Sebaliknya, pertanyaan perkembangan khusus
+anak dapat ditandai tidak berlaku karena pasien adalah orang dewasa.
+
+**Contoh data inti:** pasien belum teridentifikasi definitif dan memakai identitas sementara.
+Perawat tetap mencatat ABCDE, tanda vital, nyeri, status alergi, risiko, intervensi, evaluasi,
+dan serah terima pada encounter tersebut. Ketika identitas pasien kemudian ditemukan,
+sistem mempertahankan pengkajian yang sama dan hanya merekonsiliasi referensi pasien sesuai
+workflow identitas yang berwenang.
+
+**Contoh kewenangan:** seorang perawat memiliki penugasan aktif di IGD tetapi belum memiliki
+capability pengkajian. Sistem menolak penyelesaian pengkajian. Setelah capability diberikan
+melalui proses yang berwenang, perawat dapat menyelesaikannya. Jika kemudian ada kesalahan
+isi, perawat membuat koreksi beralasan; sistem mempertahankan nilai sebelumnya dan tidak
+menghapus catatan yang sudah selesai.
+
+**Contoh void dan amendment:** dua pengkajian tidak sengaja dibuat untuk pemeriksaan yang
+sama. Perawat berwenang menandai salah satunya void dan menghubungkannya ke pengkajian yang
+sah. Bila pada pengkajian sah tekanan darah tertulis `120/80` padahal catatan sumber yang
+benar adalah `170/100`, perawat tidak membatalkan seluruh pengkajian. Perawat membuat
+amendment beralasan sehingga `170/100` menjadi nilai efektif, sementara `120/80` tetap dapat
+ditelusuri sebagai nilai asli.
+
+**Contoh pengkajian ulang:** setelah pemberian intervensi awal, perawat mencatat respons
+pasien sebagai pengkajian ulang baru. Ketika pasien kemudian akan dipindahkan, perawat
+melakukan pengkajian ulang sebelum serah terima. Jika SOP interval per tingkat kegawatan
+belum tersedia di konfigurasi, sistem tidak menebak angka menit dan tidak memberi label
+patuh atau terlambat, tetapi pemicu berbasis kejadian klinis tetap berlaku.
+
+**Contoh serah terima:** perawat IGD mengirim ringkasan kepada perawat unit penerima. Status
+menjadi `Pending`, bukan langsung selesai. Jika penerima menemukan informasi penting belum
+jelas, penerima menolak dengan alasan dan status menjadi `Rejected`. Pengirim memperbaiki
+atau melengkapi ringkasan lalu mengirim ulang. Seluruh kejadian tetap tersimpan, sementara
+pelayanan yang diperlukan pasien terus berjalan.
+
+**Contoh ownership selama handover:** ketika pasien masih berada di IGD dan handover ke
+unit rawat inap berstatus `Pending`, IGD tetap menjadi owner pelayanan klinis. Setelah pasien
+secara fisik tiba di unit rawat inap, unit tersebut menjadi owner pelayanan klinis aktif
+meskipun handover masih `Rejected` karena ringkasannya belum lengkap. Perawat IGD tetap wajib
+memperbaiki ringkasan sampai penerima menyatakan `Accepted`, tetapi kekurangan dokumentasi
+tersebut tidak membuat pasien kehilangan owner klinis di unit rawat inap.
+
+**Contoh eskalasi:** handover pasien dengan tingkat kegawatan tertentu masih `Pending`.
+Sistem memakai batas waktu dari konfigurasi SOP aktif dan mengirim reminder ketika batas
+tersebut tercapai. Jika penerima menolak ringkasan, sistem langsung memberi tahu pengirim.
+Apabila pengirim belum menyelesaikannya, sistem meneruskan eskalasi kepada penanggung jawab
+shift lalu unit sesuai urutan SOP. Eskalasi tidak mengubah status menjadi `Accepted` dan
+tidak menghentikan pelayanan pasien.
+
+**Contoh event kedatangan:** pasien tiba di unit rawat inap pada pukul 14.05 dan petugas
+penerima berwenang mencatat `Arrived`. Sistem menyimpan identitas petugas dan waktu server,
+lalu memindahkan owner pelayanan klinis aktif ke unit rawat inap. Jika ringkasan handover
+masih belum lengkap, status dokumentasinya tetap `Pending` atau `Rejected`, bukan otomatis
+`Accepted`.
+
+**Contoh downtime:** pasien tiba di unit rawat inap pukul 14.05 ketika sistem tidak dapat
+digunakan. Petugas penerima mencatat kedatangan pada formulir downtime dan langsung menjadi
+owner pelayanan klinis karena pasien sudah berada di unit tersebut. Sistem kembali tersedia
+pukul 14.40. Petugas membuat entri susulan yang menyimpan pukul 14.05 sebagai waktu
+kedatangan aktual, pukul 14.40 sebagai waktu pencatatan server, identitas pelaku, alasan
+keterlambatan, dan referensi formulir downtime. Sistem tidak boleh menyamarkan seolah-olah
+entri elektronik dibuat pukul 14.05.
+
+**Contoh koreksi:** petugas mencatat pasien tiba pukul 14.50, tetapi bukti kedatangan yang
+sah menunjukkan pukul 14.05. Petugas berwenang membuat amendment beralasan; sistem tetap
+menyimpan kedua nilai dan memakai nilai hasil amendment sebagai waktu efektif. Jika event
+ternyata dicatat untuk pasien atau unit yang salah, petugas mengajukan reversal dan petugas
+kedua atau supervisor menyetujuinya. Event asli tetap terlihat sebagai tidak berlaku dan
+ditautkan ke event pengganti yang benar.
+
 ### Blocker pass berjalan
 
-Urutan antara tindakan penyelamatan dan dokumentasi telah dipilih pada `IGD-DEC-055`, tetapi
-definisi data minimum, field wajib, alasan bagian tidak dapat dinilai, serta syarat status
-selesai belum diputuskan. Bagian validation matrix dan state pengkajian harus berhenti sampai
-`IGD-OQ-040` ditutup oleh owner berwenang.
+Urutan tindakan dan dokumentasi, kelengkapan, data inti, kewenangan, koreksi, void,
+pengkajian ulang, pengakuan serah terima, serta pembagian ownership klinis dan dokumentasi
+telah dipilih pada `IGD-DEC-055` sampai `IGD-DEC-062`. Keputusan terakhir tetap menunggu
+pencatatan identitas dan kewenangan formal pemberi persetujuan serta approval Nursing
+authority dan Clinical Governance. Aturan batas waktu dan jalur eskalasi untuk handover
+`Pending` atau `Rejected` telah dipilih pada `IGD-DEC-063`, tetapi nilai waktunya masih
+menunggu SOP yang disahkan. Event `Arrived` sebagai sumber kebenaran sistem untuk perpindahan
+owner klinis telah dipilih pada `IGD-DEC-064`. Failure behavior ketika event tersebut belum
+dapat dicatat akibat downtime atau kondisi darurat telah dipilih pada `IGD-DEC-065`, tetapi
+SOP downtime masih menunggu bukti dan approval. Mekanisme koreksi atau reversal event
+`Arrived` yang salah telah dipilih pada `IGD-DEC-066`. Propagasi koreksi kepada unit,
+petugas, dan catatan downstream yang telah memakai event lama belum diputuskan.
+
+---
+
+## Amendment Pass 2026-08-24 — Kaji Ulang Menyeluruh IGD: Pendaftaran sampai Transfer ke Rawat Inap
+
+| Field | Value |
+| --- | --- |
+| Blueprint ID | `IGD-BP-001` |
+| Revision dasar | `4` |
+| Status pass | `draft` — wawancara berjalan; **bukan** approval amendment |
+| Backend SHA saat pass dimulai | `dd64c16` (branch `rizkiG`, 21 Agustus 2026) |
+| Frontend SHA saat pass dimulai | `96a912011` (branch `RizkiV2`, 21 Agustus 2026) |
+| SHA pada capability map revision 2 | Backend `e5331a0`, Frontend `08c84d371` |
+| Akibat perbedaan SHA | `01-existing-capability-map.md` **berpotensi basi**. Pass ini memakai pembacaan source langsung tanggal 24 Agustus 2026 sebagai bukti, bukan capability map |
+| Contract dasar | API, State, Validation, Integration, dan Permission/Audit `0.2.0` |
+| Pemicu | Permintaan pengguna 24 Agustus 2026: audit menyeluruh proses bisnis IGD dari Pendaftaran sampai Transfer ke Rawat Inap, lintas frontend, kontrak API, backend, entity, basis data, integrasi, lifecycle, dan jejak audit |
+
+### Batas scope pass ini
+
+**Satu kalimat batas:** pass ini menutup aturan bisnis satu episode pasien IGD, sejak pasien
+tiba di IGD sampai tanggung jawab klinisnya berpindah ke unit rawat inap penerima.
+
+**Di dalam scope:**
+
+1. pendaftaran pasien IGD, termasuk pasien tanpa identitas dan pendaftaran sementara;
+2. triase dan penilaian ulang (retriase);
+3. penetapan dokter pemeriksa setelah triase;
+4. pengkajian keperawatan dan pengkajian medis di IGD, termasuk primary survey ABCDE;
+5. pemantauan berkala: tanda vital serial, GCS, nyeri, respons pasien, perburukan kondisi;
+6. permintaan dan pelaksanaan penunjang, obat, tindakan, dan konsultasi **sebatas titik
+   sentuh IGD** — aturan internal modul Laboratorium, Radiologi, dan Farmasi tetap milik
+   modul masing-masing;
+7. keputusan tindak lanjut (disposition) beserta koreksinya;
+8. permintaan rawat inap, unit tujuan, permintaan dan penetapan tempat tidur;
+9. kesiapan pindah, perpindahan internal, serah terima klinis, perpindahan fisik, kedatangan,
+   penerimaan, dan penutupan episode IGD;
+10. kepemilikan klinis pasien (siapa yang bertanggung jawab) pada setiap tahap;
+11. jejak audit, koreksi, pembatalan, dan perilaku saat gagal untuk seluruh butir di atas.
+
+**Di luar scope pass ini — milik modul lain:**
+
+| Kemampuan | Pemilik | Alasan |
+| --- | --- | --- |
+| Aturan internal pemeriksaan laboratorium dan radiologi | Modul Diagnostic Services (**belum ada di source**) | IGD hanya memesan dan menerima hasil |
+| Aturan racik, telaah, dan penyerahan obat | Modul Farmasi (`PharmacyManagement`) | Sudah ada; IGD hanya titik pemesanan dan pemberian |
+| Aturan tarif, klaim, dan penagihan | Modul Billing (`BillingManagement`) | `IGD-DEC-021` sudah memisahkan penutupan klinis dari penagihan |
+| Aturan internal perawatan di bangsal rawat inap | Modul Rawat Inap (**belum ada di source**) | IGD berhenti pada titik serah terima |
+| Aturan master pengguna, jabatan, dan unit organisasi | Modul Corporate/HR | Dibutuhkan IGD, tetapi bukan IGD yang memutuskan bentuknya |
+| Bentuk menu, route, tab, warna, dan layout | `DEV_DISCRETION` sesuai hierarchy kewenangan UI | Tidak ditetapkan agent |
+
+### Fakta yang ditemukan dari source, bukan dari wawancara
+
+Seluruh butir di bawah adalah **Fact** hasil pembacaan source pada SHA di atas. Butir ini
+tidak ditanyakan kepada pengguna.
+
+#### F-1. Alur pendaftaran IGD yang benar-benar berjalan
+
+Layar pendaftaran memanggil tiga endpoint berurutan:
+
+| Urutan | Endpoint | Akibat |
+| --- | --- | --- |
+| 1 | `POST /api/v1/health-services/patient-management/master-data/patients` | Hanya bila pasien baru |
+| 2 | `POST /api/v1/health-services/registration-management/patient-encounters` | Membuat kunjungan pasien |
+| 3 | `POST /api/v1/health-services/emergency-installation-management/emergency-visits` | Membuat kunjungan IGD |
+
+Bukti: `use-emergency-registration.js` baris 909–1035.
+
+Langkah 2 dan 3 **tidak berada dalam satu transaksi**. Bila langkah 3 gagal, encounter
+langkah 2 sudah tersimpan. Kode sudah menyadari ini dan menahan hasil langkah 2 supaya
+percobaan berikutnya memakai encounter yang sama, tetapi bila petugas menutup layar,
+encounter itu menjadi **encounter menggantung** tanpa kunjungan IGD dan tanpa jalan
+pembersihan.
+
+#### F-2. Jenis kunjungan IGD dipaksa menjadi Rawat Jalan
+
+`EmergencyVisitService.ValidateRequestAsync` menolak encounter yang jenisnya bukan
+`EncounterType.Outpatient`, dengan pesan "Jenis kunjungan pasien IGD harus OP".
+
+Padahal enum `EncounterType` **sudah memiliki nilai `Emergency = 2`** yang tidak pernah
+dipakai satu pun jalur IGD.
+
+#### F-3. Pendaftaran IGD tidak membuat antrean
+
+Tidak ada satu pun jalur yang membuat baris `TrxQueue` untuk pasien IGD. Ini konsisten
+dengan sifat IGD yang tidak mengantre. Akibatnya diuraikan pada F-8.
+
+#### F-4. Tidak ada penjagaan episode ganda
+
+Yang dijaga hanya "satu encounter hanya boleh punya satu kunjungan IGD" lewat index unik pada
+`TrxEmergencyVisit.EncounterId`. Tidak ada pemeriksaan yang mencegah **pasien yang sama**
+memiliki dua encounter IGD aktif sekaligus.
+
+Contoh: pasien Budi didaftarkan pukul 08.00, lalu petugas lain mendaftarkannya lagi pukul
+08.05 karena mengira belum terdaftar. Sistem menerima keduanya. Sekarang ada dua episode IGD
+aktif untuk satu orang, dengan triase, tanda vital, dan tindak lanjut yang terpecah dua.
+
+#### F-5. Pengaturan IGD tersimpan tetapi tidak menjalankan apa pun
+
+Empat kolom pada `MstEmergencySetting` **hanya disimpan dan divalidasi rentangnya**, tidak
+pernah dipakai untuk memutuskan apa pun dalam alur kerja:
+
+| Kolom | Maksud yang tersirat dari namanya | Dipakai memutuskan? |
+| --- | --- | --- |
+| `AutoCreateProvisionalEncounter` | Membuat encounter sementara otomatis | **Tidak** |
+| `ImmediateCareLevelThreshold` | Batas level yang boleh langsung ditangani | **Tidak** |
+| `RequireRegistrationBeforeTreatmentFromLevel` | Level yang wajib daftar dulu | **Tidak** |
+| `RequireTriageBeforeStandardRegistration` | Triase dulu baru daftar lengkap | **Tidak** |
+
+Satu-satunya sumber izin "boleh ditangani sebelum administrasi selesai" adalah
+`MstEmergencyTriageLevel.AllowsTreatmentBeforeRegistration`, yang disalin ke
+`TrxEmergencyTriage.ImmediateCareAllowed` lalu ke `TrxEmergencyVisit.IsImmediateCareAllowed`.
+
+#### F-6. Penetapan dokter hanya menimpa satu kolom
+
+Layar triase memanggil
+`PATCH /api/v1/health-services/registration-management/patient-encounters/{id}/doctor`.
+Endpoint itu hanya menulis `TrxPatientEncounter.DoctorId`.
+
+Yang **tidak** ada: riwayat penetapan, waktu penetapan, siapa yang menetapkan (selain
+`UpdateBy` yang tertimpa perubahan berikutnya), alasan, konsep DPJP, penerimaan oleh dokter,
+dan kaitan ke hasil triase yang mendasarinya. Menetapkan dokter kedua menghapus jejak dokter
+pertama.
+
+#### F-7. Status kunjungan dapat mundur, melewati aturan transisinya sendiri
+
+`EmergencyVisitService.CanTransition` mendefinisikan transisi yang sah. Tetapi dua tempat
+menulis `visit.VisitStatus = Triaged` **secara langsung tanpa memanggil `CanTransition`**:
+
+- `EmergencyTriageController.Create` ketika triase langsung berstatus `Completed`;
+- `EmergencyTriageController.UpdateTriageStatus` ketika triase menjadi `Completed`.
+
+Akibat nyata: pasien yang sudah `InTreatment` lalu dinilai ulang akan **kembali** ke
+`Triaged`. Lebih jauh, `UpdateTriageStatus` tidak memeriksa status kunjungan sama sekali,
+sehingga triase yang masih `Draft` pada kunjungan yang sudah `Disposed` dapat diselesaikan
+dan **membuka kembali kunjungan yang sudah ditutup**.
+
+#### F-8. Rantai wajib yang memutus pencatatan klinis IGD
+
+Empat tabel klinis mewajibkan kolom yang tidak pernah ada pada pasien IGD:
+
+| Tabel | Kolom wajib | Rantai kebutuhannya | Akibat pada IGD |
+| --- | --- | --- | --- |
+| `TrxPatientAssessment` | `QueueId` wajib | Butuh `TrxQueue` | Pengkajian keperawatan **tidak dapat dibuat** untuk pasien IGD |
+| `TrxDoctorConsultation` | `QueueId` wajib | Butuh `TrxQueue` | Konsultasi dokter tidak dapat dibuat |
+| `TrxPatientDiagnosis` | `ConsultationId` wajib | Butuh konsultasi | Diagnosis medis IGD tidak dapat dicatat |
+| `TrxPatientProcedure` | `ConsultationId` wajib | Butuh konsultasi | Tindakan tidak dapat dicatat |
+| `TrxPrescription` | `ConsultationId` wajib | Butuh konsultasi | Resep IGD tidak dapat dibuat |
+
+`TrxEmergencyProcedureDetail.PatientProcedureId` juga wajib, sehingga detail tindakan IGD
+ikut terkunci di ujung rantai yang sama.
+
+Yang **tidak** terkunci: `TrxPatientVitalSign` dan `TrxPatientIntegratedProgressNote`,
+karena `QueueId` dan `ConsultationId` keduanya boleh kosong.
+
+#### F-9. Layar pengkajian IGD sebagian besar hanya membaca
+
+Layar `emergency-assessment` memiliki sembilan tab. Yang benar-benar dapat menyimpan hanya
+tujuh:
+
+| Tab | Dapat menyimpan? | Endpoint tulis |
+| --- | --- | --- |
+| Assesmen Awal IGD | **Tidak** — hanya menampilkan daftar | — |
+| Tanda Vital | Ya | `POST .../clinical-management/patient-vital-signs` |
+| SOAP | Ya | `POST .../clinical-management/patient-integrated-progress-notes` |
+| Nosokomial | Ya | `POST .../clinical-management/nosocomial-infections` |
+| Catatan Terintegrasi | Ya | `POST .../clinical-management/patient-integrated-progress-notes` |
+| Observasi | Ya | `POST .../emergency-observations` |
+| Tindak Lanjut | Ya | `POST .../emergency-dispositions` |
+| Resep | **Tidak** — hanya menampilkan daftar | — |
+| Transfer Pasien | Ya | `POST .../emergency-transfers` |
+
+#### F-10. Urutan tindak lanjut dan perpindahan saling mengunci
+
+Tiga aturan yang sudah ada bertabrakan:
+
+1. `EmergencyDispositionController.UpdateDispositionStatus` mengubah kunjungan menjadi
+   `Disposed` begitu tindak lanjut dijalankan (`Executed`);
+2. `EmergencyTransferService.ValidateRequestAsync` **menolak** pembuatan perpindahan bila
+   kunjungan sudah `Disposed`;
+3. `EmergencyDispositionService.ValidateVisitClosureAsync` **mewajibkan** kunjungan sudah
+   `Disposed` sebelum boleh diselesaikan, dan mewajibkan tidak ada perpindahan yang belum
+   tuntas.
+
+Akibat nyata: bila dokter menjalankan keputusan "Rawat inap" lebih dulu — urutan yang paling
+masuk akal bagi manusia — perpindahan pasien **tidak dapat lagi dibuat**. Satu-satunya urutan
+yang berhasil adalah membuat perpindahan **sebelum** tindak lanjut dijalankan. Tidak ada satu
+pun pesan yang memberitahu petugas hal ini.
+
+Hal yang sama berlaku untuk observasi: `EmergencyObservationService` juga menolak kunjungan
+yang sudah `Disposed`.
+
+#### F-11. Penanda `ClosesEmergencyVisit` tidak pernah dipakai
+
+`MstEmergencyDispositionType.ClosesEmergencyVisit` diisi `true` untuk seluruh tujuh jenis
+tindak lanjut oleh seeder, dikirim pada balasan API, tetapi **tidak pernah dibaca untuk
+memutuskan apa pun**. "Pulang" dan "Rawat inap" diperlakukan sama persis, padahal yang satu
+mengakhiri kehadiran pasien dan yang satu lagi baru memulai perpindahan.
+
+#### F-12. Tempat tidur dan ruangan pada perpindahan adalah angka bebas
+
+`TrxEmergencyTransfer` memiliki `FromRoomId`, `ToRoomId`, `FromBedId`, dan `ToBedId`.
+Keempatnya **diberi index tetapi tidak diberi foreign key dan tidak punya navigation
+property** (`TrxEmergencyTransferConfiguration.cs` baris 29–32).
+
+Artinya: nilai apa pun dapat disimpan di sana, termasuk id tempat tidur yang tidak ada, id
+tempat tidur milik unit lain, atau id tempat tidur yang sedang dipakai pasien lain. Tidak ada
+pemesanan tempat tidur, tidak ada perubahan `MstBed.BedStatus`, dan tidak ada pencegahan dua
+pasien dialokasikan ke satu tempat tidur.
+
+#### F-13. Modul Rawat Inap belum ada
+
+| Yang dicari | Hasil |
+| --- | --- |
+| Entity permintaan rawat inap (*admission request*) | Tidak ada |
+| Entity pemesanan/alokasi tempat tidur | Tidak ada |
+| Entity kunjungan rawat inap aktif | Tidak ada |
+| `EncounterStatus` untuk rawat inap | Tidak ada — daftarnya berhenti di alur poliklinik |
+| Master tempat tidur `MstBed` | **Ada**, tetapi hanya master; tidak ada transaksi hunian |
+
+`EncounterType.Inpatient = 3` ada di enum, tetapi tidak ada satu pun proses yang membuatnya.
+
+#### F-14. Perpindahan tidak membedakan kejadian yang berbeda
+
+`EmergencyTransferStatus` hanya punya enam nilai: `Requested`, `Accepted`, `InTransit`,
+`Completed`, `Rejected`, `Cancelled`.
+
+Yang **tidak** terbedakan:
+
+| Kejadian nyata | Terwakili? |
+| --- | --- |
+| Tempat tidur sudah dialokasikan | Tidak |
+| Pasien sudah siap dipindahkan | Tidak |
+| Serah terima dokumen diajukan | Tercampur dengan `Requested` |
+| Serah terima diterima penerima | Tercampur dengan `Accepted` |
+| Pasien meninggalkan IGD | Hanya kolom `DepartedAt`, tanpa status |
+| Pasien tiba di unit tujuan | Hanya kolom `ArrivedAt`, tanpa status |
+| Pasien diterima unit tujuan | Tercampur dengan `Completed` |
+
+`Accepted` karena itu ambigu: ia dapat berarti "unit tujuan setuju menerima" atau "pasien
+sudah diterima secara fisik". `DepartedAt` dan `ArrivedAt` tidak pernah diisi oleh satu pun
+endpoint yang ditemukan; keduanya hanya kolom kosong.
+
+Serah terima juga tidak punya isi minimum: hanya satu kolom teks bebas `HandoverSummary`
+sepanjang 2000 karakter. Tidak ada SBAR, tidak ada pemisahan serah terima perawat dan dokter,
+tidak ada daftar barang atau obat yang ikut, tidak ada eskalasi.
+
+#### F-15. Hak akses tidak mengenal unit pelayanan
+
+Seluruh controller IGD memakai `[Authorize]` ditambah `AccessPermission` per resource.
+Sesuai laporan `BE-IGD-010` tanggal 18 Agustus 2026, **tidak ada jalur data apa pun dari
+pengguna ke unit pelayanan** di dalam basis data.
+
+Akibat nyata: perawat unit mana pun yang memiliki izin `EmergencyTransfer.Update` dapat
+menerima perpindahan pasien ke unit mana pun, termasuk unit yang bukan tempatnya bertugas.
+
+#### F-16. Jejak audit hanya menyimpan penulis terakhir
+
+Basis audit adalah `IdentityModel`: `CreateBy`, `CreateDateTime`, `UpdateBy`,
+`UpdateDateTime`, `DeleteBy`, `CancelBy`.
+
+Artinya hanya perubahan **terakhir** yang tercatat. Bila catatan klinis diubah tiga kali,
+sistem hanya tahu siapa yang mengubahnya paling akhir. Nilai sebelumnya hilang.
+`LoggerService.AuditAsync` menulis ke Serilog (berkas log), bukan ke tabel yang dapat
+ditelusuri per baris data.
+
+Pengecualian yang sudah benar: **retriase bersifat append-only**. Penilaian lama menjadi
+`Superseded` dan penilaian baru menunjuk yang lama.
+
+#### F-17. Tidak ada modul penunjang diagnostik
+
+Pencarian berkas dengan kata `laborator`, `radiolog`, `specimen`, dan `imaging` di seluruh
+`Areas/` menghasilkan **nol berkas**. Permintaan laboratorium dan radiologi belum ada dalam
+bentuk apa pun.
+
+#### F-18. Pemberian obat belum terbedakan dari peresepan
+
+Modul Farmasi memiliki resep, telaah, racikan, penyiapan, dan penyerahan. Yang **tidak** ada
+adalah catatan pemberian obat kepada pasien (*medication administration record*): siapa
+menyuntikkan, pukul berapa, dosis berapa, dan bagaimana reaksi pasien.
+
+Untuk IGD ini penting karena obat gawat darurat diberikan langsung oleh perawat, bukan
+diserahkan ke pasien.
+
+### Yang sudah benar dan tidak perlu diubah
+
+| Kemampuan | Bukti | Klasifikasi |
+| --- | --- | --- |
+| Retriase append-only dengan riwayat utuh | `EmergencyTriageService.RetriageAsync` — satu transaksi, `Superseded`, `PreviousTriageId` | `REUSE_EXISTING` |
+| Target waktu triase yang belum disahkan dibiarkan kosong, bukan dianggap nol | `MaxWaitingMinutesSnapshot` dan `ResponseDueAt` boleh kosong | `REUSE_EXISTING` |
+| Penanda pelampauan batas waktu bersifat permanen dan idempoten | `MarkSlaBreachesAsync` menyaring `!IsSlaBreached` | `REUSE_EXISTING` |
+| Salinan nilai master pada saat penilaian dibuat | `MaxWaitingMinutesSnapshot`, `IndicatorCodeSnapshot`, `IndicatorNameSnapshot` | `REUSE_EXISTING` |
+| Pemisahan "keputusan sudah ditetapkan" dari "pelayanan sudah tuntas" | `Disposed` versus `Completed`, dan `VisitCompletedAt` hanya diisi endpoint `complete` | `REUSE_EXISTING` |
+| Gerbang penutupan kunjungan | `ValidateVisitClosureAsync` menolak observasi dan perpindahan yang belum tuntas | `REUSE_EXISTING` |
+| Pasien tanpa identitas dapat didaftarkan | `IsUnknownPatient`, `TemporaryPatientAlias` | `REUSE_EXISTING` |
+| Nomor dokumen unik tidak menyaring data terhapus | `GenerateVisitNumberAsync` | `REUSE_EXISTING` |
+| Alasan wajib saat membatalkan tindak lanjut dan menolak perpindahan | `BE-IGD-016` | `REUSE_EXISTING` |
+
+### Matriks kesenjangan
+
+| ID | Kesenjangan | Klasifikasi | Tingkat | Bukti |
+| --- | --- | --- | --- | --- |
+| `IGD-GAP-011` | Pengkajian keperawatan IGD tidak dapat disimpan karena `TrxPatientAssessment` mewajibkan `QueueId` | `MODIFY_EXISTING` | `CRITICAL` | F-3, F-8, F-9 |
+| `IGD-GAP-012` | Pengkajian medis dokter, diagnosis, tindakan, dan resep IGD terkunci di balik `ConsultationId` | `MODIFY_EXISTING` | `CRITICAL` | F-8 |
+| `IGD-GAP-013` | Urutan tindak lanjut dan perpindahan saling mengunci; jalur rawat inap dapat buntu | `MODIFY_EXISTING` | `CRITICAL` | F-10 |
+| `IGD-GAP-014` | Status kunjungan dapat mundur dan kunjungan tertutup dapat terbuka kembali | `MODIFY_EXISTING` | `CRITICAL` | F-7 |
+| `IGD-GAP-015` | Tidak ada pemilik klinis yang tercatat pada tahap menunggu tempat tidur, serah terima tertunda, dan dalam perjalanan | `MISSING_NEW` | `CRITICAL` | F-14, `IGD-DEC-062` |
+| `IGD-GAP-016` | Modul rawat inap, permintaan rawat inap, dan alokasi tempat tidur belum ada | `MISSING_NEW` | `CRITICAL` | F-13 |
+| `IGD-GAP-017` | Tempat tidur dan ruangan pada perpindahan tanpa foreign key dan tanpa pencegahan tabrakan | `MODIFY_EXISTING` | `CRITICAL` | F-12 |
+| `IGD-GAP-018` | Perpindahan tidak membedakan alokasi, kesiapan, keberangkatan, kedatangan, dan penerimaan | `EXTEND_EXISTING` | `HIGH` | F-14 |
+| `IGD-GAP-019` | Serah terima tanpa isi minimum, tanpa pemisahan perawat dan dokter, tanpa eskalasi | `EXTEND_EXISTING` | `HIGH` | F-14 |
+| `IGD-GAP-020` | Jejak audit hanya menyimpan penulis terakhir; nilai klinis sebelumnya hilang | `MODIFY_EXISTING` | `HIGH` | F-16 |
+| `IGD-GAP-021` | Hak akses tidak mengenal unit pelayanan | `MISSING_NEW` | `HIGH` | F-15 |
+| `IGD-GAP-022` | Penetapan dokter tanpa riwayat, waktu, alasan, dan penerimaan | `EXTEND_EXISTING` | `HIGH` | F-6 |
+| `IGD-GAP-023` | Pemantauan berkala tidak punya pemicu, jadwal, dan penanda perburukan | `MISSING_NEW` | `HIGH` | F-9 |
+| `IGD-GAP-024` | Permintaan laboratorium dan radiologi belum ada | `MISSING_NEW` | `HIGH` | F-17 |
+| `IGD-GAP-025` | Catatan pemberian obat belum ada | `MISSING_NEW` | `HIGH` | F-18 |
+| `IGD-GAP-026` | Pesanan yang belum selesai saat pasien pindah tidak punya perlakuan | `MISSING_NEW` | `HIGH` | F-10, F-13 |
+| `IGD-GAP-027` | Primary survey ABCDE hanya berupa enam kolom ringkasan teks pada triase | `EXTEND_EXISTING` | `MEDIUM` | `TrxEmergencyTriage` kolom `AirwaySummary` sampai `RedFlagSummary` |
+| `IGD-GAP-028` | Pendaftaran dan kunjungan IGD tidak atomik; encounter dapat menggantung | `MODIFY_EXISTING` | `MEDIUM` | F-1 |
+| `IGD-GAP-029` | Tidak ada penjagaan episode IGD ganda untuk satu pasien | `EXTEND_EXISTING` | `MEDIUM` | F-4 |
+| `IGD-GAP-030` | Jenis kunjungan IGD dipaksa Rawat Jalan walau `EncounterType.Emergency` tersedia | `UNVERIFIED` | `MEDIUM` | F-2 |
+| `IGD-GAP-031` | Empat pengaturan IGD tersimpan tetapi tidak menjalankan apa pun | `MODIFY_EXISTING` | `MEDIUM` | F-5 |
+| `IGD-GAP-032` | `ClosesEmergencyVisit` tidak pernah dipakai memutuskan | `MODIFY_EXISTING` | `MEDIUM` | F-11 |
+| `IGD-GAP-033` | Backend tidak punya proyek test; tidak satu pun `AT-IGD-*` dapat dijalankan | `MISSING_NEW` | `MEDIUM` | Tidak ada `*.Tests.csproj` |
+
+### Ketergantungan regulasi dan SOP
+
+Tidak ada satu pun butir di bawah yang diverifikasi terhadap teks regulasi dalam sesi ini.
+Seluruhnya berstatus `REGULATORY_VERIFICATION_REQUIRED` sampai diperiksa pemilik yang
+berwenang.
+
+| ID | Topik | Klasifikasi sementara | Menunggu |
+| --- | --- | --- | --- |
+| `IGD-REG-002` | Kewajiban jejak audit rekam medis elektronik per baris perubahan | `REGULATORY_VERIFICATION_REQUIRED` | Security/Privacy owner + rujukan Permenkes rekam medis elektronik yang berlaku |
+| `IGD-REG-003` | Kewajiban serah terima pasien antar unit dan isinya | `HOSPITAL_SOP_REQUIREMENT` | SOP MMC + Clinical Governance |
+| `IGD-REG-004` | Interval pengkajian ulang per tingkat kegawatan | `HOSPITAL_SOP_REQUIREMENT` | SOP MMC — sudah menjadi blocker `IGD-DEC-060` |
+| `IGD-REG-005` | Batas waktu respons triase level 2 sampai 5 | `HOSPITAL_SOP_REQUIREMENT` | SOP triase MMC — blocker lama yang masih terbuka |
+| `IGD-REG-006` | Kewajiban visum dan pelaporan kematian di IGD | `REGULATORY_VERIFICATION_REQUIRED` | Legal + Clinical Governance |
+
+### Antrean pertanyaan pass ini
+
+Urutan disusun menurut ketergantungan: pertanyaan di atas menentukan jawaban di bawahnya.
+
+| Urutan | ID | Pokok | Memblokir |
+| ---: | --- | --- | --- |
+| 1 | `IGD-OQ-052` | Bentuk episode IGD: satu encounter untuk seluruh episode, atau encounter terpisah saat masuk rawat inap | `DESIGN` — menentukan ERD, lifecycle, dan seluruh transisi transfer |
+| 2 | `IGD-OQ-053` | Cara memutus rantai `QueueId` dan `ConsultationId` agar pencatatan klinis IGD dapat berjalan | `IMPLEMENTATION` |
+| 3 | `IGD-OQ-054` | Urutan sah antara keputusan tindak lanjut dan proses perpindahan | `DESIGN` |
+| 4 | `IGD-OQ-055` | Daftar kejadian perpindahan yang wajib dibedakan dan artinya masing-masing | `DESIGN` |
+| 5 | `IGD-OQ-056` | Siapa pemilik klinis pada setiap tahap, dan apa buktinya di sistem | `DESIGN` |
+| 6 | `IGD-OQ-057` | Siapa yang memesan dan mengalokasikan tempat tidur, dan aturan tabrakan alokasi | `DESIGN` |
+| 7 | `IGD-OQ-058` | Perlakuan pesanan yang belum selesai saat pasien pindah | `DESIGN` |
+| 8 | `IGD-OQ-059` | Isi minimum serah terima dan siapa yang wajib menandatangani | `DESIGN` |
+| 9 | `IGD-OQ-060` | Kedalaman jejak audit perubahan catatan klinis | `DESIGN` |
+| 10 | `IGD-OQ-061` | Hubungan pengguna ke unit pelayanan dan pengisian data lama | `IMPLEMENTATION` |
+| 11 | `IGD-OQ-062` | Riwayat dan penerimaan penetapan dokter pemeriksa | `LATER SLICE` |
+| 12 | `IGD-OQ-063` | Pemicu dan jadwal pemantauan berkala | `LATER SLICE` |
+| 13 | `IGD-OQ-064` | Penjagaan episode IGD ganda dan penggabungan bila terlanjur | `LATER SLICE` |
+
+`IGD-OQ-051` dari pass 2026-08-20 **tetap terbuka** dan tidak digantikan pass ini.
+
+### Decision log pass berjalan
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-052` | Open Question | Ketika pasien IGD diputuskan rawat inap, apakah episode rawat inap memakai kunjungan (encounter) yang sama dengan IGD, atau kunjungan baru yang terhubung ke kunjungan IGD? | Product/Domain Owner + Registration API owner + Clinical Governance | `draft` — memblokir ERD, lifecycle, dan seluruh transisi perpindahan | — | F-2, F-13, F-14; `IGD-DEC-001` |
+
+### Temuan lintas modul 2026-08-24 — blueprint Rawat Inap sudah menjawab sebagian
+
+Pengguna menunjuk `docs/module-blueprints/rawat-inap/04-prd-to-mvp.md`. Blueprint itu ada,
+lengkap, dan **statusnya lebih maju daripada blueprint IGD**.
+
+| Field | Nilai |
+| --- | --- |
+| `blueprint_id` | `RWI-BP-001` |
+| `revision` | `3` |
+| `status` | `approved` — disetujui **Muhammad Hamzah** 2026-08-24 lewat `RWI-DEC-067` |
+| `registry_lifecycle` | `ACTIVE` |
+| Modul | `InPatientManagement`, prefix entity `Inp` |
+| Dampak kompatibilitas yang dijanjikan | **Tiga belas tabel baru, nol perubahan kolom pada tabel modul lain** |
+| Backend SHA | `5afb54bd` (branch `MHamzah`) |
+| Frontend SHA | `dec4fdef` (branch `HamzahV2`) |
+
+#### Yang sudah diputuskan pihak Rawat Inap dan menyentuh IGD
+
+| ID milik Rawat Inap | Isi | Status di sana |
+| --- | --- | --- |
+| `RWI-DEC-041` | Saat disposisi `RANAP` dijalankan, kunjungan IGD **ditutup** dan kunjungan baru bertipe rawat inap **dibuat** sebagai jangkar episode | `approved` untuk arah desain; **implementasi terblokir** menunggu persetujuan pemilik `EmergencyInstallationManagement` |
+| `RWI-RULE-029` | Tujuh aturan rinci serah terima IGD ke rawat inap | Terkunci di sisi Rawat Inap |
+| `RWI-RULE-026` aturan 6 | Pelonggaran keharusan antrean dan konsultasi **hanya** untuk kunjungan bertipe rawat inap. Perilaku rawat jalan, **IGD**, dan medical check-up **tidak boleh berubah sedikit pun** | Terkunci di sisi Rawat Inap |
+| `RWI-OQ-034` / `DEC-INP-002` | Pertanyaan formal kepada pemilik IGD: setujukah bahwa disposisi `RANAP` menutup kunjungan IGD dan membuat kunjungan rawat inap baru, serta setujukah `ClosesEmergencyVisit` mulai benar-benar dijalankan? | `OPEN` — memblokir slice `INP-S09` |
+
+Isi lengkap `RWI-RULE-029`:
+
+| No | Aturan |
+| ---: | --- |
+| 1 | Disposisi `RANAP` dijalankan → kunjungan IGD **ditutup**, kunjungan baru bertipe rawat inap **dibuat**. Kunjungan baru itulah jangkar episode |
+| 2 | Kedua kunjungan dihubungkan sebagai **satu rangkaian kedatangan** |
+| 3 | Kunjungan rawat inap mewarisi pasien dan penjamin dari kunjungan IGD. Unit, kelas, dan DPJP diisi admisi rawat inap |
+| 4 | Penutupan IGD dan pembuatan kunjungan rawat inap adalah **satu tindakan utuh** — berhasil dua-duanya atau tidak ada yang berubah |
+| 5 | Bila gagal di tengah, kunjungan IGD tetap terbuka. Tidak boleh ada pasien "tidak ada di mana-mana" |
+| 6 | Catatan klinis IGD **tetap menempel** pada kunjungan IGD. Tidak dipindah, tidak disalin |
+| 7 | `ClosesEmergencyVisit` menjadi penentu perilaku ini dan mulai benar-benar dijalankan. `RANAP` tetap `true` |
+
+#### Akibat pada `IGD-OQ-052`
+
+`RWI-DEC-041` **identik dengan pilihan B** pada `IGD-OQ-052`. Pertanyaan itu karena itu tidak
+lagi terbuka sebagai pilihan bebas; yang tersisa adalah persetujuan pemilik IGD atas arah yang
+sudah dipilih pihak Rawat Inap.
+
+#### Tiga konflik yang ditemukan antara kedua blueprint
+
+| ID | Konflik | Tingkat | Bukti |
+| --- | --- | --- | --- |
+| `IGD-CONFLICT-003` | Blueprint Rawat Inap menganggap kunjungan IGD bertipe `Emergency`. Source memaksa `Outpatient` | `HIGH` | `RWI-RULE-029` bagian "Keadaan yang menjadi masalah" dan contoh pukul 20:10 versus `EmergencyVisitService.ValidateRequestAsync` (F-2) |
+| `IGD-CONFLICT-004` | `RWI-RULE-026` aturan 6 melarang perilaku IGD berubah, padahal pembatas yang sama persis — `QueueId` dan `ConsultationId` wajib — adalah penyebab `IGD-GAP-011` dan `IGD-GAP-012` yang membuat pengkajian, diagnosis, tindakan, dan resep IGD tidak dapat disimpan | `CRITICAL` | `RWI-RULE-026` aturan 3 dan 6 versus F-8 |
+| `IGD-CONFLICT-005` | `RWI-RULE-029` aturan 2 mewajibkan kedua kunjungan dihubungkan, tetapi kolom penghubungnya **tidak ada di ERD, kamus data, arsitektur, maupun kontrak Rawat Inap**. Manifest Rawat Inap juga menjanjikan "nol perubahan kolom pada tabel modul lain", sedangkan penghubung itu hanya mungkin sebagai kolom pada `TrxPatientEncounter` | `HIGH` | Pencarian "rangkaian kedatangan" hanya ditemukan di `00-interview-decisions.md`; `InpEpisode.EncounterId` menunjuk kunjungan rawat inap saja |
+
+**Penjelasan `IGD-CONFLICT-004` dengan contoh.** `RWI-RULE-026` melonggarkan keharusan
+`QueueId` dan `ConsultationId` **hanya** untuk kunjungan bertipe rawat inap, dan aturan 6-nya
+menutup rapat kemungkinan perilaku IGD ikut berubah. Padahal pembatas yang sama itulah yang
+membuat perawat IGD hari ini tidak dapat menyimpan pengkajian keperawatan sama sekali.
+
+Bila `RWI-RULE-026` dijalankan apa adanya: Tn. Budi yang dirawat inap dapat dikaji, didiagnosis,
+dan diresepkan. Ny. Sari yang masih di IGD tidak dapat dikaji sama sekali — dan tetap tidak
+dapat, bahkan setelah seluruh modul Rawat Inap selesai dibangun.
+
+#### Akibat pada matriks kesenjangan IGD
+
+| Gap IGD | Perubahan setelah membaca blueprint Rawat Inap |
+| --- | --- |
+| `IGD-GAP-016` modul rawat inap belum ada | **Turun** dari `CRITICAL` menjadi `MEDIUM`. Blueprint `approved` sudah ada beserta 13 tabel dan roadmap-nya; yang belum adalah implementasinya, dan itu milik tim lain |
+| `IGD-GAP-017` bed dan room tanpa foreign key | **Berubah arah**. Alokasi tempat tidur menjadi milik Rawat Inap (`InpBedPlacement`), bukan milik `TrxEmergencyTransfer`. Empat kolom bed/room pada transfer IGD kemungkinan besar harus dicabut, bukan diberi foreign key |
+| `IGD-GAP-013` disposition dan transfer saling mengunci | **Berubah arah**. Untuk jalur `RANAP`, perpindahan dikerjakan Rawat Inap. Pertanyaannya berubah menjadi: jalur mana yang masih memakai `TrxEmergencyTransfer` |
+| `IGD-GAP-032` `ClosesEmergencyVisit` tidak dipakai | **Naik prioritas**. `RWI-RULE-029` aturan 7 menjadikannya penentu perilaku |
+| `IGD-GAP-011` dan `IGD-GAP-012` | **Tetap `CRITICAL`**, dan kini berbenturan langsung dengan `RWI-RULE-026` aturan 6 |
+
+### Decision log lanjutan pass berjalan
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-052` | Open Question | Bentuk episode saat pasien IGD masuk rawat inap | Product/Domain Owner IGD + Registration API owner + Clinical Governance | `superseded` oleh `IGD-DEC-067` | — | Dijawab lewat penyelarasan dengan `RWI-DEC-041`, bukan lewat pilihan bebas |
+| `IGD-DEC-067` | Decision | Modul IGD mengikuti `RWI-DEC-041` dan `RWI-RULE-029`: ketika disposisi `RANAP` dijalankan, kunjungan IGD ditutup dan kunjungan baru bertipe rawat inap dibuat sebagai jangkar episode rawat inap. Catatan klinis IGD tetap menempel pada kunjungan IGD. Penanda `ClosesEmergencyVisit` mulai benar-benar dijalankan. Penutupan dan pembuatan bersifat satu tindakan utuh | Product/Domain Owner IGD, dengan pemilik `EmergencyInstallationManagement` sebagai pemberi persetujuan yang diminta `RWI-OQ-034` dan `DEC-INP-002` | `draft` — pengguna menyatakan tidak berwenang memilih dan merujuk ke blueprint Rawat Inap; persetujuan formal pemilik IGD **belum tercatat** | — | `RWI-DEC-041`, `RWI-RULE-029`, `RWI-TF-016`, `RWI-TF-017`; jawaban pengguna 24 Agustus 2026 |
+| `IGD-CONFLICT-003` | Conflict | Blueprint Rawat Inap menganggap kunjungan IGD bertipe `Emergency`; source memaksa `Outpatient` | Product/Domain Owner IGD + Registration API owner | `draft` — belum diputuskan | — | F-2 versus `RWI-RULE-029` |
+| `IGD-CONFLICT-004` | Conflict | `RWI-RULE-026` aturan 6 melarang perilaku IGD berubah, sedangkan pembatas yang dilonggarkannya adalah penyebab `IGD-GAP-011` dan `IGD-GAP-012` | Product/Domain Owner IGD + pemilik `ClinicalManagement` + pemilik `PharmacyManagement` + Product/Domain Owner Rawat Inap | `draft` — **memblokir seluruh pencatatan klinis IGD** | — | F-8 versus `RWI-RULE-026` |
+| `IGD-CONFLICT-005` | Conflict | Penghubung antara kunjungan IGD dan kunjungan rawat inap diwajibkan `RWI-RULE-029` aturan 2 tetapi tidak dirancang di mana pun | Product/Domain Owner IGD + Product/Domain Owner Rawat Inap + Registration API owner | `draft` | — | Pencarian menyeluruh pada blueprint Rawat Inap |
+| `IGD-OQ-053` | Open Question | Bagaimana pembatas `QueueId` dan `ConsultationId` dilonggarkan supaya pencatatan klinis IGD dapat berjalan, mengingat `RWI-RULE-026` aturan 6 melarang perilaku IGD berubah? | Product/Domain Owner IGD + pemilik `ClinicalManagement` + pemilik `PharmacyManagement` | `draft` — memblokir `IGD-GAP-011`, `IGD-GAP-012`, dan seluruh slice pengkajian | — | `IGD-CONFLICT-004` |
+
+| `IGD-OQ-053` | Open Question | Bagaimana pembatas `QueueId` dan `ConsultationId` dilonggarkan supaya pencatatan klinis IGD dapat berjalan? | Product/Domain Owner IGD + pemilik `ClinicalManagement` + pemilik `PharmacyManagement` | `superseded` oleh `IGD-DEC-068` | — | `IGD-CONFLICT-004` |
+| `IGD-DEC-068` | Decision | Pelonggaran `RWI-RULE-026` diperluas sehingga berlaku untuk kunjungan bertipe rawat inap **dan** IGD. Aturan 6 pada `RWI-RULE-026` direvisi. Keharusan mengisi antrean dan konsultasi dilonggarkan untuk kedua tipe kunjungan, sehingga catatan klinis boleh menempel langsung pada kunjungan. IGD **tidak** membuat tabel pengkajian, diagnosis, tindakan, atau resep tandingan, dan **tidak** membuat antrean semu. Perilaku rawat jalan dan medical check-up tetap tidak berubah sedikit pun | Product/Domain Owner IGD, dengan pemilik `ClinicalManagement`, pemilik `PharmacyManagement`, dan Product/Domain Owner Rawat Inap sebagai approver akhir | `draft` — pilihan pengguna jelas, tetapi ketiga pemilik yang harus menyetujui **belum ditunjuk namanya**; revisi `RWI-RULE-026` juga membutuhkan persetujuan pemilik Rawat Inap | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-053`; menutup `IGD-CONFLICT-004`; konsisten dengan `IGD-DEC-003` dan `RWI-RULE-026` aturan 1 dan 2 |
+
+#### Acceptance criteria awal dari `IGD-DEC-068`
+
+1. Pengkajian keperawatan dapat disimpan untuk pasien IGD tanpa satu pun baris `TrxQueue`
+   dibuat untuk pasien itu.
+2. Daftar antrean poliklinik tidak memuat satu pun pasien IGD, sebelum maupun sesudah
+   perubahan.
+3. Konsultasi dokter dapat dibuat untuk kunjungan IGD tanpa baris antrean.
+4. Diagnosis, tindakan, dan resep dapat dibuat untuk pasien IGD.
+5. Perilaku rawat jalan tidak berubah: pengkajian dan konsultasi rawat jalan tetap menolak
+   permintaan yang tidak menyertakan antrean.
+6. Perilaku medical check-up tidak berubah.
+7. Tersedia test regresi untuk jalur rawat jalan yang menyentuh pengkajian, konsultasi,
+   diagnosis, tindakan, dan resep, sesuai kewajiban `RWI-DEC-051`.
+8. Rekam medis pasien tetap berada pada tabel yang sama; tidak ada tabel klinis tandingan
+   milik IGD.
+
+#### Blocker yang muncul dari `IGD-DEC-068`
+
+| Blocker | Menunggu | Memblokir |
+| --- | --- | --- |
+| Persetujuan pemilik `ClinicalManagement` | Pemilik belum ditunjuk — sama dengan `DEC-INP-001` milik Rawat Inap | `IMPLEMENTATION` |
+| Persetujuan pemilik `PharmacyManagement` | Pemilik belum ditunjuk — sama dengan `DEC-INP-001` | `IMPLEMENTATION` |
+| Revisi `RWI-RULE-026` aturan 6 | Product/Domain Owner Rawat Inap, **Muhammad Hamzah** | `IMPLEMENTATION` |
+| Test regresi jalur rawat jalan | Tidak ada proyek test sama sekali di backend — `IGD-GAP-033` | `IMPLEMENTATION` |
+
+Tidak satu pun memblokir `DESIGN`. Perancangan ERD, kontrak, dan state matrix boleh berjalan.
+
+#### Catatan efisiensi lintas modul
+
+`DEC-INP-001` milik Rawat Inap menanyakan hal yang sama kepada pemilik yang sama.
+`IGD-DEC-068` dan `DEC-INP-001` sebaiknya diajukan sebagai **satu permintaan persetujuan**
+kepada pemilik `ClinicalManagement` dan `PharmacyManagement`, bukan dua permintaan terpisah.
+Bila diajukan terpisah, ada risiko keduanya dijawab berbeda dan menghasilkan dua perilaku
+untuk pembatas yang sama.
+
+| `IGD-OQ-054` | Open Question | Setelah `IGD-DEC-067` berlaku, jalur perpindahan mana yang masih memakai `TrxEmergencyTransfer`, dan apa yang terjadi pada empat kolom tempat tidur dan ruangan di dalamnya? | Product/Domain Owner IGD + Product/Domain Owner Rawat Inap | `draft` — memblokir desain state transfer dan `IGD-GAP-013`, `IGD-GAP-017`, `IGD-GAP-018` | — | `IGD-DEC-067`, `RWI-RULE-029`, `RWI-DEC-020`, F-10, F-12, F-14 |
+
+| `IGD-OQ-054` | Open Question | Jalur perpindahan mana yang masih memakai `TrxEmergencyTransfer` setelah `IGD-DEC-067`? | Product/Domain Owner IGD + Product/Domain Owner Rawat Inap | `superseded` oleh `IGD-DEC-069` | — | `IGD-DEC-067`, `RWI-RULE-029`, `RWI-DEC-020` |
+| `IGD-DEC-069` | Decision | `TrxEmergencyTransfer` berhenti mengurus tempat tidur dan berubah menjadi **catatan kepergian pasien dari IGD**. Empat kolom `FromRoomId`, `ToRoomId`, `FromBedId`, dan `ToBedId` dicabut. Yang tetap ada: unit asal dan tujuan, waktu berangkat, waktu tiba, perawat pengirim, perawat penerima, dan serah terima. Catatan ini dibuat untuk **seluruh** kepergian pasien dari IGD ke unit di dalam rumah sakit, termasuk rawat inap, ICU, kamar operasi, dan kamar jenazah. Pemesanan dan penempatan tempat tidur sepenuhnya milik Rawat Inap lewat `InpBedPlacement` | Product/Domain Owner IGD, dengan Product/Domain Owner Rawat Inap sebagai pihak yang harus menyepakati batasnya | `draft` — pilihan pengguna jelas; kesepakatan dengan pemilik Rawat Inap dan approval formal belum tercatat | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-054`; F-12, F-14; `RWI-DEC-020`, `RWI-RULE-015`, `RWI-RULE-029` |
+
+#### Acceptance criteria awal dari `IGD-DEC-069`
+
+1. `TrxEmergencyTransfer` tidak lagi memiliki kolom tempat tidur maupun ruangan, sehingga
+   tidak mungkin lagi menyimpan id tempat tidur yang tidak ada atau milik unit lain.
+2. Tidak ada satu pun jalur IGD yang mengubah `MstBed.BedStatus`.
+3. Kepergian pasien ke kamar operasi dan kamar jenazah tetap tercatat, walaupun keduanya
+   tidak dimiliki modul mana pun.
+4. Pertanyaan "pukul berapa pasien meninggalkan IGD" dapat dijawab dari data milik IGD
+   sendiri, tanpa membaca tabel modul lain.
+5. Untuk jalur rawat inap dan ICU, catatan kepergian IGD dan `InpBedPlacement` tidak boleh
+   saling bertentangan; sumber kebenaran waktu tiba ditetapkan satu, bukan dua.
+6. Serah terima yang gagal tetap meninggalkan jejak pada IGD, sesuai `RWI-RULE-029` aturan 5
+   yang melarang keadaan pasien "tidak ada di mana-mana".
+
+#### Yang menjadi terbuka akibat `IGD-DEC-069`
+
+| Butir | Keterangan |
+| --- | --- |
+| Sumber kebenaran waktu tiba | Untuk jalur rawat inap, `ArrivedAt` pada catatan kepergian IGD dan waktu penempatan pada `InpBedPlacement` berpotensi berbeda. Harus disepakati satu |
+| Migration pencabutan empat kolom | Basis data pengembangan dipakai bersama satu tim. Pencabutan kolom memerlukan pemeriksaan data lama lebih dulu |
+| Nilai `EmergencyTransferStatus` | Enam nilai yang ada tidak lagi cocok untuk catatan kepergian; dibahas pada `IGD-OQ-055` |
+
+| `IGD-OQ-055` | Open Question | Kejadian apa saja yang wajib dibedakan pada catatan kepergian pasien dari IGD, dan siapa sumber kebenaran waktu tiba ketika tujuannya rawat inap? | Product/Domain Owner IGD + Nursing authority + Clinical Governance + Product/Domain Owner Rawat Inap | `draft` — memblokir desain state matrix transfer, `IGD-GAP-018`, dan penegakan `IGD-DEC-062` sampai `IGD-DEC-066` | — | `IGD-DEC-069`, F-14, `IGD-DEC-061` sampai `IGD-DEC-066` |
+
+| `IGD-OQ-055` | Open Question | Kejadian apa saja yang wajib dibedakan pada catatan kepergian pasien dari IGD, dan siapa sumber kebenaran waktu tiba? | Product/Domain Owner IGD + Nursing authority + Clinical Governance + Product/Domain Owner Rawat Inap | `superseded` oleh `IGD-DEC-070` dan `IGD-DEC-071` | — | `IGD-DEC-069`, F-14 |
+| `IGD-DEC-070` | Decision | Catatan kepergian pasien dari IGD menyimpan **dua rangkaian status yang berjalan sendiri-sendiri**. Rangkaian **fisik** menentukan siapa pemilik klinis: `Disiapkan` → `Berangkat` → `Tiba`. Rangkaian **dokumen** menentukan tuntasnya serah terima: `Diajukan` → `Tertunda` → `Diterima` atau `Ditolak`. Keadaan "pasien sudah `Tiba` sementara dokumen masih `Tertunda`" adalah keadaan yang **sah**, bukan galat. Eskalasi menyasar rangkaian dokumen, tidak pernah menahan rangkaian fisik | Product/Domain Owner IGD, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna jelas; approval keperawatan dan klinis belum tercatat | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-055`; menegakkan `IGD-DEC-061` sampai `IGD-DEC-066`; menutup `IGD-GAP-018` |
+| `IGD-DEC-071` | Decision | Untuk jalur rawat inap, **event `Tiba` pada catatan kepergian IGD adalah sumber kebenaran** waktu pasien tiba di unit tujuan. `InpBedPlacement` milik Rawat Inap membacanya dan tidak menetapkan waktu tiba sendiri. Aturan ini berlaku seragam untuk seluruh tujuan, termasuk kamar operasi dan kamar jenazah yang tidak memiliki `InpBedPlacement` | Product/Domain Owner IGD, dengan Product/Domain Owner Rawat Inap sebagai pihak yang harus menyepakati | `draft` — pilihan pengguna jelas; kesepakatan dengan pemilik Rawat Inap belum tercatat dan menyentuh `INP-S01` yang sudah `approved` | — | Jawaban pengguna 24 Agustus 2026; konsisten dengan `IGD-DEC-064` |
+
+#### Bentuk yang dikunci `IGD-DEC-070`
+
+| Rangkaian | Nilai | Menentukan | Diisi oleh |
+| --- | --- | --- | --- |
+| Fisik | `Disiapkan` | Pasien siap dipindahkan, belum berangkat | Perawat IGD |
+| Fisik | `Berangkat` | Pasien meninggalkan IGD — mengisi waktu berangkat | Perawat IGD |
+| Fisik | `Tiba` | Pasien sampai di unit tujuan — **memindahkan pemilik klinis** | Petugas unit penerima, sesuai `IGD-DEC-064` |
+| Dokumen | `Diajukan` | Ringkasan serah terima dikirim | Perawat IGD |
+| Dokumen | `Tertunda` | Menunggu peninjauan penerima — **eskalasi berjalan di sini** | Sistem |
+| Dokumen | `Diterima` | Penerima berwenang menyatakan menerima | Petugas unit penerima |
+| Dokumen | `Ditolak` | Penolakan beserta alasan, pelaku, dan waktu server | Petugas unit penerima |
+
+#### Acceptance criteria awal dari `IGD-DEC-070` dan `IGD-DEC-071`
+
+1. Sistem menerima dan menyimpan keadaan fisik `Tiba` bersamaan dengan keadaan dokumen
+   `Tertunda`, tanpa menampilkannya sebagai galat.
+2. Event `Tiba` memindahkan pemilik klinis ke unit penerima walaupun dokumen belum
+   `Diterima`.
+3. Event `Tiba` **tidak** mengubah keadaan dokumen menjadi `Diterima` secara otomatis.
+4. Eskalasi dokumen `Tertunda` tidak pernah menahan, menunda, atau membatalkan rangkaian
+   fisik.
+5. Kombinasi yang tidak masuk akal ditolak, misalnya dokumen `Diterima` sementara fisik
+   belum `Berangkat`.
+6. Penolakan dokumen wajib menyimpan alasan, pelaku, dan waktu server.
+7. Waktu berangkat dan waktu tiba benar-benar terisi oleh endpoint, bukan tetap kosong
+   seperti keadaan sekarang.
+8. `InpBedPlacement` untuk pasien asal IGD memakai waktu tiba dari catatan kepergian IGD,
+   bukan waktu yang ditetapkannya sendiri.
+9. Laporan lama tinggal pasien IGD dapat dihitung dari data milik IGD sendiri.
+
+#### Blocker yang muncul
+
+| Blocker | Menunggu | Memblokir |
+| --- | --- | --- |
+| Kesepakatan sumber kebenaran waktu tiba | Product/Domain Owner Rawat Inap, **Muhammad Hamzah** — menyentuh `INP-S01` yang sudah `approved` | `IMPLEMENTATION` |
+| Nilai batas waktu dan urutan eskalasi dokumen | SOP MMC, sesuai `IGD-DEC-063` yang masih menunggu | `IMPLEMENTATION` |
+| Approval Nursing authority dan Clinical Governance | Pemilik belum ditunjuk | `IMPLEMENTATION` |
+
+| `IGD-OQ-056` | Open Question | Siapa pemilik klinis pasien selama rangkaian fisik berstatus `Berangkat`, yaitu ketika pasien sudah meninggalkan IGD tetapi belum tiba di unit tujuan? Dan siapa dokter penanggung jawab antara saat keputusan rawat inap ditetapkan sampai DPJP rawat inap mulai berlaku? | Product/Domain Owner IGD + Clinical Governance + Nursing authority + Product/Domain Owner Rawat Inap | `draft` — memblokir `IGD-GAP-015` dan matriks kepemilikan pasien | — | `IGD-DEC-062`, `IGD-DEC-070`, `RWI-RULE-030` |
+
+| `IGD-OQ-056` | Open Question | Pemilik klinis saat status fisik `Berangkat`, dan dokter penanggung jawab sebelum DPJP rawat inap berlaku | Product/Domain Owner IGD + Clinical Governance + Nursing authority + Product/Domain Owner Rawat Inap | `superseded` oleh `IGD-DEC-072` dan `IGD-DEC-073` | — | `IGD-DEC-062`, `IGD-DEC-070`, `RWI-RULE-030` |
+| `IGD-DEC-072` | Decision | Pemilik klinis pasien **tetap unit pengirim** selama status fisik `Berangkat`, yaitu sejak pasien meninggalkan IGD sampai petugas unit penerima mencatat event `Tiba`. Perawat pengantar dari IGD membawa tanggung jawab itu bersamanya dan tidak boleh meninggalkan pasien sebelum event `Tiba` tercatat. Tidak ada satu detik pun keadaan tanpa pemilik | Product/Domain Owner IGD, dengan Clinical Governance dan Nursing authority sebagai approver akhir | `draft` — pilihan pengguna jelas; approval klinis dan keperawatan belum tercatat | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-056`; melengkapi `IGD-DEC-062`; menegakkan `IGD-DEC-064`; menutup `IGD-GAP-015` |
+| `IGD-DEC-073` | Decision | Dokter IGD yang menetapkan keputusan rawat inap **tetap menjadi dokter penanggung jawab** sampai baris pertama DPJP rawat inap berlaku sesuai `RWI-RULE-030`. Perpindahan tanggung jawab dokter terjadi pada saat yang sama dengan perpindahan tanggung jawab unit. Batas waktu menunggu dan jalur eskalasi bila DPJP rawat inap tak kunjung ditetapkan wajib berasal dari SOP yang disahkan dan tidak boleh ditebak | Product/Domain Owner IGD, dengan Clinical Governance dan Product/Domain Owner Rawat Inap sebagai approver akhir | `draft` — pilihan pengguna jelas; approval klinis belum tercatat dan nilai batas waktu menunggu SOP | — | Jawaban pengguna 24 Agustus 2026; konsisten dengan `RWI-RULE-030` tanpa mengubahnya |
+
+#### Matriks kepemilikan pasien yang kini lengkap
+
+Tidak ada satu baris pun berisi `NO OWNER`.
+
+| Tahap | Pemilik unit | Dokter penanggung jawab | Dasar |
+| --- | --- | --- | --- |
+| Tiba di IGD, menunggu triase | IGD | Belum ada | `IGD-DEC-062` |
+| Triase selesai | IGD | Dokter IGD setelah penetapan | `IGD-DEC-062` |
+| Pengkajian dan tindakan berlangsung | IGD | Dokter IGD | `IGD-DEC-062` |
+| Keputusan rawat inap ditetapkan | IGD | Dokter IGD | `IGD-DEC-073` |
+| Menunggu tempat tidur | IGD | Dokter IGD | `IGD-DEC-072`, `IGD-DEC-073` |
+| Tempat tidur dialokasikan Rawat Inap | IGD | Dokter IGD | `IGD-DEC-072` |
+| Fisik `Disiapkan` | IGD | Dokter IGD | `IGD-DEC-072` |
+| **Fisik `Berangkat`** | **IGD** | **Dokter IGD** | `IGD-DEC-072`, `IGD-DEC-073` |
+| Fisik `Tiba` | Unit penerima | DPJP rawat inap | `IGD-DEC-064`, `RWI-RULE-030` |
+| Dokumen `Tertunda` setelah `Tiba` | Unit penerima | DPJP rawat inap | `IGD-DEC-062` |
+| Dokumen `Ditolak` setelah `Tiba` | Unit penerima | DPJP rawat inap | `IGD-DEC-062` |
+| Dokumen `Diterima` | Unit penerima | DPJP rawat inap | `IGD-DEC-061` |
+
+**Contoh konkret.** Ny. Sari diputuskan rawat inap pukul 22:15 oleh dr. Budi, dokter jaga IGD.
+Tempat tidur Melati 2A baru siap pukul 23:40. Perawat IGD mengantar Ny. Sari pukul 23:45 dan
+petugas bangsal mencatat event `Tiba` pukul 23:52.
+
+| Waktu | Pemilik unit | Dokter penanggung jawab |
+| --- | --- | --- |
+| 22:15 – 23:45 | IGD | dr. Budi |
+| 23:45 – 23:52 (di lift dan koridor) | **IGD** | **dr. Budi** |
+| 23:52 dan seterusnya | Bangsal Melati | dr. Andi, DPJP rawat inap |
+
+Bila Ny. Sari sesak berat pukul 23:48 di dalam lift, yang bertanggung jawab adalah IGD dan
+dr. Budi. Perawat pengantar IGD ada di sana dan tidak boleh meninggalkannya.
+
+#### Acceptance criteria awal dari `IGD-DEC-072` dan `IGD-DEC-073`
+
+1. Sistem selalu dapat menjawab "siapa unit penanggung jawab pasien ini sekarang" dengan
+   **tepat satu** nama unit, pada setiap tahap tanpa kecuali.
+2. Sistem selalu dapat menjawab "siapa dokter penanggung jawab pasien ini sekarang" dengan
+   tepat satu nama, sejak dokter IGD ditetapkan.
+3. Tidak ada kombinasi status yang menghasilkan keadaan tanpa pemilik unit.
+4. Perpindahan pemilik unit dan perpindahan dokter penanggung jawab terjadi pada kejadian
+   yang sama, yaitu event `Tiba`.
+5. Perpindahan kepemilikan tercatat sebagai baris tersendiri yang dapat ditelusuri, bukan
+   disimpulkan dari kolom yang tertimpa.
+6. Daftar pantau menampilkan pasien yang sudah `Berangkat` tetapi belum `Tiba` melebihi
+   batas waktu, sebagai peringatan bahwa event `Tiba` mungkin lalai dicatat.
+7. Batas waktu pada butir 6 dan batas waktu menunggu DPJP rawat inap dibaca dari
+   konfigurasi SOP, dan ditandai belum tersedia bila SOP belum disahkan.
+
+#### Butir yang tertutup tanpa pertanyaan
+
+| ID | Keterangan |
+| --- | --- |
+| `IGD-OQ-057` | Rencana pertanyaan tentang siapa yang memesan dan mengalokasikan tempat tidur **gugur**. `IGD-DEC-069` sudah memindahkan seluruh urusan tempat tidur ke Rawat Inap lewat `InpBedPlacement`, dan aturan tabrakan alokasi sudah dikunci `RWI-RULE-015` milik Rawat Inap. IGD tidak lagi punya kewenangan di sana |
+| `IGD-GAP-015` | Tertutup oleh `IGD-DEC-072` dan `IGD-DEC-073` |
+| `IGD-GAP-017` | Tertutup oleh `IGD-DEC-069` |
+| `IGD-GAP-018` | Tertutup oleh `IGD-DEC-070` |
+
+| `IGD-OQ-057` | Open Question | Apakah kunjungan IGD berubah menjadi `EncounterType.Emergency`? Pelonggaran `IGD-DEC-068` disaring berdasarkan tipe kunjungan, sedangkan kunjungan IGD hari ini bertipe `Outpatient` yang sama persis dengan poliklinik | Product/Domain Owner IGD + Registration API owner + Product/Domain Owner Rawat Inap | `draft` — **memblokir implementasi `IGD-DEC-068`** dan menutup `IGD-CONFLICT-003` | — | F-2, `IGD-CONFLICT-003`, `IGD-DEC-068`, `RWI-RULE-026` aturan 6 |
+
+| `IGD-OQ-057` | Open Question | Apakah kunjungan IGD berubah menjadi `EncounterType.Emergency`? | Product/Domain Owner IGD + Registration API owner + Product/Domain Owner Rawat Inap | `superseded` oleh `IGD-DEC-074` | — | F-2, `IGD-CONFLICT-003` |
+| `IGD-DEC-074` | Decision | Kunjungan IGD memakai `EncounterType.Emergency`, bukan `Outpatient`. Validasi yang memaksa `Outpatient` diganti menjadi mewajibkan `Emergency`. Data kunjungan IGD lama yang bernilai `Outpatient` diperbaiki lewat migration, dikenali dari keberadaan baris `TrxEmergencyVisit` yang menunjuknya. Pelonggaran `IGD-DEC-068` disaring dari tipe kunjungan, sehingga poliklinik tidak ikut terpengaruh | Product/Domain Owner IGD, dengan Registration API owner sebagai approver akhir | `draft` — pilihan pengguna jelas; approval Registration API owner belum tercatat dan migration belum diotorisasi | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-057`; menutup `IGD-CONFLICT-003`; menyelaraskan dengan asumsi `RWI-RULE-029`; prasyarat implementasi `IGD-DEC-068` |
+| `IGD-CONFLICT-003` | Conflict | Blueprint Rawat Inap menganggap kunjungan IGD bertipe `Emergency`; source memaksa `Outpatient` | Product/Domain Owner IGD + Registration API owner | `resolved` oleh `IGD-DEC-074` | — | F-2 versus `RWI-RULE-029` |
+
+#### Verifikasi source sebelum keputusan ini dicatat
+
+| Yang diperiksa | Hasil |
+| --- | --- |
+| Kode yang menulis `EncounterType.Emergency` | **Nol.** Nilai `Emergency = 2` belum pernah dipakai satu jalur pun, sehingga tidak ada data lama bernilai `2` yang dapat rusak |
+| Kode yang membandingkan `EncounterType.Outpatient` | **Tiga tempat**, dirinci di bawah |
+| Kode yang menganggap semua non-`Inpatient` sebagai rawat jalan | Tidak ditemukan |
+
+#### Dua temuan yang mengubah cakupan pekerjaan
+
+**Temuan 1 — kelas pasien IGD akan hilang bila tidak ikut diperbaiki.**
+
+`PatientEncounterController.ResolvePatientClassAsync` baris 1470 menetapkan kelas pasien
+bawaan **hanya ketika** `EncounterType == Outpatient`:
+
+```
+if (request.EncounterType == EncounterType.Outpatient)
+{
+    // cari master kelas pasien bawaan rawat jalan
+    // gagalkan bila tidak ada atau ada lebih dari satu
+}
+```
+
+Begitu kunjungan IGD menjadi `Emergency`, cabang ini tidak lagi berjalan untuk IGD. Akibatnya
+`PatientClassId` kunjungan IGD menjadi kosong, dan konteks tarifnya hilang. Ini **tidak akan
+memunculkan galat** — pendaftaran tetap berhasil, hanya kelas pasiennya yang kosong. Kegagalan
+yang diam seperti ini persis pola yang diperingatkan pelajaran `BE-IGD-016`.
+
+Karena itu keputusan ini **wajib** disertai penetapan kelas pasien untuk kunjungan
+`Emergency`. Kelas mana yang dipakai IGD belum diputuskan dan menjadi `IGD-OQ-059`.
+
+**Temuan 2 — validasi tipe kunjungan ditulis dua kali.**
+
+Aturan yang sama ada di dua tempat:
+
+| Berkas | Baris |
+| --- | --- |
+| `EmergencyVisitService.cs` | 97 |
+| `EmergencyVisitController.cs` | 525 |
+
+Keduanya harus diubah bersamaan. Mengubah salah satu saja menghasilkan persis jenis cacat
+`BE-IGD-016`: satu jalur diperbaiki, jalur kedua yang dipakai sehari-hari terlewat.
+
+#### Acceptance criteria awal dari `IGD-DEC-074`
+
+1. Kunjungan IGD baru tersimpan dengan `EncounterType = Emergency`.
+2. Permintaan pembuatan kunjungan IGD dengan tipe selain `Emergency` ditolak, dan
+   penolakan itu berlaku pada **kedua** tempat validasi.
+3. Seluruh kunjungan IGD lama bernilai `Outpatient` berubah menjadi `Emergency`, dan
+   jumlah baris yang berubah sama persis dengan jumlah baris `TrxEmergencyVisit` yang
+   `EncounterId`-nya terisi.
+4. Tidak ada satu pun kunjungan poliklinik yang ikut berubah tipenya.
+5. Kunjungan IGD tetap memperoleh kelas pasien; `PatientClassId` tidak kosong.
+6. Pelonggaran `IGD-DEC-068` menyala untuk kunjungan `Emergency` dan `Inpatient`, dan
+   **tidak** menyala untuk `Outpatient`.
+7. Laporan jumlah kunjungan rawat jalan tidak lagi memuat pasien IGD.
+8. Tersedia cara mundur bila migration harus dibatalkan.
+
+#### Blocker yang muncul
+
+| Blocker | Menunggu | Memblokir |
+| --- | --- | --- |
+| Otorisasi menjalankan migration | Basis data pengembangan **dipakai bersama satu tim** dan berisi data pasien. Perubahan tipe kunjungan menyentuh data lama, bukan hanya skema | `IMPLEMENTATION` |
+| Kelas pasien untuk kunjungan `Emergency` | `IGD-OQ-059` | `IMPLEMENTATION` |
+| Pemberitahuan perubahan angka laporan | Pemilik laporan; angka rawat jalan akan turun karena pasien IGD keluar dari hitungan | `IMPLEMENTATION` |
+| Approval Registration API owner | Pemilik belum ditunjuk | `IMPLEMENTATION` |
+
+Tidak satu pun memblokir `DESIGN`.
+
+| `IGD-OQ-058` | Open Question | Bagaimana kunjungan IGD dan kunjungan rawat inap dihubungkan sebagai satu rangkaian kedatangan, mengingat `RWI-RULE-029` aturan 2 mewajibkannya tetapi tidak merancangnya, dan manifest Rawat Inap menjanjikan nol perubahan kolom pada tabel modul lain? | Product/Domain Owner IGD + Product/Domain Owner Rawat Inap + Registration API owner | `draft` — memblokir ERD dan menutup `IGD-CONFLICT-005` | — | `IGD-CONFLICT-005`, `RWI-RULE-029` aturan 2 |
+| `IGD-OQ-059` | Open Question | Kelas pasien mana yang dipakai kunjungan IGD, dan apakah kelasnya berubah ketika pasien naik ke rawat inap? | Product/Domain Owner IGD + Finance owner + Product/Domain Owner Rawat Inap | `draft` — memblokir implementasi `IGD-DEC-074` | — | Temuan 1 pada `IGD-DEC-074` |
+
+| `IGD-OQ-058` | Open Question | Bagaimana kunjungan IGD dan kunjungan rawat inap dihubungkan sebagai satu rangkaian kedatangan? | Product/Domain Owner IGD + Product/Domain Owner Rawat Inap + Registration API owner | `superseded` oleh `IGD-DEC-075` | — | `IGD-CONFLICT-005` |
+| `IGD-DEC-075` | Decision | Rangkaian kedatangan diwujudkan sebagai satu kolom `OriginEncounterId` yang boleh kosong pada `TrxPatientEncounter`, menunjuk kunjungan sebelumnya dalam rangkaian yang sama. Kunjungan rawat inap yang berasal dari IGD mengisinya dengan Id kunjungan IGD. Kolom ini bersifat umum: pola yang sama melayani rangkaian lain, misalnya poliklinik ke rawat inap. Seluruh data lama tetap sah karena kolomnya boleh kosong | Product/Domain Owner IGD, dengan Registration API owner dan Product/Domain Owner Rawat Inap sebagai approver akhir | `draft` — pilihan pengguna jelas; **membatalkan janji "nol perubahan kolom pada tabel modul lain"** pada manifest Rawat Inap revision 3 yang sudah `approved`, sehingga memerlukan kesepakatan Muhammad Hamzah dan revisi manifest itu | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-058`; menutup `IGD-CONFLICT-005`; melaksanakan `RWI-RULE-029` aturan 2 |
+| `IGD-CONFLICT-005` | Conflict | Penghubung antara kunjungan IGD dan kunjungan rawat inap diwajibkan `RWI-RULE-029` aturan 2 tetapi tidak dirancang di mana pun | Product/Domain Owner IGD + Product/Domain Owner Rawat Inap + Registration API owner | `resolved` oleh `IGD-DEC-075` | — | Pencarian menyeluruh pada blueprint Rawat Inap |
+
+#### Acceptance criteria awal dari `IGD-DEC-075`
+
+1. Kunjungan rawat inap yang lahir dari disposisi `RANAP` menyimpan Id kunjungan IGD pada
+   `OriginEncounterId`.
+2. Riwayat pasien dapat menampilkan kunjungan IGD dan kunjungan rawat inap sebagai satu
+   rangkaian, dengan satu penggabungan data.
+3. Kunjungan yang tidak berasal dari kunjungan lain menyimpan nilai kosong, dan itu sah.
+4. Seluruh kunjungan lama tetap terbaca tanpa diubah.
+5. Sebuah kunjungan tidak boleh menunjuk dirinya sendiri.
+6. Rangkaian tidak boleh membentuk lingkaran.
+7. Ketika serah terima gagal dan kunjungan rawat inap tidak jadi dibuat, tidak ada baris
+   menggantung yang menunjuk ke mana pun.
+
+#### Dampak pada blueprint Rawat Inap
+
+| Artefak Rawat Inap | Yang perlu berubah |
+| --- | --- |
+| `blueprint-manifest.md` field `compatibility_impact` | Janji "nol perubahan kolom pada tabel modul lain" tidak lagi benar. Menjadi satu kolom baru pada `TrxPatientEncounter` |
+| `RWI-RULE-029` aturan 2 | Ditambahi rincian mekanismenya, yang selama ini kosong |
+| `erd/00-context-erd.md` dan kamus data | Kolom `OriginEncounterId` masuk sebagai penghubung |
+
+Perubahan ini **bukan wewenang modul IGD**. Ia diusulkan kepada Product/Domain Owner Rawat
+Inap, Muhammad Hamzah, sebagai konsekuensi yang tidak dapat dihindari dari aturan yang sudah
+ia kunci sendiri.
+
+#### Bukti tambahan untuk `IGD-OQ-059`
+
+`MstPatientClass` **sudah memiliki** kolom penanda `IsForEmergency`, berdampingan dengan
+`IsForOutpatient`, `IsForInpatient`, `IsForIntensiveCare`, dan `IsForNewborn`. Slot untuk
+kelas pasien IGD karena itu sudah dirancang sejak awal dan tinggal dipakai.
+
+Yang perlu dicatat: penetapan kelas rawat jalan hari ini **tidak** memakai penanda
+`IsForOutpatient`. Ia mencari master berdasarkan **nama yang ditulis tetap di dalam kode**,
+yaitu `RAWAT JALAN` pada `PatientEncounterController` baris 55. Bila nama master itu diubah
+petugas, pendaftaran rawat jalan langsung gagal.
+
+| `IGD-OQ-059` | Open Question | Kelas pasien untuk kunjungan IGD dan nasibnya saat naik ke rawat inap | Product/Domain Owner IGD + Finance owner + Product/Domain Owner Rawat Inap | `superseded` oleh `IGD-DEC-076` dan `IGD-DEC-077` | — | Temuan 1 pada `IGD-DEC-074` |
+| `IGD-DEC-076` | Decision | Kelas pasien kunjungan IGD ditetapkan backend dari master `MstPatientClass` yang bertanda `IsForEmergency` dan `IsDefault`, bukan dari nama yang ditulis tetap di dalam kode dan bukan dari isian petugas. Bila master itu belum ada, tidak aktif, atau ditemukan lebih dari satu, pendaftaran IGD ditolak dengan pesan yang menyebutkan sebabnya. Penetapan kelas rawat jalan yang hari ini memakai nama tertulis-tetap **tidak** ikut diubah oleh keputusan ini | Product/Domain Owner IGD, dengan Finance owner sebagai approver akhir | `draft` — pilihan pengguna jelas; approval Finance owner belum tercatat | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-059`; menutup Temuan 1 pada `IGD-DEC-074`; memakai kolom `MstPatientClass.IsForEmergency` yang sudah ada |
+| `IGD-DEC-077` | Decision | Kunjungan rawat inap **tidak mewarisi** kelas pasien dari kunjungan IGD. Kelasnya ditetapkan admisi rawat inap berdasarkan hak penjamin dan ketersediaan kamar. Kelas pada kunjungan IGD tetap tersimpan apa adanya dan tidak berubah surut | Product/Domain Owner IGD, dengan Product/Domain Owner Rawat Inap dan Finance owner sebagai approver akhir | `draft` — pilihan pengguna jelas; approval belum tercatat | — | Jawaban pengguna 24 Agustus 2026; **sudah sesuai `RWI-RULE-029` aturan 3**, sehingga tidak menuntut perubahan apa pun di sisi Rawat Inap |
+
+#### Acceptance criteria awal dari `IGD-DEC-076` dan `IGD-DEC-077`
+
+1. Kunjungan IGD baru memperoleh kelas pasien dari master bertanda `IsForEmergency` dan
+   `IsDefault`; `PatientClassId` tidak pernah kosong.
+2. Nilai kelas yang dikirim frontend diabaikan, sama seperti perlakuan pada rawat jalan.
+3. Bila master kelas IGD belum diisi, pendaftaran IGD ditolak dengan pesan yang menyebutkan
+   master mana yang kurang — bukan gagal diam-diam dengan kelas kosong.
+4. Bila ditemukan lebih dari satu master bertanda `IsForEmergency` dan `IsDefault`,
+   pendaftaran ditolak dan pesannya meminta data master dirapikan.
+5. Mengganti nama master kelas IGD tidak membuat pendaftaran IGD gagal.
+6. Pendaftaran rawat jalan tidak berubah perilakunya sama sekali.
+7. Kunjungan rawat inap asal IGD memiliki kelas yang ditetapkan admisi, dan nilainya boleh
+   berbeda dari kelas kunjungan IGD-nya.
+8. Kelas pada kunjungan IGD tidak berubah ketika kunjungan rawat inap dibuat.
+
+#### Gerbang data master bertambah satu
+
+Manifest revision 4 mencatat **enam** tabel master IGD yang wajib terisi sebelum modul dapat
+dipakai. `IGD-DEC-076` menambah satu lagi:
+
+| No | Master | Keadaan |
+| ---: | --- | --- |
+| 7 | `MstPatientClass` dengan `IsForEmergency = true` dan `IsDefault = true` | **Baru** — belum ada satu pun baris seperti ini, dan `EmergencyMasterDataSeeder` belum mengisinya |
+
+Tanpa baris itu, pendaftaran IGD berhenti total setelah `IGD-DEC-074` dijalankan. Karena itu
+pengisian master ini **wajib berada dalam task yang sama** dengan perubahan tipe kunjungan,
+bukan task terpisah sesudahnya.
+
+| `IGD-OQ-060` | Open Question | Apa yang terjadi pada pesanan yang belum selesai — obat belum diberikan, tindakan belum dikerjakan, pemeriksaan penunjang belum keluar hasilnya — ketika pasien meninggalkan IGD? | Product/Domain Owner IGD + Clinical Governance + pemilik `PharmacyManagement` + Product/Domain Owner Rawat Inap | `draft` — memblokir `IGD-GAP-026` dan gerbang penutupan kunjungan | — | F-10, `IGD-GAP-026`, `ValidateVisitClosureAsync` |
+
+| `IGD-OQ-060` | Open Question | Perlakuan pesanan yang belum selesai ketika pasien meninggalkan IGD | Product/Domain Owner IGD + Clinical Governance + pemilik `PharmacyManagement` + Product/Domain Owner Rawat Inap | `superseded` oleh `IGD-DEC-078` | — | F-10, `IGD-GAP-026` |
+| `IGD-DEC-078` | Decision | Sebelum serah terima diajukan, sistem menampilkan seluruh pesanan yang belum selesai pada kunjungan IGD. Setiap pesanan wajib diberi salah satu dari tiga sikap oleh petugas berwenang: **sudah dikerjakan**, **dibatalkan** dengan alasan, atau **diteruskan** ke unit penerima. Pesanan yang diteruskan muncul sebagai tugas pada unit penerima. Daftar sikap ini menjadi bagian isi serah terima. Kewajiban ini **tidak pernah menahan kepergian fisik pasien**: bila petugas belum bersikap, yang tertahan hanya pengajuan dokumen serah terima, sementara rangkaian fisik tetap boleh berjalan | Product/Domain Owner IGD, dengan Clinical Governance, pemilik `PharmacyManagement`, dan Product/Domain Owner Rawat Inap sebagai approver akhir | `draft` — pilihan pengguna jelas; approval keempat pihak belum tercatat | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-060`; menutup `IGD-GAP-026`; konsisten dengan `IGD-DEC-055`, `IGD-DEC-070`, dan `IGD-DEC-021` |
+
+#### Cakupan `IGD-DEC-078` menurut apa yang benar-benar ada di source
+
+Keputusan ini menyebut tiga jenis pesanan. Hanya dua di antaranya punya tempat di source hari
+ini:
+
+| Jenis pesanan | Ada di source? | Yang dipakai memeriksa |
+| --- | --- | --- |
+| Obat yang belum diberikan | **Sebagian** | `TrxPrescription` beserta status pemenuhannya. Catatan pemberian obat kepada pasien belum ada sama sekali — `IGD-GAP-025` |
+| Tindakan yang belum dikerjakan | **Ya** | `TrxPatientProcedure` beserta statusnya |
+| Pemeriksaan penunjang yang belum keluar hasilnya | **Tidak** | Modul Laboratorium dan Radiologi **belum ada** — `IGD-GAP-024`, `F-17` |
+
+Karena itu penerapan `IGD-DEC-078` dilakukan bertahap. Yang dapat dikerjakan sekarang adalah
+obat dan tindakan. Bagian penunjang menunggu modul Diagnostic Services dan dicatat sebagai
+`LATER SLICE`, bukan sebagai bagian yang dilupakan.
+
+Perbedaan "sudah diresepkan" dan "sudah diberikan" juga belum dapat ditegakkan sepenuhnya
+selama `IGD-GAP-025` terbuka. Yang terbaca hari ini hanya sampai "sudah diserahkan farmasi",
+bukan "sudah masuk ke tubuh pasien".
+
+#### Acceptance criteria awal dari `IGD-DEC-078`
+
+1. Daftar pesanan yang belum selesai muncul sebelum serah terima diajukan, dan memuat obat
+   serta tindakan yang statusnya belum tuntas.
+2. Setiap pesanan pada daftar itu wajib memiliki tepat satu sikap sebelum dokumen serah
+   terima dapat diajukan.
+3. Pembatalan pesanan wajib menyimpan alasan, pelaku, dan waktu server.
+4. Pesanan yang diteruskan terlihat pada unit penerima sebagai tugas, bukan hanya sebagai
+   teks pada ringkasan serah terima.
+5. Rangkaian fisik `Disiapkan`, `Berangkat`, dan `Tiba` tetap dapat dijalankan walaupun
+   belum satu pun pesanan diberi sikap.
+6. Daftar sikap tersimpan sebagai bagian catatan serah terima dan dapat dibaca kembali
+   sesudahnya.
+7. Pesanan yang sudah diberi sikap tidak dapat berubah sikap tanpa jejak; perubahan
+   bersifat append-only.
+8. Status tagihan tidak diperiksa sama sekali, sesuai `IGD-DEC-021`.
+
+#### Blocker yang muncul
+
+| Blocker | Menunggu | Memblokir |
+| --- | --- | --- |
+| Bentuk "diteruskan" untuk obat | Pemilik `PharmacyManagement` — apakah resep IGD dipindahkan ke kunjungan rawat inap atau tetap menempel pada kunjungan IGD tetapi dikerjakan unit penerima | `IMPLEMENTATION` |
+| Bentuk daftar tugas pada unit penerima | Product/Domain Owner Rawat Inap — apakah memakai daftar pantau `InpEpisode` yang sudah ada | `IMPLEMENTATION` |
+| Bagian pemeriksaan penunjang | Modul Diagnostic Services belum ada | `LATER SLICE` |
+| Pembedaan "diberikan" dari "diserahkan" | `IGD-GAP-025`, catatan pemberian obat belum ada | `LATER SLICE` |
+
+| `IGD-OQ-061` | Open Question | Apa isi minimum serah terima klinis dari IGD, dan apakah serah terima perawat dan serah terima dokter dipisahkan? | Product/Domain Owner IGD + Nursing authority + Clinical Governance | `draft` — memblokir `IGD-GAP-019` dan desain isi serah terima | — | F-14, `IGD-DEC-061`, `IGD-DEC-078`, `IGD-REG-003` |
+
+| `IGD-OQ-061` | Open Question | Isi minimum serah terima klinis dari IGD dan pemisahan serah terima perawat dan dokter | Product/Domain Owner IGD + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-079` | — | F-14, `IGD-DEC-061`, `IGD-REG-003` |
+| `IGD-DEC-079` | Decision | Serah terima klinis dari IGD memakai bentuk terstruktur SBAR dengan **empat bagian wajib diisi petugas** — kondisi saat ini, ringkasan perjalanan di IGD, masalah aktif beserta tingkat kegawatan terakhir, dan yang harus dilanjutkan — ditambah **tiga bagian yang diisi sistem** dari data yang sudah ada, yaitu daftar sikap pesanan sesuai `IGD-DEC-078`, alergi beserta risiko utama, dan tanda vital terakhir. Bentuk ini berlaku sama untuk seluruh tujuan, termasuk bangsal, ICU, kamar operasi, dan kamar jenazah. Serah terima perawat dan serah terima dokter **tidak** dipisahkan menjadi dua dokumen pada rilis pertama; keduanya mengisi dokumen yang sama | Product/Domain Owner IGD, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna jelas; approval keperawatan dan klinis belum tercatat, dan `IGD-REG-003` masih `HOSPITAL_SOP_REQUIREMENT` yang belum diverifikasi ke SOP MMC | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-061`; menutup `IGD-GAP-019`; memberi arti pada peninjauan yang diwajibkan `IGD-DEC-061` |
+
+#### Bentuk yang dikunci `IGD-DEC-079`
+
+| Bagian | Diisi oleh | Wajib | Sumber |
+| --- | --- | --- | --- |
+| Kondisi pasien saat ini | Petugas | Ya | Ditulis petugas |
+| Ringkasan perjalanan di IGD | Petugas | Ya | Ditulis petugas |
+| Masalah aktif dan tingkat kegawatan terakhir | Petugas | Ya | Ditulis petugas, tingkat kegawatan disalin dari penilaian triase terakhir |
+| Yang harus dilanjutkan | Petugas | Ya | Ditulis petugas |
+| Daftar sikap pesanan | Sistem | Otomatis | `IGD-DEC-078` |
+| Alergi dan risiko utama | Sistem | Otomatis | Pengkajian keperawatan dan `TrxPatientAllergy` |
+| Tanda vital terakhir | Sistem | Otomatis | `TrxPatientVitalSign` terbaru pada kunjungan itu |
+
+#### Pengecualian untuk pasien yang paling gawat
+
+`IGD-DEC-055` menetapkan dokumentasi tidak boleh menunda tindakan penyelamatan, dan
+`IGD-DEC-056` menetapkan bagian yang tidak dapat dinilai wajib disertai alasan, bukan
+dikosongkan diam-diam. Kedua aturan itu berlaku di sini:
+
+1. Untuk pasien tingkat kegawatan tertinggi, empat bagian wajib tetap **diminta**, tetapi
+   petugas boleh menandai sebuah bagian sebagai tidak dapat diisi saat itu beserta alasannya.
+2. Penandaan itu **tidak** menahan rangkaian fisik `Disiapkan`, `Berangkat`, dan `Tiba`,
+   sesuai `IGD-DEC-070` dan `IGD-DEC-078`.
+3. Bagian yang ditandai tidak dapat diisi wajib dilengkapi setelah pasien stabil, dan
+   sampai saat itu serah terima tetap tercatat sebagai belum lengkap.
+4. Sistem **tidak boleh** mengisi bagian klinis apa pun secara otomatis hanya untuk
+   meloloskan validasi, sesuai `IGD-DEC-056`.
+
+#### Acceptance criteria awal dari `IGD-DEC-079`
+
+1. Dokumen serah terima tidak dapat diajukan bila salah satu dari empat bagian wajib kosong
+   dan tidak ditandai sebagai tidak dapat diisi.
+2. Bagian yang ditandai tidak dapat diisi wajib menyimpan alasan, pelaku, dan waktu server.
+3. Tiga bagian otomatis terisi tanpa petugas mengetik ulang, dan nilainya diambil pada saat
+   serah terima diajukan, bukan dihitung ulang setiap kali dibaca.
+4. Tingkat kegawatan pada bagian masalah aktif berasal dari penilaian triase terakhir yang
+   berstatus selesai, bukan dari penilaian yang sudah `Superseded` atau `Cancelled`.
+5. Penerima melihat ketujuh bagian sebagai daftar yang dapat diperiksa satu per satu.
+6. Penolakan serah terima wajib menyebutkan bagian mana yang dianggap kurang.
+7. Rangkaian fisik tetap dapat berjalan walaupun dokumen serah terima belum lengkap.
+8. Serah terima yang belum lengkap muncul pada daftar pantau sebagai pekerjaan yang belum
+   tuntas, sesuai `IGD-DEC-062`.
+9. Satu dokumen serah terima menampung isian perawat dan dokter; tidak ada dokumen kedua.
+
+#### Catatan lintas modul
+
+`RWI-OQ-038` milik Rawat Inap — isi serah terima antar shift di bangsal — **masih terbuka**
+di sisinya. Bentuk SBAR yang dikunci di sini sebaiknya ditawarkan sebagai bahan jawaban
+`RWI-OQ-038`, supaya rumah sakit tidak berakhir dengan dua bentuk serah terima yang berbeda
+untuk kejadian yang sejenis.
+
+| `IGD-OQ-062` | Open Question | Seberapa dalam jejak audit perubahan catatan klinis IGD harus disimpan, mengingat hari ini hanya penulis terakhir yang tercatat dan nilai sebelumnya hilang? | Product/Domain Owner IGD + Security/Privacy owner + Clinical Governance | `draft` — memblokir `IGD-GAP-020` dan penegakan `IGD-DEC-058`, `IGD-DEC-059`, `IGD-DEC-066` | — | F-16, `IGD-REG-002` |
+
+| `IGD-OQ-062` | Open Question | Kedalaman jejak audit perubahan catatan klinis IGD | Product/Domain Owner IGD + Security/Privacy owner + Clinical Governance | `superseded` oleh `IGD-DEC-080` | — | F-16, `IGD-REG-002` |
+| `IGD-DEC-080` | Decision | Catatan klinis IGD **tidak diubah di tempat**. Setiap koreksi membuat baris baru yang menunjuk baris yang dikoreksi; baris lama ditandai bukan nilai efektif tetapi isinya tetap utuh dan tidak pernah ditimpa. Aturan ini berlaku untuk pengkajian, tanda vital, catatan perkembangan, penilaian triase, dan event kepergian. Tabel non-klinis seperti master dan pengaturan tetap memakai `IdentityModel` apa adanya. Tidak ada penghapusan permanen pada catatan klinis | Product/Domain Owner IGD, dengan Security/Privacy owner dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna jelas; approval keamanan dan klinis belum tercatat, dan `IGD-REG-002` masih `REGULATORY_VERIFICATION_REQUIRED` | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-062`; menutup `IGD-GAP-020`; memungkinkan penegakan `IGD-DEC-058`, `IGD-DEC-059`, dan `IGD-DEC-066` |
+
+#### Pola ini sudah terbukti di repository yang sama
+
+`IGD-DEC-080` **bukan pola baru**. Ia memperluas cara kerja retriase yang sudah berjalan:
+
+| Unsur pola | Sudah ada pada retriase | Diperluas ke |
+| --- | --- | --- |
+| Baris lama tidak ditimpa | `TrxEmergencyTriage` lama hanya berubah status menjadi `Superseded` | Pengkajian, tanda vital, catatan perkembangan, event kepergian |
+| Baris baru menunjuk baris lama | `PreviousTriageId` | Kolom penunjuk sejenis pada tabel klinis lain |
+| Satu transaksi | `RetriageAsync` menyimpan keduanya dalam satu `SaveChangesAsync` | Seluruh koreksi klinis |
+| Kolom klinis lama tidak disentuh | Hanya status dan jejak audit yang berubah | Sama |
+
+Karena itu risikonya lebih rendah daripada memperkenalkan mekanisme yang belum pernah
+dipakai di sini.
+
+#### Acceptance criteria awal dari `IGD-DEC-080`
+
+1. Mengoreksi catatan klinis menghasilkan baris baru; jumlah baris bertambah, tidak tetap.
+2. Baris yang dikoreksi tetap dapat dibaca lengkap beserta seluruh nilai klinis aslinya.
+3. Tepat satu baris berstatus nilai efektif untuk setiap catatan pada satu waktu.
+4. Baris baru menyimpan penunjuk ke baris yang dikoreksi, pelaku, waktu server, dan alasan.
+5. Pembuatan baris koreksi dan penandaan baris lama terjadi dalam satu transaksi; mustahil
+   ada keadaan baris lama sudah ditandai sementara penggantinya gagal tersimpan.
+6. Riwayat lengkap sebuah catatan dapat ditampilkan berurutan menurut waktu.
+7. Tidak ada endpoint yang menghapus permanen catatan klinis.
+8. Pembacaan biasa hanya mengembalikan nilai efektif, sehingga layar yang sudah ada tidak
+   menampilkan nilai lama sebagai fakta klinis.
+9. Referensi dari catatan lain tetap dapat ditelusuri ke catatan asal maupun ke koreksinya,
+   sesuai `IGD-DEC-059`.
+
+#### Contoh yang menjelaskan kenapa ini penting
+
+Perawat A mencatat tekanan darah 120/80 pukul 20:00. Perawat B mengoreksinya menjadi 90/60
+pukul 20:15. Perawat C mengoreksi lagi menjadi 100/70 pukul 20:30.
+
+| Yang tersimpan hari ini | Yang tersimpan setelah `IGD-DEC-080` |
+| --- | --- |
+| Satu baris: 100/70, diubah terakhir oleh Perawat C pukul 20:30 | Tiga baris: 120/80 oleh A, 90/60 oleh B, 100/70 oleh C — hanya baris ketiga berstatus efektif |
+
+Pada pasien yang memburuk, urutan 120/80 lalu 90/60 adalah informasi klinis yang paling
+menentukan. Hari ini urutan itu hilang tanpa jejak.
+
+#### Blocker yang muncul
+
+| Blocker | Menunggu | Memblokir |
+| --- | --- | --- |
+| Approval Security/Privacy owner | Pemilik belum ditunjuk | `IMPLEMENTATION` |
+| Verifikasi `IGD-REG-002` | Rujukan regulasi rekam medis elektronik yang berlaku, belum diverifikasi siapa pun | `IMPLEMENTATION` |
+| Kebijakan masa simpan riwayat | `RWI-OQ-035` di sisi Rawat Inap menanyakan hal sejenis dan masih terbuka | `LATER SLICE` |
+| Migration penambahan kolom penanda | Basis data dipakai bersama satu tim | `IMPLEMENTATION` |
+
+| `IGD-OQ-063` | Open Question | Cara hak akses mengenal unit pelayanan | Product/Domain Owner IGD + Security/Privacy owner + pemilik Corporate/HR | `superseded` oleh `IGD-DEC-081` | — | F-15, laporan `BE-IGD-010` |
+| `IGD-DEC-081` | Decision | Hubungan pengguna ke unit pelayanan dibuat sebagai **tabel penugasan tersendiri**, berisi pengguna, unit pelayanan, berlaku sejak, berlaku sampai, dan siapa yang menugaskan. Penjaga kewenangan unit ditulis **di dalam service IGD**, bukan di mesin hak akses `SysAccessPolicy`. Setiap endpoint yang menuntut kewenangan unit wajib memanggilnya. Struktur organisasi dan mesin hak akses yang dipakai seluruh aplikasi **tidak disentuh** | Product/Domain Owner IGD, dengan Security/Privacy owner dan pemilik Corporate/HR sebagai approver akhir | `draft` — pilihan pengguna jelas; approval belum tercatat dan pengisian data penugasan untuk petugas yang sudah ada adalah keputusan organisasi | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-063`; menutup `IGD-GAP-021` dan membuka jalan `BE-IGD-010` yang selama ini terhalang desain; memakai pola yang sama dengan `RWI-RULE-030` aturan 6 |
+| `IGD-OQ-064` | Open Question | Cara mencatat penetapan dokter pemeriksa IGD | Product/Domain Owner IGD + Clinical Governance | `superseded` oleh `IGD-DEC-082` | — | F-6, `IGD-GAP-022` |
+| `IGD-DEC-082` | Decision | Penetapan dokter pemeriksa IGD dicatat pada **tabel riwayat penugasan** berisi dokter, berlaku sejak, berakhir kapan, siapa yang menugaskan, dan alasannya. Pada satu waktu tepat satu dokter aktif untuk satu kunjungan IGD. Baris lama diberi waktu berakhir dan **tidak pernah ditimpa**. `TrxPatientEncounter.DoctorId` tetap diisi sebagai nilai efektif supaya layar dan laporan yang sudah ada tidak rusak | Product/Domain Owner IGD, dengan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna jelas; approval klinis belum tercatat | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-064`; menutup `IGD-GAP-022`; menegakkan `IGD-DEC-073`; sejalan dengan `IGD-DEC-080`; bentuknya sama dengan `RWI-RULE-030` |
+| `IGD-OQ-065` | Open Question | Perilaku sistem ketika pemicu pengkajian ulang terpenuhi tetapi pengkajian ulang belum dilakukan | Product/Domain Owner IGD + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-083` | — | `IGD-DEC-060`, `IGD-GAP-023` |
+| `IGD-DEC-083` | Decision | Pemicu pengkajian ulang yang sudah terpenuhi tetapi belum ditindaklanjuti ditampilkan sebagai **daftar pantau**, dan **tidak pernah memblokir** tindakan klinis maupun keputusan tindak lanjut. Perhitungannya memakai pola yang sama dengan pemantau pelampauan batas waktu triase yang sudah berjalan. Interval yang belum disahkan SOP ditandai belum tersedia dan **tidak boleh** dianggap patuh maupun terlambat secara otomatis | Product/Domain Owner IGD, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna jelas; approval belum tercatat dan nilai interval menunggu SOP MMC | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-065`; menutup `IGD-GAP-023`; menegakkan `IGD-DEC-060`; memperluas pola `EmergencyTriageSlaMonitorHostedService` |
+
+#### Acceptance criteria awal dari `IGD-DEC-081`
+
+1. Petugas yang tidak memiliki penugasan aktif pada unit tujuan ditolak ketika mencoba
+   mencatat event `Tiba` atau menerima serah terima untuk unit itu.
+2. Penolakan itu memakai kode 403 beserta pesan yang menyebutkan sebabnya.
+3. Penugasan yang sudah berakhir waktunya tidak lagi memberi kewenangan.
+4. Memiliki penugasan unit **tidak dengan sendirinya** memberi capability klinis, dan
+   memiliki capability **tidak** melewati batas penugasan unit, sesuai `IGD-DEC-058`.
+5. Mesin hak akses `SysAccessPolicy` dan struktur organisasi tidak berubah perilakunya.
+6. Tersedia aturan peralihan yang disengaja untuk keadaan tabel penugasan masih kosong,
+   sehingga penerapannya tidak mengunci seluruh petugas sekaligus.
+7. Pelayanan klinis darurat **tidak pernah** diblokir oleh ketiadaan penugasan.
+
+#### Acceptance criteria awal dari `IGD-DEC-082`
+
+1. Menetapkan dokter kedua tidak menghapus jejak dokter pertama.
+2. Sistem dapat menjawab siapa dokter penanggung jawab kunjungan IGD **pada waktu tertentu**,
+   bukan hanya sekarang.
+3. Tepat satu dokter aktif untuk satu kunjungan IGD pada satu waktu.
+4. Pergantian dokter menyimpan alasan, pelaku, dan waktu server.
+5. `TrxPatientEncounter.DoctorId` selalu sama dengan dokter yang sedang aktif.
+6. Layar dan laporan yang membaca `DoctorId` tidak berubah perilakunya.
+7. Pencabutan dokter tanpa pengganti memiliki aturan yang disengaja, bukan menghasilkan
+   kunjungan tanpa dokter secara diam-diam.
+
+#### Acceptance criteria awal dari `IGD-DEC-083`
+
+1. Daftar pantau memuat pasien yang pemicu pengkajian ulangnya sudah terpenuhi tetapi
+   pengkajian ulangnya belum ada.
+2. Pasien yang intervalnya belum dikonfigurasi SOP ditampilkan dengan penanda **belum
+   tersedia**, bukan disembunyikan dan bukan dianggap patuh.
+3. Tidak ada satu pun endpoint klinis yang menolak permintaan karena pengkajian ulang
+   tertunggak.
+4. Keputusan tindak lanjut tetap dapat dijalankan walaupun pengkajian ulang tertunggak.
+5. Penanda tertunggak hilang dari daftar setelah pengkajian ulang dilakukan, tanpa riwayat
+   ketertunggakannya dihapus.
+6. Pemicu berbasis kejadian — setelah intervensi, saat kondisi berubah, saat serah terima,
+   sebelum tindak lanjut — dihitung terpisah dari pemicu berbasis interval.
+
+#### Catatan penting untuk `IGD-DEC-081`
+
+Laporan `BE-IGD-010` tanggal 18 Agustus 2026 berstatus **terhalang desain** justru karena
+keputusan ini belum ada. `IGD-DEC-081` membuka jalannya. Yang tetap **bukan** pekerjaan kode
+adalah pengisian data penugasan untuk seluruh petugas yang sudah ada — itu keputusan
+organisasi dan harus diselesaikan sebelum penjagaan dinyalakan di produksi.
+
+| `IGD-OQ-066` | Open Question | Cara mencegah satu pasien memiliki dua episode IGD aktif | Product/Domain Owner IGD + Registration API owner | `superseded` oleh `IGD-DEC-084` | — | F-4, `IGD-GAP-029` |
+| `IGD-DEC-084` | Decision | Pendaftaran IGD ditolak selama pasien yang sama masih memiliki kunjungan IGD yang belum `Completed` dan belum `Cancelled`. Pesan penolakan **wajib menyebutkan nomor kunjungan yang sudah ada** beserta cara membukanya, sehingga petugas melanjutkan ke kunjungan itu alih-alih mengulang pendaftaran. Tersedia jalan keluar beralasan untuk keadaan yang sah, dan pemakaian jalan keluar itu tercatat | Product/Domain Owner IGD, dengan Registration API owner sebagai approver akhir | `draft` — pilihan pengguna jelas; approval belum tercatat | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-066`; menutup `IGD-GAP-029`; sejajar dengan `RWI-DEC-054` dan `INV-INP-10` milik Rawat Inap |
+| `IGD-OQ-051` | Open Question | Perlakuan terhadap unit, petugas, dan catatan downstream yang telah memakai event `Arrived` sebelum event itu dikoreksi atau dibalik | Product/Domain Owner IGD + Nursing authority + Clinical Governance + Integration owner | `superseded` oleh `IGD-DEC-085` | — | Tindak lanjut `IGD-DEC-066`; **butir terakhir yang tersisa dari Amendment Pass 2026-08-20** |
+| `IGD-DEC-085` | Decision | Koreksi atau pembalikan event `Arrived` **wajib memberitahu** unit yang terlanjur menerima tanggung jawab klinis dan petugas yang membuat catatan turunan. Catatan klinis yang sudah ditulis **tidak diubah dan tidak dihapus**; catatan itu hanya diberi penanda bahwa dasar kepemilikannya dikoreksi, beserta tautan ke event pengganti yang sah. Penilaian apakah isi catatan masih berlaku diserahkan kepada petugas yang menulisnya, bukan kepada sistem. Penanda yang belum ditindaklanjuti muncul pada daftar pantau | Product/Domain Owner IGD, dengan Nursing authority, Clinical Governance, dan Integration owner sebagai approver akhir | `draft` — pilihan pengguna jelas; approval belum tercatat | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-051`; melaksanakan penutup `IGD-DEC-066` "koreksi tidak boleh dilakukan diam-diam"; sejalan dengan `IGD-DEC-080` |
+
+#### Acceptance criteria awal dari `IGD-DEC-084`
+
+1. Pendaftaran IGD kedua untuk pasien yang kunjungan IGD-nya masih aktif ditolak.
+2. Pesan penolakan memuat nomor kunjungan yang sudah ada dan waktu kedatangannya.
+3. Pasien yang kunjungan IGD sebelumnya sudah `Completed` atau `Cancelled` dapat
+   didaftarkan kembali tanpa hambatan.
+4. Pasien tanpa identitas yang belum tertaut ke data pasien definitif tidak ikut tertolak
+   oleh aturan ini, karena belum dapat dipastikan orang yang sama.
+5. Pemakaian jalan keluar beralasan menyimpan alasan, pelaku, dan waktu server.
+6. Aturan ini **tidak** menahan penanganan klinis; yang tertahan hanya pembuatan kunjungan
+   kedua.
+
+#### Acceptance criteria awal dari `IGD-DEC-085`
+
+1. Koreksi waktu, koreksi pasien, dan pembalikan event `Arrived` mengirim pemberitahuan ke
+   unit yang terdampak.
+2. Petugas yang membuat catatan turunan setelah event yang dikoreksi ikut diberi tahu.
+3. Catatan klinis turunan tetap utuh isinya; tidak satu pun kolom klinisnya berubah.
+4. Catatan turunan memperoleh penanda yang menyebutkan bahwa dasar kepemilikannya
+   dikoreksi, beserta tautan ke event pengganti.
+5. Penanda itu muncul pada daftar pantau sampai petugas yang berwenang menyatakan
+   sikapnya.
+6. Event asli tetap terlihat sebagai tidak berlaku dan tertaut ke penggantinya, sesuai
+   `IGD-DEC-066`.
+7. Pemberitahuan yang gagal terkirim tidak membatalkan koreksinya, tetapi tercatat sebagai
+   pekerjaan yang belum tuntas.
+
+---
+
+### Penutupan Amendment Pass 2026-08-24
+
+#### Keputusan baru pada pass ini
+
+Sembilan belas keputusan, `IGD-DEC-067` sampai `IGD-DEC-085`. Seluruhnya berstatus `draft`.
+**Tidak satu pun `approved`**, karena tidak satu pun pemilik berwenang yang tercatat namanya
+memberikan persetujuan formal dalam sesi ini.
+
+| Kelompok | Keputusan |
+| --- | --- |
+| Bentuk episode dan penghubungnya | `IGD-DEC-067`, `IGD-DEC-074`, `IGD-DEC-075`, `IGD-DEC-084` |
+| Pencatatan klinis IGD | `IGD-DEC-068`, `IGD-DEC-080` |
+| Kepergian pasien dan serah terima | `IGD-DEC-069`, `IGD-DEC-070`, `IGD-DEC-071`, `IGD-DEC-078`, `IGD-DEC-079`, `IGD-DEC-085` |
+| Kepemilikan pasien | `IGD-DEC-072`, `IGD-DEC-073` |
+| Kelas pasien | `IGD-DEC-076`, `IGD-DEC-077` |
+| Kewenangan dan pemantauan | `IGD-DEC-081`, `IGD-DEC-082`, `IGD-DEC-083` |
+
+#### Konflik yang tertutup
+
+| ID | Keadaan |
+| --- | --- |
+| `IGD-CONFLICT-003` | `resolved` oleh `IGD-DEC-074` |
+| `IGD-CONFLICT-004` | `resolved` oleh `IGD-DEC-068` |
+| `IGD-CONFLICT-005` | `resolved` oleh `IGD-DEC-075` |
+
+#### Kesenjangan yang tertutup keputusan
+
+`IGD-GAP-011`, `IGD-GAP-012`, `IGD-GAP-013`, `IGD-GAP-015`, `IGD-GAP-017`, `IGD-GAP-018`,
+`IGD-GAP-019`, `IGD-GAP-020`, `IGD-GAP-021`, `IGD-GAP-022`, `IGD-GAP-023`, `IGD-GAP-026`,
+`IGD-GAP-029`, `IGD-GAP-030`, `IGD-GAP-032`.
+
+#### Kesenjangan yang sengaja tidak ditanyakan
+
+| ID | Alasan | Sifat |
+| --- | --- | --- |
+| `IGD-GAP-014` | Status kunjungan dapat mundur dan kunjungan tertutup dapat terbuka kembali. Ini **cacat perilaku murni**, bukan pertanyaan bisnis: `EmergencyVisitService.CanTransition` sudah menyatakan aturan yang benar, tetapi `EmergencyTriageController` menulis `VisitStatus` secara langsung tanpa memanggilnya. Tidak ada keputusan owner yang dibutuhkan untuk memperbaikinya | Perbaikan, bukan keputusan |
+| `IGD-GAP-016` | Modul rawat inap milik blueprint `RWI-BP-001` yang sudah `approved`. Bukan pekerjaan IGD | Milik modul lain |
+| `IGD-GAP-024` | Laboratorium dan radiologi belum ada modulnya sama sekali. Menanyakan aturannya sekarang berarti merancang modul yang bukan scope pass ini | `LATER SLICE` |
+| `IGD-GAP-025` | Catatan pemberian obat menyentuh `PharmacyManagement`. Menunggu pemilik modul itu ditunjuk | `LATER SLICE` |
+| `IGD-GAP-027` | Bentuk terstruktur primary survey ABCDE. `IGD-DEC-057` sudah mewajibkan hasil ABCDE sebagai data inti; bentuk kolomnya adalah pekerjaan desain, bukan keputusan owner | Desain |
+| `IGD-GAP-028` | Pendaftaran dan kunjungan IGD tidak atomik. Perbaikan teknis; kode sudah menahan hasil langkah pertama sehingga tidak menghasilkan encounter kembar selama layar tidak ditutup | Perbaikan, bukan keputusan |
+| `IGD-GAP-031` | Empat pengaturan IGD yang tersimpan tetapi tidak menjalankan apa pun. Perlu diputuskan apakah dijalankan atau dicabut — **layak menjadi pertanyaan pass berikutnya**, tidak memblokir desain | Terbuka |
+| `IGD-GAP-033` | Tidak ada proyek test di backend. Sudah menjadi kewajiban lewat `RWI-DEC-051` di sisi Rawat Inap dan menjadi blocker `IGD-DEC-068` | Blocker implementasi |
+
+#### Blocker yang tersisa
+
+Tidak satu pun memblokir `DESIGN`. Seluruhnya memblokir `IMPLEMENTATION`.
+
+| Blocker | Menunggu | Keputusan terdampak |
+| --- | --- | --- |
+| Pemilik `ClinicalManagement` dan `PharmacyManagement` belum ditunjuk | Organisasi. Sama dengan `DEC-INP-001` milik Rawat Inap — **ajukan sebagai satu permintaan** | `IGD-DEC-068`, `IGD-DEC-078` |
+| Persetujuan Muhammad Hamzah atas revisi `RWI-RULE-026` aturan 6 dan manifest `compatibility_impact` | Product/Domain Owner Rawat Inap | `IGD-DEC-068`, `IGD-DEC-071`, `IGD-DEC-075` |
+| Persetujuan pemilik `EmergencyInstallationManagement` atas `RWI-OQ-034` dan `DEC-INP-002` | **Pemilik IGD, yaitu pihak yang menjawab pass ini** — namanya belum tercatat | `IGD-DEC-067`, dan slice `INP-S09` milik Rawat Inap |
+| Otorisasi migration pada basis data yang dipakai bersama satu tim | Pemilik basis data pengembangan | `IGD-DEC-074`, `IGD-DEC-075`, `IGD-DEC-080`, `IGD-DEC-082` |
+| Data master kelas pasien IGD | Penanggung jawab data master | `IGD-DEC-076` |
+| Pengisian data penugasan unit untuk petugas yang sudah ada | Organisasi | `IGD-DEC-081` |
+| Nilai batas waktu dan interval dari SOP MMC | SOP triase dan SOP pengkajian ulang | `IGD-DEC-063`, `IGD-DEC-083`, `IGD-REG-004`, `IGD-REG-005` |
+| Approval Clinical Governance, Nursing authority, dan Security/Privacy | Ketiganya belum ditunjuk | Hampir seluruh keputusan pass ini |
+| Verifikasi `IGD-REG-002` dan `IGD-REG-006` | Rujukan regulasi yang berlaku; **belum diverifikasi siapa pun dalam sesi ini** | `IGD-DEC-080` |
+| Proyek test backend belum ada | `IGD-GAP-033` | `IGD-DEC-068` dan seluruh perubahan yang menyentuh modul tetangga |
+
+#### Yang wajib disampaikan kepada pemilik modul Rawat Inap
+
+Tiga keputusan pass ini menuntut perubahan pada blueprint `RWI-BP-001` revision 3 yang sudah
+`approved`. Perubahan itu **bukan wewenang modul IGD** dan diusulkan, bukan diberlakukan:
+
+| Usulan | Artefak Rawat Inap yang terdampak | Sebab |
+| --- | --- | --- |
+| Perluas pelonggaran `RWI-RULE-026` ke kunjungan bertipe `Emergency`; aturan 6 direvisi | `00-interview-decisions.md`, `02-backend-architecture.md`, kontrak validasi | `IGD-DEC-068` — tanpa ini pengkajian IGD tetap mustahil disimpan |
+| Ubah `compatibility_impact` pada manifest: bukan lagi nol perubahan kolom pada tabel modul lain | `blueprint-manifest.md` | `IGD-DEC-075` — `RWI-RULE-029` aturan 2 mustahil dijalankan tanpa kolom penghubung |
+| `InpBedPlacement` membaca waktu tiba dari catatan kepergian IGD, tidak menetapkan sendiri | `02-backend-architecture.md`, kontrak API, `INP-S01` | `IGD-DEC-071` |
+| Tawarkan bentuk SBAR `IGD-DEC-079` sebagai bahan jawaban `RWI-OQ-038` | `00-interview-decisions.md` | Supaya rumah sakit tidak punya dua bentuk serah terima berbeda |
+
+#### Status gerbang untuk langkah berikutnya
+
+| Gerbang | Keadaan |
+| --- | --- |
+| Conflict lintas blueprint tertutup | **Ya** — ketiganya `resolved` |
+| Keputusan yang memblokir desain tertutup | **Ya** — tidak ada `IGD-OQ` yang berstatus memblokir `DESIGN` |
+| Approval formal owner tercatat | **Tidak** — seluruh keputusan `draft` |
+| Boleh lanjut ke `/qv-design` | **Ya, dengan catatan** — desain boleh disusun di atas keputusan `draft`, tetapi blueprint hasilnya tidak boleh ditandai `approved` sebelum owner nyata menyetujui |
+| Boleh lanjut ke implementasi | **Tidak** — sepuluh blocker implementasi masih terbuka |
+
+#### Status akhir seluruh Open Question setelah pass ini
+
+Setiap `IGD-OQ` pada pass ini muncul **dua kali** di dokumen: sekali ketika diajukan dengan
+status `draft`, dan sekali lagi ketika ditutup dengan status `superseded`. Baris kedua yang
+berlaku. Tabel di bawah adalah rujukan tunggal agar tidak salah baca.
+
+| ID | Pokok | Status akhir | Ditutup oleh |
+| --- | --- | --- | --- |
+| `IGD-OQ-051` | Propagasi koreksi event `Arrived` ke downstream | `superseded` | `IGD-DEC-085` |
+| `IGD-OQ-052` | Bentuk episode saat pasien IGD masuk rawat inap | `superseded` | `IGD-DEC-067` |
+| `IGD-OQ-053` | Pelonggaran `QueueId` dan `ConsultationId` | `superseded` | `IGD-DEC-068` |
+| `IGD-OQ-054` | Peran `TrxEmergencyTransfer` setelah jalur `RANAP` pindah ke Rawat Inap | `superseded` | `IGD-DEC-069` |
+| `IGD-OQ-055` | Kejadian kepergian yang wajib dibedakan dan sumber kebenaran waktu tiba | `superseded` | `IGD-DEC-070`, `IGD-DEC-071` |
+| `IGD-OQ-056` | Pemilik klinis saat `Berangkat` dan dokter penanggung jawab sebelum DPJP ranap | `superseded` | `IGD-DEC-072`, `IGD-DEC-073` |
+| `IGD-OQ-057` | Perubahan kunjungan IGD menjadi `EncounterType.Emergency` | `superseded` | `IGD-DEC-074` |
+| `IGD-OQ-058` | Penghubung kunjungan IGD dan kunjungan rawat inap | `superseded` | `IGD-DEC-075` |
+| `IGD-OQ-059` | Kelas pasien IGD dan nasibnya saat naik ke rawat inap | `superseded` | `IGD-DEC-076`, `IGD-DEC-077` |
+| `IGD-OQ-060` | Pesanan yang belum selesai saat pasien meninggalkan IGD | `superseded` | `IGD-DEC-078` |
+| `IGD-OQ-061` | Isi minimum serah terima klinis | `superseded` | `IGD-DEC-079` |
+| `IGD-OQ-062` | Kedalaman jejak audit catatan klinis | `superseded` | `IGD-DEC-080` |
+| `IGD-OQ-063` | Hak akses mengenal unit pelayanan | `superseded` | `IGD-DEC-081` |
+| `IGD-OQ-064` | Pencatatan penetapan dokter pemeriksa | `superseded` | `IGD-DEC-082` |
+| `IGD-OQ-065` | Perilaku saat pemicu pengkajian ulang tertunggak | `superseded` | `IGD-DEC-083` |
+| `IGD-OQ-066` | Pencegahan episode IGD ganda | `superseded` | `IGD-DEC-084` |
+
+Rencana pertanyaan tentang pemesanan dan alokasi tempat tidur **gugur sebelum diajukan**,
+karena `IGD-DEC-069` sudah memindahkan seluruh urusan tempat tidur ke modul Rawat Inap.
+
+#### Open Question dari pass sebelumnya yang tetap terbuka
+
+Keduanya bersifat organisasi, bukan keputusan desain, dan **tidak** memblokir langkah
+berikutnya:
+
+| ID | Pokok | Menunggu |
+| --- | --- | --- |
+| `IGD-OQ-037` | Kewenangan dan batas waktu break-glass | Security/Privacy owner dan Clinical Governance yang belum ditunjuk |
+| `IGD-OQ-038` | Approver bernama untuk roadmap backend | Product/Domain Owner yang namanya belum diisi |
+
+#### Pertanyaan yang layak diajukan pada pass berikutnya
+
+| Pokok | Sebab | Sifat |
+| --- | --- | --- |
+| Empat pengaturan `MstEmergencySetting` yang tidak menjalankan apa pun — dijalankan atau dicabut? | `IGD-GAP-031`, F-5 | Tidak memblokir desain |
+| Bentuk terstruktur primary survey ABCDE | `IGD-GAP-027` | Dapat diputuskan saat desain |
+| Perlakuan hasil penunjang yang datang terlambat setelah pasien pindah | `IGD-GAP-024`, menunggu modul Diagnostic Services | `LATER SLICE` |
+| Pembedaan obat "diserahkan" dan "diberikan" | `IGD-GAP-025`, menunggu pemilik `PharmacyManagement` | `LATER SLICE` |

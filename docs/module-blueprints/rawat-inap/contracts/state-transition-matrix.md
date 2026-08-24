@@ -3,14 +3,22 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.2.0` |
+| `contract_version` | `0.3.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | `00-interview-decisions.md` revision `3`; `evidence/03-hospital-domain-architecture.md` revision `0.1` |
+| `input_revision` | `00-interview-decisions.md` revision `5`; `evidence/03-hospital-domain-architecture.md` revision `0.1` |
 | Dampak kompatibilitas | Seluruhnya baru. Tidak ada state machine existing yang berubah |
 
 Dokumen ini memuat perpindahan yang **sah** dan perpindahan yang **tidak sah**. Keduanya sama
 pentingnya: yang tidak sah adalah yang paling sering dicoba petugas ketika sedang terburu-buru.
+
+> **`0.3.0` sengaja tidak menambah satu perpindahan pun.** `RWI-DEC-065` menetapkan kebutuhan
+> isolasi sebagai **atribut** episode, bukan status. Ia dapat berubah bolak-balik kapan saja selama
+> episode berjalan, tidak punya urutan yang sah maupun tidak sah, dan tidak menutup satu pun
+> tindakan. Karena itu ia tidak masuk ke matriks ini; yang menjaganya adalah `GUARD-INP-04` pada
+> `contracts/permission-audit-matrix.md` dan aturan 7 dan 8 pada Kelayakan Penempatan.
+>
+> Yang naik pada revisi ini hanyalah `contract_version`, supaya seluruh kontrak tetap sebaris.
 
 ---
 

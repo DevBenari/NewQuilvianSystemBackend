@@ -3,11 +3,11 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.2` |
+| Revision | `0.3` |
 | Status | `draft` |
 | Frontend SHA | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
 | Backend SHA | `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
-| Masukan | `02-backend-architecture.md` revision `0.2`; `contracts/api-contract.md` revision `0.2.0` |
+| Masukan | `02-backend-architecture.md` revision `0.3`; `contracts/api-contract.md` dan `contracts/permission-audit-matrix.md` revision `0.3.0` |
 | Batas tulis | Hanya dokumen blueprint |
 
 > **Batas kewenangan dokumen ini.** Dokumen ini menetapkan **kontrak fungsional**: layar apa yang
@@ -65,6 +65,11 @@ menggabungkan selama seluruh kemampuannya tercapai.
 | `FE-INP-12` | Pengaturan Rawat Inap | Mengubah batas waktu dan ambang | Admin master data |
 | `FE-INP-13` | Master butir administrasi | Menambah, mengubah, dan menonaktifkan butir daftar periksa | Admin master data |
 | `FE-INP-14` | Pencatatan kepergian pasien | Menandai bahwa pasien sudah meninggalkan ruangan, sehingga tempat tidur langsung bebas | Petugas admisi, perawat, kepala ruangan, supervisor |
+| `FE-INP-15` | Penetapan kebutuhan isolasi | Merekam atau mengubah kebutuhan isolasi episode beserta keterangannya | Petugas admisi selagi `Draft`; DPJP aktif setelah episode aktif |
+
+**`FE-INP-15` tidak wajib berupa halaman tersendiri.** Ia boleh menempel pada `FE-INP-03` admisi
+dan pada `FE-INP-04` detail episode, selama kedua jalur masuknya ada. Yang **tidak boleh** adalah
+menyediakannya hanya pada layar admisi, karena DPJP perlu mengubahnya di tengah perawatan.
 
 ---
 
@@ -93,14 +98,21 @@ diizinkan **harus disembunyikan atau dinonaktifkan**, bukan ditampilkan lalu dit
 | Mencatat pasien sudah meninggalkan ruangan | Ya | Ya | Ya | – | – | Ya | – |
 | Menutup menembus gerbang keuangan | – | – | – | – | – | Ya | – |
 | Membuka sesi koreksi | – | – | – | – | – | Ya | – |
+| Menetapkan kebutuhan isolasi | Ya, hanya selagi `Draft` | – | – | Ya, bila DPJP aktif | – | – | – |
 | Mengubah pengaturan dan butir | – | – | – | – | – | – | Ya |
 
-**Dua tombol yang paling perlu diperhatikan:**
+**Tiga tombol yang paling perlu diperhatikan:**
 
 | Tombol | Aturan tampilnya |
 | --- | --- |
 | Pindahkan pasien, untuk pengguna berperan dokter | Hanya aktif bila dokter itu **DPJP aktif episode tersebut**. Bila bukan, tombol dinonaktifkan disertai keterangan "Anda bukan DPJP episode ini" |
 | Tutup menembus gerbang keuangan | **Tidak boleh** ditampilkan berdampingan dengan tombol tutup biasa seolah dua pilihan setara. Ia baru muncul setelah tombol tutup biasa ditolak karena kelayakan keuangan, dan hanya untuk supervisor |
+| Ubah kebutuhan isolasi | Kewenangannya **berpindah** mengikuti status episode, dan ini satu-satunya tombol pada modul ini yang berperilaku demikian. Selagi episode `Draft`, aktif bagi petugas admisi dan bagi DPJP. Begitu episode `Admitted`, tombol itu **nonaktif** bagi petugas admisi, disertai keterangan "Setelah pasien dirawat, kebutuhan isolasi hanya dapat diubah DPJP". Bagi dokter yang bukan DPJP aktif, keterangannya "Anda bukan DPJP episode ini" |
+
+**Kenapa aturan tombol isolasi ditulis serinci ini.** Mesin hak akses menjawab `SetIsolation` dengan
+"boleh" untuk petugas admisi **dan** untuk dokter mana pun. Yang membedakan keduanya adalah status
+episode dan siapa DPJP aktifnya, dan itu dijaga service lewat `GUARD-INP-04`. Layar yang hanya
+membaca hak akses akan menampilkan tombol yang pasti ditolak server.
 
 ---
 
@@ -146,6 +158,22 @@ paling sedikit 1 hari.
 | Yang **bebas** | Bentuk kalimat, singkatan, penempatan, dan gaya tampilan |
 | Kenapa penting | Pasien masuk 21 Sept pukul 22:30 dan pulang 22 Sept pukul 06:00 tercatat **1 hari**, padahal hanya 7,5 jam. Kalau labelnya "lama dirawat 1 hari" tanpa penjelasan, pengguna akan menyangka sistem salah hitung |
 
+### 4.3A Kelayakan penempatan pada papan tempat tidur dan layar perpindahan
+
+Sejak revision `0.3` penanda jenis kelamin dan isolasi bukan lagi sekadar penyaring pencarian,
+melainkan **penolak** penempatan. Ini mengubah dua hal di layar.
+
+| Aspek | Ketetapannya |
+| --- | --- |
+| Hasil `GET /available-beds` | Sudah tersaring server memakai kedelapan aturan Kelayakan Penempatan. Layar **tidak boleh** menyaring ulang sendiri dengan aturannya sendiri, karena aturan yang bercabang dua akan cepat berselisih |
+| Tempat tidur yang tersaring keluar | **Boleh** ditampilkan sebagai baris nonaktif disertai alasannya, dan ini justru dianjurkan. Petugas perlu tahu bahwa tempat tidur itu ada tetapi tidak boleh dipakai, bukan mengira kamar penuh |
+| Layar perpindahan | Memakai daftar tempat tidur yang sama beserta penyaring yang sama. Aturan yang berlaku pada penempatan berlaku sama persis pada perpindahan |
+| Kamar yang terhalang pencampuran | Pesan penolakan dari server **menyebut nama kamarnya**. Layar wajib menampilkan pesan itu apa adanya, bukan menggantinya dengan kalimat umum |
+
+**Yang wajib:** alasan penolakan terbaca petugas. **Yang bebas:** bentuk penandaannya — baris
+redup, ikon, kelompok terpisah, atau penyaring yang dapat dimatikan — selama alasannya tetap
+terbaca dan tempat tidur yang tidak layak **tidak dapat dipilih**.
+
 ### 4.4 Bentuk daftar pantau — `RWI-FE-002`, `DEV_DISCRETION`
 
 | Aspek | Ketetapannya |
@@ -153,9 +181,15 @@ paling sedikit 1 hari.
 | Yang **wajib** | Lama keterlambatan terbaca; daftar **tidak boleh** menghalangi tindakan apa pun |
 | Yang **bebas** | Satu halaman gabungan atau beberapa halaman terpisah; urutan kolom; cara menandai keterlambatan; penempatan menu |
 
-Tiga daftar pantau yang tersedia pada MVP: penutupan tertunda, penutupan menembus gerbang keuangan,
-dan episode tanpa perawat penanggung jawab. Daftar pantau kepatuhan pengkajian dan CPPT **belum
-ada** karena bergantung pada slice yang masih menunggu `DEC-INP-001`.
+**Empat** daftar pantau yang tersedia pada MVP: penutupan tertunda, penutupan menembus gerbang
+keuangan, episode tanpa perawat penanggung jawab, dan — sejak revision `0.3` — **penempatan tidak
+sesuai kebutuhan isolasi**. Daftar pantau kepatuhan pengkajian dan CPPT **belum ada** karena
+bergantung pada slice yang masih menunggu `DEC-INP-001`.
+
+Daftar penempatan tidak sesuai punya satu sifat yang membedakannya dari tiga daftar lain: isinya
+**bukan** keterlambatan petugas, melainkan akibat wajar dari perubahan kondisi klinis. Menampilkan
+lama keterlambatan di sana tetap berguna, tetapi nadanya tidak boleh menuduh. Yang dibutuhkan
+petugas adalah tindakan berikutnya — memindahkan pasien — bukan penilaian bahwa ia lalai.
 
 ---
 
@@ -220,6 +254,7 @@ harus dikejar.
 | Isi resume pulang | Hanya tampil pada layar detail bagi peran yang punya `InpatientDischarge : Read`. **Tidak** ditampilkan pada daftar |
 | Daftar episode dan census | Hanya nomor episode, nama pasien, lokasi, DPJP, lama dirawat, dan status. Tanpa diagnosis |
 | Catatan episode | Bertanda sensitif. Tidak ditampilkan pada daftar |
+| Keterangan kebutuhan isolasi | Bertanda sensitif — memuat alasan klinis yang menyangkut penyakit menular. **Tidak** ditampilkan pada census maupun papan tempat tidur; hanya pada detail episode bagi peran yang berhak. Penandanya sendiri boleh tampil sebagai ikon tanpa alasannya |
 | Contoh dan data uji | **Tidak boleh** memakai data pasien atau pegawai asli |
 
 ---
@@ -299,4 +334,7 @@ Dasar kewajiban test: `RWI-DEC-051`.
 | 7 | `RWI-CON-TRC-001`, `RWI-DEC-049` |
 | `FE-INP-14` dan aturan kepergian | `RWI-RULE-036`, `RWI-DEC-055` |
 | Peringatan admisi ganda | `RWI-RULE-035`, `RWI-DEC-054` |
+| 4.3A dan `FE-INP-15` | `RWI-RULE-012`, `RWI-DEC-064`, `RWI-DEC-065`, `RWI-DEC-066` |
+| Tombol kebutuhan isolasi | `GUARD-INP-04`, `contracts/permission-audit-matrix.md` revision `0.3.0` |
+| Daftar pantau penempatan tidak sesuai | `RWI-RULE-012` A.7, `RWI-AC-138` |
 | 10 | `RWI-DEC-051`, `RWI-RISK-002` |

@@ -7,13 +7,26 @@
 | Produk | Quilvian Hospital Information System |
 | Modul | Rawat Inap — `InPatientManagement`, prefix entity `Inp`, lifecycle registry `PLANNED` |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.2.0` |
+| `contract_version` | `0.3.0` |
 | Status | `draft` — **belum disetujui manusia** |
 | Repository target | `NewQuilvianSystemBackend` dan `QuilvianSystemFrontendDev` |
 | Backend SHA baseline | `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
 | Frontend SHA baseline | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
-| Masukan | `02-backend-architecture.md` rev `0.2`; seluruh `contracts/` rev `0.2.0`; `erd/` rev `0.2`; `00-interview-decisions.md` rev `3`; `evidence/03-hospital-domain-architecture.md` rev `0.1` (`DOMAIN_ARCHITECTURE_PARTIAL`) |
+| Masukan | `02-backend-architecture.md` rev `0.3`; `contracts/api-contract.md`, `contracts/validation-matrix.md`, `contracts/permission-audit-matrix.md` rev `0.3.0`; `erd/01-inpatient-episode.md` dan `erd/data-dictionary.md` rev `0.3`; `00-interview-decisions.md` rev `5`; `evidence/03-hospital-domain-architecture.md` rev `0.1` (`DOMAIN_ARCHITECTURE_PARTIAL`) |
 | Ringkasan cakupan | Satu pasien dapat dirawat inap dari admisi sampai episode ditutup dan tempat tidur kembali kosong, tanpa dokumentasi klinis, tanpa resep, dan tanpa jalur masuk IGD |
+
+**Perubahan pada `contract_version` `0.3.0`.** Tiga keputusan penutupan butir organisasi
+2026-08-21 masuk ke dokumen ini. **Satu kemampuan berpindah dari daftar ditunda ke dalam MVP**, dan
+**satu epic baru lahir** — satu-satunya epic baru sejak dokumen ini disusun.
+
+| Keputusan | Masuk ke |
+| --- | --- |
+| `RWI-DEC-064` jenis kelamin dan isolasi menjadi aturan yang **menolak** penempatan | Bagian 7 dan 8 (kemampuan berpindah), `EPIC RI-34` baru |
+| `RWI-DEC-065` kebutuhan isolasi menjadi atribut episode | `EPIC RI-34`, `FR-RI-158` s.d. `FR-RI-161`, bagian 11, 13, dan 14 |
+| `RWI-DEC-066` seluruh kamar tidak boleh ditempati campur, tanpa kolom baru pada `MstRoom` | `EPIC RI-34`, `FR-RI-154` s.d. `FR-RI-157` |
+
+Satu gerbang keras sebelum produksi pada bagian 16 **dicabut** karena keputusannya sudah turun, dan
+tiga pertanyaan memblokir pada bagian 20.2 tertutup.
 
 **Perubahan pada `contract_version` `0.2.0`.** Empat keputusan Amendment Pass 2026-08-21 masuk ke
 dokumen ini. Tidak ada kemampuan `MUST HAVE` yang dicabut dan tidak ada epic baru; keempatnya
@@ -46,7 +59,14 @@ menyatakan lunas, episode ditutup, dan tempat tidur kembali kosong untuk pasien 
 
 Yang **belum** dikerjakan MVP ini: menulis pengkajian dan catatan dokter, membuat resep, menerima
 pasien dari IGD, dan mengirim data ke SATUSEHAT. Keempatnya bukan karena tidak penting, melainkan
-karena keputusannya belum turun dan sudah tercatat sebagai `DEC-INP-001` sampai `DEC-INP-007`.
+karena keputusannya belum turun dan sudah tercatat sebagai `DEC-INP-001`, `DEC-INP-002`,
+`DEC-INP-003`, `DEC-INP-005`, `DEC-INP-006`, dan `DEC-INP-007`.
+
+**Sejak `0.3.0`, MVP juga menolak penempatan yang tidak layak.** `DEC-INP-004` turun pada
+2026-08-21: jenis kelamin dan kebutuhan isolasi tidak lagi sekadar menyaring hasil pencarian,
+melainkan **menolak** penempatan dan perpindahan. Sistem tidak akan pernah menempatkan laki-laki di
+kamar yang sedang dihuni perempuan, dan tidak akan pernah menempatkan pasien yang membutuhkan
+isolasi di tempat tidur biasa — walaupun petugas memaksa.
 
 ---
 
@@ -91,14 +111,15 @@ Rantai keterhubungan data yang ingin dicapai, ditulis sebagai urutan:
 2. Kunjungan → **episode rawat inap** dibuka, satu kunjungan tepat satu episode.
 3. Episode → **DPJP** ditetapkan, berbentuk riwayat berperiode.
 4. Episode → **pemesanan tempat tidur**, berlaku 2 jam.
-5. Pemesanan → **penempatan tempat tidur**, dan episode menjadi aktif.
-6. Penempatan → **census** menjawab siapa dirawat, di mana, oleh siapa, sudah berapa hari.
-7. Penempatan → **perpindahan**, membentuk riwayat lokasi dan riwayat kelas.
-8. Episode → **perawat penanggung jawab**, juga berbentuk riwayat.
-9. Episode → **keputusan pulang** oleh DPJP → **resume pulang** ditandatangani.
-10. Episode → **daftar periksa administrasi** dan **kelayakan keuangan**.
-11. Episode → **penutupan**, dan tempat tidur kembali kosong.
-12. Seluruh langkah di atas → **riwayat status** yang tidak dapat diubah.
+5. Episode → **kebutuhan isolasi** direkam petugas admisi atau diputuskan DPJP.
+6. Pemesanan → **Kelayakan Penempatan** diperiksa: tempat tidur, jenis kelamin, pencampuran kamar, dan isolasi → **penempatan tempat tidur**, dan episode menjadi aktif.
+7. Penempatan → **census** menjawab siapa dirawat, di mana, oleh siapa, sudah berapa hari.
+8. Penempatan → **perpindahan**, membentuk riwayat lokasi dan riwayat kelas.
+9. Episode → **perawat penanggung jawab**, juga berbentuk riwayat.
+10. Episode → **keputusan pulang** oleh DPJP → **resume pulang** ditandatangani.
+11. Episode → **daftar periksa administrasi** dan **kelayakan keuangan**.
+12. Episode → **penutupan**, dan tempat tidur kembali kosong.
+13. Seluruh langkah di atas → **riwayat status** yang tidak dapat diubah.
 
 ---
 
@@ -107,7 +128,7 @@ Rantai keterhubungan data yang ingin dicapai, ditulis sebagai urutan:
 ### 5.1 Titik mulai
 
 1. Pasien sudah terdaftar pada modul Patient Management.
-2. Master unit layanan, kamar, tempat tidur, dan kelas pasien sudah terisi lewat layar aplikasi.
+2. Master unit layanan, kamar, tempat tidur, dan kelas pasien sudah terisi lewat layar aplikasi, **beserta penanda jenis kelamin, isolasi, dan boks bayi pada tiap tempat tidur**. Sejak `0.3.0` penanda itu bukan lagi sekadar penyaring pencarian, melainkan penentu diterima atau ditolaknya penempatan, sehingga isian yang salah akan menolak penempatan yang sah.
 3. Petugas admisi membuka layar admisi rawat inap.
 
 ### 5.2 Titik akhir
@@ -124,10 +145,10 @@ Rantai keterhubungan data yang ingin dicapai, ditulis sebagai urutan:
 
 | Pelaku | Tanggung jawabnya di dalam MVP |
 | --- | --- |
-| Petugas admisi | Membuka admisi, memesan dan menempatkan tempat tidur, menandai butir administrasi, menutup episode |
+| Petugas admisi | Membuka admisi, merekam kebutuhan isolasi sebagai catatan awal selagi episode `Draft`, memesan dan menempatkan tempat tidur, menandai butir administrasi, menutup episode |
 | Perawat pelaksana | Melihat census, memindahkan pasien |
 | Kepala ruangan | Menugaskan perawat penanggung jawab, mengalihkan DPJP, memindahkan pasien, menindaklanjuti daftar pantau |
-| DPJP | Memindahkan pasien yang menjadi tanggung jawabnya, menyatakan pasien boleh pulang, menyusun dan menandatangani resume |
+| DPJP | Menetapkan dan memperbarui kebutuhan isolasi sebagai keputusan klinis, memindahkan pasien yang menjadi tanggung jawabnya, menyatakan pasien boleh pulang, menyusun dan menandatangani resume |
 | Petugas kasir atau billing | Menandai kelayakan keuangan beserta catatannya |
 | Supervisor | Membatalkan admisi setelah pasien dirawat, menutup menembus gerbang keuangan, membuka sesi koreksi |
 | Admin master data | Mengisi master kamar dan tempat tidur, mengatur batas waktu dan butir administrasi |
@@ -167,6 +188,8 @@ sampai akhir?* dan *kalau tidak bisa, apakah ada jalan sementara yang aman dan t
 | Boks bayi sebagai tempat tidur | `RWI-CAP-032` | Wajib; masternya sudah siap, tinggal dipakai |
 | Hak akses per peran | `RWI-CAP-035` | Wajib; dipakai ulang dari mesin yang sudah ada |
 | Kewenangan per pasien untuk DPJP | `RWI-CAP-036` | Wajib; `RWI-DEC-023` dan `RWI-DEC-024` menuntutnya |
+| Penolakan penempatan karena jenis kelamin dan isolasi | `RWI-CAP-033` | Wajib; tanpa ini sistem ikut menyebabkan pelanggaran privasi dan pengendalian infeksi. **Berpindah dari daftar ditunda pada `0.3.0`** lewat `RWI-DEC-064` |
+| Kebutuhan isolasi sebagai atribut episode | `RWI-CAP-033` | Wajib; aturan di atas tidak dapat dijalankan tanpa tempat menyimpan datanya. Ditambahkan pada `0.3.0` lewat `RWI-DEC-065` |
 
 ---
 
@@ -174,13 +197,17 @@ sampai akhir?* dan *kalau tidak bisa, apakah ada jalan sementara yang aman dan t
 
 Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 
+> **Satu baris keluar dari daftar ini pada `0.3.0`.** "Penolakan penempatan karena isolasi atau
+> jenis kelamin" sebelumnya ditunda karena `DEC-INP-004` belum turun. Keputusannya turun 2026-08-21
+> lewat `RWI-DEC-064` sampai `RWI-DEC-066`, sehingga kemampuan itu **masuk MVP** sebagai
+> `EPIC RI-34`. Daftar ini kini berisi sembilan baris, bukan sepuluh.
+
 | Kemampuan | ID kemampuan asal | Alasan ditunda | Pengganti selama MVP |
 | --- | --- | --- | --- |
 | Pengkajian awal, catatan dokter, CPPT, tindakan, visite | `RWI-CAP-015`, `018`, `019`, `023`, `024` | Mesin klinis mewajibkan antrean dan konsultasi, dan hanya mengizinkan satu konsultasi per kunjungan. Pelonggaran menyentuh dua modul `ACTIVE` yang pemiliknya belum menyetujui — `DEC-INP-001` | Dokumentasi klinis tetap ditulis di luar sistem sebagaimana hari ini. Modul ini menyediakan riwayat lokasi, riwayat DPJP, dan resume, sehingga rekam medis tetap punya kerangka waktunya |
 | Resep rawat inap dan obat pulang | `RWI-CAP-021`, `RWI-CAP-022` | Sama seperti di atas; resep terikat konsultasi | Butir "obat pulang sudah diserahkan" tersedia pada daftar periksa administrasi dan **ditandai manual** petugas admisi |
 | Serah terima IGD ke rawat inap | `RWI-CAP-038` | Menentukan kunjungan mana yang menjadi jangkar episode; menyentuh modul IGD — `DEC-INP-002` | Petugas admisi membuka admisi rawat inap secara manual untuk pasien yang datang dari IGD, memakai jalur pasien datang langsung |
 | Persetujuan umum rawat inap | `RWI-CAP-031` | Keputusan hukum dan privasi, pemiliknya belum ditunjuk — `DEC-INP-003` | Persetujuan tetap dikumpulkan di atas kertas seperti hari ini. Butir daftar periksa dapat ditambahkan admin bila diinginkan |
-| Penolakan penempatan karena isolasi atau jenis kelamin | `RWI-CAP-033` | Satu-satunya butir `CONFLICT`; menyentuh pengendalian infeksi — `DEC-INP-004` | Penanda pada master tempat tidur tetap dipakai sebagai **penyaring pencarian**, sehingga petugas tetap dapat memilih dengan sadar |
 | Pengiriman SATUSEHAT | Belum punya ID kemampuan | Belum pernah dibahas; pemilik dan isi kiriman belum ditentukan — `DEC-INP-005` | Data disimpan dalam bentuk riwayat yang dapat dibaca ulang, sehingga pengiriman kelak tinggal membaca |
 | Serah terima klinis antar shift | Belum punya ID kemampuan | Ditandai `SAFETY_CHECK` oleh baseline; belum pernah dibahas — `DEC-INP-006` | Serah terima tetap dilakukan lisan dan tertulis di luar sistem. Modul mencatat siapa perawat penanggung jawab dan sejak kapan |
 | Cara pulang meninggal dan kabur | Bagian `RWI-CAP-026` | Sisi klinisnya masih terbuka — `DEC-INP-007` | Tiga cara pulang lain tersedia. Untuk dua kasus ini, episode ditutup lewat jalur supervisor disertai alasan, dan tercatat pada laporan pengecualian |
@@ -196,19 +223,21 @@ Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 1. Petugas admisi memilih pasien yang sudah terdaftar.
 2. Sistem membuat kunjungan bertipe rawat inap, atau memakai kunjungan poliklinik yang sudah ada.
 3. Petugas memilih penjamin, kelas perawatan, unit layanan, dan DPJP. Episode dibuat berstatus `Draft`.
-4. Petugas mencari tempat tidur kosong, lalu memesannya. Tempat tidur terbaca `Reserved` selama 2 jam.
-5. Pasien sampai di kamar. Petugas menekan konfirmasi masuk. Episode menjadi `Admitted`, tempat tidur `Occupied`, dan pasien muncul pada census.
-6. Kepala ruangan menugaskan perawat penanggung jawab.
-7. Bila kamar perlu berganti, kepala ruangan, perawat, supervisor, atau DPJP memindahkan pasien. Penempatan lama ditutup dan yang baru dibuka dalam satu tindakan utuh.
-8. Bila DPJP berhalangan, kepala ruangan atau supervisor mengalihkan tanggung jawab DPJP disertai alasan.
-9. DPJP menyatakan pasien boleh pulang dan memilih cara pulangnya. Episode menjadi `DischargePending`. Tempat tidur **belum** dilepas.
-10. DPJP menyusun resume pulang lalu menandatanganinya.
-11. Petugas admisi menandai butir daftar periksa administrasi.
-12. Petugas kasir menandai kelayakan keuangan `Cleared` disertai catatan.
-13. Keluarga menjemput dan pasien meninggalkan kamar. Petugas ruangan mencatat kepergiannya. Tempat tidur **langsung bebas** dan boleh dipesan pasien berikutnya, walaupun episodenya belum ditutup.
-14. Petugas admisi menutup episode. Episode menjadi `Closed`.
-15. Bila kelayakan keuangan belum `Cleared` sementara pasien harus segera pulang, supervisor menutup episode disertai alasan. Episode ditandai dan masuk laporan pengecualian.
-16. Bila kemudian ditemukan kesalahan catatan, supervisor membuka sesi koreksi, membetulkan, lalu menutup sesinya. Status episode tetap `Closed` sepanjang sesi, dan versi resume sebelumnya tersimpan.
+4. Bila surat rujukan menyebut kebutuhan isolasi, petugas admisi merekamnya sebagai catatan awal selagi episode masih `Draft`.
+5. Petugas mencari tempat tidur kosong, lalu memesannya. Hasil pencarian sudah tersaring oleh kedelapan aturan Kelayakan Penempatan. Tempat tidur terbaca `Reserved` selama 2 jam.
+6. Pasien sampai di kamar. Petugas menekan konfirmasi masuk. Kelayakan Penempatan diperiksa **ulang** di sini — jenis kelamin, pencampuran kamar, dan isolasi termasuk di dalamnya. Bila salah satu gagal, penempatan ditolak dan isian admisi tetap utuh. Bila lolos, episode menjadi `Admitted`, tempat tidur `Occupied`, dan pasien muncul pada census.
+7. Kepala ruangan menugaskan perawat penanggung jawab.
+8. Bila DPJP kemudian mengubah kebutuhan isolasi, perubahannya diterima seketika. Bila tempat tidur yang sedang ditempati jadi tidak sesuai, episode muncul pada daftar pantau penempatan tidak sesuai sampai pasien dipindahkan.
+9. Bila kamar perlu berganti, kepala ruangan, perawat, supervisor, atau DPJP memindahkan pasien. Kelayakan Penempatan diperiksa dengan aturan yang sama persis seperti penempatan awal. Penempatan lama ditutup dan yang baru dibuka dalam satu tindakan utuh.
+10. Bila DPJP berhalangan, kepala ruangan atau supervisor mengalihkan tanggung jawab DPJP disertai alasan.
+11. DPJP menyatakan pasien boleh pulang dan memilih cara pulangnya. Episode menjadi `DischargePending`. Tempat tidur **belum** dilepas.
+12. DPJP menyusun resume pulang lalu menandatanganinya.
+13. Petugas admisi menandai butir daftar periksa administrasi.
+14. Petugas kasir menandai kelayakan keuangan `Cleared` disertai catatan.
+15. Keluarga menjemput dan pasien meninggalkan kamar. Petugas ruangan mencatat kepergiannya. Tempat tidur **langsung bebas** dan boleh dipesan pasien berikutnya, walaupun episodenya belum ditutup.
+16. Petugas admisi menutup episode. Episode menjadi `Closed`.
+17. Bila kelayakan keuangan belum `Cleared` sementara pasien harus segera pulang, supervisor menutup episode disertai alasan. Episode ditandai dan masuk laporan pengecualian.
+18. Bila kemudian ditemukan kesalahan catatan, supervisor membuka sesi koreksi, membetulkan, lalu menutup sesinya. Status episode tetap `Closed` sepanjang sesi, dan versi resume sebelumnya tersimpan.
 
 ---
 
@@ -506,6 +535,101 @@ Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 > kesamaan kamar. Penanda ini boleh kosong untuk episode yang bukan bayi rawat gabung, dan
 > **tidak boleh** menunjuk episode milik pasien yang sama.
 
+### `EPIC RI-34` — Kelayakan penempatan menurut jenis kelamin dan isolasi
+
+**Tujuan:** sistem tidak pernah menempatkan pasien pada tempat tidur atau kamar yang secara privasi
+atau pengendalian infeksi tidak layak baginya, walaupun petugas memaksa.
+**Disposisi backend:** `MISSING / NEW`; menempel pada `EPIC RI-23` penempatan dan `EPIC RI-26`
+perpindahan
+**Dasar keputusan:** `RWI-DEC-064`, `RWI-DEC-065`, `RWI-DEC-066`, dirinci pada `RWI-RULE-012`
+
+> **Kenapa epic ini baru lahir pada `0.3.0`.** Sampai `0.2.0`, penanda jenis kelamin dan isolasi
+> pada master tempat tidur hanya **menyaring hasil pencarian**: petugas tetap dapat menempatkan
+> pasien di mana pun ia mau. Pemilik berwenang mengubah arahnya menjadi aturan yang **menolak**.
+> Sisi teknisnya murah — bentuk daftar aturan Kelayakan Penempatan memang dirancang sejak awal
+> untuk ditambahi — tetapi dampaknya besar, sehingga diberi epic sendiri agar dapat diuji terpisah.
+
+#### Bagian A — Pemisahan jenis kelamin
+
+> **`FR-RI-154` — Penempatan ditolak bila penanda tempat tidur tidak menerima jenis kelamin pasien**
+> **Contoh:** `MELATI-03-A` bertanda hanya menerima perempuan. Petugas mencoba menempatkan Tn. Budi
+> di sana. Ditolak dengan pesan "Tempat tidur ini hanya untuk pasien perempuan" dan kode 422.
+> Sebelum `0.3.0`, tempat tidur itu sekadar tidak muncul pada hasil pencarian, sementara penempatan
+> paksa tetap berhasil.
+
+> **`FR-RI-155` — Kamar tidak boleh ditempati campur laki-laki dan perempuan**
+> Pemeriksaannya membaca **penghuni yang sedang ada**, bukan penanda pada master kamar. Tidak ada
+> kolom "boleh campur" pada `MstRoom`, dan `RWI-DEC-066` menolaknya secara tegas.
+> **Contoh:** Kamar Melati 3 berisi tiga tempat tidur. Pukul 08:00 Ny. Sari menempati `MELATI-03-A`.
+> Pukul 10:00 petugas mencoba menempatkan Tn. Budi di `MELATI-03-B`. Ditolak dengan pesan "Kamar
+> Melati 3 sedang dihuni pasien perempuan" dan kode 422. Pukul 10:30 Ny. Rina ditempatkan di
+> `MELATI-03-B` dan **diterima**.
+>
+> Kamar berisi satu tempat tidur tidak pernah tersentuh aturan ini, karena tidak mungkin ada
+> penghuni lain.
+
+> **`FR-RI-156` — Boks bayi dikecualikan dari kedua sisi pemeriksaan**
+> **Contoh:** bayi Ny. Sari berjenis kelamin laki-laki dan menempati `BOX-MELATI-03-A` di kamar
+> ibunya. Penempatan bayi itu **berhasil** walaupun kamarnya sedang dihuni perempuan. Sebaliknya,
+> ketika Ny. Rina hendak masuk ke `MELATI-03-B`, bayi laki-laki itu **tidak dihitung** sebagai
+> penghuni, sehingga penempatan Ny. Rina tetap diterima.
+>
+> **Kenapa dua arah.** Bayi tidak boleh menutup kamar bagi pasien lain, dan bayi juga tidak boleh
+> ditolak hanya karena jenis kelamin ibunya berbeda.
+
+> **`FR-RI-157` — Pasien yang jenis kelaminnya belum tercatat hanya boleh masuk kamar kosong**
+> **Contoh:** pasien tidak dikenal dari kecelakaan, jenis kelaminnya belum terisi. Ia hanya dapat
+> ditempatkan pada tempat tidur yang menerima laki-laki dan perempuan sekaligus, **dan** hanya ke
+> kamar yang belum ada penghuninya. Penempatan ke kamar berpenghuni ditolak dengan kode 422.
+
+#### Bagian B — Kebutuhan isolasi
+
+> **`FR-RI-158` — Kebutuhan isolasi adalah atribut episode, bukan atribut pasien**
+> Melekat pada satu masa perawatan, bernilai tidak secara bawaan, dan tersimpan bersama siapa serta
+> kapan terakhir menetapkannya.
+> **Contoh:** Tn. Budi butuh isolasi pada episode September karena suspek penyakit menular. Ketika
+> ia dirawat lagi pada Desember untuk patah tulang, episode barunya bernilai tidak — tanpa ada
+> petugas yang perlu mematikannya.
+
+> **`FR-RI-159` — Petugas admisi merekam catatan awal, DPJP mengambil keputusan klinis**
+> Selagi episode `Draft`, petugas admisi boleh merekam nilainya berdasarkan surat atau keterangan
+> dokter pengirim, dan hasilnya ditandai **catatan awal**. Setelah episode aktif, hanya **DPJP
+> aktif** yang boleh mengubahnya, dan hasilnya ditandai **keputusan klinis**.
+> **Contoh:** pukul 09:15 petugas admisi merekam "membutuhkan isolasi" untuk Tn. Budi berdasarkan
+> surat rujukan puskesmas, tertandai catatan awal. Hari kedua dr. Andi selaku DPJP mengubahnya
+> menjadi tidak, tertandai keputusan klinis atas namanya. Percobaan dr. Rina yang bukan DPJP
+> mengubah nilai yang sama ditolak dengan kode 403.
+>
+> **Kenapa dibedakan, bukan disamakan.** Penempatan tidak boleh menunggu pengkajian klinis yang
+> slice-nya masih di luar MVP — `DEC-INP-001`. Tetapi merekam keterangan orang lain berbeda dari
+> memutuskan secara klinis, dan rekam medis harus dapat menunjukkan bedanya.
+
+> **`FR-RI-160` — Tempat tidur isolasi dijaga dari dua arah**
+> Pasien yang membutuhkan isolasi **hanya** boleh ke tempat tidur isolasi, dan pasien yang tidak
+> membutuhkannya **tidak boleh** menempati tempat tidur isolasi.
+> **Contoh:** percobaan menempatkan Tn. Budi yang butuh isolasi di `BD-RSMMC-00042` yang bukan
+> isolasi ditolak dengan pesan "Pasien ini membutuhkan isolasi, sehingga hanya dapat ditempatkan
+> pada tempat tidur isolasi". Sebaliknya, menempatkan pasien biasa di tempat tidur isolasi ditolak
+> dengan pesan "Tempat tidur isolasi hanya untuk pasien yang membutuhkan isolasi", supaya kapasitas
+> isolasi tidak habis terpakai sia-sia.
+
+> **`FR-RI-161` — Perubahan kebutuhan isolasi tidak pernah ditahan; yang muncul adalah daftar pantau**
+> Bila kebutuhan isolasi berubah menjadi ya sementara pasien sudah berbaring di tempat tidur biasa,
+> perubahan itu **tetap diterima**. Episode itu muncul pada daftar pantau **penempatan tidak
+> sesuai** sampai pasien dipindahkan.
+> **Contoh:** pukul 14:00 dr. Andi menyatakan Tn. Budi di `MELATI-03-B` membutuhkan isolasi.
+> Pencatatannya diterima seketika. Episode Tn. Budi muncul pada daftar pantau, dan hilang dari sana
+> begitu ia dipindahkan ke tempat tidur isolasi pukul 15:20.
+>
+> **Kenapa tidak ditahan.** Menahan pencatatan klinis demi menjaga aturan penempatan adalah urutan
+> terbalik. Yang benar: fakta klinis dicatat lebih dulu, lalu sistem menunjukkan bahwa
+> penempatannya perlu dibetulkan.
+
+> **`FR-RI-162` — Aturan yang sama berlaku pada perpindahan, bukan hanya penempatan**
+> Kedelapan aturan Kelayakan Penempatan dipanggil dari dua tindakan: menempatkan dan memindahkan.
+> **Contoh:** memindahkan Tn. Budi ke `ANGGREK-01-B` di kamar yang sedang dihuni pasien perempuan
+> ditolak dengan alasan dan kode yang sama persis seperti penempatan awal.
+
 ---
 
 ## 11. Model status yang diusulkan
@@ -514,6 +638,7 @@ Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 | --- | --- | --- |
 | Episode | `Draft`, `Admitted`, `DischargePending`, `Closed`, `Cancelled` | `Admitted` wajib punya tepat satu penempatan aktif. `DischargePending` wajib punya satu **sampai kepergian pasien dicatat**, setelah itu nol |
 | Kehadiran pasien | Bukan status yang disimpan; diturunkan dari status episode dan waktu kepergian | Satu pasien paling banyak satu episode yang benar-benar hadir |
+| Kebutuhan isolasi | Bukan status berperiode; satu penanda pada episode beserta asalnya — catatan awal admisi atau keputusan klinis DPJP | Yang tersimpan hanya **nilai yang berlaku sekarang**, bukan riwayat. Selagi `Draft` boleh disetel petugas admisi; setelah aktif hanya DPJP aktif |
 | Pemesanan tempat tidur | `Active`, `Consumed`, `Expired`, `Cancelled` | Satu tempat tidur paling banyak satu pemesanan aktif |
 | Penempatan tempat tidur | `Aktif`, `Berakhir` | Satu tempat tidur paling banyak satu penempatan aktif |
 | Kelayakan keuangan | `Pending`, `Cleared`, `Blocked` | Hanya `Cleared` yang membuka penutupan |
@@ -531,10 +656,15 @@ Rincian lengkap beserta perpindahan yang **tidak sah** ada pada
 | --- | --- |
 | **Dipakai ulang apa adanya** | Pasien, kunjungan, penjamin, tempat tidur, kamar, unit layanan, kelas pasien, dokter, pegawai, mesin hak akses, pola `ApiResponse`, pola seeder |
 | **Diperluas** | Perilaku `BedController.UpdateBedAvailability`; slice Redux tempat tidur di frontend |
-| **Baru** | Sepuluh tabel transaksi berawalan `Inp`, dua master `MstInpatient*`, enam service, lima controller modul, dua controller master |
+| **Baru** | Sebelas tabel transaksi berawalan `Inp`, dua master `MstInpatient*`, enam service, lima controller modul, dua controller master |
 
-Tidak satu pun tabel milik modul lain berubah bentuknya. Dua belas tabel baru, nol perubahan kolom
-pada tabel existing.
+Tidak satu pun tabel milik modul lain berubah bentuknya. **Tiga belas** tabel baru, nol perubahan
+kolom pada tabel existing.
+
+**`0.3.0` tidak menambah satu tabel pun.** Kebutuhan isolasi masuk sebagai enam kolom pada
+`InpEpisode` beserta satu enum `InpIsolationSource`, dan aturan pencampuran kamar dijalankan dengan
+membaca penghuni yang sedang ada. `RWI-DEC-066` menolak menambah kolom "boleh campur" pada
+`MstRoom`, sehingga janji "nol perubahan kolom pada tabel modul lain" tetap utuh.
 
 Rincian lengkap ada pada [`02-backend-architecture.md`](./02-backend-architecture.md).
 
@@ -557,6 +687,7 @@ Base URL: `api/v1/health-services/inpatient-management/episodes`
 | `POST` | `/{id}/nurse-assignments` | Menugaskan perawat | `InpatientEpisode : Update` | `AssignNurseRequest` | `ApiResponse<InpatientNurseAssignmentResponse>` | `EPIC RI-25` | **Rencana (belum tersedia)** |
 | `GET` | `/{id}/status-history` | Riwayat status | `InpatientEpisode : Read` | – | `ApiResponse<List<InpatientStatusHistoryResponse>>` | `EPIC RI-29` | **Rencana (belum tersedia)** |
 | `POST` | `/{id}/correction-sessions` | Membuka sesi koreksi | `InpatientEpisode : Reopen` | `OpenCorrectionSessionRequest` | `ApiResponse<InpatientCorrectionSessionResponse>` | `EPIC RI-30` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/isolation-requirement` | Menetapkan atau mengubah kebutuhan isolasi | `InpatientEpisode : SetIsolation` | `SetIsolationRequirementRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | `EPIC RI-34` | **Rencana (belum tersedia)** |
 
 ### Health Services / Inpatient Management / Bed Occupancy
 
@@ -599,6 +730,7 @@ Base URL: `api/v1/health-services/inpatient-management/monitoring`
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `GET` | `/pending-closures` | Daftar pantau penutupan tertunda | `InpatientMonitoring : Read` | Query | `ApiResponse<PendingClosurePagedResult>` | `EPIC RI-29` | **Rencana (belum tersedia)** |
 | `GET` | `/bed-drift` | Laporan selisih tempat tidur | `InpatientMonitoring : Read` | Query | `ApiResponse<BedDriftPagedResult>` | `EPIC RI-29` | **Rencana (belum tersedia)** |
+| `GET` | `/isolation-mismatch` | Daftar pantau episode yang kebutuhan isolasinya tidak cocok dengan tempat tidur yang ditempati | `InpatientMonitoring : Read` | Query | `ApiResponse<IsolationMismatchPagedResult>` | `EPIC RI-34` | **Rencana (belum tersedia)** |
 
 ### Health Services / Master Data / Inpatient Setting
 
@@ -637,11 +769,18 @@ String hak akses di bawah sama persis dengan
 | Menutup menembus gerbang keuangan | Supervisor | `[AccessPermission("InpatientEpisode", "CloseOverride")]` |
 | Membuka dan menutup sesi koreksi | Supervisor | `[AccessPermission("InpatientEpisode", "Reopen")]` |
 | Melihat census dan daftar pantau | Seluruh peran klinis dan admisi | `[AccessPermission("InpatientCensus", "Read")]`, `[AccessPermission("InpatientMonitoring", "Read")]` |
+| Menetapkan kebutuhan isolasi | Petugas admisi selagi episode `Draft`; DPJP aktif setelah episode aktif | `[AccessPermission("InpatientEpisode", "SetIsolation")]` |
 | Mengubah pengaturan dan butir administrasi | Admin master data | `[AccessPermission("InpatientSetting", "Update")]`, `[AccessPermission("InpatientClearanceItem", "Update")]` |
 
-**Kewenangan yang tidak dijaga mesin hak akses.** Tiga penjaga berikut ditulis di dalam service,
-karena mesin hak akses hanya mengenal peran terhadap endpoint: `GUARD-INP-01` perpindahan oleh
-DPJP, `GUARD-INP-02` keputusan pulang, `GUARD-INP-03` penandatanganan resume.
+**Kewenangan yang tidak dijaga mesin hak akses.** **Empat** penjaga berikut ditulis di dalam
+service, karena mesin hak akses hanya mengenal peran terhadap endpoint: `GUARD-INP-01` perpindahan
+oleh DPJP, `GUARD-INP-02` keputusan pulang, `GUARD-INP-03` penandatanganan resume, dan
+`GUARD-INP-04` perubahan kebutuhan isolasi setelah episode aktif.
+
+`GUARD-INP-04` adalah alasan kenapa `SetIsolation` dimiliki dua peran sekaligus pada tabel di atas.
+Mesin hak akses hanya dapat menjawab "peran ini boleh memanggil endpoint ini"; ia tidak dapat
+membedakan petugas admisi yang menyetel nilai selagi `Draft` dari dokter yang bukan DPJP episode
+tersebut. Pembedaannya dikerjakan service.
 
 ---
 
@@ -689,14 +828,21 @@ pemiliknya.
 | --- | --- | --- |
 | Rekam medis elektronik | Resume pulang tersimpan, tertandatangani, dan terkunci setelah episode ditutup. Riwayat lokasi, DPJP, dan status tersimpan lengkap | Pengkajian, catatan dokter, dan CPPT belum masuk sistem — `DEC-INP-001` |
 | Keterlacakan tindakan | Setiap perubahan status meninggalkan jejak yang tidak dapat diubah, lengkap dengan pelaku dan waktu | — |
-| Koreksi rekam medis | Koreksi hanya lewat sesi koreksi supervisor, beralasan, dan daftar perubahannya tersimpan | Riwayat versi resume belum ada — `RWI-OQ-043` |
+| Koreksi rekam medis | Koreksi hanya lewat sesi koreksi supervisor, beralasan, daftar perubahannya tersimpan, dan versi resume sebelumnya tersalin | — |
+| Pengendalian infeksi dan privasi kamar | Penempatan dan perpindahan **ditolak** bila jenis kelamin tidak cocok, bila kamar sedang dihuni jenis kelamin berbeda, atau bila kebutuhan isolasi tidak cocok dengan sifat tempat tidur. Kebutuhan isolasi tersimpan beserta siapa dan kapan menetapkannya | Kebutuhan isolasi tersimpan sebagai **nilai berlaku**, bukan riwayat. Bila kelak audit pengendalian infeksi menuntut rentang tanggalnya, dibutuhkan Amendment Pass |
 | Masa simpan data | — | **Belum diputuskan** — `RWI-OQ-035`, keputusan hukum |
 | Interoperabilitas nasional | — | **Belum diputuskan** — `DEC-INP-005` |
 | Persetujuan pasien | — | **Belum diputuskan** — `DEC-INP-003` |
-| Pengendalian infeksi dan privasi kamar | — | **Belum diputuskan** — `DEC-INP-004`, gerbang keras sebelum produksi |
 
-**Yang wajib disadari:** empat baris terakhir adalah gerbang keras. Modul ini **tidak boleh** dipakai
-melayani pasien sungguhan sebelum keempatnya terjawab, walaupun MVP-nya sudah selesai dikerjakan.
+**Yang wajib disadari:** **tiga** baris terakhir adalah gerbang keras. Modul ini **tidak boleh**
+dipakai melayani pasien sungguhan sebelum ketiganya terjawab, walaupun MVP-nya sudah selesai
+dikerjakan.
+
+**Satu gerbang keras dicabut pada `0.3.0`.** Pengendalian infeksi dan privasi kamar sebelumnya
+tercatat "belum diputuskan" dan menahan pemakaian modul untuk pasien sungguhan. `RWI-DEC-064`
+sampai `RWI-DEC-066` menurunkan keputusannya pada 2026-08-21, dan `EPIC RI-34` mengerjakannya di
+dalam MVP. Gerbangnya kini berpindah bentuk: bukan lagi menunggu keputusan, melainkan menunggu
+`EPIC RI-34` benar-benar lolos uji.
 
 ---
 
@@ -859,6 +1005,47 @@ Setiap epic `MUST HAVE` punya sekurang-kurangnya satu skenario berhasil dan satu
 > **Hasil yang diharapkan:** sistem menyebut bahwa penghuninya bayi Ny. Sari yang dirawat di
 > Melati 3, bukan hanya menampilkan nama bayi tanpa hubungan.
 
+> **`UAT-29` — Kamar tidak menjadi campur** (`EPIC RI-34`, gagal)
+> **Kondisi awal:** Kamar Melati 3 berisi tiga tempat tidur. Ny. Sari menempati `MELATI-03-A`.
+> **Langkah:** petugas admisi menempatkan Tn. Budi di `MELATI-03-B`.
+> **Hasil yang diharapkan:** ditolak dengan kode 422 dan pesan yang **menyebut nama kamarnya**,
+> supaya petugas langsung tahu kamar mana yang terhalang. Berikutnya Ny. Rina ditempatkan di tempat
+> tidur yang sama dan **berhasil**.
+
+> **`UAT-30` — Bayi tidak menutup kamar dan tidak tertutup kamar** (`EPIC RI-34`)
+> **Kondisi awal:** Ny. Sari di `MELATI-03-A`, bayinya laki-laki.
+> **Langkah:** perawat menempatkan bayi di boks `BOX-MELATI-03-A`, lalu petugas menempatkan Ny.
+> Rina di `MELATI-03-B`.
+> **Hasil yang diharapkan:** keduanya **berhasil**. Penempatan bayi tidak ditolak walaupun jenis
+> kelaminnya berbeda dari penghuni kamar, dan kehadiran bayi laki-laki itu tidak menghalangi
+> Ny. Rina.
+
+> **`UAT-31` — Tempat tidur isolasi dijaga dari dua arah** (`EPIC RI-34`, gagal)
+> **Kondisi awal:** Tn. Budi bertanda membutuhkan isolasi. `BD-RSMMC-00042` bukan tempat tidur
+> isolasi; `ISO-01-A` adalah tempat tidur isolasi. Ny. Rina tidak membutuhkan isolasi.
+> **Langkah:** petugas menempatkan Tn. Budi di `BD-RSMMC-00042`, lalu menempatkan Ny. Rina di
+> `ISO-01-A`.
+> **Hasil yang diharapkan:** keduanya ditolak dengan kode 422 dan pesan yang berbeda — yang pertama
+> menyebut pasien membutuhkan isolasi, yang kedua menyebut kapasitas isolasi tidak boleh terpakai
+> pasien biasa.
+
+> **`UAT-32` — Petugas admisi merekam, DPJP memutuskan** (`EPIC RI-34`)
+> **Kondisi awal:** episode Tn. Budi masih `Draft`, surat rujukan menyebut suspek penyakit menular.
+> **Langkah:** petugas admisi menyalakan kebutuhan isolasi disertai keterangan. Setelah episode
+> aktif, dr. Rina yang bukan DPJP mencoba mematikannya. Kemudian dr. Andi selaku DPJP aktif
+> mematikannya.
+> **Hasil yang diharapkan:** yang pertama tersimpan bertanda **catatan awal** atas nama petugas
+> admisi. Percobaan dr. Rina ditolak dengan kode 403. Perubahan dr. Andi tersimpan bertanda
+> **keputusan klinis** atas namanya. Percobaan menyalakan tanpa keterangan ditolak dengan kode 400.
+
+> **`UAT-33` — Perubahan isolasi tidak pernah ditahan** (`EPIC RI-34`)
+> **Kondisi awal:** Tn. Budi sedang berbaring di `MELATI-03-B` yang bukan tempat tidur isolasi.
+> **Langkah:** dr. Andi menyalakan kebutuhan isolasi pukul 14:00. Petugas membuka daftar pantau
+> penempatan tidak sesuai. Pukul 15:20 Tn. Budi dipindahkan ke `ISO-01-A`.
+> **Hasil yang diharapkan:** pencatatan pukul 14:00 **diterima**, tidak ditahan. Episode Tn. Budi
+> muncul pada daftar pantau di antara pukul 14:00 dan 15:20, lalu hilang dari sana setelah
+> dipindahkan. Perpindahan itu sendiri lolos karena tempat tidur tujuannya isolasi.
+
 > **`UAT-23` — Membatalkan admisi setelah pasien dirawat** (`EPIC RI-21`, gagal)
 > **Langkah:** petugas admisi membatalkan episode berstatus Sedang dirawat.
 > **Hasil yang diharapkan:** ditolak. Hanya supervisor atau kepala ruangan yang boleh.
@@ -894,6 +1081,12 @@ Setiap epic `MUST HAVE` punya sekurang-kurangnya satu skenario berhasil dan satu
 | Satu pasien tidak pernah tercatat dirawat di dua tempat | `UAT-26` |
 | Koreksi resume yang sudah ditandatangani menyimpan versi lamanya | `UAT-27` |
 | Pembatalan setelah pasien dirawat hanya oleh peran yang berwenang | `UAT-23` |
+| Kamar tidak pernah menjadi campur laki-laki dan perempuan | `UAT-29` |
+| Boks bayi dikecualikan dari kedua sisi pemeriksaan jenis kelamin | `UAT-30` |
+| Kapasitas isolasi terjaga dari dua arah | `UAT-31` |
+| Catatan awal admisi dapat dibedakan dari keputusan klinis DPJP | `UAT-32` |
+| Pencatatan klinis tidak pernah ditahan demi aturan penempatan | `UAT-33` |
+| Aturan penempatan berlaku sama pada perpindahan | `UAT-29` dijalankan ulang lewat perpindahan; `RWI-AC-133` |
 | Seluruh tabel master MVP sudah terisi | Rencana data master awal pada `02-backend-architecture.md` bagian 8 |
 | Setiap task yang menyentuh modul lain membawa test regresi | `RWI-AC-114`, `testing/acceptance-test-matrix.md` bagian 12 |
 
@@ -908,7 +1101,7 @@ Ditulis sebagai gelombang, bukan tanggal. Penjadwalan tetap wewenang manusia.
 | Gelombang | Epic yang tercakup | Syarat mulai |
 | --- | --- | --- |
 | `MVP-0` | `EPIC RI-21` fondasi, `EPIC RI-31` pengaturan, `EPIC RI-32` perbaikan tempat tidur | Blueprint disetujui; persetujuan pemilik Master Data untuk `RI-32` |
-| `MVP-1` | `EPIC RI-22` pemesanan, `EPIC RI-23` penempatan beserta aturan satu pasien satu episode, `EPIC RI-24` census | `MVP-0` selesai; master kamar dan tempat tidur terisi |
+| `MVP-1` | `EPIC RI-22` pemesanan, `EPIC RI-23` penempatan beserta aturan satu pasien satu episode, `EPIC RI-24` census, **`EPIC RI-34` kelayakan penempatan** | `MVP-0` selesai; master kamar dan tempat tidur terisi **beserta penanda jenis kelamin, isolasi, dan boks bayi yang benar** |
 | `MVP-2` | `EPIC RI-25` penanggung jawab, `EPIC RI-26` perpindahan | `MVP-1` selesai |
 | `MVP-3` | `EPIC RI-27` pulang, resume, dan versi resume; `EPIC RI-28` penutupan dan pencatatan kepergian fisik | `MVP-2` selesai |
 | `MVP-4` | `EPIC RI-29` riwayat dan daftar pantau, `EPIC RI-30` sesi koreksi, `EPIC RI-33` bayi beserta penanda rawat gabung | `MVP-3` selesai |
@@ -918,22 +1111,41 @@ Ditulis sebagai gelombang, bukan tanggal. Penjadwalan tetap wewenang manusia.
 rumah sakit sudah dapat mencatat siapa menempati tempat tidur mana — kemampuan yang hari ini sama
 sekali tidak ada.
 
-Tidak ada satu pun epic berstatus `OPEN DECISION` yang masuk gelombang mana pun. Delapan kemampuan
-yang ditunda pada bagian 8 seluruhnya berada di `POST-MVP`.
+**`EPIC RI-34` sengaja ditaruh di `MVP-1`, bukan digeser ke gelombang belakang.** Alasannya: aturan
+penempatan yang menolak harus sudah berlaku **sejak data penempatan pertama lahir**. Bila epic ini
+menyusul di `MVP-4`, gelombang sebelumnya akan lebih dulu menghasilkan penempatan yang melanggar,
+dan penempatan yang sudah telanjur ada tidak dapat ditolak surut. Konsekuensinya, syarat mulai
+`MVP-1` bertambah: penanda pada master tempat tidur harus **benar**, bukan sekadar terisi.
+
+Tidak ada satu pun epic berstatus `OPEN DECISION` yang masuk gelombang mana pun. Sembilan
+kemampuan yang ditunda pada bagian 8 seluruhnya berada di `POST-MVP`.
 
 ### 20.2 Pertanyaan terbuka sebelum development lock
 
-| Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
-| --- | --- | --- | :---: |
-| Siapa nama orang atau komite yang berwenang menyetujui modul ini? | Manajemen rumah sakit | Blueprint tidak dapat naik dari `draft` ke `approved` | **Ya** |
-| Apakah pemilik `MasterData` menyetujui pembatasan endpoint ketersediaan tempat tidur? | Pemilik `MasterData` | `EPIC RI-32` tidak dapat dimulai, dan `MVP-0` tertahan | **Ya** |
-| Siapa yang bertanggung jawab mengisi master kamar dan tempat tidur, dan kapan batasnya? | Manajemen rumah sakit | `MVP-1` tidak dapat diuji | **Ya** |
-| Apakah kebutuhan isolasi dan pemisahan jenis kelamin menolak penempatan, atau hanya menyaring? | Pemilik klinis dan privasi | MVP tetap dapat dikerjakan, tetapi modul **tidak boleh** melayani pasien sungguhan | **Ya, untuk produksi** |
-| Berapa lama riwayat status disimpan sebelum boleh diarsipkan? | Pemilik keamanan dan privasi | Tidak memblokir MVP; memengaruhi rencana pengarsipan | Tidak |
-| Apakah kepergian fisik pasien dicatat sebagai kejadian tersendiri? | Pemilik proses | Tidak memblokir; memengaruhi ketepatan angka ketersediaan tempat tidur | Tidak |
-| Apakah satu pasien boleh punya dua episode aktif sekaligus? | Pemilik proses | Tidak memblokir; usulan arsitektur adalah melarangnya | Tidak |
-| Apakah resume pulang perlu riwayat versi? | Pemilik klinis | Tidak memblokir MVP | Tidak |
-| Apakah bayi dan ibunya perlu penanda rawat gabung? | Pemilik proses | Tidak memblokir; memengaruhi kepastian identitas | Tidak |
+**Empat pertanyaan yang memblokir seluruhnya tertutup pada 2026-08-21.** Daftar di bawah
+mempertahankan barisnya beserta jawabannya, bukan menghapusnya, supaya pembaca berikutnya tahu
+kenapa keputusannya berbunyi demikian.
 
-**Empat pertanyaan pertama ditandai memblokir.** Sesuai kontrak, dokumen ini tetap boleh berstatus
-`draft`, tetapi **tidak boleh** diteruskan ke `/plan-module-delivery` sebelum keempatnya terjawab.
+| Pertanyaan | Siapa yang menjawab | Status | Memblokir |
+| --- | --- | --- | :---: |
+| Siapa nama orang atau komite yang berwenang menyetujui modul ini? | Manajemen rumah sakit | **Tertutup** `RWI-DEC-061` — Muhammad Hamzah, ditunjuk 2026-08-21. Jabatan formalnya belum diisi | ~~Ya~~ |
+| Apakah pemilik `MasterData` menyetujui pembatasan endpoint ketersediaan tempat tidur? | Pemilik `MasterData` | **Tertutup** `RWI-DEC-062` — keempat modul tetangga berada di bawah kepemilikan yang sama, dan persetujuannya diberikan | ~~Ya~~ |
+| Siapa yang bertanggung jawab mengisi master kamar dan tempat tidur, dan kapan batasnya? | Manajemen rumah sakit | **Tertutup** `RWI-DEC-063` — Admin Master Data / Tim Master Data, target 22 Agustus 2026. Gerbangnya baru benar-benar tertutup ketika datanya terisi, bukan ketika penanggung jawabnya ditunjuk | Sampai data terisi |
+| Apakah kebutuhan isolasi dan pemisahan jenis kelamin menolak penempatan, atau hanya menyaring? | Pemilik klinis dan privasi | **Tertutup** `RWI-DEC-064` s.d. `RWI-DEC-066` — **menolak**. Dikerjakan `EPIC RI-34` di dalam MVP | ~~Ya, untuk produksi~~ |
+| Berapa lama riwayat status disimpan sebelum boleh diarsipkan? | Pemilik keamanan dan privasi | Sudah dijawab `RWI-DEC-060`, menunggu pemilik hukum. Tidak memblokir MVP | Tidak |
+| Apakah kepergian fisik pasien dicatat sebagai kejadian tersendiri? | Pemilik proses | **Tertutup** `RWI-DEC-055` — ya, dan tempat tidur bebas sejak saat itu | Tidak |
+| Apakah satu pasien boleh punya dua episode aktif sekaligus? | Pemilik proses | **Tertutup** `RWI-DEC-054` — tidak, dijaga unique index parsial | Tidak |
+| Apakah resume pulang perlu riwayat versi? | Pemilik klinis | **Tertutup** `RWI-DEC-057` — ya, versi sebelumnya tersalin saat koreksi | Tidak |
+| Apakah bayi dan ibunya perlu penanda rawat gabung? | Pemilik proses | **Tertutup** `RWI-DEC-056` — ya, kolom opsional rujukan episode ibu | Tidak |
+
+### 20.3 Yang masih menahan, dan bentuknya bukan pertanyaan
+
+| Butir | Bentuknya | Menahan apa |
+| --- | --- | --- |
+| Master kamar dan tempat tidur terisi **dan penandanya benar** | Pekerjaan data, bukan keputusan | `MVP-1`, termasuk `EPIC RI-34`. Penanda jenis kelamin, isolasi, dan boks bayi yang salah setel akan menolak penempatan yang sah, atau lebih buruk, meloloskan yang tidak sah |
+| Test regresi jalur lama untuk modul yang disentuh | Pekerjaan uji | `EPIC RI-32` dan seluruh task yang menyentuh modul lain — `NFR-008` |
+| Perbaikan pemanggilan tombol tempat tidur di frontend | Pekerjaan perbaikan | `EPIC RI-32` |
+| Masa simpan data, interoperabilitas nasional, persetujuan pasien | Keputusan hukum dan klinis | Melayani pasien sungguhan, bukan pengerjaan MVP — bagian 16 |
+
+Sesuai kontrak, dokumen ini tetap berstatus `draft` sampai ada approval manusia. Yang berubah pada
+`0.3.0`: **tidak ada lagi pertanyaan memblokir yang menahan `/plan-module-delivery`.**

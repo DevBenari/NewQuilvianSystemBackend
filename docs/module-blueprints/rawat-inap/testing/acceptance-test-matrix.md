@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.2.0` |
+| `contract_version` | `0.3.0` |
 | Status | `draft` |
-| Masukan | `00-interview-decisions.md` revision `3` (127 acceptance criteria); seluruh kontrak revision `0.2.0` |
+| Masukan | `00-interview-decisions.md` revision `5` (139 acceptance criteria); `contracts/api-contract.md`, `contracts/validation-matrix.md`, dan `contracts/permission-audit-matrix.md` revision `0.3.0`; kontrak lain revision `0.2.0` |
 | Backend SHA | `5afb54b` |
 | Frontend SHA | `dec4fdeff` |
 
@@ -45,6 +45,70 @@ Keadaan hari ini yang harus disadari: backend hanya punya **satu** berkas test
 | `RWI-AC-062` | Bila penulisan catatan penempatan gagal, `MstBed.BedStatus` juga tidak berubah | Integrasi | Paksa kegagalan di tengah transaksi; kedua tabel kembali ke keadaan semula |
 | **Gagal** | Menempatkan pasien pada episode yang sudah `Admitted` | Integrasi | 409 |
 | `RWI-AC-063` | Laporan selisih menampilkan tempat tidur yang statusnya tidak cocok dengan penghuninya | Integrasi | Buat selisih secara sengaja lewat perubahan langsung di database uji; laporan menampilkannya |
+
+## 2A. Kelayakan penempatan — jenis kelamin dan isolasi
+
+Bagian ini lahir pada `contract_version` `0.3.0`. Sebelumnya kelompok ini justru tercatat pada
+bagian 14 sebagai **yang tidak diuji**, karena keputusannya belum turun.
+
+Kedelapan aturan Kelayakan Penempatan dipanggil dari dua tindakan. Karena itu setiap skenario di
+bawah wajib dijalankan **dua kali** — sekali lewat penempatan, sekali lewat perpindahan — kecuali
+yang memang hanya masuk akal pada salah satunya. Test yang hanya menutup jalur penempatan akan
+meloloskan pelanggaran lewat perpindahan, dan itu justru jalur yang paling sering dipakai petugas
+yang sedang terburu-buru.
+
+### 2A.1 Pemisahan jenis kelamin
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `RWI-AC-128` | Pasien perempuan ditempatkan pada tempat tidur bertanda hanya laki-laki | Integrasi | 422 dengan pesan "Tempat tidur ini hanya untuk pasien laki-laki" |
+| `RWI-AC-130` | Kamar sudah dihuni pasien perempuan, pasien laki-laki hendak masuk tempat tidur lain di kamar yang sama | Integrasi | 422, dan **pesannya menyebut nama kamarnya**. Pemeriksaannya membaca penghuni yang sedang ada, bukan penanda `MstRoom` |
+| — | Kamar yang sama, pasien berikutnya berjenis kelamin sama | Integrasi | **Berhasil.** Membuktikan aturan menolak pencampuran, bukan menolak kamar berpenghuni |
+| — | Kamar berisi satu tempat tidur | Integrasi | Aturan pencampuran tidak pernah menolak, apa pun jenis kelamin penghuni sebelumnya di kamar lain |
+| `RWI-AC-129` | Jenis kelamin pasien belum tercatat, tempat tidur menerima keduanya, kamar belum berpenghuni | Integrasi | **Berhasil** |
+| **Gagal** | Jenis kelamin belum tercatat, kamar sudah berpenghuni | Integrasi | 422. Membuktikan syaratnya dua-duanya, bukan salah satu |
+| **Gagal** | Jenis kelamin belum tercatat, tempat tidur hanya menerima satu jenis kelamin | Integrasi | 422 |
+| `RWI-AC-133` | Perpindahan ke kamar yang sudah dihuni jenis kelamin berbeda | Integrasi | 422 dengan kode dan pesan **sama persis** seperti penempatan. Membuktikan kedua tindakan memanggil pemeriksaan yang sama |
+
+### 2A.2 Pengecualian boks bayi — dua arah
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `RWI-AC-132` | Bayi laki-laki ditempatkan pada boks bayi di kamar ibunya | Integrasi | **Berhasil.** Aturan jenis kelamin dan pencampuran dilewati untuk penempatan **ke** boks bayi |
+| `RWI-AC-131` | Kamar berisi ibu dan bayi laki-lakinya; pasien perempuan lain hendak masuk | Integrasi | **Berhasil.** Penghuni boks bayi tidak dihitung saat memeriksa pencampuran |
+| — | Kamar berisi **hanya** bayi laki-laki di boks, tanpa penghuni dewasa; pasien perempuan hendak masuk | Integrasi | **Berhasil.** Membuktikan pengecualian berlaku juga saat bayi adalah satu-satunya penghuni |
+| — | Pasien dewasa ditempatkan pada tempat tidur bertanda boks bayi | Integrasi | Perilakunya mengikuti penanda master; bila master menolak, 422. **Skenario ini menguji batas pengecualian**, bukan melebarkannya |
+
+### 2A.3 Kebutuhan isolasi — penempatan
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `RWI-AC-134` | Pasien bertanda membutuhkan isolasi ditempatkan pada tempat tidur bukan isolasi | Integrasi | 422 dengan pesan "Pasien ini membutuhkan isolasi, sehingga hanya dapat ditempatkan pada tempat tidur isolasi" |
+| — | Pasien bertanda membutuhkan isolasi ditempatkan pada tempat tidur isolasi | Integrasi | **Berhasil** |
+| `RWI-AC-135` | Pasien tidak membutuhkan isolasi ditempatkan pada tempat tidur isolasi | Integrasi | 422 dengan pesan "Tempat tidur isolasi hanya untuk pasien yang membutuhkan isolasi". Membuktikan penjagaannya **dua arah**, bukan satu arah |
+| — | Hasil pencarian tempat tidur kosong untuk pasien yang membutuhkan isolasi | Integrasi | `GET /available-beds` hanya memuat tempat tidur isolasi. Penyaring dan penolak menghasilkan jawaban yang **sama**, bukan berbeda |
+
+### 2A.4 Kebutuhan isolasi — siapa yang boleh menetapkan
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `RWI-AC-136` | Petugas admisi menyalakan kebutuhan isolasi selagi episode `Draft` | Integrasi | Berhasil; `IsolationSource = AdmissionRecord`, `IsolationSetByUserId` terisi, `IsolationSetByDoctorId` **kosong** |
+| `RWI-AC-137` | DPJP aktif mengubah kebutuhan isolasi setelah episode `Admitted` | Integrasi | Berhasil; `IsolationSource = ClinicalDecision`, `IsolationSetByDoctorId` terisi |
+| `RWI-AC-139` | Dokter yang **bukan** DPJP aktif mengubah kebutuhan isolasi | Integrasi | 403. Membuktikan `GUARD-INP-04`, penjaga keempat yang tidak dapat dikerjakan mesin hak akses |
+| **Gagal** | Petugas admisi mengubah kebutuhan isolasi setelah episode `Admitted` | Integrasi | 403. Membuktikan wewenangnya berhenti begitu episode aktif, bukan berlaku selamanya |
+| **Gagal** | Menyalakan kebutuhan isolasi tanpa mengisi keterangan | Integrasi | 400 dengan pesan "Tuliskan alasan atau keterangan kebutuhan isolasi" |
+| **Gagal** | Peran di luar admisi dan dokter memanggil endpoint kebutuhan isolasi | Integrasi | 403 dari mesin hak akses, sebelum service dijalankan |
+
+### 2A.5 Perubahan isolasi tidak pernah ditahan
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `RWI-AC-138` | DPJP menyalakan kebutuhan isolasi sementara pasien berada di tempat tidur biasa | Integrasi | **Berhasil, tidak ditolak.** Nilai tersimpan, dan episode muncul pada `GET /monitoring/isolation-mismatch` |
+| — | Pasien pada daftar pantau dipindahkan ke tempat tidur isolasi | Integrasi | Perpindahan berhasil, dan episode **hilang** dari daftar pantau pada pembacaan berikutnya |
+| — | Kebalikannya: DPJP mematikan kebutuhan isolasi sementara pasien berada di tempat tidur isolasi | Integrasi | Berhasil, dan episode muncul pada daftar pantau. Membuktikan daftar pantau bekerja dua arah |
+| — | Daftar pantau dibaca ketika tidak ada satu pun ketidaksesuaian | Integrasi | Daftar kosong, bukan galat |
+
+---
 
 ## 3. Perpindahan pasien
 
@@ -209,13 +273,16 @@ Keadaan hari ini yang harus disadari: backend hanya punya **satu** berkas test
 | Pengkajian, catatan dokter, tindakan, resep untuk pasien rawat inap | Slice di luar scope | `DEC-INP-001` |
 | Serah terima IGD ke rawat inap | Slice di luar scope | `DEC-INP-002` |
 | Persetujuan umum rawat inap | Slice di luar scope | `DEC-INP-003` |
-| Penolakan penempatan karena isolasi atau jenis kelamin | Slice di luar scope | `DEC-INP-004` |
 | Pengiriman SATUSEHAT | Slice di luar scope | `DEC-INP-005` |
 | Cara pulang meninggal dan kabur | Slice di luar scope | `DEC-INP-007` |
 | Daftar pantau kepatuhan pengkajian dan CPPT | Bergantung pada slice yang di luar scope | `DEC-INP-001` |
 
-Ketiadaan test untuk ketujuh butir itu adalah **keadaan yang disengaja**, bukan cakupan yang
+Ketiadaan test untuk **keenam** butir itu adalah **keadaan yang disengaja**, bukan cakupan yang
 terlupa.
+
+**Satu baris keluar dari daftar ini pada `0.3.0`.** "Penolakan penempatan karena isolasi atau jenis
+kelamin" kini justru menjadi bagian 2A dengan 26 skenario, setelah `DEC-INP-004` turun lewat
+`RWI-DEC-064` sampai `RWI-DEC-066`.
 
 ---
 
@@ -225,6 +292,7 @@ terlupa.
 | --- | ---: | ---: |
 | Admisi dan pemesanan | 5 | 6 |
 | Penempatan dan tempat tidur ganda | 4 | 2 |
+| **Kelayakan penempatan — jenis kelamin dan isolasi** | 15 | 11 |
 | Perpindahan | 3 | 6 |
 | Penanggung jawab | 6 | 2 |
 | **Kepergian fisik pasien** | 5 | 5 |
@@ -238,9 +306,9 @@ terlupa.
 | Perbaikan dan regresi | 6 | 0 |
 | Bayi dan hubungan dengan ibu | 3 | 3 |
 | Data master | 3 | 0 |
-| **Total** | **67** | **38** |
+| **Total** | **82** | **49** |
 
-Empat skenario gagal yang paling penting, dan tidak boleh dilewati:
+Delapan skenario gagal yang paling penting, dan tidak boleh dilewati:
 
 1. **Dua petugas merebut tempat tidur yang sama** — membuktikan `INV-INP-02`.
 2. **Perpindahan gagal di tengah jalan** — membuktikan `INV-INP-07`.
@@ -252,10 +320,31 @@ Empat skenario gagal yang paling penting, dan tidak boleh dilewati:
 6. **Menempatkan pasien yang episode lamanya sudah ditinggalkan secara fisik** — membuktikan
    batasnya kepergian, bukan penutupan. Ini kebalikan nomor 5 dan sama pentingnya: yang pertama
    mencegah data ganda, yang kedua mencegah pasien tertahan oleh urusan administrasi.
+7. **Perpindahan ke kamar yang sudah dihuni jenis kelamin berbeda** — membuktikan kedua tindakan
+   memanggil pemeriksaan yang sama. Test yang hanya menutup jalur penempatan meloloskan pelanggaran
+   lewat jalur yang justru paling sering dipakai.
+8. **Pasien biasa menempati tempat tidur isolasi** — membuktikan penjagaannya dua arah. Arah ini
+   yang paling sering terlupa, karena tidak terasa berbahaya bagi pasien yang bersangkutan; yang
+   dirugikan adalah pasien berikutnya yang benar-benar membutuhkan isolasi.
 
 ---
 
-## 16. Perubahan pada `contract_version` `0.2.0`
+## 16. Perubahan pada `contract_version` `0.3.0`
+
+| Yang ditambahkan | Dasar |
+| --- | --- |
+| Bagian 2A kelayakan penempatan, 26 skenario dalam lima kelompok | `RWI-DEC-064`, `RWI-DEC-065`, `RWI-DEC-066` |
+| Dua skenario gagal wajib baru pada ringkasan cakupan | `RWI-RULE-012` A.6 dan B.7 |
+
+| Yang dihapus | Alasan |
+| --- | --- |
+| Baris "penolakan penempatan karena isolasi atau jenis kelamin" pada bagian 14 | Bukan lagi di luar scope; keputusannya turun 2026-08-21 |
+
+Dua belas acceptance criteria baru `RWI-AC-128` sampai `RWI-AC-139` seluruhnya tercakup.
+
+---
+
+## 17. Perubahan pada `contract_version` `0.2.0`
 
 | Yang ditambahkan | Dasar |
 | --- | --- |

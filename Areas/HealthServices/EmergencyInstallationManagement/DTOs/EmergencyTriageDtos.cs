@@ -8,6 +8,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public Guid Id { get; set; }
         public Guid EmergencyVisitId { get; set; }
         public Guid TriageLevelId { get; set; }
+
+        /// <summary>
+        /// Nama dan warna level dibawa langsung oleh balasan.
+        ///
+        /// Tanpa ini setiap pemakai harus menggabungkan sendiri dengan master level, dan
+        /// layar yang membuka riwayat tanpa memuat master lebih dulu akan menampilkan
+        /// level sebagai identifier yang tidak berarti bagi perawat.
+        /// </summary>
+        public string? TriageLevelName { get; set; }
+        public string? TriageLevelColorName { get; set; }
+        public string? TriageLevelColorHex { get; set; }
         public Guid? PatientVitalSignId { get; set; }
         public int Sequence { get; set; }
         public bool IsRetriage { get; set; }
@@ -189,6 +200,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public string? TriageLevelName { get; set; }
 
         public string? TriageLevelColorName { get; set; }
+
+        /// <summary>
+        /// Warna master apa adanya. Tanpa ini layar terpaksa menebak warna dari namanya
+        /// lewat tabel padanan yang ditanam di kode.
+        /// </summary>
+        public string? TriageLevelColorHex { get; set; }
 
         public int? TriageLevel { get; set; }
 
