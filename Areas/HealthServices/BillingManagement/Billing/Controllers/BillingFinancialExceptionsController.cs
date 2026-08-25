@@ -28,6 +28,87 @@ public sealed class BillingFinancialExceptionsController : ControllerBase
         _exceptionService = exceptionService;
     }
 
+    [HttpGet("invoices/{invoiceId:guid}")]
+    [AccessAction("ReadByInvoice", "Read Billing Financial Exceptions By Invoice", AccessType = AccessTypes.Read, SortOrder = 8)]
+    [AccessPermission("BillingFinancialException", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<InvoiceFinancialExceptionsResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetByInvoice(Guid invoiceId, CancellationToken cancellationToken)
+    {
+        var result = new InvoiceFinancialExceptionsResponse
+        {
+            Adjustments = await _exceptionService.ListAdjustmentsByInvoiceAsync(invoiceId, cancellationToken),
+            WriteOffs = await _exceptionService.ListWriteOffsByInvoiceAsync(invoiceId, cancellationToken),
+            Refunds = await _service.ListByInvoiceAsync(invoiceId, cancellationToken)
+        };
+        return Ok(ApiResponse<InvoiceFinancialExceptionsResponse>.Ok(
+            result, "Daftar pengecualian finansial invoice berhasil diambil."));
+    }
+
+    [HttpGet("invoices/{invoiceId:guid}/refundable-credits")]
+    [AccessAction("ReadRefundableCredits", "Read Refundable Credits By Invoice", AccessType = AccessTypes.Read, SortOrder = 9)]
+    [AccessPermission("BillingRefund", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<RefundableCreditResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetRefundableCreditsByInvoice(Guid invoiceId, CancellationToken cancellationToken)
+    {
+        var result = await _service.ListRefundableCreditsByInvoiceAsync(invoiceId, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<RefundableCreditResponse>>.Ok(
+            result, "Daftar refundable credit invoice berhasil diambil."));
+    }
+
+    [HttpGet("refunds/{id:guid}")]
+    [AccessAction("ReadRefund", "Read Billing Refund", AccessType = AccessTypes.Read, SortOrder = 10)]
+    [AccessPermission("BillingRefund", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<RefundResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetRefundById(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetByIdAsync(id, cancellationToken);
+            return Ok(ApiResponse<RefundResponse>.Ok(result, "Refund case berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+    }
+
+    [HttpGet("adjustments/{id:guid}")]
+    [AccessAction("ReadAdjustment", "Read Billing Adjustment", AccessType = AccessTypes.Read, SortOrder = 11)]
+    [AccessPermission("BillingAdjustment", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<AdjustmentResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAdjustmentById(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _exceptionService.GetAdjustmentByIdAsync(id, cancellationToken);
+            return Ok(ApiResponse<AdjustmentResponse>.Ok(result, "Adjustment berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+    }
+
+    [HttpGet("write-offs/{id:guid}")]
+    [AccessAction("ReadWriteOff", "Read Billing Write-off", AccessType = AccessTypes.Read, SortOrder = 12)]
+    [AccessPermission("BillingWriteOff", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<WriteOffResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetWriteOffById(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _exceptionService.GetWriteOffByIdAsync(id, cancellationToken);
+            return Ok(ApiResponse<WriteOffResponse>.Ok(result, "Write-off case berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+    }
+
     [HttpPost("refunds")]
     [AccessAction("CreateRefund", "Create Billing Refund", AccessType = AccessTypes.Create, SortOrder = 1)]
     [AccessPermission("BillingRefund", "Create")]

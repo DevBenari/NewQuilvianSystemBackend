@@ -52,3 +52,15 @@ public sealed class RefundLineResponse
     public DateTimeOffset? AttemptedAt { get; set; }
     public DateTimeOffset? SettledAt { get; set; }
 }
+
+public sealed class RefundableCreditResponse
+{
+    public Guid Id { get; set; }
+    public Guid InvoiceId { get; set; }
+    public string SourceType { get; set; } = string.Empty;
+    public Guid SourceId { get; set; }
+    public decimal OriginalAmount { get; set; }
+    public decimal AvailableAmount { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTimeOffset RecognizedAt { get; set; }
+}

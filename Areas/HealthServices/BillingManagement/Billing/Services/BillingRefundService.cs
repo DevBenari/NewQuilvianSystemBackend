@@ -160,6 +160,50 @@ public sealed class BillingRefundService
         }
     }
 
+    public async Task<RefundResponse> GetByIdAsync(
+        Guid refundCaseId,
+        CancellationToken cancellationToken)
+    {
+        var refundCase = await _dbContext.BilRefundCases.AsNoTracking()
+            .Include(x => x.Lines)
+            .SingleOrDefaultAsync(x => x.Id == refundCaseId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Refund case tidak ditemukan.");
+        return MapCase(refundCase, false);
+    }
+
+    public async Task<IReadOnlyList<RefundResponse>> ListByInvoiceAsync(
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        var refundCases = await _dbContext.BilRefundCases.AsNoTracking()
+            .Include(x => x.Lines)
+            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
+            .OrderByDescending(x => x.SubmittedAt)
+            .ToListAsync(cancellationToken);
+        return refundCases.Select(x => MapCase(x, false)).ToList();
+    }
+
+    public async Task<IReadOnlyList<RefundableCreditResponse>> ListRefundableCreditsByInvoiceAsync(
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        return await _dbContext.BilRefundableCredits.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
+            .OrderByDescending(x => x.RecognizedAt)
+            .Select(x => new RefundableCreditResponse
+            {
+                Id = x.Id,
+                InvoiceId = x.InvoiceId,
+                SourceType = x.SourceType,
+                SourceId = x.SourceId,
+                OriginalAmount = x.OriginalAmount,
+                AvailableAmount = x.AvailableAmount,
+                Status = x.Status,
+                RecognizedAt = x.RecognizedAt
+            })
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<RefundResponse> ApproveAsync(
         Guid refundCaseId,
         RefundApprovalRequest request,

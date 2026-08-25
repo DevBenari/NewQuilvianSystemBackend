@@ -151,6 +151,24 @@ public sealed class CashierShiftService
         return MapShift(shift, pending);
     }
 
+    public async Task<CashierShiftResponse> GetByIdAsync(
+        Guid shiftId,
+        CancellationToken cancellationToken)
+    {
+        if (shiftId == Guid.Empty)
+            throw new CashierShiftValidationException("ShiftId wajib diisi.");
+        var shift = await _dbContext.BilCashierShifts.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == shiftId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Shift kasir tidak ditemukan.");
+        var pending = await _dbContext.BilCashierShiftHandovers.AsNoTracking()
+            .SingleOrDefaultAsync(
+                x => x.SourceShiftId == shift.Id
+                    && x.Status == CashierShiftHandoverStatuses.Pending
+                    && !x.IsDelete,
+                cancellationToken);
+        return MapShift(shift, pending);
+    }
+
     public async Task<CashierShiftResponse> HandoverAsync(
         Guid shiftId,
         HandoverShiftRequest request,

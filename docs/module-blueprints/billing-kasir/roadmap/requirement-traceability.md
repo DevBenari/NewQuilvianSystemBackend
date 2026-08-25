@@ -16,15 +16,15 @@ frontend_source: e555bf2ad6848a1d6cc097ab8c6c5f5259edb151
 
 | Requirement/decision | Design/contract | Backend | Frontend | Bukti | Status |
 | --- | --- | --- | --- | --- | --- |
-| Satu invoice dan charge idempotent (`DEC-013`–`018`,`040`) | CTX-01, API/Integration | `BE-BKC-005`,`008` | `FE-BKC-001`,`003` | `AT-001`–`004`,`020` | Covered/planned |
+| Satu invoice dan charge idempotent (`DEC-013`–`018`,`040`) | CTX-01, API/Integration | `BE-BKC-005`,`008` | `FE-BKC-001`,`003` | `AT-001`–`004`,`020` | Covered/planned — `FE-BKC-003` (recalculate + void) source selesai 25 Agustus 2026, menunggu verifikasi manual; lihat `task/report/frontend/fe-bkc-003-hitung-ulang-dan-pembatalan-item-invoice.md` |
 | Admin fee (`DEC-001`–`006`) | CPT-007, Validation | `BE-BKC-002`,`006` | `FE-BKC-002` | `AT-009`–`011` | Covered/planned |
-| Diskon (`DEC-007`–`012`) | CPT-008/009, Permission | `BE-BKC-003`,`007` | `FE-BKC-002`,`004` | `AT-012`,`022` | Covered/planned |
+| Diskon (`DEC-007`–`012`) | CPT-008/009, Permission | `BE-BKC-003`,`007` | `FE-BKC-002`,`004` | `AT-012`,`022` | Covered/planned — `FE-BKC-004` (ajukan diskon promo/dokter + approve dokter) source selesai 25 Agustus 2026, menunggu verifikasi manual; lihat `task/report/frontend/fe-bkc-004-diskon-promo-dan-approval-dokter.md` |
 | Tax/room/coverage (`DEC-019`–`023`,`041`,`043`) | CPT-021–024, Integration | `BE-BKC-004`,`006` | `FE-BKC-001`,`002` | `AT-010`,`011`,`013`,`021` | Covered/planned |
-| Deposit/progress (`DEC-025`–`030`) | CTX-02, Patient Funds | `BE-BKC-009`,`011` | `FE-BKC-005` | `AT-007`,`008`,`020` | Covered/planned |
-| Split tender (`DEC-028`–`030`,`036`) | Settlement State/API | `BE-BKC-010`,`012` | `FE-BKC-006`,`007` | `AT-005`,`006`,`017` | Covered/planned |
-| Refund (`DEC-032`,`033`) | CTX-03 | `BE-BKC-013` | `FE-BKC-008` | `AT-008`,`014` | Covered/planned |
-| Write-off/adjustment (`DEC-034`,`035`,`042`) | CTX-03, Integration | `BE-BKC-014`,`016` | `FE-BKC-008` | `AT-014`,`015`,`021` | Covered/planned |
-| Shift kasir (`DEC-037`–`039`) | CTX-04 | `BE-BKC-012` | `FE-BKC-007` | `AT-016`,`017`,`022` | Covered/planned |
+| Deposit/progress (`DEC-025`–`030`) | CTX-02, Patient Funds | `BE-BKC-009`,`011` | `FE-BKC-005` | `AT-007`,`008`,`020` | Covered/planned — `FE-BKC-005` (top-up + allocation, panel deposit di halaman invoice RANAP) source selesai 25 Agustus 2026, menunggu verifikasi manual; lihat `task/report/frontend/fe-bkc-005-deposit-rawat-inap-dan-progress-allocation.md` |
+| Split tender (`DEC-028`–`030`,`036`) | Settlement State/API | `BE-BKC-010`,`012` | `FE-BKC-006`,`007` | `AT-005`,`006`,`017` | Covered/planned — `FE-BKC-006` (create settlement + tender rows, panel di halaman invoice) source selesai 25 Agustus 2026, menunggu `FE-BKC-007` untuk verifikasi tender tunai dan verifikasi manual; lihat `task/report/frontend/fe-bkc-006-split-tender-dan-reconciliation-status.md` |
+| Refund (`DEC-032`,`033`) | CTX-03 | `BE-BKC-013` | `FE-BKC-008` | `AT-008`,`014` | Covered/planned — `FE-BKC-008` source selesai 25 Agustus 2026, menunggu verifikasi manual; refund tidak bisa diuji end-to-end tanpa akses database untuk menemukan `RefundableCreditId` (tidak ada endpoint pencarian); lihat `task/report/frontend/fe-bkc-008-pengecualian-finansial-refund-adjustment-write-off.md` |
+| Write-off/adjustment (`DEC-034`,`035`,`042`) | CTX-03, Integration | `BE-BKC-014`,`016` | `FE-BKC-008` | `AT-014`,`015`,`021` | Covered/planned — `FE-BKC-008` (ajukan/setujui/reversal, panel di halaman invoice) source selesai 25 Agustus 2026, menunggu verifikasi manual; temuan gap tanpa satu pun endpoint GET untuk case (`ISSUE-FE-008`) dicatat di laporan; lihat `task/report/frontend/fe-bkc-008-pengecualian-finansial-refund-adjustment-write-off.md` |
+| Shift kasir (`DEC-037`–`039`) | CTX-04 | `BE-BKC-012` | `FE-BKC-007` | `AT-016`,`017`,`022` | Covered/planned — `FE-BKC-007` (halaman baru, open/handover/close/review/reopen) source selesai 25 Agustus 2026, menunggu verifikasi manual; temuan gap `GET` by-id shift dan master data Register dicatat di laporan; lihat `task/report/frontend/fe-bkc-007-operasi-shift-kasir.md` |
 | Finalisasi/departure (`DEC-031`,`036`,`044`) | CTX-05, State | `BE-BKC-015` | `FE-BKC-009` | `AT-018`,`019`,`023` | Covered/planned |
 | AR/AP final (`DEC-041`–`044`) | Integration/Handoff | `BE-BKC-016` | `FE-BKC-009` | `AT-019`,`021`,`023` | Covered, external dependency |
 | Security/privacy/concurrency | Permission/Validation | `BE-BKC-001`,`017` | `FE-BKC-010` | `AT-020`,`022`,`024` | Covered/planned |

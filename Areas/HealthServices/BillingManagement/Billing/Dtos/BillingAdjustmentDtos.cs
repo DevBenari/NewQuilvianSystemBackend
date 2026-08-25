@@ -44,3 +44,10 @@ public sealed class AdjustmentResponse
     public DateTimeOffset? PostedAt { get; set; }
     public bool IsReplay { get; set; }
 }
+
+public sealed class InvoiceFinancialExceptionsResponse
+{
+    public IReadOnlyList<AdjustmentResponse> Adjustments { get; set; } = [];
+    public IReadOnlyList<WriteOffResponse> WriteOffs { get; set; } = [];
+    public IReadOnlyList<RefundResponse> Refunds { get; set; } = [];
+}

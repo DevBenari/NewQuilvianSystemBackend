@@ -125,6 +125,48 @@ public sealed class BillingFinancialExceptionService
         }
     }
 
+    public async Task<AdjustmentResponse> GetAdjustmentByIdAsync(
+        Guid adjustmentId,
+        CancellationToken cancellationToken)
+    {
+        var adjustment = await _dbContext.BilAdjustments.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == adjustmentId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Adjustment tidak ditemukan.");
+        return MapAdjustment(adjustment, false);
+    }
+
+    public async Task<IReadOnlyList<AdjustmentResponse>> ListAdjustmentsByInvoiceAsync(
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        var adjustments = await _dbContext.BilAdjustments.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
+            .OrderByDescending(x => x.SubmittedAt)
+            .ToListAsync(cancellationToken);
+        return adjustments.Select(x => MapAdjustment(x, false)).ToList();
+    }
+
+    public async Task<WriteOffResponse> GetWriteOffByIdAsync(
+        Guid writeOffCaseId,
+        CancellationToken cancellationToken)
+    {
+        var writeOffCase = await _dbContext.BilWriteOffCases.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == writeOffCaseId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Write-off case tidak ditemukan.");
+        return MapWriteOff(writeOffCase, null, null, false);
+    }
+
+    public async Task<IReadOnlyList<WriteOffResponse>> ListWriteOffsByInvoiceAsync(
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        var writeOffCases = await _dbContext.BilWriteOffCases.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
+            .OrderByDescending(x => x.SubmittedAt)
+            .ToListAsync(cancellationToken);
+        return writeOffCases.Select(x => MapWriteOff(x, null, null, false)).ToList();
+    }
+
     public async Task<AdjustmentResponse> ApproveAdjustmentAsync(
         Guid adjustmentId,
         AdjustmentApprovalRequest request,

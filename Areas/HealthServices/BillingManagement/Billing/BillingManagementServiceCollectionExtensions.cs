@@ -40,6 +40,7 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<DiscountPolicyService>();
         services.AddScoped<TaxRuleService>();
         services.AddScoped<RoomChargePolicyService>();
+        services.AddScoped<RegisterService>();
 
         return services;
     }

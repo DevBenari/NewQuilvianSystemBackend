@@ -69,6 +69,24 @@ public sealed class CashierShiftsController : ControllerBase
         }
     }
 
+    [HttpGet("{id:guid}")]
+    [AccessAction("Read", "Read Cashier Shift By Id", AccessType = AccessTypes.Read, SortOrder = 7)]
+    [AccessPermission("CashierShift", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<CashierShiftResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetByIdAsync(id, cancellationToken);
+            return Ok(ApiResponse<CashierShiftResponse>.Ok(
+                result, "Shift kasir berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception))
+        {
+            return Failure(exception);
+        }
+    }
+
     [HttpPost("{id:guid}/handover")]
     [AccessAction("Handover", "Handover Cashier Shift", AccessType = AccessTypes.Update, SortOrder = 3)]
     [AccessPermission("CashierShift", "Handover")]

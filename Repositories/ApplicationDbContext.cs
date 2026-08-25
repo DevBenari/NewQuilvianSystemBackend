@@ -537,6 +537,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstDiscountPolicy> MstDiscountPolicies { get; set; }
         public DbSet<MstTaxRule> MstTaxRules { get; set; }
         public DbSet<MstRoomChargePolicy> MstRoomChargePolicies { get; set; }
+        public DbSet<MstRegister> MstRegisters { get; set; }
         public DbSet<BilInvoice> BilInvoices { get; set; }
         public DbSet<BilInvoiceItem> BilInvoiceItems { get; set; }
         public DbSet<BilCalculationVersion> BilCalculationVersions { get; set; }
