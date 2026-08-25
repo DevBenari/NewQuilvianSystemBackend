@@ -70,8 +70,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         public MstWorkSchedule? WorkSchedule { get; set; }
         public MstShift? Shift { get; set; }
         public TrxShiftAssignment? ShiftAssignment { get; set; }
-        public TrxAttendance? Attendance { get; set; }
-        public TrxAttendanceDaily? AttendanceDaily { get; set; }
+        public HrdAttendance? Attendance { get; set; }
+        public HrdAttendanceDaily? AttendanceDaily { get; set; }
         public MstOvertimeRate? OvertimeRate { get; set; }
 
         public ICollection<TrxOvertimeRealizationDetail> RealizationDetails { get; set; }

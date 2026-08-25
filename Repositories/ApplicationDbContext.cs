@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Mo
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
@@ -278,20 +279,20 @@ namespace QuilvianSystemBackend.Repositories
         #endregion CORPORATE - HUMAN RESOURCE - LIFECYCLE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - ATTENDANCE MANAGEMENT
-        public DbSet<TrxAttendance> TrxAttendances { get; set; }
-        public DbSet<TrxAttendanceRawLog> TrxAttendanceRawLogs { get; set; }
-        public DbSet<TrxAttendanceProcessingRun> TrxAttendanceProcessingRuns { get; set; }
-        public DbSet<TrxAttendancePeriod> TrxAttendancePeriods { get; set; }
-        public DbSet<TrxAttendanceSchedulerJob> TrxAttendanceSchedulerJobs { get; set; }
-        public DbSet<TrxAttendanceDaily> TrxAttendanceDailies { get; set; }
-        public DbSet<TrxAttendanceDailySegment> TrxAttendanceDailySegments { get; set; }
-        public DbSet<TrxAttendanceException> TrxAttendanceExceptions { get; set; }
-        public DbSet<TrxAttendanceCorrectionRequest> TrxAttendanceCorrectionRequests { get; set; }
-        public DbSet<TrxAttendanceCorrectionDetail> TrxAttendanceCorrectionDetails { get; set; }
-        public DbSet<TrxAttendanceCorrectionApproval> TrxAttendanceCorrectionApprovals { get; set; }
-        public DbSet<TrxMissingAttendance> TrxMissingAttendances { get; set; }
-        public DbSet<TrxBusinessTripAttendance> TrxBusinessTripAttendances { get; set; }
-        public DbSet<TrxRemoteAttendance> TrxRemoteAttendances { get; set; }
+        public DbSet<HrdAttendance> HrdAttendances { get; set; }
+        public DbSet<HrdAttendanceRawLog> HrdAttendanceRawLogs { get; set; }
+        public DbSet<HrdAttendanceProcessingRun> HrdAttendanceProcessingRuns { get; set; }
+        public DbSet<HrdAttendancePeriod> HrdAttendancePeriods { get; set; }
+        public DbSet<HrdAttendanceSchedulerJob> HrdAttendanceSchedulerJobs { get; set; }
+        public DbSet<HrdAttendanceDaily> HrdAttendanceDailies { get; set; }
+        public DbSet<HrdAttendanceDailySegment> HrdAttendanceDailySegments { get; set; }
+        public DbSet<HrdAttendanceException> HrdAttendanceExceptions { get; set; }
+        public DbSet<HrdAttendanceCorrectionRequest> HrdAttendanceCorrectionRequests { get; set; }
+        public DbSet<HrdAttendanceCorrectionDetail> HrdAttendanceCorrectionDetails { get; set; }
+        public DbSet<HrdAttendanceCorrectionApproval> HrdAttendanceCorrectionApprovals { get; set; }
+        public DbSet<HrdMissingAttendance> HrdMissingAttendances { get; set; }
+        public DbSet<HrdBusinessTripAttendance> HrdBusinessTripAttendances { get; set; }
+        public DbSet<HrdRemoteAttendance> HrdRemoteAttendances { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - ATTENDANCE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - SCHEDULING MANAGEMENT
@@ -478,7 +479,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxInvestigationEvidence> TrxInvestigationEvidences { get; set; }
         public DbSet<TrxDisciplinaryCase> TrxDisciplinaryCases { get; set; }
         public DbSet<TrxDisciplinaryDecision> TrxDisciplinaryDecisions { get; set; }
-        public DbSet<TrxEmployeeRecognition> TrxEmployeeRecognitions { get; set; }
+        public DbSet<HrdEmployeeRecognition> HrdEmployeeRecognitions { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - EMPLOYEE RELATION MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - HR SERVICE MANAGEMENT
@@ -577,6 +578,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxPrescriptionFinalCheckItem> TrxPrescriptionFinalCheckItems { get; set; }
         public DbSet<TrxPrescriptionDrugSubstitution> TrxPrescriptionDrugSubstitutions { get; set; }
         public DbSet<TrxPrescriptionClarification> TrxPrescriptionClarifications { get; set; }
+
+        #region HEALTH SERVICE - Laboratory Management
+
+        public DbSet<LabOrder> LabOrders { get; set; }
+
+        #endregion
 
         #region HEALTH SERVICE - Emergency Installation Management
 

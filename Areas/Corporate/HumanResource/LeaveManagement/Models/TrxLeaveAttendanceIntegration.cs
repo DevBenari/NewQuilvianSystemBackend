@@ -69,7 +69,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Mo
 
         public TrxLeaveExecution? LeaveExecution { get; set; }
         public WfpLeaveRequest? LeaveRequest { get; set; }
-        public TrxAttendanceDaily? AttendanceDaily { get; set; }
+        public HrdAttendanceDaily? AttendanceDaily { get; set; }
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public MstLeaveType? LeaveType { get; set; }
         public ApplicationUser? AppliedByUser { get; set; }

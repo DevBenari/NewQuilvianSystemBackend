@@ -45,7 +45,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             bool allowAutoApply,
             CancellationToken cancellationToken = default)
         {
-            var request = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var request = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .FirstOrDefaultAsync(
                     x => x.Id == workflow.ReferenceId && !x.IsDelete,
                     cancellationToken);
@@ -195,7 +195,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             try
             {
-                var request = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+                var request = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                     .Include(x => x.Details)
                     .Include(x => x.AttendanceDaily)
                     .ThenInclude(x => x!.AttendancePolicy)
@@ -348,7 +348,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 daily.UpdateDateTime = now;
                 daily.UpdateBy = actorUserId;
 
-                var linkedExceptions = await _dbContext.Set<TrxAttendanceException>()
+                var linkedExceptions = await _dbContext.Set<HrdAttendanceException>()
                     .Where(x =>
                         x.CorrectionRequestId == request.Id &&
                         !x.IsDelete &&
@@ -386,7 +386,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     .ToList();
 
                 var hasPayrollBlockingException = await _dbContext
-                    .Set<TrxAttendanceException>()
+                    .Set<HrdAttendanceException>()
                     .AsNoTracking()
                     .AnyAsync(x =>
                         x.AttendanceDailyId == daily.Id &&
@@ -399,7 +399,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                         x.ExceptionStatus != AttendanceValueConstants.AttendanceExceptionStatus.Waived,
                         cancellationToken);
 
-                daily.ExceptionCount = await _dbContext.Set<TrxAttendanceException>()
+                daily.ExceptionCount = await _dbContext.Set<HrdAttendanceException>()
                     .AsNoTracking()
                     .CountAsync(x =>
                         x.AttendanceDailyId == daily.Id &&
@@ -556,7 +556,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static void ApplyLifecycleAudit(
-            TrxAttendanceCorrectionRequest request,
+            HrdAttendanceCorrectionRequest request,
             TrxWorkflowInstance workflow,
             string targetStatus,
             Guid actorUserId,
@@ -626,7 +626,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             DateTime now,
             CancellationToken cancellationToken)
         {
-            var details = await _dbContext.Set<TrxAttendanceCorrectionDetail>()
+            var details = await _dbContext.Set<HrdAttendanceCorrectionDetail>()
                 .Where(x =>
                     x.AttendanceCorrectionRequestId == requestId &&
                     !x.IsDelete)
@@ -667,7 +667,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static string? ApplyFieldValue(
-            TrxAttendanceDaily daily,
+            HrdAttendanceDaily daily,
             string fieldName,
             string? value)
         {
@@ -767,7 +767,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static void RecalculateDaily(
-            TrxAttendanceDaily daily,
+            HrdAttendanceDaily daily,
             HashSet<string> correctedFields)
         {
             if (!correctedFields.Contains("ActualWorkMinutes"))
@@ -870,7 +870,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             }
         }
 
-        private static string ResolveAttendanceStatus(TrxAttendanceDaily daily)
+        private static string ResolveAttendanceStatus(HrdAttendanceDaily daily)
         {
             if (daily.IsBusinessTrip)
                 return AttendanceValueConstants.AttendanceStatus.BusinessTrip;
@@ -894,7 +894,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static AttendanceCorrectionApplyResponse BuildAlreadyAppliedResponse(
-            TrxAttendanceCorrectionRequest request)
+            HrdAttendanceCorrectionRequest request)
         {
             return new AttendanceCorrectionApplyResponse
             {

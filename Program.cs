@@ -16,6 +16,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
@@ -33,8 +34,10 @@ using QuilvianSystemBackend.Shared.HumanResource.Services;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
+using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -264,6 +267,7 @@ try
     builder.Services.AddScoped<AccessPermissionService>();
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
+    builder.Services.AddScoped<LabOrderService>();
 
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
@@ -305,6 +309,7 @@ try
     builder.Services.AddScoped<ResignationLifecycleHandoffService>();
 
     builder.Services.AddScoped<AttendanceRawLogService>();
+    builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();
     builder.Services.AddScoped<AttendanceScheduleResolverService>();
     builder.Services.AddScoped<AttendanceProcessingService>();
     builder.Services.AddScoped<AttendanceDailyQueryService>();
@@ -645,6 +650,14 @@ try
             "Seeder master kriteria telaah resep selesai.");
     }
 
+    static async Task RunStartupSeederAsync(string seederName, Func<Task> seed)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        await seed();
+        stopwatch.Stop();
+        Log.Information("[StartupSeed] {Seeder} completed in {ElapsedMilliseconds} ms", seederName, stopwatch.ElapsedMilliseconds);
+    }
+
     Log.Information(
         "Starting {Application} {BackendVersion} in {Environment} environment.",
         appName,
@@ -782,10 +795,10 @@ try
 
     app.MapHealthChecks("/health");
 
-    await AppVersionSeeder.SeedAsync(app.Services);
-    await DefaultWorkScheduleSeeder.SeedAsync(app.Services);
-    await SuperAdminSeeder.SeedAsync(app.Services);
-    await AccessMenuSeeder.SeedAsync(app.Services);
+    await RunStartupSeederAsync("AppVersionSeeder", () => AppVersionSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
 
     var runPrescriptionReviewCriterionSeed =
      builder.Configuration.GetValue<bool>(
@@ -793,7 +806,9 @@ try
 
     if (runPrescriptionReviewCriterionSeed)
     {
-        await SeedPrescriptionReviewCriteriaAsync(app.Services);
+        await RunStartupSeederAsync(
+            "PrescriptionReviewCriterionSeeder",
+            () => SeedPrescriptionReviewCriteriaAsync(app.Services));
     }
 
     // Seed Awal Saja
