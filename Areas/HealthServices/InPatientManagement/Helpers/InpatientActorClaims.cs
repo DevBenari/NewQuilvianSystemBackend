@@ -48,6 +48,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers
         };
 
         /// <summary>
+        /// Nama peran yang berwenang menandai kelayakan keuangan.
+        /// </summary>
+        /// <remarks>
+        /// Sama seperti daftar di atas, ini <b>asumsi</b> yang masih perlu dikonfirmasi. Bila
+        /// nama peran kasir di rumah sakit berbeda, penandaan kelayakan keuangan akan ditolak
+        /// 403 untuk petugas yang sesungguhnya berwenang — dan karena kelayakan keuangan
+        /// menggerbang penutupan episode, pasien ikut tertahan.
+        /// </remarks>
+        public static readonly string[] CashierOrBillingRoles =
+        {
+            "SuperAdmin",
+            "Supervisor",
+            "Kasir",
+            "Billing",
+            "Cashier"
+        };
+
+        /// <summary>
         /// Identitas pengguna yang sedang masuk. Mengembalikan <c>Guid.Empty</c> bila klaimnya
         /// tidak terbaca.
         /// </summary>
@@ -91,6 +109,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers
         public static bool IsSupervisor(this ClaimsPrincipal user)
         {
             return SupervisorRoles.Any(user.IsInRole);
+        }
+
+        /// <summary>Benar bila pengguna berperan kasir atau billing.</summary>
+        public static bool IsCashierOrBilling(this ClaimsPrincipal user)
+        {
+            return CashierOrBillingRoles.Any(user.IsInRole);
         }
     }
 }

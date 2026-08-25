@@ -187,7 +187,14 @@ internal sealed class InpatientEpisodeTestWorld
             episodeService);
 
         var censusQueryService = new InpCensusQueryService(dbContext, settingService);
-        var dischargeService = new InpDischargeService(dbContext, episodeService);
+
+        // Sejak BE-RWI-025, penutupan episode dan pencatatan kepergian melepas tempat tidur
+        // lewat InpBedOccupancyService. Arahnya tidak melingkar: tidak ada satu pun service
+        // yang menunjuk balik ke InpDischargeService.
+        var dischargeService = new InpDischargeService(
+            dbContext,
+            episodeService,
+            bedOccupancyService);
 
         return new InpatientEpisodeTestWorld(
             dbContext,
@@ -409,5 +416,115 @@ internal sealed class InpatientEpisodeTestWorld
         Assert.Equal(InpEpisodeOperationStatus.Success, result.Status);
 
         return episode;
+    }
+
+    // =========================================================================
+    // Tambahan BE-RWI-023 s.d. BE-RWI-031
+    // =========================================================================
+
+    /// <summary>Menambahkan satu butir daftar periksa administrasi.</summary>
+    public async Task<MstInpatientClearanceItem> AddClearanceItemAsync(
+        string itemName,
+        bool isMandatory = true,
+        bool isActive = true,
+        int sortOrder = 1)
+    {
+        var item = new MstInpatientClearanceItem
+        {
+            Id = Guid.NewGuid(),
+            ItemCode = $"CLR-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
+            ItemName = itemName,
+            IsMandatory = isMandatory,
+            IsActive = isActive,
+            SortOrder = sortOrder,
+            CreateDateTime = DateTime.UtcNow,
+            CreateBy = ActorUserId
+        };
+
+        DbContext.Set<MstInpatientClearanceItem>().Add(item);
+        await DbContext.SaveChangesAsync();
+
+        return item;
+    }
+
+    /// <summary>
+    /// Membawa satu episode sampai ke keadaan siap ditutup: ditempatkan, diputuskan pulang,
+    /// resume tertandatangani, seluruh butir wajib ditandai, dan kelayakan keuangan
+    /// <c>Cleared</c>.
+    /// </summary>
+    public async Task<InpEpisode> BuildClosableEpisodeAsync(
+        MstBed bed,
+        Guid? patientId = null,
+        bool markFinancialCleared = true,
+        bool markMandatoryClearance = true)
+    {
+        var episode = await OpenAndPlaceAsync(bed, patientId);
+
+        var decide = await DischargeService.DecideDischargeAsync(
+            episode.Id,
+            new DecideDischargeRequest { DischargeType = (int)InpDischargeType.DoctorApproved },
+            ActorUserId,
+            Doctor.Id);
+
+        Assert.Equal(InpEpisodeOperationStatus.Success, decide.Status);
+
+        var upsert = await DischargeService.UpsertSummaryAsync(
+            episode.Id,
+            new UpsertDischargeSummaryRequest { PrimaryDiagnosisText = "Demam berdarah dengue" },
+            ActorUserId,
+            Doctor.Id,
+            actorIsSupervisor: false);
+
+        Assert.Equal(InpEpisodeOperationStatus.Success, upsert.Status);
+
+        var sign = await DischargeService.SignSummaryAsync(
+            episode.Id,
+            null,
+            ActorUserId,
+            Doctor.Id);
+
+        Assert.Equal(InpEpisodeOperationStatus.Success, sign.Status);
+
+        if (markMandatoryClearance)
+        {
+            await MarkAllMandatoryClearanceItemsAsync(episode.Id);
+        }
+
+        if (markFinancialCleared)
+        {
+            var financial = await DischargeService.MarkFinancialClearanceAsync(
+                episode.Id,
+                new MarkFinancialClearanceRequest
+                {
+                    ClearanceStatus = (int)InpFinancialClearanceStatus.Cleared,
+                    Note = "Tagihan sudah lunas."
+                },
+                SupervisorUserId,
+                actorIsCashierOrBilling: true);
+
+            Assert.Equal(InpEpisodeOperationStatus.Success, financial.Status);
+        }
+
+        return episode;
+    }
+
+    /// <summary>Menandai seluruh butir wajib yang masih aktif pada satu episode.</summary>
+    public async Task MarkAllMandatoryClearanceItemsAsync(Guid episodeId)
+    {
+        var mandatoryIds = DbContext.Set<MstInpatientClearanceItem>()
+            .Where(x => !x.IsDelete && x.IsActive && x.IsMandatory)
+            .Select(x => x.Id)
+            .ToList();
+
+        foreach (var itemId in mandatoryIds)
+        {
+            var result = await DischargeService.MarkClearanceItemAsync(
+                episodeId,
+                itemId,
+                new MarkClearanceItemRequest { Note = "Selesai." },
+                ActorUserId);
+
+            Assert.Equal(InpEpisodeOperationStatus.Success, result.Status);
+        }
     }
 }

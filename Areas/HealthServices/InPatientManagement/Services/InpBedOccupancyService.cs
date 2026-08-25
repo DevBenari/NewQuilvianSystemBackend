@@ -1399,6 +1399,68 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         }
 
         // =====================================================================
+        // Pelepasan tempat tidur untuk pemanggil lain
+        // =====================================================================
+
+        /// <summary>
+        /// Menutup penempatan yang masih aktif milik satu episode dan mengembalikan salinan
+        /// status tempat tidurnya.
+        /// </summary>
+        /// <param name="endReason">
+        /// Alasan berakhirnya penempatan. <c>PatientDeparted</c> untuk pencatatan kepergian
+        /// fisik, <c>EpisodeClosed</c> untuk penutupan episode.
+        /// </param>
+        /// <returns>
+        /// Identitas tempat tidur yang dilepas, atau <c>null</c> bila episode itu memang sudah
+        /// tidak memegang tempat tidur.
+        /// </returns>
+        /// <remarks>
+        /// <b>Method ini tidak membuka transaksi sendiri.</b> Ia ikut transaksi pemanggilnya,
+        /// karena pelepasan tempat tidur selalu merupakan bagian dari tindakan yang lebih
+        /// besar — pencatatan kepergian atau penutupan episode. Melepas tempat tidur di dalam
+        /// transaksi terpisah membuka keadaan setengah jadi yang paling merugikan: tempat
+        /// tidur sudah bebas dan diambil pasien lain, sementara tindakan yang menyebabkannya
+        /// gagal dan pasien lama masih tercatat di sana.
+        ///
+        /// <para>
+        /// Pemanggil <b>wajib</b> memanggil <c>SaveChangesAsync</c> sendiri.
+        /// </para>
+        /// </remarks>
+        public async Task<Guid?> ReleaseActivePlacementAsync(
+            Guid episodeId,
+            InpBedPlacementEndReason endReason,
+            Guid actorUserId,
+            DateTime now,
+            CancellationToken cancellationToken = default)
+        {
+            var placement = await _dbContext.Set<InpBedPlacement>()
+                .FirstOrDefaultAsync(
+                    x => x.EpisodeId == episodeId && x.EndDateTime == null && !x.IsDelete,
+                    cancellationToken);
+
+            if (placement == null)
+            {
+                return null;
+            }
+
+            placement.EndDateTime = now;
+            placement.EndReason = endReason;
+            placement.EndedByUserId = actorUserId;
+            placement.IsActive = false;
+            placement.UpdateDateTime = now;
+            placement.UpdateBy = actorUserId;
+
+            await ReleaseBedStatusCopyAsync(
+                placement.BedId,
+                episodeId,
+                actorUserId,
+                now,
+                cancellationToken);
+
+            return placement.BedId;
+        }
+
+        // =====================================================================
         // Pembantu
         // =====================================================================
 

@@ -109,11 +109,27 @@ benar-benar terpenuhi** menurut aturan roadmap sendiri.
 | `BE-RWI-020` | Keputusan pulang milik DPJP aktif; tempat tidur belum dilepas (`RWI-DEC-016`, `RWI-DEC-017`; `GUARD-INP-02`) | Satu endpoint dan 6 test ditulis; **build dan test BELUM DIJALANKAN**. **Dua cara pulang — meninggal dan kabur — aturan klinisnya belum disahkan**, sehingga kriteria 2 baru terpenuhi untuk tiga dari lima ([laporan](../task/report/backend/be-rwi-020-keputusan-pasien-boleh-pulang.md)) | 🟡 **Validasi belum** |
 | `BE-RWI-021` | Resume tertandatangani hanya oleh DPJP aktif; isi klinis tidak bocor ke daftar mana pun (`RWI-DEC-016`; `GUARD-INP-03`; `INV-INP-05`) | Tiga endpoint dan 7 test ditulis; **build dan test BELUM DIJALANKAN**. **Delta terhadap `state-transition-matrix` bagian 5 belum diputuskan**. Pemilik privasi belum ditunjuk ([laporan](../task/report/backend/be-rwi-021-resume-pulang-dan-tanda-tangan.md)) | 🟡 **Validasi belum** |
 | `BE-RWI-022` | Amandemen resume tertandatangani menyimpan versi sebelumnya; versi tidak dapat diubah maupun dihapus (`RWI-DEC-057`) | Penyalinan versi dan 5 test ditulis; **build dan test BELUM DIJALANKAN**. Jalur amandemen belum dapat dijalankan sungguhan — sesi koreksi menunggu `BE-RWI-030` ([laporan](../task/report/backend/be-rwi-022-versi-resume-pulang.md)) | 🟡 **Validasi belum** |
-| `BE-RWI-023` s.d. `BE-RWI-033` | — | Belum dikerjakan | Planned |
+| `BE-RWI-023` | Butir wajib administrasi menahan penutupan; butir yang dinonaktifkan tidak lagi menahan tanpa menghapus penandaan lama (`RWI-DEC-026`, `RWI-DEC-033`; `RWI-RULE-018`) | Dua endpoint dan 4 test ditulis; **build dan test BELUM DIJALANKAN**. Butir obat pulang ditandai manual karena modul Farmasi di luar scope ([laporan](../task/report/backend/be-rwi-023-daftar-periksa-administrasi.md)) | 🟡 **Validasi belum** |
+| `BE-RWI-024` | Gerbang keuangan punya sumber data yang jelas; setiap penandaan meninggalkan pelaku, waktu, dan catatan (`RWI-DEC-015`, `RWI-DEC-040`; `RWI-RULE-028`) | Satu endpoint dan 5 test ditulis; **build dan test BELUM DIJALANKAN**. **`RWI-RISK-003` diterima secara sadar** — penandaan manual, bergantung pada disiplin petugas, bukan pada angka tagihan ([laporan](../task/report/backend/be-rwi-024-kelayakan-keuangan.md)) | 🟡 **Validasi belum** |
+| `BE-RWI-025` | Kelima syarat penutupan diperiksa dan dilaporkan satu per satu; penutupan melepas tempat tidur dalam satu transaksi (`RWI-RULE-010`) | Dua endpoint dan 4 test ditulis; **build dan test BELUM DIJALANKAN**. Interpretasi syarat kelima terhadap `RWI-DEC-055` perlu dikonfirmasi. Satu panah tambahan pada class diagram blueprint ([laporan](../task/report/backend/be-rwi-025-lima-syarat-penutupan.md)) | 🟡 **Validasi belum** |
+| `BE-RWI-026` | Jalan keluar supervisor menembus **hanya** syarat keuangan, dan selalu meninggalkan jejak (`RWI-DEC-015`; `RWI-RULE-009`) | Satu endpoint dan 4 test ditulis; **build dan test BELUM DIJALANKAN**. Test kriteria 3 membuktikan resume yang belum ditandatangani tetap menahan ([laporan](../task/report/backend/be-rwi-026-jalan-keluar-supervisor.md)) | 🟡 **Validasi belum** |
+| `BE-RWI-027` | Tempat tidur bebas sejak pasien meninggalkan kamar, tanpa menutup episode dan tanpa menulis riwayat status (`RWI-DEC-055`; `RWI-RULE-036`) | Satu endpoint dan 9 test ditulis; **build dan test BELUM DIJALANKAN**. Kriteria 5 diuji dengan menghitung baris riwayat sebelum dan sesudah. Endpoint tidak dapat dibatalkan — keputusan sadar ([laporan](../task/report/backend/be-rwi-027-kepergian-fisik-pasien.md)) | 🟡 **Validasi belum** |
+| `BE-RWI-028` | Riwayat status terbaca lengkap; kedaluwarsa tercatat sebagai tindakan sistem, bukan menuduh pembaca layar (`RWI-DEC-009`; `NFR-003`) | Satu endpoint dan 4 test ditulis; **build dan test BELUM DIJALANKAN**. Sifat tidak dapat diubah ditegakkan lewat ketiadaan endpoint, bukan lewat database ([laporan](../task/report/backend/be-rwi-028-riwayat-status-tidak-dapat-dihapus.md)) | 🟡 **Validasi belum** |
+| `BE-RWI-029` | Empat daftar pantau dan laporan selisih salinan status tempat tidur (`RWI-DEC-032`, `RWI-DEC-039`; `RWI-RULE-023`, `RWI-RULE-027`) | Empat endpoint dan 7 test ditulis; **build dan test BELUM DIJALANKAN**. **Laporan selisih hanya berguna bila ada yang membacanya berkala — penanggung jawabnya belum ditetapkan** ([laporan](../task/report/backend/be-rwi-029-daftar-pantau-dan-laporan-selisih.md)) | 🟡 **Validasi belum** |
+| `BE-RWI-030` | Sesi koreksi tanpa membongkar episode: status tetap `Closed`, tempat tidur tidak kembali, hari rawat tidak bertambah (`RWI-DEC-028`; `RWI-RULE-020`) | Dua endpoint dan 7 test ditulis; **build dan test BELUM DIJALANKAN**. Menutup celah `BE-RWI-021` §5.2 dan `BE-RWI-022` §7.3. Cara pulang belum dapat dikoreksi lewat sesi ([laporan](../task/report/backend/be-rwi-030-sesi-koreksi.md)) | 🟡 **Validasi belum** |
+| `BE-RWI-031` | Bayi punya episode dan kunjungan sendiri di boks kamar ibunya; menutup episode ibu tidak menutup episode bayi (`RWI-DEC-020`, `RWI-DEC-056`; `RWI-RULE-014`) | Enam test ditulis; **build dan test BELUM DIJALANKAN**. Tidak ada endpoint baru; satu kolom opsional aditif pada dua permintaan. Rujukan ibu belum dapat dibetulkan setelah bayi ditempatkan ([laporan](../task/report/backend/be-rwi-031-episode-bayi-baru-lahir.md)) | 🟡 **Validasi belum** |
+| `BE-RWI-032`, `BE-RWI-033` | — | Belum dikerjakan | Planned |
 
-**2 dari 33 task backend selesai (6%).** Sembilan belas task berstatus 🟡 — kodenya sudah
+**2 dari 33 task backend selesai (6%).** **Dua puluh delapan task** berstatus 🟡 — kodenya sudah
 ditulis dan test-nya sudah disiapkan, tetapi **belum satu pun divalidasi**, sehingga belum boleh
-dihitung sebagai selesai. Satu task berstatus ⛔ dan tidak boleh dimulai.
+dihitung sebagai selesai. Satu task berstatus ⛔ dan tidak boleh dimulai. Dua task terakhir
+menunggu keduanya.
+
+> **Seluruh source MVP modul ini sudah ditulis sejak 25 Agustus 2026.** Itu terdengar seperti
+> kemajuan besar, dan memang benar — tetapi ia juga berarti **28 task berisi kode yang belum
+> pernah dikompilasi sekali pun**. Bila ada satu kesalahan kompilasi saja, seluruh 28 task itu
+> sama-sama belum berjalan. Menjalankan `dotnet build` adalah langkah tunggal dengan nilai
+> terbesar yang tersisa pada modul ini.
 
 > **Kenapa ada status 🟡 sekarang.** Pada 24 Agustus 2026 pemilik pekerjaan meminta
 > `BE-RWI-002`, `BE-RWI-004`, dan `BE-RWI-005` dikerjakan **tanpa menjalankan build**. Pada
@@ -145,7 +161,14 @@ dihitung sebagai selesai. Satu task berstatus ⛔ dan tidak boleh dimulai.
 | `IX_InpNurseAssignment_EpisodeId_Active` membatasi satu perawat aktif per episode — perlu dipastikan cocok kenyataan ruangan | Domain | `BE-RWI-018`, keputusan kembali ke `/qv-design` |
 | Perbaikan `Program.cs` di luar scope `BE-RWI-003` | Operasional | Commit strategy — lihat [laporan](../task/report/backend/be-rwi-003-tabel-transaksi-rawat-inap.md) bagian 5.2 |
 | Project Tests di dalam folder project web — `MSB3030` berulang | Struktural, di luar scope modul ini | Build stability — lihat [laporan](../task/report/backend/be-rwi-003-tabel-transaksi-rawat-inap.md) bagian 6.2 |
-| **Build dan test `BE-RWI-002`, `BE-RWI-004`, `BE-RWI-005`, `BE-RWI-007` s.d. `BE-RWI-022` belum dijalankan** | Menahan kesembilan belas task ditandai selesai. Perintahnya ada pada masing-masing laporan | Backend/API |
+| **Build dan test `BE-RWI-002`, `BE-RWI-004`, `BE-RWI-005`, `BE-RWI-007` s.d. `BE-RWI-031` belum dijalankan** | Menahan **28 task** ditandai selesai. Ini butir dengan nilai terbesar yang tersisa: satu perintah menentukan apakah seluruh source MVP modul ini dapat berjalan | Backend/API |
+| **Penanggung jawab pembaca laporan selisih tempat tidur belum ditetapkan** | `GET /monitoring/bed-drift` adalah satu-satunya pengawas atas satu-satunya arah tulis lintas modul. Kode-nya ada; yang belum ada adalah orang yang membacanya berkala | Backend/API bersama Product/Domain — lihat [laporan BE-RWI-029](../task/report/backend/be-rwi-029-daftar-pantau-dan-laporan-selisih.md) bagian 2 |
+| Interpretasi syarat kelima penutupan | `RWI-RULE-010` menulis "tempat tidur aktif ditemukan"; sejak `RWI-DEC-055` episode yang kepergiannya sudah dicatat tidak lagi memegang tempat tidur dan tetap harus dapat ditutup | Product/Domain — lihat [laporan BE-RWI-025](../task/report/backend/be-rwi-025-lima-syarat-penutupan.md) bagian 2 |
+| `InpDischargeService` kini juga memakai `InpBedOccupancyService` | Class diagram `02-backend-architecture.md` §3.4 kurang satu panah. Arahnya tidak melingkar | Pemilik arsitektur backend — lihat [laporan BE-RWI-025](../task/report/backend/be-rwi-025-lima-syarat-penutupan.md) bagian 4.1 |
+| Cara pulang belum dapat dikoreksi lewat sesi koreksi | State matrix §6.1 mengizinkannya, tetapi tidak ada endpoint yang menyediakannya. Kesalahan cara pulang pada episode tertutup tidak dapat dibetulkan | Product/Domain — lihat [laporan BE-RWI-030](../task/report/backend/be-rwi-030-sesi-koreksi.md) bagian 6.1 |
+| Sumber kolom pelaku pada daftar penutupan menembus gerbang | Dibaca dari `InpEpisode.UpdateBy`, yang ikut berubah bila episode disentuh lagi. Sumber tahan lamanya adalah `InpStatusHistory` | Backend/API — lihat [laporan BE-RWI-029](../task/report/backend/be-rwi-029-daftar-pantau-dan-laporan-selisih.md) bagian 6.1 |
+| Rujukan episode ibu tidak dapat dibetulkan setelah bayi ditempatkan | Bayi kembar yang tertukar rujukannya tidak dapat diperbaiki lewat jalur mana pun | Product/Domain — lihat [laporan BE-RWI-031](../task/report/backend/be-rwi-031-episode-bayi-baru-lahir.md) bagian 6.2 |
+| Nama peran kasir dan billing adalah asumsi | Bila keliru, kelayakan keuangan tidak pernah menjadi `Cleared` dan **pasien ikut tertahan**, bukan hanya petugas | Product/Domain — lihat [laporan BE-RWI-024](../task/report/backend/be-rwi-024-kelayakan-keuangan.md) bagian 5.1 |
 | **Test tabrakan dua transaksi terhadap PostgreSQL belum dijalankan** | Penguncian baris `MstBed` dan kedua unique index parsial tidak dapat diuji provider InMemory. Ini pertahanan sesungguhnya terhadap tempat tidur ganda, dan ia belum terbukti sama sekali | Backend/API — lihat [laporan BE-RWI-011](../task/report/backend/be-rwi-011-penempatan-pasien-dan-inv-inp-02.md) bagian 2 |
 | Arah dependency `InpEpisodeService` ↔ `InpBedOccupancyService` dibalik | Class diagram `02-backend-architecture.md` §3.4 menggambar arah lama. Mempertahankan kedua arah menghasilkan dependency melingkar yang membuat aplikasi tidak menyala. Diagramnya perlu dikoreksi | Pemilik arsitektur backend — lihat [laporan BE-RWI-011](../task/report/backend/be-rwi-011-penempatan-pasien-dan-inv-inp-02.md) bagian 3.1 |
 | **Dua cara pulang — meninggal dan kabur — aturan klinisnya belum disahkan** | Roadmap `BE-RWI-020` menyebut lima cara pulang; enum dan validation matrix menyediakan tiga. Pasien yang meninggal atau kabur belum dapat dicatat cara pulangnya sama sekali | Product/Domain bersama Clinical governance — `RWI-OQ-039`, `RWI-DEC-059` |
@@ -231,27 +254,27 @@ Kolom **AC** merujuk `00-interview-decisions.md` revision `5`. Kolom **Test** me
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
 | `FR-RI-124` s.d. `FR-RI-128` | Keputusan pulang, lima cara pulang, resume, tanda tangan | `BE-RWI-020` 🟡, `BE-RWI-021` 🟡 | — | Bagian 7; `UAT-10` — kode ditulis 25 Agustus 2026, **build dan test belum dijalankan**. **Lima cara pulang baru terpenuhi tiga** — meninggal dan kabur menunggu `RWI-OQ-039` dan `RWI-DEC-059` |
-| `FR-RI-153` | Versi resume pulang | `BE-RWI-022` 🟡 | `RWI-AC-124` s.d. `RWI-AC-126` | Bagian 7; `UAT-27` — kode ditulis 25 Agustus 2026, **build dan test belum dijalankan**. Jalur amandemennya belum dapat dijalankan sungguhan — sesi koreksi menunggu `BE-RWI-030` |
+| `FR-RI-153` | Versi resume pulang | `BE-RWI-022` 🟡 | `RWI-AC-124` s.d. `RWI-AC-126` | Bagian 7; `UAT-27` — kode ditulis 25 Agustus 2026, **build dan test belum dijalankan**. Jalur amandemennya dapat dijalankan sepenuhnya sejak `BE-RWI-030` membuka endpoint sesi koreksi |
 
 ### `EPIC RI-28` — Daftar periksa, kelayakan keuangan, dan penutupan
 
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
-| `FR-RI-129` s.d. `FR-RI-133` | Daftar periksa, kelayakan keuangan, lima syarat, penutupan | `BE-RWI-023`, `BE-RWI-024`, `BE-RWI-025` | `RWI-AC-064` | Bagian 8, 9; `UAT-11` |
-| `FR-RI-134` | Jalan keluar supervisor | `BE-RWI-026`, `FE-RWI-014` | — | Bagian 8; `UAT-12`, `UAT-13` |
-| `FR-RI-149` s.d. `FR-RI-151` | Kepergian fisik pasien | `BE-RWI-027`, `FE-RWI-015` | `RWI-AC-118` s.d. `RWI-AC-121` | Bagian 4A; `UAT-24`, `UAT-25` |
+| `FR-RI-129` s.d. `FR-RI-133` | Daftar periksa, kelayakan keuangan, lima syarat, penutupan | `BE-RWI-023` 🟡, `BE-RWI-024` 🟡, `BE-RWI-025` 🟡 | `RWI-AC-064` | Bagian 8, 9; `UAT-11` — kode ditulis 25 Agustus 2026, **build dan test belum dijalankan** |
+| `FR-RI-134` | Jalan keluar supervisor | `BE-RWI-026` 🟡, `FE-RWI-014` | — | Bagian 8; `UAT-12`, `UAT-13` — kode ditulis 25 Agustus 2026, **build dan test belum dijalankan** |
+| `FR-RI-149` s.d. `FR-RI-151` | Kepergian fisik pasien | `BE-RWI-027` 🟡, `FE-RWI-015` | `RWI-AC-118` s.d. `RWI-AC-121` | Bagian 4A; `UAT-24`, `UAT-25` — kode ditulis 25 Agustus 2026, **build dan test belum dijalankan** |
 
 ### `EPIC RI-29` — Riwayat status dan daftar pantau
 
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
-| `FR-RI-135` s.d. `FR-RI-138` | Riwayat status, tiga daftar pantau, laporan selisih | `BE-RWI-028`, `BE-RWI-029` | `RWI-AC-063` | Bagian 10; `UAT-17`, `UAT-21` |
+| `FR-RI-135` s.d. `FR-RI-138` | Riwayat status, tiga daftar pantau, laporan selisih | `BE-RWI-028` 🟡, `BE-RWI-029` 🟡 | `RWI-AC-063` | Bagian 10; `UAT-17`, `UAT-21` — kode ditulis 25 Agustus 2026, **build dan test belum dijalankan** |
 
 ### `EPIC RI-30` — Sesi koreksi
 
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
-| `FR-RI-139` s.d. `FR-RI-141` | Sesi koreksi supervisor, tidak mengganggu tempat tidur | `BE-RWI-030`, `FE-RWI-018` | — | Bagian 10; `UAT-14`, `UAT-15`, `UAT-16` |
+| `FR-RI-139` s.d. `FR-RI-141` | Sesi koreksi supervisor, tidak mengganggu tempat tidur | `BE-RWI-030` 🟡, `FE-RWI-018` | — | Bagian 10; `UAT-14`, `UAT-15`, `UAT-16` — kode ditulis 25 Agustus 2026, **build dan test belum dijalankan** |
 
 ### `EPIC RI-31` — Pengaturan admin
 
@@ -271,9 +294,9 @@ Kolom **AC** merujuk `00-interview-decisions.md` revision `5`. Kolom **Test** me
 
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
-| `FR-RI-146` | Boks bayi sebagai tempat tidur | `BE-RWI-031` | — | Bagian 12A; `UAT-22` |
-| `FR-RI-147` | Episode ibu dan bayi terpisah | `BE-RWI-031` | `RWI-AC-123` | Bagian 12A |
-| `FR-RI-152` | Penanda rawat gabung | `BE-RWI-031` | `RWI-AC-122` | Bagian 12A; `UAT-28` |
+| `FR-RI-146` | Boks bayi sebagai tempat tidur | `BE-RWI-031` 🟡 | — | Bagian 12A; `UAT-22` — kode ditulis 25 Agustus 2026, **build dan test belum dijalankan** |
+| `FR-RI-147` | Episode ibu dan bayi terpisah | `BE-RWI-031` 🟡 | `RWI-AC-123` | Bagian 12A — kode ditulis 25 Agustus 2026, **build dan test belum dijalankan** |
+| `FR-RI-152` | Penanda rawat gabung | `BE-RWI-031` 🟡 | `RWI-AC-122` | Bagian 12A; `UAT-28` — kode ditulis 25 Agustus 2026, **build dan test belum dijalankan** |
 
 ### `EPIC RI-34` — Kelayakan penempatan menurut jenis kelamin dan isolasi
 

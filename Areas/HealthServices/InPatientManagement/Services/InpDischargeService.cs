@@ -28,20 +28,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     /// Pelepasannya menunggu pencatatan kepergian fisik atau penutupan episode.
     /// </para>
     /// </remarks>
-    public class InpDischargeService
+    public partial class InpDischargeService
     {
         /// <summary>Nilai <c>ActionType</c> untuk keputusan pasien boleh pulang.</summary>
         public const string ActionDecideDischarge = "DecideDischarge";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly InpEpisodeService _episodeService;
+        private readonly InpBedOccupancyService _bedOccupancyService;
 
+        /// <remarks>
+        /// <b>Kenapa service ini boleh memakai <see cref="InpBedOccupancyService"/>.</b>
+        /// Penutupan episode dan pencatatan kepergian fisik keduanya melepas tempat tidur, dan
+        /// pelepasan itu milik <c>InpBedOccupancyService</c>. Arahnya tidak melingkar:
+        /// <c>InpBedOccupancyService</c> memakai <see cref="InpEpisodeService"/>, dan service
+        /// ini memakai keduanya — tidak ada satu pun yang menunjuk balik ke sini.
+        ///
+        /// <para>
+        /// Delta terhadap class diagram `02-backend-architecture.md` bagian 3.4, yang hanya
+        /// menggambar panah ke <see cref="InpEpisodeService"/>, dicatat pada laporan
+        /// `BE-RWI-025`.
+        /// </para>
+        /// </remarks>
         public InpDischargeService(
             ApplicationDbContext dbContext,
-            InpEpisodeService episodeService)
+            InpEpisodeService episodeService,
+            InpBedOccupancyService bedOccupancyService)
         {
             _dbContext = dbContext;
             _episodeService = episodeService;
+            _bedOccupancyService = bedOccupancyService;
         }
 
         // =====================================================================

@@ -166,22 +166,20 @@ public sealed class InpatientModuleControllerContractTests
 
         Assert.Equal(3, EndpointsOf(typeof(InpatientCensusController)).Count);
 
-        // Satu daftar pantau yang dibuka BE-RWI-015. Empat sisanya milik BE-RWI-029.
-        Assert.Single(EndpointsOf(typeof(InpatientMonitoringController)));
+        // Lima daftar pantau: satu dibuka BE-RWI-015, empat sisanya BE-RWI-029.
+        Assert.Equal(5, EndpointsOf(typeof(InpatientMonitoringController)).Count);
     }
 
     /// <remarks>
-    /// Empat endpoint yang dibuka <c>BE-RWI-020</c> sampai <c>BE-RWI-022</c>. Tujuh endpoint
-    /// lain pada grup ini — daftar periksa administrasi, kelayakan keuangan, kesiapan
-    /// penutupan, penutupan, jalan keluar supervisor, dan pencatatan kepergian fisik — milik
-    /// task berikutnya dan sengaja belum ada.
+    /// Sebelas endpoint, yaitu seluruh baris bagian Inpatient Discharge pada api contract
+    /// <c>0.4.0</c>.
     /// </remarks>
     [Fact]
-    public void DischargeMenyediakanEmpatEndpointYangSudahDibuka()
+    public void DischargeMenyediakanSebelasEndpointSesuaiApiContract()
     {
         var endpoints = EndpointsOf(typeof(InpatientDischargeController));
 
-        Assert.Equal(4, endpoints.Count);
+        Assert.Equal(11, endpoints.Count);
 
         var templates = endpoints
             .SelectMany(x => x.GetCustomAttributes<Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute>())
@@ -190,21 +188,56 @@ public sealed class InpatientModuleControllerContractTests
 
         Assert.Contains(templates, x => x.Contains("decide", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(templates, x => x.Contains("summary", StringComparison.OrdinalIgnoreCase));
-
-        Assert.DoesNotContain(
-            templates,
-            x => x.Contains("record-departure", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(
-            templates,
-            x => x.Contains("clearance", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(
-            templates,
-            x => x.Contains("close", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(templates, x => x.Contains("clearance", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(templates, x => x.Contains("closure-readiness", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(templates, x => x.Contains("close-with-override", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(templates, x => x.Contains("record-departure", StringComparison.OrdinalIgnoreCase));
 
         var tandaTangan = endpoints.Single(x => x.Name == "SignSummary");
-
         Assert.Equal("Sign", PermissionActionOf(tandaTangan));
+
+        var kepergian = endpoints.Single(x => x.Name == "RecordDeparture");
+        Assert.Equal("RecordDeparture", PermissionActionOf(kepergian));
+
+        var keuangan = endpoints.Single(x => x.Name == "MarkFinancialClearance");
+        Assert.Equal("InpatientFinancialClearance", PermissionResourceOf(keuangan));
+        Assert.Equal("Update", PermissionActionOf(keuangan));
+
+        // Penutupan memakai butir milik episode, bukan milik discharge — permission matrix
+        // bagian 2.3. Yang menutup episode adalah petugas admisi, dan haknya melekat pada
+        // episode itu sendiri.
+        var tutup = endpoints.Single(x => x.Name == "CloseEpisode");
+        Assert.Equal("InpatientEpisode", PermissionResourceOf(tutup));
+        Assert.Equal("Close", PermissionActionOf(tutup));
+
+        var tutupMenembus = endpoints.Single(x => x.Name == "CloseEpisodeWithOverride");
+        Assert.Equal("InpatientEpisode", PermissionResourceOf(tutupMenembus));
+        Assert.Equal("CloseOverride", PermissionActionOf(tutupMenembus));
     }
+
+    /// <remarks>
+    /// Api contract bagian 8 menyatakan tidak ada endpoint yang dapat mengubah maupun
+    /// menghapus salinan versi resume dan baris riwayat status. Ketiadaan <c>DELETE</c> pada
+    /// seluruh controller modul ini adalah bentuk penegakannya.
+    /// </remarks>
+    [Fact]
+    public void TidakAdaSatuPunEndpointDeleteDiSeluruhModul()
+    {
+        foreach (var controllerType in new[]
+        {
+            typeof(InpatientBedOccupancyController),
+            typeof(InpatientCensusController),
+            typeof(InpatientMonitoringController),
+            typeof(InpatientDischargeController)
+        })
+        {
+            Assert.Empty(EndpointsOf(controllerType)
+                .Where(x => x.GetCustomAttribute<HttpDeleteAttribute>() != null));
+        }
+    }
+
+    private static string PermissionResourceOf(MethodInfo endpoint)
+        => (string)endpoint.GetCustomAttribute<AccessPermissionAttribute>()!.Arguments![0]!;
 
     private static string PermissionActionOf(MethodInfo endpoint)
         => (string)endpoint.GetCustomAttribute<AccessPermissionAttribute>()!.Arguments![1]!;

@@ -224,6 +224,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 encounter = existingEncounter;
             }
 
+            // BE-RWI-031 — hubungan bayi dan ibu. Diperiksa sebelum apa pun ditulis, supaya
+            // rujukan yang keliru tidak pernah tersimpan walaupun sesaat.
+            var motherCheck = await ValidateMotherEpisodeAsync(
+                request.MotherEpisodeId,
+                Guid.Empty,
+                request.PatientId,
+                cancellationToken);
+
+            if (motherCheck != null)
+            {
+                return motherCheck;
+            }
+
             // RWI-AC-006 turunan: admisi Draft ganda adalah peringatan, bukan penolakan.
             // Petugas boleh melanjutkan, atau membatalkan yang lama lebih dulu.
             var warnings = new List<string>();
@@ -270,6 +283,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ServiceUnitId = request.ServiceUnitId,
                     PatientClassId = request.PatientClassId,
                     EpisodeStatus = InpEpisodeStatus.Draft,
+                    MotherEpisodeId = request.MotherEpisodeId == Guid.Empty
+                        ? null
+                        : request.MotherEpisodeId,
                     Notes = NormalizeText(request.Notes),
                     IsActive = true,
                     CreateDateTime = now,
@@ -388,10 +404,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return contextCheck;
             }
 
+            var motherCheck = await ValidateMotherEpisodeAsync(
+                request.MotherEpisodeId,
+                episode.Id,
+                episode.PatientId,
+                cancellationToken);
+
+            if (motherCheck != null)
+            {
+                return motherCheck;
+            }
+
             var now = DateTime.UtcNow;
 
             episode.ServiceUnitId = request.ServiceUnitId;
             episode.PatientClassId = request.PatientClassId;
+            episode.MotherEpisodeId = request.MotherEpisodeId == Guid.Empty
+                ? null
+                : request.MotherEpisodeId;
             episode.Notes = NormalizeText(request.Notes);
             episode.UpdateDateTime = now;
             episode.UpdateBy = actorUserId;
@@ -961,6 +991,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     IsolationSetByDoctorId = x.IsolationSetByDoctorId,
                     IsolationSetAt = x.IsolationSetAt,
                     DischargeType = (int)x.DischargeType,
+                    IsClosedWithoutFinancialClearance = x.IsClosedWithoutFinancialClearance,
+                    ClosedWithoutClearanceReason = x.ClosedWithoutClearanceReason,
+                    MotherEpisodeId = x.MotherEpisodeId,
+                    MotherEpisodeNumber = x.MotherEpisode != null
+                        ? x.MotherEpisode.EpisodeNumber
+                        : null,
+                    MotherPatientName = x.MotherEpisode != null && x.MotherEpisode.Patient != null
+                        ? x.MotherEpisode.Patient.FullName
+                        : null,
                     CancelReason = x.CancelReason,
                     Notes = x.Notes,
                     ActiveDoctor = x.DoctorAssignments

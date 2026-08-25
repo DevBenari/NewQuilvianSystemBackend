@@ -45,41 +45,38 @@ public sealed class InpatientEpisodeControllerContractTests
     }
 
     /// <remarks>
-    /// Dua belas endpoint: empat endpoint baca dari <c>BE-RWI-009</c>, tiga endpoint tulis
-    /// dari <c>BE-RWI-007</c> dan <c>BE-RWI-008</c>, satu penetapan kebutuhan isolasi dari
-    /// <c>BE-RWI-014</c>, dua penugasan DPJP dari <c>BE-RWI-017</c>, dan dua penugasan perawat
-    /// dari <c>BE-RWI-018</c>.
-    ///
-    /// Yang sengaja <b>belum</b> ada: riwayat status (<c>BE-RWI-028</c>) dan sesi koreksi
-    /// (<c>BE-RWI-030</c>).
+    /// Lima belas endpoint, yaitu seluruh baris bagian Inpatient Episode pada api contract
+    /// <c>0.4.0</c>: empat endpoint baca dari <c>BE-RWI-009</c>, tiga endpoint tulis dari
+    /// <c>BE-RWI-007</c> dan <c>BE-RWI-008</c>, satu penetapan kebutuhan isolasi dari
+    /// <c>BE-RWI-014</c>, dua penugasan DPJP dari <c>BE-RWI-017</c>, dua penugasan perawat dari
+    /// <c>BE-RWI-018</c>, satu riwayat status dari <c>BE-RWI-028</c>, dan dua sesi koreksi dari
+    /// <c>BE-RWI-030</c>.
     /// </remarks>
     [Fact]
-    public void MenyediakanDuaBelasEndpointSesuaiTaskYangSudahDibuka()
+    public void MenyediakanLimaBelasEndpointSesuaiApiContract()
     {
-        Assert.Equal(12, EndpointsOf(typeof(InpatientEpisodeController)).Count);
+        Assert.Equal(15, EndpointsOf(typeof(InpatientEpisodeController)).Count);
     }
 
     /// <remarks>
-    /// Riwayat status dan sesi koreksi punya endpoint pada api contract, tetapi keduanya milik
-    /// task yang belum dikerjakan. Test ini menahan keduanya lahir lebih awal tanpa aturan
-    /// pendukungnya — riwayat status yang dapat dibaca sebelum <c>BE-RWI-028</c> menetapkan
-    /// bentuknya akan mengunci kontrak sebelum ada yang memutuskannya.
+    /// Riwayat status hanya dapat dibaca. Ketiadaan endpoint yang mengubah maupun menghapusnya
+    /// adalah bagian dari kontrak — api contract bagian 8 dan <c>RWI-RULE-031</c> aturan 5 —
+    /// bukan pekerjaan yang belum sempat dikerjakan.
     /// </remarks>
     [Fact]
-    public void BelumMenyediakanRiwayatStatusMaupunSesiKoreksi()
+    public void RiwayatStatusHanyaDapatDibaca()
     {
-        var templates = EndpointsOf(typeof(InpatientEpisodeController))
-            .SelectMany(x => x.GetCustomAttributes<Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute>())
-            .Select(x => x.Template ?? string.Empty)
+        var riwayat = EndpointsOf(typeof(InpatientEpisodeController))
+            .Where(x => x
+                .GetCustomAttributes<Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute>()
+                .Any(a => (a.Template ?? string.Empty)
+                    .Contains("status-history", StringComparison.OrdinalIgnoreCase)))
             .ToList();
 
-        Assert.DoesNotContain(
-            templates,
-            x => x.Contains("status-history", StringComparison.OrdinalIgnoreCase));
+        var satuSatunya = Assert.Single(riwayat);
 
-        Assert.DoesNotContain(
-            templates,
-            x => x.Contains("correction-sessions", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(satuSatunya.GetCustomAttribute<HttpGetAttribute>());
+        Assert.Equal("Read", PermissionActionOf(satuSatunya));
     }
 
     [Fact]
@@ -118,7 +115,7 @@ public sealed class InpatientEpisodeControllerContractTests
             .Where(x => x.GetCustomAttribute<HttpGetAttribute>() != null)
             .ToList();
 
-        Assert.Equal(6, reads.Count);
+        Assert.Equal(7, reads.Count);
 
         foreach (var endpoint in reads)
         {
@@ -137,7 +134,19 @@ public sealed class InpatientEpisodeControllerContractTests
 
         Assert.NotNull(isolation.GetCustomAttribute<HttpPatchAttribute>());
 
-        foreach (var endpoint in endpoints.Except(reads).Except(creates).Except(new[] { isolation }))
+        // Sesi koreksi memakai butir tersendiri, bukan Update. Butir Reopen diberikan hanya
+        // kepada supervisor; Update diberikan kepada petugas admisi dan kepala ruangan.
+        var reopen = endpoints.Where(x => PermissionActionOf(x) == "Reopen").ToList();
+
+        Assert.Equal(2, reopen.Count);
+
+        var sisanya = endpoints
+            .Except(reads)
+            .Except(creates)
+            .Except(new[] { isolation })
+            .Except(reopen);
+
+        foreach (var endpoint in sisanya)
         {
             Assert.Equal("Update", PermissionActionOf(endpoint));
         }
@@ -160,17 +169,18 @@ public sealed class InpatientEpisodeControllerContractTests
     {
         var endpoints = EndpointsOf(typeof(InpatientEpisodeController));
 
-        // 6 GET: filters/metadata, summary, daftar, detail, riwayat DPJP, riwayat perawat.
-        Assert.Equal(6, endpoints.Count(x => x.GetCustomAttribute<HttpGetAttribute>() != null));
+        // 7 GET: filters/metadata, summary, daftar, detail, riwayat DPJP, riwayat perawat,
+        // riwayat status.
+        Assert.Equal(7, endpoints.Count(x => x.GetCustomAttribute<HttpGetAttribute>() != null));
 
-        // 3 POST: buka admisi, alihkan DPJP, tugaskan perawat.
-        Assert.Equal(3, endpoints.Count(x => x.GetCustomAttribute<HttpPostAttribute>() != null));
+        // 4 POST: buka admisi, alihkan DPJP, tugaskan perawat, buka sesi koreksi.
+        Assert.Equal(4, endpoints.Count(x => x.GetCustomAttribute<HttpPostAttribute>() != null));
 
         // 1 PUT: ubah isian admisi.
         Assert.Single(endpoints.Where(x => x.GetCustomAttribute<HttpPutAttribute>() != null));
 
-        // 2 PATCH: batalkan admisi, tetapkan kebutuhan isolasi.
-        Assert.Equal(2, endpoints.Count(x => x.GetCustomAttribute<HttpPatchAttribute>() != null));
+        // 3 PATCH: batalkan admisi, tetapkan kebutuhan isolasi, tutup sesi koreksi.
+        Assert.Equal(3, endpoints.Count(x => x.GetCustomAttribute<HttpPatchAttribute>() != null));
 
         // Tidak ada DELETE. Episode tidak pernah dihapus, hanya dibatalkan atau ditutup.
         Assert.Empty(endpoints.Where(x => x.GetCustomAttribute<HttpDeleteAttribute>() != null));
@@ -186,14 +196,20 @@ public sealed class InpatientEpisodeControllerContractTests
     [Fact]
     public void TidakAdaEndpointYangMenyetelStatusSecaraBebas()
     {
-        var templates = EndpointsOf(typeof(InpatientEpisodeController))
+        // Hanya rute yang MENULIS yang diperiksa. GET /{id}/status-history memang memuat kata
+        // "status", tetapi ia pembacaan — dan justru pembacaan itulah yang menjadi bukti bahwa
+        // riwayatnya utuh.
+        var ruteTulis = EndpointsOf(typeof(InpatientEpisodeController))
+            .Where(x =>
+                x.GetCustomAttribute<HttpGetAttribute>() == null)
             .SelectMany(x => x.GetCustomAttributes<Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute>())
             .Select(x => x.Template ?? string.Empty)
             .ToList();
 
         Assert.DoesNotContain(
-            templates,
-            x => x.Contains("status", StringComparison.OrdinalIgnoreCase));
+            ruteTulis,
+            x => x.EndsWith("/status", StringComparison.OrdinalIgnoreCase) ||
+                 x.Equals("status", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <remarks>QBE-SVC-001: controller tidak menyentuh <c>ApplicationDbContext</c>.</remarks>

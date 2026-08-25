@@ -24,9 +24,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
     /// dibaca dari riwayat itu ikut salah tanpa ada yang menyadarinya.
     ///
     /// <para>
-    /// <b>Dua endpoint yang masih belum ada di sini.</b> Riwayat status
-    /// (<c>GET /{id}/status-history</c>) milik <c>BE-RWI-028</c>, dan sesi koreksi milik
-    /// <c>BE-RWI-030</c>. Keduanya tercantum pada api contract dan sengaja belum dibuka.
+    /// <b>Sesi koreksi bukan status keenam.</b> Episode yang sedang dikoreksi tetap berstatus
+    /// <c>Closed</c>; yang berubah hanya keberadaan baris <c>InpCorrectionSession</c> yang
+    /// terbuka. Menjadikannya status akan melanggar <c>RWI-DEC-009</c> yang mengunci lima
+    /// nilai.
     /// </para>
     ///
     /// <para>
@@ -483,6 +484,141 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         }
 
         // =====================================================================
+        // BE-RWI-028 — Riwayat status
+        // =====================================================================
+
+        /// <summary>Riwayat perpindahan status episode, urut nomor urut.</summary>
+        /// <remarks>
+        /// <b>Hanya pembacaan.</b> Tidak ada endpoint yang dapat mengubah maupun menghapus
+        /// baris riwayat, dan ketiadaan itu adalah bagian dari kontrak — api contract bagian 8.
+        ///
+        /// <para>
+        /// Perubahan yang <b>dihitung sistem</b>, misalnya episode <c>Draft</c> yang gugur
+        /// sendiri, tercatat sebagai tindakan sistem dengan kolom pelaku kosong. Ia tidak
+        /// pernah dicatat atas nama pengguna yang kebetulan membuka layar saat perhitungan itu
+        /// berjalan.
+        /// </para>
+        /// </remarks>
+        [HttpGet("{id:guid}/status-history")]
+        [ProducesResponseType(typeof(ApiResponse<List<InpatientStatusHistoryResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Episode", Description = "Melihat riwayat status episode rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientEpisode", "Read")]
+        public async Task<IActionResult> GetStatusHistory(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.GetStatusHistoryAsync(id, cancellationToken);
+
+            return Ok(ApiResponse<List<InpatientStatusHistoryResponse>>.Ok(
+                result,
+                "Riwayat status episode berhasil diambil."));
+        }
+
+        // =====================================================================
+        // BE-RWI-030 — Sesi koreksi
+        // =====================================================================
+
+        /// <summary>Supervisor membuka sesi koreksi pada episode yang sudah ditutup.</summary>
+        /// <remarks>
+        /// <b>Status episode tetap <c>Closed</c> sepanjang sesi berjalan.</b> Tempat tidur
+        /// tidak dikembalikan, pasien tidak muncul pada census, dan lama dirawat tidak
+        /// bertambah. Sesi koreksi adalah konsep tersendiri, bukan status episode keenam.
+        /// </remarks>
+        [HttpPost("{id:guid}/correction-sessions")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientCorrectionSessionResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Open Inpatient Correction Session", Description = "Membuka sesi koreksi episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("InpatientEpisode", "Reopen")]
+        public async Task<IActionResult> OpenCorrectionSession(
+            Guid id,
+            [FromBody] OpenCorrectionSessionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.OpenCorrectionSessionAsync(
+                id,
+                request,
+                User.GetUserId(),
+                User.IsSupervisor(),
+                cancellationToken);
+
+            if (result.Status != InpEpisodeOperationStatus.Success)
+            {
+                return FromStatus(result.Status, result.Message);
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InpatientEpisode.OpenCorrectionSession",
+                "Membuka sesi koreksi episode rawat inap.",
+                new
+                {
+                    EntityId = id,
+                    Controller = "InpatientEpisode",
+                    Action = "OpenCorrectionSession",
+                    StatusCode = StatusCodes.Status200OK
+                });
+
+            var session = await _episodeService.GetCorrectionSessionAsync(
+                id,
+                result.SessionId!.Value,
+                cancellationToken);
+
+            return Ok(ApiResponse<InpatientCorrectionSessionResponse>.Ok(session, result.Message));
+        }
+
+        /// <summary>Menutup sesi koreksi beserta daftar perubahannya.</summary>
+        [HttpPatch("{id:guid}/correction-sessions/{sessionId:guid}/close")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientCorrectionSessionResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Close Inpatient Correction Session", Description = "Menutup sesi koreksi episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("InpatientEpisode", "Reopen")]
+        public async Task<IActionResult> CloseCorrectionSession(
+            Guid id,
+            Guid sessionId,
+            [FromBody] CloseCorrectionSessionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.CloseCorrectionSessionAsync(
+                id,
+                sessionId,
+                request,
+                User.GetUserId(),
+                User.IsSupervisor(),
+                cancellationToken);
+
+            if (result.Status != InpEpisodeOperationStatus.Success)
+            {
+                return FromStatus(result.Status, result.Message);
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InpatientEpisode.CloseCorrectionSession",
+                "Menutup sesi koreksi episode rawat inap.",
+                new
+                {
+                    EntityId = id,
+                    Controller = "InpatientEpisode",
+                    Action = "CloseCorrectionSession",
+                    StatusCode = StatusCodes.Status200OK
+                });
+
+            var session = await _episodeService.GetCorrectionSessionAsync(
+                id,
+                sessionId,
+                cancellationToken);
+
+            return Ok(ApiResponse<InpatientCorrectionSessionResponse>.Ok(session, result.Message));
+        }
+
+        // =====================================================================
         // Pembantu
         // =====================================================================
 
@@ -514,26 +650,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         /// </summary>
         private IActionResult FromFailure(InpEpisodeOperationResult result)
         {
-            return result.Status switch
+            return FromStatus(result.Status, result.Message);
+        }
+
+        private IActionResult FromStatus(InpEpisodeOperationStatus status, string message)
+        {
+            return status switch
             {
                 InpEpisodeOperationStatus.Invalid => BadRequest(
-                    ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.Message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, message)),
 
                 InpEpisodeOperationStatus.Forbidden => StatusCode(
                     StatusCodes.Status403Forbidden,
-                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, result.Message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, message)),
 
                 InpEpisodeOperationStatus.NotFound => NotFound(
-                    ApiResponse<object>.Fail(StatusCodes.Status404NotFound, result.Message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status404NotFound, message)),
 
                 InpEpisodeOperationStatus.Conflict => Conflict(
-                    ApiResponse<object>.Fail(StatusCodes.Status409Conflict, result.Message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status409Conflict, message)),
 
                 _ => StatusCode(
                     StatusCodes.Status422UnprocessableEntity,
-                    ApiResponse<object>.Fail(
-                        StatusCodes.Status422UnprocessableEntity,
-                        result.Message))
+                    ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, message))
             };
         }
     }

@@ -69,11 +69,17 @@ task_count: 33
 
 > **Kenapa 🟡 ada.** Pada 24 Agustus 2026 pemilik pekerjaan meminta `BE-RWI-002`, `BE-RWI-004`,
 > dan `BE-RWI-005` dikerjakan **tanpa menjalankan build**. Pada 25 Agustus 2026 permintaan yang
-> sama berlaku untuk `BE-RWI-007` dan `BE-RWI-008`, lalu untuk `BE-RWI-009` sampai
-> `BE-RWI-022`. Kesembilan belas task itu karena itu punya kode dan test, tetapi tidak punya
-> satu pun hasil `dotnet build` maupun `dotnet test`. Aturan roadmap ini sendiri menyatakan
-> build sukses bukan tanda selesai — apalagi build yang belum pernah dijalankan. Perintah yang
-> perlu dijalankan tercantum pada masing-masing laporan task.
+> sama berlaku untuk `BE-RWI-007` dan `BE-RWI-008`, lalu `BE-RWI-009` sampai `BE-RWI-022`, lalu
+> `BE-RWI-023` sampai `BE-RWI-031`. **Dua puluh delapan task** karena itu punya kode dan test,
+> tetapi tidak punya satu pun hasil `dotnet build` maupun `dotnet test`. Aturan roadmap ini
+> sendiri menyatakan build sukses bukan tanda selesai — apalagi build yang belum pernah
+> dijalankan. Perintah yang perlu dijalankan tercantum pada masing-masing laporan task.
+>
+> **Sejak 25 Agustus 2026, seluruh source MVP modul ini sudah ditulis.** Yang tersisa hanyalah
+> `BE-RWI-006` yang terblokir, `BE-RWI-032` yang menempel padanya, dan `BE-RWI-033`. Karena
+> tidak satu pun dari 28 task itu tervalidasi, **jumlah kode yang belum pernah dikompilasi
+> adalah risiko terbesar modul ini hari ini** — lebih besar daripada gerbang mana pun pada
+> bagian 5.
 
 > **Tiga gerbang yang menyertai `BE-RWI-009` s.d. `BE-RWI-022`.** Ketiganya tercatat pada
 > bagian 5 dan pada laporan task masing-masing, dan ketiganya menahan penandaan selesai:
@@ -149,9 +155,9 @@ Fakta ketiga yang paling mudah terlewat, jadi contohnya ditulis di sini:
 | **S3 — Sistem dapat menjawab siapa dirawat di mana** | Census dan lama dirawat | `MVP-1` | 🟡 `BE-RWI-016` |
 | **S4 — Penanggung jawab dan perpindahan** | Riwayat DPJP berperiode, perpindahan utuh | `MVP-2` | 🟡 `BE-RWI-017` s.d. `BE-RWI-019` |
 | **S5 — Pasien dapat dinyatakan boleh pulang** | Keputusan pulang, resume, tanda tangan, versi resume | `MVP-3` | 🟡 `BE-RWI-020` s.d. `BE-RWI-022` |
-| **S6 — Episode dapat ditutup dan tempat tidur kembali kosong** | Lima syarat penutupan, jalan keluar supervisor, kepergian fisik | `MVP-3` | `BE-RWI-023` s.d. `BE-RWI-027` |
-| **S7 — Riwayat, daftar pantau, dan koreksi** | Riwayat status tidak dapat dihapus; empat daftar pantau; sesi koreksi | `MVP-4` | `BE-RWI-028` s.d. `BE-RWI-030` |
-| **S8 — Bayi baru lahir** | Boks bayi sebagai tempat tidur, hubungan bayi dan ibu | `MVP-4` | `BE-RWI-031` |
+| **S6 — Episode dapat ditutup dan tempat tidur kembali kosong** | Lima syarat penutupan, jalan keluar supervisor, kepergian fisik | `MVP-3` | 🟡 `BE-RWI-023` s.d. `BE-RWI-027` |
+| **S7 — Riwayat, daftar pantau, dan koreksi** | Riwayat status tidak dapat dihapus; empat daftar pantau; sesi koreksi | `MVP-4` | 🟡 `BE-RWI-028` s.d. `BE-RWI-030` |
+| **S8 — Bayi baru lahir** | Boks bayi sebagai tempat tidur, hubungan bayi dan ibu | `MVP-4` | 🟡 `BE-RWI-031` |
 | **S9 — Kesiapan sebelum sign-off** | Test regresi modul tetangga, bukti penerimaan lengkap | — | `BE-RWI-032`, `BE-RWI-033` |
 
 ### Urutan dependency
@@ -177,15 +183,15 @@ BE-RWI-001 (dua tabel master)  ✅ SELESAI
                  │                                    └── BE-RWI-020 (keputusan pulang)  🟡
                  │                                           └── BE-RWI-021 (resume + tanda tangan)  🟡
                  │                                                  └── BE-RWI-022 (versi resume)  🟡
-                 │                                    BE-RWI-023 (daftar periksa)
-                 │                                    BE-RWI-024 (kelayakan keuangan)
-                 │                                           └── BE-RWI-025 (closure-readiness + tutup)
-                 │                                                  ├── BE-RWI-026 (override)
-                 │                                                  └── BE-RWI-027 (kepergian fisik)
-                 │                                                         └── BE-RWI-028 (riwayat status)
-                 │                                                         └── BE-RWI-029 (4 daftar pantau + selisih)
-                 │                                                         └── BE-RWI-030 (sesi koreksi)
-                 │                                                         └── BE-RWI-031 (boks bayi + ibu)
+                 │                                    BE-RWI-023 (daftar periksa)  🟡
+                 │                                    BE-RWI-024 (kelayakan keuangan)  🟡
+                 │                                           └── BE-RWI-025 (closure-readiness + tutup)  🟡
+                 │                                                  ├── BE-RWI-026 (override)  🟡
+                 │                                                  └── BE-RWI-027 (kepergian fisik)  🟡
+                 │                                                         └── BE-RWI-028 (riwayat status)  🟡
+                 │                                                         └── BE-RWI-029 (4 daftar pantau + selisih)  🟡
+                 │                                                         └── BE-RWI-030 (sesi koreksi)  🟡
+                 │                                                         └── BE-RWI-031 (boks bayi + ibu)  🟡
                  └── BE-RWI-006 (BedController tolak Reserved/Occupied)  ⛔ TERBLOKIR, butuh FE-RWI-001 lebih dulu
 
 BE-RWI-032 (test regresi modul tetangga) — menempel pada BE-RWI-006, wajib selesai bersamanya
@@ -585,7 +591,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### `BE-RWI-023` — Daftar periksa administrasi dapat ditandai dan bersifat menahan
+### 🟡 `BE-RWI-023` — Daftar periksa administrasi dapat ditandai dan bersifat menahan
 
 | Field | Isi |
 | --- | --- |
@@ -598,10 +604,11 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Verification** | Integration test kelima kriteria; kriteria 5 wajib menonaktifkan butir di tengah episode berjalan dan memeriksa keduanya |
 | **Risk/blocker** | Butir `DISCHARGE-MED` obat pulang ditandai **manual** pada MVP, karena modul Farmasi di luar scope — `DEC-INP-001`. Jangan membuat penandaan otomatis yang menebak. Owner: Backend/API |
 | **DoD** | Dua endpoint sesuai kontrak; kelima kriteria lulus; api contract diperbarui |
+| **Laporan** | 25 Agustus 2026 — kode dan test ditulis, **build dan test belum dijalankan** ([laporan](../task/report/backend/be-rwi-023-daftar-periksa-administrasi.md)) |
 
 ---
 
-### `BE-RWI-024` — Kasir dapat menandai kelayakan keuangan
+### 🟡 `BE-RWI-024` — Kasir dapat menandai kelayakan keuangan
 
 | Field | Isi |
 | --- | --- |
@@ -614,10 +621,11 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Verification** | Integration test kelima kriteria |
 | **Risk/blocker** | **`RWI-RISK-003` diterima secara sadar:** penandaan manual berarti kelayakan keuangan bergantung pada disiplin petugas, bukan pada angka tagihan yang sebenarnya. Ini sementara. Ketika `BillingManagement` operasional, topik ini kembali sebagai Amendment Pass. Laporan wajib menyebut risiko ini. Owner: Product/Domain |
 | **DoD** | Endpoint sesuai kontrak; kelima kriteria lulus; laporan menyebut `RWI-RISK-003` secara eksplisit; api contract diperbarui |
+| **Laporan** | 25 Agustus 2026 — kode dan test ditulis, **build dan test belum dijalankan** ([laporan](../task/report/backend/be-rwi-024-kelayakan-keuangan.md)) |
 
 ---
 
-### `BE-RWI-025` — Kelima syarat penutupan diperiksa dan dilaporkan satu per satu
+### 🟡 `BE-RWI-025` — Kelima syarat penutupan diperiksa dan dilaporkan satu per satu
 
 | Field | Isi |
 | --- | --- |
@@ -630,10 +638,11 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Verification** | Integration test kelima kriteria; test yang menutup episode lalu mencari tempat tidur kosong dan menemukannya |
 | **Risk/blocker** | Kriteria 1 sering dikerjakan sebagai boolean karena lebih sederhana. Layar kemudian tidak dapat memberi tahu petugas apa yang harus dikejar, dan petugas menebak. Bentuk daftar adalah kontrak, bukan preferensi. Owner: Backend/API |
 | **DoD** | Dua endpoint sesuai kontrak; kelima kriteria lulus; api contract diperbarui |
+| **Laporan** | 25 Agustus 2026 — kode dan test ditulis, **build dan test belum dijalankan** ([laporan](../task/report/backend/be-rwi-025-lima-syarat-penutupan.md)) |
 
 ---
 
-### `BE-RWI-026` — Jalan keluar supervisor sempit dan selalu tercatat
+### 🟡 `BE-RWI-026` — Jalan keluar supervisor sempit dan selalu tercatat
 
 | Field | Isi |
 | --- | --- |
@@ -646,10 +655,11 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Verification** | Integration test kelima kriteria; kriteria 3 wajib mencoba menembus dengan resume yang **belum** ditandatangani dan membuktikan tetap ditolak |
 | **Risk/blocker** | Kriteria 3 adalah inti task ini. Jalan keluar yang menembus semua syarat sekaligus akan menjadi jalur normal dalam hitungan minggu, dan kelima syarat kehilangan arti. Owner: Backend/API bersama Product/Domain |
 | **DoD** | Endpoint sesuai kontrak; kelima kriteria lulus; api contract diperbarui |
+| **Laporan** | 25 Agustus 2026 — kode dan test ditulis, **build dan test belum dijalankan** ([laporan](../task/report/backend/be-rwi-026-jalan-keluar-supervisor.md)) |
 
 ---
 
-### `BE-RWI-027` — Tempat tidur bebas sejak pasien meninggalkan kamar
+### 🟡 `BE-RWI-027` — Tempat tidur bebas sejak pasien meninggalkan kamar
 
 | Field | Isi |
 | --- | --- |
@@ -662,10 +672,11 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Verification** | Integration test kesembilan kriteria; kriteria 5 wajib menghitung baris riwayat sebelum dan sesudah |
 | **Risk/blocker** | Kriteria 5 melawan intuisi. `RWI-DEC-009` mengunci **lima** nilai status, dan kepergian fisik sengaja tidak dijadikan status keenam — ia adalah fakta yang dicatat, bukan tahapan yang dilalui. Menambah status keenam melanggar butir yang terkunci pada `blueprint-manifest.md` bagian 8. Owner: Backend/API |
 | **DoD** | Endpoint sesuai kontrak; kesembilan kriteria lulus; api contract diperbarui |
+| **Laporan** | 25 Agustus 2026 — kode dan test ditulis, **build dan test belum dijalankan** ([laporan](../task/report/backend/be-rwi-027-kepergian-fisik-pasien.md)) |
 
 ---
 
-### `BE-RWI-028` — Riwayat status terbaca lengkap dan tidak dapat dihapus
+### 🟡 `BE-RWI-028` — Riwayat status terbaca lengkap dan tidak dapat dihapus
 
 | Field | Isi |
 | --- | --- |
@@ -678,10 +689,11 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Verification** | Integration test keempat kriteria; kriteria 2 wajib mencoba `PUT` dan `DELETE` langsung dan membuktikan keduanya tidak tersedia; kriteria 3 memeriksa isi kolom pelaku pada episode yang gugur sendiri |
 | **Risk/blocker** | Kriteria 3 adalah masalah keadilan, bukan teknis. Mencatat kedaluwarsa otomatis atas nama pengguna yang kebetulan membaca akan membuat laporan pengecualian menuduh orang yang tidak melakukan apa-apa. Owner: Backend/API |
 | **DoD** | Endpoint sesuai kontrak; keempat kriteria lulus; api contract diperbarui |
+| **Laporan** | 25 Agustus 2026 — kode dan test ditulis, **build dan test belum dijalankan** ([laporan](../task/report/backend/be-rwi-028-riwayat-status-tidak-dapat-dihapus.md)) |
 
 ---
 
-### `BE-RWI-029` — Empat daftar pantau dan satu laporan selisih tersedia
+### 🟡 `BE-RWI-029` — Empat daftar pantau dan satu laporan selisih tersedia
 
 | Field | Isi |
 | --- | --- |
@@ -694,10 +706,11 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Verification** | Integration test keenam kriteria; kriteria 5 wajib membuat selisih **secara sengaja** lewat perubahan langsung di database uji lalu membuktikan laporan menemukannya |
 | **Risk/blocker** | Kriteria 5 adalah satu-satunya pengawas atas satu-satunya arah tulis lintas modul. Bila laporan ini tidak pernah dibaca siapa pun, `MstBed.BedStatus` akan menyimpang diam-diam. Ini soal proses, bukan kode — laporan wajib menyebutnya. Owner: Backend/API bersama Product/Domain |
 | **DoD** | Empat endpoint sesuai kontrak; keenam kriteria lulus; api contract diperbarui |
+| **Laporan** | 25 Agustus 2026 — kode dan test ditulis, **build dan test belum dijalankan** ([laporan](../task/report/backend/be-rwi-029-daftar-pantau-dan-laporan-selisih.md)) |
 
 ---
 
-### `BE-RWI-030` — Kesalahan catatan dapat dibetulkan tanpa membongkar episode
+### 🟡 `BE-RWI-030` — Kesalahan catatan dapat dibetulkan tanpa membongkar episode
 
 | Field | Isi |
 | --- | --- |
@@ -710,10 +723,11 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Verification** | Integration test keenam kriteria; kriteria 3 wajib memeriksa lama dirawat sebelum dan sesudah sesi |
 | **Risk/blocker** | Godaan menjadikan "sedang dikoreksi" sebagai status episode keenam akan muncul. `blueprint-manifest.md` bagian 8 butir 5 **menguncinya** sebagai konsep tersendiri, karena menambah status melanggar `RWI-DEC-009` dan `RWI-AC-004`. Owner: Backend/API |
 | **DoD** | Dua endpoint sesuai kontrak; keenam kriteria lulus; api contract diperbarui |
+| **Laporan** | 25 Agustus 2026 — kode dan test ditulis, **build dan test belum dijalankan** ([laporan](../task/report/backend/be-rwi-030-sesi-koreksi.md)) |
 
 ---
 
-### `BE-RWI-031` — Bayi baru lahir punya episode sendiri di boks kamar ibunya
+### 🟡 `BE-RWI-031` — Bayi baru lahir punya episode sendiri di boks kamar ibunya
 
 | Field | Isi |
 | --- | --- |
@@ -726,6 +740,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | **Verification** | Integration test kelima kriteria; kriteria 5 wajib mencoba menunjuk episode pasien yang sama dan membuktikan ditolak |
 | **Risk/blocker** | Kriteria 3 adalah yang paling mudah dikerjakan terbalik menjadi "menutup ibu menutup bayinya". Bayi sering pulang pada hari yang berbeda dari ibunya, dan episode yang tertutup paksa akan menghapus hari rawat bayi dari tagihan. Owner: Backend/API |
 | **DoD** | Kelima kriteria lulus; census terbukti menampilkan dua baris; api contract tidak berubah |
+| **Laporan** | 25 Agustus 2026 — kode dan test ditulis, **build dan test belum dijalankan** ([laporan](../task/report/backend/be-rwi-031-episode-bayi-baru-lahir.md)) |
 
 ---
 
@@ -773,7 +788,9 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | ~~Registry lifecycle~~ | **DICABUT 2026-08-24** oleh `RWI-DEC-068`. Modul naik `PLANNED` → `ACTIVE`; `QBE-MOD-002` tidak lagi menahan pembuatan entity `Inp*` | — |
 | Dua cara pulang yang aturan klinisnya belum disahkan | `RWI-OQ-039` dan `RWI-DEC-059`, menunggu pemilik klinis. Roadmap menyebut lima cara pulang; enum dan validation matrix menyediakan tiga | `BE-RWI-020` acceptance criteria 2 baru terpenuhi sebagian |
 | Delta `state-transition-matrix` bagian 5 vs roadmap `BE-RWI-021` kriteria 3 | Dibuka `BE-RWI-021` 25 Agustus 2026. Matriks mengizinkan DPJP mengubah resume tertandatangani; roadmap melarangnya. Implementasi mengikuti roadmap | Salah satu dokumen kontrak perlu dikoreksi |
-| Sesi koreksi belum dapat dibuka lewat endpoint | Endpoint-nya milik `BE-RWI-030`. `BE-RWI-022` sudah dapat menyimpan versi, tetapi jalurnya belum dapat dijalankan di lingkungan sungguhan | `BE-RWI-022` tidak dapat diverifikasi lewat `UAT-27` |
+| ~~Sesi koreksi belum dapat dibuka lewat endpoint~~ | **DITUTUP 2026-08-25** oleh `BE-RWI-030`. Jalur amandemen resume kini dapat dijalankan sepenuhnya lewat endpoint | — |
+| Cara pulang belum dapat dikoreksi lewat sesi koreksi | Dibuka `BE-RWI-030` 25 Agustus 2026. State matrix bagian 6.1 mengizinkannya, tetapi tidak ada endpoint yang menyediakannya | Kesalahan cara pulang pada episode tertutup tidak dapat dibetulkan |
+| **Penanggung jawab pembaca laporan selisih tempat tidur** | Dibuka `BE-RWI-029` 25 Agustus 2026. Laporan selisih adalah satu-satunya pengawas atas satu-satunya arah tulis lintas modul, dan ia hanya berguna bila ada yang membacanya berkala | Risiko penyimpangan `MstBed.BedStatus` tidak tertutup oleh kode mana pun |
 | `RWI-RULE-021` batas waktu klinis | Menunggu pemilik klinis | Tidak menahan MVP; menahan pemakaian untuk pasien sungguhan |
 | `RWI-RULE-025` persetujuan umum | `DEC-INP-003`, menunggu pemilik hukum | Sama |
 | Masa simpan riwayat | `RWI-OQ-035`, sudah dijawab `RWI-DEC-060`, menunggu pemilik hukum | Sama |

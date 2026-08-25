@@ -226,6 +226,63 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         }
 
         /// <summary>
+        /// Membaca riwayat perpindahan status satu episode, urut nomor urut.
+        /// </summary>
+        /// <remarks>
+        /// <b>Hanya pembacaan.</b> Tidak ada endpoint yang dapat mengubah maupun menghapus
+        /// baris riwayat, dan ketiadaan itu disengaja — api contract bagian 8 dan
+        /// <c>RWI-RULE-031</c> aturan 5.
+        ///
+        /// <para>
+        /// <b>Kolom pelaku kosong untuk perubahan yang dihitung sistem.</b> Episode
+        /// <c>Draft</c> yang gugur sendiri dicatat sebagai tindakan sistem, bukan atas nama
+        /// pengguna yang kebetulan membuka layar saat perhitungan itu berjalan. Ini masalah
+        /// keadilan, bukan teknis: laporan pengecualian yang menuduh orang yang tidak melakukan
+        /// apa-apa lebih buruk daripada laporan yang tidak menyebut siapa pun.
+        /// </para>
+        ///
+        /// <para>
+        /// Riwayat tetap terbaca setelah episode <c>Closed</c>. Tidak ada penyaringan status di
+        /// sini sama sekali — justru episode yang sudah ditutup yang paling sering ditelusuri
+        /// auditor.
+        /// </para>
+        /// </remarks>
+        public async Task<List<InpatientStatusHistoryResponse>> GetStatusHistoryAsync(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            var rows = await _dbContext.Set<InpStatusHistory>()
+                .AsNoTracking()
+                .Where(x => x.EpisodeId == episodeId && !x.IsDelete)
+                .OrderBy(x => x.SequenceNumber)
+                .Select(x => new InpatientStatusHistoryResponse
+                {
+                    Id = x.Id,
+                    EpisodeId = x.EpisodeId,
+                    SequenceNumber = x.SequenceNumber,
+                    FromStatus = x.FromStatus != null ? (int)x.FromStatus : null,
+                    ToStatus = (int)x.ToStatus,
+                    ActionType = x.ActionType,
+                    ActorType = (int)x.ActorType,
+                    ChangedByUserId = x.ChangedByUserId,
+                    ChangedAt = x.ChangedAt,
+                    Reason = x.Reason
+                })
+                .ToListAsync(cancellationToken);
+
+            foreach (var row in rows)
+            {
+                row.FromStatusName = row.FromStatus.HasValue
+                    ? ((InpEpisodeStatus)row.FromStatus.Value).ToString()
+                    : null;
+                row.ToStatusName = ((InpEpisodeStatus)row.ToStatus).ToString();
+                row.ActorTypeName = ((InpStatusChangeActorType)row.ActorType).ToString();
+            }
+
+            return rows;
+        }
+
+        /// <summary>
         /// Menggugurkan seluruh episode <c>Draft</c> yang sudah melewati batas waktu, lalu
         /// mengembalikan jumlahnya.
         /// </summary>

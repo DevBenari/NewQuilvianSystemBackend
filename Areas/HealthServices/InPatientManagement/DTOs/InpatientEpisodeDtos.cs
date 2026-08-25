@@ -49,6 +49,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// </summary>
         public Guid DoctorId { get; set; }
 
+        /// <summary>
+        /// Episode ibu, bila episode ini adalah bayi rawat gabung. Dikosongkan untuk sebagian
+        /// besar admisi.
+        /// </summary>
+        /// <remarks>
+        /// <b>Bayi mendapat episode dan kunjungan sendiri</b> (<c>RWI-DEC-020</c>). Kolom ini
+        /// hanya merekam hubungannya dengan episode ibu, dan tidak menggabungkan keduanya:
+        /// hari rawat, tempat tidur, dan penutupannya tetap dihitung sendiri-sendiri. Menutup
+        /// episode ibu <b>tidak</b> menutup episode bayinya.
+        /// </remarks>
+        public Guid? MotherEpisodeId { get; set; }
+
         /// <summary>Catatan admisi. Kolom sensitif; tidak boleh masuk payload logger.</summary>
         [MaxLength(1000)]
         public string? Notes { get; set; }
@@ -72,6 +84,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         /// <summary>Kelas perawatan yang ditagihkan. Wajib berlaku untuk rawat inap.</summary>
         public Guid PatientClassId { get; set; }
+
+        /// <summary>
+        /// Episode ibu, bila episode ini adalah bayi rawat gabung. Boleh diubah selagi episode
+        /// masih <c>Draft</c> — hubungan ibu dan bayi kadang baru diketahui setelah admisi
+        /// dibuka.
+        /// </summary>
+        public Guid? MotherEpisodeId { get; set; }
 
         /// <summary>Catatan admisi. Kolom sensitif; tidak boleh masuk payload logger.</summary>
         [MaxLength(1000)]
@@ -172,6 +191,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public int DischargeType { get; set; }
 
         public string DischargeTypeName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Benar bila episode ditutup supervisor menembus gerbang kelayakan keuangan.
+        /// </summary>
+        public bool IsClosedWithoutFinancialClearance { get; set; }
+
+        public string? ClosedWithoutClearanceReason { get; set; }
+
+        /// <summary>Episode ibu, bila episode ini adalah bayi rawat gabung.</summary>
+        public Guid? MotherEpisodeId { get; set; }
+
+        public string? MotherEpisodeNumber { get; set; }
+
+        public string? MotherPatientName { get; set; }
 
         public InpatientEpisodeActiveDoctorResponse? ActiveDoctor { get; set; }
 

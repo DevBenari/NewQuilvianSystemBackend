@@ -29,10 +29,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
     /// </para>
     ///
     /// <para>
-    /// <b>Yang belum ada di sini.</b> Daftar periksa administrasi (<c>BE-RWI-023</c>),
-    /// kelayakan keuangan (<c>BE-RWI-024</c>), pemeriksaan lima syarat penutupan dan penutupan
-    /// episode (<c>BE-RWI-025</c> dan <c>BE-RWI-026</c>), serta pencatatan kepergian fisik
-    /// (<c>BE-RWI-027</c>) semuanya milik task berikutnya.
+    /// <b>Dua urutan yang mudah terbalik.</b> Pertama, keputusan pulang <b>tidak</b> melepas
+    /// tempat tidur — pelepasannya menunggu kepergian fisik dicatat atau episode ditutup.
+    /// Kedua, pencatatan kepergian fisik melepas tempat tidur <b>tanpa</b> menutup episode dan
+    /// <b>tanpa</b> menulis riwayat status, karena status episode memang tidak berubah.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Jalan keluar supervisor menembus satu syarat saja</b>, yaitu kelayakan keuangan.
+    /// Keempat syarat penutupan lainnya tetap menahan siapa pun.
     /// </para>
     /// </remarks>
     [ApiController]
@@ -259,6 +264,325 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 cancellationToken);
 
             return Ok(ApiResponse<DischargeSummaryResponse>.Ok(summary, result.Message));
+        }
+
+        // =====================================================================
+        // BE-RWI-023 — Daftar periksa administrasi
+        // =====================================================================
+
+        /// <summary>Daftar butir administrasi beserta status penandaannya.</summary>
+        /// <remarks>
+        /// Butir yang sudah dinonaktifkan admin tetap muncul bila episode ini pernah
+        /// menandainya — penandaan lama tidak pernah hilang, walaupun butirnya tidak lagi
+        /// menahan penutupan.
+        /// </remarks>
+        [HttpGet("{episodeId:guid}/clearance")]
+        [ProducesResponseType(typeof(ApiResponse<ClearanceChecklistResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Inpatient Discharge", Description = "Melihat daftar periksa administrasi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientDischarge", "Read")]
+        public async Task<IActionResult> GetClearanceChecklist(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _dischargeService.GetClearanceChecklistAsync(
+                episodeId,
+                cancellationToken);
+
+            if (result == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Episode rawat inap tidak ditemukan."));
+            }
+
+            return Ok(ApiResponse<ClearanceChecklistResponse>.Ok(
+                result,
+                "Daftar periksa administrasi berhasil diambil."));
+        }
+
+        /// <summary>Menandai satu butir daftar periksa administrasi.</summary>
+        [HttpPost("{episodeId:guid}/clearance/{itemId:guid}/mark")]
+        [ProducesResponseType(typeof(ApiResponse<ClearanceChecklistResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Mark Inpatient Clearance Item", Description = "Menandai butir administrasi rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("InpatientDischarge", "Update")]
+        public async Task<IActionResult> MarkClearanceItem(
+            Guid episodeId,
+            Guid itemId,
+            [FromBody] MarkClearanceItemRequest? request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _dischargeService.MarkClearanceItemAsync(
+                episodeId,
+                itemId,
+                request,
+                User.GetUserId(),
+                cancellationToken);
+
+            if (result.Status != InpEpisodeOperationStatus.Success)
+            {
+                return FromSummaryFailure(result);
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InpatientDischarge.MarkClearanceItem",
+                "Menandai butir administrasi rawat inap.",
+                new
+                {
+                    EntityId = episodeId,
+                    Controller = "InpatientDischarge",
+                    Action = "MarkClearanceItem",
+                    StatusCode = StatusCodes.Status200OK
+                });
+
+            var checklist = await _dischargeService.GetClearanceChecklistAsync(
+                episodeId,
+                cancellationToken);
+
+            return Ok(ApiResponse<ClearanceChecklistResponse>.Ok(checklist, result.Message));
+        }
+
+        // =====================================================================
+        // BE-RWI-024 — Kelayakan keuangan
+        // =====================================================================
+
+        /// <summary>Petugas kasir atau billing menandai kelayakan keuangan.</summary>
+        /// <remarks>
+        /// Penandaan ini <b>manual</b>. Nilainya bergantung pada disiplin petugas kasir, bukan
+        /// pada angka tagihan yang sebenarnya, karena `BillingManagement` belum punya kemampuan
+        /// transaksi — `RWI-RISK-003`, diterima secara sadar dan bersifat sementara.
+        /// </remarks>
+        [HttpPost("{episodeId:guid}/financial-clearance")]
+        [ProducesResponseType(typeof(ApiResponse<FinancialClearanceResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Mark Inpatient Financial Clearance", Description = "Menandai kelayakan keuangan rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("InpatientFinancialClearance", "Update")]
+        public async Task<IActionResult> MarkFinancialClearance(
+            Guid episodeId,
+            [FromBody] MarkFinancialClearanceRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _dischargeService.MarkFinancialClearanceAsync(
+                episodeId,
+                request,
+                User.GetUserId(),
+                User.IsCashierOrBilling(),
+                cancellationToken);
+
+            if (result.Status != InpEpisodeOperationStatus.Success)
+            {
+                return FromSummaryFailure(result);
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InpatientDischarge.MarkFinancialClearance",
+                "Menandai kelayakan keuangan rawat inap.",
+                new
+                {
+                    EntityId = episodeId,
+                    Controller = "InpatientDischarge",
+                    Action = "MarkFinancialClearance",
+                    StatusCode = StatusCodes.Status200OK
+                });
+
+            var clearance = await _dischargeService.GetFinancialClearanceAsync(
+                episodeId,
+                cancellationToken);
+
+            return Ok(ApiResponse<FinancialClearanceResponse>.Ok(clearance, result.Message));
+        }
+
+        // =====================================================================
+        // BE-RWI-025 dan BE-RWI-026 — Penutupan episode
+        // =====================================================================
+
+        /// <summary>Memeriksa kelima syarat penutupan dan menampilkan mana yang belum terpenuhi.</summary>
+        /// <remarks>
+        /// Jawabannya berupa <b>daftar syarat</b>, bukan boolean tunggal. Petugas perlu tahu apa
+        /// yang harus dikejar, bukan hanya bahwa tombol tutup masih mati.
+        /// </remarks>
+        [HttpGet("{episodeId:guid}/closure-readiness")]
+        [ProducesResponseType(typeof(ApiResponse<ClosureReadinessResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Inpatient Discharge", Description = "Memeriksa kesiapan penutupan episode", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientDischarge", "Read")]
+        public async Task<IActionResult> GetClosureReadiness(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _dischargeService.EvaluateClosureReadinessAsync(
+                episodeId,
+                cancellationToken);
+
+            if (result == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Episode rawat inap tidak ditemukan."));
+            }
+
+            return Ok(ApiResponse<ClosureReadinessResponse>.Ok(
+                result,
+                "Kesiapan penutupan episode berhasil diperiksa."));
+        }
+
+        /// <summary>Menutup episode dan melepas tempat tidur.</summary>
+        [HttpPost("{episodeId:guid}/close")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientEpisodeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Close Inpatient Episode", Description = "Menutup episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("InpatientEpisode", "Close")]
+        public async Task<IActionResult> CloseEpisode(
+            Guid episodeId,
+            [FromBody] CloseEpisodeRequest? request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _dischargeService.CloseEpisodeAsync(
+                episodeId,
+                request,
+                User.GetUserId(),
+                cancellationToken);
+
+            if (result.Status != InpEpisodeOperationStatus.Success)
+            {
+                return FromEpisodeFailure(result);
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InpatientDischarge.CloseEpisode",
+                "Menutup episode rawat inap.",
+                new
+                {
+                    EntityId = episodeId,
+                    Controller = "InpatientDischarge",
+                    Action = "CloseEpisode",
+                    StatusCode = StatusCodes.Status200OK
+                });
+
+            var detail = await _episodeService.GetDetailResponseAsync(
+                episodeId,
+                null,
+                cancellationToken);
+
+            return Ok(ApiResponse<InpatientEpisodeDetailResponse>.Ok(detail, result.Message));
+        }
+
+        /// <summary>Supervisor menutup episode menembus gerbang keuangan.</summary>
+        /// <remarks>
+        /// Jalan keluar ini menembus <b>hanya</b> syarat kelayakan keuangan. Keempat syarat
+        /// lainnya tetap menahan, dan tidak ada satu pun peran yang dapat melewatinya.
+        /// </remarks>
+        [HttpPost("{episodeId:guid}/close-with-override")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientEpisodeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Close Inpatient Episode With Override", Description = "Menutup episode menembus gerbang kelayakan keuangan", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("InpatientEpisode", "CloseOverride")]
+        public async Task<IActionResult> CloseEpisodeWithOverride(
+            Guid episodeId,
+            [FromBody] CloseEpisodeOverrideRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _dischargeService.CloseWithOverrideAsync(
+                episodeId,
+                request,
+                User.GetUserId(),
+                User.IsSupervisor(),
+                cancellationToken);
+
+            if (result.Status != InpEpisodeOperationStatus.Success)
+            {
+                return FromEpisodeFailure(result);
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InpatientDischarge.CloseEpisodeWithOverride",
+                "Menutup episode rawat inap menembus gerbang kelayakan keuangan.",
+                new
+                {
+                    EntityId = episodeId,
+                    Controller = "InpatientDischarge",
+                    Action = "CloseEpisodeWithOverride",
+                    StatusCode = StatusCodes.Status200OK
+                });
+
+            var detail = await _episodeService.GetDetailResponseAsync(
+                episodeId,
+                null,
+                cancellationToken);
+
+            return Ok(ApiResponse<InpatientEpisodeDetailResponse>.Ok(detail, result.Message));
+        }
+
+        // =====================================================================
+        // BE-RWI-027 — Kepergian fisik pasien
+        // =====================================================================
+
+        /// <summary>
+        /// Mencatat pasien sudah meninggalkan ruangan. Melepas tempat tidur seketika
+        /// <b>tanpa</b> menutup episode.
+        /// </summary>
+        /// <remarks>
+        /// Endpoint ini <b>tidak dapat dibatalkan</b>. Pasien yang ternyata belum jadi pulang
+        /// menjalani admisi baru — <c>RWI-RULE-036</c>.
+        /// </remarks>
+        [HttpPost("{episodeId:guid}/record-departure")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientEpisodeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Record Inpatient Departure", Description = "Mencatat kepergian fisik pasien rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("InpatientDischarge", "RecordDeparture")]
+        public async Task<IActionResult> RecordDeparture(
+            Guid episodeId,
+            [FromBody] RecordDepartureRequest? request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _dischargeService.RecordPatientDepartureAsync(
+                episodeId,
+                request,
+                User.GetUserId(),
+                cancellationToken);
+
+            if (result.Status != InpEpisodeOperationStatus.Success)
+            {
+                return FromEpisodeFailure(result);
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InpatientDischarge.RecordDeparture",
+                "Mencatat kepergian fisik pasien rawat inap.",
+                new
+                {
+                    EntityId = episodeId,
+                    Controller = "InpatientDischarge",
+                    Action = "RecordDeparture",
+                    StatusCode = StatusCodes.Status200OK
+                });
+
+            var detail = await _episodeService.GetDetailResponseAsync(
+                episodeId,
+                null,
+                cancellationToken);
+
+            return Ok(ApiResponse<InpatientEpisodeDetailResponse>.Ok(detail, result.Message));
         }
 
         // =====================================================================

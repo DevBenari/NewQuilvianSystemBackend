@@ -79,6 +79,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         public bool RequiresIsolation { get; set; }
 
+        /// <summary>
+        /// Episode ibu, bila baris ini adalah bayi rawat gabung. Kosong untuk sebagian besar
+        /// pasien.
+        /// </summary>
+        /// <remarks>
+        /// Census menampilkan ibu dan bayinya sebagai <b>dua baris terpisah</b>. Keduanya
+        /// memang dua pasien, dua episode, dan dua tempat tidur — dan hari rawat keduanya
+        /// dihitung sendiri-sendiri.
+        /// </remarks>
+        public Guid? MotherEpisodeId { get; set; }
+
+        public string? MotherEpisodeNumber { get; set; }
+
+        public string? MotherPatientName { get; set; }
+
+        /// <summary>Benar bila tempat tidur yang ditempati adalah boks bayi.</summary>
+        public bool IsNewbornBed { get; set; }
+
         public DateTime? AdmittedAt { get; set; }
 
         public DateTime PlacementStartDateTime { get; set; }

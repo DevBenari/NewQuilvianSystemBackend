@@ -12,11 +12,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
     /// Daftar pantau Rawat Inap: keadaan yang perlu dibetulkan orang, bukan ditolak sistem.
     /// </summary>
     /// <remarks>
-    /// <b>Satu daftar pantau yang sudah dibuka.</b> Task <c>BE-RWI-015</c> membuka
-    /// <c>GET /monitoring/isolation-mismatch</c>. Empat daftar pantau lainnya —
-    /// <c>pending-closures</c>, <c>closures-without-financial-clearance</c>,
-    /// <c>unassigned-nurse-episodes</c>, dan <c>bed-drift</c> — milik <c>BE-RWI-029</c> dan
-    /// sengaja belum ada di sini.
+    /// <b>Lima daftar pantau.</b> <c>GET /monitoring/isolation-mismatch</c> dibuka
+    /// <c>BE-RWI-015</c>; empat sisanya — <c>pending-closures</c>,
+    /// <c>closures-without-financial-clearance</c>, <c>unassigned-nurse-episodes</c>, dan
+    /// <c>bed-drift</c> — dibuka <c>BE-RWI-029</c>.
+    ///
+    /// <para>
+    /// <b>Daftar pantau ketiga pada <c>RWI-RULE-023</c> sengaja tidak ada.</b> Kepatuhan
+    /// pengkajian awal dan verifikasi CPPT bergantung pada slice dokumentasi klinis yang masih
+    /// menunggu <c>DEC-INP-001</c>.
+    /// </para>
     ///
     /// <para>
     /// <b>Kenapa daftar pantau ada.</b> Ketika kondisi klinis berubah di tengah perawatan,
@@ -69,6 +74,109 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
             return Ok(ApiResponse<IsolationMismatchPagedResult>.Ok(
                 result,
                 "Daftar pantau penempatan tidak sesuai berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Daftar episode yang sudah boleh pulang tetapi belum ditutup melewati ambang waktu.
+        /// </summary>
+        /// <remarks>
+        /// Ambangnya dibaca dari <c>MstInpatientSetting.PendingClosureThresholdHours</c> setiap
+        /// pembacaan, sehingga angka yang diubah admin berlaku pada pembacaan berikutnya.
+        ///
+        /// <para>
+        /// Daftar ini lahir dari <c>RWI-RULE-010</c>: yang memutuskan pulang dan yang menutup
+        /// episode adalah orang yang berbeda. Tanpa daftar ini, episode yang menggantung hanya
+        /// ditemukan ketika ada yang mengeluh.
+        /// </para>
+        /// </remarks>
+        [HttpGet("pending-closures")]
+        [ProducesResponseType(typeof(ApiResponse<PendingClosurePagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Monitoring", Description = "Melihat daftar pantau penutupan tertunda", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientMonitoring", "Read")]
+        public async Task<IActionResult> GetPendingClosures(
+            [FromQuery] InpatientMonitoringQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _censusQueryService.GetPendingClosuresAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PendingClosurePagedResult>.Ok(
+                result,
+                "Daftar pantau penutupan tertunda berhasil diambil."));
+        }
+
+        /// <summary>Daftar episode yang ditutup menembus gerbang kelayakan keuangan.</summary>
+        /// <remarks>
+        /// Setiap baris di sini adalah keputusan supervisor yang melewati satu syarat
+        /// penutupan. Daftar yang panjang berarti gerbang keuangan sedang tidak berfungsi
+        /// sebagaimana dimaksud — dan itu perlu diketahui sebelum menjadi kebiasaan.
+        /// </remarks>
+        [HttpGet("closures-without-financial-clearance")]
+        [ProducesResponseType(typeof(ApiResponse<OverrideClosurePagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Monitoring", Description = "Melihat daftar pantau penutupan menembus gerbang keuangan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientMonitoring", "Read")]
+        public async Task<IActionResult> GetOverrideClosures(
+            [FromQuery] InpatientMonitoringQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _censusQueryService.GetOverrideClosuresAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<OverrideClosurePagedResult>.Ok(
+                result,
+                "Daftar pantau penutupan menembus gerbang keuangan berhasil diambil."));
+        }
+
+        /// <summary>Daftar episode aktif yang belum punya perawat penanggung jawab.</summary>
+        /// <remarks>
+        /// Ini pasangan dari keputusan <b>tidak menahan</b> pada <c>RWI-DEC-032</c>: episode
+        /// tetap berjalan tanpa perawat, dan ketiadaannya terlihat di sini alih-alih
+        /// menghalangi pekerjaan.
+        /// </remarks>
+        [HttpGet("unassigned-nurse-episodes")]
+        [ProducesResponseType(typeof(ApiResponse<UnassignedNursePagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Monitoring", Description = "Melihat daftar episode tanpa perawat penanggung jawab", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientMonitoring", "Read")]
+        public async Task<IActionResult> GetUnassignedNurseEpisodes(
+            [FromQuery] InpatientMonitoringQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _censusQueryService.GetUnassignedNurseEpisodesPagedAsync(
+                query,
+                cancellationToken);
+
+            return Ok(ApiResponse<UnassignedNursePagedResult>.Ok(
+                result,
+                "Daftar episode tanpa perawat penanggung jawab berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Laporan selisih antara salinan status tempat tidur dan catatan penempatan.
+        /// </summary>
+        /// <remarks>
+        /// <b>Ini satu-satunya pengawas atas satu-satunya arah tulis lintas modul.</b>
+        /// <c>MstBed.BedStatus</c> adalah salinan; sumber kebenarannya
+        /// <c>InpBedPlacement</c> dan <c>InpBedReservation</c>. Laporan ini hanya berguna bila
+        /// ada yang membacanya secara berkala — bila tidak, salinan akan menyimpang diam-diam
+        /// sampai seorang pasien ditempatkan di tempat tidur yang sudah ada orangnya.
+        ///
+        /// <para>
+        /// Keempat keadaan yang merupakan wewenang admin — pembersihan, perbaikan, diblokir,
+        /// dan nonaktif — tidak dihitung sebagai selisih, karena modul Rawat Inap memang tidak
+        /// pernah menuliskannya.
+        /// </para>
+        /// </remarks>
+        [HttpGet("bed-drift")]
+        [ProducesResponseType(typeof(ApiResponse<BedDriftPagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Monitoring", Description = "Melihat laporan selisih salinan status tempat tidur", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientMonitoring", "Read")]
+        public async Task<IActionResult> GetBedDrift(
+            [FromQuery] InpatientMonitoringQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _censusQueryService.GetBedDriftAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<BedDriftPagedResult>.Ok(
+                result,
+                "Laporan selisih salinan status tempat tidur berhasil diambil."));
         }
     }
 }

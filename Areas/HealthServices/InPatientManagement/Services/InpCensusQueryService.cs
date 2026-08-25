@@ -131,6 +131,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         .Select(n => n.Employee != null ? n.Employee.FullName : null)
                         .FirstOrDefault(),
                     RequiresIsolation = x.Episode.RequiresIsolation,
+                    // BE-RWI-031 — ibu dan bayi tampil sebagai dua baris; rujukan ke episode
+                    // ibu ikut supaya layar dapat menjawab "bayi siapa", bukan sekadar
+                    // "bayi mana".
+                    MotherEpisodeId = x.Episode.MotherEpisodeId,
+                    MotherEpisodeNumber = x.Episode.MotherEpisode != null
+                        ? x.Episode.MotherEpisode.EpisodeNumber
+                        : null,
+                    MotherPatientName =
+                        x.Episode.MotherEpisode != null && x.Episode.MotherEpisode.Patient != null
+                            ? x.Episode.MotherEpisode.Patient.FullName
+                            : null,
+                    IsNewbornBed = x.Bed != null && x.Bed.IsForNewborn,
                     AdmittedAt = x.Episode.AdmittedAt,
                     PlacementStartDateTime = x.StartDateTime
                 })
@@ -475,6 +487,336 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             }
 
             return items;
+        }
+
+        // =====================================================================
+        // BE-RWI-029 — Empat daftar pantau dan laporan selisih
+        // =====================================================================
+
+        /// <summary>
+        /// Menyusun daftar episode yang sudah boleh pulang tetapi belum ditutup melewati
+        /// ambang waktu.
+        /// </summary>
+        /// <remarks>
+        /// <b>Daftar ini adalah pasangan wajib dari <c>RWI-RULE-010</c>.</b> Yang memutuskan
+        /// pulang dan yang menutup episode adalah orang yang berbeda, sehingga episode dapat
+        /// menggantung di <c>DischargePending</c> bila petugas admisi lalai. Tanpa daftar ini,
+        /// satu-satunya cara menemukannya adalah menunggu ada yang mengeluh.
+        ///
+        /// <para>
+        /// Ambangnya dibaca ulang dari <c>MstInpatientSetting.PendingClosureThresholdHours</c>
+        /// setiap pembacaan, sehingga angka yang diubah admin berlaku pada pembacaan
+        /// berikutnya tanpa aplikasi dinyalakan ulang.
+        /// </para>
+        /// </remarks>
+        public async Task<PendingClosurePagedResult> GetPendingClosuresAsync(
+            InpatientMonitoringQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            query ??= new InpatientMonitoringQuery();
+
+            var setting = await _settingService.GetEffectiveSettingAsync(cancellationToken);
+            var now = DateTime.UtcNow;
+            var cutoff = now.AddHours(-setting.PendingClosureThresholdHours);
+
+            var (pageNumber, pageSize) = InpEpisodeService.NormalizePaging(
+                query.PageNumber,
+                query.PageSize);
+
+            IQueryable<InpEpisode> filtered = _dbContext.Set<InpEpisode>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.EpisodeStatus == InpEpisodeStatus.DischargePending &&
+                    x.DischargeDecidedAt != null &&
+                    x.DischargeDecidedAt <= cutoff);
+
+            if (query.ServiceUnitId.HasValue && query.ServiceUnitId.Value != Guid.Empty)
+            {
+                filtered = filtered.Where(x => x.ServiceUnitId == query.ServiceUnitId.Value);
+            }
+
+            var totalData = await filtered.CountAsync(cancellationToken);
+
+            var items = await filtered
+                .OrderBy(x => x.DischargeDecidedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new PendingClosureItemResponse
+                {
+                    EpisodeId = x.Id,
+                    EpisodeNumber = x.EpisodeNumber,
+                    PatientId = x.PatientId,
+                    PatientName = x.Patient != null ? x.Patient.FullName : null,
+                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : null,
+                    ServiceUnitId = x.ServiceUnitId,
+                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
+                    BedName = x.BedPlacements
+                        .Where(p => p.EndDateTime == null && !p.IsDelete)
+                        .Select(p => p.Bed != null ? p.Bed.BedName : null)
+                        .FirstOrDefault(),
+                    RoomName = x.BedPlacements
+                        .Where(p => p.EndDateTime == null && !p.IsDelete)
+                        .Select(p => p.Room != null ? p.Room.RoomName : null)
+                        .FirstOrDefault(),
+                    DischargeDecidedAt = x.DischargeDecidedAt,
+                    PhysicallyLeftAt = x.PhysicallyLeftAt,
+                    IsBedStillHeld = x.BedPlacements
+                        .Any(p => p.EndDateTime == null && !p.IsDelete)
+                })
+                .ToListAsync(cancellationToken);
+
+            foreach (var item in items)
+            {
+                item.ThresholdHours = setting.PendingClosureThresholdHours;
+                item.PendingHours = item.DischargeDecidedAt.HasValue
+                    ? (int)Math.Floor((now - item.DischargeDecidedAt.Value).TotalHours)
+                    : 0;
+            }
+
+            return new PendingClosurePagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+        }
+
+        /// <summary>
+        /// Menyusun daftar episode yang ditutup menembus gerbang keuangan.
+        /// </summary>
+        /// <remarks>
+        /// Setiap baris di sini adalah keputusan supervisor yang melewati satu syarat
+        /// penutupan. Daftar yang panjang bukan berarti sistemnya rusak — ia berarti gerbang
+        /// keuangan sedang tidak berfungsi sebagaimana dimaksud, dan itu perlu diketahui
+        /// sebelum menjadi kebiasaan.
+        /// </remarks>
+        public async Task<OverrideClosurePagedResult> GetOverrideClosuresAsync(
+            InpatientMonitoringQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            query ??= new InpatientMonitoringQuery();
+
+            var (pageNumber, pageSize) = InpEpisodeService.NormalizePaging(
+                query.PageNumber,
+                query.PageSize);
+
+            IQueryable<InpEpisode> filtered = _dbContext.Set<InpEpisode>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsClosedWithoutFinancialClearance);
+
+            if (query.ServiceUnitId.HasValue && query.ServiceUnitId.Value != Guid.Empty)
+            {
+                filtered = filtered.Where(x => x.ServiceUnitId == query.ServiceUnitId.Value);
+            }
+
+            var totalData = await filtered.CountAsync(cancellationToken);
+
+            var items = await filtered
+                .OrderByDescending(x => x.ClosedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new OverrideClosureItemResponse
+                {
+                    EpisodeId = x.Id,
+                    EpisodeNumber = x.EpisodeNumber,
+                    PatientId = x.PatientId,
+                    PatientName = x.Patient != null ? x.Patient.FullName : null,
+                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : null,
+                    ServiceUnitId = x.ServiceUnitId,
+                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
+                    ClosedAt = x.ClosedAt,
+                    ClosedByUserId = x.UpdateBy,
+                    ClosedWithoutClearanceReason = x.ClosedWithoutClearanceReason
+                })
+                .ToListAsync(cancellationToken);
+
+            return new OverrideClosurePagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+        }
+
+        /// <summary>
+        /// Menyusun daftar episode aktif yang belum punya perawat penanggung jawab, bertingkat.
+        /// </summary>
+        public async Task<UnassignedNursePagedResult> GetUnassignedNurseEpisodesPagedAsync(
+            InpatientMonitoringQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            query ??= new InpatientMonitoringQuery();
+
+            var (pageNumber, pageSize) = InpEpisodeService.NormalizePaging(
+                query.PageNumber,
+                query.PageSize);
+
+            var all = await GetUnassignedNurseEpisodesAsync(
+                query.ServiceUnitId,
+                cancellationToken);
+
+            return new UnassignedNursePagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = all.Count,
+                TotalPage = (int)Math.Ceiling(all.Count / (double)pageSize),
+                Items = all.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList()
+            };
+        }
+
+        /// <summary>
+        /// Menyusun laporan selisih antara salinan <c>MstBed.BedStatus</c> dan catatan
+        /// penempatan beserta pemesanan.
+        /// </summary>
+        /// <remarks>
+        /// <b>Ini satu-satunya pengawas atas satu-satunya arah tulis lintas modul.</b>
+        /// <c>RWI-DEC-039</c> menurunkan <c>MstBed.BedStatus</c> menjadi salinan; sumber
+        /// kebenarannya adalah <c>InpBedPlacement</c> dan <c>InpBedReservation</c>. Salinan
+        /// dapat menyimpang karena banyak hal — perubahan langsung di database, kegagalan yang
+        /// tidak tertangani, atau modul lain yang menulisnya tanpa sepengetahuan modul ini.
+        ///
+        /// <para>
+        /// <b>Laporan ini hanya berguna bila ada yang membacanya.</b> Bila tidak pernah dibuka
+        /// siapa pun, salinan akan menyimpang diam-diam sampai seorang pasien ditempatkan di
+        /// tempat tidur yang sudah ada orangnya. Ini soal proses, bukan kode: perlu ada yang
+        /// bertanggung jawab membacanya secara berkala.
+        /// </para>
+        ///
+        /// <para>
+        /// Keempat keadaan yang merupakan wewenang admin — <c>Cleaning</c>, <c>Maintenance</c>,
+        /// <c>Blocked</c>, <c>Inactive</c> — <b>tidak</b> dihitung sebagai selisih, karena modul
+        /// ini memang tidak pernah menuliskannya.
+        /// </para>
+        /// </remarks>
+        public async Task<BedDriftPagedResult> GetBedDriftAsync(
+            InpatientMonitoringQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            query ??= new InpatientMonitoringQuery();
+
+            var (pageNumber, pageSize) = InpEpisodeService.NormalizePaging(
+                query.PageNumber,
+                query.PageSize);
+
+            IQueryable<MstBed> bedQuery = _dbContext.Set<MstBed>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete)
+                .Include(x => x.Room);
+
+            if (query.ServiceUnitId.HasValue && query.ServiceUnitId.Value != Guid.Empty)
+            {
+                bedQuery = bedQuery.Where(x =>
+                    x.Room != null && x.Room.ServiceUnitId == query.ServiceUnitId.Value);
+            }
+
+            var beds = await bedQuery
+                .OrderBy(x => x.BedName)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.BedCode,
+                    x.BedName,
+                    x.BedStatus,
+                    x.RoomId,
+                    RoomName = x.Room != null ? x.Room.RoomName : null,
+                    ServiceUnitId = x.Room != null ? x.Room.ServiceUnitId : Guid.Empty,
+                    ServiceUnitName = x.Room != null && x.Room.ServiceUnit != null
+                        ? x.Room.ServiceUnit.ServiceUnitName
+                        : null
+                })
+                .ToListAsync(cancellationToken);
+
+            var bedIds = beds.Select(x => x.Id).ToList();
+
+            var placements = await _dbContext.Set<InpBedPlacement>()
+                .AsNoTracking()
+                .Where(x => x.EndDateTime == null && !x.IsDelete && bedIds.Contains(x.BedId))
+                .Select(x => new
+                {
+                    x.BedId,
+                    EpisodeNumber = x.Episode != null ? x.Episode.EpisodeNumber : null
+                })
+                .ToListAsync(cancellationToken);
+
+            var reservations = await _dbContext.Set<InpBedReservation>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.ReservationStatus == InpBedReservationStatus.Active &&
+                    !x.IsDelete &&
+                    bedIds.Contains(x.BedId))
+                .Select(x => new
+                {
+                    x.BedId,
+                    EpisodeNumber = x.Episode != null ? x.Episode.EpisodeNumber : null
+                })
+                .ToListAsync(cancellationToken);
+
+            var drift = new List<BedDriftItemResponse>();
+
+            foreach (var bed in beds)
+            {
+                // Keadaan yang merupakan wewenang admin dilewati: modul ini tidak pernah
+                // menuliskannya, sehingga selisih di sana bukan tanggung jawabnya.
+                if (bed.BedStatus is BedStatus.Cleaning
+                    or BedStatus.Maintenance
+                    or BedStatus.Blocked
+                    or BedStatus.Inactive)
+                {
+                    continue;
+                }
+
+                var placement = placements.FirstOrDefault(x => x.BedId == bed.Id);
+                var reservation = reservations.FirstOrDefault(x => x.BedId == bed.Id);
+
+                var expected = placement != null
+                    ? BedStatus.Occupied
+                    : reservation != null
+                        ? BedStatus.Reserved
+                        : BedStatus.Available;
+
+                if (bed.BedStatus == expected)
+                {
+                    continue;
+                }
+
+                drift.Add(new BedDriftItemResponse
+                {
+                    BedId = bed.Id,
+                    BedCode = bed.BedCode,
+                    BedName = bed.BedName,
+                    RoomId = bed.RoomId,
+                    RoomName = bed.RoomName,
+                    ServiceUnitId = bed.ServiceUnitId,
+                    ServiceUnitName = bed.ServiceUnitName,
+                    CopiedStatus = (int)bed.BedStatus,
+                    CopiedStatusName = bed.BedStatus.ToString(),
+                    ExpectedStatus = (int)expected,
+                    ExpectedStatusName = expected.ToString(),
+                    HasActivePlacement = placement != null,
+                    HasActiveReservation = reservation != null,
+                    HoldingEpisodeNumber = placement?.EpisodeNumber ?? reservation?.EpisodeNumber,
+                    DriftMessage =
+                        $"Salinan status tempat tidur {bed.BedName} berbunyi " +
+                        $"{bed.BedStatus}, sedangkan catatan penempatan menunjukkan {expected}."
+                });
+            }
+
+            var totalData = drift.Count;
+
+            return new BedDriftPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = drift.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList()
+            };
         }
 
         // =====================================================================
