@@ -261,19 +261,16 @@ Untuk task implementasi:
 
 Jangan melakukan stage, commit, atau push kecuali diminta secara eksplisit.
 
-## Pelaporan Handoff ChatGPT Lokal
+## Pelaporan Task Modul
 
-Pelaporan lokal shared berada di `<frontend-repository-root>/.quilvian-local/`. Jangan membuat infrastruktur pelaporan tracked duplikat dalam repository backend ini.
+Setelah task roadmap selesai diimplementasikan dan divalidasi, buat atau perbarui satu laporan tracked pada modul yang dikerjakan:
 
-Setelah pekerjaan `BACKEND MODE` atau `CROSS-REPO MODE` yang bermakna, Codex boleh memperbarui file lokal yang diabaikan berikut:
+- backend: `docs/module-blueprints/<module-slug>/task/report/backend/<TASK-ID>.md`;
+- frontend: `docs/module-blueprints/<module-slug>/task/report/frontend/<TASK-ID>.md`.
 
-- `.quilvian-local/CHATGPT_HANDOFF.md`;
-- `.quilvian-local/CURRENT_ISSUES.md`; dan
-- `.quilvian-local/reports/YYYY-MM-DD_HHMM_<short-task-name>.md`.
+Pertahankan task ID persis seperti roadmap. Bila task dikerjakan ulang, perbarui file yang sama. Laporan tracked tersebut menjadi satu-satunya artefak laporan task; jangan membuat handoff atau laporan sesi terpisah. Task frontend hanya memperoleh wewenang lintas repository yang sempit untuk laporan frontend dan tautan buktinya pada roadmap serta `requirement-traceability.md` modul yang sama, bukan untuk source backend atau artefak blueprint lain.
 
-Laporan tersebut adalah artefak workspace lokal, bukan perubahan source frontend. Laporan harus tetap diabaikan serta tidak boleh di-commit atau di-push.
-
-Catat bukti seperti domain, controller, endpoint, HTTP method, request dan response DTO, enum/status, otorisasi, perilaku bisnis/workflow, file yang berubah, hasil build/test aktual, keadaan migration, dan status Git. Jangan menyertakan secret.
+Catat acceptance criteria dan bukti seperti domain, controller, endpoint, HTTP method, request dan response DTO, enum/status, otorisasi, perilaku bisnis/workflow, file yang berubah, hasil build/test aktual, keadaan migration, risiko, dan status Git. Jangan menyertakan secret.
 
 ## Kebutuhan yang Tidak Jelas
 
