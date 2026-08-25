@@ -89,9 +89,20 @@ benar-benar terpenuhi** menurut aturan roadmap sendiri.
 | --- | --- | --- | :---: |
 | `BE-RWI-001` | Angka batas waktu dan butir administrasi punya tempat tinggal di master, bukan di kode (`RWI-DEC-008`, `RWI-DEC-026`, `RWI-DEC-032`) | Build Release lulus; `has-pending-model-changes` bersih; migration **maju dan mundur lulus** pada PostgreSQL 16 lokal sekali pakai; bentuk kolom cocok kolom demi kolom dengan `erd/data-dictionary.md` bagian 12 dan 13; unique `ItemCode` terbukti menolak duplikat di database sungguhan ([laporan](../task/report/backend/be-rwi-001-tabel-master-rawat-inap.md)) | ✅ **Selesai** |
 | `BE-RWI-003` | Fondasi data seluruh modul berdiri; empat keadaan mustahil dijadikan mustahil oleh database (`INV-INP-02`, `INV-INP-03`, `INV-INP-10`; `RWI-DEC-054`, `RWI-DEC-055`, `RWI-DEC-065`) | Build Release lulus; `has-pending-model-changes` bersih; migration **maju dan mundur lulus** pada PostgreSQL 16 lokal sekali pakai; 251 kolom cocok kolom demi kolom dengan kamus data; **enam** unique index parsial terbentuk dan **terbukti menolak** pada database sungguhan (sepuluh uji, tujuh penolakan tiga penerimaan); enam test enum lulus ([laporan](../task/report/backend/be-rwi-003-tabel-transaksi-rawat-inap.md)) | ✅ **Selesai** |
-| `BE-RWI-002`, `BE-RWI-004` s.d. `BE-RWI-033` | — | Belum dikerjakan | Planned |
+| `BE-RWI-002` | Data master awal terisi tanpa seeder mengarang kamar dan tempat tidur, dan seeder menolak berjalan di produksi (`RWI-DEC-048`) | Kode dan 7 test ditulis; **build dan test BELUM DIJALANKAN** atas permintaan pemilik pekerjaan. Tidak satu pun acceptance criteria terbukti ([laporan](../task/report/backend/be-rwi-002-seeder-master-rawat-inap.md)) | 🟡 **Validasi belum** |
+| `BE-RWI-004` | Angka batas waktu dibaca dari master, bukan ditanam di kode; enam service dapat dibentuk container; nomor episode tidak pernah kembar (`RWI-DEC-008`, `RWI-AC-003`, `RWI-AC-110`, `QBE-CODE-003`) | Kode dan 15 test ditulis; **build, test, dan penyalaan aplikasi BELUM DIJALANKAN**. Acceptance criteria 1 "aplikasi menyala tanpa galat" belum terbukti sama sekali ([laporan](../task/report/backend/be-rwi-004-enam-service-dan-nomor-episode.md)) | 🟡 **Validasi belum** |
+| `BE-RWI-005` | Pengaturan dan butir administrasi dapat diubah admin lewat layar, dan menonaktifkan butir tidak menghapus penandaan pada episode lama (`RWI-DEC-008`, `RWI-DEC-026`, `RWI-DEC-032`) | Delapan endpoint dan 26 test ditulis; **build, test, dan pemanggilan endpoint BELUM DIJALANKAN**. Kriteria 6 (403) tidak dapat dibuktikan tanpa aplikasi berjalan; kriteria 2 baru separuhnya yang dapat diuji sebelum `BE-RWI-010`. Api contract **belum** diperbarui ([laporan](../task/report/backend/be-rwi-005-controller-master-rawat-inap.md)) | 🟡 **Validasi belum** |
+| `BE-RWI-006` s.d. `BE-RWI-033` | — | Belum dikerjakan | Planned |
 
-**2 dari 33 task backend selesai (6%).** Tidak ada task yang berstatus selesai-sebagian.
+**2 dari 33 task backend selesai (6%).** Tiga task berstatus 🟡 — kodenya sudah ditulis dan
+test-nya sudah disiapkan, tetapi **belum satu pun divalidasi**, sehingga belum boleh dihitung
+sebagai selesai.
+
+> **Kenapa ada status 🟡 sekarang.** Pada 24 Agustus 2026 pemilik pekerjaan meminta
+> `BE-RWI-002`, `BE-RWI-004`, dan `BE-RWI-005` dikerjakan **tanpa menjalankan build**. Aturan
+> roadmap sendiri menyatakan build sukses bukan tanda selesai; build yang belum pernah
+> dijalankan tentu lebih jauh lagi dari selesai. Ketiganya menunggu `dotnet build` dan
+> `dotnet test` — perintahnya tercantum pada masing-masing laporan task.
 
 ### Yang perlu diputuskan pemilik pekerjaan
 
@@ -105,6 +116,12 @@ benar-benar terpenuhi** menurut aturan roadmap sendiri.
 | `IX_InpNurseAssignment_EpisodeId_Active` membatasi satu perawat aktif per episode — perlu dipastikan cocok kenyataan ruangan | Domain | `BE-RWI-018`, keputusan kembali ke `/qv-design` |
 | Perbaikan `Program.cs` di luar scope `BE-RWI-003` | Operasional | Commit strategy — lihat [laporan](../task/report/backend/be-rwi-003-tabel-transaksi-rawat-inap.md) bagian 5.2 |
 | Project Tests di dalam folder project web — `MSB3030` berulang | Struktural, di luar scope modul ini | Build stability — lihat [laporan](../task/report/backend/be-rwi-003-tabel-transaksi-rawat-inap.md) bagian 6.2 |
+| **Build dan test `BE-RWI-002`, `BE-RWI-004`, `BE-RWI-005` belum dijalankan** | Menahan ketiganya ditandai selesai. Perintahnya ada pada masing-masing laporan | Backend/API |
+| Blueprint §4.20 dan roadmap `BE-RWI-005` menyatakan controller master memakai `ApplicationDbContext` langsung; kode mematuhi `QBE-SVC-001` dan memakai service | Dokumentasi, tanpa akibat teknis. Perlu diputuskan: sesuaikan blueprint, atau catat pengecualian pada `QBE_EXCEPTIONS.json` | Pemilik arsitektur backend — lihat [laporan BE-RWI-005](../task/report/backend/be-rwi-005-controller-master-rawat-inap.md) bagian 5.1 |
+| `contracts/validation-matrix.md` `0.4.0` tidak punya bagian pengaturan, padahal roadmap `BE-RWI-005` merujuknya | Aturan validasi kedua layar master tidak terkunci kontrak. Aturan yang dipakai ditulis apa adanya pada laporan untuk ditinjau | Product/Domain — lihat [laporan BE-RWI-005](../task/report/backend/be-rwi-005-controller-master-rawat-inap.md) bagian 5.3 |
+| Aturan baru "pengaturan terakhir tidak boleh dinonaktifkan" belum disahkan | Menutup satu jalan yang mungkin dibutuhkan admin. Belum ada dasarnya pada kontrak | Product/Domain |
+| Letak seeder: roadmap menulis `MasterData/Seeders/`, arsitektur §5 menulis `InPatientManagement/Seeders/` | Roadmap yang diikuti. Perbedaan perlu dirapikan pada salah satu dokumen | Pemilik arsitektur backend |
+| Nama lingkungan produksi yang sebenarnya belum diperiksa | Penjagaan produksi seeder membandingkan dengan `Production`. Bila lingkungan produksi memakai nama lain, penjagaan itu tidak berlaku | Backend/API bersama pemilik deployment |
 
 ---
 
@@ -237,8 +254,8 @@ Bagian ini memeriksa kebalikannya: adakah task yang tidak ada yang memintanya?
 
 | Task | Epic yang dilayani | Bila tidak menempel epic, apa dasarnya |
 | --- | --- | --- |
-| `BE-RWI-001` ✅, `BE-RWI-002`, `BE-RWI-003` ✅, `BE-RWI-004` | `EPIC RI-21` | — |
-| `BE-RWI-005` | `EPIC RI-31` | — |
+| `BE-RWI-001` ✅, `BE-RWI-002` 🟡, `BE-RWI-003` ✅, `BE-RWI-004` 🟡 | `EPIC RI-21` | — |
+| `BE-RWI-005` 🟡 | `EPIC RI-31` | — |
 | `BE-RWI-006`, `BE-RWI-032` | `EPIC RI-32` | — |
 | `BE-RWI-007` s.d. `BE-RWI-009` | `EPIC RI-21` | — |
 | `BE-RWI-010` | `EPIC RI-22` | — |
@@ -376,8 +393,8 @@ Sebelas butir, **seluruhnya beralasan tertulis**. Tidak ada satu pun yang berbun
 
 | Butir | Kenapa belum | Kapan dapat diperiksa |
 | --- | --- | --- |
-| 139 acceptance criteria → berkas test yang benar-benar ada | Baru ada satu berkas test Rawat Inap (`InpatientEnumFoundationTests.cs`, 6 test dari `BE-RWI-003`) | `BE-RWI-033` |
-| 49 endpoint baru → status tersedia pada api contract | Seluruhnya masih "Rencana (belum tersedia)". Baris ke-50 adalah perubahan perilaku pada endpoint yang sudah ada, dinilai terpisah. `BE-RWI-001` dan `BE-RWI-003` tidak menyentuh endpoint | `BE-RWI-033` |
+| 139 acceptance criteria → berkas test yang benar-benar ada | Sekarang ada tujuh berkas test Rawat Inap: `InpatientEnumFoundationTests.cs` (6 test, `BE-RWI-003`), ditambah enam berkas dari `BE-RWI-002`, `BE-RWI-004`, dan `BE-RWI-005` yang **belum pernah dijalankan** | `BE-RWI-033` |
+| 49 endpoint baru → status tersedia pada api contract | Delapan endpoint master sudah ada di dalam kode sejak `BE-RWI-005`, tetapi api contract **belum** diperbarui — dan memang belum boleh, karena build dan test belum dijalankan. 41 endpoint sisanya masih "Rencana (belum tersedia)". Baris ke-50 adalah perubahan perilaku pada endpoint yang sudah ada, dinilai terpisah | `BE-RWI-033` |
 | Cakupan e2e frontend | Frontend baru punya empat berkas test, tidak satu pun menyentuh Rawat Inap | `FE-RWI-019` |
 
 Ketiganya adalah **konsekuensi wajar** dari modul yang baru punya tabel tanpa endpoint, bukan lubang

@@ -58,6 +58,20 @@ task_count: 33
 > boleh: menerapkan migration ke database selain lokal, dan memulai `BE-RWI-006` sebelum
 > `FE-RWI-001` terbukti rilis. Lihat bagian 5 untuk gerbang yang masih terbuka.
 
+**Arti tanda status pada dokumen ini.**
+
+| Tanda | Artinya |
+| :---: | --- |
+| ✅ | Selesai. Acceptance criteria dan DoD **terbukti**, buktinya ada pada laporan task |
+| 🟡 | Kode sudah ditulis dan test sudah disiapkan, tetapi **validasinya belum dijalankan**. Task ini **belum selesai** dan tidak boleh dihitung sebagai selesai |
+| tanpa tanda | Belum dikerjakan |
+
+> **Kenapa 🟡 ada.** Pada 24 Agustus 2026 pemilik pekerjaan meminta `BE-RWI-002`, `BE-RWI-004`,
+> dan `BE-RWI-005` dikerjakan **tanpa menjalankan build**. Ketiganya karena itu punya kode dan
+> test, tetapi tidak punya satu pun hasil `dotnet build` maupun `dotnet test`. Aturan roadmap
+> ini sendiri menyatakan build sukses bukan tanda selesai — apalagi build yang belum pernah
+> dijalankan. Perintah yang perlu dijalankan tercantum pada masing-masing laporan task.
+
 Tiga hal yang membedakan modul ini dari modul lain yang pernah dikerjakan:
 
 | Hal | Keadaannya | Akibatnya pada roadmap |
@@ -115,7 +129,7 @@ Fakta ketiga yang paling mudah terlewat, jadi contohnya ditulis di sini:
 
 | Slice | Hasil yang dapat diperiksa | Gelombang PRD | Task |
 | --- | --- | --- | --- |
-| **S0 — Modul benar-benar berdiri** | Tabel ada, master terisi, service terdaftar, endpoint master dapat dipanggil | `MVP-0` | ✅ `BE-RWI-001`; `BE-RWI-002`; ✅ `BE-RWI-003`; `BE-RWI-004` s.d. `BE-RWI-006` |
+| **S0 — Modul benar-benar berdiri** | Tabel ada, master terisi, service terdaftar, endpoint master dapat dipanggil | `MVP-0` | ✅ `BE-RWI-001`; 🟡 `BE-RWI-002`; ✅ `BE-RWI-003`; 🟡 `BE-RWI-004`; 🟡 `BE-RWI-005`; `BE-RWI-006` |
 | **S1 — Petugas dapat membuka admisi dan memesan tempat tidur** | Episode `Draft` lahir bernomor, pemesanan mengunci 2 jam dan gugur sendiri | `MVP-1` | `BE-RWI-007` s.d. `BE-RWI-010` |
 | **S2 — Pasien punya lokasi, dan penempatan yang tidak layak ditolak** | Tempat tidur ganda mustahil; jenis kelamin dan isolasi menolak | `MVP-1` | `BE-RWI-011` s.d. `BE-RWI-015` |
 | **S3 — Sistem dapat menjawab siapa dirawat di mana** | Census dan lama dirawat | `MVP-1` | `BE-RWI-016` |
@@ -130,10 +144,10 @@ Fakta ketiga yang paling mudah terlewat, jadi contohnya ditulis di sini:
 
 ```text
 BE-RWI-001 (dua tabel master)  ✅ SELESAI
-   └── BE-RWI-002 (seeder master) ──┐
+   └── BE-RWI-002 (seeder master)  🟡 KODE SIAP, VALIDASI BELUM ──┐
    └── BE-RWI-003 (11 tabel + 4 unique index parsial)  ✅ SELESAI
-          └── BE-RWI-004 (DI 6 service + setting + nomor episode)
-                 ├── BE-RWI-005 (controller master) ──────────────┤
+          └── BE-RWI-004 (DI 6 service + setting + nomor episode)  🟡 KODE SIAP, VALIDASI BELUM
+                 ├── BE-RWI-005 (controller master)  🟡 KODE SIAP, VALIDASI BELUM ────┤
                  │                                                │
                  ├── BE-RWI-007 (buka admisi) ── BE-RWI-008 (ubah/batal/kedaluwarsa Draft)
                  │        └── BE-RWI-009 (daftar & detail episode)
@@ -195,10 +209,11 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### `BE-RWI-002` — Data master awal terisi tanpa menebak isi khas rumah sakit
+### 🟡 `BE-RWI-002` — Data master awal terisi tanpa menebak isi khas rumah sakit
 
 | Field | Isi |
 | --- | --- |
+| **Status** | 🟡 **IMPLEMENTASI SELESAI 24 Agustus 2026 — VALIDASI BELUM DIJALANKAN.** Pemilik pekerjaan meminta pengerjaan tanpa build, sehingga `dotnet build` dan `dotnet test` **tidak dijalankan**. Tidak satu pun acceptance criteria terbukti hari ini. Bukti: [laporan](../task/report/backend/be-rwi-002-seeder-master-rawat-inap.md). Task **belum boleh ditandai selesai** sebelum build dan test dijalankan |
 | **Outcome** | Modul dapat dinyalakan di lingkungan pengembangan tanpa satu pun layar menampilkan daftar pilihan kosong, dan tanpa seeder ikut mengarang kamar atau tempat tidur yang isinya khas tiap rumah sakit |
 | **Trace** | `RWI-DEC-048`; `02-backend-architecture.md` §8.1, §8.2, §8.4; `RWI-AC-108` s.d. `RWI-AC-110` |
 | **Reuse** | Pola `PrescriptionReviewCriterionSeeder.cs` dan `Icd10DiagnosisSeeder.cs` pada `Areas/HealthServices/PharmacyManagement/Seeders/`, termasuk cara seeder dipanggil saat aplikasi menyala |
@@ -229,10 +244,11 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### `BE-RWI-004` — Enam service terdaftar dan angka pengaturan terbaca dari master
+### 🟡 `BE-RWI-004` — Enam service terdaftar dan angka pengaturan terbaca dari master
 
 | Field | Isi |
 | --- | --- |
+| **Status** | 🟡 **IMPLEMENTASI SELESAI 24 Agustus 2026 — VALIDASI BELUM DIJALANKAN.** Pemilik pekerjaan meminta pengerjaan tanpa build. Acceptance criteria 1 "aplikasi menyala tanpa galat" **belum terbukti sama sekali**. Bukti: [laporan](../task/report/backend/be-rwi-004-enam-service-dan-nomor-episode.md). Task **belum boleh ditandai selesai** |
 | **Outcome** | Controller yang dibuat task berikutnya benar-benar dapat dijalankan, dan seluruh angka batas waktu dibaca dari master — bukan ditanam di kode |
 | **Trace** | `02-backend-architecture.md` §4.14 s.d. §4.19, §7.1 langkah 6; `RWI-DEC-008`; `RWI-AC-003` |
 | **Reuse** | `builder.Services.AddScoped<TService>()` pada `Program.cs`, pola yang sudah dipakai puluhan service lain. `InpEpisodeNumberService` mengikuti `EmergencyDocumentNumberService` yang sudah ada |
@@ -245,10 +261,12 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### `BE-RWI-005` — Admin dapat mengubah pengaturan dan butir administrasi lewat layar
+### 🟡 `BE-RWI-005` — Admin dapat mengubah pengaturan dan butir administrasi lewat layar
 
 | Field | Isi |
 | --- | --- |
+| **Status** | 🟡 **IMPLEMENTASI SELESAI 24 Agustus 2026 — VALIDASI BELUM DIJALANKAN.** Pemilik pekerjaan meminta pengerjaan tanpa build. Acceptance criteria 6 (403 tanpa hak akses) tidak dapat dibuktikan tanpa aplikasi berjalan, dan kriteria 2 baru separuhnya yang dapat diuji sebelum `BE-RWI-010` ada. Api contract **belum** diperbarui menjadi tersedia. Bukti: [laporan](../task/report/backend/be-rwi-005-controller-master-rawat-inap.md). Task **belum boleh ditandai selesai** |
+| **Catatan penyimpangan** | Kedua controller **memakai service**, tidak memakai `ApplicationDbContext` langsung seperti tertulis pada kolom *Reuse* di bawah dan `02-backend-architecture.md` §4.20. Dasarnya `QBE-SVC-001`, yang pada urutan wewenang `AGENTS.md` mengalahkan pola source yang sudah ada. Bentuk endpoint, hak akses, dan pesan bagi pengguna tidak berubah. Perlu diputuskan pemilik arsitektur — lihat laporan bagian 5.1 |
 | **Outcome** | Batas waktu pemesanan, ambang daftar pantau, dan daftar butir administrasi dapat diubah admin tanpa satu baris kode pun disentuh, dan nilai barunya berlaku pada pembacaan berikutnya |
 | **Trace** | `RWI-DEC-008`, `RWI-DEC-026`, `RWI-DEC-032`; api contract `0.3.0` bagian Inpatient Setting dan Inpatient Clearance Item (8 endpoint); validation matrix bagian pengaturan; `RWI-AC-003`, `RWI-AC-105` s.d. `RWI-AC-107` |
 | **Reuse** | Pola controller CRUD master data yang sudah ada pada `Areas/HealthServices/MasterData/Controllers/`. Tidak memakai service, sesuai konvensi project untuk CRUD sederhana |
