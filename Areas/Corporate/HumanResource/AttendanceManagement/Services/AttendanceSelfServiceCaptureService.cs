@@ -55,13 +55,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             var workforceProfileId = context.WorkforceProfileId!.Value;
             var nowUtc = DateTime.UtcNow;
 
+            var bypass = await ResolveGeolocationBypassAsync(actorUserId, nowUtc, cancellationToken);
+
             var openPunchState = await GetOpenPunchStateAsync(
                 actorUserId,
                 workforceProfileId,
                 nowUtc,
                 cancellationToken);
 
-            var locations = await GetAllowedLocationsAsync(context, cancellationToken);
+            var locations = await GetAllowedLocationsAsync(context, bypass.IsActive, cancellationToken);
             var localNow = ConvertUtcToLocal(nowUtc);
             var localDate = DateOnly.FromDateTime(localNow);
 
@@ -118,7 +120,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     CurrentAttendanceDate = currentDaily?.AttendanceDate,
                     AttendanceStatus = currentDaily?.AttendanceStatus,
                     AttendanceProcessingStatus = currentDaily?.ProcessingStatus,
-                    GpsRequired = true,
+                    GpsRequired = !bypass.IsActive,
+                    IsGeolocationBypassActive = bypass.IsActive,
+                    GeolocationBypassUntil = bypass.Until,
+                    GeolocationBypassReason = bypass.IsActive ? bypass.Reason : null,
                     AllowedLocations = locations,
                     Warnings = warnings
                 },
@@ -186,6 +191,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     "Attendance location wajib dipilih.");
             }
 
+            var nowUtc = DateTime.UtcNow;
+            var bypass = await ResolveGeolocationBypassAsync(actorUserId, nowUtc, cancellationToken);
+
+            // Format sanity applies regardless of bypass: a coordinate that is
+            // actually supplied must still be a real coordinate. This is not
+            // the "GPS required" business rule (that part is skipped below
+            // when bypass is active) — it just rejects garbage input.
             if (request.Latitude is < -90 or > 90 ||
                 request.Longitude is < -180 or > 180)
             {
@@ -194,23 +206,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     "Koordinat GPS tidak valid.");
             }
 
-            var maxAccuracyMeters = _configuration.GetValue<decimal?>("AttendanceCapture:MaxAccuracyMeters")
-                ?? DefaultMaxAccuracyMeters;
-
-            if (maxAccuracyMeters > 0)
+            if (!bypass.IsActive)
             {
-                if (!request.AccuracyMeters.HasValue)
+                if (!request.Latitude.HasValue || !request.Longitude.HasValue)
                 {
                     return AttendanceRawLogServiceResult<AttendanceSelfServiceCaptureResponse>.Fail(
                         StatusCodes.Status400BadRequest,
-                        "Akurasi lokasi tidak terbaca. Aktifkan GPS/lokasi dengan akurasi tinggi.");
+                        "Koordinat GPS wajib dikirim untuk mencatat attendance.");
                 }
 
-                if (request.AccuracyMeters.Value > maxAccuracyMeters)
+                var maxAccuracyMeters = _configuration.GetValue<decimal?>("AttendanceCapture:MaxAccuracyMeters")
+                    ?? DefaultMaxAccuracyMeters;
+
+                if (maxAccuracyMeters > 0)
                 {
-                    return AttendanceRawLogServiceResult<AttendanceSelfServiceCaptureResponse>.Fail(
-                        StatusCodes.Status400BadRequest,
-                        $"Akurasi lokasi terlalu rendah. Akurasi saat ini {request.AccuracyMeters.Value:0} meter, maksimal {maxAccuracyMeters:0} meter.");
+                    if (!request.AccuracyMeters.HasValue)
+                    {
+                        return AttendanceRawLogServiceResult<AttendanceSelfServiceCaptureResponse>.Fail(
+                            StatusCodes.Status400BadRequest,
+                            "Akurasi lokasi tidak terbaca. Aktifkan GPS/lokasi dengan akurasi tinggi.");
+                    }
+
+                    if (request.AccuracyMeters.Value > maxAccuracyMeters)
+                    {
+                        return AttendanceRawLogServiceResult<AttendanceSelfServiceCaptureResponse>.Fail(
+                            StatusCodes.Status400BadRequest,
+                            $"Akurasi lokasi terlalu rendah. Akurasi saat ini {request.AccuracyMeters.Value:0} meter, maksimal {maxAccuracyMeters:0} meter.");
+                    }
                 }
             }
 
@@ -242,7 +264,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             var context = contextResult.Data;
             var workforceProfileId = context.WorkforceProfileId!.Value;
-            var nowUtc = DateTime.UtcNow;
 
             var openPunchState = await GetOpenPunchStateAsync(
                 actorUserId,
@@ -269,6 +290,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             var locationResult = await ResolveAndValidateLocationAsync(
                 context,
                 request,
+                bypass,
                 cancellationToken);
 
             if (!locationResult.Success || locationResult.Data == null)
@@ -397,6 +419,45 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 response.Message);
         }
 
+        // Effective bypass formula matches the canonical one already used by
+        // the user-account read path (EmployeeController/DoctorController/
+        // ExternalUserController BuildEmployeeUserAccountCompactResponseAsync
+        // and equivalents): enabled AND (no expiry OR expiry not yet passed).
+        private async Task<GeolocationBypassState> ResolveGeolocationBypassAsync(
+            Guid actorUserId,
+            DateTime nowUtc,
+            CancellationToken cancellationToken)
+        {
+            var bypass = await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => x.Id == actorUserId)
+                .Select(x => new
+                {
+                    x.IsGeolocationBypassEnabled,
+                    x.GeolocationBypassUntil,
+                    x.GeolocationBypassReason
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (bypass == null)
+            {
+                return new GeolocationBypassState { IsActive = false };
+            }
+
+            var isActive =
+                bypass.IsGeolocationBypassEnabled &&
+                (!bypass.GeolocationBypassUntil.HasValue ||
+                 bypass.GeolocationBypassUntil.Value >= nowUtc);
+
+            return new GeolocationBypassState
+            {
+                IsActive = isActive,
+                Enabled = bypass.IsGeolocationBypassEnabled,
+                Until = bypass.GeolocationBypassUntil,
+                Reason = bypass.GeolocationBypassReason
+            };
+        }
+
         private async Task<AttendanceRawLogServiceResult<HumanResourceUserContextDto>> ResolveContextAsync(
             Guid actorUserId,
             CancellationToken cancellationToken)
@@ -436,6 +497,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private async Task<List<AttendanceSelfServiceLocationResponse>> GetAllowedLocationsAsync(
             HumanResourceUserContextDto context,
+            bool isBypassActive,
             CancellationToken cancellationToken)
         {
             return await BuildAllowedLocationQuery(context)
@@ -453,7 +515,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     WorkLocationId = x.WorkLocationId,
                     LocationType = x.LocationType,
                     RadiusMeters = x.RadiusMeters,
-                    RequiresGeolocation = true,
+                    RequiresGeolocation = !isBypassActive,
                     AllowMobileAttendance = x.AllowMobileAttendance
                 })
                 .ToListAsync(cancellationToken);
@@ -512,8 +574,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         private async Task<AttendanceRawLogServiceResult<LocationValidationResult>> ResolveAndValidateLocationAsync(
             HumanResourceUserContextDto context,
             AttendanceSelfServiceCaptureRequest request,
+            GeolocationBypassState bypass,
             CancellationToken cancellationToken)
         {
+            // Attendance location authorization (organization/hospital/work-location
+            // scope) always applies, bypass or not.
             var location = await BuildAllowedLocationQuery(context)
                 .FirstOrDefaultAsync(
                     x => x.Id == request.AttendanceLocationId,
@@ -526,17 +591,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     "Attendance location tidak tersedia untuk employee atau tidak mengizinkan attendance self-service.");
             }
 
-            var distanceMeters = CalculateDistanceMeters(
-                request.Latitude,
-                request.Longitude,
-                location.Latitude!.Value,
-                location.Longitude!.Value);
+            decimal? distanceMeters = request.Latitude.HasValue && request.Longitude.HasValue
+                ? CalculateDistanceMeters(
+                    request.Latitude.Value,
+                    request.Longitude.Value,
+                    location.Latitude!.Value,
+                    location.Longitude!.Value)
+                : null;
 
-            if (distanceMeters > location.RadiusMeters)
+            if (!bypass.IsActive)
             {
-                return AttendanceRawLogServiceResult<LocationValidationResult>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    $"Posisi berada di luar area attendance. Jarak {distanceMeters:0.##} meter dari titik attendance, sedangkan radius yang diizinkan {location.RadiusMeters} meter.");
+                // Non-bypass callers already had coordinates required earlier in
+                // CaptureAsync; this guard is defensive only.
+                if (!distanceMeters.HasValue)
+                {
+                    return AttendanceRawLogServiceResult<LocationValidationResult>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Koordinat GPS wajib dikirim untuk mencatat attendance.");
+                }
+
+                if (distanceMeters.Value > location.RadiusMeters)
+                {
+                    return AttendanceRawLogServiceResult<LocationValidationResult>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        $"Posisi berada di luar area attendance. Jarak {distanceMeters.Value:0.##} meter dari titik attendance, sedangkan radius yang diizinkan {location.RadiusMeters} meter.");
+                }
             }
 
             return AttendanceRawLogServiceResult<LocationValidationResult>.Ok(
@@ -545,7 +624,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     Location = location,
                     DistanceMeters = distanceMeters
                 },
-                "Lokasi GPS berada di dalam geofence attendance.");
+                bypass.IsActive
+                    ? "Attendance location dicatat dengan geolocation bypass aktif."
+                    : "Lokasi GPS berada di dalam geofence attendance.");
         }
 
         private async Task<OpenPunchState> GetOpenPunchStateAsync(
@@ -708,7 +789,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 : null;
 
             var radiusMeters = location?.RadiusMeters ?? 0;
-            var distanceMeters = rawLog.DistanceMeters ?? 0m;
+            // Null distance means no GPS was captured for this raw log (e.g. an
+            // active geolocation bypass at the time it was created) — that is
+            // not the same as "0 meters away", so it is not coerced to 0m here.
+            var distanceMeters = rawLog.DistanceMeters;
 
             var response = new AttendanceSelfServiceCaptureResponse
             {
@@ -721,7 +805,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 AttendanceLocationName = location?.AttendanceLocationName ?? string.Empty,
                 DistanceMeters = distanceMeters,
                 RadiusMeters = radiusMeters,
-                IsInsideGeofence = radiusMeters > 0 && distanceMeters <= radiusMeters,
+                IsInsideGeofence =
+                    !distanceMeters.HasValue ||
+                    (radiusMeters > 0 && distanceMeters.Value <= radiusMeters),
                 WorkDate = daily?.AttendanceDate,
                 ProcessingTriggered = false,
                 ProcessingSucceeded =
@@ -800,7 +886,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         private sealed class LocationValidationResult
         {
             public MstAttendanceLocation Location { get; set; } = null!;
-            public decimal DistanceMeters { get; set; }
+            public decimal? DistanceMeters { get; set; }
+        }
+
+        private sealed class GeolocationBypassState
+        {
+            public bool IsActive { get; set; }
+            public bool Enabled { get; set; }
+            public DateTime? Until { get; set; }
+            public string? Reason { get; set; }
         }
 
         private sealed class OpenPunchState
