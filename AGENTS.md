@@ -1,87 +1,89 @@
-# Quilvian Backend Development Rules
+# Aturan Pengembangan Backend Quilvian
 
-## Scope
+## Cakupan
 
-This file applies to the entire `NewQuilvianSystemBackend` repository. This is a large existing application. Keep each task narrowly scoped and preserve established domain boundaries, API contracts, data access, authorization, and workflow behavior.
+File ini berlaku untuk seluruh repository `NewQuilvianSystemBackend`. Ini adalah aplikasi existing yang besar. Jaga agar setiap task memiliki cakupan sempit serta pertahankan batas domain, kontrak API, akses data, otorisasi, dan perilaku workflow yang sudah mapan.
 
-The primary rule is:
+Aturan utamanya adalah:
 
-> Follow existing code. Do not invent a new architecture.
+> Ikuti kode yang sudah ada. Jangan menciptakan arsitektur baru.
 
-For NEW CODE, existing source/reference patterns are evidence only and MUST NOT override the canonical Backend Engineering Contract. Authority precedence is: (1) explicit task/write authority and repository safety rules; (2) `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`; (3) `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; (4) applicable `.codex` operational guidance; (5) existing source/reference patterns. A comparable `Trx*`, direct-controller-DbContext, Count/Max/Last+1, or generic persisted `SortOrder` legacy pattern does not authorize that pattern in NEW CODE. Apply the existing legacy ratchet without mass rewrite.
+Untuk `NEW CODE`, pola source/referensi existing hanya merupakan bukti dan TIDAK BOLEH mengesampingkan Backend Engineering Contract canonical. Urutan wewenangnya adalah: (1) wewenang task/tulis eksplisit dan aturan keselamatan repository; (2) `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`; (3) `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; (4) panduan operasional `.codex` yang berlaku; (5) pola source/referensi existing. Pola legacy `Trx*`, controller yang mengakses DbContext secara langsung, Count/Max/Last+1, atau persisted `SortOrder` generik yang sebanding tidak memberi wewenang untuk menggunakan pola tersebut dalam `NEW CODE`. Terapkan legacy ratchet existing tanpa penulisan ulang massal.
 
-Before implementation, inspect the nearest comparable controller, DTO, model, service, data-access usage, validation, authorization rule, workflow, EF configuration, migration, and endpoint as applicable.
+Sebelum implementasi, periksa controller, DTO, model, service, penggunaan akses data, validasi, aturan otorisasi, workflow, konfigurasi EF, migration, dan endpoint terdekat yang sebanding sesuai kebutuhan.
 
-## Codex Governance Operating Layer
+## Lapisan Operasional Tata Kelola Codex
 
-`AGENTS.md` remains the authoritative repository constitution. Read the following only when their condition applies:
+`AGENTS.md` tetap menjadi konstitusi repository yang otoritatif. Baca dokumen berikut hanya ketika kondisinya berlaku:
 
-- Every implementation task: `.codex/TASK_RULES.md`
-- Every backend application implementation: `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` and `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`
-- Classification and model selection: `.codex/TASK_CLASSIFICATION.md`
-- Cross-repository task: `.codex/CROSS_REPO_RULES.md`
-- Before completion: `.codex/REVIEW_RULES.md`
-- Local handoff/report: `.codex/REPORT_TEMPLATE.md`
-- API/controller/DTO/contract work: `.codex/API_RULES.md`
-- Entity/EF/database/migration work: `.codex/DATABASE_RULES.md`
+- Setiap task implementasi: `.codex/TASK_RULES.md`
+- Setiap implementasi aplikasi backend: `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`
+- Klasifikasi dan pemilihan model: `.codex/TASK_CLASSIFICATION.md`
+- Task lintas repository: `.codex/CROSS_REPO_RULES.md`
+- Sebelum penyelesaian: `.codex/REVIEW_RULES.md`
+- Handoff/laporan lokal: `.codex/REPORT_TEMPLATE.md`
+- Pekerjaan API/controller/DTO/contract: `.codex/API_RULES.md`
+- Pekerjaan entity/EF/database/migration: `.codex/DATABASE_RULES.md`
 
-These documents supplement rather than replace the repository-specific safety, architecture, branch, security, validation, database, and write-scope rules in this file. Simple read-only questions do not require loading the full operating layer.
+Dokumen-dokumen tersebut melengkapi, bukan menggantikan, aturan keselamatan, arsitektur, branch, keamanan, validasi, database, dan cakupan tulis khusus repository dalam file ini. Pertanyaan read-only sederhana tidak memerlukan pemuatan seluruh lapisan operasional.
 
-## Backend Engineering Contract Preflight
+## Pemeriksaan Awal Kontrak Rekayasa Backend
 
-Before changing backend application source, determine the Area, Module, registry owner/prefix, applicability (`NEW CODE`, `TOUCHED LEGACY`, or `LEGACY MIGRATION`), and applicable QBE rule IDs from the canonical contract. A new operational module/entity without an approved registry entry is BLOCKED under `QBE-MOD-002`; do not infer a prefix from its folder. Follow the legacy ratchet: do not mass-refactor untouched legacy.
+Sebelum mengubah source aplikasi backend, tentukan Area, Module, owner/prefix registry, applicability (`NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATION`), serta QBE rule ID yang berlaku dari kontrak canonical. Module/entity operasional baru tanpa entri registry yang disetujui berstatus `BLOCKED` berdasarkan `QBE-MOD-002`; jangan menyimpulkan prefix dari foldernya. Ikuti legacy ratchet: jangan melakukan refactor massal terhadap legacy yang tidak disentuh.
 
-## Language and Communication
+## Bahasa dan Komunikasi
 
-- Gunakan Bahasa Indonesia untuk komunikasi dengan pengguna, termasuk progress update, audit finding, warning, recommendation, validation result, review summary, dan final response.
-- Istilah teknis, nama file, class, method, property, endpoint, route, field database, enum, command, HTTP status, framework/library name, dan identifier source code tetap dalam bentuk aslinya. Source code dan identifier mengikuti konvensi existing repository; jangan menerjemahkan identifier hanya karena bahasa komunikasi menggunakan Bahasa Indonesia.
-- Code comment mengikuti konvensi existing repository; jangan melakukan mass translation terhadap comment existing. Jika tool/compiler/runtime menghasilkan error dalam Bahasa Inggris, pertahankan error asli saat perlu dikutip lalu jelaskan maknanya dalam Bahasa Indonesia.
+- Gunakan Bahasa Indonesia untuk komunikasi dengan pengguna, termasuk pembaruan kemajuan, temuan audit, peringatan, rekomendasi, hasil validasi, ringkasan review, dan respons akhir.
+- Istilah teknis, nama file, class, method, property, endpoint, route, field database, enum, command, HTTP status, nama framework/library, dan identifier source code tetap dalam bentuk aslinya. Source code dan identifier mengikuti konvensi repository existing; jangan menerjemahkan identifier hanya karena bahasa komunikasi menggunakan Bahasa Indonesia.
+- Code comment mengikuti konvensi repository existing; jangan melakukan penerjemahan massal terhadap comment existing. Jika tool/compiler/runtime menghasilkan error dalam Bahasa Inggris, pertahankan error asli saat perlu dikutip lalu jelaskan maknanya dalam Bahasa Indonesia.
 - Label kontrak/taxonomy canonical tetap menggunakan bentuknya, misalnya `READY TO REUSE`, `REUSE WITH ADAPTER`, `EXTEND`, `REPAIR`, `MISSING`, `CONFLICT`, dan `UNKNOWN`; penjelasannya tetap dalam Bahasa Indonesia.
 - Jangan beralih ke Bahasa Inggris kecuali pengguna secara eksplisit meminta bahasa lain atau output tertentu wajib memakai Bahasa Inggris karena kontrak/tooling.
 
-## Repository Identity and Branch Workflow
+## Identitas Repository dan Alur Kerja Branch
 
 - Repository: `NewQuilvianSystemBackend`
-- Primary development branch: `AgentCodexBackend`
-- Frontend reference repository: `QuilvianSystemFrontendDev` (locate from authorized workspace context; report a missing dependency rather than guessing a path)
+- Branch development aktif ditentukan per module atau work item oleh pemegang modul yang tercatat dalam `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, atau melalui instruksi task/blueprint yang secara eksplisit telah disetujui oleh pemegang tersebut.
+- Upstream yang diharapkan: `origin/<active-development-branch>`.
+- `AgentCodexBackend` bukan branch wajib untuk seluruh repository dan tidak boleh mengesampingkan branch yang ditetapkan pemegang modul.
+- Repository referensi frontend: `QuilvianSystemFrontendDev` (temukan dari konteks workspace yang diberi wewenang; laporkan dependency yang hilang alih-alih menebak path).
 
-`AgentCodexBackend` is the protected integration and base branch. It remains the canonical backend development integration branch, but it is not required to be the current branch while implementing an authorized feature.
+Sebelum implementasi aplikasi backend, verifikasi branch dan upstream backend saat ini menggunakan command Git read-only, wewenang task/tulis, keadaan Git yang bersih atau dapat dipulihkan, serta kesesuaiannya dengan branch yang ditetapkan pemegang modul atau task/blueprint yang disetujui. Jika penetapan branch yang otoritatif tidak tersedia, berhenti dan minta penetapannya. Jika branch atau upstream saat ini berbeda dari penetapan tersebut, ketidaksesuaian itu adalah blocker. Jangan menciptakan nama branch atau mengganti branch secara otomatis.
 
-Before backend application implementation, verify the current backend branch with read-only Git commands, the task/write authority, a clean or recoverable Git state, and the feature branch's base relationship to `AgentCodexBackend`. If the task requires `AgentCodexBackend` specifically, verify that exact branch. If the task authorizes a named feature branch, the current branch must match that authorized name; a mismatch is a blocker. Do not invent a branch name.
+Untuk feature branch lokal yang baru dibuat, ketiadaan upstream sebelum publikasi pertama yang diberi wewenang adalah keadaan valid dan bukan blocker bagi implementasi, build, atau validasi lokal. Upstream menjadi relevan ketika task terpisah memberi wewenang publikasi. Untuk feature branch existing yang telah diberi wewenang, jangan otomatis melakukan switch, merge, atau rebase hanya untuk menyinkronkannya; periksa dan laporkan kebutuhan sinkronisasi kecuali task secara eksplisit memberi wewenang tindakan Git tersebut.
 
-For a newly created local feature branch, a missing upstream before its first authorized publication is valid and is not a blocker for local implementation, build, or validation. Upstream becomes relevant when a separate task authorizes publication. For an existing authorized feature branch, do not automatically switch, merge, or rebase merely to synchronize it; inspect and report synchronization requirements unless the task explicitly authorizes the Git operation.
+Implementasi feature backend normal harus mengikuti perlindungan branch tujuan yang ditetapkan pemegang modul atau task yang disetujui: feature branch yang diberi wewenang, implementasi dan validasi lokal, commit/push yang diberi wewenang secara terpisah, Pull Request bila diwajibkan branch tujuan, pemeriksaan QBE Strict GitRange yang diwajibkan, lalu merge ke branch tujuan yang ditetapkan. Jangan melemahkan persyaratan Pull Request, pemeriksaan QBE wajib, atau perlindungan branch tujuan yang berlaku.
 
-Normal backend feature implementation must follow the protected-branch workflow: an authorized feature branch based on an up-to-date `origin/AgentCodexBackend`, local implementation and validation, separately authorized commit/push, Pull Request, required QBE Strict GitRange check, then merge to `AgentCodexBackend`. Do not weaken the Pull Request requirement, required QBE check, or protected integration branch safeguards.
+Implementasi source dan publikasi Git adalah operasi terpisah. Kecuali diminta secara eksplisit, jangan melakukan commit, push, pull, merge, rebase, switch atau checkout branch, reset, force checkout, stash, cherry-pick, membuat pull request, atau deployment.
 
-Source implementation and Git publication are separate operations. Unless explicitly requested, do not commit, push, pull, merge, rebase, switch or checkout branches, reset, force checkout, stash, cherry-pick, create a pull request, or deploy.
+Untuk pekerjaan yang mencakup backend dan frontend, pemilihan branch serta wewenang tulis setiap repository mengikuti penetapan pemegang modul yang relevan dan target tulis eksplisit task. Nama branch agent yang tetap tidak boleh menggantikan kepemilikan modul atau memberikan wewenang tulis lintas repository.
 
-## Current Backend Platform
+## Platform Backend Saat Ini
 
-- Application type: ASP.NET Core Web API
+- Jenis aplikasi: ASP.NET Core Web API
 - Project SDK: `Microsoft.NET.Sdk.Web`
 - Target framework: `.NET 9` (`net9.0`)
-- SDK baseline from `global.json`: `9.0.316`, rolling to the latest patch
-- Entity Framework Core and ASP.NET Core Identity: `9.0.18`
-- PostgreSQL provider: `Npgsql.EntityFrameworkCore.PostgreSQL` `9.0.4`
-- Main solution: `QuilvianSystemBackend.sln`
-- Main project: `QuilvianSystemBackend.csproj`
-- Application composition and dependency registration: `Program.cs`
-- Application DbContext: `Repositories/ApplicationDbContext.cs`
-- EF migrations: `Migrations/`
+- Baseline SDK dari `global.json`: `9.0.316`, dengan roll forward ke patch terbaru
+- Entity Framework Core dan ASP.NET Core Identity: `9.0.18`
+- Provider PostgreSQL: `Npgsql.EntityFrameworkCore.PostgreSQL` `9.0.4`
+- Solution utama: `QuilvianSystemBackend.sln`
+- Project utama: `QuilvianSystemBackend.csproj`
+- Komposisi aplikasi dan registrasi dependency: `Program.cs`
+- DbContext aplikasi: `Repositories/ApplicationDbContext.cs`
+- EF migration: `Migrations/`
 
-No separate test project was detected when these rules were created. Reinspect the workspace before assuming that tests remain unavailable.
+Project test terpisah belum terdeteksi ketika aturan ini dibuat. Periksa kembali workspace sebelum menganggap test masih tidak tersedia.
 
-Do not upgrade the SDK, target framework, packages, or infrastructure dependencies unless the task explicitly requires it.
+Jangan melakukan upgrade SDK, target framework, package, atau dependency infrastruktur kecuali task secara eksplisit mengharuskannya.
 
-## Existing Architecture Map
+## Peta Arsitektur yang Ada
 
-- Root API and infrastructure: `Controllers/`, `DTOs/`, `Models/`, `Services/`, `Repositories/`, `Responses/`, `Attributes/`, `Filters/`, `Middlewares/`, and `Shared/`
-- Domain APIs: `Areas/`
+- API root dan infrastruktur: `Controllers/`, `DTOs/`, `Models/`, `Services/`, `Repositories/`, `Responses/`, `Attributes/`, `Filters/`, `Middlewares/`, dan `Shared/`
+- API domain: `Areas/`
   - `Areas/Administrator/`
   - `Areas/Corporate/`
   - `Areas/HealthServices/`
   - `Areas/SelfServices/`
-- Human Resource domains include the actual source boundaries under:
+- Domain Human Resource mencakup batas source yang sebenarnya di:
   - `Areas/Corporate/HumanResource/WorkforceCore/`
   - `Areas/Corporate/HumanResource/WorkforceProfileManagement/`
   - `Areas/Corporate/HumanResource/WorkflowManagement/`
@@ -89,190 +91,190 @@ Do not upgrade the SDK, target framework, packages, or infrastructure dependenci
   - `Areas/Corporate/HumanResource/OvertimeManagement/`
   - `Areas/Corporate/HumanResource/SchedulingManagement/`
   - `Areas/SelfServices/HumanResource/`
-- DTOs, models, controllers, and services are normally placed inside the owning domain when that pattern exists.
-- Shared response contracts include `Responses/ApiResponse.cs` and `Responses/PagedResult.cs`.
+- DTO, model, controller, dan service biasanya ditempatkan di dalam domain pemilik ketika pola tersebut tersedia.
+- Kontrak response shared mencakup `Responses/ApiResponse.cs` dan `Responses/PagedResult.cs`.
 
-Respect these boundaries. Do not move classes between domains, create a new root architecture, or introduce a generic layer merely because it appears cleaner. The repository currently uses `ApplicationDbContext` directly in many controllers and domain services; do not invent a repository abstraction where the closest implementation does not use one.
+Hormati batas-batas tersebut. Jangan memindahkan class antardomain, membuat arsitektur root baru, atau memperkenalkan layer generik hanya karena terlihat lebih bersih. Repository saat ini menggunakan `ApplicationDbContext` secara langsung di banyak controller dan domain service; jangan menciptakan abstraksi repository ketika implementasi terdekat tidak menggunakannya.
 
-## Controller and API Conventions
+## Konvensi Controller dan API
 
-Before creating or changing an endpoint, inspect the closest controller and preserve its established conventions, including as applicable:
+Sebelum membuat atau mengubah endpoint, periksa controller terdekat dan pertahankan konvensi yang sudah mapan, termasuk sesuai kebutuhan:
 
-- `[ApiController]` and `ControllerBase`;
-- versioned routes beginning with `api/v1/...`;
-- Area/domain route naming;
-- HTTP verb and route template;
-- request binding and DTO validation;
-- `ApiResponse<T>` success and failure envelopes;
-- `PagedResult<T>` pagination shape;
-- status codes, error messages, filters, sort order, and pagination defaults;
-- Swagger tags;
-- cancellation and asynchronous EF patterns; and
-- soft-delete and active-status conventions.
+- `[ApiController]` dan `ControllerBase`;
+- versioned route yang dimulai dengan `api/v1/...`;
+- penamaan route Area/domain;
+- HTTP verb dan route template;
+- request binding dan validasi DTO;
+- envelope sukses dan gagal `ApiResponse<T>`;
+- bentuk pagination `PagedResult<T>`;
+- status code, error message, filter, sort order, dan default pagination;
+- tag Swagger;
+- pola cancellation dan EF asynchronous; serta
+- konvensi soft-delete dan status aktif.
 
-Do not infer a route from a frontend URL. Confirm the actual controller route and action first.
+Jangan menyimpulkan route dari URL frontend. Konfirmasikan route dan action controller yang sebenarnya terlebih dahulu.
 
-## API Contract Discipline
+## Disiplin Kontrak API
 
-Frontend requirements do not automatically redefine backend contracts. Before modifying an API, inspect the existing controller route, action, HTTP verb, request DTO, response DTO, enum or status values, validation, authorization, pagination/filter behavior, and workflow or business rules.
+Requirement frontend tidak otomatis mendefinisikan ulang kontrak backend. Sebelum mengubah API, periksa route controller, action, HTTP verb, request DTO, response DTO, nilai enum atau status, validasi, otorisasi, perilaku pagination/filter, serta workflow atau aturan bisnis existing.
 
-Preserve backward compatibility where practical. Do not rename, remove, or break an existing endpoint, field, response envelope, enum/status value, or action unless the task explicitly requires the breaking change and its consumers have been assessed.
+Pertahankan backward compatibility ketika memungkinkan. Jangan mengganti nama, menghapus, atau merusak endpoint, field, response envelope, nilai enum/status, atau action existing kecuali task secara eksplisit mengharuskan breaking change dan konsumennya telah dinilai.
 
-If frontend and backend disagree, report the mismatch. During backend work the frontend may explain current consumer behavior, but it does not override backend business or security rules automatically.
+Jika frontend dan backend tidak selaras, laporkan ketidaksesuaian. Selama pekerjaan backend, frontend dapat menjelaskan perilaku consumer saat ini, tetapi tidak otomatis mengesampingkan aturan bisnis atau keamanan backend.
 
-## DTO, Model, and Validation Rules
+## Aturan DTO, Model, dan Validasi
 
-- Keep transport contracts in the owning `DTOs/` folder when that domain pattern exists.
-- Do not expose EF entities merely to avoid defining an established response DTO.
-- Preserve nullable behavior, date/time types, identifier types, default values, and validation attributes.
-- Existing DTOs commonly use data annotations such as `[Required]`, `[MaxLength]`, and `[Range]`; inspect the closest contract before choosing validation behavior.
-- Keep persistence models in the owning `Models/` folder and preserve existing table/schema, base-model, relationship, audit, soft-delete, and active-status patterns.
-- Treat entity changes, API contract changes, migration generation, and database execution as separate decisions.
+- Simpan kontrak transport di folder `DTOs/` milik domain ketika pola domain tersebut tersedia.
+- Jangan mengekspos entity EF hanya untuk menghindari pembuatan response DTO yang sudah menjadi pola.
+- Pertahankan perilaku nullable, tipe date/time, tipe identifier, default value, dan validation attribute.
+- DTO existing umumnya menggunakan data annotation seperti `[Required]`, `[MaxLength]`, dan `[Range]`; periksa kontrak terdekat sebelum memilih perilaku validasi.
+- Simpan persistence model di folder `Models/` milik domain dan pertahankan pola table/schema, base-model, relationship, audit, soft-delete, serta status aktif existing.
+- Perlakukan perubahan entity, perubahan kontrak API, pembuatan migration, dan eksekusi database sebagai keputusan terpisah.
 
-## Entity Framework and Data Access Rules
+## Aturan Entity Framework dan Akses Data
 
-The application uses `Repositories/ApplicationDbContext.cs`, ASP.NET Core Identity integration, Entity Framework Core, and PostgreSQL through Npgsql.
+Aplikasi menggunakan `Repositories/ApplicationDbContext.cs`, integrasi ASP.NET Core Identity, Entity Framework Core, dan PostgreSQL melalui Npgsql.
 
-Before changing persistence behavior:
+Sebelum mengubah perilaku persistence:
 
-1. Inspect the relevant model and `ApplicationDbContext` registration/configuration.
-2. Inspect the nearest query and mutation patterns in controllers or services.
-3. Preserve tracking versus `AsNoTracking`, relationship loading, transaction, concurrency, soft-delete, and audit conventions where applicable.
-4. Avoid broad query rewrites or schema changes outside the requested domain.
+1. Periksa model yang relevan serta registrasi/konfigurasi `ApplicationDbContext`.
+2. Periksa pola query dan mutation terdekat di controller atau service.
+3. Pertahankan konvensi tracking versus `AsNoTracking`, relationship loading, transaction, concurrency, soft-delete, dan audit sesuai kebutuhan.
+4. Hindari penulisan ulang query yang luas atau perubahan schema di luar domain yang diminta.
 
-Do not automatically create, delete, reset, or rewrite migrations. Migration generation requires explicit task authorization. Running a migration or `Update-Database` against any database requires a separate explicit instruction. A model change does not itself authorize either operation.
+Jangan otomatis membuat, menghapus, mereset, atau menulis ulang migration. Pembuatan migration memerlukan wewenang task eksplisit. Menjalankan migration atau `Update-Database` terhadap database apa pun memerlukan instruksi eksplisit terpisah. Perubahan model tidak dengan sendirinya memberi wewenang untuk salah satu tindakan tersebut.
 
-## Database Safety
+## Keselamatan Database
 
-Never execute destructive database operations automatically. Do not drop databases or tables, truncate business tables, mass-delete records, reset migrations, overwrite environment configuration, or update a production/shared database unless explicitly authorized with a clearly bounded target.
+Jangan pernah menjalankan operasi database destruktif secara otomatis. Jangan melakukan drop database atau table, truncate business table, mass-delete record, reset migration, menimpa konfigurasi environment, atau memperbarui database production/shared kecuali diberi wewenang secara eksplisit dengan target yang jelas dan terbatas.
 
-Do not run database commands merely to validate a source change. Report when database validation remains pending.
+Jangan menjalankan command database hanya untuk memvalidasi perubahan source. Laporkan ketika validasi database masih tertunda.
 
-## Authorization and Current-User Rules
+## Aturan Otorisasi dan Pengguna Saat Ini
 
-Preserve the existing security model. Inspect the actual use of:
+Pertahankan model keamanan existing. Periksa penggunaan sebenarnya dari:
 
 - `[Authorize]`;
-- controller metadata such as `[AccessController]`;
-- action metadata such as `[AccessAction]` and `[AccessPermission]`;
+- metadata controller seperti `[AccessController]`;
+- metadata action seperti `[AccessAction]` dan `[AccessPermission]`;
 - `AccessTypes`;
-- authenticated current-user and claim resolution;
-- role and permission checks;
-- self-service ownership;
-- actor and delegated-actor workflow authorization; and
-- action availability returned by the backend.
+- resolusi current-user dan claim yang terautentikasi;
+- pemeriksaan role dan permission;
+- kepemilikan self-service;
+- otorisasi workflow actor dan delegated-actor; serta
+- ketersediaan action yang dikembalikan backend.
 
-Never solve a frontend visibility problem by weakening backend authorization. Do not accept arbitrary actor, workforce, or user identifiers where the existing self-service pattern derives ownership from the authenticated user.
+Jangan pernah menyelesaikan masalah visibilitas frontend dengan melemahkan otorisasi backend. Jangan menerima identifier actor, workforce, atau user secara sembarang ketika pola self-service existing menurunkan kepemilikan dari pengguna yang terautentikasi.
 
-## Workflow and Business Rules
+## Alur Kerja dan Aturan Bisnis
 
-The backend remains authoritative for workflow transitions, actor authorization, `AvailableActions`, approval and rejection, validation, status transitions, and domain business rules.
+Backend tetap otoritatif untuk transisi workflow, otorisasi actor, `AvailableActions`, approval dan rejection, validasi, transisi status, serta aturan bisnis domain.
 
-Before modifying workflow behavior, inspect the owning controller, DTOs, status constants/enums, lifecycle service, integration service, actor resolution, idempotency handling, and downstream effects. Do not move security-sensitive or business-critical decisions into frontend assumptions.
+Sebelum mengubah perilaku workflow, periksa controller pemilik, DTO, constant/enum status, lifecycle service, integration service, resolusi actor, penanganan idempotency, dan dampak downstream. Jangan memindahkan keputusan sensitif keamanan atau kritis bisnis menjadi asumsi frontend.
 
-## Services and Background Processing
+## Layanan dan Pemrosesan Latar Belakang
 
-Use the closest domain service pattern. The repository contains domain services, query services, lifecycle/integration services, and hosted scheduler services. Preserve dependency-registration, transaction, retry, idempotency, logging, and cancellation patterns when relevant.
+Gunakan pola domain service terdekat. Repository berisi domain service, query service, lifecycle/integration service, dan hosted scheduler service. Pertahankan pola registrasi dependency, transaction, retry, idempotency, logging, serta cancellation ketika relevan.
 
-Do not start hosted services, schedulers, or the backend application unless the task explicitly requires runtime execution.
+Jangan menjalankan hosted service, scheduler, atau aplikasi backend kecuali task secara eksplisit memerlukan eksekusi runtime.
 
-## Secrets and Configuration Safety
+## Keselamatan Rahasia dan Konfigurasi
 
-Never expose or place passwords, API keys, connection strings, tokens, private keys, SMTP credentials, user-secret values, or other sensitive configuration in reports, source comments, Codex responses, or Git commits.
+Jangan pernah mengekspos atau menempatkan password, API key, connection string, token, private key, SMTP credential, user-secret value, maupun konfigurasi sensitif lainnya dalam laporan, source comment, respons Codex, atau Git commit.
 
-When configuration inspection is necessary, report structure and key names only. Do not print secret values from `appsettings*`, user secrets, environment variables, deployment configuration, or data-protection material.
+Ketika pemeriksaan konfigurasi diperlukan, laporkan struktur dan nama key saja. Jangan mencetak nilai secret dari `appsettings*`, user secrets, environment variable, konfigurasi deployment, atau material data-protection.
 
-## Cross-Repository Task Modes
+## Mode Pekerjaan Lintas Repository
 
-Only repositories explicitly authorized by the active task mode may be modified. If a mode or write target is missing or ambiguous, default to `AUDIT MODE`.
+Hanya repository yang secara eksplisit diberi wewenang oleh mode task aktif yang boleh diubah. Jika mode atau target tulis tidak ada atau ambigu, gunakan `AUDIT MODE` sebagai default.
 
 ### AUDIT MODE
 
 - Backend: read-only.
 - Frontend: read-only.
-- No source changes.
+- Tidak ada perubahan source.
 
-Use for architecture audits, gap mapping, API contract inspection, cross-repository analysis, and planning.
+Gunakan untuk audit arsitektur, pemetaan gap, pemeriksaan kontrak API, analisis lintas repository, dan perencanaan.
 
 ### MODULE BLUEPRINT MODE
 
-- Frontend application source: read-only.
-- Backend application source: read-only.
-- Skill repository: read-only.
-- Backend `docs/module-blueprints/**`: write target.
+- Source aplikasi frontend: read-only.
+- Source aplikasi backend: read-only.
+- Repository skill: read-only.
+- `docs/module-blueprints/**` backend: target tulis.
 
-Use this mode only to create or update persistent module-blueprint artifacts, including manifests, status, evidence-backed business and architecture documentation, decisions, contracts, ERD documentation, Mermaid flows, roadmaps, and readiness artifacts. It never authorizes application implementation, controller/service/entity changes, migrations or database actions, dependency/package changes, deployment, or Git publication. Do not invent business decisions or change source merely to make a blueprint match.
+Gunakan mode ini hanya untuk membuat atau memperbarui artefak module-blueprint persisten, termasuk manifest, status, dokumentasi bisnis dan arsitektur berbasis bukti, decision, contract, dokumentasi ERD, Mermaid flow, roadmap, dan artefak readiness. Mode ini tidak pernah memberi wewenang implementasi aplikasi, perubahan controller/service/entity, migration atau tindakan database, perubahan dependency/package, deployment, maupun publikasi Git. Jangan mengarang keputusan bisnis atau mengubah source hanya agar sesuai dengan blueprint.
 
-Entry conditions are a clear module identity/intent, the backend as the approved blueprint host, and write scope limited to `docs/module-blueprints/**`. `AUDIT MODE` remains fully read-only; `BACKEND MODE` and `FRONTEND MODE` remain separate explicit implementation authorities.
+Kondisi masuknya adalah identitas/tujuan module yang jelas, backend sebagai host blueprint yang disetujui, dan cakupan tulis terbatas pada `docs/module-blueprints/**`. `AUDIT MODE` tetap sepenuhnya read-only; `BACKEND MODE` dan `FRONTEND MODE` tetap menjadi wewenang implementasi eksplisit yang terpisah.
 
 ### FRONTEND MODE
 
-- Frontend: write target.
-- Backend: strict read-only source of truth.
+- Frontend: target tulis.
+- Backend: source of truth yang strict read-only.
 
-The backend may be inspected for actual contracts and business behavior, but no backend file or Git state may be modified.
+Backend boleh diperiksa untuk kontrak aktual dan perilaku bisnis, tetapi tidak ada file backend atau keadaan Git yang boleh diubah.
 
 ### BACKEND MODE
 
-- Backend: write target.
-- Frontend: read-only reference.
+- Backend: target tulis.
+- Frontend: referensi read-only.
 
-The frontend may be inspected to understand current callers, routes, Redux handling, UI flow, request usage, and response expectations. Do not modify tracked frontend source or configuration.
+Frontend boleh diperiksa untuk memahami caller saat ini, route, penanganan Redux, alur UI, penggunaan request, dan ekspektasi response. Jangan mengubah source atau konfigurasi frontend tracked.
 
-Backend implementation is allowed only when the prompt explicitly declares `TASK MODE: BACKEND` or otherwise identifies the backend as an explicit write target under `CROSS-REPO MODE`.
+Implementasi backend hanya diperbolehkan ketika prompt secara eksplisit mendeklarasikan `TASK MODE: BACKEND` atau menyebut backend sebagai target tulis eksplisit dalam `CROSS-REPO MODE`.
 
 ### CROSS-REPO MODE
 
-Use only for an explicitly coordinated cross-repository task. Modify only the repository or repositories explicitly declared as write targets. Never assume both repositories are writable. Prefer sequential backend-first or frontend-first changes when practical.
+Gunakan hanya untuk task lintas repository yang dikoordinasikan secara eksplisit. Ubah hanya repository yang secara eksplisit dideklarasikan sebagai target tulis. Jangan pernah menganggap kedua repository dapat ditulis. Utamakan perubahan berurutan backend-first atau frontend-first ketika memungkinkan.
 
-## Cross-Repository Source of Truth and Safety Boundary
+## Sumber Kebenaran dan Batas Keselamatan Lintas Repository
 
-For frontend tasks, current backend source is authoritative for API contracts and backend business behavior. For backend tasks, frontend code is a consumer reference and does not automatically override backend rules.
+Untuk task frontend, source backend saat ini bersifat otoritatif atas kontrak API dan perilaku bisnis backend. Untuk task backend, kode frontend merupakan referensi consumer dan tidak otomatis mengesampingkan aturan backend.
 
-If a backend task reveals a frontend defect, do not silently modify the frontend. Report it. If a frontend task reveals a backend defect, do not silently modify the backend. Stop that portion and report the issue unless the active mode explicitly authorizes the additional repository.
+Jika task backend menemukan defect frontend, jangan diam-diam mengubah frontend. Laporkan. Jika task frontend menemukan defect backend, jangan diam-diam mengubah backend. Hentikan bagian tersebut dan laporkan masalah kecuali mode aktif secara eksplisit memberi wewenang atas repository tambahan.
 
-## Scope Control
+## Kendali Cakupan
 
-Keep changes tightly scoped. Unless explicitly requested, do not reformat or rename unrelated files, reorganize folders, upgrade dependencies, rewrite architecture, modernize unrelated source, or fix unrelated warnings.
+Jaga perubahan tetap memiliki cakupan ketat. Kecuali diminta secara eksplisit, jangan memformat atau mengganti nama file yang tidak terkait, menata ulang folder, melakukan upgrade dependency, menulis ulang arsitektur, memodernisasi source yang tidak terkait, atau memperbaiki warning yang tidak terkait.
 
-Report out-of-scope findings without modifying them.
+Laporkan temuan di luar cakupan tanpa mengubahnya.
 
-## Git Safety
+## Keselamatan Git
 
-Codex must not automatically commit, push, pull, merge, rebase, switch branches, reset, force checkout, stash, or cherry-pick. Do not stage files, create a pull request, or deploy unless the task explicitly requests that separate operation.
+Codex tidak boleh otomatis melakukan commit, push, pull, merge, rebase, switch branch, reset, force checkout, stash, atau cherry-pick. Jangan melakukan stage file, membuat pull request, atau deployment kecuali task secara eksplisit meminta operasi terpisah tersebut.
 
-Always inspect `git status --short` at the end of an implementation and distinguish changes made by the current task from pre-existing user changes. Never discard or overwrite unrelated work.
+Selalu periksa `git status --short` pada akhir implementasi dan bedakan perubahan yang dibuat task saat ini dari perubahan pengguna yang sudah ada sebelumnya. Jangan pernah membuang atau menimpa pekerjaan yang tidak terkait.
 
-## Backend Validation
+## Validasi Backend
 
-Validation must be proportional to the requested scope. It may include `dotnet build`, targeted tests, or solution/project tests when requested or reasonably required and not prohibited by the task.
+Validasi harus proporsional terhadap cakupan yang diminta. Validasi dapat mencakup `dotnet build`, targeted test, atau test solution/project ketika diminta atau secara wajar diperlukan dan tidak dilarang task.
 
-Before running tests, inspect whether a relevant test project exists. Never report a build or test as passing unless the command actually completed successfully. Database migration execution, deployment, and runtime infrastructure remain separately authorized operations.
+Sebelum menjalankan test, periksa apakah project test yang relevan tersedia. Jangan pernah melaporkan build atau test sebagai lulus kecuali command benar-benar selesai dengan sukses. Eksekusi migration database, deployment, dan infrastruktur runtime tetap merupakan operasi yang memerlukan wewenang terpisah.
 
-## Implementation Workflow
+## Alur Kerja Implementasi
 
-For implementation tasks:
+Untuk task implementasi:
 
-1. Follow the conditional governance references above, beginning with `.codex/TASK_RULES.md`.
-2. Keep the task bounded and apply all repository-specific rules in this file.
-3. Report changed files, actual validation, migration state, risks, and `git status --short`.
+1. Ikuti referensi governance kondisional di atas, dimulai dari `.codex/TASK_RULES.md`.
+2. Jaga task tetap terbatas dan terapkan seluruh aturan khusus repository dalam file ini.
+3. Laporkan file yang berubah, validasi aktual, keadaan migration, risiko, dan `git status --short`.
 
-Do not stage, commit, or push unless explicitly requested.
+Jangan melakukan stage, commit, atau push kecuali diminta secara eksplisit.
 
-## Local ChatGPT Handoff Reporting
+## Pelaporan Handoff ChatGPT Lokal
 
-Shared local reporting lives at `<frontend-repository-root>/.quilvian-local/`. Do not create duplicate tracked reporting infrastructure in this backend repository.
+Pelaporan lokal shared berada di `<frontend-repository-root>/.quilvian-local/`. Jangan membuat infrastruktur pelaporan tracked duplikat dalam repository backend ini.
 
-After meaningful `BACKEND MODE` or `CROSS-REPO MODE` work, Codex may update the ignored local files:
+Setelah pekerjaan `BACKEND MODE` atau `CROSS-REPO MODE` yang bermakna, Codex boleh memperbarui file lokal yang diabaikan berikut:
 
 - `.quilvian-local/CHATGPT_HANDOFF.md`;
-- `.quilvian-local/CURRENT_ISSUES.md`; and
+- `.quilvian-local/CURRENT_ISSUES.md`; dan
 - `.quilvian-local/reports/YYYY-MM-DD_HHMM_<short-task-name>.md`.
 
-These reports are local workspace artifacts, not frontend source modifications. They must remain ignored and must not be committed or pushed.
+Laporan tersebut adalah artefak workspace lokal, bukan perubahan source frontend. Laporan harus tetap diabaikan serta tidak boleh di-commit atau di-push.
 
-Record evidence such as domain, controller, endpoint, HTTP method, request and response DTOs, enum/status, authorization, business/workflow behavior, changed files, actual build/test results, migration state, and Git status. Do not include secrets.
+Catat bukti seperti domain, controller, endpoint, HTTP method, request dan response DTO, enum/status, otorisasi, perilaku bisnis/workflow, file yang berubah, hasil build/test aktual, keadaan migration, dan status Git. Jangan menyertakan secret.
 
-## Unclear Requirements
+## Kebutuhan yang Tidak Jelas
 
-When an answer can be established from repository source, inspect it before asking. Ask for clarification only when a genuine contract, security, database, or business decision cannot be determined safely. Never invent a business rule.
+Ketika jawaban dapat ditetapkan dari source repository, periksa source sebelum bertanya. Minta klarifikasi hanya ketika keputusan contract, keamanan, database, atau bisnis yang sebenarnya tidak dapat ditentukan secara aman. Jangan pernah mengarang aturan bisnis.
