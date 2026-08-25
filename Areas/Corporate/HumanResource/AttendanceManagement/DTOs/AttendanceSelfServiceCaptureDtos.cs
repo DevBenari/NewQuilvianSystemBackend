@@ -7,11 +7,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         [Required]
         public Guid AttendanceLocationId { get; set; }
 
+        // Nullable to support an active ApplicationUser geolocation bypass
+        // (see AttendanceSelfServiceCaptureService), where GPS is not
+        // mandatory. Normal (non-bypass) capture still requires both to be
+        // present; that is enforced in the service, not here.
         [Range(-90, 90)]
-        public decimal Latitude { get; set; }
+        public decimal? Latitude { get; set; }
 
         [Range(-180, 180)]
-        public decimal Longitude { get; set; }
+        public decimal? Longitude { get; set; }
 
         [Range(0, 100000)]
         public decimal? AccuracyMeters { get; set; }
@@ -51,6 +55,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public string? AttendanceStatus { get; set; }
         public string? AttendanceProcessingStatus { get; set; }
         public bool GpsRequired { get; set; } = true;
+        public bool IsGeolocationBypassActive { get; set; }
+        public DateTime? GeolocationBypassUntil { get; set; }
+        public string? GeolocationBypassReason { get; set; }
         public List<AttendanceSelfServiceLocationResponse> AllowedLocations { get; set; } = new();
         public List<string> Warnings { get; set; } = new();
     }
@@ -64,7 +71,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public DateTime EventAt { get; set; }
         public Guid AttendanceLocationId { get; set; }
         public string AttendanceLocationName { get; set; } = string.Empty;
-        public decimal DistanceMeters { get; set; }
+        // Null when geolocation was not captured (active bypass, no GPS supplied).
+        public decimal? DistanceMeters { get; set; }
         public int RadiusMeters { get; set; }
         public bool IsInsideGeofence { get; set; }
         public DateOnly? WorkDate { get; set; }
