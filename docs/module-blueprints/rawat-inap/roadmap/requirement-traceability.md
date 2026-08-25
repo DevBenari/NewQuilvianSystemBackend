@@ -80,7 +80,7 @@ Dua task tidak menempel pada epic mana pun, dan itu disengaja: `BE-RWI-033` bukt
 
 ---
 
-## 1b. Progres delivery per 24 Agustus 2026
+## 1b. Progres delivery per 25 Agustus 2026
 
 Bagian ini memisahkan dua hal yang sering dicampur: **kode yang selesai**, versus **DoD yang
 benar-benar terpenuhi** menurut aturan roadmap sendiri.
@@ -92,17 +92,26 @@ benar-benar terpenuhi** menurut aturan roadmap sendiri.
 | `BE-RWI-002` | Data master awal terisi tanpa seeder mengarang kamar dan tempat tidur, dan seeder menolak berjalan di produksi (`RWI-DEC-048`) | Kode dan 7 test ditulis; **build dan test BELUM DIJALANKAN** atas permintaan pemilik pekerjaan. Tidak satu pun acceptance criteria terbukti ([laporan](../task/report/backend/be-rwi-002-seeder-master-rawat-inap.md)) | 🟡 **Validasi belum** |
 | `BE-RWI-004` | Angka batas waktu dibaca dari master, bukan ditanam di kode; enam service dapat dibentuk container; nomor episode tidak pernah kembar (`RWI-DEC-008`, `RWI-AC-003`, `RWI-AC-110`, `QBE-CODE-003`) | Kode dan 15 test ditulis; **build, test, dan penyalaan aplikasi BELUM DIJALANKAN**. Acceptance criteria 1 "aplikasi menyala tanpa galat" belum terbukti sama sekali ([laporan](../task/report/backend/be-rwi-004-enam-service-dan-nomor-episode.md)) | 🟡 **Validasi belum** |
 | `BE-RWI-005` | Pengaturan dan butir administrasi dapat diubah admin lewat layar, dan menonaktifkan butir tidak menghapus penandaan pada episode lama (`RWI-DEC-008`, `RWI-DEC-026`, `RWI-DEC-032`) | Delapan endpoint dan 26 test ditulis; **build, test, dan pemanggilan endpoint BELUM DIJALANKAN**. Kriteria 6 (403) tidak dapat dibuktikan tanpa aplikasi berjalan; kriteria 2 baru separuhnya yang dapat diuji sebelum `BE-RWI-010`. Api contract **belum** diperbarui ([laporan](../task/report/backend/be-rwi-005-controller-master-rawat-inap.md)) | 🟡 **Validasi belum** |
-| `BE-RWI-006` s.d. `BE-RWI-033` | — | Belum dikerjakan | Planned |
+| `BE-RWI-007` | Episode lahir bernomor, menempel pada tepat satu kunjungan, dan punya DPJP sejak detik pertama (`RWI-DEC-009`, `RWI-DEC-011`; `INV-INP-03`, `INV-INP-04`) | Satu endpoint dan 14 test ditulis; **build, test, dan pemanggilan endpoint BELUM DIJALANKAN**. Tiga delta kontrak belum diputuskan: jalur kunjungan poliklinik, bentuk nomor kunjungan, dan arah tulis ke `TrxPatientEncounter`. Api contract **belum** diperbarui ([laporan](../task/report/backend/be-rwi-007-buka-admisi-episode-bernomor.md)) | 🟡 **Validasi belum** |
+| `BE-RWI-008` | Isian admisi dapat dibetulkan, admisi dapat dibatalkan beserta pemesanannya, dan `Draft` telantar gugur sendiri saat dibaca (`RWI-DEC-010`, `RWI-DEC-030`; `RWI-RULE-004`, `RWI-RULE-022`) | Dua endpoint dan 16 test ditulis; **build, test, dan pemanggilan endpoint BELUM DIJALANKAN**. Batas "belum ada catatan klinis" **belum diperiksa**, dan pengembalian salinan `MstBed.BedStatus` menunggu `BE-RWI-011`. Api contract **belum** diperbarui ([laporan](../task/report/backend/be-rwi-008-ubah-batal-kedaluwarsa-draft.md)) | 🟡 **Validasi belum** |
+| `BE-RWI-006` | Status terisi dan dipesan hanya lahir dari modul Rawat Inap (`RWI-DEC-039`, `RWI-RULE-027`, `RWI-DEC-062`) | **Tidak dikerjakan.** Prasyarat lintas repository `FE-RWI-001` tidak terbukti rilis: repository frontend tidak ada di workspace yang diberi wewenang, `task/report/frontend/` belum pernah dibuat, dan `FE-RWI-001` masih tanpa tanda pada roadmap frontend. `BedController.cs` tidak disentuh ([laporan blokir](../task/report/backend/be-rwi-006-terblokir-prasyarat-fe-rwi-001.md)) | ⛔ **Terblokir** |
+| `BE-RWI-009` s.d. `BE-RWI-033` | — | Belum dikerjakan | Planned |
 
-**2 dari 33 task backend selesai (6%).** Tiga task berstatus 🟡 — kodenya sudah ditulis dan
+**2 dari 33 task backend selesai (6%).** Lima task berstatus 🟡 — kodenya sudah ditulis dan
 test-nya sudah disiapkan, tetapi **belum satu pun divalidasi**, sehingga belum boleh dihitung
-sebagai selesai.
+sebagai selesai. Satu task berstatus ⛔ dan tidak boleh dimulai.
 
 > **Kenapa ada status 🟡 sekarang.** Pada 24 Agustus 2026 pemilik pekerjaan meminta
-> `BE-RWI-002`, `BE-RWI-004`, dan `BE-RWI-005` dikerjakan **tanpa menjalankan build**. Aturan
+> `BE-RWI-002`, `BE-RWI-004`, dan `BE-RWI-005` dikerjakan **tanpa menjalankan build**, dan pada
+> 25 Agustus 2026 permintaan yang sama berlaku untuk `BE-RWI-007` dan `BE-RWI-008`. Aturan
 > roadmap sendiri menyatakan build sukses bukan tanda selesai; build yang belum pernah
-> dijalankan tentu lebih jauh lagi dari selesai. Ketiganya menunggu `dotnet build` dan
+> dijalankan tentu lebih jauh lagi dari selesai. Kelimanya menunggu `dotnet build` dan
 > `dotnet test` — perintahnya tercantum pada masing-masing laporan task.
+>
+> **Kenapa `BE-RWI-006` berstatus ⛔.** Roadmap menyebut prasyaratnya di tiga tempat: bagian 0,
+> baris **Dependency**, dan baris **DoD**. Ketiganya menuntut `FE-RWI-001` terbukti rilis lebih
+> dulu, dan tidak satu pun bukti itu ditemukan. Mengerjakannya lebih dulu berarti mencabut
+> satu-satunya cara admin menutup tempat tidur rusak sebelum penggantinya berfungsi.
 
 ### Yang perlu diputuskan pemilik pekerjaan
 
@@ -116,7 +125,13 @@ sebagai selesai.
 | `IX_InpNurseAssignment_EpisodeId_Active` membatasi satu perawat aktif per episode — perlu dipastikan cocok kenyataan ruangan | Domain | `BE-RWI-018`, keputusan kembali ke `/qv-design` |
 | Perbaikan `Program.cs` di luar scope `BE-RWI-003` | Operasional | Commit strategy — lihat [laporan](../task/report/backend/be-rwi-003-tabel-transaksi-rawat-inap.md) bagian 5.2 |
 | Project Tests di dalam folder project web — `MSB3030` berulang | Struktural, di luar scope modul ini | Build stability — lihat [laporan](../task/report/backend/be-rwi-003-tabel-transaksi-rawat-inap.md) bagian 6.2 |
-| **Build dan test `BE-RWI-002`, `BE-RWI-004`, `BE-RWI-005` belum dijalankan** | Menahan ketiganya ditandai selesai. Perintahnya ada pada masing-masing laporan | Backend/API |
+| **Build dan test `BE-RWI-002`, `BE-RWI-004`, `BE-RWI-005`, `BE-RWI-007`, `BE-RWI-008` belum dijalankan** | Menahan kelimanya ditandai selesai. Perintahnya ada pada masing-masing laporan | Backend/API |
+| **`FE-RWI-001` belum rilis, dan repository frontend tidak ada di workspace** | Menahan `BE-RWI-006`, dan lewat dependency-nya `BE-RWI-032`. Repository frontend perlu disertakan supaya buktinya dapat diperiksa, bukan sekadar dinyatakan | Frontend bersama Backend/API — lihat [laporan blokir](../task/report/backend/be-rwi-006-terblokir-prasyarat-fe-rwi-001.md) |
+| Jalur kunjungan poliklinik pada `RWI-RULE-005` tidak dapat berjalan | Validation matrix `0.4.0` bagian 1 mewajibkan kunjungan bertipe rawat inap, sehingga kunjungan poliklinik ditolak 422. Salah satu dokumen perlu dikoreksi | Product/Domain — lihat [laporan BE-RWI-007](../task/report/backend/be-rwi-007-buka-admisi-episode-bernomor.md) bagian 5.1 |
+| Bentuk nomor kunjungan yang dibuat modul Rawat Inap berbeda dari nomor pendaftaran | Alokator lama milik Registrasi melanggar `QBE-CODE-003` dan tidak boleh ditiru kode baru. Perlu diputuskan: terima dua bentuk, atau sediakan alokator bersama | Pemilik `RegistrationManagement` — lihat [laporan BE-RWI-007](../task/report/backend/be-rwi-007-buka-admisi-episode-bernomor.md) bagian 5.2 |
+| Integration contract bagian 2 menyebut `INT-INP-03` "satu-satunya arah tulis", padahal modul kini juga menulis `TrxPatientEncounter` | Kalimat kontraknya sudah tidak akurat. Perlu diperbarui menjadi dua arah tulis, atau diberi pengecualian tertulis | Product/Domain bersama pemilik `RegistrationManagement` — lihat [laporan BE-RWI-007](../task/report/backend/be-rwi-007-buka-admisi-episode-bernomor.md) bagian 5.3 |
+| Batas "belum ada catatan klinis" pada pembatalan **belum diperiksa** | Tidak berakibat hari ini karena episode belum dapat mencapai `Admitted`. **Wajib ditutup sebelum `BE-RWI-011` ditandai selesai**, atau supervisor akan dapat membatalkan episode yang sudah punya pengkajian dan tanda vital | Backend/API bersama Product/Domain — lihat [laporan BE-RWI-008](../task/report/backend/be-rwi-008-ubah-batal-kedaluwarsa-draft.md) bagian 5.1 |
+| Daftar nama peran supervisor dan kepala ruangan adalah asumsi | Nama peran adalah data yang disiapkan admin, dan tidak ada kontrak modul ini yang menyebutkan nama sesungguhnya. Bila keliru, supervisor yang sah ditolak 403 | Product/Domain — lihat [laporan BE-RWI-008](../task/report/backend/be-rwi-008-ubah-batal-kedaluwarsa-draft.md) bagian 5.3 |
 | Blueprint §4.20 dan roadmap `BE-RWI-005` menyatakan controller master memakai `ApplicationDbContext` langsung; kode mematuhi `QBE-SVC-001` dan memakai service | Dokumentasi, tanpa akibat teknis. Perlu diputuskan: sesuaikan blueprint, atau catat pengecualian pada `QBE_EXCEPTIONS.json` | Pemilik arsitektur backend — lihat [laporan BE-RWI-005](../task/report/backend/be-rwi-005-controller-master-rawat-inap.md) bagian 5.1 |
 | `contracts/validation-matrix.md` `0.4.0` tidak punya bagian pengaturan, padahal roadmap `BE-RWI-005` merujuknya | Aturan validasi kedua layar master tidak terkunci kontrak. Aturan yang dipakai ditulis apa adanya pada laporan untuk ditinjau | Product/Domain — lihat [laporan BE-RWI-005](../task/report/backend/be-rwi-005-controller-master-rawat-inap.md) bagian 5.3 |
 | Aturan baru "pengaturan terakhir tidak boleh dinonaktifkan" belum disahkan | Menutup satu jalan yang mungkin dibutuhkan admin. Belum ada dasarnya pada kontrak | Product/Domain |
@@ -134,8 +149,8 @@ Kolom **AC** merujuk `00-interview-decisions.md` revision `5`. Kolom **Test** me
 
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
-| `FR-RI-101` s.d. `FR-RI-104` | Episode, nomor, jangkar kunjungan, DPJP wajib | `BE-RWI-007` | `RWI-AC-004` s.d. `RWI-AC-006` | Bagian 1; `UAT-01` |
-| `FR-RI-105` s.d. `FR-RI-108` | Ubah isian, pembatalan, kedaluwarsa `Draft` | `BE-RWI-008` | `RWI-AC-007` s.d. `RWI-AC-010`, `RWI-AC-090` s.d. `RWI-AC-092` | Bagian 6; `UAT-23` |
+| `FR-RI-101` s.d. `FR-RI-104` | Episode, nomor, jangkar kunjungan, DPJP wajib | `BE-RWI-007` 🟡 | `RWI-AC-004` s.d. `RWI-AC-006`, `RWI-AC-009`, `RWI-AC-010` | Bagian 1; `UAT-01`. Kode: `InpEpisodeOpenAdmissionTests.cs`, 14 test **belum dijalankan** |
+| `FR-RI-105` s.d. `FR-RI-108` | Ubah isian, pembatalan, kedaluwarsa `Draft` | `BE-RWI-008` 🟡 | `RWI-AC-007` s.d. `RWI-AC-010`, `RWI-AC-044` s.d. `RWI-AC-046`, `RWI-AC-090` s.d. `RWI-AC-092` | Bagian 6; `UAT-23`. Kode: `InpEpisodeDraftLifecycleTests.cs`, 16 test **belum dijalankan**. `RWI-AC-006` dan `RWI-AC-007` **belum tercakup penuh** — lihat [laporan](../task/report/backend/be-rwi-008-ubah-batal-kedaluwarsa-draft.md) bagian 5.1 dan 5.2 |
 | `FR-RI-148` | Satu pasien satu episode yang hadir | `BE-RWI-012` | `RWI-AC-116`, `RWI-AC-117` | Bagian 1; `UAT-26` |
 
 ### `EPIC RI-22` — Pencarian dan pemesanan tempat tidur
@@ -218,7 +233,7 @@ Kolom **AC** merujuk `00-interview-decisions.md` revision `5`. Kolom **Test** me
 
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
-| `FR-RI-145` | Status terisi dan dipesan hanya dari Rawat Inap | `BE-RWI-006` | `RWI-AC-060`, `RWI-AC-061` | Bagian 12; `UAT-20`, `UAT-21` |
+| `FR-RI-145` | Status terisi dan dipesan hanya dari Rawat Inap | `BE-RWI-006` ⛔ | `RWI-AC-060`, `RWI-AC-061` | Bagian 12; `UAT-20`, `UAT-21`. **Belum dikerjakan** — terblokir `FE-RWI-001` |
 | — | Tombol tempat tidur tidak lagi 404 | `FE-RWI-001` | `RWI-AC-114` | Bagian 12 |
 | — | Modul tetangga terbukti tidak rusak | `BE-RWI-032` | `RWI-AC-114` | Bagian 12 |
 
@@ -256,8 +271,8 @@ Bagian ini memeriksa kebalikannya: adakah task yang tidak ada yang memintanya?
 | --- | --- | --- |
 | `BE-RWI-001` ✅, `BE-RWI-002` 🟡, `BE-RWI-003` ✅, `BE-RWI-004` 🟡 | `EPIC RI-21` | — |
 | `BE-RWI-005` 🟡 | `EPIC RI-31` | — |
-| `BE-RWI-006`, `BE-RWI-032` | `EPIC RI-32` | — |
-| `BE-RWI-007` s.d. `BE-RWI-009` | `EPIC RI-21` | — |
+| `BE-RWI-006` ⛔, `BE-RWI-032` | `EPIC RI-32` | — |
+| `BE-RWI-007` 🟡, `BE-RWI-008` 🟡, `BE-RWI-009` | `EPIC RI-21` | — |
 | `BE-RWI-010` | `EPIC RI-22` | — |
 | `BE-RWI-011`, `BE-RWI-012` | `EPIC RI-23` | — |
 | `BE-RWI-013` s.d. `BE-RWI-015` | `EPIC RI-34` | — |
@@ -393,8 +408,8 @@ Sebelas butir, **seluruhnya beralasan tertulis**. Tidak ada satu pun yang berbun
 
 | Butir | Kenapa belum | Kapan dapat diperiksa |
 | --- | --- | --- |
-| 139 acceptance criteria → berkas test yang benar-benar ada | Sekarang ada tujuh berkas test Rawat Inap: `InpatientEnumFoundationTests.cs` (6 test, `BE-RWI-003`), ditambah enam berkas dari `BE-RWI-002`, `BE-RWI-004`, dan `BE-RWI-005` yang **belum pernah dijalankan** | `BE-RWI-033` |
-| 49 endpoint baru → status tersedia pada api contract | Delapan endpoint master sudah ada di dalam kode sejak `BE-RWI-005`, tetapi api contract **belum** diperbarui — dan memang belum boleh, karena build dan test belum dijalankan. 41 endpoint sisanya masih "Rencana (belum tersedia)". Baris ke-50 adalah perubahan perilaku pada endpoint yang sudah ada, dinilai terpisah | `BE-RWI-033` |
+| 139 acceptance criteria → berkas test yang benar-benar ada | Sekarang ada sepuluh berkas test Rawat Inap: `InpatientEnumFoundationTests.cs` (6 test, `BE-RWI-003`), ditambah enam berkas dari `BE-RWI-002`, `BE-RWI-004`, dan `BE-RWI-005`, ditambah tiga berkas dari `BE-RWI-007` dan `BE-RWI-008`. **Tidak satu pun dari sembilan berkas terakhir pernah dijalankan** | `BE-RWI-033` |
+| 49 endpoint baru → status tersedia pada api contract | Sebelas endpoint sudah ada di dalam kode — delapan endpoint master sejak `BE-RWI-005`, ditambah `POST /episodes`, `PUT /episodes/{id}`, dan `PATCH /episodes/{id}/cancel` sejak `BE-RWI-007` dan `BE-RWI-008` — tetapi api contract **belum** diperbarui, dan memang belum boleh, karena build dan test belum dijalankan. 38 endpoint sisanya masih "Rencana (belum tersedia)". Baris ke-50 adalah perubahan perilaku pada endpoint yang sudah ada, dinilai terpisah dan **masih terblokir** | `BE-RWI-033` |
 | Cakupan e2e frontend | Frontend baru punya empat berkas test, tidak satu pun menyentuh Rawat Inap | `FE-RWI-019` |
 
 Ketiganya adalah **konsekuensi wajar** dari modul yang baru punya tabel tanpa endpoint, bukan lubang
@@ -408,7 +423,7 @@ perencanaan. Ketiganya punya task penutup yang memeriksanya.
 | --- | --- |
 | ~~**Approval blueprint**~~ | **DICABUT 24 Agustus 2026** oleh `RWI-DEC-067`. Disetujui Muhammad Hamzah; `approved_by` pada metadata sudah terisi |
 | Kesiapan data master beserta penanda yang benar | `RWI-DEC-063`, target 22 Agustus 2026. Menahan `BE-RWI-010` ke atas, **tidak** menahan `BE-RWI-001` s.d. `BE-RWI-004` |
-| `FE-RWI-001` sebelum `BE-RWI-006` | Lintas repository, wajib diurutkan |
+| `FE-RWI-001` sebelum `BE-RWI-006` | Lintas repository, wajib diurutkan. **Diperiksa 25 Agustus 2026 dan masih terbuka** — `BE-RWI-006` karena itu berstatus ⛔ dan tidak dikerjakan |
 | ~~Registry lifecycle `PLANNED`~~ | **DICABUT 24 Agustus 2026** oleh `RWI-DEC-068`. Modul naik `PLANNED` → `ACTIVE` |
 | Tidak ada connection string lokal | Baru — ditemukan saat `BE-RWI-001`. Menahan **cara aman** menjalankan migration, bukan penulisan kodenya |
 
