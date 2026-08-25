@@ -1,18 +1,19 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
-using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Controllers
 {
     /// <summary>
-    /// Layar admisi rawat inap. Petugas admisi membuka admisi, membetulkan isian yang salah
-    /// selagi masih disiapkan, dan membatalkan admisi yang tidak jadi berjalan.
+    /// Layar episode rawat inap: membuka admisi, membetulkan isian, membatalkan, membaca
+    /// daftar dan detail, mengalihkan DPJP, menugaskan perawat penanggung jawab, dan
+    /// menetapkan kebutuhan isolasi.
     /// </summary>
     /// <remarks>
     /// <b>Tidak ada endpoint yang menyetel status episode secara bebas.</b> Setiap perpindahan
@@ -23,9 +24,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
     /// dibaca dari riwayat itu ikut salah tanpa ada yang menyadarinya.
     ///
     /// <para>
-    /// Endpoint baca — daftar, detail, ringkasan, penyaring, dan riwayat status — belum ada di
-    /// sini. Ia milik task berikutnya, yang juga menentukan kolom mana yang boleh tampil pada
-    /// daftar dan kolom mana yang hanya boleh tampil pada detail.
+    /// <b>Dua endpoint yang masih belum ada di sini.</b> Riwayat status
+    /// (<c>GET /{id}/status-history</c>) milik <c>BE-RWI-028</c>, dan sesi koreksi milik
+    /// <c>BE-RWI-030</c>. Keduanya tercantum pada api contract dan sengaja belum dibuka.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Kolom sensitif hanya pada detail.</b> Catatan admisi dan keterangan kebutuhan
+    /// isolasi memuat informasi klinis. Keduanya muncul pada <c>GET /{id}</c> saja, tidak
+    /// pernah pada daftar, dan tidak pernah masuk payload logger — permission matrix bagian
+    /// 5.4.
     /// </para>
     /// </remarks>
     [ApiController]
@@ -45,25 +53,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
     {
         private const string LogCategory = "HealthServices.InPatientManagement.Episode";
 
-        /// <summary>
-        /// Peran yang boleh membatalkan episode yang sudah berjalan.
-        /// </summary>
-        /// <remarks>
-        /// Nama peran di repository ini adalah data yang disiapkan admin, bukan daftar tetap
-        /// di dalam kode, sehingga daftar ini adalah asumsi yang perlu dikonfirmasi pemilik
-        /// modul. Selama <c>BE-RWI-011</c> belum ada, tidak satu pun episode dapat mencapai
-        /// status <c>Admitted</c>, sehingga penjaga ini belum punya jalur yang benar-benar
-        /// terpakai. Ia ditulis sekarang supaya kewenangannya tidak terlupa saat penempatan
-        /// pasien dibuka.
-        /// </remarks>
-        private static readonly string[] SupervisorOrWardHeadRoles =
-        {
-            "SuperAdmin",
-            "Supervisor",
-            "KepalaRuangan",
-            "Kepala Ruangan"
-        };
-
         private readonly InpEpisodeService _episodeService;
         private readonly LoggerService _loggerService;
 
@@ -74,6 +63,97 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
             _episodeService = episodeService;
             _loggerService = loggerService;
         }
+
+        // =====================================================================
+        // BE-RWI-009 — Daftar, detail, ringkasan, dan metadata penyaring
+        // =====================================================================
+
+        /// <summary>Mengambil pilihan penyaring beserta nilai bawaannya untuk layar daftar.</summary>
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientEpisodeFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Episode", Description = "Melihat metadata filter episode rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientEpisode", "Read")]
+        public async Task<IActionResult> GetFilterMetadata(CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.GetFilterMetadataAsync(cancellationToken);
+
+            return Ok(ApiResponse<InpatientEpisodeFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter episode rawat inap berhasil diambil."));
+        }
+
+        /// <summary>Ringkasan jumlah episode per status, memakai penyaring yang sama dengan daftar.</summary>
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientEpisodeSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Episode", Description = "Melihat ringkasan episode rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientEpisode", "Read")]
+        public async Task<IActionResult> GetSummary(
+            [FromQuery] InpatientEpisodeListQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.GetEpisodeSummaryAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<InpatientEpisodeSummaryResponse>.Ok(
+                result,
+                "Ringkasan episode rawat inap berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Daftar episode, dapat disaring unit layanan, kelas perawatan, status, rentang
+        /// tanggal, kebutuhan isolasi, dan nama pasien.
+        /// </summary>
+        /// <remarks>
+        /// Pembacaan ini menjalankan perhitungan kedaluwarsa episode <c>Draft</c> lebih dulu,
+        /// sehingga admisi yang sudah telantar melewati batas tidak lagi muncul sebagai
+        /// admisi yang masih disiapkan.
+        /// </remarks>
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiResponse<InpatientEpisodePagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Episode", Description = "Melihat daftar episode rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientEpisode", "Read")]
+        public async Task<IActionResult> GetAll(
+            [FromQuery] InpatientEpisodeListQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.GetEpisodeListAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<InpatientEpisodePagedResult>.Ok(
+                result,
+                "Daftar episode rawat inap berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Detail satu episode beserta DPJP aktif, perawat aktif, dan lokasi terkininya.
+        /// </summary>
+        /// <remarks>
+        /// Lokasi terkini dibaca dari <c>InpBedPlacement</c> yang masih aktif, <b>bukan</b>
+        /// dari kolom pada episode. Tidak ada kolom lokasi terakhir pada <c>InpEpisode</c>,
+        /// dan tidak boleh ditambahkan walaupun query-nya lebih murah.
+        /// </remarks>
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientEpisodeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Inpatient Episode", Description = "Melihat detail episode rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientEpisode", "Read")]
+        public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
+        {
+            var detail = await _episodeService.GetEpisodeDetailAsync(id, cancellationToken);
+
+            if (detail == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Episode rawat inap tidak ditemukan."));
+            }
+
+            return Ok(ApiResponse<InpatientEpisodeDetailResponse>.Ok(
+                detail,
+                "Detail episode rawat inap berhasil diambil."));
+        }
+
+        // =====================================================================
+        // BE-RWI-007 dan BE-RWI-008 — Membuka, mengubah, dan membatalkan admisi
+        // =====================================================================
 
         /// <summary>Membuka admisi. Episode lahir <c>Draft</c> dan DPJP pertama ditetapkan.</summary>
         /// <remarks>
@@ -102,7 +182,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         {
             var result = await _episodeService.OpenAdmissionAsync(
                 request,
-                GetCurrentUserId(),
+                User.GetUserId(),
                 cancellationToken);
 
             if (result.Status != InpEpisodeOperationStatus.Success)
@@ -146,7 +226,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
             var result = await _episodeService.UpdateAdmissionAsync(
                 id,
                 request,
-                GetCurrentUserId(),
+                User.GetUserId(),
                 cancellationToken);
 
             if (result.Status != InpEpisodeOperationStatus.Success)
@@ -193,8 +273,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
             var result = await _episodeService.CancelAdmissionAsync(
                 id,
                 request,
-                GetCurrentUserId(),
-                IsSupervisorOrWardHead(),
+                User.GetUserId(),
+                User.IsSupervisorOrWardHead(),
                 cancellationToken);
 
             if (result.Status != InpEpisodeOperationStatus.Success)
@@ -216,6 +296,195 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
 
             return await OkWithDetailAsync(id, result.Message, result.Warnings, cancellationToken);
         }
+
+        // =====================================================================
+        // BE-RWI-014 — Kebutuhan isolasi
+        // =====================================================================
+
+        /// <summary>Menetapkan atau mengubah kebutuhan isolasi episode.</summary>
+        /// <remarks>
+        /// Butir hak akses <c>SetIsolation</c> menjawab "boleh" untuk petugas admisi maupun
+        /// dokter mana pun. Yang membedakan keduanya adalah status episode dan siapa DPJP
+        /// aktifnya, dan itu diperiksa <c>GUARD-INP-04</c> di dalam service.
+        ///
+        /// <para>
+        /// Payload logger sengaja tidak memuat <c>IsolationNote</c>; kolom itu bertanda
+        /// sensitif karena memuat alasan klinis kebutuhan isolasi seorang pasien.
+        /// </para>
+        /// </remarks>
+        [HttpPatch("{id:guid}/isolation-requirement")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientEpisodeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Set Inpatient Isolation Requirement", Description = "Menetapkan kebutuhan isolasi episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("InpatientEpisode", "SetIsolation")]
+        public async Task<IActionResult> SetIsolationRequirement(
+            Guid id,
+            [FromBody] SetIsolationRequirementRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.SetIsolationRequirementAsync(
+                id,
+                request,
+                User.GetUserId(),
+                User.GetDoctorId(),
+                cancellationToken);
+
+            if (result.Status != InpEpisodeOperationStatus.Success)
+            {
+                return FromFailure(result);
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InpatientEpisode.SetIsolationRequirement",
+                "Menetapkan kebutuhan isolasi episode rawat inap.",
+                new
+                {
+                    EntityId = id,
+                    Controller = "InpatientEpisode",
+                    Action = "SetIsolationRequirement",
+                    StatusCode = StatusCodes.Status200OK
+                });
+
+            return await OkWithDetailAsync(id, result.Message, result.Warnings, cancellationToken);
+        }
+
+        // =====================================================================
+        // BE-RWI-017 — Penugasan DPJP
+        // =====================================================================
+
+        /// <summary>Mengalihkan DPJP. Menutup penugasan lama dan membuka penugasan baru.</summary>
+        [HttpPost("{id:guid}/doctor-assignments")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientDoctorAssignmentResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Handover Inpatient Doctor", Description = "Mengalihkan DPJP episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("InpatientEpisode", "Update")]
+        public async Task<IActionResult> HandoverDoctor(
+            Guid id,
+            [FromBody] HandoverDoctorRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.HandoverDoctorAsync(
+                id,
+                request,
+                User.GetUserId(),
+                User.IsSupervisorOrWardHead(),
+                cancellationToken);
+
+            if (result.Status != InpEpisodeOperationStatus.Success)
+            {
+                return FromFailure(result);
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InpatientEpisode.HandoverDoctor",
+                "Mengalihkan DPJP episode rawat inap.",
+                new
+                {
+                    EntityId = id,
+                    Controller = "InpatientEpisode",
+                    Action = "HandoverDoctor",
+                    StatusCode = StatusCodes.Status200OK
+                });
+
+            var assignments = await _episodeService.GetDoctorAssignmentsAsync(id, cancellationToken);
+            var current = assignments.LastOrDefault(x => x.IsCurrent);
+
+            return Ok(ApiResponse<InpatientDoctorAssignmentResponse>.Ok(current, result.Message));
+        }
+
+        /// <summary>Riwayat DPJP episode, urut nomor urut.</summary>
+        [HttpGet("{id:guid}/doctor-assignments")]
+        [ProducesResponseType(typeof(ApiResponse<List<InpatientDoctorAssignmentResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Episode", Description = "Melihat riwayat DPJP episode rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientEpisode", "Read")]
+        public async Task<IActionResult> GetDoctorAssignments(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.GetDoctorAssignmentsAsync(id, cancellationToken);
+
+            return Ok(ApiResponse<List<InpatientDoctorAssignmentResponse>>.Ok(
+                result,
+                "Riwayat DPJP berhasil diambil."));
+        }
+
+        // =====================================================================
+        // BE-RWI-018 — Penugasan perawat penanggung jawab
+        // =====================================================================
+
+        /// <summary>Menugaskan atau mengganti perawat penanggung jawab.</summary>
+        [HttpPost("{id:guid}/nurse-assignments")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientNurseAssignmentResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Assign Inpatient Nurse", Description = "Menugaskan perawat penanggung jawab episode rawat inap", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("InpatientEpisode", "Update")]
+        public async Task<IActionResult> AssignNurse(
+            Guid id,
+            [FromBody] AssignNurseRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.AssignNurseAsync(
+                id,
+                request,
+                User.GetUserId(),
+                User.IsSupervisorOrWardHead(),
+                cancellationToken);
+
+            if (result.Status != InpEpisodeOperationStatus.Success)
+            {
+                return FromFailure(result);
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InpatientEpisode.AssignNurse",
+                "Menugaskan perawat penanggung jawab episode rawat inap.",
+                new
+                {
+                    EntityId = id,
+                    Controller = "InpatientEpisode",
+                    Action = "AssignNurse",
+                    StatusCode = StatusCodes.Status200OK
+                });
+
+            var assignments = await _episodeService.GetNurseAssignmentsAsync(id, cancellationToken);
+            var current = assignments.LastOrDefault(x => x.IsCurrent);
+
+            return Ok(ApiResponse<InpatientNurseAssignmentResponse>.Ok(current, result.Message));
+        }
+
+        /// <summary>Riwayat perawat penanggung jawab, urut nomor urut.</summary>
+        [HttpGet("{id:guid}/nurse-assignments")]
+        [ProducesResponseType(typeof(ApiResponse<List<InpatientNurseAssignmentResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Episode", Description = "Melihat riwayat perawat penanggung jawab", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientEpisode", "Read")]
+        public async Task<IActionResult> GetNurseAssignments(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.GetNurseAssignmentsAsync(id, cancellationToken);
+
+            return Ok(ApiResponse<List<InpatientNurseAssignmentResponse>>.Ok(
+                result,
+                "Riwayat perawat penanggung jawab berhasil diambil."));
+        }
+
+        // =====================================================================
+        // Pembantu
+        // =====================================================================
 
         private async Task<IActionResult> OkWithDetailAsync(
             Guid episodeId,
@@ -266,20 +535,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                         StatusCodes.Status422UnprocessableEntity,
                         result.Message))
             };
-        }
-
-        private bool IsSupervisorOrWardHead()
-        {
-            return SupervisorOrWardHeadRoles.Any(User.IsInRole);
-        }
-
-        private Guid GetCurrentUserId()
-        {
-            var value =
-                User.FindFirstValue("user_id") ??
-                User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            return Guid.TryParse(value, out var id) ? id : Guid.Empty;
         }
     }
 }

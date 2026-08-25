@@ -153,7 +153,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// <summary>Catatan admisi. Kolom sensitif; tidak boleh masuk payload logger.</summary>
         public string? Notes { get; set; }
 
+        /// <summary>
+        /// Keterangan kebutuhan isolasi. Kolom sensitif; hanya muncul pada detail, tidak
+        /// pernah pada daftar mana pun, dan tidak boleh masuk payload logger.
+        /// </summary>
+        public string? IsolationNote { get; set; }
+
+        public int? IsolationSource { get; set; }
+
+        public string? IsolationSourceName { get; set; }
+
+        public Guid? IsolationSetByUserId { get; set; }
+
+        public Guid? IsolationSetByDoctorId { get; set; }
+
+        public DateTime? IsolationSetAt { get; set; }
+
+        public int DischargeType { get; set; }
+
+        public string DischargeTypeName { get; set; } = string.Empty;
+
         public InpatientEpisodeActiveDoctorResponse? ActiveDoctor { get; set; }
+
+        /// <summary>Perawat penanggung jawab yang sedang berlaku, bila memang sudah ada.</summary>
+        public InpatientEpisodeActiveNurseResponse? ActiveNurse { get; set; }
+
+        /// <summary>
+        /// Lokasi pasien saat ini, selalu dibaca dari baris <c>InpBedPlacement</c> yang masih
+        /// aktif — bukan dari kolom pada episode.
+        /// </summary>
+        public InpatientEpisodeCurrentLocationResponse? CurrentLocation { get; set; }
 
         public DateTime CreateDateTime { get; set; }
 

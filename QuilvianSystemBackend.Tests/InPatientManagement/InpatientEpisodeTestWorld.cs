@@ -1,11 +1,13 @@
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Tests.InPatientManagement;
@@ -27,6 +29,9 @@ internal sealed class InpatientEpisodeTestWorld
     private InpatientEpisodeTestWorld(
         ApplicationDbContext dbContext,
         InpEpisodeService episodeService,
+        InpBedOccupancyService bedOccupancyService,
+        InpCensusQueryService censusQueryService,
+        InpDischargeService dischargeService,
         RecordingLogger<InpSettingService> settingLogger,
         MstPatient patient,
         MstDoctor doctor,
@@ -35,6 +40,9 @@ internal sealed class InpatientEpisodeTestWorld
     {
         DbContext = dbContext;
         EpisodeService = episodeService;
+        BedOccupancyService = bedOccupancyService;
+        CensusQueryService = censusQueryService;
+        DischargeService = dischargeService;
         SettingLogger = settingLogger;
         Patient = patient;
         Doctor = doctor;
@@ -45,6 +53,12 @@ internal sealed class InpatientEpisodeTestWorld
     public ApplicationDbContext DbContext { get; }
 
     public InpEpisodeService EpisodeService { get; }
+
+    public InpBedOccupancyService BedOccupancyService { get; }
+
+    public InpCensusQueryService CensusQueryService { get; }
+
+    public InpDischargeService DischargeService { get; }
 
     public RecordingLogger<InpSettingService> SettingLogger { get; }
 
@@ -73,6 +87,11 @@ internal sealed class InpatientEpisodeTestWorld
             PatientCode = "PAT-0001",
             MedicalRecordNumber = "RM-000123",
             FullName = "Ibu Rina",
+            // Jenis kelamin sengaja diisi sejak BE-RWI-013. Pasien yang jenis kelaminnya
+            // belum tercatat tunduk pada aturan 5 Kelayakan Penempatan, dan bila pasien
+            // bawaan dunia uji dibiarkan kosong, seluruh test penempatan akan gagal karena
+            // alasan yang salah.
+            Gender = Gender.Female,
             IsActive = true,
             CreateDateTime = DateTime.UtcNow,
             CreateBy = ActorUserId
@@ -154,17 +173,28 @@ internal sealed class InpatientEpisodeTestWorld
         var settingLogger = new RecordingLogger<InpSettingService>();
         var settingService = new InpSettingService(dbContext, settingLogger);
         var numberService = new InpEpisodeNumberService(settingService);
-        var bedOccupancyService = new InpBedOccupancyService(dbContext, settingService);
 
         var episodeService = new InpEpisodeService(
             dbContext,
             settingService,
-            numberService,
-            bedOccupancyService);
+            numberService);
+
+        // Sejak BE-RWI-011 arah dependency berbalik: InpBedOccupancyService memakai
+        // InpEpisodeService untuk memindahkan status episode lewat satu-satunya pintu.
+        var bedOccupancyService = new InpBedOccupancyService(
+            dbContext,
+            settingService,
+            episodeService);
+
+        var censusQueryService = new InpCensusQueryService(dbContext, settingService);
+        var dischargeService = new InpDischargeService(dbContext, episodeService);
 
         return new InpatientEpisodeTestWorld(
             dbContext,
             episodeService,
+            bedOccupancyService,
+            censusQueryService,
+            dischargeService,
             settingLogger,
             patient,
             doctor,
@@ -217,5 +247,167 @@ internal sealed class InpatientEpisodeTestWorld
         await DbContext.SaveChangesAsync();
 
         return encounter;
+    }
+
+    // =========================================================================
+    // Tambahan BE-RWI-009 s.d. BE-RWI-022
+    // =========================================================================
+
+    /// <summary>Menambahkan satu kamar rawat inap.</summary>
+    public async Task<MstRoom> AddRoomAsync(
+        string roomName = "Melati 3",
+        Guid? patientClassId = null,
+        int capacity = 4)
+    {
+        var room = new MstRoom
+        {
+            Id = Guid.NewGuid(),
+            ServiceUnitId = ServiceUnit.Id,
+            PatientClassId = patientClassId ?? PatientClass.Id,
+            RoomCode = $"RM-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
+            RoomName = roomName,
+            Capacity = capacity,
+            IsActive = true,
+            CreateDateTime = DateTime.UtcNow,
+            CreateBy = ActorUserId
+        };
+
+        DbContext.Set<MstRoom>().Add(room);
+        await DbContext.SaveChangesAsync();
+
+        return room;
+    }
+
+    /// <summary>Menambahkan satu tempat tidur beserta penandanya.</summary>
+    public async Task<MstBed> AddBedAsync(
+        MstRoom room,
+        string bedName = "3A",
+        bool isForMale = true,
+        bool isForFemale = true,
+        bool isForNewborn = false,
+        bool isIsolationBed = false,
+        bool isReservable = true,
+        BedStatus bedStatus = BedStatus.Available,
+        bool isActive = true)
+    {
+        var bed = new MstBed
+        {
+            Id = Guid.NewGuid(),
+            RoomId = room.Id,
+            BedCode = $"BD-RSMMC-{Guid.NewGuid().ToString("N")[..5].ToUpperInvariant()}",
+            BedName = bedName,
+            BedStatus = bedStatus,
+            IsForMale = isForMale,
+            IsForFemale = isForFemale,
+            IsForNewborn = isForNewborn,
+            IsIsolationBed = isIsolationBed,
+            IsReservable = isReservable,
+            IsActive = isActive,
+            CreateDateTime = DateTime.UtcNow,
+            CreateBy = ActorUserId
+        };
+
+        DbContext.Set<MstBed>().Add(bed);
+        await DbContext.SaveChangesAsync();
+
+        return bed;
+    }
+
+    /// <summary>Menambahkan pasien lain, untuk skenario dua pasien pada satu kamar.</summary>
+    public async Task<MstPatient> AddPatientAsync(string fullName, Gender? gender)
+    {
+        var patient = new MstPatient
+        {
+            Id = Guid.NewGuid(),
+            PatientCode = $"PAT-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
+            MedicalRecordNumber = $"RM-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
+            FullName = fullName,
+            Gender = gender,
+            IsActive = true,
+            CreateDateTime = DateTime.UtcNow,
+            CreateBy = ActorUserId
+        };
+
+        DbContext.Set<MstPatient>().Add(patient);
+        await DbContext.SaveChangesAsync();
+
+        return patient;
+    }
+
+    /// <summary>Menambahkan dokter lain, untuk skenario dokter yang bukan DPJP aktif.</summary>
+    public async Task<MstDoctor> AddDoctorAsync(string fullName)
+    {
+        var doctor = new MstDoctor
+        {
+            Id = Guid.NewGuid(),
+            WorkforceProfileId = Guid.NewGuid(),
+            DoctorCode = $"DR-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
+            DoctorNumber = Guid.NewGuid().ToString("N")[..4],
+            FullName = fullName,
+            IsActive = true,
+            CreateDateTime = DateTime.UtcNow,
+            CreateBy = ActorUserId
+        };
+
+        DbContext.Set<MstDoctor>().Add(doctor);
+        await DbContext.SaveChangesAsync();
+
+        return doctor;
+    }
+
+    /// <summary>Menambahkan pegawai, untuk penugasan perawat penanggung jawab.</summary>
+    public async Task<MstEmployee> AddEmployeeAsync(string fullName)
+    {
+        var employee = new MstEmployee
+        {
+            Id = Guid.NewGuid(),
+            WorkforceProfileId = Guid.NewGuid(),
+            EmployeeCode = $"EMP-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
+            EmployeeNumber = Guid.NewGuid().ToString("N")[..4],
+            FullName = fullName,
+            BirthDate = new DateTime(1990, 1, 1),
+            IsActive = true,
+            CreateDateTime = DateTime.UtcNow,
+            CreateBy = ActorUserId
+        };
+
+        DbContext.Set<MstEmployee>().Add(employee);
+        await DbContext.SaveChangesAsync();
+
+        return employee;
+    }
+
+    /// <summary>Membuka satu admisi <c>Draft</c> dan mengembalikan episodenya.</summary>
+    public async Task<InpEpisode> OpenDraftEpisodeAsync(
+        Guid? patientId = null,
+        Guid? doctorId = null)
+    {
+        var request = new OpenAdmissionRequest
+        {
+            PatientId = patientId ?? Patient.Id,
+            ServiceUnitId = ServiceUnit.Id,
+            PatientClassId = PatientClass.Id,
+            DoctorId = doctorId ?? Doctor.Id
+        };
+
+        var result = await EpisodeService.OpenAdmissionAsync(request, ActorUserId);
+
+        Assert.Equal(InpEpisodeOperationStatus.Success, result.Status);
+
+        return result.Episode!;
+    }
+
+    /// <summary>Membuka admisi lalu langsung menempatkan pasiennya di satu tempat tidur.</summary>
+    public async Task<InpEpisode> OpenAndPlaceAsync(MstBed bed, Guid? patientId = null)
+    {
+        var episode = await OpenDraftEpisodeAsync(patientId);
+
+        var result = await BedOccupancyService.PlacePatientAsync(
+            new PlacePatientRequest { EpisodeId = episode.Id, BedId = bed.Id },
+            ActorUserId);
+
+        Assert.Equal(InpEpisodeOperationStatus.Success, result.Status);
+
+        return episode;
     }
 }

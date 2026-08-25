@@ -44,12 +44,42 @@ public sealed class InpatientEpisodeControllerContractTests
         Assert.NotNull(type.GetCustomAttribute<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>());
     }
 
+    /// <remarks>
+    /// Dua belas endpoint: empat endpoint baca dari <c>BE-RWI-009</c>, tiga endpoint tulis
+    /// dari <c>BE-RWI-007</c> dan <c>BE-RWI-008</c>, satu penetapan kebutuhan isolasi dari
+    /// <c>BE-RWI-014</c>, dua penugasan DPJP dari <c>BE-RWI-017</c>, dan dua penugasan perawat
+    /// dari <c>BE-RWI-018</c>.
+    ///
+    /// Yang sengaja <b>belum</b> ada: riwayat status (<c>BE-RWI-028</c>) dan sesi koreksi
+    /// (<c>BE-RWI-030</c>).
+    /// </remarks>
     [Fact]
-    public void MenyediakanTepatTigaEndpointYangDibukaBeRwi007DanBeRwi008()
+    public void MenyediakanDuaBelasEndpointSesuaiTaskYangSudahDibuka()
     {
-        // Endpoint baca — daftar, detail, ringkasan, penyaring, dan riwayat status — milik
-        // BE-RWI-009 dan BE-RWI-028, dan sengaja belum ada di sini.
-        Assert.Equal(3, EndpointsOf(typeof(InpatientEpisodeController)).Count);
+        Assert.Equal(12, EndpointsOf(typeof(InpatientEpisodeController)).Count);
+    }
+
+    /// <remarks>
+    /// Riwayat status dan sesi koreksi punya endpoint pada api contract, tetapi keduanya milik
+    /// task yang belum dikerjakan. Test ini menahan keduanya lahir lebih awal tanpa aturan
+    /// pendukungnya — riwayat status yang dapat dibaca sebelum <c>BE-RWI-028</c> menetapkan
+    /// bentuknya akan mengunci kontrak sebelum ada yang memutuskannya.
+    /// </remarks>
+    [Fact]
+    public void BelumMenyediakanRiwayatStatusMaupunSesiKoreksi()
+    {
+        var templates = EndpointsOf(typeof(InpatientEpisodeController))
+            .SelectMany(x => x.GetCustomAttributes<Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute>())
+            .Select(x => x.Template ?? string.Empty)
+            .ToList();
+
+        Assert.DoesNotContain(
+            templates,
+            x => x.Contains("status-history", StringComparison.OrdinalIgnoreCase));
+
+        Assert.DoesNotContain(
+            templates,
+            x => x.Contains("correction-sessions", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -67,26 +97,49 @@ public sealed class InpatientEpisodeControllerContractTests
         }
     }
 
+    /// <remarks>
+    /// Pemetaan butir hak akses mengikuti permission matrix bagian 2.1 apa adanya: seluruh
+    /// pembacaan memakai <c>Read</c>, pembukaan admisi memakai <c>Create</c>, penetapan
+    /// kebutuhan isolasi memakai <c>SetIsolation</c>, dan sisanya <c>Update</c>. Butir
+    /// <c>SetIsolation</c> sengaja terpisah karena ia diberikan kepada dokter, sementara
+    /// <c>Update</c> diberikan kepada petugas admisi dan kepala ruangan.
+    /// </remarks>
     [Fact]
-    public void MembukaAdmisiMemakaiHakAksesCreate_SisanyaUpdate()
+    public void PemetaanButirHakAksesSesuaiPermissionMatrix()
     {
         var endpoints = EndpointsOf(typeof(InpatientEpisodeController));
-
-        var create = endpoints
-            .Where(x => x.GetCustomAttribute<HttpPostAttribute>() != null)
-            .ToList();
-
-        Assert.Single(create);
-        Assert.Equal("Create", PermissionActionOf(create[0]));
-
-        foreach (var endpoint in endpoints.Except(create))
-        {
-            Assert.Equal("Update", PermissionActionOf(endpoint));
-        }
 
         foreach (var endpoint in endpoints)
         {
             Assert.Equal("InpatientEpisode", PermissionResourceOf(endpoint));
+        }
+
+        var reads = endpoints
+            .Where(x => x.GetCustomAttribute<HttpGetAttribute>() != null)
+            .ToList();
+
+        Assert.Equal(6, reads.Count);
+
+        foreach (var endpoint in reads)
+        {
+            Assert.Equal("Read", PermissionActionOf(endpoint));
+        }
+
+        var creates = endpoints
+            .Where(x => x.GetCustomAttribute<HttpPostAttribute>() != null)
+            .Where(x => PermissionActionOf(x) == "Create")
+            .ToList();
+
+        Assert.Single(creates);
+
+        var isolation = endpoints
+            .Single(x => PermissionActionOf(x) == "SetIsolation");
+
+        Assert.NotNull(isolation.GetCustomAttribute<HttpPatchAttribute>());
+
+        foreach (var endpoint in endpoints.Except(reads).Except(creates).Except(new[] { isolation }))
+        {
+            Assert.Equal("Update", PermissionActionOf(endpoint));
         }
     }
 
@@ -107,10 +160,19 @@ public sealed class InpatientEpisodeControllerContractTests
     {
         var endpoints = EndpointsOf(typeof(InpatientEpisodeController));
 
-        Assert.Single(endpoints.Where(x => x.GetCustomAttribute<HttpPostAttribute>() != null));
+        // 6 GET: filters/metadata, summary, daftar, detail, riwayat DPJP, riwayat perawat.
+        Assert.Equal(6, endpoints.Count(x => x.GetCustomAttribute<HttpGetAttribute>() != null));
+
+        // 3 POST: buka admisi, alihkan DPJP, tugaskan perawat.
+        Assert.Equal(3, endpoints.Count(x => x.GetCustomAttribute<HttpPostAttribute>() != null));
+
+        // 1 PUT: ubah isian admisi.
         Assert.Single(endpoints.Where(x => x.GetCustomAttribute<HttpPutAttribute>() != null));
-        Assert.Single(endpoints.Where(x => x.GetCustomAttribute<HttpPatchAttribute>() != null));
-        Assert.Empty(endpoints.Where(x => x.GetCustomAttribute<HttpGetAttribute>() != null));
+
+        // 2 PATCH: batalkan admisi, tetapkan kebutuhan isolasi.
+        Assert.Equal(2, endpoints.Count(x => x.GetCustomAttribute<HttpPatchAttribute>() != null));
+
+        // Tidak ada DELETE. Episode tidak pernah dihapus, hanya dibatalkan atau ditutup.
         Assert.Empty(endpoints.Where(x => x.GetCustomAttribute<HttpDeleteAttribute>() != null));
     }
 
