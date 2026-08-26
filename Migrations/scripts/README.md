@@ -12,6 +12,7 @@ migration di `Migrations/`. Jika migration berubah, skripnya wajib dibuat ulang.
 | Berkas | Migration asal | Isi |
 | --- | --- | --- |
 | `20260821060256_AddOperatingRoomFoundation.sql` | `20260821060256_AddOperatingRoomFoundation` | Membuat 13 tabel modul Operasi beserta relasi dan index |
+| `verify-operating-room-schema.sql` | — | Pemeriksaan skema setelah migration diterapkan; hanya membaca |
 
 ## Cara menjalankan
 
