@@ -73,6 +73,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
     public class KpiCatalogFilterMetadataResponse
     {
         public KpiCatalogDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<PerformanceCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<PerformanceStringOptionResponse> TargetDirectionOptions { get; set; } = new();
         public List<PerformanceStringOptionResponse> MeasurementFrequencyOptions { get; set; } = new();
         public List<PerformanceSortOptionResponse> SortOptions { get; set; } = new();
@@ -82,6 +83,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
 
     public class KpiCatalogDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? OrganizationUnitId { get; set; }
         public Guid? DepartmentId { get; set; }
         public Guid? PositionId { get; set; }

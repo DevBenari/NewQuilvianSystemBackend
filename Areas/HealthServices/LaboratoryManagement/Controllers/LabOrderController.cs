@@ -99,26 +99,144 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             }
         }
 
-        [HttpPut("{id:guid}/cancel")]
+        /// <summary>
+        /// Menandai pesanan mulai dikerjakan laboratorium.
+        /// </summary>
+        [HttpPut("{id:guid}/start-process")]
         [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Process Lab Order", Description = "Menandai order mulai dikerjakan", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("LabOrder", "Process")]
+        public Task<IActionResult> StartProcess(Guid id, CancellationToken cancellationToken = default) =>
+            ExecuteAsync(
+                () => _labOrderService.StartProcessAsync(id, cancellationToken),
+                "Order laboratorium mulai dikerjakan.");
+
+        /// <summary>
+        /// Menandai pekerjaan laboratorium selesai. Tidak menerbitkan fakta tagihan; kelayakan
+        /// tagih sudah terbentuk pada saat sampel dinyatakan layak.
+        /// </summary>
+        [HttpPut("{id:guid}/complete")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Process Lab Order", Description = "Menandai order selesai dikerjakan", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("LabOrder", "Process")]
+        public Task<IActionResult> Complete(Guid id, CancellationToken cancellationToken = default) =>
+            ExecuteAsync(
+                () => _labOrderService.CompleteAsync(id, cancellationToken),
+                "Order laboratorium selesai dikerjakan.");
+
+        [HttpPut("{id:guid}/hold")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Hold Lab Order", Description = "Menahan order laboratorium", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("LabOrder", "Hold")]
+        public Task<IActionResult> Hold(
+            Guid id,
+            [FromBody] HoldLabRequest request,
+            CancellationToken cancellationToken = default) =>
+            ExecuteAsync(
+                () => _labOrderService.HoldAsync(id, request, cancellationToken),
+                "Order laboratorium ditahan.");
+
+        [HttpPut("{id:guid}/resume")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Hold Lab Order", Description = "Melanjutkan order laboratorium yang ditahan", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("LabOrder", "Hold")]
+        public Task<IActionResult> Resume(
+            Guid id,
+            [FromBody] ResumeLabRequest request,
+            CancellationToken cancellationToken = default) =>
+            ExecuteAsync(
+                () => _labOrderService.ResumeAsync(id, request, cancellationToken),
+                "Order laboratorium dilanjutkan.");
+
+        /// <summary>
+        /// Membatalkan order laboratorium beserta sampel yang masih berjalan.
+        ///
+        /// Pembatalan ini bersifat klinis. Untuk sampel yang sebelumnya sudah dinyatakan layak,
+        /// diterbitkan fakta pembatalan sebagai revisi baru sehingga tagihan lama tetap utuh
+        /// dan Billing yang menentukan koreksinya. Laboratorium tidak menghapus tagihan.
+        /// </summary>
+        [HttpPut("{id:guid}/cancel")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrderCancellationResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Update", "Cancel Lab Order", Description = "Membatalkan order laboratorium", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("LabOrder", "Update")]
-        public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> Cancel(
+            Guid id,
+            [FromBody] CancelLabSpecimenRequest? request = null,
+            CancellationToken cancellationToken = default)
         {
             try
             {
-                var result = await _labOrderService.CancelAsync(id, cancellationToken);
+                var result = await _labOrderService.CancelAsync(id, request, cancellationToken);
 
-                return Ok(ApiResponse<LabOrderDetailResponse>.Ok(
+                return Ok(ApiResponse<LabOrderCancellationResult>.Ok(
                     result,
-                    "Order laboratorium berhasil dibatalkan."));
+                    "Order laboratorium berhasil dibatalkan secara klinis."));
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
+                    ex.Message));
+            }
+            catch (LabConcurrencyException ex)
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Menjalankan satu perpindahan status dan menerjemahkan kegagalannya menjadi status
+        /// HTTP yang tepat, tanpa membocorkan detail exception ke pemanggil.
+        /// </summary>
+        private async Task<IActionResult> ExecuteAsync(
+            Func<Task<LabOrderDetailResponse>> action,
+            string successMessage)
+        {
+            try
+            {
+                var result = await action();
+
+                return Ok(ApiResponse<LabOrderDetailResponse>.Ok(result, successMessage));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    ex.Message));
+            }
+            catch (LabConcurrencyException ex)
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    ex.Message));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
                     ex.Message));
             }
             catch (InvalidOperationException ex)

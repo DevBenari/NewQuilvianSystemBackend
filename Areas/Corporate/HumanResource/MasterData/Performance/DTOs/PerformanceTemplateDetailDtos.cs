@@ -35,6 +35,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
         public string? Description { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class PerformanceTemplateDetailDetailResponse : PerformanceTemplateDetailResponse
@@ -44,11 +45,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
         public bool AllowReviewerComment { get; set; }
         public DateTime? UpdateDateTime { get; set; }
         public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class PerformanceTemplateDetailFilterMetadataResponse
     {
         public PerformanceTemplateDetailDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<PerformanceCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<PerformanceStringOptionResponse> DetailTypeOptions { get; set; } = new();
         public List<PerformanceStringOptionResponse> ScoreMethodOptions { get; set; } = new();
         public List<PerformanceSortOptionResponse> SortOptions { get; set; } = new();
@@ -58,6 +61,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
 
     public class PerformanceTemplateDetailDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public string? DetailType { get; set; }
         public string? ScoreMethod { get; set; }
         public bool? IsRequired { get; set; }

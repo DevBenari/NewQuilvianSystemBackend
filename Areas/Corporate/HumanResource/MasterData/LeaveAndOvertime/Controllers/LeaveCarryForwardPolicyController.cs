@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using LeaveCarryForwardPolicyPagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.DTOs.LeaveCarryForwardPolicyResponse>;
 
@@ -41,6 +42,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             var result = new LeaveCarryForwardPolicyFilterMetadataResponse
             {
                 DefaultFilter = new LeaveCarryForwardPolicyDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 SortOptions = new List<LeaveCarryForwardPolicySortOptionResponse>
                 {
                     new() { Value = "carryForwardPolicyCode", Label = "Kode carry forward" },
@@ -76,10 +78,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         [HttpGet]
         [AccessAction("Read", "Read Leave Carry Forward Policy", Description = "Melihat data leave carry forward policy", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LeaveCarryForwardPolicy", "Read")]
-        public async Task<IActionResult> GetData(Guid? leaveEntitlementPolicyId, Guid? destinationLeaveTypeId, bool? isCarryForwardEnabled, bool? isPayoutAllowed, bool? isDefault, bool? isActive, string? search, string? sortBy = "carryForwardPolicyName", string? sortDirection = "asc", int pageNumber = 1, int pageSize = 25)
+        public async Task<IActionResult> GetData(DateTime? startDate, DateTime? endDate, string? customPeriod, Guid? leaveEntitlementPolicyId, Guid? destinationLeaveTypeId, bool? isCarryForwardEnabled, bool? isPayoutAllowed, bool? isDefault, bool? isActive, string? search, string? sortBy = "carryForwardPolicyName", string? sortDirection = "asc", int pageNumber = 1, int pageSize = 25)
         {
             NormalizePaging(ref pageNumber, ref pageSize);
             var q = ApplyFilter(BaseQuery(), leaveEntitlementPolicyId, destinationLeaveTypeId, isCarryForwardEnabled, isPayoutAllowed, isDefault, isActive, search);
+            q = WorkflowMasterDataSupport.ApplyDateFilter(q, startDate, endDate, customPeriod);
             var totalData = await q.CountAsync();
             var entities = await ApplySorting(q, sortBy, sortDirection).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
             var actors = await GetActorNameMapAsync(entities.Select(x => x.CreateBy));
@@ -341,5 +344,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         private static Guid? NormalizeGuid(Guid? value) => !value.HasValue || value == Guid.Empty ? null : value;
         private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         private static bool IsValidMonthDay(int month, int day) { if (month < 1 || month > 12 || day < 1) return false; return day <= DateTime.DaysInMonth(2024, month); }
+
+        private static List<LeaveCarryForwardPolicyCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<LeaveCarryForwardPolicyCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
+        }
     }
 }

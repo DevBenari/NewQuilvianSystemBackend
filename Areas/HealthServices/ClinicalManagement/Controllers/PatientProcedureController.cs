@@ -2,6 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
@@ -42,17 +45,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private readonly ApplicationDbContext _dbContext;
         private readonly EncounterInsuranceService _encounterInsuranceService;
         private readonly InsuranceCoverageService _insuranceCoverageService;
+        private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
         private readonly LoggerService _loggerService;
 
         public PatientProcedureController(
             ApplicationDbContext dbContext,
             EncounterInsuranceService encounterInsuranceService,
             InsuranceCoverageService insuranceCoverageService,
+            ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
             LoggerService loggerService)
         {
             _dbContext = dbContext;
             _encounterInsuranceService = encounterInsuranceService;
             _insuranceCoverageService = insuranceCoverageService;
+            _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
             _loggerService = loggerService;
         }
 
@@ -955,9 +961,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             await _dbContext.SaveChangesAsync();
 
+            // RJ-BIL-BE-002. Milestone charge tindakan menurut RJ-BIL-DEC-002 adalah tindakan
+            // benar-benar dieksekusi dan berstatus Completed; pemilihan atau order saja bukan
+            // pemicu charge. Fakta diserahkan setelah perubahan klinis tersimpan.
+            var emission = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
+                BuildProcedureFactRequest(entity, now),
+                actorUserId);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientProcedure.ExecuteProcedure",
+                "Mengeksekusi tindakan pasien dan menyerahkan fakta ke Billing.",
+                new
+                {
+                    ProcedureId = entity.Id,
+                    entity.EncounterId,
+                    BillingHandoff = emission.Kind.ToString(),
+                    emission.MilestoneFactVersion
+                });
+
             return Ok(ApiResponse<object>.Ok(
-                null,
-                "Tindakan pasien berhasil dieksekusi."
+                new { BillingHandoff = emission.Kind.ToString() },
+                emission.IsClinicallySafe
+                    ? "Tindakan pasien berhasil dieksekusi."
+                    : "Tindakan pasien berhasil dieksekusi, tetapi penyerahan fakta ke Billing memerlukan tinjauan."
             ));
         }
 
@@ -1073,10 +1100,72 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             await transaction.CommitAsync();
 
+            // Pembatalan klinis sudah tersimpan dan di-commit. Baru setelah itu Billing diberi
+            // tahu, karena penyerahan fakta membuka transaksinya sendiri dan kegagalannya tidak
+            // boleh membatalkan keputusan klinis.
+            var emission = await _clinicalMilestoneFactProducer.EmitClinicalCancellationAsync(
+                BuildProcedureFactRequest(entity, now, includeSnapshot: false),
+                actorUserId);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientProcedure.CancelProcedure",
+                "Membatalkan tindakan pasien dan menyerahkan fakta pembatalan ke Billing.",
+                new
+                {
+                    ProcedureId = entity.Id,
+                    entity.EncounterId,
+                    BillingHandoff = emission.Kind.ToString(),
+                    emission.MilestoneFactVersion
+                });
+
             return Ok(ApiResponse<object>.Ok(
-                null,
-                "Tindakan pasien berhasil dibatalkan."
+                new { BillingHandoff = emission.Kind.ToString() },
+                emission.IsClinicallySafe
+                    ? "Tindakan pasien berhasil dibatalkan."
+                    : "Tindakan pasien berhasil dibatalkan, tetapi penyerahan fakta ke Billing memerlukan tinjauan."
             ));
+        }
+
+        /// <summary>
+        /// Menyusun permintaan fakta klinis untuk satu tindakan pasien.
+        ///
+        /// Snapshot sengaja hanya memuat harga kotor dan identitas tindakan. Nilai
+        /// <c>CoveredAmount</c> dan <c>PatientPayAmount</c> tidak disertakan karena kepemilikan
+        /// angka tersebut masih menjadi bahasan RJ-BIL-CONFLICT-001 dan cakupan RJ-BIL-BE-005.
+        /// </summary>
+        private static ClinicalMilestoneFactRequest BuildProcedureFactRequest(
+            TrxPatientProcedure entity,
+            DateTime occurredAt,
+            bool includeSnapshot = true)
+        {
+            var hasQuantity = includeSnapshot &&
+                              entity.Quantity > 0 &&
+                              !string.IsNullOrWhiteSpace(entity.UnitNameSnapshot);
+
+            return new ClinicalMilestoneFactRequest
+            {
+                SourceContext = BillingSourceContract.ProcedureSourceContext,
+                SourceAggregateId = entity.Id,
+                EffectType = BillingSourceContract.ProcedureChargeEffectType,
+                EncounterId = entity.EncounterId,
+                OccurredAt = occurredAt,
+                Quantity = hasQuantity ? entity.Quantity : null,
+                Unit = hasQuantity ? entity.UnitNameSnapshot : null,
+                TariffSnapshot = includeSnapshot
+                    ? System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        source = "ClinicalSnapshot",
+                        procedureCode = entity.ProcedureCodeSnapshot,
+                        procedureName = entity.ProcedureNameSnapshot,
+                        unitPrice = entity.UnitPrice,
+                        totalPrice = entity.TotalPrice,
+                        isFreeOfCharge = entity.IsFreeOfCharge,
+                        isBillable = entity.IsBillable
+                    })
+                    : null,
+                CorrelationId = entity.ConsultationId
+            };
         }
 
         private IQueryable<TrxPatientProcedure> BuildBaseQuery()

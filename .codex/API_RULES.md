@@ -1,40 +1,40 @@
-# Quilvian Backend API Contract Rules
+# Aturan Kontrak API Backend Quilvian
 
-These rules preserve existing backend conventions. `AGENTS.md` remains authoritative; use the nearest mature implementation in the owning domain rather than introducing a parallel convention.
+Aturan ini menjaga konvensi backend yang sudah ada. `AGENTS.md` tetap menjadi pemegang wewenang; pakai implementasi matang terdekat di dalam domain pemiliknya, jangan memperkenalkan konvensi tandingan yang berjalan sejajar.
 
-## Canonical QBE alignment
+## Keselarasan dengan QBE canonical
 
-Read `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` before API work. Apply QBE-SVC-001, QBE-API-001, QBE-PERM-001, QBE-LOG-001, QBE-DTO-001, QBE-VAL-001 and applicable QBE-CODE rules. Reference implementations illustrate existing behavior only; they do not override the canonical contract.
+Baca `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` sebelum mengerjakan API. Terapkan QBE-SVC-001, QBE-API-001, QBE-PERM-001, QBE-LOG-001, QBE-DTO-001, QBE-VAL-001, dan aturan QBE-CODE yang berlaku. Implementasi rujukan hanya menggambarkan perilaku yang sudah ada; ia tidak menimpa kontrak canonical.
 
-## Contract authority and scope
+## Wewenang dan cakupan kontrak
 
-- Backend source is authoritative for API contracts and business/security behavior. Frontend code is a consumer reference, not an authority that silently redefines contracts.
-- Before API work, inspect the actual controller route/action, HTTP verb, request and response DTOs, validation, authorization, status values, pagination/filter behavior, and workflow rules. Do not guess a contract from a frontend URL.
-- Preserve backward compatibility where practical. Do not rename, remove, or break endpoints, fields, envelopes, enum/status values, or actions without explicit authorization and consumer assessment.
-- Do not introduce a new response envelope, DTO architecture, validation architecture, error model, or repository abstraction unless explicitly authorized.
+- Source backend adalah pemegang wewenang atas kontrak API serta perilaku bisnis/keamanan. Kode frontend adalah rujukan konsumen, bukan wewenang yang boleh diam-diam mendefinisikan ulang kontrak.
+- Sebelum mengerjakan API, periksa route/action controller yang sebenarnya, HTTP verb, DTO request dan response, validation, authorization, nilai status, perilaku pagination/filter, dan aturan workflow. Jangan menebak kontrak dari URL frontend.
+- Jaga kompatibilitas mundur sejauh dapat dilakukan. Jangan mengganti nama, menghapus, atau merusak endpoint, field, pembungkus (envelope), nilai enum/status, atau action tanpa wewenang eksplisit dan penilaian dampak terhadap konsumen.
+- Jangan memperkenalkan pembungkus response, arsitektur DTO, arsitektur validation, model error, atau abstraksi repository yang baru kecuali diberi wewenang eksplisit.
 
-## Controller, route, and response conventions
+## Konvensi controller, route, dan response
 
-- Follow the nearest controller's `[ApiController]`, `ControllerBase`, versioned `api/v1/...` route, Area/domain naming, Swagger metadata, HTTP verb, binding, and status-code conventions.
-- Use the established `ApiResponse<T>` success/failure envelope and `PagedResult<T>` pagination shape where the existing endpoint family does so. Preserve filters, sorting, defaults, and response field names.
-- Keep request and response DTOs in the owning domain's `DTOs/` folder when that pattern exists. Do not expose EF entities merely to avoid an established response DTO.
-- Preserve nullable, identifier, date/time, default, and data-annotation behavior. Use the nearest DTO's validation attributes such as `[Required]`, `[MaxLength]`, and `[Range]` when applicable.
-- Use async APIs and propagate `CancellationToken` according to the nearest controller/service pattern. Return existing error/status semantics; do not conceal failures with invented successful payloads.
+- Ikuti konvensi controller terdekat: `[ApiController]`, `ControllerBase`, route bertversi `api/v1/...`, penamaan Area/domain, metadata Swagger, HTTP verb, binding, dan kode status.
+- Pakai pembungkus sukses/gagal `ApiResponse<T>` dan bentuk pagination `PagedResult<T>` yang sudah mapan bila keluarga endpoint yang ada memang memakainya. Pertahankan filter, sorting, nilai bawaan, dan nama field response.
+- Simpan DTO request dan response di folder `DTOs/` milik domain pemiliknya bila pola itu memang ada. Jangan mengekspos entity EF hanya untuk menghindari pemakaian response DTO yang sudah mapan.
+- Pertahankan perilaku nullable, identifier, tanggal/waktu, nilai bawaan, dan data annotation. Pakai atribut validation dari DTO terdekat seperti `[Required]`, `[MaxLength]`, dan `[Range]` bila berlaku.
+- Pakai API async dan teruskan `CancellationToken` mengikuti pola controller/service terdekat. Kembalikan semantik error/status yang sudah ada; jangan menutupi kegagalan dengan payload sukses yang dikarang.
 
-## Authorization, ownership, and workflow authority
+## Authorization, ownership, dan wewenang workflow
 
-- Preserve `[Authorize]`, `[AccessController]`, `[AccessAction]`, `[AccessPermission]`, `AccessTypes`, role/permission checks, and current-user/claim resolution as implemented by the owning domain.
-- For self-service endpoints, derive ownership from the authenticated current user using the existing context/service pattern. Do not accept arbitrary actor, workforce, or user identifiers to bypass ownership.
-- Backend remains authoritative for workflow transitions, actor/delegated-actor authorization, `AvailableActions`, approval/rejection, status transitions, and idempotency. Frontend visibility is not authorization.
+- Pertahankan `[Authorize]`, `[AccessController]`, `[AccessAction]`, `[AccessPermission]`, `AccessTypes`, pemeriksaan role/permission, dan resolusi current-user/claim sebagaimana diimplementasikan domain pemiliknya.
+- Untuk endpoint self-service, turunkan ownership dari current user yang terautentikasi memakai pola context/service yang sudah ada. Jangan menerima identifier actor, workforce, atau user sembarangan yang memungkinkan ownership dilangkahi.
+- Backend tetap menjadi pemegang wewenang atas transisi workflow, authorization actor/delegated-actor, `AvailableActions`, approval/rejection, transisi status, dan idempotency. Apa yang terlihat di frontend bukan authorization.
 
-## Representative evidence
+## Bukti representatif
 
-- Master-data controller, route, DTO, and model: `Areas/Administrator/MasterData/Controllers/BankController.cs`; `Areas/Administrator/MasterData/DTOs/BankDtos.cs`; `Areas/Administrator/MasterData/Models/MstBank.cs`
-- Shared response contracts: `Responses/ApiResponse.cs`; `Responses/PagedResult.cs`
-- Authorization metadata: `Attributes/AccessControllerAttribute.cs`; `Attributes/AccessActionAttribute.cs`; `Attributes/AccessPermissionAttribute.cs`
-- Self-service/current-user pattern: `Areas/SelfServices/HumanResource/Controllers/OvertimeSelfServiceController.cs`; `Areas/SelfServices/HumanResource/Services/OvertimeSelfServiceContextService.cs`
-- Workflow authority: `Areas/Corporate/HumanResource/WorkflowManagement/Controllers/WorkflowActionV2Controller.cs`; `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowService.cs`; `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowService.ActionsV2.cs`
+- Controller, route, DTO, dan model master data: `Areas/Administrator/MasterData/Controllers/BankController.cs`; `Areas/Administrator/MasterData/DTOs/BankDtos.cs`; `Areas/Administrator/MasterData/Models/MstBank.cs`
+- Kontrak response bersama: `Responses/ApiResponse.cs`; `Responses/PagedResult.cs`
+- Metadata authorization: `Attributes/AccessControllerAttribute.cs`; `Attributes/AccessActionAttribute.cs`; `Attributes/AccessPermissionAttribute.cs`
+- Pola self-service/current-user: `Areas/SelfServices/HumanResource/Controllers/OvertimeSelfServiceController.cs`; `Areas/SelfServices/HumanResource/Services/OvertimeSelfServiceContextService.cs`
+- Wewenang workflow: `Areas/Corporate/HumanResource/WorkflowManagement/Controllers/WorkflowActionV2Controller.cs`; `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowService.cs`; `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowService.ActionsV2.cs`
 
-## Multi-developer consistency
+## Konsistensi lintas developer
 
-New modules follow the nearest mature implementation in their domain. A new module does not justify a new route grammar, response shape, DTO layout, validation style, persistence architecture, or error model.
+Modul baru mengikuti implementasi matang terdekat di domainnya. Status "modul baru" bukan alasan yang membenarkan tata bahasa route, bentuk response, tata letak DTO, gaya validation, arsitektur persistence, atau model error yang baru.

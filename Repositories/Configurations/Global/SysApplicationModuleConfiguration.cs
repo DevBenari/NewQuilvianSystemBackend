@@ -13,7 +13,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.ModuleCode)
-                .HasMaxLength(50)
+                .HasMaxLength(250)
                 .IsRequired();
 
             entity.Property(x => x.ModuleName)

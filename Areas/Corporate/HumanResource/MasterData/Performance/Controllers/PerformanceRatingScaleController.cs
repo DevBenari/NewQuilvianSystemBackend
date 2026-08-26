@@ -10,6 +10,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Performance.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Performance.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Performance.Controllers
 {
@@ -47,7 +48,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
         [AccessPermission("PerformanceRatingScale", "Read")]
         public IActionResult Metadata() => Ok(ApiResponse<PerformanceRatingScaleFilterMetadataResponse>.Ok(new()
         {
-            DefaultFilter = new(), ScaleTypeOptions = Types.Select(x => new PerformanceStringOptionResponse
+            DefaultFilter = new(), CustomPeriods = BuildPeriodOptions(), ScaleTypeOptions = Types.Select(x => new PerformanceStringOptionResponse
             {
                 Value = x, Label = x
             }
@@ -93,10 +94,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
         [HttpGet]
         [AccessAction("Read", "Read Performance Rating Scale", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PerformanceRatingScale", "Read")]
-        public async Task<IActionResult> List([FromQuery] string? scaleType, [FromQuery] bool? isDefault, [FromQuery] bool? isActive, [FromQuery] string? search, [FromQuery] string? sortBy = "scaleName", [FromQuery] string? sortDirection = "asc", [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default)
+        public async Task<IActionResult> List([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] string? customPeriod, [FromQuery] string? scaleType, [FromQuery] bool? isDefault, [FromQuery] bool? isActive, [FromQuery] string? search, [FromQuery] string? sortBy = "scaleName", [FromQuery] string? sortDirection = "asc", [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default)
         {
             Norm(ref pageNumber, ref pageSize);
             var q = Filter(Q(), scaleType, isDefault, isActive, search);
+            q = WorkflowMasterDataSupport.ApplyDateFilter(q, startDate, endDate, customPeriod);
             var total = await q.CountAsync(ct);
             var rows = await Sort(q, sortBy, sortDirection).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct);
             return Ok(ApiResponse<PagedResult<PerformanceRatingScaleResponse>>.Ok(new()
@@ -313,6 +315,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
         {
             p = Math.Max(1, p);
             s = Math.Min(100, Math.Max(1, s));
+        }
+
+        private static List<PerformanceCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<PerformanceCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
         }
     }
 }

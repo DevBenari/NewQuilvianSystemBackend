@@ -150,6 +150,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
             set;
         }
         = new();
+        public List<ShiftGroupCustomPeriodOptionResponse> CustomPeriods
+        {
+            get;
+            set;
+        }
+        = new();
         public List<string> SortDirections
         {
             get;
@@ -165,6 +171,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
     }
     public class ShiftGroupDefaultFilterResponse
     {
+        public DateTime? StartDate
+        {
+            get;
+            set;
+        }
+        public DateTime? EndDate
+        {
+            get;
+            set;
+        }
+        public string? CustomPeriod
+        {
+            get;
+            set;
+        }
         public bool? IsActive
         {
             get;
@@ -199,6 +220,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
             set;
         }
         = 25;
+    }
+
+    public class ShiftGroupCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
     public class CreateShiftGroupRequest
     {

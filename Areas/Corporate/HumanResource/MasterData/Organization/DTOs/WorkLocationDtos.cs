@@ -30,12 +30,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class WorkLocationDetailResponse : WorkLocationResponse
     {
         public DateTime? UpdateDateTime { get; set; }
         public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class WorkLocationOptionResponse
@@ -61,6 +63,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
     public class WorkLocationFilterMetadataResponse
     {
         public WorkLocationDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<WorkLocationCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<WorkLocationStringOptionResponse> LocationTypeOptions { get; set; } = new();
         public List<WorkLocationSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
@@ -69,6 +72,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
 
     public class WorkLocationDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? LegalEntityId { get; set; }
         public Guid? HospitalSiteId { get; set; }
         public Guid? OrganizationUnitId { get; set; }
@@ -81,6 +87,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class WorkLocationCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class WorkLocationStringOptionResponse
