@@ -3,10 +3,10 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.3.0` |
+| `contract_version` | `0.4.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | `00-interview-decisions.md` revision `5`; `evidence/03-hospital-domain-architecture.md` revision `0.1` |
+| `input_revision` | `00-interview-decisions.md` revision `6`; `evidence/03-hospital-domain-architecture.md` revision `0.1` |
 | Dampak kompatibilitas | Seluruhnya baru. Tidak ada state machine existing yang berubah |
 
 Dokumen ini memuat perpindahan yang **sah** dan perpindahan yang **tidak sah**. Keduanya sama
@@ -114,7 +114,7 @@ Status awal: `Aktif`, yaitu `EndDateTime` kosong. Status akhir: `Berakhir`.
 
 | Dari | Tindakan | Ke | Pemicu | Yang terjadi bersamaan |
 | --- | --- | --- | --- | --- |
-| — | Pasien menempati | `Aktif` | Penempatan atau perpindahan | `MstBed.BedStatus` menjadi `Occupied` |
+| — | Pasien menempati | `Aktif` | Penempatan atau perpindahan | `MstBed.BedStatus` menjadi `Occupied`. Untuk episode asal IGD, perpindahan ke `Aktif` **tidak boleh terjadi** sebelum catatan kepergian IGD bertanda `Tiba`, dan waktu mulainya dibaca dari sana — `RWI-DEC-072` |
 | `Aktif` | Pasien pindah | `Berakhir`, `EndReason = Transfer` | Perpindahan | Penempatan baru dibuka; tempat tidur lama menjadi `Available` |
 | `Aktif` | Kepergian fisik pasien dicatat | `Berakhir`, `EndReason = PatientDeparted` | Pencatatan kepergian | Tempat tidur menjadi `Available`. **Status episode tidak berubah** |
 | `Aktif` | Episode ditutup | `Berakhir`, `EndReason = EpisodeClosed` | Penutupan | Tempat tidur menjadi `Available` |

@@ -3,12 +3,17 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.3.0` |
+| `contract_version` | `0.4.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; pemilik keamanan/privasi **belum ditunjuk** |
-| `input_revision` | `00-interview-decisions.md` revision `5`; `contracts/api-contract.md` revision `0.3.0` |
+| `input_revision` | `00-interview-decisions.md` revision `6`; `contracts/api-contract.md` revision `0.4.0` |
 | Backend SHA | `5afb54b` |
 | Dampak kompatibilitas | Butir hak akses baru bersifat aditif. Terdaftar otomatis oleh `AccessMenuSeeder` saat aplikasi dinyalakan |
+
+> **`0.4.0` sengaja tidak mengubah satu butir hak akses pun.** Keempat keputusan Amendment Pass
+> 2026-08-24 tidak menambah aktor, tidak menambah endpoint, dan tidak memindahkan kewenangan.
+> Pemeriksaan waktu tiba pada penempatan dijalankan aktor yang sama dengan yang sudah berwenang
+> menempatkan pasien. Yang naik hanyalah `contract_version`, supaya seluruh kontrak tetap sebaris.
 
 String pada kolom "String yang dipakai" ditulis **apa adanya** supaya implementer menyalin, bukan
 menerjemahkan.

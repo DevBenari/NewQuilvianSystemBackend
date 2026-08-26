@@ -3,11 +3,11 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.3.0` |
+| `contract_version` | `0.4.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; nama belum diisi |
 | `approved_by` / `approved_at` | Belum ada |
-| `input_revision` | `02-backend-architecture.md` revision `0.3`; `00-interview-decisions.md` revision `5` |
+| `input_revision` | `02-backend-architecture.md` revision `0.4`; `00-interview-decisions.md` revision `6` |
 | Backend SHA | `5afb54b` |
 | Dampak kompatibilitas | **Seluruhnya aditif.** Tidak ada endpoint existing yang berubah bentuknya. Satu endpoint existing berubah **perilakunya**, lihat bagian 7 |
 
@@ -30,6 +30,18 @@ Tidak ada endpoint yang dihapus dan tidak ada bentuk request atau response yang 
 | Endpoint baru `GET /monitoring/isolation-mismatch` | `RWI-DEC-065` aturan 7 |
 | Penempatan dan perpindahan menolak lima keadaan baru: jenis kelamin tidak cocok, jenis kelamin belum tercatat, kamar sudah dihuni jenis kelamin berbeda, dan dua aturan isolasi | `RWI-DEC-064`, `RWI-DEC-066` |
 | `GET /bed-occupancies/available-beds` menyaring hasil memakai kedelapan aturan Kelayakan Penempatan | `RWI-DEC-064` |
+
+### Perubahan pada `contract_version` `0.4.0`
+
+| Yang berubah | Dasar |
+| --- | --- |
+| `POST /placements` menolak satu keadaan baru: pasien asal IGD yang belum tercatat tiba | `RWI-DEC-072` |
+| `POST /placements` tidak lagi selalu menetapkan waktu mulai sendiri; untuk pasien asal IGD waktunya dibaca dari catatan kepergian IGD | `RWI-DEC-072` |
+| `GET /available-beds` menyaring memakai **sembilan** aturan Kelayakan Penempatan, bukan delapan | `RWI-DEC-072` |
+
+**Tidak ada bentuk request atau response yang berubah, dan tidak ada endpoint baru.** Keduanya
+hanya berlaku pada jalur serah terima IGD, yaitu `INP-S09` yang di luar scope revisi ini. Untuk
+seluruh endpoint yang dipakai MVP, perilakunya sama persis seperti `0.3.0`.
 
 > **Seluruh endpoint pada dokumen ini berstatus `Rencana (belum tersedia)`,** kecuali yang
 > disebutkan lain. Tidak satu pun sudah ada di dalam kode pada SHA `5afb54b`.
@@ -94,6 +106,11 @@ Kode status tambahan yang khas bagian ini:
 | --- | --- |
 | 409 | Tempat tidur sudah ditempati atau sudah dipesan pasien lain. Ini yang muncul ketika dua petugas merebut tempat tidur yang sama |
 | 422 | Tempat tidur tidak lolos pemeriksaan kelayakan. Sejak `0.3.0` ini mencakup lima alasan baru: penanda tempat tidur tidak menerima jenis kelamin pasien, jenis kelamin pasien belum tercatat, kamar sudah dihuni pasien berjenis kelamin berbeda, pasien butuh isolasi tetapi tempat tidurnya bukan isolasi, dan pasien tidak butuh isolasi tetapi tempat tidurnya isolasi |
+| 422 | Sejak `0.4.0` bertambah satu alasan lagi: pasien berasal dari serah terima IGD tetapi belum tercatat tiba di bangsal. Hanya berlaku pada jalur `INP-S09`, yang di luar scope revisi ini |
+
+**Waktu mulai penempatan.** Untuk pasien asal IGD, `StartDateTime` pada jawaban **bukan** waktu
+endpoint dipanggil, melainkan waktu tiba yang dibaca dari catatan kepergian IGD. Untuk jalur
+datang langsung dan poliklinik nilainya tetap waktu penempatan dibuat. Dasarnya `RWI-DEC-072`.
 
 **Bentuk jawaban penolakan kelayakan.** Jawaban 422 menyertakan **daftar aturan yang gagal**, bukan
 satu kalimat umum. Petugas perlu tahu apakah yang menghalangi jenis kelaminnya, isolasinya, atau

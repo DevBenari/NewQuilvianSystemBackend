@@ -512,7 +512,7 @@ Tujuh Decision ID berikut adalah ambiguitas pemblokir yang bergantung pemilik. G
 | Bukti saat ini | `RWI-DEC-041` dan `RWI-RULE-029` sudah memilih arahnya. `RWI-TF-017` membuktikan penanda `ClosesEmergencyVisit` selama ini tidak pernah dibaca satu pun alur kerja |
 | Usulan baseline | Baseline pasal 8 menyatakan perpindahan internal tidak otomatis berarti encounter baru, dan kebijakan rumah sakit yang menentukan batas episodenya. Ini justru menegaskan keputusan itu memang milik rumah sakit, bukan milik agent |
 | Dampak | Bila persetujuan tidak didapat, jangkar episode berpindah ke kunjungan IGD, dan syarat pelonggaran `RWI-RULE-026` harus diperluas menjadi majemuk |
-| Pemilik yang dibutuhkan | Pemilik modul `EmergencyInstallationManagement`; belum ditunjuk |
+| Pemilik yang dibutuhkan | Pemilik modul `EmergencyInstallationManagement`: **Rizki Gunawan**, ditetapkan `RWI-DEC-069` 2026-08-24. Persetujuan formalnya belum tercatat; jawabannya sudah tersedia pada `IGD-DEC-067` yang masih `draft` |
 | Status | `OPEN` |
 | Dampak implementasi atau domain | `INP-S09` berhenti. `INP-S01` tetap boleh berjalan untuk jalur pasien datang langsung dan poliklinik |
 

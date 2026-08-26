@@ -2,11 +2,12 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `4` |
-| Status | `approved` — disetujui Product/Domain Owner 14 Agustus 2026 sesuai `IGD-DEC-046`; gate klinis dan security/privacy tetap berlaku sebagai syarat go-live |
-| Commit diaudit | backend `e5331a0`, frontend `08c84d371` |
-| Keputusan yang mengikat | `IGD-DEC-046` sampai `IGD-DEC-050` |
-| Aturan folder | [backend-structure-rules.md](../../../.claude/skills/design-business-module/references/backend-structure-rules.md) |
+| Blueprint | `IGD-BP-001` revision `5` |
+| Status | `draft` — **belum disetujui siapa pun**. Diturunkan dari `IGD-DEC-067` sampai `IGD-DEC-088` yang seluruhnya masih `draft` |
+| Commit diaudit | backend `f69e9e483052845d11c91d8b7bbdce33c4acc8d8`, frontend `96a9120111f6acc6b7c0f37973ea0c717ba41f17` |
+| Masukan | `00-interview-decisions.md` (88 keputusan), `01-existing-capability-map.md` revision `3` |
+| Keputusan yang mengikat | `IGD-DEC-067` sampai `IGD-DEC-088`; keputusan lama `IGD-DEC-001` sampai `IGD-DEC-066` tetap berlaku kecuali dinyatakan `superseded` |
+| Gerbang kemampuan rumah sakit | **BELUM TERPENUHI** — lihat bagian 0 |
 
 Modul IGD menyimpan proses yang benar-benar khusus kegawatdaruratan. Data klinis yang dipakai
 lintas pelayanan tetap dimiliki modul pusat agar tidak terjadi duplikasi antara Rawat Jalan,
@@ -19,9 +20,37 @@ Penghapusan bersifat penandaan, bukan penghapusan baris.
 
 ---
 
+## 0. Gerbang yang belum terpenuhi
+
+Dokumen ini disusun walaupun dua artefak hulu yang diwajibkan untuk kemampuan bisnis rumah
+sakit **tidak ada** pada blueprint IGD:
+
+| Artefak hulu yang diwajibkan | Keadaan pada blueprint IGD | Keadaan pada blueprint Rawat Inap sebagai pembanding |
+| --- | --- | --- |
+| `evidence/02-requirement-completeness-gate.md` | **Tidak ada** | Ada, 728 baris |
+| `evidence/03-hospital-domain-architecture.md` | **Tidak ada** | Ada, 764 baris |
+
+**Alasan tetap dilanjutkan.** Substansi yang biasanya dihasilkan kedua skill itu — bounded
+context, ownership konsep, invariant, lifecycle, batas billing, dan batas keselamatan klinis —
+memang sudah tercatat, tetapi tersebar pada 88 keputusan di decision log dan pada revision `4`
+dokumen ini, bukan pada berkas hulu tersendiri.
+
+**Akibat yang harus diketahui pembaca.** Modul IGD tidak memiliki klasifikasi kesiapan
+requirement per slice (`READY_FOR_DOMAIN_DESIGN`, `BUSINESS_DECISION_REQUIRED`, dan
+sejenisnya) sebagaimana dimiliki Rawat Inap. Karena itu tidak ada cara ringkas menyatakan
+slice mana yang secara formal siap dan slice mana yang belum. Yang tersedia hanyalah status
+per keputusan.
+
+Gerbang ini **tidak** ditandai terpenuhi. Bila Product/Domain Owner menghendaki kesetaraan
+dengan Rawat Inap, `/requirement-completeness-gate` dan `hospital-domain-architect` perlu
+dijalankan untuk IGD, dan dokumen ini ditinjau ulang terhadap hasilnya.
+
+---
+
 ## 1. Kepemilikan data
 
-Tabel ini adalah pertahanan paling langsung terhadap duplikasi entitas.
+Tabel ini adalah pertahanan paling langsung terhadap duplikasi entitas. Baris bertanda
+**baru** ditambahkan pada revision `5`.
 
 | Kelompok data | Modul pemilik | Dipakai IGD | Dibuat ulang di IGD |
 | --- | --- | :---: | --- |
@@ -29,229 +58,344 @@ Tabel ini adalah pertahanan paling langsung terhadap duplikasi entitas.
 | Encounter atau episode pelayanan | Registration Management | Ya | Tidak |
 | Assessment, SOAP, diagnosis, tindakan, CPPT, tanda vital | Clinical Management | Ya | Tidak |
 | Resep dan obat | Pharmacy Management | Ya | Tidak |
+| **Pemesanan laboratorium** *(baru)* | **Laboratory Management** | Ya | **Tidak** — `IGD-DEC-087` |
 | Unit pelayanan, ruangan, dan bed | Master Data | Ya | Tidak |
+| **Kelas pasien** *(baru)* | **Master Data** | Ya | **Tidak** — `IGD-DEC-076` memakai penanda `IsForEmergency` yang sudah ada |
+| **Episode rawat inap dan penempatan bed** *(baru)* | **Inpatient Management** (`RWI-BP-001`, belum diimplementasikan) | Ya | **Tidak** — `IGD-DEC-069` |
+| **Penugasan pegawai ke simpul organisasi** *(baru)* | **Corporate/HR** | Ya | **Tidak** — `IGD-DEC-086` memakai `WfpOrganizationAssignment` yang sudah ada |
 | Billing dan penjaminan | Billing Management | Ya | Tidak |
-| Triage, resusitasi, observasi, disposition, transfer | Emergency Installation | Ya | **Ya, karena khusus IGD** |
+| Triage, resusitasi, observasi, disposition, kepergian pasien | Emergency Installation | Ya | **Ya, karena khusus IGD** |
+| **Riwayat penugasan dokter pemeriksa IGD** *(baru)* | **Emergency Installation** | Ya | **Ya, karena khusus IGD** — `IGD-DEC-082` |
 | Approval bertingkat, maker-checker, delegasi | Workflow Management | Ya | **Tidak** — engine generik lewat `ReferenceType`/`ReferenceId` |
 
-Penghubung ke seluruh data klinis adalah `EncounterId`. Konteks IGD dibedakan melalui
-`ServiceUnitId` dan asal kunjungan, bukan melalui penyalinan entitas.
+Penghubung ke seluruh data klinis tetap `EncounterId`. Konteks IGD dibedakan melalui
+`EncounterType.Emergency` sesuai `IGD-DEC-074`, bukan melalui penyalinan entitas.
+
+### 1.1 Tiga perubahan pada tabel milik modul lain
+
+Revision `5` mengusulkan perubahan pada tiga tabel yang **bukan milik IGD**. Ketiganya wajib
+disetujui pemiliknya sebelum dikerjakan.
+
+| Tabel | Pemilik | Perubahan | Keputusan | Mengapa tidak dapat dihindari |
+| --- | --- | --- | --- | --- |
+| `TrxPatientEncounter` | Registration Management | Satu kolom `OriginEncounterId` yang boleh kosong | `IGD-DEC-075` | `RWI-RULE-029` aturan 2 mewajibkan kedua kunjungan terhubung. Tidak ada tempat lain yang dapat menampung hubungan antar-kunjungan |
+| `MstServiceUnit` | Master Data | Satu kolom `OrganizationUnitId` yang boleh kosong | `IGD-DEC-086` | Satu-satunya mata rantai yang putus antara pengguna dan unit pelayanan |
+| `TrxPatientAssessment`, `TrxDoctorConsultation`, `TrxPatientDiagnosis`, `TrxPatientProcedure`, `TrxPrescription` | Clinical Management dan Pharmacy Management | Pelonggaran kewajiban `QueueId` dan `ConsultationId` untuk kunjungan bertipe `Emergency`; penambahan kolom penanda versi untuk koreksi append-only | `IGD-DEC-068`, `IGD-DEC-080` | Tanpa ini pengkajian, diagnosis, tindakan, dan resep pasien IGD **tidak dapat disimpan sama sekali** |
+
+Baris ketiga adalah **satu-satunya dependency eksternal yang menahan rilis pertama**. Dua
+lainnya tidak.
 
 ---
 
 ## 2. Class diagram
 
-Diagram dipecah per konteks agar setiap gambar muat dibaca dalam satu layar.
+Diagram dipecah per konteks agar setiap gambar muat dibaca dalam satu layar. Penanda:
+`«new»` entity baru, `«upd»` entity diperbarui, tanpa penanda berarti sudah ada dan tidak
+berubah.
 
-### 2.1 Kunjungan dan triage
+### 2.1 Kunjungan, triase, dan penetapan dokter
 
 ```mermaid
 classDiagram
+    class TrxPatientEncounter {
+        +Guid Id
+        +Guid PatientId
+        +Guid ServiceUnitId
+        +Guid? PatientClassId
+        +EncounterType EncounterType
+        +Guid? OriginEncounterId «upd»
+    }
     class TrxEmergencyVisit {
         +Guid Id
+        +string EmergencyVisitNumber
         +Guid? EncounterId
-        +Guid? PatientId
-        +Guid ServiceUnitId
         +EmergencyRegistrationStatus RegistrationStatus
         +EmergencyVisitStatus VisitStatus
-        +bool IsUnknownPatient
+        +DateTime? VisitCompletedAt
     }
     class TrxEmergencyTriage {
         +Guid Id
         +Guid EmergencyVisitId
         +Guid TriageLevelId
         +int Sequence
-        +bool IsRetriage
-        +Guid? PreviousTriageId
         +EmergencyTriageStatus TriageStatus
-        +DateTime? ResponseDueAt
+        +Guid? PreviousTriageId
+        +bool IsSlaBreached
     }
     class TrxEmergencyTriageDetail {
         +Guid Id
         +Guid EmergencyTriageId
-        +Guid? TriageIndicatorId
-        +bool IsMatched
+        +string IndicatorCodeSnapshot
+    }
+    class TrxEmergencyDoctorAssignment {
+        +Guid Id «new»
+        +Guid EmergencyVisitId
+        +Guid DoctorId
+        +DateTime EffectiveFrom
+        +DateTime? EffectiveTo
+        +Guid AssignedByUserId
+        +string? AssignmentReason
     }
     class MstEmergencyTriageLevel {
         +Guid Id
         +int Level
-        +string ColorName
         +int? MaxWaitingMinutes
+        +bool AllowsTreatmentBeforeRegistration
     }
-    class MstEmergencyTriageIndicator {
-        +Guid Id
-        +Guid TriageLevelId
-        +string Code
-    }
-    TrxEmergencyVisit "1" --> "0..*" TrxEmergencyTriage : dinilai
-    TrxEmergencyTriage "1" --> "0..*" TrxEmergencyTriageDetail : indikator
-    TrxEmergencyTriage "0..1" --> "0..1" TrxEmergencyTriage : digantikan retriage
-    MstEmergencyTriageLevel "1" --> "0..*" TrxEmergencyTriage : menetapkan level
-    MstEmergencyTriageLevel "1" --> "0..*" MstEmergencyTriageIndicator : indikator level
+
+    TrxPatientEncounter "1" --> "0..1" TrxEmergencyVisit
+    TrxPatientEncounter "0..1" --> "0..1" TrxPatientEncounter : OriginEncounterId
+    TrxEmergencyVisit "1" --> "0..*" TrxEmergencyTriage
+    TrxEmergencyTriage "1" --> "0..*" TrxEmergencyTriageDetail
+    TrxEmergencyTriage "0..1" --> "0..1" TrxEmergencyTriage : PreviousTriageId
+    TrxEmergencyTriage "*" --> "1" MstEmergencyTriageLevel
+    TrxEmergencyVisit "1" --> "0..*" TrxEmergencyDoctorAssignment
 ```
 
 ### 2.2 Resusitasi, observasi, dan tindakan
 
+Tidak berubah pada revision `5`. Ketiganya tetap milik IGD dan tetap menempel pada
+`EmergencyVisitId`.
+
 ```mermaid
 classDiagram
+    class TrxEmergencyVisit
     class TrxEmergencyResuscitation {
         +Guid Id
         +Guid EmergencyVisitId
-        +string ResuscitationNumber
         +EmergencyResuscitationStatus ResuscitationStatus
-        +Guid? TeamLeaderDoctorId
     }
     class TrxEmergencyObservation {
         +Guid Id
         +Guid EmergencyVisitId
-        +string ObservationNumber
         +EmergencyObservationStatus ObservationStatus
     }
     class TrxEmergencyObservationDetail {
         +Guid Id
         +Guid EmergencyObservationId
         +Guid? PatientVitalSignId
-        +Guid? ProgressNoteId
     }
     class TrxEmergencyProcedureDetail {
         +Guid Id
         +Guid EmergencyVisitId
         +Guid PatientProcedureId
-        +Guid? EmergencyResuscitationId
-        +Guid? EmergencyObservationId
     }
-    TrxEmergencyResuscitation "1" --> "0..*" TrxEmergencyProcedureDetail : konteks
-    TrxEmergencyObservation "1" --> "0..*" TrxEmergencyObservationDetail : catatan berkala
-    TrxEmergencyObservation "1" --> "0..*" TrxEmergencyProcedureDetail : konteks
+
+    TrxEmergencyVisit "1" --> "0..*" TrxEmergencyResuscitation
+    TrxEmergencyVisit "1" --> "0..*" TrxEmergencyObservation
+    TrxEmergencyObservation "1" --> "0..*" TrxEmergencyObservationDetail
+    TrxEmergencyVisit "1" --> "0..*" TrxEmergencyProcedureDetail
 ```
 
-### 2.3 Disposition dan transfer
+### 2.3 Tindak lanjut dan kepergian pasien
 
 ```mermaid
 classDiagram
+    class TrxEmergencyVisit
     class TrxEmergencyDisposition {
         +Guid Id
         +Guid EmergencyVisitId
         +Guid DispositionTypeId
         +EmergencyDispositionStatus DispositionStatus
-        +Guid? DestinationServiceUnitId
-        +bool IsPatientDeceased
-        +bool IsVisumRequested
-    }
-    class TrxEmergencyTransfer {
-        +Guid Id
-        +Guid EmergencyVisitId
-        +string TransferNumber
-        +Guid? FromServiceUnitId
-        +Guid ToServiceUnitId
-        +EmergencyTransferStatus TransferStatus
+        +DateTime? ExecutedAt
     }
     class MstEmergencyDispositionType {
         +Guid Id
         +string Code
-        +string Name
+        +bool ClosesEmergencyVisit
+        +bool RequiresDestinationServiceUnit
     }
-    MstEmergencyDispositionType "1" --> "0..*" TrxEmergencyDisposition : jenis
+    class TrxEmergencyDeparture {
+        +Guid Id «upd»
+        +Guid EmergencyVisitId
+        +string DepartureNumber
+        +Guid ToServiceUnitId
+        +EmergencyPhysicalStatus PhysicalStatus «new»
+        +EmergencyHandoverStatus HandoverStatus «new»
+        +string? SituationSummary «new»
+        +string? BackgroundSummary «new»
+        +string? AssessmentSummary «new»
+        +string? RecommendationSummary «new»
+    }
+    class TrxEmergencyDepartureEvent {
+        +Guid Id «new»
+        +Guid EmergencyDepartureId
+        +EmergencyDepartureEventType EventType
+        +DateTime OccurredAt
+        +DateTime RecordedAt
+        +Guid RecordedByUserId
+        +bool IsEffective
+        +Guid? SupersedesEventId
+        +Guid? ApprovedByUserId
+    }
+    class TrxEmergencyHandoverOrderItem {
+        +Guid Id «new»
+        +Guid EmergencyDepartureId
+        +EmergencyOrderKind OrderKind
+        +Guid OrderReferenceId
+        +EmergencyOrderAction Action
+        +string? ActionReason
+    }
+
+    TrxEmergencyVisit "1" --> "0..*" TrxEmergencyDisposition
+    TrxEmergencyDisposition "*" --> "1" MstEmergencyDispositionType
+    TrxEmergencyVisit "1" --> "0..*" TrxEmergencyDeparture
+    TrxEmergencyDeparture "1" --> "1..*" TrxEmergencyDepartureEvent
+    TrxEmergencyDeparture "1" --> "0..*" TrxEmergencyHandoverOrderItem
+    TrxEmergencyDepartureEvent "0..1" --> "0..1" TrxEmergencyDepartureEvent : SupersedesEventId
 ```
+
+> **Penamaan.** `TrxEmergencyTransfer` diganti nama menjadi `TrxEmergencyDeparture` mengikuti
+> `IGD-DEC-069` yang mengubah artinya dari "perpindahan beserta tempat tidur" menjadi "catatan
+> kepergian pasien dari IGD". Nama lama menyesatkan setelah urusan tempat tidur pindah ke
+> Rawat Inap. Penggantian nama tabel dibahas pada bagian 6 dan 7.
+
+### 2.4 Satu penafsiran desain yang perlu dikonfirmasi
+
+`IGD-DEC-070` memilih **dua kolom status** pada satu baris dan menolak bentuk daftar kejadian.
+Namun `IGD-DEC-065`, `IGD-DEC-066`, `IGD-DEC-080`, dan `IGD-DEC-085` menuntut hal-hal yang
+tidak dapat disimpan pada kolom status: waktu kejadian sebenarnya yang berbeda dari waktu
+pencatatan, koreksi yang tidak menimpa, pembalikan yang butuh persetujuan orang kedua, dan
+pemberitahuan ke catatan turunan.
+
+Desain ini menyatukan keduanya:
+
+| Kebutuhan | Diwadahi oleh |
+| --- | --- |
+| Membaca keadaan sekarang dengan cepat, dan menyaring daftar pantau | Dua kolom status pada `TrxEmergencyDeparture` — sesuai `IGD-DEC-070` |
+| Menyimpan setiap perubahan beserta pelaku, waktu server, waktu sebenarnya, alasan, koreksi, dan pembalikan | `TrxEmergencyDepartureEvent`, bersifat tambah-saja — sesuai `IGD-DEC-065`, `066`, `080`, `085` |
+
+Kolom status adalah **turunan** dari kejadian terakhir yang berlaku, bukan sumber kebenaran
+tandingan. Setiap penulisan kejadian memperbarui kolom status dalam transaksi yang sama.
+
+Penafsiran ini **belum dikonfirmasi owner**. Bila Product/Domain Owner menganggap
+`IGD-DEC-070` melarang tabel kejadian sama sekali, maka `IGD-DEC-065`, `066`, `085` tidak
+dapat dijalankan dan ketiganya harus ditinjau ulang. Dicatat sebagai `IGD-OQ-068`.
 
 ---
 
 ## 3. Penjelasan class
 
-### 3.1 Model transaksi
+### 3.1 Model transaksi milik IGD
 
-Seluruhnya berstatus **Sudah ada** kecuali disebutkan lain. Lokasi:
-`Areas/HealthServices/EmergencyInstallationManagement/Models/`.
-
-#### TrxEmergencyVisit
-
-| Aspek | Penjelasan |
-| --- | --- |
-| Status | `Sudah ada` |
-| Lokasi file | `Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyVisit.cs` |
-| Kategori | Transaksi IGD, header seluruh proses |
-| Tanggung jawab utama | Menjadi induk seluruh aktivitas pasien selama di IGD dan menghubungkannya ke encounter pusat |
-| Field penting | `EmergencyVisitNumber`, `EncounterId`, `PatientId`, `ServiceUnitId`, `ArrivalModeId`, `CaseTypeId`, `IsUnknownPatient`, `IsImmediateCareAllowed`, `RegistrationStatus`, `VisitStatus`, `VisitCompletedAt` |
-| Relasi | Menunjuk encounter, pasien, unit pelayanan, cara kedatangan, jenis kasus; memiliki banyak triage, resusitasi, observasi, procedure detail, disposition, dan transfer |
-| Pemakaian dalam alur bisnis | Dibuat saat pasien tiba. Untuk pasien gawat, dapat dibuat bersama encounter provisional agar pelayanan dimulai sebelum administrasi lengkap |
-| Catatan desain | `IsUnknownPatient` dan `IsImmediateCareAllowed` adalah jalur keselamatan; jangan menjadikannya syarat administratif |
-| Ekuivalen model lama | `IGDPasienDetail` |
-
-#### TrxEmergencyTriage
-
-| Aspek | Penjelasan |
-| --- | --- |
-| Status | **`Diperbarui`** |
-| Lokasi file | `Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyTriage.cs` |
-| Kategori | Transaksi IGD |
-| Tanggung jawab utama | Menyimpan satu episode penilaian triage. Penilaian ulang membuat baris baru dan tidak menimpa baris lama |
-| Field penting | `EmergencyVisitId`, `TriageLevelId`, `Sequence`, `IsRetriage`, `PreviousTriageId`, `TriageStatus`, `MaxWaitingMinutesSnapshot`, `ResponseDueAt`, `PerformedByUserId` |
-| Perubahan pada revisi ini | Tambah `IsSlaBreached` dan `SlaBreachedAt` untuk deteksi pelampauan target respons |
-| Relasi | Milik `TrxEmergencyVisit`; menunjuk `MstEmergencyTriageLevel`; menunjuk dirinya sendiri lewat `PreviousTriageId`; memiliki banyak `TrxEmergencyTriageDetail` |
-| Pemakaian dalam alur bisnis | Dibuat perawat saat penilaian pertama dan setiap penilaian ulang |
-| Catatan desain | `ResponseDueAt` sudah dihitung di server dari `MaxWaitingMinutes` master. Jangan menghitungnya di frontend dan jangan meng-hardcode target waktu |
-| Ekuivalen model lama | `IGDTriage` |
-
-#### Model transaksi lainnya
-
-| Model | Status | Tanggung jawab | Ekuivalen lama |
+| Class | Status | Lokasi file | Kegunaan |
 | --- | --- | --- | --- |
-| `TrxEmergencyTriageDetail` | Sudah ada | Indikator klinis yang dipilih pada satu triage beserta snapshot master | `IGDTriageDetail` |
-| `TrxEmergencyResuscitation` | Sudah ada | Konteks episode resusitasi; tindakan medis aktual tetap pada `TrxPatientProcedure` | Pemisahan baru |
-| `TrxEmergencyObservation` | Sudah ada | Header satu periode observasi | `IGDObservasi` |
-| `TrxEmergencyObservationDetail` | Sudah ada | Catatan kronologis observasi; tanda vital dan CPPT hanya direferensikan | `IGDObservasiDetail` |
-| `TrxEmergencyProcedureDetail` | Sudah ada | Atribut khusus IGD untuk tindakan klinis umum | `IGDTindakanDetail` |
-| `TrxEmergencyDisposition` | Sudah ada | Keputusan klinis akhir setelah pelayanan IGD | `IGDTindakLanjut` |
-| `TrxEmergencyTransfer` | Sudah ada | Proses operasional perpindahan pasien | `PindahRuangan` |
+| `TrxEmergencyVisit` | Sudah ada | `Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyVisit.cs` | Kunjungan IGD sebagai perluasan kunjungan pasien |
+| `TrxEmergencyTriage` | Sudah ada | `.../Models/TrxEmergencyTriage.cs` | Penilaian dan penilaian ulang triase |
+| `TrxEmergencyTriageDetail` | Sudah ada | `.../Models/TrxEmergencyTriageDetail.cs` | Indikator yang diamati beserta salinan nilai masternya |
+| `TrxEmergencyResuscitation` | Sudah ada | `.../Models/TrxEmergencyResuscitation.cs` | Catatan resusitasi |
+| `TrxEmergencyObservation` | Sudah ada | `.../Models/TrxEmergencyObservation.cs` | Periode observasi |
+| `TrxEmergencyObservationDetail` | Sudah ada | `.../Models/TrxEmergencyObservationDetail.cs` | Pengamatan berkala dalam satu periode observasi |
+| `TrxEmergencyProcedureDetail` | Sudah ada | `.../Models/TrxEmergencyProcedureDetail.cs` | Rincian khas IGD atas tindakan milik Clinical Management |
+| `TrxEmergencyDisposition` | Sudah ada | `.../Models/TrxEmergencyDisposition.cs` | Keputusan tindak lanjut |
+| `TrxEmergencyDeparture` | **Diperbarui** | `.../Models/TrxEmergencyDeparture.cs` | Catatan kepergian pasien dari IGD. Berganti nama dari `TrxEmergencyTransfer` |
+| `TrxEmergencyDepartureEvent` | **Baru** | `.../Models/TrxEmergencyDepartureEvent.cs` | Riwayat kejadian kepergian, bersifat tambah-saja |
+| `TrxEmergencyHandoverOrderItem` | **Baru** | `.../Models/TrxEmergencyHandoverOrderItem.cs` | Sikap atas setiap pesanan yang belum selesai saat pasien pergi |
+| `TrxEmergencyDoctorAssignment` | **Baru** | `.../Models/TrxEmergencyDoctorAssignment.cs` | Riwayat penugasan dokter pemeriksa pada satu kunjungan IGD |
 
 ### 3.2 Model master
 
-Lokasi: `Areas/HealthServices/MasterData/Models/`. Seluruhnya berstatus `Sudah ada`.
-
-| Model | Field penting | Catatan desain |
-| --- | --- | --- |
-| `MstEmergencyTriageLevel` | `Level`, `Code`, `Name`, `ColorName`, `ColorHex`, `MaxWaitingMinutes` | Warna dan target waktu **wajib** dari master, tidak boleh di-hardcode di controller maupun frontend |
-| `MstEmergencyTriageIndicator` | `TriageLevelId`, `Code`, `Name`, `IndicatorGroup` | Dipakai sebagai checklist saat triage |
-| `MstEmergencyArrivalMode` | `Code`, `Name`, `IsAmbulance`, `IsReferral` | Dasar pelaporan pasien rujukan dan penggunaan ambulans |
-| `MstEmergencyCaseType` | `Code`, `Name` | Klasifikasi trauma, non-trauma, kecelakaan, dan sejenisnya |
-| `MstEmergencyDispositionType` | `Code`, `Name` | Menentukan apakah disposition memerlukan unit tujuan atau fasilitas rujukan |
-| `MstEmergencySetting` | `DefaultEmergencyServiceUnitId`, `IsDefault` | Hanya satu setting boleh berstatus default; divalidasi `EmergencySettingService` |
-
-### 3.3 Service
-
-Lokasi: `Areas/HealthServices/EmergencyInstallationManagement/Services/`. Tanpa interface,
-didaftarkan `AddScoped<TService>()`.
-
-| Service | Status | Fungsi utama | Dipanggil oleh |
+| Class | Status | Lokasi file | Perubahan |
 | --- | --- | --- | --- |
-| `EmergencyVisitService` | Sudah ada | Pembuatan kunjungan, registrasi provisional, pasien tidak dikenal | `EmergencyVisitController` |
-| `EmergencyTriageService` | **Diperbarui** | Validasi level, retriage, snapshot master, deadline respons. Ditambah penetapan penanda breach | `EmergencyTriageController` |
-| `EmergencyResuscitationService` | Sudah ada | Mulai dan akhiri resusitasi | `EmergencyResuscitationController` |
-| `EmergencyObservationService` | Sudah ada | Mulai, akhiri, dan eskalasi observasi | `EmergencyObservationController` |
-| `EmergencyDispositionService` | **Diperbarui** | Validasi tujuan dan rujukan. Ditambah transisi `Disposed` ke `Completed` | `EmergencyDispositionController` |
-| `EmergencyTransferService` | Sudah ada | Transisi status transfer | `EmergencyTransferController` |
-| `EmergencyDocumentNumberService` | Sudah ada | Pembentukan nomor kunjungan, observasi, resusitasi, transfer | Service workflow lain |
-| `EmergencyTriageSlaMonitorHostedService` | **Baru** | Memantau `ResponseDueAt` yang terlampaui dan menandai breach | Dijalankan terjadwal, bukan dipanggil controller |
+| `MstEmergencyTriageLevel` | Sudah ada | `Areas/HealthServices/MasterData/Models/MstEmergencyTriageLevel.cs` | Tidak ada |
+| `MstEmergencyTriageIndicator` | Sudah ada | `.../MasterData/Models/MstEmergencyTriageIndicator.cs` | Tidak ada |
+| `MstEmergencyArrivalMode` | Sudah ada | `.../MasterData/Models/MstEmergencyArrivalMode.cs` | Tidak ada |
+| `MstEmergencyCaseType` | Sudah ada | `.../MasterData/Models/MstEmergencyCaseType.cs` | Tidak ada |
+| `MstEmergencyDispositionType` | Sudah ada | `.../MasterData/Models/MstEmergencyDispositionType.cs` | Tidak ada struktur; `ClosesEmergencyVisit` mulai dibaca |
+| `MstEmergencySetting` | **Diperbarui** | `.../MasterData/Models/MstEmergencySetting.cs` | Empat kolom mati diberi arti atau dicabut — lihat bagian 5 |
+| `MstServiceUnit` | **Diperbarui** | `.../MasterData/Models/MstServiceUnit.cs` | Tambah `OrganizationUnitId` — **milik Master Data, bukan IGD** |
+| `MstPatientClass` | Sudah ada | `.../MasterData/Models/MstPatientClass.cs` | Tidak ada. `IsForEmergency` sudah tersedia dan mulai dipakai |
 
-### 3.4 Controller
+### 3.3 Model milik modul lain yang berubah
 
-Lokasi: `Areas/HealthServices/EmergencyInstallationManagement/Controller/` — perhatikan
-bentuk tunggal, yang merupakan utang teknis; lihat bagian 4.
+| Class | Pemilik | Status | Lokasi file | Perubahan |
+| --- | --- | --- | --- | --- |
+| `TrxPatientEncounter` | Registration Management | **Diperbarui** | `Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounter.cs` | Tambah `OriginEncounterId` (`Guid?`) |
+| `TrxPatientAssessment` | Clinical Management | **Diperbarui** | `Areas/HealthServices/ClinicalManagement/Models/TrxPatientAssessment.cs` | `QueueId` menjadi `Guid?`; tambah penanda versi `IsEffective`, `AmendsAssessmentId`, `AmendmentReason` |
+| `TrxDoctorConsultation` | Clinical Management | **Diperbarui** | `.../ClinicalManagement/Models/TrxDoctorConsultation.cs` | `QueueId` menjadi `Guid?` |
+| `TrxPatientVitalSign` | Clinical Management | **Diperbarui** | `.../ClinicalManagement/Models/TrxPatientVitalSign.cs` | Tambah penanda versi `IsEffective`, `AmendsVitalSignId`, `AmendmentReason` |
+| `TrxPatientIntegratedProgressNote` | Clinical Management | **Diperbarui** | `.../ClinicalManagement/Models/TrxPatientIntegratedProgressNote.cs` | Tambah penanda versi yang sama |
+| `TrxPatientDiagnosis`, `TrxPatientProcedure` | Clinical Management | **Diperbarui** | `.../ClinicalManagement/Models/` | `ConsultationId` menjadi `Guid?` |
+| `TrxPrescription` | Pharmacy Management | **Diperbarui** | `Areas/HealthServices/PharmacyManagement/Models/TrxPrescription.cs` | `ConsultationId` menjadi `Guid?` |
 
-| Controller | Endpoint | Resource permission | Status |
-| --- | ---: | --- | --- |
-| `EmergencyVisitController` | 7 | `EmergencyVisit` | Sudah ada |
-| `EmergencyTriageController` | 6 | `EmergencyTriage` | **Diperbarui** — tambah aksi retriage dan daftar breach |
-| `EmergencyTriageDetailController` | 5 | `EmergencyTriageDetail` | Sudah ada |
-| `EmergencyResuscitationController` | 6 | `EmergencyResuscitation` | Sudah ada |
-| `EmergencyObservationController` | 6 | `EmergencyObservation` | Sudah ada |
-| `EmergencyObservationDetailController` | 5 | `EmergencyObservationDetail` | Sudah ada |
-| `EmergencyProcedureDetailController` | 5 | `EmergencyProcedureDetail` | Sudah ada |
-| `EmergencyDispositionController` | 6 | `EmergencyDisposition` | **Diperbarui** — tambah aksi penyelesaian kunjungan |
-| `EmergencyTransferController` | 6 | `EmergencyTransfer` | Sudah ada |
+> Seluruh baris pada tabel 3.3 **tidak boleh dikerjakan** sebelum pemilik modulnya ditunjuk
+> dan menyetujui. Lihat bagian 1.1 dan bagian 9.
 
-Total 52 endpoint. Seluruhnya memakai `[ApiController]`, `[Authorize]`, `[AccessController]`,
-`[Tags]`, serta `[AccessAction]` dan `[AccessPermission]` per endpoint.
+### 3.4 Enum
+
+| Enum | Status | Lokasi file | Nilai |
+| --- | --- | --- | --- |
+| `EmergencyVisitStatus` | Sudah ada | `.../EmergencyInstallationManagement/Enums/EmergencyVisitStatus.cs` | `Arrived`=1 … `Completed`=9 |
+| `EmergencyTriageStatus` | Sudah ada | `.../Enums/EmergencyTriageStatus.cs` | `Draft`=1 … `Cancelled`=5 |
+| `EmergencyRegistrationStatus` | Sudah ada | `.../Enums/EmergencyRegistrationStatus.cs` | `Pending`=1 … `Cancelled`=5 |
+| `EmergencyDispositionStatus` | Sudah ada | `.../Enums/EmergencyDispositionStatus.cs` | `Draft`=1 … `Cancelled`=4 |
+| `EmergencyObservationStatus`, `EmergencyResuscitationStatus`, `EmergencyProcedureDetailType`, `EmergencyTriageSystem` | Sudah ada | `.../Enums/` | Tidak berubah |
+| `EmergencyTransferStatus` | **Digantikan** | `.../Enums/EmergencyTransferStatus.cs` | Dipecah menjadi dua enum di bawah |
+| `EmergencyPhysicalStatus` | **Baru** | `.../Enums/EmergencyPhysicalStatus.cs` | `Prepared`=1, `Departed`=2, `Arrived`=3, `Cancelled`=9 |
+| `EmergencyHandoverStatus` | **Baru** | `.../Enums/EmergencyHandoverStatus.cs` | `Submitted`=1, `Pending`=2, `Accepted`=3, `Rejected`=4, `Cancelled`=9 |
+| `EmergencyDepartureEventType` | **Baru** | `.../Enums/EmergencyDepartureEventType.cs` | `Prepared`=1, `Departed`=2, `Arrived`=3, `HandoverSubmitted`=4, `HandoverAccepted`=5, `HandoverRejected`=6, `Cancelled`=9, `Amended`=10, `Reversed`=11 |
+| `EmergencyOrderKind` | **Baru** | `.../Enums/EmergencyOrderKind.cs` | `Medication`=1, `Procedure`=2, `LaboratoryOrder`=3 |
+| `EmergencyOrderAction` | **Baru** | `.../Enums/EmergencyOrderAction.cs` | `Completed`=1, `Cancelled`=2, `HandedOver`=3 |
+
+Nilai `Cancelled` sengaja diberi angka `9` pada enum baru agar penambahan nilai antara tidak
+menggeser nilai terminal.
+
+`EmergencyOrderKind.LaboratoryOrder` **sudah didefinisikan tetapi belum dipakai** pada rilis
+pertama, sesuai `IGD-DEC-087`. Ia ada supaya penambahannya kelak tidak menggeser nilai lain.
+
+### 3.5 Service
+
+| Service | Status | Fungsi utama | Dipanggil | Membuka transaksi |
+| --- | --- | --- | --- | :---: |
+| `EmergencyVisitService` | **Diperbarui** | Validasi kunjungan, transisi status, nomor kunjungan. Ditambah: wajib `EncounterType.Emergency`, tolak episode ganda | `EmergencyVisitController` | Tidak |
+| `EmergencyTriageService` | **Diperbarui** | Validasi triase, penilaian ulang, penanda pelampauan batas. Ditambah: transisi status kunjungan wajib lewat `CanTransition` | `EmergencyTriageController` | Ya, pada `RetriageAsync` |
+| `EmergencyDispositionService` | **Diperbarui** | Validasi tindak lanjut, gerbang penutupan. Ditambah: membaca `ClosesEmergencyVisit`, memeriksa sikap pesanan | `EmergencyDispositionController`, `EmergencyVisitController` | Tidak |
+| `EmergencyDepartureService` | **Diperbarui** | Menggantikan `EmergencyTransferService`. Mengelola dua rangkaian status, menulis kejadian, koreksi, dan pembalikan | `EmergencyDepartureController` | Ya |
+| `EmergencyObservationService` | Sudah ada | Validasi observasi | `EmergencyObservationController` | Tidak |
+| `EmergencyResuscitationService` | Sudah ada | Validasi resusitasi | `EmergencyResuscitationController` | Tidak |
+| `EmergencyDocumentNumberService` | Sudah ada | Pembentukan nomor dokumen | Beberapa service | Tidak |
+| `EmergencyUnitAuthorityService` | **Baru** | Menjawab "apakah pengguna ini berwenang atas unit pelayanan ini" dengan menelusuri profil pegawai dan penugasan organisasi yang sedang berlaku | Seluruh controller IGD yang menuntut kewenangan unit | Tidak |
+| `EmergencyDoctorAssignmentService` | **Baru** | Menetapkan, mengalihkan, dan membaca dokter penanggung jawab yang sedang aktif | `EmergencyDoctorAssignmentController` | Ya |
+| `EmergencyHandoverOrderService` | **Baru** | Menyusun daftar pesanan yang belum selesai dan menyimpan sikapnya | `EmergencyDepartureController` | Ya |
+| `EmergencyReassessmentMonitorHostedService` | **Baru** | Menandai pengkajian ulang yang tertunggak, meniru `EmergencyTriageSlaMonitorHostedService` | Dijalankan latar belakang | Ya |
+| `EmergencyTriageSlaMonitorHostedService` | Sudah ada | Menandai pelampauan batas waktu triase | Dijalankan latar belakang | Ya |
+
+Seluruh service baru diletakkan di
+`Areas/HealthServices/EmergencyInstallationManagement/Services/` dan didaftarkan
+`AddScoped` di `Program.cs` berdampingan dengan delapan service IGD yang sudah terdaftar pada
+baris 291–298.
+
+### 3.6 Controller
+
+| Controller | Status | Lokasi file | Service yang dipakai |
+| --- | --- | --- | --- |
+| `EmergencyVisitController` | **Diperbarui** | `.../EmergencyInstallationManagement/Controllers/EmergencyVisitController.cs` | `EmergencyVisitService`, `EmergencyDispositionService`, `EmergencyUnitAuthorityService` |
+| `EmergencyTriageController` | **Diperbarui** | `.../Controllers/EmergencyTriageController.cs` | `EmergencyTriageService`, `EmergencyVisitService` |
+| `EmergencyTriageDetailController` | Sudah ada | `.../Controllers/EmergencyTriageDetailController.cs` | — |
+| `EmergencyObservationController` | Sudah ada | `.../Controllers/EmergencyObservationController.cs` | `EmergencyObservationService` |
+| `EmergencyObservationDetailController` | Sudah ada | `.../Controllers/EmergencyObservationDetailController.cs` | — |
+| `EmergencyResuscitationController` | Sudah ada | `.../Controllers/EmergencyResuscitationController.cs` | `EmergencyResuscitationService` |
+| `EmergencyProcedureDetailController` | Sudah ada | `.../Controllers/EmergencyProcedureDetailController.cs` | — |
+| `EmergencyDispositionController` | **Diperbarui** | `.../Controllers/EmergencyDispositionController.cs` | `EmergencyDispositionService` |
+| `EmergencyDepartureController` | **Diperbarui** | `.../Controllers/EmergencyDepartureController.cs` | `EmergencyDepartureService`, `EmergencyHandoverOrderService`, `EmergencyUnitAuthorityService` |
+| `EmergencyDoctorAssignmentController` | **Baru** | `.../Controllers/EmergencyDoctorAssignmentController.cs` | `EmergencyDoctorAssignmentService` |
+| `EmergencyReassessmentWatchlistController` | **Baru** | `.../Controllers/EmergencyReassessmentWatchlistController.cs` | `EmergencyReassessmentMonitorHostedService` lewat service pembacanya |
+
+### 3.7 EF Core Configuration
+
+Configuration **tidak** berada di dalam `Areas/`. Seluruhnya di bawah
+`Repositories/Configurations/HealthServices/EmergencyInstallationManagement/`.
+
+| Configuration | Status | Relasi dan index yang diatur |
+| --- | --- | --- |
+| `TrxEmergencyDepartureConfiguration` | **Diperbarui** | Nama tabel berubah; empat index tempat tidur dan ruangan dihapus; index baru `(EmergencyVisitId, PhysicalStatus)` dan `(ToServiceUnitId, HandoverStatus)` |
+| `TrxEmergencyDepartureEventConfiguration` | **Baru** | `HasOne(EmergencyDeparture)` `DeleteBehavior.Restrict`; index `(EmergencyDepartureId, OccurredAt)`; index `(EmergencyDepartureId, IsEffective)` |
+| `TrxEmergencyHandoverOrderItemConfiguration` | **Baru** | `HasOne(EmergencyDeparture)` `DeleteBehavior.Restrict`; unique `(EmergencyDepartureId, OrderKind, OrderReferenceId)` |
+| `TrxEmergencyDoctorAssignmentConfiguration` | **Baru** | `HasOne(EmergencyVisit)` `DeleteBehavior.Restrict`; index `(EmergencyVisitId, EffectiveFrom)`; **unique filtered** `(EmergencyVisitId)` untuk baris dengan `EffectiveTo IS NULL` agar tidak pernah ada dua dokter aktif |
+| Tujuh configuration IGD lain | Sudah ada | Tidak berubah |
+
+`DeleteBehavior.Restrict` dipilih di seluruh relasi baru karena tidak satu pun catatan klinis
+boleh ikut terhapus mengikuti induknya.
 
 ---
 
@@ -259,152 +403,292 @@ Total 52 endpoint. Seluruhnya memakai `[ApiController]`, `[Authorize]`, `[Access
 
 ```text
 Areas/HealthServices/EmergencyInstallationManagement/
-├── Controllers/                          # UTANG TEKNIS: saat ini bernama Controller (tunggal)
-│   ├── EmergencyTriageController.cs      # Diperbarui — aksi retriage dan daftar breach
-│   ├── EmergencyDispositionController.cs # Diperbarui — aksi penyelesaian kunjungan
-│   └── (7 controller lain)               # Sudah ada
+├── Controllers/
+│   ├── EmergencyVisitController.cs                    Diperbarui
+│   ├── EmergencyTriageController.cs                   Diperbarui
+│   ├── EmergencyTriageDetailController.cs             Sudah ada
+│   ├── EmergencyObservationController.cs              Sudah ada
+│   ├── EmergencyObservationDetailController.cs        Sudah ada
+│   ├── EmergencyResuscitationController.cs            Sudah ada
+│   ├── EmergencyProcedureDetailController.cs          Sudah ada
+│   ├── EmergencyDispositionController.cs              Diperbarui
+│   ├── EmergencyDepartureController.cs                Diperbarui (dari EmergencyTransferController)
+│   ├── EmergencyDoctorAssignmentController.cs         Baru
+│   └── EmergencyReassessmentWatchlistController.cs    Baru
 ├── DTOs/
-│   ├── EmergencyTriageDtos.cs            # Diperbarui — RetriageRequest, BreachListResponse
-│   └── EmergencyDispositionDtos.cs       # Diperbarui — CompleteVisitRequest
+│   ├── EmergencyVisitDtos.cs                          Diperbarui
+│   ├── EmergencyTriageDtos.cs                         Sudah ada
+│   ├── EmergencyTriageDetailDtos.cs                   Sudah ada
+│   ├── EmergencyObservationDtos.cs                    Sudah ada
+│   ├── EmergencyObservationDetailDtos.cs              Sudah ada
+│   ├── EmergencyResuscitationDtos.cs                  Sudah ada
+│   ├── EmergencyProcedureDetailDtos.cs                Sudah ada
+│   ├── EmergencyDispositionDtos.cs                    Sudah ada
+│   ├── EmergencyDepartureDtos.cs                      Diperbarui (dari EmergencyTransferDtos)
+│   ├── EmergencyDoctorAssignmentDtos.cs               Baru
+│   └── EmergencyReassessmentWatchlistDtos.cs          Baru
 ├── Enums/
-│   ├── EmergencyVisitStatus.cs           # Diperbarui — tambah nilai Completed
-│   └── (8 enum lain)                     # Sudah ada
+│   ├── EmergencyVisitStatus.cs                        Sudah ada
+│   ├── EmergencyRegistrationStatus.cs                 Sudah ada
+│   ├── EmergencyTriageStatus.cs                       Sudah ada
+│   ├── EmergencyTriageSystem.cs                       Sudah ada
+│   ├── EmergencyObservationStatus.cs                  Sudah ada
+│   ├── EmergencyResuscitationStatus.cs                Sudah ada
+│   ├── EmergencyProcedureDetailType.cs                Sudah ada
+│   ├── EmergencyDispositionStatus.cs                  Sudah ada
+│   ├── EmergencyTransferStatus.cs                     Dihapus setelah migrasi data selesai
+│   ├── EmergencyPhysicalStatus.cs                     Baru
+│   ├── EmergencyHandoverStatus.cs                     Baru
+│   ├── EmergencyDepartureEventType.cs                 Baru
+│   ├── EmergencyOrderKind.cs                          Baru
+│   └── EmergencyOrderAction.cs                        Baru
 ├── Models/
-│   └── TrxEmergencyTriage.cs             # Diperbarui — IsSlaBreached, SlaBreachedAt
+│   ├── TrxEmergencyVisit.cs                           Sudah ada
+│   ├── TrxEmergencyTriage.cs                          Sudah ada
+│   ├── TrxEmergencyTriageDetail.cs                    Sudah ada
+│   ├── TrxEmergencyResuscitation.cs                   Sudah ada
+│   ├── TrxEmergencyObservation.cs                     Sudah ada
+│   ├── TrxEmergencyObservationDetail.cs               Sudah ada
+│   ├── TrxEmergencyProcedureDetail.cs                 Sudah ada
+│   ├── TrxEmergencyDisposition.cs                     Sudah ada
+│   ├── TrxEmergencyDeparture.cs                       Diperbarui (dari TrxEmergencyTransfer)
+│   ├── TrxEmergencyDepartureEvent.cs                  Baru
+│   ├── TrxEmergencyHandoverOrderItem.cs               Baru
+│   └── TrxEmergencyDoctorAssignment.cs                Baru
 └── Services/
-    ├── EmergencyTriageService.cs         # Diperbarui
-    ├── EmergencyDispositionService.cs    # Diperbarui
-    └── EmergencyTriageSlaMonitorHostedService.cs   # Baru
+    ├── EmergencyDocumentNumberService.cs              Sudah ada
+    ├── EmergencyVisitService.cs                       Diperbarui
+    ├── EmergencyTriageService.cs                      Diperbarui
+    ├── EmergencyResuscitationService.cs               Sudah ada
+    ├── EmergencyObservationService.cs                 Sudah ada
+    ├── EmergencyDispositionService.cs                 Diperbarui
+    ├── EmergencyDepartureService.cs                   Diperbarui (dari EmergencyTransferService)
+    ├── EmergencyUnitAuthorityService.cs               Baru
+    ├── EmergencyDoctorAssignmentService.cs            Baru
+    ├── EmergencyHandoverOrderService.cs               Baru
+    ├── EmergencyTriageSlaMonitorHostedService.cs      Sudah ada
+    ├── EmergencyTriageSlaMonitorOptions.cs            Sudah ada
+    ├── EmergencyReassessmentMonitorHostedService.cs   Baru
+    └── EmergencyReassessmentMonitorOptions.cs         Baru
 
-Areas/HealthServices/MasterData/Models/
-└── MstEmergency*.cs                      # Sudah ada, 6 file
-
-Repositories/Configurations/HealthService/EmergencyInstallationManagement/
-└── TrxEmergencyTriageConfiguration.cs    # Diperbarui — index breach
-
-Migrations/
-└── <timestamp>_AddTriageSlaBreachMarker.cs   # Baru
+Repositories/Configurations/HealthServices/EmergencyInstallationManagement/
+├── TrxEmergencyVisitConfiguration.cs                  Sudah ada
+├── TrxEmergencyTriageConfiguration.cs                 Sudah ada
+├── TrxEmergencyTriageDetailConfiguration.cs           Sudah ada
+├── TrxEmergencyResuscitationConfiguration.cs          Sudah ada
+├── TrxEmergencyObservationConfiguration.cs            Sudah ada
+├── TrxEmergencyObservationDetailConfiguration.cs      Sudah ada
+├── TrxEmergencyProcedureDetailConfiguration.cs        Sudah ada
+├── TrxEmergencyDispositionConfiguration.cs            Sudah ada
+├── TrxEmergencyDepartureConfiguration.cs              Diperbarui
+├── TrxEmergencyDepartureEventConfiguration.cs         Baru
+├── TrxEmergencyHandoverOrderItemConfiguration.cs      Baru
+└── TrxEmergencyDoctorAssignmentConfiguration.cs       Baru
 ```
 
-### Utang teknis yang tidak diperbaiki pada revisi ini
+### 4.1 Utang teknis
 
-| Penyimpangan | Keadaan nyata | Pola standar |
-| --- | --- | --- |
-| Folder controller IGD | `Controller/` tunggal, satu-satunya dari 26 folder | `Controllers/` jamak |
-| Nama domain di Configurations | `HealthService/` tunggal | `HealthServices/` jamak |
-| Namespace master IGD | Memuat ruas `EmergencyInstallationManagement` tanpa folder padanan | Namespace mengikuti folder |
+| Utang | Keadaan pada revision 5 |
+| --- | --- |
+| Folder controller IGD pernah bernama `Controller/` tunggal | **Sudah diperbaiki** oleh `BE-IGD-013`. Sekarang `Controllers/` jamak |
+| Nama domain pada `Repositories/Configurations/` pernah `HealthService/` tunggal | **Sudah diperbaiki**. Sekarang `HealthServices/` jamak |
+| `LabOrder` tidak memakai awalan `Trx` | **Dibiarkan.** Milik Laboratory Management; merapikannya berarti menyentuh modul orang lain tanpa alasan fungsional |
+| `LabOrderConfiguration` berada langsung di `Repositories/Configurations/HealthServices/`, tanpa folder submodul | **Dibiarkan.** Alasan sama |
 
-Sesuai `DEC-RSK-003`: modul baru tidak boleh meniru penyimpangan ini, implementer tidak boleh
-merapikannya diam-diam di tengah task lain, dan perapian menjadi task tersendiri di roadmap.
+Utang yang dibiarkan **jangan ditiru** untuk berkas baru.
 
 ---
 
 ## 5. Status model
 
-| Model atau berkas | Status | Perubahan | Dampak migration |
+| Model atau berkas | Status | Kolom yang berubah | Dampak migration |
 | --- | --- | --- | --- |
 | `TrxEmergencyVisit` | Sudah ada | Tidak ada | Tidak ada |
-| `TrxEmergencyTriage` | **Diperbarui** | `MaxWaitingMinutesSnapshot` menjadi `int?` (`BE-IGD-002`); tambah `IsSlaBreached` (`bool`, bawaan `false`) dan `SlaBreachedAt` (`DateTime?`); index pada `(EmergencyVisitId, ResponseDueAt, IsSlaBreached)` | Melepas satu kolom dari kewajiban terisi, lalu menambah dua kolom dan satu index |
-| `MstEmergencyTriageLevel` | **Diperbarui** | `MaxWaitingMinutes` menjadi `int?` agar "target belum ditetapkan" dapat dibedakan dari "0 menit" (`BE-IGD-002`) | Melepas satu kolom dari kewajiban terisi |
-| `EmergencyVisitStatus` | **Diperbarui** | Tambah nilai `Completed = 9` setelah `Disposed` | Tidak ada, enum disimpan sebagai integer |
-| Tujuh model transaksi lain | Sudah ada | Tidak ada | Tidak ada |
-| Enam model master | Sudah ada | Tidak ada perubahan struktur; membutuhkan data awal | Tidak ada |
-| `EmergencyTriageSlaMonitorHostedService` | **Baru** | Berkas baru | Tidak ada |
-| `AccessPermissionService` | **Diperbarui** | Pemisahan kewenangan SuperAdmin dan penambahan scope resource/unit | Di luar modul IGD; lihat bagian 8 |
+| `TrxEmergencyTriage` | Sudah ada | Tidak ada | Tidak ada |
+| `TrxEmergencyDeparture` | **Diperbarui** | **Dihapus:** `FromRoomId`, `ToRoomId`, `FromBedId`, `ToBedId`, `TransferStatus`, `AcceptedAt`, `AcceptedByUserId`, `RejectionReason`. **Ditambah:** `PhysicalStatus` (`EmergencyPhysicalStatus`, bawaan `Prepared`), `HandoverStatus` (`EmergencyHandoverStatus`, bawaan `Submitted`), `SituationSummary` (`string?`, 2000), `BackgroundSummary` (`string?`, 2000), `AssessmentSummary` (`string?`, 2000), `RecommendationSummary` (`string?`, 2000), `AllergySnapshot` (`string?`, 1000), `LastVitalSignId` (`Guid?`), `TriageLevelSnapshot` (`string?`, 150). **Diganti nama:** tabel dan kelas dari `TrxEmergencyTransfer` | Ganti nama tabel, hapus delapan kolom, tambah sembilan kolom, ganti dua index. **Tidak dapat dijalankan tanpa memeriksa data lama** — lihat bagian 6 |
+| `TrxEmergencyDepartureEvent` | **Baru** | Seluruh kolom baru | Tabel baru |
+| `TrxEmergencyHandoverOrderItem` | **Baru** | Seluruh kolom baru | Tabel baru |
+| `TrxEmergencyDoctorAssignment` | **Baru** | Seluruh kolom baru | Tabel baru beserta unique index bersyarat |
+| `MstEmergencySetting` | **Diperbarui** | **Dihapus:** `AutoCreateProvisionalEncounter`, `RequireTriageBeforeStandardRegistration`. **Dipertahankan dan mulai dibaca:** `ImmediateCareLevelThreshold`, `RequireRegistrationBeforeTreatmentFromLevel` | Hapus dua kolom. Lihat catatan di bawah |
+| `MstServiceUnit` | **Diperbarui** | Tambah `OrganizationUnitId` (`Guid?`) beserta index | Satu kolom, boleh kosong. **Milik Master Data** |
+| `TrxPatientEncounter` | **Diperbarui** | Tambah `OriginEncounterId` (`Guid?`) beserta index | Satu kolom, boleh kosong. **Milik Registration Management** |
+| `TrxPatientAssessment` | **Diperbarui** | `QueueId` `Guid` → `Guid?`; tambah `IsEffective` (`bool`, bawaan `true`), `AmendsAssessmentId` (`Guid?`), `AmendmentReason` (`string?`, 500) | **Milik Clinical Management** |
+| `TrxDoctorConsultation` | **Diperbarui** | `QueueId` `Guid` → `Guid?` | **Milik Clinical Management** |
+| `TrxPatientDiagnosis`, `TrxPatientProcedure` | **Diperbarui** | `ConsultationId` `Guid` → `Guid?` | **Milik Clinical Management** |
+| `TrxPatientVitalSign`, `TrxPatientIntegratedProgressNote` | **Diperbarui** | Tambah `IsEffective`, `Amends…Id`, `AmendmentReason` | **Milik Clinical Management** |
+| `TrxPrescription` | **Diperbarui** | `ConsultationId` `Guid` → `Guid?` | **Milik Pharmacy Management** |
+| `EmergencyTransferStatus` | **Dihapus** | Seluruh enum | Setelah data lama dipetakan ke dua enum baru |
 
-Nilai `Completed = 9` dipilih agar tidak menggeser nilai yang sudah tersimpan di basis data.
+### 5.1 Dua kolom pengaturan yang dicabut
+
+`IGD-GAP-031` mencatat empat kolom `MstEmergencySetting` yang tersimpan tetapi tidak
+menjalankan apa pun. Revision `5` menyelesaikannya begini:
+
+| Kolom | Perlakuan | Alasan |
+| --- | --- | --- |
+| `ImmediateCareLevelThreshold` | **Dipertahankan dan mulai dibaca** | Menjadi dasar penentuan `ImmediateCareAllowed` bersama `AllowsTreatmentBeforeRegistration` pada master level |
+| `RequireRegistrationBeforeTreatmentFromLevel` | **Dipertahankan dan mulai dibaca** | Menegakkan `IGD-DEC-002`: pasien gawat boleh ditangani sebelum administrasi selesai |
+| `AutoCreateProvisionalEncounter` | **Dicabut** | Pembuatan kunjungan selalu dilakukan layar pendaftaran secara eksplisit. Kolom ini tidak pernah mengubah perilaku apa pun dan mempertahankannya hanya mengundang salah paham |
+| `RequireTriageBeforeStandardRegistration` | **Dicabut** | Bertentangan dengan `IGD-DEC-002`. Urutan triase dan pendaftaran ditentukan kegawatan pasien, bukan oleh sakelar pengaturan |
+
+Pencabutan dua kolom ini **belum diputuskan owner**. Dicatat sebagai `IGD-OQ-069`.
 
 ---
 
 ## 6. Rencana migration
 
+Seluruh migration di bawah **belum boleh dijalankan**. Basis data pengembangan dipakai
+bersama satu tim dan berisi data pasien.
+
 | Urutan | Migration | Tanpa mematikan layanan | Pengisian data lama | Cara mundur |
 | ---: | --- | :---: | --- | --- |
-| 1 | `MakeTriageMaxWaitingMinutesNullable` | Ya | Tidak ada pengisian. `MstEmergencyTriageLevel.MaxWaitingMinutes` dan `TrxEmergencyTriage.MaxWaitingMinutesSnapshot` hanya dilepas dari kewajiban terisi (`DROP NOT NULL`), sehingga seluruh nilai lama tetap apa adanya dan tidak ada angka yang ditebak | Mengembalikan kewajiban terisi **mengubah setiap nilai kosong menjadi 0**. Lihat peringatan di bawah tabel |
-| 2 | `AddTriageSlaBreachMarker` | Ya | `IsSlaBreached` diisi `false` untuk seluruh baris lama. Tidak menghitung ulang breach historis karena `ResponseDueAt` lama tidak selalu terisi | Hapus dua kolom dan index; belum ada data yang bergantung |
+| 1 | `AddOriginEncounterToPatientEncounter` | Ya | Tidak ada. Kolom boleh kosong, seluruh baris lama tetap sah | Hapus kolom dan index. Aman selama belum terisi |
+| 2 | `AddOrganizationUnitToServiceUnit` | Ya | **Wajib diisi manual** oleh Master Data bersama Corporate/HR sebelum penjagaan kewenangan dinyalakan. Lihat `IGD-UNK-07` | Hapus kolom dan index |
+| 3 | `AddEmergencyPatientClassSeed` | Ya | Menambah satu baris `MstPatientClass` bertanda `IsForEmergency` dan `IsDefault`. Tidak mengubah baris yang sudah ada | Hapus baris yang ditambahkan, dikenali dari kodenya |
+| 4 | `ChangeEmergencyEncounterTypeToEmergency` | **Tidak** | `UPDATE TrxPatientEncounter SET EncounterType = 2 WHERE Id IN (SELECT EncounterId FROM TrxEmergencyVisit WHERE EncounterId IS NOT NULL)`. Jumlah baris yang berubah **wajib** sama dengan jumlah baris `TrxEmergencyVisit` yang `EncounterId`-nya terisi | `UPDATE ... SET EncounterType = 1` untuk himpunan yang sama. **Aman** karena nilai `2` tidak pernah dipakai sebelumnya |
+| 5 | `AddEmergencyDoctorAssignment` | Ya | Untuk setiap kunjungan IGD yang `TrxPatientEncounter.DoctorId`-nya terisi, dibuat satu baris riwayat dengan `EffectiveFrom` diambil dari `UpdateDateTime` encounter dan `EffectiveTo` kosong. Bila `UpdateDateTime` kosong, dipakai `CreateDateTime` | Hapus tabel |
+| 6 | `RenameEmergencyTransferToDeparture` | **Tidak** | Ganti nama tabel dan pemetaan `TransferStatus` lama ke dua kolom baru — lihat tabel pemetaan di bawah | Ganti nama kembali dan pulihkan kolom. **Kolom tempat tidur tidak dapat dipulihkan** bila datanya sudah dibuang |
+| 7 | `AddEmergencyDepartureEventAndOrderItem` | Ya | Untuk setiap baris kepergian yang sudah ada, dibuat kejadian awal yang mencerminkan status hasil pemetaan langkah 6 | Hapus dua tabel |
+| 8 | `RelaxQueueAndConsultationForEmergency` | Ya | Tidak ada. Melepas kewajiban terisi tidak mengubah nilai apa pun | **Mengembalikan kewajiban terisi akan gagal** bila sudah ada baris IGD yang kolomnya kosong. Lihat peringatan |
+| 9 | `AddClinicalRecordVersionMarkers` | Ya | `IsEffective` diisi `true` untuk seluruh baris lama | Hapus tiga kolom pada tiga tabel |
+| 10 | `DropUnusedEmergencySettingColumns` | Ya | Tidak ada | Tambah kembali dua kolom dengan nilai bawaannya |
 
-Migration nomor 1 **tidak tercatat pada rencana awal** dan ditambahkan saat `BE-IGD-002`
-dikerjakan. Alasannya: aturan `TargetUnconfigured` pada validation matrix bagian 2 mengharuskan
-sistem membedakan "target belum ditetapkan" dari "0 menit", dan tipe `int` biasa tidak mampu
-menyatakan keadaan kosong. Alternatifnya adalah menebak angka target, yang dilarang oleh
-`IGD-DEC-027` dan `IGD-DEC-035`. Penyimpangan ini perlu diketahui Product/Domain Owner.
+### 6.1 Pemetaan status lama ke dua rangkaian baru
 
-> **Peringatan cara mundur:** membatalkan migration nomor 1 mengisi setiap `MaxWaitingMinutes`
-> yang kosong dengan angka 0. Level 3 yang sengaja dibiarkan tanpa target akan berubah menjadi
-> "harus dilayani seketika" — yaitu persis kesalahan yang diperbaiki task ini. Karena itu,
-> setelah data master IGD terisi (`BE-IGD-003`), pembatalan migration ini tidak boleh dilakukan
-> tanpa mencatat lebih dulu level mana saja yang targetnya kosong.
+Langkah 6 memetakan enam nilai `EmergencyTransferStatus` menjadi dua kolom:
 
-Penambahan nilai enum `Completed` tidak memerlukan migration karena disimpan sebagai integer
-dan tidak ada check constraint pada kolom tersebut. Bila kemudian check constraint
-ditambahkan, ia harus ikut memuat nilai baru.
+| `TransferStatus` lama | `PhysicalStatus` baru | `HandoverStatus` baru | Catatan |
+| --- | --- | --- | --- |
+| `Requested` = 1 | `Prepared` | `Submitted` | Belum berangkat, dokumen sudah diajukan |
+| `Accepted` = 2 | `Prepared` | `Accepted` | **Ambigu di data lama.** Lihat peringatan |
+| `InTransit` = 3 | `Departed` | `Submitted` | |
+| `Completed` = 4 | `Arrived` | `Accepted` | |
+| `Rejected` = 5 | `Prepared` | `Rejected` | |
+| `Cancelled` = 6 | `Cancelled` | `Cancelled` | |
 
-Migration tidak boleh diterapkan ke basis data non-lokal tanpa otorisasi eksplisit.
+> **Peringatan pemetaan `Accepted`.** Nilai lama `Accepted` tidak dapat dibedakan artinya:
+> ia bisa berarti "unit tujuan setuju menerima" atau "pasien sudah diterima secara fisik".
+> Pemetaan di atas memilih arti pertama, karena `ArrivedAt` pada baris lama **selalu kosong** —
+> tidak ada satu pun endpoint yang pernah mengisinya. Pilihan ini **wajib diperiksa terhadap
+> data nyata** sebelum dijalankan, dan hasilnya dicatat sebagai bukti.
+
+### 6.2 Peringatan cara mundur
+
+> **Langkah 4.** Membatalkannya mengembalikan seluruh kunjungan IGD menjadi `Outpatient`, dan
+> laporan rawat jalan kembali memuat pasien IGD. Ini memulihkan keadaan sebelumnya dengan
+> setia, tetapi angka laporan akan berubah dua kali.
+
+> **Langkah 6.** Empat kolom tempat tidur dan ruangan dihapus. Bila sudah ada baris yang
+> mengisinya, nilainya **hilang permanen** kecuali diarsipkan lebih dulu. Jumlah baris
+> terdampak belum diketahui — `IGD-UNK-03`. Langkah 6 **tidak boleh dijalankan** sebelum angka
+> itu diketahui dan keputusan pengarsipannya diambil.
+
+> **Langkah 8.** Mengembalikan kewajiban `QueueId` dan `ConsultationId` akan **gagal** begitu
+> ada satu saja pengkajian atau resep IGD yang tersimpan tanpa keduanya. Setelah modul IGD
+> dipakai, langkah ini praktis tidak dapat dibatalkan.
+
+### 6.3 Urutan yang tidak boleh ditukar
+
+```text
+1 ─┐
+2 ─┼─► boleh paralel, tidak saling bergantung
+3 ─┘
+       │
+       ▼
+4  ChangeEmergencyEncounterTypeToEmergency
+       │  ← langkah 3 WAJIB selesai lebih dulu,
+       │    kalau tidak pendaftaran IGD berhenti total
+       ▼
+8  RelaxQueueAndConsultationForEmergency
+       │  ← menyaring berdasarkan EncounterType,
+       │    jadi wajib sesudah langkah 4
+       ▼
+9  AddClinicalRecordVersionMarkers
+
+5, 6, 7  ─► bebas urutannya terhadap jalur di atas
+10       ─► paling akhir, setelah dipastikan tidak ada yang membaca dua kolom itu
+```
+
+Langkah 3 sebelum langkah 4 adalah keharusan mutlak. Menukarnya membuat kunjungan IGD berubah
+tipe sementara master kelas pasiennya belum ada, sehingga `PatientClassId` kosong dan konteks
+tarif hilang tanpa satu pun pesan galat.
 
 ---
 
 ## 7. Rencana data master awal
 
-Tanpa data ini modul tidak dapat dipakai sama sekali: tidak ada level triage yang bisa
-dipilih, tidak ada cara kedatangan, dan tidak ada jenis disposition.
+Tanpa data ini modul tidak dapat dipakai sama sekali.
 
-### 7.1 `MstEmergencyTriageLevel`
+| No | Master | Isi minimum | Keadaan |
+| ---: | --- | --- | --- |
+| 1 | `MstEmergencyTriageLevel` | Lima level beserta warna; `MaxWaitingMinutes` **dibiarkan kosong** untuk level yang SOP-nya belum disahkan | Seeder tersedia |
+| 2 | `MstEmergencyTriageIndicator` | Indikator per level | Seeder tersedia |
+| 3 | `MstEmergencyArrivalMode` | Cara kedatangan: datang sendiri, ambulans, rujukan, polisi | Seeder tersedia |
+| 4 | `MstEmergencyCaseType` | Jenis kasus: trauma, non-trauma, kebidanan, anak | Seeder tersedia |
+| 5 | `MstEmergencyDispositionType` | Tujuh jenis; `ClosesEmergencyVisit` kini **menentukan perilaku**, jadi nilainya wajib ditinjau per jenis | Seeder tersedia, **nilai perlu ditinjau ulang** |
+| 6 | `MstEmergencySetting` | Satu baris bawaan menunjuk unit IGD | Seeder tersedia |
+| 7 | `MstPatientClass` bertanda `IsForEmergency` + `IsDefault` | **Tepat satu baris** | **Belum ada seeder** — `IGD-DEC-076` |
+| 8 | `MstServiceUnit.OrganizationUnitId` untuk unit IGD dan unit tujuan | Pemetaan ke simpul organisasi | **Belum ada** — `IGD-DEC-086` |
 
-Sesuai `IGD-DEC-047` dan `IGD-DEC-048`: skala lima level ATS atau ESI, dengan warna Permenkes
-47/2018 sebagai pengelompokan. Hitam adalah kategori di luar skala antrean.
+### 7.1 Peninjauan `ClosesEmergencyVisit`
 
-| Level | Kelompok warna | Code | Target waktu tunggu | Catatan |
-| ---: | --- | --- | --- | --- |
-| 1 | Merah | `L1` | 0 menit, segera | Tidak menunggu administrasi |
-| 2 | Merah | `L2` | Menunggu SOP MMC | Masih dalam kelompok Merah |
-| 3 | Kuning | `L3` | Menunggu SOP MMC | `TargetUnconfigured` |
-| 4 | Hijau | `L4` | Menunggu SOP MMC | `TargetUnconfigured` |
-| 5 | Hijau | `L5` | Menunggu SOP MMC | `TargetUnconfigured` |
-| — | Hitam | `BLK` | Tidak berlaku | Di luar skala antrean; tidak boleh ditetapkan otomatis oleh aplikasi |
+Seeder mengisi ketujuh jenis dengan `true`. Setelah `IGD-DEC-067` menjadikannya penentu
+perilaku, nilai itu perlu ditinjau:
 
-Target waktu untuk level 2 sampai 5 sengaja dibiarkan belum terkonfigurasi sampai SOP MMC
-tersedia, sesuai keputusan yang sudah tercatat. Nilai `MaxWaitingMinutes` untuk baris tersebut
-tidak boleh ditebak.
+| Kode | Nama | Usulan nilai | Alasan |
+| --- | --- | :---: | --- |
+| `PULANG` | Pulang | `true` | Pasien meninggalkan rumah sakit |
+| `RANAP` | Rawat inap | `true` | Menutup kunjungan IGD dan membuka kunjungan rawat inap — `RWI-RULE-029` |
+| `INTENSIF` | Pindah ICU atau kamar operasi | `true` | Sama seperti rawat inap untuk tujuan ICU; kamar operasi perlu ditinjau klinis |
+| `RUJUK` | Rujuk ke fasilitas lain | `true` | Pasien meninggalkan rumah sakit |
+| `MENINGGAL` | Meninggal | `true` | |
+| `TOLAK` | Menolak perawatan | `true` | |
+| `APS` | Pulang atas permintaan sendiri | `true` | |
 
-### 7.2 Master lainnya
-
-| Master | Isi minimum | Sumber nilai |
-| --- | --- | --- |
-| `MstEmergencyArrivalMode` | Datang sendiri, diantar keluarga, ambulans, polisi, rujukan | SOP pendaftaran IGD |
-| `MstEmergencyCaseType` | Trauma, non-trauma, kecelakaan lalu lintas, kecelakaan kerja, kriminalitas, obstetri, keracunan, bencana | SOP IGD |
-| `MstEmergencyDispositionType` | Pulang, rawat inap, pindah ICU atau OK, rujuk, meninggal, menolak perawatan, pulang atas permintaan sendiri | SOP IGD |
-| `MstEmergencyTriageIndicator` | Indikator Airway, Breathing, Circulation, Disability, Exposure per level | SOP triase MMC |
-| `MstEmergencySetting` | Satu baris default dengan unit IGD yang berlaku | Konfigurasi operasional |
+Ketujuhnya bernilai `true`, sehingga **tidak ada perubahan data** yang diperlukan. Yang
+berubah hanyalah bahwa nilainya sekarang benar-benar dibaca. Peninjauan ini tetap perlu
+persetujuan Clinical Governance karena menyangkut kapan pelayanan IGD dianggap berakhir.
 
 ---
 
 ## 8. Kebutuhan lintas modul
 
-Tiga kebutuhan berikut berasal dari keputusan IGD tetapi implementasinya berada di luar modul
-IGD. Ketiganya tidak boleh dibangun ulang di dalam IGD.
+| No | Kebutuhan | Modul pemilik | Menahan rilis IGD | Keputusan |
+| ---: | --- | --- | :---: | --- |
+| 1 | Pelonggaran kewajiban `QueueId` dan `ConsultationId` untuk kunjungan `Emergency` | Clinical Management, Pharmacy Management | **Ya** | `IGD-DEC-068` |
+| 2 | Penanda versi catatan klinis untuk koreksi tambah-saja | Clinical Management | **Ya** untuk pengkajian; tidak untuk yang lain | `IGD-DEC-080` |
+| 3 | Kolom `OriginEncounterId` | Registration Management | Tidak | `IGD-DEC-075` |
+| 4 | Kolom `OrganizationUnitId` | Master Data | Tidak — penjagaan kewenangan dapat menyusul | `IGD-DEC-086` |
+| 5 | `InpBedPlacement` membaca waktu tiba dari catatan kepergian IGD | Inpatient Management | Tidak | `IGD-DEC-071` |
+| 6 | Pelengkapan `LabOrder` | Laboratory Management | Tidak | `IGD-DEC-087`, `IGD-DEC-088` |
+| 7 | Revisi `RWI-RULE-026` aturan 6 dan `compatibility_impact` manifest | Inpatient Management | **Ya** lewat nomor 1 | `IGD-DEC-068`, `IGD-DEC-075` |
 
-| Kebutuhan | Sumber keputusan | Tempat implementasi | Status |
-| --- | --- | --- | --- |
-| Scope resource dan unit pada pemeriksaan akses | `IGD-DEC-026` | `Services/Security/AccessPermissionService.cs` | **Missing** — `HasAccessAsync` belum menerima parameter resource |
-| Pemisahan kewenangan SuperAdmin antara endpoint teknis dan klinis | `IGD-DEC-050` | `Services/Security/AccessPermissionService.cs` | **Conflict** dengan kode saat ini |
-| Break-glass akses darurat yang tercatat dan berbatas waktu | `IGD-DEC-050` | Belum ditentukan; kandidat `Services/Security/` | **Missing** — tidak ada di kode |
-
-Maker-checker, approval bertingkat, dan delegasi sementara **tidak** masuk daftar ini karena
-sudah tersedia dan generik pada `Areas/Corporate/HumanResource/WorkflowManagement/`. IGD
-memakainya lewat `ReferenceType` dan `ReferenceId`, bukan membangun kerangka baru.
+Nomor 1 dan 2 adalah **satu-satunya** yang menahan rilis pertama. Keduanya menunggu pemilik
+modul yang belum ditunjuk.
 
 ---
 
 ## 9. Yang sengaja tidak dibuat
 
-Daftar ini mencegah usulan yang sama muncul kembali di kemudian hari.
-
-| Yang ditolak | Alasan |
+| Yang dipertimbangkan | Ditolak karena |
 | --- | --- |
-| `PatientIGD`, `DoctorIGD`, atau salinan master lain | Sudah dimiliki modul masing-masing dan dipakai lewat relasi |
-| SOAP, assessment, diagnosis, atau tindakan versi IGD | Sudah ada di Clinical Management dan dipakai lintas pelayanan melalui `EncounterId` |
-| Resep, order laboratorium, dan order radiologi versi IGD | Dimiliki modul Pharmacy, Laboratory, dan Radiology |
-| Kerangka approval dan delegasi khusus IGD | Sudah tersedia generik di Workflow Management |
-| Mekanisme penjadwalan baru untuk pemantau SLA | Sudah ada lima hosted service sebagai pola yang matang |
-| Status `Closed` terpisah selain `Completed` | `IGD-DEC-049` hanya memerlukan satu status penyelesaian klinis |
-| Penyimpanan warna dan target waktu triage di kode | Wajib dari master agar kebijakan dapat berubah tanpa mengubah source |
+| Tabel pengkajian keperawatan khusus IGD | `IGD-DEC-003` dan `IGD-DEC-068` melarang tabel klinis tandingan. Rekam medis pasien harus satu tempat |
+| Tabel antrean semu untuk pasien IGD | `IGD-DEC-068` dan `RWI-RULE-026` aturan 2 melarangnya. Laporan antrean poliklinik tidak boleh tercemar |
+| Tabel penugasan pengguna ke unit pelayanan | `IGD-DEC-086` mencabutnya. Rantai pengguna ke organisasi sudah ada; yang kurang hanya satu jembatan |
+| Tabel pemesanan laboratorium milik IGD | `IGD-DEC-087`. `LabOrder` sudah ada dan sudah dapat dipakai |
+| Tabel alokasi tempat tidur milik IGD | `IGD-DEC-069`. Milik Rawat Inap lewat `InpBedPlacement` |
+| Dokumen serah terima terpisah untuk perawat dan dokter | `IGD-DEC-079` memilih satu dokumen untuk rilis pertama |
+| Salinan pasien, dokter, atau master apa pun ke dalam IGD | Aturan kepemilikan data bagian 1 |
+| Pemesanan radiologi | Modulnya belum ada; membuatnya di IGD berarti mendirikan modul penunjang kedua |
+| Catatan pemberian obat milik IGD | Menyentuh Pharmacy Management. Ditunggu sampai pemiliknya ditunjuk |
+| Perubahan pada mesin hak akses `SysAccessPolicy` | `IGD-DEC-081` dan `IGD-DEC-086` menegaskan penjaga ditulis di service IGD, bukan di mesin yang menjaga seluruh aplikasi tanpa satu pun test |
+
+---
+
+## 10. Pertanyaan terbuka yang lahir dari desain ini
+
+| ID | Pertanyaan | Memblokir |
+| --- | --- | --- |
+| `IGD-OQ-068` | `IGD-DEC-070` memilih dua kolom status dan menolak daftar kejadian, tetapi `IGD-DEC-065`, `066`, `085` menuntut penyimpanan yang hanya mungkin sebagai daftar kejadian. Apakah penafsiran bagian 2.4 — kolom status sebagai turunan, daftar kejadian sebagai sumber audit — dapat diterima? | `IMPLEMENTATION` catatan kepergian |
+| `IGD-OQ-069` | Apakah `AutoCreateProvisionalEncounter` dan `RequireTriageBeforeStandardRegistration` benar dicabut, atau justru harus diberi arti? | `IMPLEMENTATION` `MstEmergencySetting` |
+| `IGD-OQ-070` | Penggantian nama `TrxEmergencyTransfer` menjadi `TrxEmergencyDeparture` mengubah nama tabel dan seluruh route-nya. Apakah penggantian nama diterima, atau nama lama dipertahankan demi kompatibilitas pemakai luar? | `IMPLEMENTATION` |
