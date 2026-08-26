@@ -144,11 +144,12 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Reuse** | Endpoint `PATCH /beds/{id}/status` yang **sudah ada** di backend. **Tidak ada perubahan backend sama sekali** |
 | **Scope** | `src/lib/state/slice/health-services/master-data/master-data-bed-slice.jsx` baris 315–322 dan 334–341 |
 | **Dependency** | — |
-| **Wewenang UI** | Tidak ada. Ini perbaikan pemanggilan, bukan perubahan tampilan |
+| **Wewenang UI** | Semula "tidak ada, ini perbaikan pemanggilan". **Diperluas 26 Agustus 2026** oleh pemilik pekerjaan setelah terbukti tombolnya memang belum pernah ada di layar, sehingga perbaikan pemanggilan saja tidak dapat memenuhi Outcome |
 | **Acceptance criteria** | 1. Tombol aktifkan memanggil `PATCH /beds/{id}/status`, bukan `/activate`. 2. Tombol nonaktifkan memanggil endpoint yang sama, bukan `/deactivate`. 3. Keduanya berhasil dan status di layar berubah tanpa muat ulang halaman. 4. Tidak ada lagi permintaan yang mengembalikan 404 dari layar ini |
 | **Verification** | Unit test atau e2e pada slice tempat tidur — **wajib**, karena hari ini tidak ada satu pun test yang menyentuh layar bed. Periksa jaringan dan pastikan tidak ada 404 |
 | **Risk/blocker** | Ini prasyarat lintas repository. `BE-RWI-006` **tidak boleh** rilis sebelum task ini rilis. Koordinasikan urutannya, jangan asumsikan. Owner: Frontend bersama Backend/API |
 | **DoD** | Dua pemanggilan diperbaiki; keempat kriteria lulus; test baru ada dan lulus; laporan menyatakan tidak ada perubahan backend |
+| **Status** | ✅ **Selesai, menunggu rilis.** Keempat kriteria lulus dengan bukti: e2e di browser sungguhan mencatat satu PATCH ke `/{id}/status` berisi `{"isActive":false}`, label tombol dan baris status berubah tanpa muat ulang halaman, dan nol respons 404. `lint:errors`, `test:unit` 19/19, dan `build` lulus. Dua celah yang semula tidak tercatat ikut ditutup: tombolnya memang belum pernah ada di layar, dan form Perbarui diam-diam mengaktifkan ulang tempat tidur nonaktif. Perubahan **masih lokal, belum di-commit** ([laporan](../task/report/frontend/FE-RWI-001.md)) |
 
 ---
 
