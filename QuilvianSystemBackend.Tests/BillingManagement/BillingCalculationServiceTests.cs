@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Model
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -117,6 +118,39 @@ public sealed class BillingCalculationServiceTests
         Assert.Equal(30_000m, inpatientResult.AdministrationFeeAmount);
         Assert.True(inpatientResult.Breakdown.AdministrationFee.ReplacesEarlierFee);
         Assert.Equal(50_000m, firstResult.AdministrationFeeAmount + secondResult.AdministrationFeeAmount + inpatientResult.AdministrationFeeAmount);
+    }
+
+    // BE-BKC-017 hardening (26 Agustus 2026): CalculateAdministrationFeeAsync mendapat SQL pre-filter
+    // pada TrxPatientEncounter.EncounterDate (menggantikan penarikan seluruh riwayat pasien ke memori)
+    // - lihat catatan di BillingCalculationService.cs. Test ini secara khusus membuktikan pre-filter
+    // itu tetap benar untuk dua encounter yang berada pada businessDate WIB YANG SAMA tapi tanggal
+    // kalender UTC-nya BERBEDA (melintasi batas 17:00 UTC), skenario yang akan salah bila pre-filter
+    // naif hanya membandingkan tanggal kalender UTC alih-alih rentang WIB yang benar.
+    [Fact]
+    public async Task AdministrationFeeAcrossUtcMidnightBoundaryIsStillDetectedAsSameBusinessDay()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var patientId = Guid.NewGuid();
+        // 2026-08-21T18:00:00Z = WIB 2026-08-22 01:00 (awal businessDate WIB 22 Agustus, tanggal kalender UTC-nya 21 Agustus).
+        var firstAt = new DateTimeOffset(2026, 8, 21, 18, 0, 0, TimeSpan.Zero);
+        // 2026-08-22T10:00:00Z = WIB 2026-08-22 17:00 (masih businessDate WIB yang sama, tanggal kalender UTC-nya 22 Agustus).
+        var secondAt = new DateTimeOffset(2026, 8, 22, 10, 0, 0, TimeSpan.Zero);
+        Assert.Equal(
+            AdministrationFeePolicyService.GetBusinessDate(firstAt),
+            AdministrationFeePolicyService.GetBusinessDate(secondAt));
+        Assert.NotEqual(firstAt.UtcDateTime.Date, secondAt.UtcDateTime.Date);
+
+        db.MstAdministrationFeePolicies.Add(AdministrationPolicy("ADM-RAJAL-BOUNDARY", "RAJAL", 20_000m, 10, firstAt));
+        var first = await SeedInvoiceAsync(db, patientId, "RAJAL", firstAt);
+        var second = await SeedInvoiceAsync(db, patientId, "RAJAL", secondAt);
+        await db.SaveChangesAsync();
+        var service = CreateService(db, SelfPayCoverageAdapter.Instance);
+
+        var firstResult = await service.RecalculateAsync(first.Id, Request(first.RowVersion, "Kunjungan pertama"), Guid.NewGuid(), CancellationToken.None);
+        var secondResult = await service.RecalculateAsync(second.Id, Request(second.RowVersion, "Kunjungan kedua, businessDate WIB sama"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(20_000m, firstResult.AdministrationFeeAmount);
+        Assert.Equal(0, secondResult.AdministrationFeeAmount);
     }
 
     [Fact]
