@@ -3,14 +3,14 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `PHA-BP-001` |
-| Revision | `1` |
+| Revision | `2` |
 | Status | `draft` |
 | Interview mode | `Scope pass` |
 | Scope-pass result | `concluded 19 Agustus 2026`; keputusan lintas-owner masih perlu verifikasi |
 | Product/domain owner | User — menyatakan sebagai pemilik keputusan pada 18 Agustus 2026 |
-| Backend SHA | `36d7eca7cd3d4b3f1f6520a6fe9340936cced320` |
+| Backend SHA | `767470f742bc6f2eebadbd653a873f69d6f93121` |
 | Frontend SHA | `400104f2a0f3239c14c40f5905b419977a538450` |
-| Input evidence | Jawaban wawancara 18–19 Agustus 2026 |
+| Input evidence | Jawaban wawancara 18–20 Agustus 2026 |
 
 ## Scope dan outcome
 
@@ -179,9 +179,9 @@ invariant, permission, privacy, dan brief yang disetujui.
 | `PHA-DEC-018` | Decision | Penyimpanan resep gagal jika jumlah obat melebihi available stock; dokter harus memilih obat/jumlah pengganti | Product/domain + clinical/pharmacy governance owner | `approved` oleh product owner | Pernyataan user 19 Agustus 2026 |
 | `PHA-OQ-010` | Open Question | Setelah validasi resep berhasil tetapi sebelum pembayaran, apakah jumlah obat dikunci secara terpusat atau hanya diperiksa ulang saat pembayaran | Product/domain + pharmacy + Billing owner | `superseded` oleh `PHA-DEC-019` dan `PHA-DEC-021` | Diputuskan 19 Agustus 2026 |
 | `PHA-CON-001` | Conflict | `PHA-DEC-010` menetapkan stok minimum hanya sebagai reorder alert, sedangkan analis meminta obat tidak tampil ketika available stock di bawah minimum sehingga minimum berfungsi sebagai protected/safety stock | Product/domain + pharmacy/warehouse owner | `superseded` oleh `PHA-DEC-020` | Product/domain owner memilih model dua ambang, 19 Agustus 2026 |
-| `PHA-DEC-019` | Decision | `Prescribable stock = usable on-hand - reserved - safety stock`; penyimpanan resep menaikkan reserved secara atomik, sedangkan on-hand baru berkurang ketika obat diserahkan | Product/domain + pharmacy/warehouse owner | `approved` oleh product owner | User memilih rekomendasi assistant, 19 Agustus 2026 |
+| `PHA-DEC-019` | Decision | `Prescribable stock = usable on-hand - reserved - safety stock`; penyimpanan resep menaikkan reserved secara atomik, sedangkan on-hand baru berkurang ketika obat diserahkan | Product/domain + pharmacy/warehouse owner | `superseded` sebagian oleh `PHA-DEC-041`; rumus stok tetap berlaku, waktu reservasi berubah | Klarifikasi final user 20 Agustus 2026 |
 | `PHA-DEC-020` | Decision | Pisahkan `reorder point` untuk peringatan pengadaan dan `safety stock` untuk jumlah yang tidak tersedia bagi resep rutin | Product/domain + pharmacy/warehouse owner | `approved` oleh product owner | User memilih rekomendasi assistant, 19 Agustus 2026 |
-| `PHA-DEC-021` | Decision | Reservasi stok terjadi saat resep disimpan, tetapi resep baru masuk antrean/cetak Farmasi setelah pembayaran atau jaminan dikonfirmasi | Product/domain + pharmacy + Billing owner | `approved` oleh product owner | User memilih rekomendasi assistant, 19 Agustus 2026 |
+| `PHA-DEC-021` | Decision | Reservasi stok terjadi saat resep disimpan, tetapi resep baru masuk antrean/cetak Farmasi setelah pembayaran atau jaminan dikonfirmasi | Product/domain + pharmacy + Billing owner | `superseded` oleh `PHA-DEC-041` | Klarifikasi final user 20 Agustus 2026 |
 | `PHA-DEC-022` | Decision | Reorder point dan safety stock ditetapkan per obat/per lokasi oleh Kepala Farmasi atau petugas persediaan berwenang dengan audit lengkap | Product/domain + pharmacy/warehouse owner | `approved` oleh product owner | Jawaban user “setuju”, 19 Agustus 2026 |
 | `PHA-DEC-023` | Decision | Usulan: Kasir berwenang menandai pembayaran tidak dilanjutkan dan melepaskan reservasi stok, tetapi tidak dapat menghapus/mengubah resep klinis | Product/domain + Billing/Finance + security owner | `draft` | Permintaan user 19 Agustus 2026 |
 | `PHA-OQ-011` | Open Question | Apakah pelepasan manual oleh kasir tetap disertai fallback otomatis setelah 24 jam dan bagaimana pembayaran parsial/jaminan pending ditangani | Product/domain + Billing/Finance owner | `open` | Menunggu keputusan |
@@ -203,6 +203,12 @@ invariant, permission, privacy, dan brief yang disetujui.
 | `PHA-DEC-037` | Decision | Alergi berat menjadi hard stop; override hanya oleh dokter berwenang dengan alasan klinis dan wajib diverifikasi apoteker sebelum pemrosesan | Product/domain + clinical/pharmacy governance owner | `approved` oleh product owner; clinical governance perlu memverifikasi severity source | Jawaban user “setuju”, 19 Agustus 2026 |
 | `PHA-DEC-038` | Decision | Interaksi obat berat menjadi hard stop dengan override dokter beralasan, verifikasi apoteker, dan audit pasangan obat/severity/sumber-versi data | Product/domain + clinical/pharmacy governance owner | `approved` oleh product owner; clinical governance perlu memverifikasi severity source | Jawaban user “setuju”, 19 Agustus 2026 |
 | `PHA-DEC-039` | Decision | Gunakan severity Critical/Warning/Information dengan perilaku hard-stop/reason/informational yang berasal dari aturan klinis approved dan berversi | Product/domain + clinical/pharmacy governance owner | `approved` oleh product owner; threshold klinis belum ditetapkan | Jawaban user “setuju”, 19 Agustus 2026 |
+| `PHA-DEC-040` | Decision | Depo pelayanan ditentukan otomatis dari layanan encounter menggunakan kontrak `PHA-DEPOT-ROUTING-v1`; hasil wajib tepat satu dan tidak boleh memilih Gudang Utama, lokasi karantina, atau kandidat secara acak | Product/domain owner | `approved` | Persetujuan user 20 Agustus 2026 |
+| `PHA-DEC-041` | Decision | Reservasi dilakukan setelah pembayaran/jaminan valid dan Farmasi mulai memproses resep; penentuan Depo tidak mengambil stok, sedangkan stok fisik baru berkurang saat penyerahan berhasil | Product/domain owner; Billing dan Pharmacy owner perlu memverifikasi integrasi | `approved` oleh product owner | Klarifikasi dan persetujuan user 20 Agustus 2026 |
+| `PHA-OQ-014` | Open Question | Hasil resmi ketika pembayaran/jaminan valid tetapi reservasi atomik gagal karena stok sudah habis | Product/domain + Billing/Finance + Pharmacy | `open`; `BLOCKING` untuk reservasi | Requirement gate `PHA-RCG-001`, 20 Agustus 2026 |
+| `PHA-OQ-015` | Open Question | Sumber authoritative status paid/approved/reversal/refund serta idempotency callback Billing | Billing/Finance + Security | `open`; `BLOCKING` untuk integrasi Billing | Requirement gate `PHA-RCG-001`, 20 Agustus 2026 |
+| `PHA-OQ-016` | Open Question | Kebijakan partial dispensing, cakupan obat/layanan, approver, sisa resep, dan koreksi tagihan | Pharmacy + Clinical Governance + Billing | `open`; `BLOCKING` untuk penyerahan | Requirement gate `PHA-RCG-001`, 20 Agustus 2026 |
+| `PHA-OQ-017` | Open Question | Daftar obat yang wajib checker kedua dan matriks kewenangan checker | Pharmacy + Clinical Governance + Security | `open`; `BLOCKING` untuk penyerahan | Requirement gate `PHA-RCG-001`, 20 Agustus 2026 |
 
 ## Acceptance criteria awal
 

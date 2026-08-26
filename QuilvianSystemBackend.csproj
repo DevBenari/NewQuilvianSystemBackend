@@ -47,6 +47,7 @@
     <None Remove="Areas\HealthServices\PatientManagement\Patient\**" />
     <None Remove="Areas\SelfServices\Models\**" />
     <None Remove="Areas\SelfServices\Views\**" />
+    <None Remove="QuilvianSystemBackend.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>
