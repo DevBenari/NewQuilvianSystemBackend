@@ -2,8 +2,10 @@ name: QBE Conformance
 
 on:
   pull_request:
-    branches:
-      - QuilvianIntegrationBackend
+    types:
+      - opened
+      - synchronize
+      - reopened
   workflow_dispatch:
     inputs:
       base_ref:
@@ -21,6 +23,7 @@ permissions:
 jobs:
   qbe-conformance:
     name: QBE Strict GitRange
+    if: github.event_name == 'workflow_dispatch' || github.base_ref == 'QuilvianIntegrationBackend'
     runs-on: ubuntu-latest
 
     steps:
