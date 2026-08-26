@@ -14,7 +14,7 @@
 | Commit backend saat dikerjakan | `21c609f2853574532f74dd2b1489b8d2e502abd1` |
 | Tanggal | 18 Agustus 2026 |
 | Jenis perubahan | Dua kolom, satu index, satu migration |
-| **Status** | **Belum selesai — belum pernah dikompilasi dan belum diterapkan ke database mana pun** |
+| **Status** | **Sebagian terbukti — kriteria 1, 2, 3 lulus di dua database; migrasi mundur belum diuji, kriteria 4 belum dapat dibuktikan** |
 
 ---
 
@@ -131,61 +131,105 @@ melayani keduanya.
 
 ## 4. Verifikasi
 
-### 4.1 Yang sudah dijalankan
+### 4.1 Pemeriksaan statis sebelum eksekusi
 
 | Pemeriksaan | Hasil |
 | --- | --- |
-| Snapshot model sebelum perubahan bersih dari `IsSlaBreached` milik triage | Terbukti — satu-satunya kemunculan ada pada `TrxHrServiceRequest` baris 14193 |
+| Snapshot sebelum perubahan bersih dari `IsSlaBreached` milik triage | Terbukti — satu-satunya kemunculan ada pada `TrxHrServiceRequest` |
 | Diff snapshot setelah perubahan | Tepat 10 baris, 3 sisipan, seluruhnya di dalam entitas `TrxEmergencyTriage` |
 | Designer dibanding snapshot | Berbeda hanya pada 4 titik header, pola identik dengan `MakeTriageMaxWaitingMinutesNullable.Designer.cs` |
-| Urutan properti dan index mengikuti konvensi EF | `IsRetriage` < `IsSlaBreached` < `MaxWaitingMinutesSnapshot`; `Sequence` < `SlaBreachedAt` < `StartedAt`; index 3-kolom diurutkan `ResponseDueAt` sebelum `TriageStatus` |
-| Nama index terhadap batas identifier PostgreSQL | Nama penuh 66 karakter, dipotong ke 62 + `~` menjadi 63, mengikuti pola yang dipakai 8 index lain di project ini |
+| Urutan properti dan index mengikuti konvensi EF | `IsRetriage` < `IsSlaBreached` < `MaxWaitingMinutesSnapshot`; `Sequence` < `SlaBreachedAt` < `StartedAt` |
+| Nama index terhadap batas identifier PostgreSQL | Nama penuh 66 karakter, dipotong ke 62 + `~` menjadi 63 |
 | Konsistensi nama index antara `Up` dan `Down` | Sama persis |
 
-### 4.2 Yang **belum** dijalankan, beserta alasannya
+### 4.2 Bukti eksekusi
+
+**Build lulus.** Assembly Debug tertanggal 19 Agustus 2026 memuat `IsSlaBreached`,
+`SlaBreachedAt`, `MarkSlaBreachesAsync`, dan `EmergencyTriageSlaMonitorOptions`.
+
+**Migration tulisan tangan terbukti setara dengan keluaran tooling.** Sebuah migration
+verifikasi dibuat memakai `dotnet ef migrations add`, dan hasilnya **`Up` dan `Down` kosong
+tanpa satu operasi pun**. Itu membuktikan snapshot beserta Designer yang ditulis tangan cocok
+sepenuhnya dengan model; bila ada selisih sekecil apa pun, EF akan menuliskan koreksinya di
+situ. Migration verifikasi kemudian dibuang.
+
+**Diterapkan dan diverifikasi di dua database.**
+
+| Database | Keadaan |
+| --- | --- |
+| PostgreSQL lokal (container Docker, `QuilvianLocal`) — **lingkungan ini sudah dibongkar setelahnya**, lihat bagian 5 | 83 migrasi diterapkan dari nol; kedua kolom dan index terbentuk |
+| `QuilvianNewDevTim01` | `20260818084734_AddTriageSlaBreachMarker` tercatat pada `__EFMigrationsHistory`; nol migrasi tertunda |
+
+Bentuk kolom pada **kedua** database, dibaca langsung dari `information_schema`:
+
+| Kolom | Tipe | Nullable | Default |
+| --- | --- | --- | --- |
+| `IsSlaBreached` | `boolean` | NOT NULL | `false` |
+| `SlaBreachedAt` | `timestamp with time zone` | boleh kosong | — |
+
+Index yang terbentuk, dibaca dari `pg_indexes`:
+
+```
+IX_TrxEmergencyTriage_EmergencyVisitId_ResponseDueAt_IsSlaBrea~
+  -> btree ("EmergencyVisitId", "ResponseDueAt", "IsSlaBreached")
+```
+
+Pemotongan nama ke 63 karakter yang dihitung manual pada bagian 6.3 terbukti tepat.
+
+### 4.3 Yang **belum** terbukti
 
 | Belum dijalankan | Alasan |
 | --- | --- |
-| **`dotnet build`** | Diminta owner untuk dijalankan sendiri. Build sebelumnya dihentikan setelah satu jam tanpa menghasilkan assembly |
-| **`dotnet ef migrations add`** | Migration ditulis tangan justru karena perintah ini menuntut build lebih dulu |
-| **Uji migration maju** | Butuh database; lihat bagian 5 |
-| **Uji migration mundur** | Sama |
-| **Verifikasi bentuk kolom dan index di database** | Sama |
+| **Uji migration mundur** | Belum dijalankan. Ini satu-satunya sisa pekerjaan teknis pada task ini |
+| **Kriteria 4 — baris lama terisi salah** | `TrxEmergencyTriage` bernilai **nol baris** pada kedua database, sehingga tidak ada "baris lama" yang dapat diperiksa |
+| **Test otomatis** | Solution tidak memiliki test project |
 
-### 4.3 Acceptance criteria
+Kriteria 4 dijamin secara semantik oleh PostgreSQL: `ADD COLUMN ... NOT NULL DEFAULT false`
+mengisi baris yang sudah ada. Tetapi jaminan semantik bukan bukti pengujian, dan aturan pada
+`requirement-traceability.md` bagian 5 melarang menghitungnya lulus. Pembuktiannya menunggu
+data nyata pada `QuilvianNewDevTim01`.
+
+### 4.4 Acceptance criteria
 
 | # | Kriteria | Status |
 | --- | --- | --- |
-| 1 | `IsSlaBreached` boolean wajib, nilai bawaan salah | Ada di kode dan migration — **belum terbukti** |
-| 2 | `SlaBreachedAt` boleh kosong | Ada di kode dan migration — **belum terbukti** |
-| 3 | Index `(EmergencyVisitId, ResponseDueAt, IsSlaBreached)` terbentuk | **Belum** — baru dideklarasikan, belum ada di database |
-| 4 | Baris lama terisi salah tanpa perhitungan ulang | Dijamin oleh `defaultValue: false`, **belum terbukti** |
-| 5 | Migration dapat maju dan mundur tanpa mematikan layanan | **Belum diuji** |
+| 1 | `IsSlaBreached` boolean wajib, nilai bawaan salah | **Terbukti** di dua database |
+| 2 | `SlaBreachedAt` boleh kosong | **Terbukti** di dua database |
+| 3 | Index gabungan terbentuk | **Terbukti** di dua database |
+| 4 | Baris lama terisi salah tanpa perhitungan ulang | **Belum terbukti** — nol baris |
+| 5 | Migration dapat maju dan mundur | Maju **terbukti**; mundur **belum diuji** |
 
-Tidak ada satu pun kriteria yang boleh dihitung lulus. Sesuai `requirement-traceability.md`
-bagian 5 poin 2, task ini berstatus `In Progress`, bukan `Done`.
+Task ini berstatus `In Progress`, bukan `Done`.
 
----
+## 5. Catatan koreksi tentang target database
 
-## 5. Gate database yang menahan pengujian
+Revisi laporan sebelumnya menyatakan pengujian tertahan karena `DefaultConnection` menunjuk
+database dev bersama tim. **Pernyataan itu keliru** dan dicabut di sini.
 
-`DefaultConnection` pada `appsettings.Development.json` menunjuk ke
-`160.22.250.77:5432/QuilvianNewDevTim02` — **database dev bersama tim, bukan lokal**. Tidak
-ada PostgreSQL yang berjalan di `localhost:5432`.
+Kenyataannya project sudah menyediakan mekanisme override lokal, yaitu `appsettings.Local.json`
+yang diabaikan Git. Yang benar-benar kurang saat itu hanyalah server PostgreSQL lokal yang
+berjalan. Setelah container Docker dijalankan, migrasi diterapkan ke database lokal tanpa
+menyentuh milik tim.
 
-Roadmap `BE-IGD-005` menyatakan pada Risk/blocker: *"Migration tidak boleh diterapkan ke basis
-data mana pun selain lokal tanpa izin eksplisit."* Karena itu `dotnet ef database update`
-**tidak dijalankan**, dan uji maju-mundur belum dapat dilakukan.
+Mekanisme override lokal tersebut kemudian **dihapus atas permintaan owner**, dan lingkungan
+lokalnya dibongkar: berkas `appsettings.Local.json` dihapus, blok pemuatannya dikeluarkan dari
+`Program.cs`, dan container PostgreSQL lokal dimatikan beserta datanya.
 
-Tiga jalan keluar, urut dari yang paling sesuai roadmap:
+**Keputusan yang berlaku sejak saat itu:** modul ini bekerja langsung terhadap
+`appsettings.Development.json`, yaitu `QuilvianNewDevTim01`. Tidak ada lagi lapisan lokal yang
+memisahkan pekerjaan pengembangan dari database bersama.
 
-1. Sediakan PostgreSQL lokal, arahkan connection string lewat User Secrets atau environment
-   variable — bukan dengan mengedit `appsettings` yang ter-commit
-2. Minta izin eksplisit Backend/API owner untuk menerapkan ke DB dev tim, dengan pemberitahuan
-   lebih dulu kepada anggota tim yang memakainya
-3. Tunda pengujian dan biarkan task ini `In Progress` sampai salah satu di atas tersedia
+Pada `QuilvianNewDevTim01`, migrasi ini **sudah diterapkan** dan nol migrasi tertunda, sehingga
+tidak diperlukan penulisan tambahan ke database bersama.
 
----
+### 5.1 Temuan sampingan yang perlu perhatian
+
+Perbandingan riwayat migrasi menemukan satu migrasi yang ada di server tetapi **tidak ada di
+repo**: `20260610151122_addColumnMstKioskDevice`.
+
+Ini bukan akibat pekerjaan pada task ini, melainkan kemungkinan berasal dari branch lain yang
+pernah diterapkan ke database tersebut. Dampaknya belum terasa, tetapi berpotensi bentrok saat
+rollback atau saat `database update` dijalankan dari branch berbeda. Owner: Backend/API.
 
 ## 6. Penyimpangan yang perlu disahkan
 
@@ -198,8 +242,10 @@ menghasilkan assembly dan owner memilih menjalankannya sendiri.
 Ketiga file yang biasanya dihasilkan tooling — migration, designer, dan pembaruan snapshot —
 ditulis mengikuti pola file yang sudah ada, lalu diverifikasi seperti pada bagian 4.1.
 
-**Cara membuktikan hasilnya setara dengan keluaran tooling** ada di bagian 7 langkah 2. Selama
-pembuktian itu belum dijalankan, anggap ketiga file berstatus belum tervalidasi.
+**Pembuktiannya sudah dijalankan dan lulus.** Migration verifikasi yang dihasilkan tooling
+menghasilkan `Up` dan `Down` kosong, sehingga ketiga file tulisan tangan terbukti setara dengan
+keluaran tooling. Rinciannya pada bagian 4.2. Penyimpangan ini karena itu **selesai** dan tidak
+lagi menyisakan risiko teknis; yang tersisa hanya pencatatannya di sini.
 
 ### 6.2 Tipe waktu berbeda dari DDL pada data dictionary
 
@@ -226,43 +272,48 @@ yang membandingkan dokumen dengan database.
 
 ---
 
-## 7. Langkah berikutnya, berurutan
+## 7. Langkah berikutnya
 
-1. **Owner menjalankan `dotnet build ./QuilvianSystemBackend.sln --configuration Release`.**
-   Bila gagal, penyebabnya hampir pasti ada pada lima file di bagian 3 dan menjadi tanggung
-   jawab pembuat laporan ini untuk diperbaiki.
+Dua langkah pertama pada revisi sebelumnya — build dan pembuktian anti-drift — **sudah selesai
+dan lulus**. Yang tersisa:
 
-2. **Buktikan migration tulisan tangan setara dengan keluaran tooling.** Setelah build hijau:
-
-   ```bash
-   dotnet ef migrations add VerifikasiDrift --no-build
-   ```
-
-   Migration yang dihasilkan harus **kosong** — `Up` dan `Down` tanpa satu pun operasi. Itu
-   membuktikan snapshot sudah cocok dengan model. Setelah terbukti, hapus lagi:
+1. **Uji migration mundur.** Satu-satunya kriteria teknis yang belum dijalankan:
 
    ```bash
-   dotnet ef migrations remove --no-build
+   dotnet ef database update 20260814073820_MakeTriageMaxWaitingMinutesNullable
    ```
 
-   Bila migration verifikasi ternyata **tidak** kosong, isinya menunjukkan persis bagian mana
-   dari tulisan tangan yang meleset, dan itu yang harus diperbaiki.
+   Kedua kolom harus hilang, lalu `dotnet ef database update` mengembalikannya.
 
-3. **Selesaikan gate database** pada bagian 5, lalu jalankan uji maju-mundur.
+   **Tertahan.** Lingkungan lokal sudah dibongkar, sehingga satu-satunya sasaran yang tersisa
+   adalah `QuilvianNewDevTim01` — database bersama tim. Menjatuhkan lalu membuat ulang kolom di
+   sana berarti mengubah skema yang sedang dipakai orang lain, dan itu memerlukan izin eksplisit
+   Backend/API owner sesuai Risk/blocker `BE-IGD-005` pada roadmap. Alternatifnya, siapkan
+   kembali lingkungan lokal sementara khusus untuk uji ini.
 
-4. **Perbarui laporan ini** — bagian 4.2, 4.3, dan 6.1 — dengan hasil yang benar-benar
-   dijalankan, lalu naikkan status di `requirement-traceability.md`.
+2. **Buktikan kriteria 4** dengan data nyata. Selama `TrxEmergencyTriage` masih nol baris —
+   dan pada `QuilvianNewDevTim01` memang nol — kriteria ini tidak dapat dibuktikan.
 
-Sampai langkah 1 dan 2 selesai, `BE-IGD-006` **belum boleh dimulai**. Hosted service pemantau
-akan menulis ke dua kolom yang keberadaannya di database belum terbukti.
+   Pembuktiannya baru mungkin setelah ada penilaian triage sungguhan di database tersebut,
+   entah dari pemakaian normal atau dari restore data. Sampai saat itu, kriteria ini tetap
+   ditulis **belum diuji**, bukan dianggap lulus.
+
+3. **Bawa temuan bagian 5.1 ke Backend/API owner** — migrasi `addColumnMstKioskDevice` yang ada
+   di server tetapi tidak ada di repo.
+
+`BE-IGD-006` kini **boleh dilanjutkan**, karena keberadaan kedua kolom di database sudah
+terbukti pada bagian 4.2.
 
 ---
 
 ## 8. Risiko tersisa
 
-| No | Risiko | Dampak | Penanganan |
-| ---: | --- | --- | --- |
-| 1 | Migration tulisan tangan meleset dari model | EF menolak, atau diff migration berikutnya salah | Langkah 2 pada bagian 7 mendeteksinya sebelum menyentuh database |
-| 2 | Migration diterapkan ke DB dev tim tanpa pemberitahuan | Anggota tim lain menemukan skema berubah di tengah pekerjaan | Gate pada bagian 5 |
-| 3 | `BE-IGD-006` dimulai sebelum kolomnya benar-benar ada | Pemantau gagal saat runtime, bukan saat build | Urutan pada bagian 7 |
-| 4 | Ada yang menghitung ulang breach untuk data lama | Riwayat palsu; laporan mutu mencampur dua aturan | Aturan bisnis nomor 4 pada bagian 2.3 |
+| No | Risiko | Keadaan |
+| ---: | --- | --- |
+| 1 | Migration tulisan tangan meleset dari model | **Tertutup** — migration verifikasi kosong membuktikan tidak ada selisih |
+| 2 | Migration diterapkan ke DB dev tanpa pemberitahuan | **Tidak berlaku lagi** — migrasi sudah tercatat di `QuilvianNewDevTim01` dan nol migrasi tertunda |
+| 3 | `BE-IGD-006` dimulai sebelum kolomnya ada | **Tertutup** — kolom terbukti ada di dua database |
+| 4 | Kriteria 4 dianggap lulus padahal tidak diuji | **Terbuka** — ditulis apa adanya pada bagian 4.3 dan 4.4 |
+| 5 | Migrasi mundur belum pernah diuji | **Terbuka** — langkah 1 pada bagian 7 |
+| 6 | Riwayat migrasi repo dan server berbeda satu migrasi | **Terbuka** — bagian 5.1, menunggu Backend/API owner |
+| 7 | Ada yang menghitung ulang breach untuk data lama | **Terkendali** — aturan bisnis nomor 4 pada bagian 2.3 |

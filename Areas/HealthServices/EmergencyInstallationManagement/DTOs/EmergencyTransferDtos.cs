@@ -9,7 +9,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public Guid EmergencyVisitId { get; set; }
         public string TransferNumber { get; set; } = string.Empty;
         public Guid? FromServiceUnitId { get; set; }
+
+        /// <summary>
+        /// Nama unit asal dan unit tujuan, disalin dari master saat balasan dibentuk. Layar
+        /// perpindahan menampilkan nama unit kepada perawat; identifier tidak pernah menjadi
+        /// label yang dibaca petugas.
+        /// </summary>
+        public string? FromServiceUnitName { get; set; }
         public Guid ToServiceUnitId { get; set; }
+        public string? ToServiceUnitName { get; set; }
         public Guid? FromRoomId { get; set; }
         public Guid? ToRoomId { get; set; }
         public Guid? FromBedId { get; set; }
@@ -95,6 +103,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     {
         [Required]
         public EmergencyTransferStatus TransferStatus { get; set; }
+
+        /// <summary>
+        /// Alasan penolakan perpindahan. <b>Wajib diisi ketika status diubah menjadi
+        /// Rejected.</b>
+        ///
+        /// Sebelumnya alasan penolakan menumpang pada <c>Notes</c> dan tidak pernah
+        /// diwajibkan, sehingga sebuah perpindahan dapat ditolak tanpa satu kata pun
+        /// penjelasan. Unit pengaju kemudian tidak tahu apa yang harus diperbaiki sebelum
+        /// mengajukan ulang, sementara pasien tetap menunggu di IGD.
+        /// </summary>
+        [MaxLength(1000)]
+        public string? RejectionReason { get; set; }
 
         [MaxLength(2000)]
         public string? Notes { get; set; }

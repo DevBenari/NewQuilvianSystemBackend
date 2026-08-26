@@ -1,0 +1,39 @@
+using QuilvianSystemBackend.Models;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+
+[Table("BilTender", Schema = "public")]
+public sealed class BilTender : IdentityModel
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid SettlementId { get; set; }
+    public Guid PaymentMethodId { get; set; }
+    public decimal Amount { get; set; }
+    [Required, MaxLength(30)] public string Status { get; set; } = BillingTenderStatuses.Created;
+    [MaxLength(150)] public string? ProviderReference { get; set; }
+    [MaxLength(50)] public string? ProviderStatusCode { get; set; }
+    public Guid IdempotencyKey { get; set; }
+    [Required, MaxLength(64)] public string PayloadHash { get; set; } = string.Empty;
+    public Guid CorrelationId { get; set; }
+    public Guid CausationId { get; set; }
+    public DateTimeOffset AttemptedAt { get; set; }
+    public DateTimeOffset? SettledAt { get; set; }
+    public Guid? CashierShiftId { get; set; }
+    public DateTimeOffset? ProviderOccurredAt { get; set; }
+    [MaxLength(100)] public string? LastProviderEventId { get; set; }
+    [MaxLength(64)] public string? LastProviderPayloadHash { get; set; }
+    public Guid RowVersion { get; set; } = Guid.NewGuid();
+    public BilSettlement Settlement { get; set; } = null!;
+}
+
+public static class BillingTenderStatuses
+{
+    public const string Created = "CREATED";
+    public const string Pending = "PENDING";
+    public const string Succeeded = "SUCCEEDED";
+    public const string Failed = "FAILED";
+    public const string Expired = "EXPIRED";
+    public const string Reversed = "REVERSED";
+}

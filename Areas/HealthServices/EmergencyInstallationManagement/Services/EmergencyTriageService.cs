@@ -357,6 +357,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     TriageLevelColorName = x.triage.TriageLevel != null
                         ? x.triage.TriageLevel.ColorName
                         : null,
+                    TriageLevelColorHex = x.triage.TriageLevel != null
+                        ? x.triage.TriageLevel.ColorHex
+                        : null,
                     TriageLevelNumber = x.triage.TriageLevel != null
                         ? (int?)x.triage.TriageLevel.Level
                         : null,
@@ -386,6 +389,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 TriageLevelId = x.TriageLevelId,
                 TriageLevelName = x.TriageLevelName,
                 TriageLevelColorName = x.TriageLevelColorName,
+                TriageLevelColorHex = x.TriageLevelColorHex,
                 TriageLevel = x.TriageLevelNumber,
                 Sequence = x.Sequence,
                 TriageStatus = x.TriageStatus,

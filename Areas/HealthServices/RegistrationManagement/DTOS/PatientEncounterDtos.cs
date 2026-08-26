@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
@@ -469,6 +469,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         [MaxLength(500)]
         public string? Notes { get; set; }
+    }
+
+    /// <summary>
+    /// Permintaan menetapkan dokter pemeriksa pada satu kunjungan pasien.
+    ///
+    /// Dipakai perawat IGD dari daftar pasien. Dokter melekat pada encounter karena di
+    /// sanalah kolom DoctorId berada; kunjungan IGD sendiri tidak menyimpan dokter.
+    /// </summary>
+    public class PatientEncounterAssignDoctorRequest
+    {
+        /// <summary>
+        /// Dokter yang ditetapkan. Dikosongkan untuk mencabut penetapan.
+        /// </summary>
+        public Guid? DoctorId { get; set; }
     }
 
     public class PatientEncounterCreateResponse

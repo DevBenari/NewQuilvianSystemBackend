@@ -71,7 +71,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         )
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
-            IQueryable<TrxEmergencyTriage> query = _dbContext.Set<TrxEmergencyTriage>().AsNoTracking().Where(x => !x.IsDelete);
+            // Level dimuat karena balasan kini membawa nama dan warnanya, bukan hanya id.
+            IQueryable<TrxEmergencyTriage> query = _dbContext.Set<TrxEmergencyTriage>()
+                .AsNoTracking()
+                .Include(x => x.TriageLevel)
+                .Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -236,6 +240,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (entity.TriageStatus == EmergencyTriageStatus.Completed)
             {
+                // Waktu selesai diisi di sini juga, bukan hanya pada jalur ubah status.
+                // Penilaian yang dibuat langsung dalam keadaan selesai tetap harus punya
+                // waktu selesai, supaya perhitungan lama penanganan tidak kehilangan datanya.
+                entity.CompletedAt ??= now;
+
                 var visit = await _dbContext.Set<TrxEmergencyVisit>()
                     .FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
                 visit.VisitStatus = EmergencyVisitStatus.Triaged;
@@ -538,6 +547,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 Id = x.Id,
                 EmergencyVisitId = x.EmergencyVisitId,
                 TriageLevelId = x.TriageLevelId,
+                TriageLevelName = x.TriageLevel?.Name,
+                TriageLevelColorName = x.TriageLevel?.ColorName,
+                TriageLevelColorHex = x.TriageLevel?.ColorHex,
                 PatientVitalSignId = x.PatientVitalSignId,
                 Sequence = x.Sequence,
                 IsRetriage = x.IsRetriage,
