@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `5` |
+| Revision | `6` |
 | Status | `draft` |
-| Interview mode | `Amendment pass` tuntas 2026-08-21, 8 butir. Sebelumnya `Closure pass` 17 pertanyaan tuntas 2026-08-21, dan `Scope pass` 30 pertanyaan tuntas 2026-08-20 |
+| Interview mode | `Amendment pass` tuntas 2026-08-24, 4 butir, atas tiga usulan lintas modul dari blueprint IGD. Sebelumnya `Amendment pass` tuntas 2026-08-21, 8 butir. Sebelumnya `Closure pass` 17 pertanyaan tuntas 2026-08-21, dan `Scope pass` 30 pertanyaan tuntas 2026-08-20 |
 | Product/domain owner | **Muhammad Hamzah**, ditunjuk 2026-08-21 lewat `RWI-DEC-061`. Jabatan formal belum diisi |
 | Clinical governance owner | **Sebagian terisi.** Keputusan isolasi dan jenis kelamin diambil pemilik pada `RWI-DEC-064`. Belum dinyatakan apakah penunjukan itu mencakup seluruh peran clinical governance |
 | Security/privacy owner | `OPEN` — menjadi syarat sebelum produksi |
@@ -29,35 +29,39 @@ Dokumen ini panjang. Bagian ini ada supaya pembaca tahu posisinya tanpa membaca 
 |---|---:|---|
 | Aturan bisnis tertulis | 37 | `RWI-RULE-001` sampai `RWI-RULE-037`, seluruhnya disertai contoh berangka |
 | — di antaranya **belum final** | 3 | `RWI-RULE-021`, `RWI-RULE-025`, dan `RWI-RULE-037`. `RWI-RULE-012` sudah final sejak `RWI-DEC-064`, walaupun sebagiannya belum dapat dijalankan |
-| Keputusan tercatat | 66 | 57 berstatus `approved`, 7 berstatus `draft`, 1 berstatus `closed`, 1 berstatus `superseded` penuh yaitu `RWI-DEC-018`. Satu keputusan `approved` juga bertanda `superseded` sebagian, yaitu `RWI-DEC-011` |
+| Keputusan tercatat | 72 | 63 berstatus `approved`, 7 berstatus `draft`, 1 berstatus `closed`, 1 berstatus `superseded` penuh yaitu `RWI-DEC-018`. Satu keputusan `approved` juga bertanda `superseded` sebagian, yaitu `RWI-DEC-011` |
 | Fakta yang terbukti dari repository dan PRD | 12 | `RWI-FACT-001` sampai `RWI-FACT-012`. Dua terakhir berasal dari capability map, bukan dari PRD |
-| Acceptance criteria yang sudah dapat diuji | 139 | `RWI-AC-001` sampai `RWI-AC-139` |
+| Acceptance criteria yang sudah dapat diuji | 149 | `RWI-AC-001` sampai `RWI-AC-149` |
 | Keputusan yang didelegasikan ke pelaksana | 2 | `RWI-FE-001` dan `RWI-FE-002`, keduanya `DEV_DISCRETION` |
 | Konflik | **8 dari 8 tertutup** | Tujuh berasal dari PRD, satu ditemukan antar keputusan di dokumen ini sendiri |
 | Lubang cakupan | 9 dari 11 tertutup | Dua sisanya sudah dijawab tetapi menunggu pemilik klinis |
 | Pertanyaan wawancara tersisa | **0** | Scope Pass 30 pertanyaan tuntas 2026-08-20. Closure Pass 17 pertanyaan tuntas 2026-08-21. Amendment Pass 8 butir tuntas 2026-08-21. Yang tersisa bukan pertanyaan, melainkan tindakan organisasi dan penunjukan pemilik |
 | Pertanyaan penutup capability map | **17 dari 17 tertutup** | `RWI-TRQ-001` sampai `RWI-TRQ-017`, ditutup pada Closure Pass 2026-08-21 |
 | Konflik frontend–backend dari audit source | **3 dari 3 ditangani** | `RWI-CON-TRC-001` ditutup `RWI-DEC-049`. `RWI-CON-TRC-002` hanya soal penamaan dan tidak perlu diperbaiki. `RWI-CON-TRC-003` ditutup `RWI-DEC-041` |
-| Butir terbuka yang tersisa | 8 | **Lima tindakan organisasi:** `RWI-OQ-023` nama pemilik berwenang, `RWI-OQ-032` s.d. `RWI-OQ-034` persetujuan pemilik modul tetangga, `RWI-OQ-036` penanggung jawab pengisian data master. **Tiga sudah dijawab tetapi menunggu pemilik klinis atau hukum:** `RWI-OQ-035` masa simpan riwayat, `RWI-OQ-038` isi serah terima antar shift, `RWI-OQ-039` aturan meninggal dan kabur. Tidak satu pun memblokir desain |
+| Butir terbuka yang tersisa | 4 | **Satu tindakan organisasi:** `RWI-OQ-034` persetujuan pemilik `EmergencyInstallationManagement`, terbuka kembali 2026-08-24 lewat `RWI-DEC-069` dengan pemilik yang kini bernama, Rizki Gunawan. Butir organisasi lainnya tertutup 2026-08-21 lewat `RWI-DEC-061` s.d. `RWI-DEC-063`. **Tiga sudah dijawab tetapi menunggu pemilik klinis atau hukum:** `RWI-OQ-035` masa simpan riwayat, `RWI-OQ-038` isi serah terima antar shift, `RWI-OQ-039` aturan meninggal dan kabur. Tidak satu pun memblokir desain; `RWI-OQ-034` hanya menahan `INP-S09` yang memang di luar MVP |
 | Gerbang sebelum produksi | 3 gerbang tata kelola + 5 baris aturan klinis/privasi + 4 gerbang implementasi | Lihat bagian Gate Sebelum Produksi |
 
-**Lima butir yang masih terbuka, dan kelimanya adalah tindakan organisasi, bukan keputusan
-desain:**
+**Empat butir yang masih terbuka, dan tidak satu pun merupakan keputusan desain:**
 
 | Butir | Isinya | Memblokir |
 |---|---|---|
+| `RWI-OQ-034` | Persetujuan pemilik `EmergencyInstallationManagement` atas serah terima IGD ke rawat inap. Pemiliknya **Rizki Gunawan** (`RWI-DEC-069`); jawabannya sudah tersedia pada `IGD-DEC-067` yang masih `draft` | `INP-S09`, di luar MVP |
 | `RWI-OQ-035` | Berapa lama riwayat perubahan status disimpan. **Sudah dijawab** `RWI-DEC-060`, menunggu pemilik hukum | Slice berikutnya |
 | `RWI-OQ-038` | Isi minimal serah terima klinis antar shift. **Scope sudah tertutup** `RWI-DEC-058`; isinya menunggu pemilik klinis | Sign-off |
 | `RWI-OQ-039` | Aturan klinis pasien meninggal dan pasien kabur. **Sudah dijawab** `RWI-DEC-059`, menunggu pemilik klinis | Sign-off |
 
-**Seluruh butir organisasi sudah tertutup pada 2026-08-21** lewat `RWI-DEC-061` sampai
-`RWI-DEC-066`: pemilik berwenang ditunjuk, kepemilikan empat modul tetangga dinyatakan berada pada
-pemilik yang sama, penanggung jawab pengisian data master ditetapkan beserta target tanggalnya, dan
-aturan isolasi serta pemisahan jenis kelamin dikunci utuh.
+**Butir organisasi ditutup pada 2026-08-21** lewat `RWI-DEC-061` sampai `RWI-DEC-066`: pemilik
+berwenang ditunjuk, kepemilikan modul tetangga dinyatakan berada pada pemilik yang sama,
+penanggung jawab pengisian data master ditetapkan beserta target tanggalnya, dan aturan isolasi
+serta pemisahan jenis kelamin dikunci utuh. **Satu di antaranya dikoreksi pada 2026-08-24** lewat
+`RWI-DEC-069`: modul `EmergencyInstallationManagement` ternyata dimiliki Rizki Gunawan, bukan
+pemilik pada `RWI-DEC-061`, sehingga `RWI-OQ-034` terbuka kembali — kali ini dengan pemilik yang
+bernama dan dengan jawaban yang sudah tersedia pada `IGD-DEC-067`.
 
-Tiga butir yang tersisa **sudah dijawab** tetapi jawabannya berada di area klinis dan hukum,
-sehingga belum dapat naik ke `approved`. Tidak satu pun memblokir desain maupun implementasi MVP;
-yang tertahan olehnya hanya kesiapan melayani pasien sungguhan.
+Ketiga butir klinis dan hukum di atas **sudah dijawab**, tetapi jawabannya berada di area yang
+pemiliknya belum ditunjuk sehingga belum dapat naik ke `approved`. Tidak satu pun memblokir desain
+maupun implementasi MVP; yang tertahan olehnya hanya kesiapan melayani pasien sungguhan.
+`RWI-OQ-034` juga tidak menahan MVP, karena `INP-S09` memang di luar MVP.
 
 **Yang sudah dikerjakan per 2026-08-21:** audit kemampuan existing lewat `/qv-trace` selesai.
 Sembilan butir `RWI-TRC-001` sampai `RWI-TRC-009` terjawab seluruhnya, 44 kemampuan
@@ -1526,10 +1530,16 @@ yang tidak cocok untuk pasien menginap, sesuai `RWI-FACT-011` dan `RWI-FACT-012`
 | ---: | --- |
 | 1 | Rawat Inap **tidak membuat** tabel pengkajian, catatan dokter, diagnosis, tindakan, atau resep tandingan. Seluruhnya memakai tabel yang sudah ada |
 | 2 | Rawat Inap **tidak membuat antrean semu**. Pasien menginap tidak masuk daftar antrean poliklinik, dan laporan antrean poliklinik tidak boleh tercemar baris rawat inap |
-| 3 | Untuk kunjungan bertipe rawat inap, keharusan mengisi antrean dan konsultasi **dilonggarkan** sehingga catatan boleh menempel langsung pada kunjungan |
-| 4 | Untuk kunjungan bertipe rawat inap, batas "satu konsultasi per kunjungan" **dilonggarkan** menjadi banyak catatan dokter selama episode berlangsung |
-| 5 | Untuk kunjungan bertipe rawat inap, batas "satu resep aktif per konsultasi" **dilonggarkan** sehingga dokter dapat menulis resep pada hari yang berbeda |
-| 6 | Pelonggaran hanya berlaku bila kunjungan bertipe rawat inap. Perilaku untuk rawat jalan, IGD, dan medical check-up **tidak boleh berubah sedikit pun** |
+| 3 | Untuk kunjungan bertipe rawat inap **atau IGD**, keharusan mengisi antrean dan konsultasi **dilonggarkan** sehingga catatan boleh menempel langsung pada kunjungan |
+| 4 | Untuk kunjungan bertipe rawat inap **atau IGD**, batas "satu konsultasi per kunjungan" **dilonggarkan** menjadi banyak catatan dokter selama episode atau kunjungan itu berlangsung |
+| 5 | Untuk kunjungan bertipe rawat inap **atau IGD**, batas "satu resep aktif per konsultasi" **dilonggarkan** sehingga dokter dapat menulis resep lebih dari sekali dalam satu kunjungan |
+| 6 | Pelonggaran hanya berlaku bila kunjungan bertipe rawat inap (`Inpatient`) **atau IGD** (`Emergency`). Perilaku untuk rawat jalan dan medical check-up **tidak boleh berubah sedikit pun**. **Direvisi 2026-08-24 oleh `RWI-DEC-070`:** IGD dikeluarkan dari daftar yang tidak boleh berubah, karena pembatas yang sama membuat pengkajian IGD mustahil disimpan |
+
+**Prasyarat yang tidak boleh dilewatkan.** Pelonggaran ini disaring dari **tipe kunjungan**.
+Hari ini kunjungan IGD bertipe `Outpatient`, sama persis dengan poliklinik, sehingga menyalakan
+pelonggaran atas dasar tipe justru akan ikut melonggarkan poliklinik. Karena itu `RWI-DEC-070`
+hanya dapat dijalankan setelah `IGD-DEC-074` berlaku, yaitu setelah kunjungan IGD benar-benar
+bertipe `Emergency` dan data lama diperbaiki. Pekerjaan itu ada di sisi IGD, bukan di sini.
 
 **Contoh konkret.** Tn. Budi dirawat lima hari, tanggal 1 sampai 5 September 2026, dan diperiksa
 dokter setiap hari.
@@ -1542,9 +1552,10 @@ dokter setiap hari.
 
 **Yang belum boleh dianggap selesai.** Aturan ini menyentuh dua modul yang bukan milik Rawat
 Inap, yaitu `ClinicalManagement` dan `PharmacyManagement`, keduanya berstatus `ACTIVE` pada
-registry. Pemilik kedua modul itu belum tercatat namanya di blueprint mana pun. Persetujuan
-mereka dicatat sebagai `RWI-OQ-032` dan **memblokir implementasi**, walaupun tidak memblokir
-desain.
+registry. Persetujuan pemiliknya dicatat sebagai `RWI-OQ-032` dan **sudah diberikan**
+2026-08-21 lewat `RWI-DEC-062`: kedua modul berada di bawah kepemilikan Muhammad Hamzah.
+Yang tersisa bukan lagi persetujuan, melainkan prasyarat teknis `IGD-DEC-074` di atas dan
+test regresi yang dituntut `RWI-DEC-051`.
 
 **Risiko yang harus diterima secara sadar.** Perubahan ini menyentuh alur poliklinik yang sudah
 melayani pasien, sedangkan menurut `01-existing-capability-map.md` bagian 11.2 butir 5, **tidak
@@ -1653,21 +1664,26 @@ mendaftarkan ulang pasien secara manual, dan tanpa riwayat pasien terputus.
 
 **Keadaan yang menjadi masalah.** Hari ini IGD hanya menyimpan satu baris keputusan berisi jenis
 disposisi dan unit layanan tujuan. Tidak ada tempat tidur yang dipesan, tidak ada episode yang
-dibuat, dan tidak ada apa pun yang diteruskan ke rawat inap. Selain itu kunjungan IGD bertipe
-`Emergency`, sehingga pelonggaran `RWI-RULE-026` yang hanya berlaku untuk kunjungan bertipe rawat
-inap tidak akan menyentuhnya.
+dibuat, dan tidak ada apa pun yang diteruskan ke rawat inap.
+
+**Catatan 2026-08-24.** Di tempat ini dulu tertulis alasan kedua: kunjungan IGD tidak akan
+mendapat pelonggaran `RWI-RULE-026` karena bertipe `Emergency`. Alasan itu **sudah tidak
+berlaku** sejak `RWI-DEC-070` memperluas pelonggaran ke `Emergency`. Aturan di bawah tetap
+berlaku utuh, tetapi dasarnya sekarang adalah batas episode, kelas yang ditagihkan, unit
+layanan, dan DPJP — lihat `RWI-DEC-071`.
 
 **Aturan yang dikunci.**
 
 | No | Aturan |
 | ---: | --- |
 | 1 | Ketika disposisi `RANAP` dijalankan, kunjungan IGD **ditutup** dan kunjungan baru bertipe rawat inap **dibuat**. Kunjungan baru itulah jangkar episode rawat inap |
-| 2 | Kedua kunjungan dihubungkan dengan penanda **satu rangkaian kedatangan yang sama**, sehingga riwayat pasien dapat dibaca utuh dari IGD sampai pulang |
+| 2 | Kedua kunjungan dihubungkan dengan penanda **satu rangkaian kedatangan yang sama**, sehingga riwayat pasien dapat dibaca utuh dari IGD sampai pulang. **Mekanismenya**, sejak `RWI-DEC-073`: kolom `OriginEncounterId` yang boleh kosong pada `TrxPatientEncounter`, diisi kunjungan rawat inap dengan Id kunjungan IGD. Kolom itu dimiliki `RegistrationManagement` dan **dikerjakan modul IGD** lewat `IGD-DEC-075`; Rawat Inap hanya membacanya |
 | 3 | Kunjungan rawat inap mewarisi pasien dan penjamin dari kunjungan IGD. Unit layanan, kelas pasien, dan DPJP diisi sesuai keputusan admisi rawat inap, bukan diwarisi dari IGD |
 | 4 | Penutupan kunjungan IGD dan pembuatan kunjungan rawat inap adalah **satu tindakan utuh**: berhasil dua-duanya, atau tidak ada yang berubah sama sekali |
 | 5 | Bila serah terima gagal di tengah jalan, kunjungan IGD tetap terbuka dan pasien tetap tercatat di IGD. Tidak boleh ada keadaan pasien "tidak ada di mana-mana" |
 | 6 | Catatan klinis yang sudah ditulis selama di IGD **tetap menempel pada kunjungan IGD**. Catatan itu tidak dipindahkan, tidak disalin, dan tidak diubah |
 | 7 | Penanda `ClosesEmergencyVisit` pada master jenis disposisi menjadi penentu perilaku ini, dan mulai benar-benar dijalankan. Untuk jenis `RANAP` nilainya tetap `true` seperti yang sudah diisi seeder |
+| 8 | Waktu pasien tiba di bangsal adalah **event `Tiba` pada catatan kepergian IGD**, bukan waktu yang ditetapkan Rawat Inap. Penempatan tempat tidur untuk pasien asal IGD **ditolak** selama event itu belum tercatat, dan `InpBedPlacement.StartDateTime` diisi dari waktu itu. Jalur datang langsung dan poliklinik tidak berubah. Lihat `RWI-DEC-072` |
 
 **Contoh konkret.** Ny. Sari datang ke IGD pada 21 September 2026 pukul 20:10 dengan sesak napas.
 
@@ -1676,24 +1692,31 @@ inap tidak akan menyentuhnya.
 | 20:10 | Ny. Sari mendaftar di IGD | Dibuat, tipe `Emergency` | Belum ada | Belum ada |
 | 20:25 – 22:00 | Triase, pemeriksaan, dan tindakan IGD | Terbuka, catatan klinis IGD masuk ke sini | Belum ada | Belum ada |
 | 22:15 | Dokter IGD memutuskan rawat inap ke bangsal Melati | Masih terbuka | Belum ada | Belum ada |
-| 22:40 | Petugas admisi menyelesaikan admisi dan menempatkan Ny. Sari di bed Melati 2A | **Ditutup**, ditandai satu rangkaian dengan kunjungan berikutnya | **Dibuat**, tipe `Inpatient`, unit Melati, kelas 2, DPJP dr. Andi | Dibuat dan berstatus `Admitted` |
+| 22:40 | Ny. Sari diantar ke bangsal Melati. Perawat penerima mencatat event `Tiba` pada catatan kepergian IGD | Masih terbuka | Belum ada | Belum ada |
+| 22:45 | Petugas admisi menempatkan Ny. Sari di bed Melati 2A. `StartDateTime` diisi **22:40**, waktu tiba, bukan 22:45 | **Ditutup**, dihubungkan lewat `OriginEncounterId` | **Dibuat**, tipe `Inpatient`, unit Melati, kelas 2, DPJP dr. Andi | Dibuat dan berstatus `Admitted` |
 | Hari ke-2 | Dokter menulis catatan perkembangan | Tidak berubah | Catatan menempel di sini | Berjalan |
 
 Yang perlu diperhatikan pada contoh itu: catatan IGD pukul 20:25 sampai 22:00 tetap berada pada
 kunjungan IGD dan tidak ikut pindah. Ketika perawat bangsal membuka riwayat Ny. Sari, penanda
 rangkaian pada aturan nomor 2 yang membuat kedua kunjungan terbaca sebagai satu kedatangan.
 
-**Contoh jalur tidak normal.** Seandainya pada pukul 22:40 tempat tidur Melati 2A ternyata sudah
+**Contoh jalur tidak normal.** Seandainya pada pukul 22:45 tempat tidur Melati 2A ternyata sudah
 diambil pasien lain, penempatan ditolak sesuai `RWI-RULE-015`. Karena aturan nomor 4 dan 5,
 kunjungan IGD **tidak jadi ditutup** dan kunjungan rawat inap **tidak jadi dibuat**. Ny. Sari
 tetap tercatat sebagai pasien IGD, dan petugas admisi memilih tempat tidur lain lalu mengulang.
+
+**Contoh jalur tidak normal kedua.** Seandainya petugas admisi mencoba menempatkan Ny. Sari
+sebelum perawat penerima mencatat event `Tiba`, penempatan **ditolak** sesuai aturan nomor 8.
+Ny. Sari tetap pasien IGD, tempat tidurnya tetap terpesan, dan tidak ada penempatan bermula
+pada waktu yang dikarang sistem.
 
 **Akibat pada keputusan lama.** Baris "kunjungan IGD dipakai apa adanya" pada `RWI-RULE-005` dan
 `RWI-DEC-011` ditandai `superseded`. Kalimat pokoknya — satu episode menempel pada tepat satu
 kunjungan — tetap berlaku.
 
-**Yang belum boleh dianggap selesai.** Aturan nomor 1, 4, dan 7 menuntut perubahan pada modul
-`EmergencyInstallationManagement` yang bukan milik Rawat Inap dan berstatus `ACTIVE`. Persetujuan
+**Yang belum boleh dianggap selesai.** Aturan nomor 1, 2, 4, 7, dan 8 menuntut perubahan atau
+pembacaan pada modul `EmergencyInstallationManagement` yang bukan milik Rawat Inap dan berstatus
+`ACTIVE`. Sejak `RWI-DEC-069` pemiliknya bernama: **Rizki Gunawan**. Persetujuan
 pemiliknya dicatat sebagai `RWI-OQ-034` dan **memblokir implementasi**, walaupun tidak memblokir
 desain.
 
@@ -2032,10 +2055,10 @@ menetapkan menu, route, tab, modal, warna, maupun tata letak berdasarkan seleran
 | `RWI-DEC-035` | Decision | Wajib ada satu persetujuan umum rawat inap berisi persetujuan tindakan kedokteran umum, persetujuan pemberian informasi kepada penjamin, dan penunjukan penerima informasi. Tidak menahan admisi, tetapi menahan penutupan lewat butir daftar periksa `RWI-RULE-018` | Product/domain owner sementara | `draft` — **tidak dapat naik ke `approved`** | Belum di-approve. Keputusan privasi dan hukum yang dikecualikan `RWI-DEC-006` | Wawancara pertanyaan 30; **diputuskan lewat delegasi**, lihat `RWI-DEC-036`; menjawab `OQ-RI-009`; dirinci pada `RWI-RULE-025` |
 | `RWI-DEC-036` | Fact | Pada 2026-08-20 pemilik kebutuhan menyatakan: "jawab semua pertanyaan dengan rekomendasi anda berikan, tidak perlu bertanya kepada saya lagi". Sejak titik itu, opsi yang ditandai **(Direkomendasikan)** diambil sebagai pilihan pemilik kebutuhan. Keputusan yang lahir dari delegasi ini ditandai pada kolom Evidence-nya, agar pembaca berikutnya tahu butir itu tidak ditimbang satu per satu oleh pemilik kebutuhan | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-20 | Pernyataan pemilik kebutuhan pada wawancara pertanyaan 30 |
 | `RWI-DEC-037` | Open Question | Siapa nama orang atau komite yang berwenang menyetujui modul ini, menggantikan pemegang sementara | **Tidak dapat diselesaikan lewat wawancara** | `draft` | — | `RWI-OQ-023`. Delegasi `RWI-DEC-036` tidak berlaku untuk butir ini karena jawabannya adalah nama orang yang sungguh ada, dan agent tidak boleh mengarangnya |
-| `RWI-DEC-038` | Decision | Dokumentasi klinis rawat inap memakai mesin klinis yang sudah ada, bukan entity tandingan dan bukan antrean semu. Keharusan antrean dan konsultasi dilonggarkan khusus untuk kunjungan bertipe rawat inap, begitu pula batas satu konsultasi per kunjungan dan satu resep aktif per konsultasi. Perilaku rawat jalan, IGD, dan medical check-up tidak boleh berubah | Product/domain owner sementara | `approved` untuk arah desain; **implementasi terblokir** sampai pemilik `ClinicalManagement` dan `PharmacyManagement` menyetujui | Pemegang sementara, 2026-08-21 | Closure Pass pertanyaan 1; dasar `RWI-FACT-011` dan `RWI-FACT-012`; menutup `RWI-TRQ-001`, `RWI-TRQ-002`, `RWI-TRQ-003`; memunculkan `RWI-OQ-032` dan `RWI-RISK-002`; dirinci pada `RWI-RULE-026` |
+| `RWI-DEC-038` | Decision | Dokumentasi klinis rawat inap memakai mesin klinis yang sudah ada, bukan entity tandingan dan bukan antrean semu. Keharusan antrean dan konsultasi dilonggarkan khusus untuk kunjungan bertipe rawat inap, begitu pula batas satu konsultasi per kunjungan dan satu resep aktif per konsultasi. ~~Perilaku rawat jalan, IGD, dan medical check-up tidak boleh berubah~~ — **sebagian `superseded` oleh `RWI-DEC-070` pada 2026-08-24:** IGD dikeluarkan dari daftar itu; rawat jalan dan medical check-up tetap tidak boleh berubah | Product/domain owner sementara | `approved` untuk arah desain; **implementasi terblokir** sampai pemilik `ClinicalManagement` dan `PharmacyManagement` menyetujui | Pemegang sementara, 2026-08-21 | Closure Pass pertanyaan 1; dasar `RWI-FACT-011` dan `RWI-FACT-012`; menutup `RWI-TRQ-001`, `RWI-TRQ-002`, `RWI-TRQ-003`; memunculkan `RWI-OQ-032` dan `RWI-RISK-002`; dirinci pada `RWI-RULE-026` |
 | `RWI-DEC-039` | Decision | Catatan penempatan milik Rawat Inap menjadi satu-satunya sumber kebenaran penghunian tempat tidur. Kolom `MstBed.BedStatus` turun kedudukan menjadi salinan yang ditulis dalam transaksi yang sama. Nilai `Reserved` dan `Occupied` tidak boleh lagi disetel manusia lewat menu master data; admin hanya berwenang atas `Cleaning`, `Maintenance`, `Blocked`, dan `Inactive`. Disediakan laporan selisih | Product/domain owner sementara | `approved` untuk arah desain; **implementasi terblokir** sampai pemilik `MasterData` menyetujui pembatasan endpoint `/availability` | Pemegang sementara, 2026-08-21 | Closure Pass pertanyaan 2; dasar `01-existing-capability-map.md` bagian 3.2 hambatan kedua dan `RWI-TF-003`; menutup `RWI-TRQ-004` dan `RWI-TRQ-005`; memunculkan `RWI-OQ-033`; dirinci pada `RWI-RULE-027` |
 | `RWI-DEC-040` | Decision | Selama `BillingManagement` belum punya kemampuan transaksi, status kelayakan keuangan disimpan pada episode rawat inap dan ditandai manual oleh petugas kasir atau billing, dengan pelaku, waktu, dan catatan wajib. Penandaan ditampilkan sebagai penandaan sementara. `RWI-DEC-015` dan `RWI-RULE-009` tetap berlaku utuh; yang berpindah kelak hanya sumber datanya, bukan aturan penutupannya | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-21 | Closure Pass pertanyaan 3; dasar `RWI-TRC-005` pada capability map dan `RWI-TF-012`; menutup `RWI-TRQ-006`; memunculkan `RWI-RISK-003`; dirinci pada `RWI-RULE-028` |
-| `RWI-DEC-041` | Decision | Saat disposisi `RANAP` dijalankan, kunjungan IGD ditutup dan kunjungan baru bertipe rawat inap dibuat sebagai jangkar episode. Keduanya dihubungkan sebagai satu rangkaian kedatangan. Serah terima bersifat utuh: berhasil dua-duanya atau tidak ada yang berubah. Catatan klinis IGD tetap menempel pada kunjungan IGD | Product/domain owner sementara | `approved` untuk arah desain; **implementasi terblokir** sampai pemilik `EmergencyInstallationManagement` menyetujui | Pemegang sementara, 2026-08-21 | Closure Pass pertanyaan 4; dasar `RWI-TRC-008` pada capability map, `RWI-TF-016`, dan `RWI-TF-017`; menutup `RWI-TRQ-007` dan `RWI-TRQ-008`; **men-`superseded` sebagian `RWI-DEC-011`**; memunculkan `RWI-OQ-034`; dirinci pada `RWI-RULE-029` |
+| `RWI-DEC-041` | Decision | Saat disposisi `RANAP` dijalankan, kunjungan IGD ditutup dan kunjungan baru bertipe rawat inap dibuat sebagai jangkar episode. Keduanya dihubungkan sebagai satu rangkaian kedatangan. Serah terima bersifat utuh: berhasil dua-duanya atau tidak ada yang berubah. Catatan klinis IGD tetap menempel pada kunjungan IGD | Product/domain owner sementara | `approved` untuk arah desain; **implementasi terblokir** sampai pemilik `EmergencyInstallationManagement` menyetujui | Pemegang sementara, 2026-08-21 | Closure Pass pertanyaan 4; dasar `RWI-TRC-008` pada capability map, `RWI-TF-016`, dan `RWI-TF-017`; menutup `RWI-TRQ-007` dan `RWI-TRQ-008`; **men-`superseded` sebagian `RWI-DEC-011`**; memunculkan `RWI-OQ-034`; dirinci pada `RWI-RULE-029`. **Justifikasinya ditulis ulang 2026-08-24 oleh `RWI-DEC-071`** — keputusannya tidak berubah, alasannya yang diperbarui |
 | `RWI-DEC-042` | Decision | Episode rawat inap punya catatan DPJP tersendiri berisi riwayat penugasan: dokter, masa berlaku, pengalih, dan alasan. Pada satu waktu tepat satu DPJP aktif. Permintaan perpindahan oleh dokter hanya diterima bila ia DPJP aktif saat itu, dan penjaganya ditulis di dalam service Rawat Inap karena mesin hak akses tidak mengenal kewenangan per pasien | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-21 | Closure Pass pertanyaan 5; dasar `RWI-TRC-007` pada capability map dan `RWI-TF-014`; menegakkan `RWI-DEC-023` dan `RWI-DEC-024`; menutup `RWI-TRQ-009`; memunculkan `RWI-RISK-004`; dirinci pada `RWI-RULE-030` |
 | `RWI-DEC-043` | Decision | Rawat Inap punya tabel riwayat perubahan status episode sendiri, meniru bentuk `TrxWorkflowStatusHistory` tanpa menumpang padanya. Riwayat ditulis dalam transaksi yang sama dengan perubahan status, lewat satu pintu di service, bersifat tidak dapat diubah, dan menjadi sumber data bagi laporan pengecualian, tiga daftar pantau, reopen, serta pembuktian pembatalan admisi | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-21 | Closure Pass pertanyaan 6; dasar `RWI-TRC-009` pada capability map, `RWI-TF-019`, dan `RWI-TF-020`; menutup `RWI-TRQ-010`; memunculkan `RWI-OQ-035`; dirinci pada `RWI-RULE-031` |
 | `RWI-DEC-044` | Fact | Pada 2026-08-21 pemilik kebutuhan menyatakan: "oke semua saya percayakan anda, jawab saja semua ya dengan rekomendasi yang anda berikan". Sejak titik itu, sisa pertanyaan Closure Pass diputuskan memakai opsi yang ditandai **(Direkomendasikan)**. Delegasi ini **tidak berlaku** untuk keputusan klinis, privasi, hukum, dan penunjukan nama orang, sesuai batas yang sudah ditetapkan `RWI-DEC-006` | Product/domain owner sementara | `approved` | Pemegang sementara, 2026-08-21 | Pernyataan pemilik kebutuhan pada Closure Pass pertanyaan 7. Sejalan dengan `RWI-DEC-036` pada Scope Pass |
@@ -2056,7 +2079,7 @@ menetapkan menu, route, tab, modal, warna, maupun tata letak berdasarkan seleran
 | `RWI-DEC-059` | Decision | Usulan aturan pasien meninggal dan pasien kabur ditulis: pencatat, kewajiban resume, pelepasan tempat tidur lewat mekanisme kepergian fisik, dan dokumen tambahan. Kedua cara pulang **tetap di luar MVP** | Product/domain owner sementara | `draft` — **tidak dapat naik ke `approved`** | Belum di-approve. Area klinis, rekam medis, dan hukum yang dikecualikan `RWI-DEC-006` | Amendment Pass pertanyaan 7; menjawab `RWI-OQ-039` dan `DEC-INP-007`; dirinci pada `RWI-RULE-037`. **Tidak mengubah blueprint**, karena tetap di luar MVP |
 | `RWI-DEC-060` | Decision | Sampai pemilik hukum menetapkan angkanya, **tidak ada pengarsipan maupun penghapusan otomatis** atas riwayat status, riwayat penempatan, riwayat penanggung jawab, dan resume pulang. Seluruhnya disimpan apa adanya. Ini pilihan yang menahan diri, bukan penetapan masa simpan | Product/domain owner sementara | `draft` — **tidak dapat naik ke `approved`** | Belum di-approve. Keputusan hukum dan audit yang dikecualikan `RWI-DEC-006` | Amendment Pass pertanyaan 8; menjawab `RWI-OQ-035`. **Tidak mengubah blueprint** |
 | `RWI-DEC-061` | Decision | Pemilik kebutuhan yang menjalankan sesi ini menyatakan dirinya sebagai **pemilik yang berwenang menyetujui modul Rawat Inap**, menggantikan kedudukan "pemegang sementara". Sejak titik ini, kata "sementara" pada `RWI-DEC-006` tidak berlaku lagi | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-21. Jabatan formal belum diisi | Menutup `RWI-OQ-023` dan `RWI-DEC-037`. Men-`superseded` sebagian `RWI-DEC-006` pada bagian "sementara" |
-| `RWI-DEC-062` | Decision | Modul `ClinicalManagement`, `PharmacyManagement`, `MasterData` HealthServices, dan `EmergencyInstallationManagement` berada di bawah kepemilikan yang sama dengan pemilik pada `RWI-DEC-061`. Persetujuan atas seluruh perubahan lintas modul yang dituntut blueprint ini **diberikan** | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-21 | Menutup `RWI-OQ-032`, `RWI-OQ-033`, dan `RWI-OQ-034`. Mencabut tiga dari empat gerbang implementasi |
+| `RWI-DEC-062` | Decision | Modul `ClinicalManagement`, `PharmacyManagement`, `MasterData` HealthServices, ~~dan `EmergencyInstallationManagement`~~ berada di bawah kepemilikan yang sama dengan pemilik pada `RWI-DEC-061`. Persetujuan atas seluruh perubahan lintas modul yang dituntut blueprint ini **diberikan**. **Sebagian `superseded` oleh `RWI-DEC-069` pada 2026-08-24:** bagian `EmergencyInstallationManagement` dicabut, karena pemilik modul itu adalah Rizki Gunawan dan bukan pemilik pada `RWI-DEC-061`. Persetujuan atas tiga modul lainnya tetap berlaku utuh | Muhammad Hamzah | `approved` untuk tiga modul; `superseded` sebagian untuk `EmergencyInstallationManagement` | Muhammad Hamzah, 2026-08-21 | Menutup `RWI-OQ-032` dan `RWI-OQ-033`. Penutupan `RWI-OQ-034` **dicabut** oleh `RWI-DEC-069`; gerbang “Persetujuan pemilik modul tetangga” tidak lagi tercabut utuh |
 | `RWI-DEC-063` | Decision | Pengisian dan validasi master kamar serta tempat tidur menjadi tanggung jawab **Admin Master Data / Tim Master Data**, dengan target selesai **22 Agustus 2026** | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-21 | Menutup `RWI-OQ-036`. Mencabut satu gerbang implementasi, dengan syarat target tanggalnya terpenuhi |
 | `RWI-DEC-064` | Decision | Pemisahan jenis kelamin dan isolasi diubah menjadi **aturan keras yang menolak penempatan**, dijalankan di dalam pemeriksaan Kelayakan Penempatan. Bagian jenis kelamin berbasis penanda tempat tidur sudah dapat dijalankan; bagian isolasi dan pencampuran sekamar belum, karena datanya tidak ada di sistem | Muhammad Hamzah | `approved` untuk arahnya; **sebagian belum dapat dijalankan** | Muhammad Hamzah, 2026-08-21 | Menutup `RWI-OQ-017`, `RWI-GAP-005`, dan `DEC-INP-004`. **Men-`superseded` `RWI-DEC-018`**. Memunculkan `RWI-OQ-044`. Dirinci pada `RWI-RULE-012` |
 | `RWI-DEC-065` | Decision | Kebutuhan isolasi menjadi **atribut episode rawat inap** dan dipakai di dalam Kelayakan Penempatan. Keputusan klinisnya milik DPJP dan dapat diperbarui selama perawatan. Pada admisi awal, petugas admisi boleh merekam nilainya berdasarkan keterangan dokter pengirim, ditandai sebagai catatan awal dan bukan keputusan klinis, supaya penempatan tidak menunggu pengkajian klinis yang slice-nya masih di luar MVP. Pasien yang butuh isolasi hanya boleh di tempat tidur isolasi, dan sebaliknya | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-21 | Menutup bagian isolasi pada `RWI-OQ-044` dan `DEC-INP-004A`; dirinci pada `RWI-RULE-012` bagian A. **Mengubah blueprint:** menambah kolom pada episode, satu enum, satu endpoint, dan satu daftar pantau |
@@ -2064,6 +2087,12 @@ menetapkan menu, route, tab, modal, warna, maupun tata letak berdasarkan seleran
 | `RWI-DEC-017` | Decision | Diakui lima cara pulang: atas izin DPJP, atas permintaan sendiri, dirujuk, meninggal, dan kabur. Syarat penutupan menyesuaikan cara pulangnya, dan kelimanya sama-sama melepas tempat tidur. Baris meninggal dan kabur tetap **terbuka secara klinis** sesuai `RWI-DEC-006` | Product/domain owner sementara | `approved` untuk keputusan produk; **terbuka** untuk sisi klinis | Pemegang sementara, 2026-08-20 | Wawancara pertanyaan 13; menutup `RWI-OQ-013`, `RWI-OQ-014`, `RWI-GAP-001`, dan `RWI-GAP-002`; dirinci pada `RWI-RULE-011` |
 | `RWI-DEC-067` | Decision | Blueprint modul Rawat Inap revision `3` **disetujui**. `blueprint-manifest.md` naik dari `draft` menjadi `approved`, dan kedua roadmap delivery naik dari `PROVISIONAL` menjadi `APPROVED`. Sejak titik ini penulisan source code dibuka, dikerjakan **satu task per pengerjaan** mengikuti urutan dependency pada roadmap | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-24 | Mencabut gerbang “Approval blueprint” yang sebelumnya menahan **seluruh** task `BE-RWI-001` s.d. `BE-RWI-033` dan `FE-RWI-001` s.d. `FE-RWI-019`. **Tidak mengubah isi desain** — tidak ada kontrak, ERD, aturan, atau acceptance criteria yang berubah; yang berubah hanya status persetujuannya. Gerbang sebelum produksi pada dokumen ini **tidak** ikut tercabut |
 | `RWI-DEC-068` | Decision | Lifecycle modul `InPatientManagement` pada `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` dinaikkan dari `PLANNED` menjadi `ACTIVE`. Prefix `Inp` yang sudah terdaftar tidak berubah. Sejak titik ini `QBE-MOD-002` tidak lagi menahan pembuatan entity operasional `Inp*` | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-24 | Mencabut gerbang “Registry lifecycle” yang menahan seluruh task. Men-`superseded` bagian `RWI-FACT-002` yang menyatakan modul hanya berhak atas penamaan. **Wewenang eksekusi database di luar lokal dan deployment tetap terpisah** dan tidak diberikan oleh keputusan ini |
+| `RWI-DEC-069` | Decision | Pemilik modul `EmergencyInstallationManagement` adalah **Rizki Gunawan**, bukan pemilik pada `RWI-DEC-061`. Karena itu persetujuan lintas modul yang diberikan `RWI-DEC-062` **tidak mencakup IGD**. `RWI-OQ-034` dan `DEC-INP-002` terbuka kembali, kini dengan pemilik yang bernama. Jawabannya sudah tersedia pada `IGD-DEC-067` — IGD menyatakan mengikuti `RWI-DEC-041` dan `RWI-RULE-029`, termasuk menjalankan penanda `ClosesEmergencyVisit` — tetapi keputusan itu masih `draft` sampai Rizki mencatatkannya atas namanya. Kepemilikan `ClinicalManagement`, `PharmacyManagement`, dan `MasterData` HealthServices **tidak berubah** | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-24 | Koreksi fakta kepemilikan, **bukan** perubahan desain: tidak ada kontrak, ERD, aturan, maupun acceptance criteria yang berubah. Men-`superseded` sebagian `RWI-DEC-062`; membuka kembali `RWI-OQ-034` dan `DEC-INP-002`; membuat gerbang “Persetujuan pemilik modul tetangga” menjadi terbuka sebagian. Sumber: blueprint IGD `docs/module-blueprints/igd/00-interview-decisions.md` pass 2026-08-24, `IGD-DEC-067` |
+| `RWI-DEC-070` | Decision | Pelonggaran `RWI-RULE-026` diperluas ke kunjungan bertipe IGD (`Emergency`), mencakup **ketiga** pelonggaran — aturan 3, 4, dan 5 — bukan hanya aturan 3. Aturan 6 direvisi: yang tidak boleh berubah sedikit pun tinggal rawat jalan dan medical check-up. Rawat Inap tetap tidak membuat tabel klinis tandingan dan tidak membuat antrean semu. Perluasan ini **melampaui** bunyi `IGD-DEC-068` yang hanya menyebut aturan 3, dan dikirim balik ke pemilik IGD sebagai koreksi, bukan diberlakukan diam-diam | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-24 | Amendment Pass pertanyaan 4. Alasannya: pasien IGD ditangani berulang kali dalam satu kunjungan, berganti dokter jaga, dan dikaji ulang berkala sesuai `IGD-DEC-083`; melonggarkan aturan 3 saja hanya memindahkan cacatnya ke catatan dokter kedua dan resep kedua. Wewenang ada pada pemilik `ClinicalManagement` dan `PharmacyManagement`, yaitu pemilik yang sama lewat `RWI-DEC-062`. **Prasyarat:** `IGD-DEC-074` harus berlaku lebih dulu. Men-`superseded` sebagian `RWI-DEC-038`; menjawab `IGD-DEC-068` |
+| `RWI-DEC-071` | Decision | `RWI-DEC-041` **tetap berlaku**: disposisi `RANAP` menutup kunjungan IGD dan membuat kunjungan rawat inap baru sebagai jangkar episode. Justifikasinya ditulis ulang. Dasarnya bukan lagi “pelonggaran `RWI-RULE-026` tidak menyentuh tipe `Emergency`” — alasan itu gugur oleh `RWI-DEC-070` — melainkan batas episode, kelas pasien yang ditagihkan, unit layanan, dan DPJP, yang menurut `RWI-RULE-029` aturan 3 wajib berasal dari keputusan admisi dan bukan warisan IGD | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-24 | Amendment Pass pertanyaan 1. Ditemukan bahwa changelog 2026-08-21 mencatat satu-satunya alasan `RWI-DEC-041` adalah tabrakan aturan 6, sehingga `RWI-DEC-070` meruntuhkannya. Kaki kedua sudah tertulis pada `RWI-RULE-029` aturan 3 dan diperkuat `IGD-DEC-076` tentang kelas kunjungan IGD. Tidak ada desain yang berubah; `RWI-DEC-011` tetap `superseded` sebagian; `IGD-DEC-067` milik Rizki tetap sah |
+| `RWI-DEC-072` | Decision | Untuk pasien asal IGD, `InpBedPlacement.StartDateTime` diisi dari **event `Tiba` pada catatan kepergian IGD**, dan penempatan **ditolak** selama event itu belum tercatat. Waktu tiba tidak pernah ditetapkan Rawat Inap sendiri dan tidak pernah dikoreksi setelah tersimpan. Untuk jalur datang langsung dan poliklinik tidak ada yang berubah: `StartDateTime` tetap waktu penempatan dibuat | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-24 | Amendment Pass pertanyaan 2; menerima `IGD-DEC-071`. Urutan kerjanya menjadi: pasien tiba → perawat penerima mencatat `Tiba` → penempatan dibuat → kunjungan IGD ditutup, sejalan dengan `RWI-RULE-029` aturan 5. Opsi mengoreksi `StartDateTime` belakangan **ditolak** karena kolom itu dipakai menghitung lama rawat dan kelas tagihan. Menambah `RWI-RULE-029` aturan 8; menyentuh `INP-S01` dan `BE-RWI-011` |
+| `RWI-DEC-073` | Decision | Rangkaian kedatangan diwujudkan sebagai kolom `OriginEncounterId` yang boleh kosong pada `TrxPatientEncounter`, sesuai `IGD-DEC-075`. Kolom itu dimiliki `RegistrationManagement` dan **pekerjaannya ada pada modul IGD**, bukan pada Rawat Inap, karena slice serah terima `INP-S09` memang berada di sisi sana. Rawat Inap hanya membacanya, sama seperti `EncounterId` hari ini. `compatibility_impact` pada manifest ditulis ulang jujur: nol perubahan kolom **oleh task Rawat Inap**, ditambah satu kolom pada `TrxPatientEncounter` yang dituntut `RWI-RULE-029` aturan 2 dan dikerjakan modul IGD | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-24 | Amendment Pass pertanyaan 3; menerima `IGD-DEC-075`. Acceptance criteria nomor 5 pada `BE-RWI-003` — “tidak ada kolom tabel modul lain yang berubah” — **tetap utuh dan tetap dapat diuji**. Persetujuan Registration API owner dan otorisasi migration pada basis data bersama menjadi urusan pemilik IGD. Melengkapi `RWI-RULE-029` aturan 2 yang selama ini kosong mekanismenya |
+| `RWI-DEC-074` | Decision | Blueprint modul Rawat Inap revision `4` **disetujui**. `blueprint-manifest.md` naik dari `draft` menjadi `approved`, dan ketiga berkas roadmap disinkronkan ke masukan baru sebagai `roadmap_revision` `2`. Isi revision `4` adalah penyerapan empat keputusan Amendment Pass 2026-08-24: **nol tabel baru, nol kolom baru, nol endpoint baru, nol task bertambah** | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-08-24 | Menutup gerbang `BLUEPRINT_APPROVED` bagi sinkronisasi roadmap. Seluruh perubahan perilaku revision `4` hanya menyala pada `INP-S09` yang di luar MVP, sehingga tidak ada task berjalan yang perlu diulang dan `BE-RWI-011` **tidak** tertahan. Sejalan dengan `RWI-DEC-067` yang menyetujui revision `3` |
 
 ---
 
@@ -2084,7 +2113,7 @@ tidak menghalangi penyusunan desain, tetapi menghalangi penulisan source code.
 | `RWI-RULE-021` — batas waktu klinis | **Gerbang keras.** `RWI-DEC-029` menetapkan target 24 jam untuk pengkajian awal dan verifikasi CPPT, dan angka itu diambil dari praktik akreditasi yang lazim, bukan dari persetujuan komite klinis. Wajib ditinjau pemilik klinis sebelum modul dipakai melayani pasien sungguhan |
 | `RWI-RULE-037` — meninggal dan kabur | **Gerbang keras.** `RWI-DEC-059` menuliskan usulan aturan pasien meninggal dan pasien kabur, tetapi keduanya menyangkut rekam medis, pelaporan wajib, dan dokumen hukum. Wajib ditinjau pemilik klinis. Kedua cara pulang tetap di luar MVP sampai peninjauan itu selesai |
 | Security/privacy owner | Belum ditunjuk. Hak akses ke rekam medis rawat inap, penelusuran audit, dan aturan koreksi data harus disetujui pemiliknya |
-| ~~Persetujuan pemilik modul tetangga~~ | **DICABUT 2026-08-21** oleh `RWI-DEC-062`. Keempat modul berada di bawah kepemilikan yang sama, dan persetujuannya sudah diberikan |
+| Persetujuan pemilik modul tetangga | **TERBUKA SEBAGIAN.** Dicabut 2026-08-21 oleh `RWI-DEC-062` untuk `ClinicalManagement`, `PharmacyManagement`, dan `MasterData` HealthServices. Bagian `EmergencyInstallationManagement` **terbuka kembali** 2026-08-24 lewat `RWI-DEC-069`: pemiliknya Rizki Gunawan dan persetujuan formalnya belum tercatat. Menahan `INP-S09` saja; slice lain tidak tertahan |
 | Kesiapan data master | **Penanggung jawab sudah ditetapkan** `RWI-DEC-063`: Admin Master Data / Tim Master Data, target 22 Agustus 2026. Gerbang ini **tertutup begitu datanya benar-benar terisi**, bukan begitu penanggung jawabnya ditunjuk |
 | Perbaikan tombol tempat tidur | **Gerbang implementasi.** Tombol aktifkan dan nonaktifkan pada halaman detail tempat tidur hari ini memanggil endpoint yang tidak ada dan selalu gagal. Harus diperbaiki lebih dulu sesuai `RWI-DEC-049`, karena tanpa itu admin tidak dapat menutup tempat tidur yang sedang rusak |
 | Test regresi modul tetangga | **Gerbang implementasi.** Tidak ada satu pun test yang menjaga jalur poliklinik, IGD, dan farmasi hari ini, padahal keempat modul itu akan disentuh. Sesuai `RWI-DEC-051`, test regresi menjadi syarat selesainya setiap task yang menyentuh modul tetangga |
@@ -2239,6 +2268,16 @@ sengaja tidak dimasukkan.
 | `RWI-AC-137` | Setelah episode aktif, hanya DPJP aktif yang dapat mengubah kebutuhan isolasi, dan perubahannya tertandai sebagai keputusan klinis | `RWI-RULE-012` |
 | `RWI-AC-138` | Mengubah kebutuhan isolasi menjadi ya saat pasien berada di tempat tidur biasa tetap diterima, dan episode itu muncul pada daftar pantau penempatan tidak sesuai | `RWI-RULE-012` |
 | `RWI-AC-139` | Percobaan mengubah kebutuhan isolasi oleh dokter yang bukan DPJP aktif ditolak | `RWI-RULE-012` |
+| `RWI-AC-140` | Perawat dapat menyimpan pengkajian untuk pasien pada kunjungan bertipe IGD tanpa satu pun baris antrean dibuat | `RWI-RULE-026` |
+| `RWI-AC-141` | Dokter jaga shift kedua dapat menulis catatan konsultasi kedua pada satu kunjungan IGD yang sama, dan keduanya tersimpan sebagai dua catatan terpisah | `RWI-RULE-026` |
+| `RWI-AC-142` | Resep kedua pada satu kunjungan IGD tidak ditolak walaupun resep pertama masih aktif | `RWI-RULE-026` |
+| `RWI-AC-143` | Untuk kunjungan rawat jalan dan medical check-up, permintaan tanpa antrean tetap ditolak dengan kode dan pesan **sama persis** seperti sebelum perubahan | `RWI-RULE-026` |
+| `RWI-AC-144` | Pasien IGD tidak muncul pada daftar antrean poliklinik mana pun, sebelum maupun sesudah perubahan | `RWI-RULE-026` |
+| `RWI-AC-145` | Penempatan tempat tidur untuk pasien asal IGD ditolak selama event `Tiba` belum tercatat, dengan pesan yang menyebutkan sebabnya | `RWI-RULE-029` |
+| `RWI-AC-146` | `InpBedPlacement.StartDateTime` untuk pasien asal IGD sama persis dengan waktu `Tiba` pada catatan kepergian IGD, bukan waktu penempatan dibuat | `RWI-RULE-029` |
+| `RWI-AC-147` | Untuk jalur datang langsung dan poliklinik, `StartDateTime` tetap waktu penempatan dibuat dan tidak menunggu apa pun | `RWI-RULE-029` |
+| `RWI-AC-148` | Kunjungan rawat inap hasil serah terima menyimpan Id kunjungan IGD pada `OriginEncounterId`, sehingga riwayat pasien terbaca sebagai satu rangkaian | `RWI-RULE-029` |
+| `RWI-AC-149` | Kunjungan yang tidak berasal dari kunjungan lain menyimpan `OriginEncounterId` kosong, dan seluruh kunjungan lama tetap terbaca tanpa diubah | `RWI-RULE-029` |
 
 ---
 
@@ -2287,7 +2326,7 @@ sengaja tidak dimasukkan.
 | `RWI-OQ-032` | Siapa pemilik modul `ClinicalManagement` dan `PharmacyManagement`, dan apakah mereka menyetujui pelonggaran yang dituntut `RWI-RULE-026` | `IMPLEMENTATION` | `TERBUKA` — tindakan organisasi. Desain boleh berjalan, implementasi tidak boleh dimulai sebelum persetujuan ini ada |
 | `RWI-OQ-036` | Siapa nama orang atau unit yang bertanggung jawab mengisi data master tempat tidur, kamar, unit layanan, dan kelas pasien sebelum modul dipakai, dan kapan batas waktunya | `IMPLEMENTATION` | `TERBUKA` — tindakan organisasi. Aturannya sudah dikunci `RWI-DEC-048`, tetapi nama penanggung jawabnya tidak dapat dikarang agent |
 | `RWI-OQ-035` | Berapa lama baris riwayat perubahan status episode wajib disimpan sebelum boleh diarsipkan, dan siapa yang berwenang menyetujuinya | `LATER SLICE` | `DIJAWAB` oleh `RWI-DEC-060` — sampai angkanya ditetapkan, tidak ada pengarsipan maupun penghapusan otomatis sama sekali. Menunggu pemilik hukum untuk menaikkannya ke `approved` |
-| `RWI-OQ-034` | Siapa pemilik modul `EmergencyInstallationManagement`, dan apakah pemilik itu menyetujui serah terima IGD ke rawat inap yang dituntut `RWI-RULE-029`, termasuk menjalankan penanda `ClosesEmergencyVisit` yang selama ini tidak pernah dipakai | `IMPLEMENTATION` | `TERBUKA` — tindakan organisasi. Desain boleh berjalan, implementasi tidak boleh dimulai sebelum persetujuan ini ada |
+| `RWI-OQ-034` | Siapa pemilik modul `EmergencyInstallationManagement`, dan apakah pemilik itu menyetujui serah terima IGD ke rawat inap yang dituntut `RWI-RULE-029`, termasuk menjalankan penanda `ClosesEmergencyVisit` yang selama ini tidak pernah dipakai | `IMPLEMENTATION` | `TERBUKA` — bagian **siapa** sudah terjawab: pemiliknya **Rizki Gunawan**, ditetapkan `RWI-DEC-069` 2026-08-24. Bagian **persetujuan** menunggu `IGD-DEC-067` dinaikkan dari `draft` ke `approved` atas nama Rizki. Desain boleh berjalan, implementasi `INP-S09` tidak boleh dimulai sebelum itu |
 | `RWI-OQ-033` | Siapa pemilik modul `MasterData` HealthServices, dan apakah pemilik itu menyetujui pembatasan endpoint `/beds/{id}/availability` yang dituntut `RWI-RULE-027` | `IMPLEMENTATION` | `TERBUKA` — tindakan organisasi. Desain boleh berjalan, implementasi tidak boleh dimulai sebelum persetujuan ini ada |
 | `RWI-OQ-037` | Siapa pemilik pengiriman data rawat inap ke SATUSEHAT, data apa yang wajib dikirim, kapan dipicu, dan di mana riwayat lokasi pasien disimpan | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-053` untuk bagian **kepemilikan data**: riwayat lokasi tetap milik Rawat Inap. Bagian isi kiriman dan pemicunya tetap di luar MVP dan menunggu pemilik integrasi |
 | `RWI-OQ-038` | Apakah serah terima klinis antar shift keperawatan wajib direkam sistem, dan apa isi minimalnya | `DESIGN` | `TERTUTUP` oleh `RWI-DEC-058` untuk bagian **scope**: tidak masuk MVP. Bagian **isi** serah terima tetap terbuka dan menunggu pemilik klinis |
@@ -2317,7 +2356,10 @@ keempat butir yang tadinya memblokir desain sudah diputuskan:
 
 1. Persetujuan pemilik empat modul tetangga berstatus `ACTIVE` yang akan disentuh, yaitu
    `ClinicalManagement`, `PharmacyManagement`, `MasterData`, dan `EmergencyInstallationManagement`.
-   Lihat `RWI-OQ-032`, `RWI-OQ-033`, dan `RWI-OQ-034`.
+   Lihat `RWI-OQ-032`, `RWI-OQ-033`, dan `RWI-OQ-034`. **Diperbarui 2026-08-24:** `RWI-OQ-032` dan
+   `RWI-OQ-033` tertutup oleh `RWI-DEC-062`. `RWI-OQ-034` tetap terbuka — `EmergencyInstallationManagement`
+   dimiliki Rizki Gunawan, bukan pemilik `RWI-DEC-061`, sesuai `RWI-DEC-069`. Yang tertahan olehnya
+   hanya `INP-S09`, yang memang di luar MVP.
 2. Kesiapan data master tempat tidur, kamar, unit layanan, dan kelas pasien. Aturannya sudah
    dikunci `RWI-DEC-048`, penanggung jawabnya belum. Lihat `RWI-OQ-036`.
 3. Perbaikan tombol aktifkan dan nonaktifkan tempat tidur yang hari ini selalu gagal. Lihat
@@ -2394,6 +2436,9 @@ Hal berikut **sudah bukan** blocker:
 
 | Tanggal | Pass | Ringkasan |
 |---|---|---|
+| 2026-08-24 | Blueprint revision `4` dan sinkronisasi roadmap | Empat keputusan Amendment Pass diserap ke seluruh berkas blueprint lewat `/qv-design`: Kelayakan Penempatan tumbuh menjadi sembilan aturan, dua integrasi arah baca baru `INT-INP-06` dan `INT-INP-07`, asal `InpBedPlacement.StartDateTime` berubah untuk jalur serah terima, dan sepuluh acceptance criteria masuk matriks test. Seluruh kontrak naik ke `0.4.0`. Ditemukan bahwa **tidak satu pun task MVP tertahan**, karena aturan barunya hanya menyala pada `INP-S09`. Revision `4` disetujui Muhammad Hamzah lewat `RWI-DEC-074`, lalu ketiga roadmap disinkronkan ke `roadmap_revision` `2` |
+| 2026-08-24 | Amendment Pass, tiga usulan lintas modul dari IGD | Empat pertanyaan diajukan dan dijawab pemilik. `RWI-DEC-070` memperluas pelonggaran `RWI-RULE-026` ke kunjungan `Emergency` mencakup aturan 3, 4, dan 5 — melampaui `IGD-DEC-068` yang hanya menyebut aturan 3 — dan merevisi aturan 6. `RWI-DEC-071` mempertahankan `RWI-DEC-041` tetapi menulis ulang justifikasinya, setelah ditemukan bahwa satu-satunya alasan yang tercatat gugur oleh keputusan sebelumnya. `RWI-DEC-072` menjadikan event `Tiba` milik IGD sebagai sumber kebenaran waktu tiba dan menambah `RWI-RULE-029` aturan 8. `RWI-DEC-073` menempatkan pekerjaan kolom `OriginEncounterId` di sisi IGD dan menulis ulang `compatibility_impact`. Sepuluh acceptance criteria baru `RWI-AC-140` s.d. `RWI-AC-149`. `RWI-DEC-038` di-`superseded` sebagian |
+| 2026-08-24 | Koreksi kepemilikan modul tetangga | Pemilik `EmergencyInstallationManagement` diketahui bernama **Rizki Gunawan**, bukan pemilik `RWI-DEC-061`. `RWI-DEC-069` ditulis; `RWI-DEC-062` di-`superseded` sebagian pada bagian IGD; `RWI-OQ-034` dan `DEC-INP-002` terbuka kembali dengan pemilik yang bernama, menunggu `IGD-DEC-067` dinaikkan ke `approved` oleh Rizki. Gerbang “Persetujuan pemilik modul tetangga” menjadi terbuka sebagian dan hanya menahan `INP-S09`, yang memang di luar MVP. **Tidak ada isi desain yang berubah** |
 | 2026-08-21 | Blueprint revision `3` | Ketiga keputusan `RWI-DEC-064` s.d. `RWI-DEC-066` diserap ke seluruh berkas blueprint. `EPIC RI-34` ditulis beserta `FR-RI-154` s.d. `FR-RI-162`, lima skenario UAT `UAT-29` s.d. `UAT-33`, dan bagian 2A pada matriks acceptance test berisi 26 skenario yang menutup seluruh `RWI-AC-128` s.d. `RWI-AC-139`. Kemampuan "penolakan penempatan karena isolasi atau jenis kelamin" berpindah dari daftar ditunda ke dalam MVP, dan `INP-S11` berpindah dari slice yang dihentikan menjadi slice yang dirancang. Satu gerbang keras sebelum produksi berubah bentuk: bukan lagi menunggu keputusan, melainkan menunggu `EPIC RI-34` lolos uji. Seluruh contract naik ke `0.3.0`; dua di antaranya — state transition dan integration — naik versi **tanpa** berubah isinya, disertai catatan kenapa |
 | 2026-08-21 | Penutupan `RWI-OQ-044` | Dua sub-keputusan yang melengkapi aturan keras jenis kelamin dan isolasi ditutup. Kebutuhan isolasi ditetapkan sebagai atribut episode rawat inap, keputusan klinisnya milik DPJP dan dapat diperbarui selama perawatan, sedangkan petugas admisi hanya boleh merekam catatan awal berdasarkan keterangan dokter pengirim supaya penempatan tidak menunggu slice dokumentasi klinis (`RWI-DEC-065`). Seluruh kamar dianggap tidak boleh ditempati campur, diperiksa dari penghuni yang sedang ada dan bukan dari penanda master, tanpa menambah kolom apa pun pada `MstRoom`; penghuni boks bayi dikecualikan dari kedua sisi pemeriksaan (`RWI-DEC-066`). `RWI-RULE-012` ditulis ulang penuh menjadi dua bagian, 12 acceptance criteria baru ditulis, dan nama pemilik berwenang diisi menjadi Muhammad Hamzah menggantikan penanda akun |
 | 2026-08-21 | Penutupan butir organisasi | Empat butir yang selama ini hanya dapat diselesaikan lewat tindakan organisasi ditutup. Pemilik berwenang ditunjuk menggantikan pemegang sementara (`RWI-DEC-061`), sehingga kata "sementara" pada `RWI-DEC-006` tidak berlaku lagi. Kepemilikan `ClinicalManagement`, `PharmacyManagement`, `MasterData`, dan `EmergencyInstallationManagement` dinyatakan berada pada pemilik yang sama beserta persetujuannya (`RWI-DEC-062`), mencabut tiga gerbang implementasi sekaligus. Penanggung jawab pengisian data master ditetapkan beserta target 22 Agustus 2026 (`RWI-DEC-063`). Pemisahan jenis kelamin dan isolasi **diubah menjadi aturan keras** yang menolak penempatan (`RWI-DEC-064`), men-`superseded` `RWI-DEC-018` dan menulis ulang `RWI-RULE-012`. Ditemukan bahwa bagian isolasi **belum dapat dijalankan** karena tidak ada satu pun kolom di source yang mencatat kebutuhan isolasi seorang pasien; dicatat sebagai `RWI-OQ-044`. Butir terbuka turun dari delapan menjadi empat, dan tidak satu pun memblokir desain maupun implementasi MVP |

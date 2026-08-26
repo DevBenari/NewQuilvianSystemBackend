@@ -30,6 +30,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.M
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
@@ -582,6 +583,17 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstDoctorServiceRule> MstDoctorServiceRules { get; set; }
         public DbSet<MstInpatientSetting> MstInpatientSettings { get; set; }
         public DbSet<MstInpatientClearanceItem> MstInpatientClearanceItems { get; set; }
+        public DbSet<InpEpisode> InpEpisodes { get; set; }
+        public DbSet<InpDoctorAssignment> InpDoctorAssignments { get; set; }
+        public DbSet<InpNurseAssignment> InpNurseAssignments { get; set; }
+        public DbSet<InpBedReservation> InpBedReservations { get; set; }
+        public DbSet<InpBedPlacement> InpBedPlacements { get; set; }
+        public DbSet<InpDischargeSummary> InpDischargeSummaries { get; set; }
+        public DbSet<InpDischargeSummaryRevision> InpDischargeSummaryRevisions { get; set; }
+        public DbSet<InpClearanceMark> InpClearanceMarks { get; set; }
+        public DbSet<InpFinancialClearance> InpFinancialClearances { get; set; }
+        public DbSet<InpStatusHistory> InpStatusHistories { get; set; }
+        public DbSet<InpCorrectionSession> InpCorrectionSessions { get; set; }
         public DbSet<TrxKioskScanSession> TrxKioskScanSessions { get; set; }
         public DbSet<TrxPatientEncounter> TrxPatientEncounters { get; set; }
         public DbSet<TrxPatientEncounterGuarantor> TrxPatientEncounterGuarantors { get; set; }

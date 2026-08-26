@@ -3,10 +3,10 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.3.0` |
+| `contract_version` | `0.4.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | `00-interview-decisions.md` revision `5`; `02-backend-architecture.md` revision `0.3` |
+| `input_revision` | `00-interview-decisions.md` revision `6`; `02-backend-architecture.md` revision `0.4` |
 | Dampak kompatibilitas | Seluruhnya baru, kecuali satu baris pada bagian 8 yang mengubah perilaku endpoint existing |
 
 Pesan pada kolom "Pesan bagi pengguna" ditulis sebagaimana akan dibaca petugas di layar. Bukan
@@ -53,6 +53,13 @@ istilah teknis, bukan nama kolom.
 | **Butuh isolasi, tempat tidur bukan isolasi** | idem | `RequiresIsolation` benar dan `MstBed.IsIsolationBed` salah | "Pasien ini membutuhkan isolasi, sehingga hanya dapat ditempatkan pada tempat tidur isolasi." | 422 |
 | **Tidak butuh isolasi, tempat tidur isolasi** | idem | `RequiresIsolation` salah dan `MstBed.IsIsolationBed` benar | "Tempat tidur isolasi hanya untuk pasien yang membutuhkan isolasi." | 422 |
 | Pengecualian boks bayi | idem | Tempat tidur bertanda `IsForNewborn` | **Tidak ada penolakan** dari tiga aturan jenis kelamin di atas | — |
+| **Pasien asal IGD belum tercatat tiba** | idem | Episode lahir dari serah terima IGD dan catatan kepergian IGD belum bertanda `Tiba` | "Pasien belum tercatat tiba di bangsal. Perawat penerima perlu mencatat kedatangannya lebih dulu." | 422 |
+
+**Lingkup aturan pasien asal IGD.** Aturan itu hanya diperiksa bila episode punya kunjungan asal,
+yaitu bila `TrxPatientEncounter.OriginEncounterId` terisi. Pasien datang langsung dan pasien
+poliklinik melewatinya tanpa pemeriksaan apa pun. Karena jalur serah terima IGD adalah `INP-S09`
+yang di luar scope revisi ini, pada MVP aturan itu tidak pernah menyala. Dasarnya `RWI-DEC-072`
+dan `RWI-RULE-029` aturan 8.
 
 **Contoh berangka aturan satu pasien satu episode.** Tn. Budi sedang dirawat di Melati 3B. Pukul
 14:00 petugas lain mencoba menempatkannya di Anggrek 1A karena mengira ia pasien baru. Ditolak 409
@@ -201,6 +208,7 @@ Dasarnya `RWI-RULE-027` aturan 4 dan 5. Persetujuan pemilik `MasterData` tercata
 | Aturan | Penjelasan |
 | --- | --- |
 | Seluruh waktu disimpan sebagai UTC | Mengikuti konvensi project; seluruh model existing memakai `DateTime.UtcNow` |
+| Waktu mulai penempatan **bukan selalu** waktu penempatan dibuat | Untuk episode yang lahir dari serah terima IGD, `InpBedPlacement.StartDateTime` dibaca dari event `Tiba` pada catatan kepergian IGD dan **tidak pernah dikoreksi** setelah tersimpan. Untuk jalur lain tetap waktu penempatan dibuat. `RWI-DEC-072` |
 | Kedaluwarsa pemesanan dihitung saat dibaca | `RWI-DEC-007`. Tidak ada program penjadwal |
 | Episode `Draft` telantar dihitung saat dibaca | `RWI-DEC-030`. Tidak ada program penjadwal |
 | Lama dirawat dihitung dari **selisih tanggal**, bukan selisih jam | `RWI-RULE-019`. Hasil paling sedikit 1 hari |
@@ -223,6 +231,7 @@ tercatat **1 hari**, bukan 0 hari.
 | 6 | `RWI-RULE-011`, `RWI-RULE-032`, `RWI-DEC-045` |
 | 7 | `RWI-RULE-009`, `RWI-RULE-010`, `RWI-RULE-018` |
 | 8 | `RWI-RULE-028`, `RWI-DEC-040` |
+| 3, 11 | `RWI-RULE-029` aturan 8, `RWI-DEC-072` — ditambahkan pada `0.4.0` |
 | 4A | `RWI-RULE-012` bagian A, `RWI-DEC-065` |
 | 5A | `RWI-RULE-036`, `RWI-DEC-055` |
 | 5B | `RWI-DEC-056`, `RWI-RULE-014` |

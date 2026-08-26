@@ -5,29 +5,29 @@
 ```yaml
 module_id: rawat-inap
 repository: QuilvianSystemFrontendDev
-roadmap_revision: 1
+roadmap_revision: 2
 status: APPROVED
 approval_gate: BLUEPRINT_APPROVED
 owners:
   - "Product/Domain: Muhammad Hamzah (RWI-DEC-061)"
   - "Frontend authority: sesuai 03-frontend-architecture.md bagian 9"
 approved_by:
-  - "Muhammad Hamzah — Product/Domain owner (RWI-DEC-061), lewat RWI-DEC-067"
+  - "Muhammad Hamzah — Product/Domain owner (RWI-DEC-061), lewat RWI-DEC-067; sinkronisasi revision 2 lewat RWI-DEC-074"
 approved_at: "2026-08-24"
 input_revisions:
-  blueprint-manifest.md: 3
+  blueprint-manifest.md: 4
   03-frontend-architecture.md: 0.3
-  04-prd-to-mvp.md: 0.3.0
+  04-prd-to-mvp.md: 0.4.0
   01-existing-capability-map.md: 1.2
 artifact_hashes:
-  blueprint-manifest.md: "3017a62b6168ac13a2d4cc1a6dd5b5d6069577f381349819199715f45ec54107"
-  contracts/api-contract.md: "f4cd133ca7e63940960c6762d2544e749b98db07b4df785468a1e0f3a31f8a38"
-  contracts/permission-audit-matrix.md: "1bdf2914f1ec513364b794248551a275389bd16d82325347ebfc3ec2016811d6"
-  contracts/validation-matrix.md: "a69a5b68b3c254b03cea1113860169b0748826ab1832b29c05e5ae430857929b"
+  blueprint-manifest.md: "07f4ed008a53bab5186e0de059ab593b48966ef684d9702216354ba9891ebba0"
+  contracts/api-contract.md: "a451e778e37a6596977ce6c2c9e24bc1548cd9dd4efa9a63e642ba02539b709b"
+  contracts/permission-audit-matrix.md: "50a48e990ac9aaf1d97fc6f7448fd60f513292fd7da717faaaba2eced4d4e19b"
+  contracts/validation-matrix.md: "6ff47efa675605e78bcdb8836fb636bd8744a1c07f2522508aa64261fd3f838d"
 contract_versions:
-  - "API 0.3.0"
-  - "Permission/Audit 0.3.0"
-  - "Validation 0.3.0"
+  - "API 0.4.0"
+  - "Permission/Audit 0.4.0"
+  - "Validation 0.4.0"
 source_commits:
   backend: "5afb54bd75281648010e50ef14f43ca1f80d8efd"
   frontend: "dec4fdeff07c3c96ad9f07f41f184c54cf771371"
