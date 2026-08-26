@@ -83,6 +83,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include=".github\workflows\" />
     <Folder Include="Areas\Administrator\Dashboard\" />
     <Folder Include="Areas\Administrator\DocumentManagement\" />
     <Folder Include="Areas\Corporate\HumanResource\AttendanceManagement\Constants\" />
@@ -110,10 +111,6 @@
     <Folder Include="Areas\HealthServices\OutpatientManagement\" />
     <Folder Include="Logs\" />
     <Folder Include="SeedData\ICD10\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include=".github\workflows\qbe-pr-trigger-smoke.yml" />
   </ItemGroup>
 
 </Project>
