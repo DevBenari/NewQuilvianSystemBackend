@@ -753,6 +753,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 .Select(x => new EmployeeOptionResponse
                 {
                     Id = x.Id,
+                    WorkforceProfileId = x.WorkforceProfileId,
                     EmployeeCode = x.EmployeeCode,
                     EmployeeNumber = x.EmployeeNumber,
                     FullName = x.FullName,
