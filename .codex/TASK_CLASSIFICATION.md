@@ -1,53 +1,53 @@
-# Task Classification
+# Klasifikasi Task
 
-Classify before planning. Use the highest applicable factor; increase one level when two or more factors fall in the next level. If the task is uncertain, classify conservatively and inspect before lowering it.
+Lakukan klasifikasi sebelum menyusun rencana. Pakai faktor tertinggi yang berlaku; naikkan satu tingkat bila ada dua faktor atau lebih yang jatuh di tingkat berikutnya. Bila task masih belum pasti, klasifikasikan secara konservatif dan periksa dulu sebelum menurunkannya.
 
-| Level | Deterministic factors |
+| Tingkat | Faktor penentu |
 | --- | --- |
-| LIGHT | One repository; usually 1–3 files inspected and 1–2 files modified; no material business logic, API, database, security/auth, or UI/workflow change. |
-| MEDIUM | One or two repositories; commonly 4–10 files inspected or 3–6 files modified; bounded logic, UI/workflow, or non-breaking API consumer impact; no material database or security/auth redesign. |
-| HEAVY | Multiple related modules or more than 10 files inspected / 6 files modified; substantial business logic; API contract change, database/schema consideration, security/auth impact, or broad workflow scope requiring coordinated review. |
-| EPIC | Multiple independently deployable domains, an architecture-wide or multi-phase workflow, broad API/database/security redesign, or scope that cannot be safely reviewed and validated as one bounded change. |
+| LIGHT | Satu repository; umumnya 1–3 berkas diperiksa dan 1–2 berkas diubah; tidak ada perubahan material pada logika bisnis, API, database, keamanan/auth, maupun UI/workflow. |
+| MEDIUM | Satu atau dua repository; umumnya 4–10 berkas diperiksa atau 3–6 berkas diubah; logika, UI/workflow, atau dampak ke konsumen API yang terbatas dan tidak merusak; tidak ada perancangan ulang database maupun keamanan/auth yang material. |
+| HEAVY | Beberapa modul yang berkaitan, atau lebih dari 10 berkas diperiksa / 6 berkas diubah; logika bisnis yang substansial; perubahan kontrak API, pertimbangan database/schema, dampak keamanan/auth, atau scope workflow yang luas sehingga perlu review terkoordinasi. |
+| EPIC | Beberapa domain yang bisa di-deploy sendiri-sendiri, workflow yang menyentuh seluruh arsitektur atau berjalan multi-fase, perancangan ulang API/database/keamanan yang luas, atau scope yang tidak dapat direview dan divalidasi dengan aman sebagai satu perubahan yang terbatas. |
 
-## Deterministic scoring model
+## Model penilaian
 
-The score below determines the classification. Score every factor, add the total, then apply the classification bands.
+Skor di bawah ini menentukan klasifikasinya. Beri skor pada setiap faktor, jumlahkan, lalu terapkan rentang klasifikasinya.
 
-| Factor | Score 0 | Score 1 | Score 2 |
+| Faktor | Skor 0 | Skor 1 | Skor 2 |
 | --- | --- | --- | --- |
-| Repository scope | One repository | — | Two repositories |
-| Files inspected | ≤ 8 | 9–20 | > 20 |
-| Files modified | ≤ 3 | 4–8 | > 8 |
-| Business logic | Simple | Moderate | Complex |
-| API contract | None | Consumes existing contract | Changes contract |
-| Database | None | Existing query/persistence behavior only | Schema/entity/migration impact |
-| Security/Auth | None | Related but not core | Core authorization/authentication/security impact |
-| UI/Workflow | Minor/local | Single page or bounded workflow | Multi-page or broad workflow |
+| Cakupan repository | Satu repository | — | Dua repository |
+| Berkas diperiksa | ≤ 8 | 9–20 | > 20 |
+| Berkas diubah | ≤ 3 | 4–8 | > 8 |
+| Logika bisnis | Sederhana | Sedang | Kompleks |
+| Kontrak API | Tidak ada | Memakai kontrak yang sudah ada | Mengubah kontrak |
+| Database | Tidak ada | Hanya perilaku query/persistence yang sudah ada | Dampak schema/entity/migration |
+| Keamanan/Auth | Tidak ada | Berkaitan tetapi bukan intinya | Dampak inti pada authorization/authentication/keamanan |
+| UI/Workflow | Kecil/lokal | Satu halaman atau workflow terbatas | Banyak halaman atau workflow luas |
 
-| Total score | Classification |
+| Total skor | Klasifikasi |
 | --- | --- |
 | 0–3 | LIGHT |
 | 4–8 | MEDIUM |
 | 9–12 | HEAVY |
 | 13+ | EPIC |
 
-## Required factors
+## Faktor yang wajib dinilai
 
-Assess repository count; files inspected; files modified; business-logic complexity; API-contract impact; database impact; security/auth impact; and UI/workflow scope. Existing `AGENTS.md` rules determine whether any factor is permitted.
+Nilai jumlah repository; berkas yang diperiksa; berkas yang diubah; kerumitan logika bisnis; dampak terhadap kontrak API; dampak database; dampak keamanan/auth; dan cakupan UI/workflow. Aturan `AGENTS.md` yang berlaku menentukan apakah suatu faktor memang diizinkan.
 
-## Module blueprint work
+## Pekerjaan module blueprint
 
-A pure `MODULE BLUEPRINT MODE` task may inspect both application repositories while writing only tracked blueprint documentation. Do not classify it as HEAVY solely because of that cross-repository inspection; assess the documentation scope, architecture/dependency complexity, and unresolved decision risk in addition to the normal factors. Application implementation scoring remains unchanged.
+Task murni `MODULE BLUEPRINT MODE` boleh memeriksa kedua repository aplikasi, tetapi hanya menulis dokumentasi blueprint yang dilacak. Jangan mengklasifikasikannya sebagai HEAVY semata-mata karena pemeriksaan lintas repository itu; nilai juga cakupan dokumentasinya, kerumitan arsitektur/dependency, dan risiko keputusan yang belum terselesaikan, di samping faktor normal. Penilaian untuk implementasi aplikasi tidak berubah.
 
-Classify blueprint work as HEAVY when it covers many modules or material dependencies, unresolved contracts, or high-risk security, financial, clinical, privacy, or regulatory decisions. Treat a broad architecture redesign or multi-module lifecycle change as EPIC: stop, decompose into bounded blueprint phases, and reclassify before writing.
+Klasifikasikan pekerjaan blueprint sebagai HEAVY bila mencakup banyak modul atau dependency yang material, kontrak yang belum terselesaikan, atau keputusan berisiko tinggi di ranah keamanan, keuangan, klinis, privasi, maupun regulasi. Perlakukan perancangan ulang arsitektur yang luas atau perubahan lifecycle lintas modul sebagai EPIC: berhenti, pecah menjadi fase blueprint yang terbatas, lalu klasifikasikan ulang sebelum mulai menulis.
 
-## Execution rule
+## Aturan eksekusi
 
-Any architecture-wide redesign, multi-domain implementation, or scope that cannot be safely reviewed and validated as one bounded change is EPIC regardless of score.
+Setiap perancangan ulang yang menyentuh seluruh arsitektur, implementasi lintas domain, atau scope yang tidak dapat direview dan divalidasi dengan aman sebagai satu perubahan terbatas adalah EPIC, berapa pun skornya.
 
-EPIC tasks are never directly implemented: `STOP → DECOMPOSE → reclassify each phase.` Decompose them into independently reviewable phases, then classify and execute each phase separately.
+Task EPIC tidak pernah langsung dikerjakan: `STOP → DECOMPOSE → klasifikasikan ulang setiap fase.` Pecah menjadi fase-fase yang dapat direview secara mandiri, lalu klasifikasikan dan kerjakan setiap fase secara terpisah.
 
-## Model guidance
+## Panduan model
 
-- **GPT-5.6 Terra** is the default model.
-- **GPT-5.6 Sol** is an escalation only for genuinely difficult HEAVY tasks after the task has been bounded.
+- **GPT-5.6 Terra** adalah model bawaan.
+- **GPT-5.6 Sol** hanya untuk eskalasi pada task HEAVY yang benar-benar sulit, setelah task tersebut dibatasi scope-nya.

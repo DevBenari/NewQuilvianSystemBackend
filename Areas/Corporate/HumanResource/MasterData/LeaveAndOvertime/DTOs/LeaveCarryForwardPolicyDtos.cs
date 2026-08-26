@@ -79,6 +79,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
     {
         public string ResetButtonLabel { get; set; } = "Reset";
         public LeaveCarryForwardPolicyDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<LeaveCarryForwardPolicyCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<LeaveCarryForwardPolicySortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
@@ -86,6 +87,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
 
     public class LeaveCarryForwardPolicyDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? LeaveEntitlementPolicyId { get; set; }
         public Guid? DestinationLeaveTypeId { get; set; }
         public bool? IsCarryForwardEnabled { get; set; }
@@ -97,6 +101,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class LeaveCarryForwardPolicyCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class LeaveCarryForwardPolicySortOptionResponse

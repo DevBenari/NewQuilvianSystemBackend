@@ -1,4 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
@@ -16,17 +20,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         private readonly ConsultationValidationService _validationService;
         private readonly PrescriptionAggregateService _prescriptionAggregateService;
         private readonly PrescriptionWorkflowService _prescriptionWorkflowService;
+        private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
 
         public ConsultationFinalizationService(
             ApplicationDbContext dbContext,
             ConsultationValidationService validationService,
             PrescriptionAggregateService prescriptionAggregateService,
-            PrescriptionWorkflowService prescriptionWorkflowService)
+            PrescriptionWorkflowService prescriptionWorkflowService,
+            ClinicalMilestoneFactProducer clinicalMilestoneFactProducer)
         {
             _dbContext = dbContext;
             _validationService = validationService;
             _prescriptionAggregateService = prescriptionAggregateService;
             _prescriptionWorkflowService = prescriptionWorkflowService;
+            _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
         }
 
         public async Task<ConsultationFinalizationOperationResult> FinalizeAsync(
@@ -88,6 +95,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             }
 
             var finalizedPrescriptionCount = 0;
+            var finalizedPrescriptions = new List<TrxPrescription>();
             foreach (var prescription in prescriptions.Where(x => x.PrescriptionStatus == PrescriptionStatus.Draft))
             {
                 var workflow = await _prescriptionWorkflowService.FinalizeFromConsultationAsync(prescription, actorUserId, now, cancellationToken);
@@ -96,6 +104,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     await transaction.RollbackAsync(cancellationToken);
                     return ConsultationFinalizationOperationResult.Fail(workflow.ErrorMessage ?? "Resep gagal difinalkan.");
                 }
+                finalizedPrescriptions.Add(prescription);
                 finalizedPrescriptionCount++;
             }
 
@@ -129,6 +138,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             await _dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
+            // RJ-BIL-BE-002. Milestone charge resep menurut RJ-BIL-DEC-002 adalah "resep
+            // difinalkan bersama konsultasi dokter"; penyerahan obat adalah fulfillment dan
+            // bukan pemicu charge.
+            //
+            // Penyerahan fakta dilakukan setelah commit. Konsultasi yang sudah sah tidak boleh
+            // dibatalkan hanya karena Billing sedang tidak dapat dihubungi.
+            var billingHandoffIssues = new List<string>();
+            foreach (var prescription in finalizedPrescriptions)
+            {
+                var emission = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
+                    new ClinicalMilestoneFactRequest
+                    {
+                        SourceContext = BillingSourceContract.PrescriptionSourceContext,
+                        SourceAggregateId = prescription.Id,
+                        EffectType = BillingSourceContract.PrescriptionChargeEffectType,
+                        EncounterId = prescription.EncounterId,
+                        OccurredAt = now,
+                        Quantity = prescription.TotalItemCount > 0 ? prescription.TotalItemCount : null,
+                        Unit = prescription.TotalItemCount > 0 ? "ITEM" : null,
+                        TariffSnapshot = BuildPrescriptionSnapshot(prescription),
+                        CorrelationId = consultationId
+                    },
+                    actorUserId,
+                    cancellationToken);
+
+                if (!emission.IsClinicallySafe)
+                    billingHandoffIssues.Add($"{prescription.PrescriptionNumber}: {emission.Code}");
+            }
+
             return ConsultationFinalizationOperationResult.Success(new ConsultationFinalizationResponse
             {
                 ConsultationId = consultationId,
@@ -136,7 +174,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 CompletedByUserId = actorUserId,
                 FinalizedPrescriptionCount = finalizedPrescriptionCount,
                 FinalizedProcedureCount = finalizedProcedureCount,
+                BillingHandoffIssues = billingHandoffIssues,
                 Validation = validation
+            });
+        }
+
+        /// <summary>
+        /// Menyusun snapshot tarif klinis sebagai rujukan Billing.
+        ///
+        /// Sengaja hanya memuat harga kotor dan jumlah item. Pembagian tanggungan asuransi
+        /// dan pasien tidak disertakan karena kepemilikan angka tersebut masih menjadi bahasan
+        /// RJ-BIL-CONFLICT-001 dan cakupan RJ-BIL-BE-005.
+        /// </summary>
+        private static string BuildPrescriptionSnapshot(TrxPrescription prescription)
+        {
+            return JsonSerializer.Serialize(new
+            {
+                source = "ClinicalSnapshot",
+                prescriptionNumber = prescription.PrescriptionNumber,
+                totalPrice = prescription.TotalPrice,
+                totalItemCount = prescription.TotalItemCount,
+                regularItemCount = prescription.RegularItemCount,
+                compoundCount = prescription.CompoundCount
             });
         }
 

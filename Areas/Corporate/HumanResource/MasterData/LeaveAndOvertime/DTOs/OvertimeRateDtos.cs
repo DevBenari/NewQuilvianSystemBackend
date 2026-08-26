@@ -73,6 +73,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
     {
         public string ResetButtonLabel { get; set; } = "Reset";
         public OvertimeRateDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<OvertimeRateCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<OvertimeRateStringOptionResponse> DayTypeOptions { get; set; } = new();
         public List<OvertimeRateStringOptionResponse> TimeBandOptions { get; set; } = new();
         public List<OvertimeRateStringOptionResponse> CalculationMethodOptions { get; set; } = new();
@@ -83,6 +84,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
 
     public class OvertimeRateDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? OvertimePolicyId { get; set; }
         public string? DayType { get; set; }
         public string? TimeBand { get; set; }
@@ -93,6 +97,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class OvertimeRateCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class OvertimeRateStringOptionResponse

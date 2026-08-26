@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
         public string Name { get; set; } = string.Empty;
         public string ColorName { get; set; } = string.Empty;
         public string? ColorHex { get; set; }
-        public int MaxWaitingMinutes { get; set; }
+        public int? MaxWaitingMinutes { get; set; }
         public bool AllowsTreatmentBeforeRegistration { get; set; }
         public int Sequence { get; set; }
         public string? Description { get; set; }
@@ -25,7 +25,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
     {
         public EmergencyTriageSystem TriageSystem { get; set; } = EmergencyTriageSystem.ATS;
 
-        [Range(1, 5)]
+        /// <summary>
+        /// 1 sampai 5 untuk skala antrean biasa; 0 khusus kategori Hitam yang berada di
+        /// luar skala antrean.
+        /// </summary>
+        [Range(0, 5)]
         public int Level { get; set; }
 
         [Required]
@@ -43,7 +47,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
         [MaxLength(20)]
         public string? ColorHex { get; set; }
 
-        public int MaxWaitingMinutes { get; set; }
+        public int? MaxWaitingMinutes { get; set; }
 
         public bool AllowsTreatmentBeforeRegistration { get; set; }
 

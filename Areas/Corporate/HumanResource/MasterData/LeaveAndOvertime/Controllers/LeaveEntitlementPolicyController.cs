@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using LeaveEntitlementPolicyPagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.DTOs.LeaveEntitlementPolicyResponse>;
 
@@ -41,6 +42,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
             var result = new LeaveEntitlementPolicyFilterMetadataResponse
             {
                 DefaultFilter = new LeaveEntitlementPolicyDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 SortOptions = new List<LeaveEntitlementPolicySortOptionResponse>
                 {
                     new() { Value = "entitlementPolicyCode", Label = "Kode kebijakan hak cuti" },
@@ -76,10 +78,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         [HttpGet]
         [AccessAction("Read", "Read Leave Entitlement Policy", Description = "Melihat data leave entitlement policy", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LeaveEntitlementPolicy", "Read")]
-        public async Task<IActionResult> GetData(Guid? leavePolicyId, string? entitlementMethod, string? periodBasis, bool? isDefault, bool? isActive, string? search, string? sortBy = "entitlementPolicyName", string? sortDirection = "asc", int pageNumber = 1, int pageSize = 25)
+        public async Task<IActionResult> GetData(DateTime? startDate, DateTime? endDate, string? customPeriod, Guid? leavePolicyId, string? entitlementMethod, string? periodBasis, bool? isDefault, bool? isActive, string? search, string? sortBy = "entitlementPolicyName", string? sortDirection = "asc", int pageNumber = 1, int pageSize = 25)
         {
             NormalizePaging(ref pageNumber, ref pageSize);
             var q = ApplyFilter(BaseQuery(), leavePolicyId, entitlementMethod, periodBasis, isDefault, isActive, search);
+            q = WorkflowMasterDataSupport.ApplyDateFilter(q, startDate, endDate, customPeriod);
             var totalData = await q.CountAsync();
             var entities = await ApplySorting(q, sortBy, sortDirection).Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
             var actors = await GetActorNameMapAsync(entities.Select(x => x.CreateBy));
@@ -336,5 +339,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAn
         private static void NormalizePaging(ref int pageNumber, ref int pageSize) { pageNumber = pageNumber < 1 ? 1 : pageNumber; pageSize = pageSize < 1 ? 25 : Math.Min(pageSize, 100); }
         private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         private static bool IsValidMonthDay(int month, int day) { if (month < 1 || month > 12 || day < 1) return false; return day <= DateTime.DaysInMonth(2024, month); }
+
+        private static List<LeaveEntitlementPolicyCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<LeaveEntitlementPolicyCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
+        }
     }
 }

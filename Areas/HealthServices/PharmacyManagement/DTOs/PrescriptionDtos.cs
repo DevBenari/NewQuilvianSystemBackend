@@ -184,15 +184,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
 
     public class PrescriptionUpdateResponse : PrescriptionCreateResponse { }
 
-    public class MarkPrescriptionBillingGeneratedRequest
-    {
-        public Guid? BillingId { get; set; }
-    }
-
-    public class MarkPrescriptionPaymentCompletedRequest
-    {
-        public DateTime? CompletedAt { get; set; }
-    }
+    // RJ-BIL-BE-002 / RJ-BIL-CONFLICT-006 keputusan author 1A:
+    // MarkPrescriptionBillingGeneratedRequest dan MarkPrescriptionPaymentCompletedRequest
+    // dihapus bersama endpoint finansial klinis yang memakainya.
 
     public class CancelPrescriptionRequest
     {

@@ -12,6 +12,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Controllers
 {
@@ -69,6 +70,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             var result = new HazardAllowancePolicyFilterMetadataResponse
             {
                 DefaultFilter = new HazardAllowancePolicyDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 HazardLevelOptions = AllowedHazardLevels
                     .OrderBy(x => x)
                     .Select(x => new HazardAllowancePolicyStringOptionResponse
@@ -128,6 +130,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [AccessAction("Read", "Read Hazard Allowance Policy", Description = "Melihat data hazard allowance policy", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("HazardAllowancePolicy", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? allowanceTypeId,
             [FromQuery] string? hazardLevel,
             [FromQuery] string? calculationMethod,
@@ -169,6 +174,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     (x.Description != null && x.Description.ToLower().Contains(keyword)));
             }
 
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
 
             var ordered = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase)
@@ -660,6 +666,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private static List<HazardAllowancePolicyCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<HazardAllowancePolicyCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
         }
     }
 }

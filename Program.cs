@@ -11,13 +11,24 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Servic
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services;
 using QuilvianSystemBackend.Hubs;
@@ -36,7 +47,7 @@ using Serilog.Formatting.Compact;
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
-using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
+
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -46,6 +57,7 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
     var backendVersionManifest = BackendVersionManifest.Load(builder.Environment.ContentRootPath);
 
     builder.Host.UseSerilog((context, services, loggerConfiguration) =>
@@ -261,11 +273,15 @@ try
     builder.Services.AddSingleton(backendVersionManifest);
     builder.Services.AddScoped<LanguageService>();
     builder.Services.AddScoped<LoggerService>();
+    builder.Services.AddScoped<WfpCertificationFileStorageService>();
     builder.Services.AddScoped<ApplicationVersionService>();
     builder.Services.AddScoped<AccessPermissionService>();
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
     builder.Services.AddScoped<LabOrderService>();
+    builder.Services.AddScoped<LabSpecimenService>();
+    builder.Services.AddScoped<BillingFolioService>();
+    builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
@@ -282,6 +298,58 @@ try
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
+    builder.Services.AddScoped<PharmacyDepotRoutingService>();
+    builder.Services.AddScoped<OperatingRoomCaseService>();
+    builder.Services.AddScoped<OperatingRoomCredentialResolver>();
+    // Buffer dan durasi jadwal operasi dikonfigurasi (OPS-DEC-016), bukan ditanam di kode.
+    builder.Services.Configure<OperatingRoomSchedulingOptions>(
+        builder.Configuration.GetSection("OperatingRoom:Scheduling"));
+    builder.Services.AddScoped<OperatingRoomSchedulingService>();
+    builder.Services.AddScoped<OperatingRoomPreparationService>();
+    builder.Services.AddScoped<OperatingRoomExecutionService>();
+    builder.Services.AddScoped<OperatingRoomRecoveryService>();
+    builder.Services.AddScoped<OperatingRoomIntegrationService>();
+    builder.Services.AddScoped<OperatingRoomMaterialService>();
+    builder.Services.AddScoped<OperatingRoomReportService>();
+
+    // Instalasi Gawat Darurat (IGD). Tanpa pendaftaran ini seluruh controller IGD gagal
+    // dibuat oleh dependency injection, sehingga endpoint-nya membalas 500 sebelum kode
+    // modul sempat dijalankan. Pola mengikuti service lain: kelas konkret, tanpa interface.
+    builder.Services.AddScoped<EmergencyDocumentNumberService>();
+    builder.Services.AddScoped<EmergencyVisitService>();
+    builder.Services.AddScoped<EmergencyTriageService>();
+    builder.Services.AddScoped<EmergencyResuscitationService>();
+    builder.Services.AddScoped<EmergencyObservationService>();
+    builder.Services.AddScoped<EmergencyDispositionService>();
+    builder.Services.AddScoped<EmergencyTransferService>();
+    builder.Services.AddScoped<EmergencySettingService>();
+
+    // Rawat Inap. Tanpa pendaftaran ini seluruh controller Rawat Inap gagal dibuat oleh
+    // dependency injection, sehingga endpoint-nya membalas 500 sebelum kode modul sempat
+    // dijalankan. Pola mengikuti service lain: kelas konkret, tanpa interface.
+    //
+    // Urutan pendaftaran tidak menentukan urutan pembentukan — container yang menyusunnya
+    // sendiri — tetapi ditulis dari yang paling tidak bergantung supaya rantainya terbaca:
+    // InpSettingService dibaca hampir seluruh service lain, dan InpEpisodeNumberService
+    // mengambil awalan nomor episode darinya.
+    builder.Services.AddScoped<InpSettingService>();
+    builder.Services.AddScoped<InpEpisodeNumberService>();
+    builder.Services.AddScoped<InpBedOccupancyService>();
+    builder.Services.AddScoped<InpEpisodeService>();
+    builder.Services.AddScoped<InpDischargeService>();
+    builder.Services.AddScoped<InpCensusQueryService>();
+
+    // Master data Rawat Inap. Dipakai dua controller pada layar admin, bukan oleh service
+    // Rawat Inap. Keduanya memegang seluruh pembacaan dan perubahan tabel masternya supaya
+    // controller tidak menyentuh ApplicationDbContext langsung.
+    builder.Services.AddScoped<InpatientSettingService>();
+    builder.Services.AddScoped<InpatientClearanceItemService>();
+
+    // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
+    // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
+    builder.Services.Configure<EmergencyTriageSlaMonitorOptions>(
+        builder.Configuration.GetSection("HealthServices:EmergencyTriageSlaMonitor"));
+    builder.Services.AddHostedService<EmergencyTriageSlaMonitorHostedService>();
 
     builder.Services.AddScoped<HumanResourceContextService>();
     builder.Services.AddScoped<EmployeeProfileChangeService>();
