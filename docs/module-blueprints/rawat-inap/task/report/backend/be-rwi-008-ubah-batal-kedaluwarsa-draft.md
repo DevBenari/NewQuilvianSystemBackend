@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-008`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -220,8 +229,8 @@ dikonfirmasi pemilik modul sebelum `BE-RWI-011` rilis. Owner: Product/Domain.
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | Pemanggilan `PUT /episodes/{id}` dan `PATCH /episodes/{id}/cancel` terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 6.2 Test yang ditulis
@@ -230,12 +239,12 @@ dikonfirmasi pemilik modul sebelum `BE-RWI-011` rilis. Owner: Product/Domain.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Mengubah isian episode yang bukan `Draft` ditolak | `Kriteria1_MengubahIsianEpisodeYangBukanDraftDitolak`, `MengubahIsianEpisodeDraftBerhasil` | Ditulis, **belum dijalankan** |
-| 2. Pembatalan melepas pemesanan dan penempatan dalam satu tindakan utuh | `Kriteria2_PembatalanDraftBerhasilDanMelepasPemesananSertaPenempatan` | Ditulis, **belum dijalankan**. Cakupannya belum penuh — lihat bagian 5.2 |
-| 3. Pembatalan setelah `Admitted` hanya supervisor atau kepala ruangan; peran lain 403 | `Kriteria3_PembatalanEpisodeAdmittedOlehPeranLainDitolak403`, `Kriteria3_PembatalanEpisodeAdmittedOlehSupervisorBerhasil` | Ditulis, **belum dijalankan**. Batas catatan klinis **belum** diuji karena belum ada — lihat bagian 5.1 |
-| 4. `Draft` telantar terbaca `Cancelled` pada pembacaan berikutnya, tanpa penjadwal | `Kriteria4_DuaPembacaanPadaWaktuBerbedaMembuktikanTidakAdaPenjadwal`, `Kriteria4_KedaluwarsaDitulisSebagaiTindakanSistem`, `Kriteria4_EpisodeYangSudahGugurTidakDapatDiubahLagi` | Ditulis, **belum dijalankan** |
-| 5. Kunjungan yang ikut lahir bersama episode ikut dibatalkan | `Kriteria5_KunjunganYangLahirBersamaEpisodeIkutDibatalkan`, `Kriteria5_KunjunganYangDitunjukPetugasTidakIkutDibatalkan`, `Kriteria5_KunjunganIkutDibatalkanSaatEpisodeGugurSendiri` | Ditulis, **belum dijalankan** |
-| 6. Batas jam dapat diubah admin dan berlaku pada pembacaan berikutnya | `Kriteria6_BatasJamYangDiubahAdminBerlakuPadaPembacaanBerikutnya` | Ditulis, **belum dijalankan** |
+| 1. Mengubah isian episode yang bukan `Draft` ditolak | `Kriteria1_MengubahIsianEpisodeYangBukanDraftDitolak`, `MengubahIsianEpisodeDraftBerhasil` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Pembatalan melepas pemesanan dan penempatan dalam satu tindakan utuh | `Kriteria2_PembatalanDraftBerhasilDanMelepasPemesananSertaPenempatan` | ✅ **Lulus** 26 Agu 2026. Cakupannya belum penuh — lihat bagian 5.2 |
+| 3. Pembatalan setelah `Admitted` hanya supervisor atau kepala ruangan; peran lain 403 | `Kriteria3_PembatalanEpisodeAdmittedOlehPeranLainDitolak403`, `Kriteria3_PembatalanEpisodeAdmittedOlehSupervisorBerhasil` | ✅ **Lulus** 26 Agu 2026. Batas catatan klinis **belum** diuji karena belum ada — lihat bagian 5.1 |
+| 4. `Draft` telantar terbaca `Cancelled` pada pembacaan berikutnya, tanpa penjadwal | `Kriteria4_DuaPembacaanPadaWaktuBerbedaMembuktikanTidakAdaPenjadwal`, `Kriteria4_KedaluwarsaDitulisSebagaiTindakanSistem`, `Kriteria4_EpisodeYangSudahGugurTidakDapatDiubahLagi` | ✅ **Lulus** 26 Agu 2026 |
+| 5. Kunjungan yang ikut lahir bersama episode ikut dibatalkan | `Kriteria5_KunjunganYangLahirBersamaEpisodeIkutDibatalkan`, `Kriteria5_KunjunganYangDitunjukPetugasTidakIkutDibatalkan`, `Kriteria5_KunjunganIkutDibatalkanSaatEpisodeGugurSendiri` | ✅ **Lulus** 26 Agu 2026 |
+| 6. Batas jam dapat diubah admin dan berlaku pada pembacaan berikutnya | `Kriteria6_BatasJamYangDiubahAdminBerlakuPadaPembacaanBerikutnya` | ✅ **Lulus** 26 Agu 2026 |
 
 Empat test tambahan menjaga: pembatalan tanpa alasan, alasan yang hanya tanda baca
 (`RWI-AC-008`), episode yang sudah dibatalkan tidak dapat dibatalkan lagi, dan episode

@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-027`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -106,8 +115,8 @@ karena `INV-INP-10` memakai kepergian fisik sebagai batasnya, bukan penutupan ep
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | `UAT-24` dan `UAT-25` terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 7.1 Test yang ditulis
@@ -116,15 +125,15 @@ karena `INV-INP-10` memakai kepergian fisik sebagai batasnya, bukan penutupan ep
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Kepergian melepas tempat tidur seketika | `Kriteria1Dan2_KepergianMelepasTempatTidurTetapiEpisodeTetapDischargePending` | Ditulis, **belum dijalankan** |
-| 2. Episode tetap `DischargePending` dan tetap pada daftar pantau | Test yang sama, ditambah `EpisodeYangKepergiannyaSudahDicatatTetapMunculPadaDaftarPantauPenutupanTertunda` | Ditulis, **belum dijalankan** |
-| 3. Pasien yang sudah pergi tidak muncul di census dan tidak dapat dipindahkan | `Kriteria3_PasienYangSudahPergiTidakMunculDiCensusDanTidakDapatDipindahkan` | Ditulis, **belum dijalankan** |
-| 4. Menutup episode tanpa mencatat kepergian tetap berhasil | `Kriteria4_MenutupEpisodeTanpaMencatatKepergianTetapBerhasil` | Ditulis, **belum dijalankan** |
-| 5. Kepergian **tidak** menulis baris riwayat status | `Kriteria5_KepergianTidakMenulisSatuPunBarisRiwayatStatus` — menghitung sebelum dan sesudah | Ditulis, **belum dijalankan** |
-| 6. Kepergian pada episode `Admitted` ditolak 422 | `Kriteria6_MencatatKepergianPadaEpisodeAdmittedDitolak422` | Ditulis, **belum dijalankan** |
-| 7. Mencatat dua kali ditolak 409 | `Kriteria7_MencatatKepergianDuaKaliDitolak409` | Ditulis, **belum dijalankan** |
-| 8. Waktu kepergian mendahului keputusan pulang ditolak 400 | `Kriteria8_WaktuKepergianYangMendahuluiKeputusanPulangDitolak400` | Ditulis, **belum dijalankan** |
-| 9. Bila pelepasan tempat tidur gagal, kolom kepergian juga tidak terisi | `Kriteria9_BilaPelepasanTempatTidurGagalKolomKepergianJugaTidakTerisi` | Ditulis, **belum dijalankan** |
+| 1. Kepergian melepas tempat tidur seketika | `Kriteria1Dan2_KepergianMelepasTempatTidurTetapiEpisodeTetapDischargePending` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Episode tetap `DischargePending` dan tetap pada daftar pantau | Test yang sama, ditambah `EpisodeYangKepergiannyaSudahDicatatTetapMunculPadaDaftarPantauPenutupanTertunda` | ✅ **Lulus** 26 Agu 2026 |
+| 3. Pasien yang sudah pergi tidak muncul di census dan tidak dapat dipindahkan | `Kriteria3_PasienYangSudahPergiTidakMunculDiCensusDanTidakDapatDipindahkan` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Menutup episode tanpa mencatat kepergian tetap berhasil | `Kriteria4_MenutupEpisodeTanpaMencatatKepergianTetapBerhasil` | ✅ **Lulus** 26 Agu 2026 |
+| 5. Kepergian **tidak** menulis baris riwayat status | `Kriteria5_KepergianTidakMenulisSatuPunBarisRiwayatStatus` — menghitung sebelum dan sesudah | ✅ **Lulus** 26 Agu 2026 |
+| 6. Kepergian pada episode `Admitted` ditolak 422 | `Kriteria6_MencatatKepergianPadaEpisodeAdmittedDitolak422` | ✅ **Lulus** 26 Agu 2026 |
+| 7. Mencatat dua kali ditolak 409 | `Kriteria7_MencatatKepergianDuaKaliDitolak409` | ✅ **Lulus** 26 Agu 2026 |
+| 8. Waktu kepergian mendahului keputusan pulang ditolak 400 | `Kriteria8_WaktuKepergianYangMendahuluiKeputusanPulangDitolak400` | ✅ **Lulus** 26 Agu 2026 |
+| 9. Bila pelepasan tempat tidur gagal, kolom kepergian juga tidak terisi | `Kriteria9_BilaPelepasanTempatTidurGagalKolomKepergianJugaTidakTerisi` | ✅ **Lulus** 26 Agu 2026 |
 
 Kriteria 9 memaksa kegagalan penyimpanan di tengah transaksi, lalu memeriksa **dua hal**:
 kolom kepergian pada episode kosong, **dan** baris penempatannya masih terbuka. Tanpa keduanya

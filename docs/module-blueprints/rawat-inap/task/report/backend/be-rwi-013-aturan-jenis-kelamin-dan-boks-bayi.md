@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-013`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> **Task ini kini ✅ SELESAI.** Seluruh acceptance criteria-nya punya test yang lulus, dan
+> ketiga butir DoD-nya hijau. Tandanya pada roadmap sudah dinaikkan 🟡 → ✅.
+
 ## Metadata
 
 | Field | Nilai |
@@ -13,7 +22,7 @@
 | Commit backend saat pekerjaan dimulai | `bd97e5d` |
 | Tanggal pengerjaan | 25 Agustus 2026 |
 | Dependency | `BE-RWI-011` — dikerjakan pada sesi yang sama |
-| Status | **IMPLEMENTASI SELESAI — VALIDASI BELUM DIJALANKAN** |
+| Status | ✅ **SELESAI** — seluruh acceptance criteria dan DoD terbukti; build dan test dijalankan 26 Agustus 2026 dan hijau (255/255) |
 
 ---
 
@@ -132,8 +141,8 @@ jalur kedua yang dapat berselisih dengan jalur utama.
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | `UAT-29` dan `UAT-30` terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 6.2 Test yang ditulis
@@ -142,13 +151,13 @@ jalur kedua yang dapat berselisih dengan jalur utama.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Pasien perempuan ke tempat tidur hanya laki-laki ditolak 422 | `Kriteria1_PasienPerempuanKeTempatTidurHanyaLakiLakiDitolak422` | Ditulis, **belum dijalankan** |
-| 2. Kamar berpenghuni jenis kelamin berbeda ditolak 422, pesannya menyebut nama kamar | `Kriteria2_KamarYangSudahDihuniJenisKelaminBerbedaDitolak422DanPesannyaMenyebutNamaKamar` | Ditulis, **belum dijalankan** |
-| 3. Pasien berikutnya berjenis kelamin sama diterima | `Kriteria3_PasienBerikutnyaBerjenisKelaminSamaDiterima` | Ditulis, **belum dijalankan** |
-| 4. Jenis kelamin belum tercatat: gagal salah satu saja ditolak | `Kriteria4_JenisKelaminBelumTercatatHanyaBolehKeTempatTidurNetralDiKamarKosong` | Ditulis, **belum dijalankan** |
-| 5. Bayi laki-laki ke boks bayi di kamar ibunya berhasil | `Kriteria5Dan6_BoksBayiDikecualikanDariKeduaSisiPemeriksaan` | Ditulis, **belum dijalankan** |
-| 6. Penghuni boks bayi tidak dihitung saat memeriksa pencampuran | Test yang sama | Ditulis, **belum dijalankan** |
-| 7. Kamar satu tempat tidur tidak tersentuh aturan pencampuran | `Kriteria7_KamarBerisiSatuTempatTidurTidakPernahTersentuhAturanPencampuran` | Ditulis, **belum dijalankan** |
+| 1. Pasien perempuan ke tempat tidur hanya laki-laki ditolak 422 | `Kriteria1_PasienPerempuanKeTempatTidurHanyaLakiLakiDitolak422` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Kamar berpenghuni jenis kelamin berbeda ditolak 422, pesannya menyebut nama kamar | `Kriteria2_KamarYangSudahDihuniJenisKelaminBerbedaDitolak422DanPesannyaMenyebutNamaKamar` | ✅ **Lulus** 26 Agu 2026 |
+| 3. Pasien berikutnya berjenis kelamin sama diterima | `Kriteria3_PasienBerikutnyaBerjenisKelaminSamaDiterima` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Jenis kelamin belum tercatat: gagal salah satu saja ditolak | `Kriteria4_JenisKelaminBelumTercatatHanyaBolehKeTempatTidurNetralDiKamarKosong` | ✅ **Lulus** 26 Agu 2026 |
+| 5. Bayi laki-laki ke boks bayi di kamar ibunya berhasil | `Kriteria5Dan6_BoksBayiDikecualikanDariKeduaSisiPemeriksaan` | ✅ **Lulus** 26 Agu 2026 |
+| 6. Penghuni boks bayi tidak dihitung saat memeriksa pencampuran | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
+| 7. Kamar satu tempat tidur tidak tersentuh aturan pencampuran | `Kriteria7_KamarBerisiSatuTempatTidurTidakPernahTersentuhAturanPencampuran` | ✅ **Lulus** 26 Agu 2026 |
 
 Kriteria 5 dan 6 sengaja **berpasangan dalam satu test**, sesuai permintaan roadmap, supaya
 sifat dua arah pengecualian boks bayi terbukti sekaligus.
@@ -185,7 +194,7 @@ ditawarkan memang benar-benar diterima.
 | Butir DoD | Keadaannya |
 | --- | --- |
 | Tiga aturan dan dua pengecualian aktif | ✅ Ada di dalam kode |
-| Ketujuh kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
+| Ketujuh kriteria lulus | ✅ **Lulus** — seluruh test-nya dijalankan 26 Agustus 2026 dan hijau (255/255) |
 | Validation matrix dan kenyataan pesan cocok kata demi kata | ✅ Kalimatnya disalin apa adanya; test memeriksa isinya, bukan hanya kodenya |
 
 ---

@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-025`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -127,8 +136,8 @@ transaksi.
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | `UAT-11` terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 6.1 Test yang ditulis
@@ -137,11 +146,11 @@ transaksi.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. `closure-readiness` mengembalikan kelima syarat, bukan boolean | `Kriteria1_ClosureReadinessMengembalikanKelimaSyaratBesertaTandanya` | Ditulis, **belum dijalankan** |
-| 2. Penutupan dengan syarat kurang ditolak 422 disertai daftarnya | `Kriteria2_PenutupanDenganSyaratBelumTerpenuhiDitolak422DisertaiDaftarnya` | Ditulis, **belum dijalankan** |
-| 3. Penutupan mengubah episode menjadi `Closed` dan melepas tempat tidur dalam satu transaksi | `Kriteria3Dan4Dan5_PenutupanMelepasTempatTidurDanMenulisSatuBarisRiwayat` | Ditulis, **belum dijalankan** |
-| 4. Tempat tidur terbaca `Available` pada pencarian berikutnya | Test yang sama | Ditulis, **belum dijalankan** |
-| 5. Penutupan menulis satu baris riwayat status | Test yang sama | Ditulis, **belum dijalankan** |
+| 1. `closure-readiness` mengembalikan kelima syarat, bukan boolean | `Kriteria1_ClosureReadinessMengembalikanKelimaSyaratBesertaTandanya` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Penutupan dengan syarat kurang ditolak 422 disertai daftarnya | `Kriteria2_PenutupanDenganSyaratBelumTerpenuhiDitolak422DisertaiDaftarnya` | ✅ **Lulus** 26 Agu 2026 |
+| 3. Penutupan mengubah episode menjadi `Closed` dan melepas tempat tidur dalam satu transaksi | `Kriteria3Dan4Dan5_PenutupanMelepasTempatTidurDanMenulisSatuBarisRiwayat` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Tempat tidur terbaca `Available` pada pencarian berikutnya | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
+| 5. Penutupan menulis satu baris riwayat status | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
 
 Verifikasi yang diminta roadmap — "test yang menutup episode lalu mencari tempat tidur kosong
 dan menemukannya" — dijawab test kriteria 3: `SearchAvailableBedsAsync` dipanggil sebelum dan
@@ -177,7 +186,7 @@ Satu test tambahan menjaga bahwa episode yang sudah ditutup tidak dapat ditutup 
 | Butir DoD | Keadaannya |
 | --- | --- |
 | Dua endpoint sesuai kontrak | ✅ Ada di dalam kode |
-| Kelima kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
+| Kelima kriteria lulus | ✅ **Lulus** — seluruh test-nya dijalankan 26 Agustus 2026 dan hijau (255/255) |
 | Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
 
 ---

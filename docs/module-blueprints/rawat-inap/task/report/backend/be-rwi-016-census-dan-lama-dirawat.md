@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-016`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -130,8 +139,8 @@ Jalur endpoint-nya diuji ulang pada task tersebut.
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | `UAT-05` dan `UAT-06` terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 6.2 Test yang ditulis
@@ -141,11 +150,11 @@ Jalur endpoint-nya diuji ulang pada task tersebut.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Census memuat `Admitted` dan `DischargePending` saja; dari lima status, tepat dua | `Kriteria1_CensusMemuatAdmittedDanDischargePendingSaja` | Ditulis, **belum dijalankan** |
-| 2. Lama dirawat dari selisih tanggal, paling sedikit 1 hari | `Kriteria2Dan3_LamaDirawatDihitungDariSelisihTanggalDenganHasilPalingSedikitSatu` — 5 kasus batas | Ditulis, **belum dijalankan** |
-| 3. Bertambah pada pergantian tanggal, bukan setiap 24 jam | Test yang sama, dua kasus terakhir | Ditulis, **belum dijalankan** |
-| 4. Pasien yang kepergiannya sudah dicatat tidak muncul | `Kriteria4_PasienYangKepergiannyaSudahDicatatTidakMunculPadaCensus` | Ditulis, **belum dijalankan**; jalur endpoint menunggu `BE-RWI-027` |
-| 5. Ringkasan menghitung per unit layanan dan per kelas | `Kriteria5_RingkasanMenghitungPerUnitLayananDanPerKelas` | Ditulis, **belum dijalankan** |
+| 1. Census memuat `Admitted` dan `DischargePending` saja; dari lima status, tepat dua | `Kriteria1_CensusMemuatAdmittedDanDischargePendingSaja` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Lama dirawat dari selisih tanggal, paling sedikit 1 hari | `Kriteria2Dan3_LamaDirawatDihitungDariSelisihTanggalDenganHasilPalingSedikitSatu` — 5 kasus batas | ✅ **Lulus** 26 Agu 2026 |
+| 3. Bertambah pada pergantian tanggal, bukan setiap 24 jam | Test yang sama, dua kasus terakhir | ✅ **Lulus** 26 Agu 2026 |
+| 4. Pasien yang kepergiannya sudah dicatat tidak muncul | `Kriteria4_PasienYangKepergiannyaSudahDicatatTidakMunculPadaCensus` | ✅ **Lulus** 26 Agu 2026; jalur endpoint menunggu `BE-RWI-027` |
+| 5. Ringkasan menghitung per unit layanan dan per kelas | `Kriteria5_RingkasanMenghitungPerUnitLayananDanPerKelas` | ✅ **Lulus** 26 Agu 2026 |
 
 Dua test tambahan menjaga: census menampilkan lokasi, DPJP, dan perawat penanggung jawab; dan
 census dapat disaring unit layanan, kamar, serta kebutuhan isolasi. Satu test terakhir memeriksa

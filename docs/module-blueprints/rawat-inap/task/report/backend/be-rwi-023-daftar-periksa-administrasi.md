@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-023`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -118,8 +127,8 @@ Butir tidak dapat ditandai pada episode yang sudah `Closed`, kecuali ada sesi ko
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | Pemanggilan kedua endpoint terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 6.1 Test yang ditulis
@@ -128,11 +137,11 @@ Butir tidak dapat ditandai pada episode yang sudah `Closed`, kecuali ada sesi ko
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Daftar menampilkan seluruh butir aktif beserta status penandaannya | `Kriteria1Dan2_DaftarMenampilkanButirAktifDanPenandaanMenyimpanPelakuSertaWaktunya` | Ditulis, **belum dijalankan** |
-| 2. Menandai butir menyimpan pelaku dan waktunya | Test yang sama | Ditulis, **belum dijalankan** |
-| 3. Butir wajib yang belum ditandai menahan penutupan | `Kriteria3Dan4_HanyaButirWajibYangMenahanPenutupan` | Ditulis, **belum dijalankan** |
-| 4. Butir tidak wajib yang belum ditandai **tidak** menahan | Test yang sama | Ditulis, **belum dijalankan** |
-| 5. Butir yang dinonaktifkan tidak lagi menahan, dan penandaan lamanya tidak hilang | `Kriteria5_ButirYangDinonaktifkanTidakLagiMenahanDanPenandaanLamanyaTidakHilang` | Ditulis, **belum dijalankan** |
+| 1. Daftar menampilkan seluruh butir aktif beserta status penandaannya | `Kriteria1Dan2_DaftarMenampilkanButirAktifDanPenandaanMenyimpanPelakuSertaWaktunya` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Menandai butir menyimpan pelaku dan waktunya | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
+| 3. Butir wajib yang belum ditandai menahan penutupan | `Kriteria3Dan4_HanyaButirWajibYangMenahanPenutupan` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Butir tidak wajib yang belum ditandai **tidak** menahan | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
+| 5. Butir yang dinonaktifkan tidak lagi menahan, dan penandaan lamanya tidak hilang | `Kriteria5_ButirYangDinonaktifkanTidakLagiMenahanDanPenandaanLamanyaTidakHilang` | ✅ **Lulus** 26 Agu 2026 |
 
 Kriteria 5 dikerjakan persis seperti diminta roadmap: butir dinonaktifkan **di tengah episode
 berjalan**, lalu keduanya diperiksa — penandaan lama masih terbaca, dan penutupan tidak lagi
@@ -167,7 +176,7 @@ Satu test tambahan menjaga bahwa menandai butir yang sudah tidak aktif ditolak.
 | Butir DoD | Keadaannya |
 | --- | --- |
 | Dua endpoint sesuai kontrak | ✅ Ada di dalam kode |
-| Kelima kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
+| Kelima kriteria lulus | ✅ **Lulus** — seluruh test-nya dijalankan 26 Agustus 2026 dan hijau (255/255) |
 | Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
 
 ---

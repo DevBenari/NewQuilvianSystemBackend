@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-009`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -158,8 +167,8 @@ itu dijaga `InpatientEpisodeControllerContractTests`.
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | Pemanggilan keempat endpoint terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 6.2 Test yang ditulis
@@ -168,10 +177,10 @@ itu dijaga `InpatientEpisodeControllerContractTests`.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Daftar dapat disaring unit layanan, status, rentang tanggal, dan nama pasien | `Kriteria1_DaftarDapatDisaringUnitLayananStatusRentangTanggalDanNamaPasien` | Ditulis, **belum dijalankan** |
-| 2. Detail menampilkan DPJP aktif, perawat aktif, dan lokasi dari `InpBedPlacement` | `Kriteria2_DetailMenampilkanDpjpAktifPerawatAktifDanLokasiDariCatatanPenempatan` | Ditulis, **belum dijalankan** |
-| 3. Ringkasan menghitung jumlah per status | `Kriteria3_RingkasanMenghitungJumlahPerStatus` | Ditulis, **belum dijalankan** |
-| 4. Kolom sensitif tidak ikut pada daftar, hanya pada detail | `Kriteria4_KolomSensitifTidakIkutPadaDaftarTetapiAdaPadaDetail` | Ditulis, **belum dijalankan** |
+| 1. Daftar dapat disaring unit layanan, status, rentang tanggal, dan nama pasien | `Kriteria1_DaftarDapatDisaringUnitLayananStatusRentangTanggalDanNamaPasien` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Detail menampilkan DPJP aktif, perawat aktif, dan lokasi dari `InpBedPlacement` | `Kriteria2_DetailMenampilkanDpjpAktifPerawatAktifDanLokasiDariCatatanPenempatan` | ✅ **Lulus** 26 Agu 2026 |
+| 3. Ringkasan menghitung jumlah per status | `Kriteria3_RingkasanMenghitungJumlahPerStatus` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Kolom sensitif tidak ikut pada daftar, hanya pada detail | `Kriteria4_KolomSensitifTidakIkutPadaDaftarTetapiAdaPadaDetail` | ✅ **Lulus** 26 Agu 2026 |
 | 5. Tanpa hak akses ditolak 403 | **Tidak dapat diuji tanpa aplikasi berjalan** — lihat 5.3 | Tertunda |
 
 Tiga test tambahan menjaga: perhitungan kedaluwarsa berjalan sebelum daftar dibaca, metadata

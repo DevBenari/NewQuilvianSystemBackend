@@ -41,8 +41,8 @@ public sealed class InpStatusHistoryAndMonitoringTests
 
         var riwayat = await world.EpisodeService.GetStatusHistoryAsync(episode.Id);
 
-        Assert.Equal(3, riwayat.Count);
-        Assert.Equal(new[] { 1, 2, 3 }, riwayat.Select(x => x.SequenceNumber));
+        Assert.Equal(4, riwayat.Count);
+        Assert.Equal(new[] { 1, 2, 3, 4 }, riwayat.Select(x => x.SequenceNumber));
 
         Assert.Null(riwayat[0].FromStatus);
         Assert.Equal((int)InpEpisodeStatus.Draft, riwayat[0].ToStatus);
@@ -51,9 +51,12 @@ public sealed class InpStatusHistoryAndMonitoringTests
         Assert.Equal((int)InpEpisodeStatus.Draft, riwayat[1].FromStatus);
         Assert.Equal((int)InpEpisodeStatus.Admitted, riwayat[1].ToStatus);
 
-        Assert.Equal((int)InpEpisodeStatus.DischargePending, riwayat[2].FromStatus);
-        Assert.Equal((int)InpEpisodeStatus.Closed, riwayat[2].ToStatus);
-        Assert.Equal("Seluruh syarat terpenuhi.", riwayat[2].Reason);
+        Assert.Equal((int)InpEpisodeStatus.Admitted, riwayat[2].FromStatus);
+        Assert.Equal((int)InpEpisodeStatus.DischargePending, riwayat[2].ToStatus);
+
+        Assert.Equal((int)InpEpisodeStatus.DischargePending, riwayat[3].FromStatus);
+        Assert.Equal((int)InpEpisodeStatus.Closed, riwayat[3].ToStatus);
+        Assert.Equal("Seluruh syarat terpenuhi.", riwayat[3].Reason);
 
         foreach (var baris in riwayat)
         {
