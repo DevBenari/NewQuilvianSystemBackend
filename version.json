@@ -1,5 +1,5 @@
 {
-  "backendVersion": "0.1.0",
-  "releaseName": "HRD Attendance and Backend Integration",
-  "description": "Backend integration release including HRD attendance self-service, attendance persistence normalization, Lab Order foundation, Employee Recognition normalization, and related backend improvements."
+  "backendVersion": "0.2.0",
+  "releaseName": "Feature Billing Management, Clinical Billing Integration, Clinical Management, Emergency, InPatient, Laboratory, Operating Room, Pharmacy, Registration",
+  "description": "Release including Feature Billing Management, Clinical Billing Integration, Clinical Management, Emergency, InPatient, Laboratory, Operating Room, Pharmacy, Registration."
 }
