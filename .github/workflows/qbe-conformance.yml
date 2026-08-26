@@ -3,7 +3,7 @@ name: QBE Conformance
 on:
   pull_request:
     branches:
-      - AgentCodexBackend
+      - QuilvianIntegrationBackend
   workflow_dispatch:
     inputs:
       base_ref:
