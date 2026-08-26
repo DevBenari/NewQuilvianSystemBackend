@@ -4,11 +4,11 @@
 |---|---|
 | Blueprint ID | `RJ-BIL-BP-001` |
 | Module name | Dokter / Rawat Jalan Billing |
-| Revision | `14` |
+| Revision | `16` |
 | Module status | `PARTIAL` |
 | Current phase | `RJ-BIL-PH-009` — Delivery Execution |
 | Last verified at | `2026-08-24T00:00:00+07:00` |
-| Backend source SHA | `92108587e69b9a935b2fd264882100149f80ed02` cabang `sukmagp`; working tree `RJ-BIL-BE-002` belum di-commit |
+| Backend source SHA | `d0544e53bc876c0a74bc7befedb1a036dd08e1fd` cabang `sukmagp`; working tree `RJ-BIL-BE-003` belum di-commit |
 | Frontend source SHA | `29422c83eaf6fd231cbb72f2ba04e306367934e1` cabang `QuilvianDevV2` |
 | IMPLEMENTATION_AUTHORITY | `GRANTED` untuk `RJ-BIL-BE-001` dan `RJ-BIL-BE-002`; task lain tetap memerlukan handoff tersendiri |
 | BUILDER_EXECUTION | `EXECUTED` untuk `RJ-BIL-BE-001` dan `RJ-BIL-BE-002`; `NOT_AUTHORIZED` untuk task lain |
@@ -33,7 +33,8 @@
 | `RJ-BIL-BE-001` | `COMPLETE` | [execution-evidence-RJ-BIL-BE-001.md](execution-evidence-RJ-BIL-BE-001.md) |
 | `RJ-BIL-BE-002` | `COMPLETE` | [execution-evidence-RJ-BIL-BE-002.md](execution-evidence-RJ-BIL-BE-002.md) |
 | `RJ-BIL-BE-005` | `BLOCKED` | Menunggu keputusan owner atas `RJ-BIL-CONFLICT-001` |
-| `RJ-BIL-BE-003`, `RJ-BIL-BE-004` | `NOT_STARTED` | Tidak diblokir konflik mana pun; memerlukan owner domain dan handoff tersendiri |
+| `RJ-BIL-BE-003` | `IMPLEMENTATION_COMPLETE` — governance `OPEN` | [execution-evidence-RJ-BIL-BE-003.md](execution-evidence-RJ-BIL-BE-003.md) |
+| `RJ-BIL-BE-004` | `NOT_STARTED` | Greenfield penuh; area `RadiologyManagement` belum ada pada source |
 | `RJ-BIL-BE-006` s.d. `RJ-BIL-BE-009` | `NOT_STARTED` | Menunggu dependency roadmap |
 
 Baseline persistence Billing Operational sudah berdiri: empat tabel `BilFolio`,
@@ -209,9 +210,10 @@ BE-008 → BE-009`. `RJ-BIL-BE-001` dan `RJ-BIL-BE-002` sudah selesai.
 | Urutan | Task | Kesiapan |
 |---|---|---|
 | 1 | Keputusan atas `RJ-BIL-BE-002-BLOCKER-001` | Alur telaah farmasi tidak lagi memiliki pintu masuk setelah kewenangan finansial klinis dihapus. Keputusan kebijakan farmasi; opsi dan dampaknya sudah disiapkan |
-| 2 | `RJ-BIL-BE-003` atau `RJ-BIL-BE-004` | Tidak diblokir konflik mana pun; memerlukan owner Lab atau Radiology beserta Clinical Governance dan handoff tersendiri |
-| 3 | Mengirim [owner-decision-request-RJ-BIL-001.md](owner-decision-request-RJ-BIL-001.md) ke owner | Siap; menutup `RJ-BIL-CONFLICT-001` |
-| 4 | `RJ-BIL-BE-005` | `BLOCKED` sampai `RJ-BIL-OQ-001`, `OQ-002`, `OQ-005` dijawab |
+| 2 | Menyediakan database test khusus | Membuka `37` test yang terhalang `BLOCKED_BY_TEST_DB_CONFIGURATION`, termasuk seluruh bukti perilaku `RJ-BIL-BE-003` |
+| 3 | `RJ-BIL-BE-004` | Greenfield penuh; area `RadiologyManagement` belum ada pada source. Memerlukan owner Radiology beserta Clinical Governance |
+| 4 | Mengirim [owner-decision-request-RJ-BIL-001.md](owner-decision-request-RJ-BIL-001.md) ke owner | Siap; menutup `RJ-BIL-CONFLICT-001` |
+| 5 | `RJ-BIL-BE-005` | `BLOCKED` sampai `RJ-BIL-OQ-001`, `OQ-002`, `OQ-005` dijawab |
 
 `RJ-BIL-BE-002-BLOCKER-001` perlu dijelaskan agar tidak disalahpahami sebagai kerusakan baru.
 `PrescriptionReviewService` mensyaratkan status pemenuhan `ReadyForPharmacy` sebelum telaah
@@ -221,9 +223,19 @@ sudah tidak dapat dicapai dari frontend sebelum `RJ-BIL-BE-002` dikerjakan. Peng
 membuat celah yang sudah ada menjadi terlihat, bukan menciptakannya.
 
 `RJ-BIL-BE-003` dan `RJ-BIL-BE-004` menghasilkan fact klinis, bukan alokasi finansial, sehingga
-tidak bergantung pada `RJ-BIL-CONFLICT-001`. Keduanya tetap memerlukan owner domain
-masing-masing karena lifecycle Lab dan Radiology belum ada pada source, serta handoff task dan
-wewenang tulis tersendiri.
+tidak bergantung pada `RJ-BIL-CONFLICT-001`. Keduanya tetap memerlukan handoff task dan wewenang
+tulis tersendiri.
+
+Preflight `RJ-BIL-BE-003` per `2026-08-24` mengoreksi satu asumsi pada revisi sebelumnya: lifecycle
+Lab **sudah** tersedia sebagai requirement terkunci pada `RJ-BIL-GATE-DEC-003`, yang tidak ada
+adalah implementasinya pada source. Modul Laboratorium hanya berisi `4` file untuk membuat dan
+membatalkan order, tanpa kolom status dan tanpa entity specimen, serta tanpa satu pun consumer
+frontend. Modul Tindakan sudah menolak procedure ber-flag `IsLaboratory`, sehingga tidak ada risiko
+tagihan ganda terhadap `RJ-BIL-BE-002`. Rinciannya pada
+[preflight-RJ-BIL-BE-003.md](preflight-RJ-BIL-BE-003.md).
+
+`RJ-BIL-BE-004` berbeda keadaannya: area `RadiologyManagement` belum ada sama sekali pada source,
+sehingga bebannya jauh lebih besar daripada `RJ-BIL-BE-003`.
 
 Builder tetap memerlukan handoff task, wewenang tulis, dan preflight eksekusi untuk setiap task.
 Jangan mengaktifkan external adapter `RJ-BIL-DEP-009`.

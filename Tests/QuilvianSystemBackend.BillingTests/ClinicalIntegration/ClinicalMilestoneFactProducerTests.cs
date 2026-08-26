@@ -363,10 +363,13 @@ namespace QuilvianSystemBackend.BillingTests.ClinicalIntegration
         // Batas kontrak sumber
         // ---------------------------------------------------------------------
 
+        // RJ-BIL-BE-003 memasukkan `Laboratory` ke dalam kontrak, sehingga konteks itu
+        // dipindahkan ke LaboratorySpecimenLifecycleTests. Yang tersisa di sini adalah
+        // konteks yang memang belum dikontrak atau memang bukan nama yang sah.
         [Theory]
         [InlineData("Pharmacy")]
-        [InlineData("Laboratory")]
         [InlineData("Radiology")]
+        [InlineData("LabOrder")]
         public async Task KonteksYangBelumDikontrak_DitolakProducer(string sourceContext)
         {
             var seed = await NewEncounterAsync();

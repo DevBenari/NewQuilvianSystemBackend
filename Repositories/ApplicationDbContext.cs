@@ -590,6 +590,12 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<LabOrder> LabOrders { get; set; }
 
+        public DbSet<TrxLabSpecimen> TrxLabSpecimens { get; set; }
+
+        public DbSet<TrxLabTransitionHistory> TrxLabTransitionHistories { get; set; }
+
+        public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }
+
         #endregion
 
         #region HEALTH SERVICE - Emergency Installation Management
