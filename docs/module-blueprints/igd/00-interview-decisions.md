@@ -2168,7 +2168,7 @@ dapat, bahkan setelah seluruh modul Rawat Inap selesai dibangun.
 | ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
 | `IGD-OQ-052` | Open Question | Bentuk episode saat pasien IGD masuk rawat inap | Product/Domain Owner IGD + Registration API owner + Clinical Governance | `superseded` oleh `IGD-DEC-067` | — | Dijawab lewat penyelarasan dengan `RWI-DEC-041`, bukan lewat pilihan bebas |
-| `IGD-DEC-067` | Decision | Modul IGD mengikuti `RWI-DEC-041` dan `RWI-RULE-029`: ketika disposisi `RANAP` dijalankan, kunjungan IGD ditutup dan kunjungan baru bertipe rawat inap dibuat sebagai jangkar episode rawat inap. Catatan klinis IGD tetap menempel pada kunjungan IGD. Penanda `ClosesEmergencyVisit` mulai benar-benar dijalankan. Penutupan dan pembuatan bersifat satu tindakan utuh | Product/Domain Owner IGD, dengan pemilik `EmergencyInstallationManagement` sebagai pemberi persetujuan yang diminta `RWI-OQ-034` dan `DEC-INP-002` | `draft` — pengguna menyatakan tidak berwenang memilih dan merujuk ke blueprint Rawat Inap; persetujuan formal pemilik IGD **belum tercatat** | — | `RWI-DEC-041`, `RWI-RULE-029`, `RWI-TF-016`, `RWI-TF-017`; jawaban pengguna 24 Agustus 2026 |
+| `IGD-DEC-067` | Decision | Modul IGD mengikuti `RWI-DEC-041` dan `RWI-RULE-029`: ketika disposisi `RANAP` dijalankan, kunjungan IGD ditutup dan kunjungan baru bertipe rawat inap dibuat sebagai jangkar episode rawat inap. Catatan klinis IGD tetap menempel pada kunjungan IGD. Penanda `ClosesEmergencyVisit` mulai benar-benar dijalankan. Penutupan dan pembuatan bersifat satu tindakan utuh | Product/Domain Owner IGD, dengan pemilik `EmergencyInstallationManagement` sebagai pemberi persetujuan yang diminta `RWI-OQ-034` dan `DEC-INP-002` | `approved` | Rizki Gunawan, 24 Agustus 2026 | `RWI-DEC-041`, `RWI-RULE-029`, `RWI-TF-016`, `RWI-TF-017`; jawaban pengguna 24 Agustus 2026 |
 | `IGD-CONFLICT-003` | Conflict | Blueprint Rawat Inap menganggap kunjungan IGD bertipe `Emergency`; source memaksa `Outpatient` | Product/Domain Owner IGD + Registration API owner | `draft` — belum diputuskan | — | F-2 versus `RWI-RULE-029` |
 | `IGD-CONFLICT-004` | Conflict | `RWI-RULE-026` aturan 6 melarang perilaku IGD berubah, sedangkan pembatas yang dilonggarkannya adalah penyebab `IGD-GAP-011` dan `IGD-GAP-012` | Product/Domain Owner IGD + pemilik `ClinicalManagement` + pemilik `PharmacyManagement` + Product/Domain Owner Rawat Inap | `draft` — **memblokir seluruh pencatatan klinis IGD** | — | F-8 versus `RWI-RULE-026` |
 | `IGD-CONFLICT-005` | Conflict | Penghubung antara kunjungan IGD dan kunjungan rawat inap diwajibkan `RWI-RULE-029` aturan 2 tetapi tidak dirancang di mana pun | Product/Domain Owner IGD + Product/Domain Owner Rawat Inap + Registration API owner | `draft` | — | Pencarian menyeluruh pada blueprint Rawat Inap |
@@ -2872,3 +2872,569 @@ berikutnya:
 | Bentuk terstruktur primary survey ABCDE | `IGD-GAP-027` | Dapat diputuskan saat desain |
 | Perlakuan hasil penunjang yang datang terlambat setelah pasien pindah | `IGD-GAP-024`, menunggu modul Diagnostic Services | `LATER SLICE` |
 | Pembedaan obat "diserahkan" dan "diberikan" | `IGD-GAP-025`, menunggu pemilik `PharmacyManagement` | `LATER SLICE` |
+
+---
+
+## Koreksi 2026-08-24 — `F-17` salah, dan akibatnya pada tiga butir
+
+### Yang salah
+
+Butir **`F-17`** pada Amendment Pass 2026-08-24 menyatakan:
+
+> "Pencarian berkas dengan kata `laborator`, `radiolog`, `specimen`, dan `imaging` di seluruh
+> `Areas/` menghasilkan **nol berkas**. Permintaan laboratorium dan radiologi belum ada dalam
+> bentuk apa pun."
+
+**Pernyataan itu tidak benar.** Modul `LaboratoryManagement` sudah ada di `HEAD`, terlacak
+git, dan bersih. Ia masuk lewat commit `1a8a9ce feat: add laboratory order foundation` beserta
+migration `20260815103436_initializeLabOrder`.
+
+| Berkas | Keberadaan |
+| --- | --- |
+| `Areas/HealthServices/LaboratoryManagement/Models/LabOrder.cs` | Ada |
+| `Areas/HealthServices/LaboratoryManagement/Controllers/LabOrderController.cs` | Ada |
+| `Areas/HealthServices/LaboratoryManagement/Services/LabOrderService.cs` | Ada |
+| `Areas/HealthServices/LaboratoryManagement/DTOs/LabOrderDtos.cs` | Ada |
+| `Repositories/Configurations/HealthServices/LabOrderConfiguration.cs` | Ada |
+| Tabel `LabOrder` pada `ApplicationDbContextModelSnapshot` | Ada |
+
+### Yang sebenarnya ada — `F-17b`
+
+`LabOrder` berbentuk rintisan, bukan modul penunjang yang lengkap:
+
+```
+LabOrder : IdentityModel
+├─ Id
+├─ EncounterId   (wajib)  → TrxPatientEncounter
+└─ ProcedureId   (wajib)  → MstProcedure
+```
+
+Endpoint pada `api/v1/health-services/laboratory-management/lab-orders`:
+
+| Metode | Route | Izin |
+| --- | --- | --- |
+| `GET` | `/` | `LabOrder : Read` |
+| `GET` | `/{id}` | `LabOrder : Read` |
+| `POST` | `/` | `LabOrder : Create` |
+| `PUT` | `/{id}/cancel` | `LabOrder : Update` |
+
+Yang **belum** ada pada `LabOrder`: status pesanan, hasil pemeriksaan, waktu pesan, dokter
+pemesan, tingkat kegawatan pesanan, jenis spesimen, waktu pengambilan spesimen, waktu hasil
+keluar, penanda nilai kritis, dan alasan pembatalan.
+
+Radiologi memang **belum ada** dalam bentuk apa pun. Bagian `F-17` yang menyangkut radiologi
+tetap berlaku.
+
+### Satu hal penting yang terlewat karena kekeliruan ini
+
+`LabOrder.EncounterId` menunjuk **langsung** ke `TrxPatientEncounter` dan **tidak mewajibkan
+`ConsultationId`**. Artinya pemesanan laboratorium untuk pasien IGD sebenarnya **sudah dapat
+berjalan hari ini**, berbeda dengan diagnosis, tindakan, dan resep yang terkunci di balik
+`ConsultationId` sesuai `F-8`.
+
+Ini mengubah gambaran kesenjangan: penunjang bukan "tidak ada sama sekali", melainkan "ada
+pintu masuknya, belum ada isinya".
+
+### Butir yang harus diperbaiki
+
+| Butir | Keadaan sebelum koreksi | Keadaan setelah koreksi |
+| --- | --- | --- |
+| `F-17` | "Permintaan laboratorium dan radiologi belum ada dalam bentuk apa pun" | **Salah untuk laboratorium.** Diganti `F-17b` di atas. Tetap benar untuk radiologi |
+| `IGD-GAP-024` | "Permintaan laboratorium dan radiologi belum ada", `MISSING_NEW`, `HIGH` | Dipecah: **`IGD-GAP-024a`** laboratorium — `EXTEND_EXISTING`, `HIGH`, karena rintisannya ada tetapi tanpa status, hasil, spesimen, dan nilai kritis. **`IGD-GAP-024b`** radiologi — `MISSING_NEW`, `HIGH` |
+| Cakupan `IGD-DEC-078` | "Pemeriksaan penunjang: modul Laboratorium dan Radiologi belum ada" | **Alasannya berubah.** Untuk laboratorium, pesanannya dapat dibuat tetapi "belum keluar hasilnya" **tidak dapat diketahui sistem** karena `LabOrder` tidak punya kolom status maupun hasil. Untuk radiologi, memang belum ada modulnya |
+
+`IGD-DEC-078` sendiri **tidak berubah isinya**. Yang berubah hanya alasan mengapa bagian
+penunjang belum dapat ditegakkan.
+
+### Mengapa kekeliruan ini terjadi dan apa artinya
+
+Pencarian pada tahap discovery dijalankan sendiri oleh agent terhadap `Areas/`, bukan dibaca
+dari capability map, karena capability map memang sudah basi. Pencarian itu melewatkan satu
+folder yang jelas-jelas ada.
+
+Inilah alasan `01-existing-capability-map.md` wajib disegarkan sebelum desain disusun.
+Discovery yang dikerjakan sambil lalu di dalam pass wawancara **bukan pengganti** audit
+kemampuan yang menyeluruh. Satu modul terlewat pada pass ini; tidak ada jaminan tidak ada
+yang lain.
+
+---
+
+## Closure Pass 2026-08-24 — penutupan closure question capability map revision 3
+
+| Field | Value |
+| --- | --- |
+| Blueprint ID | `IGD-BP-001` |
+| Revision dasar | `4` |
+| Status pass | `draft` — wawancara berjalan; bukan approval |
+| Backend SHA | `f69e9e483052845d11c91d8b7bbdce33c4acc8d8` (branch `rizkiG`) |
+| Frontend SHA | `96a9120111f6acc6b7c0f37973ea0c717ba41f17` (branch `RizkiV2`) |
+| Masukan | `01-existing-capability-map.md` **revision 3**, ditulis 24 Agustus 2026 pada SHA yang sama |
+| Cakupan | Hanya tujuh closure question `IGD-TRQ-01` sampai `IGD-TRQ-07`, ditambah conflict dan unknown yang muncul bersamanya. Tidak membuka kembali keputusan yang sudah ditutup |
+
+### Bukti tambahan yang ditemukan saat pass ini
+
+Penelusuran untuk menjawab `IGD-TRQ-03` menemukan rantai yang **lebih lengkap** daripada yang
+tercatat pada `IGD-CAP-41` maupun pada laporan `BE-IGD-010`:
+
+| Mata rantai | Berkas | Keadaan |
+| --- | --- | --- |
+| Pengguna ke profil pegawai | `NewQuilvianSystemBackend — Models/ApplicationUser.cs:16 (WorkforceProfileId)` | **Ada** |
+| Pengguna ke departemen dan jabatan | `NewQuilvianSystemBackend — Models/ApplicationUserOrganization.cs (UserId, DepartmentId, PositionId, EffectiveStartDate, EffectiveEndDate, IsPrimary)` | **Ada**, berjangka waktu |
+| Profil pegawai ke simpul organisasi | `NewQuilvianSystemBackend — Areas/Corporate/HumanResource/WorkforceCore/Models/WfpOrganizationAssignment.cs:15,19,40,42 (WorkforceProfileId, OrganizationUnitId, EffectiveStartDate, EffectiveEndDate)` | **Ada**, berjangka waktu, punya `WfpOrganizationAssignmentController` |
+| Simpul organisasi sebagai master | `NewQuilvianSystemBackend — Areas/Corporate/HumanResource/MasterData/Organization/Models/MstOrganizationUnit.cs (UnitCode, UnitName, UnitType, IsOperationalUnit, ParentOrganizationUnitId)` | **Ada**, berhierarki |
+| Unit layanan ke simpul organisasi | `NewQuilvianSystemBackend — Areas/HealthServices/MasterData/Models/MstServiceUnit.cs` | **Tidak ada** — inilah satu-satunya mata rantai yang putus |
+
+Artinya kesenjangan `IGD-CAP-41` bukan "tidak ada jalur sama sekali", melainkan **satu mata
+rantai terakhir yang putus**. `IGD-CAP-41` pada capability map perlu dibaca dengan koreksi ini.
+
+### Decision log pass berjalan
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-TRQ-03` | Closure Question | Jembatan unit layanan ke organisasi, atau tabel penugasan pengguna ke unit tersendiri? | Product/Domain Owner IGD + Security/Privacy owner + pemilik Corporate/HR + pemilik Master Data | `superseded` oleh `IGD-DEC-086` | — | `IGD-CAP-41` beserta bukti tambahan di atas |
+| `IGD-DEC-086` | Decision | Kewenangan unit **tidak** memakai tabel penugasan tersendiri. Sebagai gantinya `MstServiceUnit` memperoleh satu kolom penunjuk simpul organisasi yang boleh kosong, dan kewenangan diturunkan dari penugasan pegawai yang sudah ada: pengguna ke profil pegawai, profil pegawai ke penugasan organisasi yang sedang berlaku, lalu simpul organisasi ke unit layanan. Penjaga kewenangan tetap ditulis di dalam service IGD, bukan di mesin hak akses. Pengisian dan pemeliharaan data penugasan tetap menjadi pekerjaan rutin Corporate/HR, bukan pekerjaan baru bagi tim klinis | Product/Domain Owner IGD, dengan pemilik Corporate/HR, pemilik Master Data, dan Security/Privacy owner sebagai approver akhir | `draft` — pilihan pengguna jelas; approval ketiga pemilik belum tercatat | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-TRQ-03`; **men-`superseded` sebagian `IGD-DEC-081`** pada bagian bentuk penyimpanannya; bagian "penjaga di dalam service" pada `IGD-DEC-081` tetap berlaku |
+| `IGD-DEC-081` | Decision | Hubungan pengguna ke unit pelayanan sebagai tabel penugasan tersendiri | Product/Domain Owner IGD | `superseded` sebagian oleh `IGD-DEC-086` | — | Bagian bentuk penyimpanan dicabut. Bagian penjaga di dalam service, dan bagian yang melarang mesin hak akses disentuh, **tetap berlaku** |
+
+#### Acceptance criteria awal dari `IGD-DEC-086`
+
+1. Petugas yang tidak memiliki penugasan organisasi yang sedang berlaku pada simpul
+   organisasi milik unit tujuan ditolak ketika mencatat event `Tiba` atau menerima serah
+   terima untuk unit itu.
+2. Penolakan memakai kode 403 dengan pesan yang menyebutkan sebabnya.
+3. Penugasan yang `EffectiveEndDate`-nya sudah lewat tidak lagi memberi kewenangan.
+4. Unit layanan yang kolom penunjuk organisasinya kosong memiliki perilaku yang **disengaja
+   dan tertulis**, bukan diam-diam menolak semua orang atau diam-diam mengizinkan semua orang.
+5. Tidak ada tabel penugasan pengguna ke unit layanan yang dibuat modul IGD.
+6. Mesin hak akses `SysAccessPolicy` dan struktur organisasi tidak berubah perilakunya.
+7. Pelayanan klinis darurat tidak pernah diblokir oleh ketiadaan penugasan.
+8. Memiliki penugasan unit tidak dengan sendirinya memberi capability klinis, sesuai
+   `IGD-DEC-058`.
+
+#### Risiko yang diterima secara sadar
+
+| Risiko | Sebab | Penanganan yang disepakati |
+| --- | --- | --- |
+| `OrganizationUnitId` pada `WfpOrganizationAssignment` boleh kosong | Kolomnya nullable; belum diperiksa apakah terisi pada data nyata | Wajib diverifikasi sebelum penjagaan dinyalakan. Tercatat sebagai `IGD-UNK-06` |
+| Unit layanan dan simpul organisasi belum tentu sepadan | `MstServiceUnit` adalah layanan klinis; `MstOrganizationUnit` adalah simpul bagan organisasi. Satu simpul dapat menaungi beberapa unit layanan | Kolom penunjuk berarah dari unit layanan ke simpul organisasi, sehingga banyak unit layanan boleh menunjuk satu simpul yang sama |
+| Perawat bantuan lintas unit tanpa baris penugasan akan tertolak | Data HR tidak selalu mencerminkan penugasan sementara harian | **Belum diputuskan.** Menjadi `IGD-OQ-067` |
+
+#### Unknown baru
+
+| ID | Yang belum diketahui | Cara memastikannya |
+| --- | --- | --- |
+| `IGD-UNK-06` | Apakah `WfpOrganizationAssignment.OrganizationUnitId` benar-benar terisi untuk petugas IGD, dan apakah `ApplicationUser.WorkforceProfileId` terisi untuk akun petugas klinis | Kueri ke basis data pengembangan. **Tidak dikerjakan audit read-only** |
+| `IGD-UNK-07` | Apakah setiap unit layanan dapat dipetakan ke tepat satu simpul organisasi tanpa memaksa | Peninjauan data master bersama Corporate/HR |
+
+| `IGD-OQ-067` | Open Question | Bagaimana perawat bantuan lintas unit memperoleh kewenangan sementara, mengingat penugasan hariannya tidak selalu tercermin pada data kepegawaian? | Product/Domain Owner IGD + Nursing authority + pemilik Corporate/HR | `draft` — tidak memblokir desain; memblokir penyalaan penjagaan di produksi | — | Risiko yang diterima pada `IGD-DEC-086` |
+
+| `IGD-TRQ-01` | Closure Question | Apakah IGD memakai `LabOrder` apa adanya, atau menunggu dilengkapi? | Product/Domain Owner IGD + pemilik `LaboratoryManagement` + Clinical Governance | `superseded` oleh `IGD-DEC-087` | — | `IGD-CAP-29` |
+| `IGD-DEC-087` | Decision | IGD memakai `LabOrder` **apa adanya** pada rilis pertama. Dokter IGD dapat memesan pemeriksaan laboratorium, dan pesanan itu menempel pada kunjungan IGD tanpa memerlukan konsultasi. IGD **tidak** melengkapi `LabOrder` dan **tidak** membuat pemesanan laboratorium tandingan. Pelengkapan `LabOrder` — status pesanan, hasil, jenis spesimen, dokter pemesan, prioritas, dan penanda nilai kritis — menjadi slice tersendiri dengan pemiliknya sendiri. Bagian pemeriksaan penunjang pada daftar sikap `IGD-DEC-078` dinyatakan **belum dapat ditegakkan** secara terbuka pada dokumen dan pada layar, bukan dilewati diam-diam | Product/Domain Owner IGD, dengan pemilik `LaboratoryManagement` dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna jelas; pemilik `LaboratoryManagement` belum ditunjuk | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-TRQ-01`; `IGD-CAP-29`; memperjelas cakupan `IGD-DEC-078` |
+
+#### Acceptance criteria awal dari `IGD-DEC-087`
+
+1. Dokter IGD dapat membuat pesanan laboratorium yang menempel pada kunjungan IGD, tanpa
+   satu pun baris konsultasi dibuat.
+2. Pesanan laboratorium milik satu kunjungan IGD dapat ditampilkan pada layar pengkajian.
+3. IGD tidak membuat entity pemesanan laboratorium sendiri.
+4. IGD tidak menambah kolom pada `LabOrder`.
+5. Daftar sikap pesanan pada serah terima memuat obat dan tindakan, dan menampilkan
+   keterangan **tertulis** bahwa pemeriksaan penunjang belum dapat dihitung sistem.
+6. Keterangan pada butir 5 muncul di layar, bukan hanya di dokumen, sehingga perawat tidak
+   mengira daftarnya sudah lengkap.
+7. Perawat tetap dapat menuliskan pemeriksaan yang hasilnya belum keluar pada bagian "yang
+   harus dilanjutkan" dalam serah terima SBAR.
+
+#### Akibat pada `IGD-DEC-078`
+
+`IGD-DEC-078` **tidak berubah isinya**. Yang berubah adalah pernyataan cakupannya:
+
+| Jenis pesanan | Rilis pertama | Sebab |
+| --- | --- | --- |
+| Obat | Dihitung sistem | `TrxPrescription` punya status pemenuhan |
+| Tindakan | Dihitung sistem | `TrxPatientProcedure` punya status |
+| Laboratorium | **Tidak dapat dihitung sistem**, ditulis manual pada SBAR | `LabOrder` tidak punya kolom status maupun hasil |
+| Radiologi | Tidak ada | Modulnya belum ada — `IGD-CAP-30` |
+
+#### Risiko yang diterima secara sadar
+
+Serah terima ke bangsal tidak dapat menyebut pemeriksaan yang hasilnya belum keluar secara
+otomatis. Contoh: Ny. Sari dikirim ke bangsal pukul 23.45 sementara hasil darah lengkapnya
+belum keluar. Sistem tidak mengetahuinya; yang menutup celah adalah perawat yang menuliskannya
+pada bagian "yang harus dilanjutkan". Bila perawat lupa, tidak ada yang mengingatkan.
+
+Risiko ini **diterima** untuk rilis pertama dan menjadi alasan utama slice pelengkapan
+`LabOrder` diprioritaskan setelahnya.
+
+| `IGD-TRQ-02` | Closure Question | Siapa pemilik `LaboratoryManagement`, dan apakah pelengkapan `LabOrder` menjadi pekerjaan IGD? | Product/Domain Owner IGD + sponsor governance | `superseded` oleh `IGD-DEC-088` | — | `IGD-CAP-29` |
+| `IGD-DEC-088` | Decision | Slice pelengkapan `LabOrder` dicatat sebagai **dependency eksternal** pada roadmap IGD: bernomor, beralasan, dan terlihat, tetapi **tidak dijadwalkan** dan **tidak dikerjakan** tim IGD. Roadmap IGD berjalan penuh tanpanya. Keterbatasan pemeriksaan penunjang sesuai `IGD-DEC-087` berlaku sampai pemilik `LaboratoryManagement` ditunjuk dan slice itu dikerjakan pemiliknya. Daftar dependency eksternal wajib **ditinjau berkala**, bukan dicatat lalu dilupakan | Product/Domain Owner IGD | `approved` | Rizki Gunawan, 24 Agustus 2026 | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-TRQ-02`; sejalan dengan `IGD-DEC-087` |
+
+#### Daftar dependency eksternal roadmap IGD
+
+Ketiganya berada **di luar** kendali tim IGD dan **tidak** menahan rilis pertama:
+
+| No | Dependency | Pemilik | Akibat bila tidak pernah selesai |
+| ---: | --- | --- | --- |
+| 1 | Pelengkapan `LabOrder` — status, hasil, spesimen, prioritas, nilai kritis | `LaboratoryManagement`, **belum ditunjuk** | Bagian penunjang pada daftar sikap `IGD-DEC-078` tetap manual selamanya; serah terima bergantung pada ingatan perawat |
+| 2 | Pelonggaran pembatas antrean dan konsultasi | `ClinicalManagement` dan `PharmacyManagement`, **belum ditunjuk** | `IGD-DEC-068` tidak dapat dijalankan; pengkajian, diagnosis, tindakan, dan resep IGD **tetap tidak dapat disimpan**. Ini **menahan rilis** — berbeda dari nomor 1 dan 3 |
+| 3 | Modul Rawat Inap beserta `InpBedPlacement` | `RWI-BP-001`, Muhammad Hamzah | Jalur `RANAP` berhenti pada catatan kepergian IGD; tidak ada episode rawat inap yang terbentuk |
+
+**Perbedaan penting.** Nomor 1 dan 3 tidak menahan rilis pertama IGD. **Nomor 2 menahan.**
+Tanpa pelonggaran `IGD-DEC-068`, kemampuan inti yang menjadi alasan seluruh pekerjaan ini —
+menyimpan pengkajian pasien IGD — tetap mustahil.
+
+### Penutupan Closure Pass 2026-08-24
+
+#### Yang ditutup pass ini
+
+| ID | Ditutup oleh | Sifat |
+| --- | --- | --- |
+| `IGD-TRQ-01` | `IGD-DEC-087` | Pemblokir `DESIGN` |
+| `IGD-TRQ-02` | `IGD-DEC-088` | Ownership |
+| `IGD-TRQ-03` | `IGD-DEC-086` | Pemblokir `DESIGN` |
+
+Tiga keputusan baru: `IGD-DEC-086`, `IGD-DEC-087`, `IGD-DEC-088`. Seluruhnya `draft`.
+`IGD-DEC-081` di-`superseded` sebagian.
+
+#### Yang sengaja tidak ditanyakan pada pass ini
+
+Closure Pass hanya menangani conflict, unknown, ownership, dan keputusan yang memblokir
+desain. Empat closure question sisanya bukan salah satu di antaranya:
+
+| ID | Pokok | Sifat | Diserahkan kepada |
+| --- | --- | --- | --- |
+| `IGD-TRQ-04` | Pembaruan test `FE-IGD-001 K1` dan pemakai lain yang bergantung pada jenis kunjungan `Outpatient` | Urutan pekerjaan | `/qv-plan` — menjadi bagian acceptance task `IGD-DEC-074` |
+| `IGD-TRQ-05` | Nasib data pada empat kolom tempat tidur yang akan dicabut | Urutan pekerjaan, bergantung `IGD-UNK-03` | `/qv-plan` — memerlukan kueri basis data lebih dulu |
+| `IGD-TRQ-06` | Cakupan uji minimum sebelum menyentuh `ClinicalManagement` | Urutan pekerjaan | `/qv-plan` — memakai prasarana `IGD-CAP-43` yang sudah ada |
+| `IGD-TRQ-07` | Realtime untuk daftar pantau IGD | `LATER SLICE` | Pass berikutnya bila daftar pantau terbukti perlu |
+
+#### Unknown yang tetap terbuka
+
+| ID | Yang belum diketahui | Memblokir |
+| --- | --- | --- |
+| `IGD-UNK-01` | Apakah enam master IGD dan master kelas pasien IGD sudah terisi | `IMPLEMENTATION` |
+| `IGD-UNK-02` | Adakah kunjungan IGD lama yang `EncounterId`-nya kosong | `IMPLEMENTATION` `IGD-DEC-074` |
+| `IGD-UNK-03` | Berapa baris `TrxEmergencyTransfer` yang sudah mengisi kolom tempat tidur | `IMPLEMENTATION` `IGD-DEC-069` |
+| `IGD-UNK-04` | Apakah `LabOrder` sudah dipakai di produksi | Tidak memblokir |
+| `IGD-UNK-06` | Apakah `WfpOrganizationAssignment.OrganizationUnitId` dan `ApplicationUser.WorkforceProfileId` terisi untuk petugas IGD | `IMPLEMENTATION` `IGD-DEC-086` |
+| `IGD-UNK-07` | Apakah setiap unit layanan dapat dipetakan ke tepat satu simpul organisasi | `IMPLEMENTATION` `IGD-DEC-086` |
+
+Keenamnya **hanya dapat dijawab dengan kueri ke basis data**, bukan dengan membaca source.
+Seluruhnya memblokir implementasi, **tidak satu pun memblokir desain**.
+
+#### Open Question yang tetap terbuka
+
+| ID | Pokok | Memblokir |
+| --- | --- | --- |
+| `IGD-OQ-037` | Kewenangan dan batas waktu break-glass | Organisasi |
+| `IGD-OQ-038` | Approver bernama untuk roadmap backend | Organisasi |
+| `IGD-OQ-067` | Kewenangan sementara perawat bantuan lintas unit | Penyalaan penjagaan di produksi |
+
+#### Status gerbang setelah Closure Pass ini
+
+| Gerbang | Keadaan |
+| --- | --- |
+| Capability map segar dan sahih | **Ya** — revision `3` pada SHA yang sama dengan pass ini |
+| Conflict tertutup | **Ya** — `IGD-CONFLICT-003`, `004`, `005` dan `IGD-CONF-01` sampai `05` sudah punya keputusan atau tercatat sebagai perbaikan |
+| Closure question yang memblokir desain tertutup | **Ya** — `IGD-TRQ-01` dan `IGD-TRQ-03` |
+| Unknown yang memblokir desain | **Tidak ada** — keenamnya memblokir implementasi saja |
+| Approval formal owner | **Tidak** — seluruh keputusan `draft` |
+| Boleh lanjut ke `/qv-design` | **Ya** — dengan syarat blueprint hasilnya tidak ditandai `approved` |
+
+---
+
+## Pertanyaan yang lahir dari desain 2026-08-24 — revision 5
+
+Empat pertanyaan berikut **tidak** berasal dari wawancara. Keduanya muncul ketika keputusan
+`draft` diterjemahkan menjadi bentuk teknis, dan tidak dapat dijawab agent.
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-068` | Open Question | `IGD-DEC-070` memilih dua kolom status dan **menolak** bentuk daftar kejadian. Tetapi `IGD-DEC-065` (entri susulan dengan waktu sebenarnya), `IGD-DEC-066` (koreksi tambah-saja dan pembalikan berpersetujuan), dan `IGD-DEC-085` (pemberitahuan koreksi) menuntut penyimpanan yang tidak dapat diwadahi kolom status. Desain menyatukannya: kolom status sebagai turunan yang cepat dibaca, ditambah tabel kejadian tambah-saja sebagai sumber audit. Apakah penafsiran ini dapat diterima, atau `IGD-DEC-070` memang melarang tabel kejadian sama sekali? | Product/Domain Owner IGD + Clinical Governance | `superseded` oleh `IGD-DEC-090` | — | `02-backend-architecture.md` bagian 2.4 |
+| `IGD-OQ-069` | Open Question | `IGD-GAP-031` mencatat empat kolom `MstEmergencySetting` yang tersimpan tanpa menjalankan apa pun. Desain mengusulkan dua dipertahankan dan mulai dibaca (`ImmediateCareLevelThreshold`, `RequireRegistrationBeforeTreatmentFromLevel`), dua dicabut (`AutoCreateProvisionalEncounter`, `RequireTriageBeforeStandardRegistration`). Apakah pencabutan dua kolom itu benar, atau justru keduanya harus diberi arti? | Product/Domain Owner IGD | `draft` — tidak memblokir desain maupun rilis | — | `02-backend-architecture.md` bagian 5.1 |
+| `IGD-OQ-070` | Open Question | `IGD-DEC-069` mengubah arti `TrxEmergencyTransfer` dari "perpindahan beserta tempat tidur" menjadi "catatan kepergian pasien". Desain mengusulkan penggantian nama menjadi `TrxEmergencyDeparture`, yang mengubah nama tabel, nama kelas, dan seluruh route API. Apakah penggantian nama diterima, atau nama lama dipertahankan demi pemakai luar yang mungkin belum diketahui? | Product/Domain Owner IGD + pemilik integrasi | `superseded` oleh `IGD-DEC-091` | — | `02-backend-architecture.md` bagian 2.3; `contracts/api-contract.md` bagian 6 |
+| `IGD-OQ-071` | Open Question | `IGD-DEC-086` menurunkan kewenangan unit dari pemetaan `MstServiceUnit` ke simpul organisasi. Bagaimana perilaku sistem untuk unit yang kolom pemetaannya **belum diisi**? Menolak semua orang menghentikan pelayanan; mengizinkan semua orang menghapus penjagaannya. Keduanya buruk | Security/Privacy owner + Product/Domain Owner IGD | `superseded` oleh `IGD-DEC-092` — **sementara**, pengesahan Security/Privacy owner masih ditunggu | — | `contracts/validation-matrix.md` bagian 7 aturan 3 |
+
+### Catatan tentang keempatnya
+
+`IGD-OQ-069` **tidak** memblokir apa pun. Tiga lainnya memblokir implementasi satu atau dua
+epic, tetapi **tidak** memblokir gelombang `MVP-0` dan `MVP-1`.
+
+Ketiganya juga **tidak** memblokir penyusunan desain, karena bentuk teknisnya sudah dirancang
+lengkap beserta alternatifnya; yang ditunggu hanyalah pilihan owner di antara alternatif yang
+sudah tertulis.
+
+---
+
+## Penetapan Kepemilikan Modul 2026-08-24
+
+| Field | Value |
+| --- | --- |
+| Tanggal | 24 Agustus 2026 |
+| Ditetapkan lewat | Pernyataan langsung pemegang peran pada sesi kerja |
+| Backend SHA | `f69e9e483052845d11c91d8b7bbdce33c4acc8d8` |
+
+### Decision log
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-089` | Decision | **Rizki Gunawan** adalah pemegang modul `EmergencyInstallationManagement` sekaligus Product/Domain Owner modul IGD. Penetapan ini mengisi kolom `owners` dan `approved_by` yang selama ini berbunyi "pemegang sementara, nama belum diisi" pada `IGD-DEC-046`, pada manifest, dan pada seluruh keputusan `IGD-DEC-067` sampai `IGD-DEC-088` | Rizki Gunawan | `approved` — pernyataan pemegang peran itu sendiri, sehingga tidak memerlukan pihak ketiga | Rizki Gunawan, 24 Agustus 2026 | Pernyataan pengguna 24 Agustus 2026; dikuatkan identitas git `Rizki Gunawan <101787601+Rizki0720@users.noreply.github.com>` dan riwayat commit pada `Areas/HealthServices/EmergencyInstallationManagement/` |
+
+### Apa yang berubah karena penetapan ini
+
+`IGD-DEC-046` menetapkan Product/Domain Owner sebagai "pemegang sementara" tanpa nama.
+`IGD-DEC-089` mengisi nama itu. `IGD-DEC-046` **tidak** dibatalkan; ia hanya kini punya orang.
+
+### Batas kewenangan yang perlu ditegaskan
+
+Penetapan ini **hanya** mencakup modul `EmergencyInstallationManagement`. Ia **tidak**
+menjadikan pemegangnya berwenang atas:
+
+| Peran | Keadaan | Dibutuhkan untuk |
+| --- | --- | --- |
+| Pemilik `ClinicalManagement` | **Belum ditunjuk** | `IGD-DEC-068`, `IGD-DEC-080` |
+| Pemilik `PharmacyManagement` | **Belum ditunjuk** | `IGD-DEC-068`, `IGD-DEC-078` |
+| Pemilik `LaboratoryManagement` | **Belum ditunjuk** | `IGD-DEC-087` |
+| Pemilik Master Data | **Belum ditunjuk** | `IGD-DEC-086` |
+| Registration API owner | **Belum ditunjuk** | `IGD-DEC-074`, `IGD-DEC-075`, `IGD-DEC-084` |
+| Finance owner | **Belum ditunjuk** | `IGD-DEC-076`, `IGD-DEC-077` |
+| Clinical Governance | **Belum ditunjuk** | Sebelas keputusan klinis |
+| Nursing authority | **Belum ditunjuk** | Lima keputusan keperawatan |
+| Security/Privacy owner | **Belum ditunjuk** | `IGD-DEC-080`, `IGD-DEC-081`, `IGD-DEC-086`, `IGD-OQ-071` |
+| Integration owner | **Belum ditunjuk** | `IGD-DEC-085` |
+| Product/Domain Owner Rawat Inap | **Muhammad Hamzah** | `IGD-DEC-069`, `071`, `073`, `075`, `077`, `078` |
+| Pemilik Corporate/HR | **Belum ditunjuk** | `IGD-DEC-081`, `IGD-DEC-086` |
+
+### Dua keputusan yang kini dapat disetujui tanpa menunggu siapa pun
+
+Dari dua puluh dua keputusan `IGD-DEC-067` sampai `IGD-DEC-088`, hanya dua yang seluruh
+approver-nya kini terisi:
+
+| ID | Approver yang dibutuhkan | Keadaan |
+| --- | --- | --- |
+| `IGD-DEC-067` | Product/Domain Owner IGD **dan** pemilik `EmergencyInstallationManagement` | **Keduanya Rizki Gunawan.** Dapat disetujui |
+| `IGD-DEC-088` | Product/Domain Owner IGD saja | **Rizki Gunawan.** Dapat disetujui |
+
+Dua puluh keputusan lain tetap `draft` karena masing-masing masih menunggu sedikitnya satu
+peran yang belum ditunjuk.
+
+### Akibat lintas modul
+
+`IGD-DEC-067` adalah jawaban yang ditunggu `RWI-OQ-034` dan `DEC-INP-002` pada blueprint
+Rawat Inap. Kedua butir itu berbunyi: *"Apakah pemilik `EmergencyInstallationManagement`
+menyetujui bahwa disposisi `RANAP` menutup kunjungan IGD dan membuat kunjungan rawat inap
+baru, serta menyetujui penanda `ClosesEmergencyVisit` mulai benar-benar dijalankan?"*
+
+Selama ini keduanya berstatus `OPEN` dengan keterangan "pemilik belum ditunjuk", dan slice
+`INP-S09` milik Rawat Inap berhenti karenanya. Dengan `IGD-DEC-089`, pemiliknya kini ada.
+
+**Persetujuan atas `IGD-DEC-067` belum dicatat pada pass ini.** Penetapan kepemilikan adalah
+pernyataan peran, bukan persetujuan atas isi keputusan. Keduanya sengaja dipisahkan supaya
+tidak ada keputusan yang dianggap disetujui hanya karena pemiliknya sudah bernama.
+
+---
+
+## Approval 2026-08-24 — Rizki Gunawan
+
+| Field | Nilai |
+| --- | --- |
+| Yang menyetujui | **Rizki Gunawan**, Product/Domain Owner IGD sekaligus pemilik `EmergencyInstallationManagement`, ditetapkan `IGD-DEC-089` |
+| Tanggal | 24 Agustus 2026 |
+| Bentuk persetujuan | Pernyataan langsung pada sesi kerja, sesudah membaca teks lengkap kedua keputusan beserta konsekuensinya |
+| Backend SHA | `f69e9e483052845d11c91d8b7bbdce33c4acc8d8` |
+
+### 1. Yang menjadi `approved` penuh
+
+Dua keputusan yang seluruh peran approver-nya dipegang Rizki Gunawan:
+
+| ID | Isi ringkas | Akibat |
+| --- | --- | --- |
+| `IGD-DEC-067` | Disposisi `RANAP` menutup kunjungan IGD dan membuat kunjungan rawat inap baru sebagai satu tindakan utuh; catatan klinis IGD tetap di kunjungan IGD; `ClosesEmergencyVisit` mulai dijalankan | **Menjawab `RWI-OQ-034` dan `DEC-INP-002`.** Slice `INP-S09` milik Rawat Inap tidak lagi terhalang oleh pihak IGD |
+| `IGD-DEC-088` | Slice pelengkapan `LabOrder` menjadi dependency eksternal; tidak dijadwalkan dan tidak dikerjakan tim IGD; ditinjau berkala | Roadmap IGD berjalan penuh tanpa modul laboratorium matang |
+
+### 2. Persetujuan sisi IGD atas dua puluh keputusan lain
+
+Pemilik modul menyatakan menyetujui **seluruh** keputusan pada revisi ini. Persetujuan itu
+dicatat sebagai **persetujuan sisi IGD**, dan **tidak** menjadikan keputusan-keputusan berikut
+`approved` penuh.
+
+Alasannya: setiap keputusan di bawah menuntut sedikitnya satu peran yang **tidak dipegang**
+Rizki Gunawan. Seseorang tidak dapat menyetujui atas nama peran yang bukan miliknya, betapa
+pun jelas maksudnya.
+
+| ID | Peran yang masih ditunggu |
+| --- | --- |
+| `IGD-DEC-068` | Pemilik `ClinicalManagement`, pemilik `PharmacyManagement`, Product/Domain Owner Rawat Inap |
+| `IGD-DEC-069` | Product/Domain Owner Rawat Inap |
+| `IGD-DEC-070` | Nursing authority, Clinical Governance |
+| `IGD-DEC-071` | Product/Domain Owner Rawat Inap |
+| `IGD-DEC-072` | Clinical Governance, Nursing authority |
+| `IGD-DEC-073` | Clinical Governance, Product/Domain Owner Rawat Inap |
+| `IGD-DEC-074` | Registration API owner |
+| `IGD-DEC-075` | Registration API owner, Product/Domain Owner Rawat Inap |
+| `IGD-DEC-076` | Finance owner |
+| `IGD-DEC-077` | Product/Domain Owner Rawat Inap, Finance owner |
+| `IGD-DEC-078` | Clinical Governance, pemilik `PharmacyManagement`, Product/Domain Owner Rawat Inap |
+| `IGD-DEC-079` | Nursing authority, Clinical Governance |
+| `IGD-DEC-080` | Security/Privacy owner, Clinical Governance |
+| `IGD-DEC-081` | Security/Privacy owner, pemilik Corporate/HR |
+| `IGD-DEC-082` | Clinical Governance |
+| `IGD-DEC-083` | Nursing authority, Clinical Governance |
+| `IGD-DEC-084` | Registration API owner |
+| `IGD-DEC-085` | Nursing authority, Clinical Governance, Integration owner |
+| `IGD-DEC-086` | Pemilik Corporate/HR, pemilik Master Data, Security/Privacy owner |
+| `IGD-DEC-087` | Pemilik `LaboratoryManagement`, Clinical Governance |
+
+**Arti praktisnya.** Sisi IGD sudah selesai berdebat. Yang tersisa **bukan** lagi pertanyaan
+"apa aturannya", melainkan "siapa yang berwenang mengiyakan". Setiap keputusan di atas tinggal
+menunggu tanda tangan, bukan menunggu keputusan baru.
+
+### 3. Yang wajib disampaikan kepada pemilik modul Rawat Inap
+
+`IGD-DEC-067` menjadi `approved` oleh pemilik `EmergencyInstallationManagement`. Ini adalah
+jawaban yang ditunggu dua butir pada blueprint `RWI-BP-001`:
+
+| Butir milik Rawat Inap | Keadaan sebelumnya | Keadaan sesudah |
+| --- | --- | --- |
+| `RWI-OQ-034` | `OPEN` — "pemilik `EmergencyInstallationManagement` belum ditunjuk" | **Terjawab** oleh `IGD-DEC-067`, disetujui Rizki Gunawan 24 Agustus 2026 |
+| `DEC-INP-002` | `OPEN`, memblokir slice `INP-S09` | **Terjawab**; `INP-S09` tidak lagi terhalang pihak IGD |
+
+Blueprint Rawat Inap **tidak diubah** oleh pass ini. Mengubah dokumen milik modul lain
+melanggar batas kepemilikan yang justru sedang ditegakkan. Pembaruan `RWI-OQ-034` dan
+`DEC-INP-002` adalah pekerjaan Product/Domain Owner Rawat Inap, dengan catatan ini sebagai
+buktinya.
+
+Yang perlu disampaikan bersamaan, karena ketiganya konsekuensi dari aturan yang ia kunci
+sendiri:
+
+1. `RWI-RULE-026` aturan 6 perlu diperluas ke kunjungan bertipe `Emergency` — `IGD-DEC-068`;
+2. `compatibility_impact` pada manifest tidak lagi dapat berbunyi "nol perubahan kolom pada
+   tabel modul lain" — `IGD-DEC-075`;
+3. `InpBedPlacement` membaca waktu tiba dari catatan kepergian IGD — `IGD-DEC-071`.
+
+### 4. Yang tidak berubah oleh approval ini
+
+| Hal | Keadaan |
+| --- | --- |
+| Sembilan belas peran yang belum ditunjuk | Tetap belum ditunjuk |
+| `IGD-OQ-068`, `IGD-OQ-070`, `IGD-OQ-071` | Tetap terbuka dan tetap memblokir implementasi tiga epic |
+| `IGD-UNK-01` sampai `IGD-UNK-07` | Tetap hanya dapat dijawab kueri basis data |
+| Status blueprint revision `5` | Tetap `draft` |
+| Otorisasi menjalankan migration | Tetap belum diberikan |
+| Gerbang kemampuan rumah sakit | Tetap belum terpenuhi |
+
+Blueprint **tidak** naik menjadi `approved` hanya karena dua keputusan di dalamnya disetujui.
+
+---
+
+## Amendment Pass 2026-08-24 (kedua) — penutupan tiga pertanyaan memblokir
+
+Pass ini menutup `IGD-OQ-068`, `IGD-OQ-070`, dan `IGD-OQ-071` — tiga pertanyaan yang lahir
+dari desain revision `5` dan memblokir implementasi `EPIC IGD-05`, `EPIC IGD-06`, dan
+`EPIC IGD-08`. Pass dijalankan atas permintaan Rizki Gunawan setelah `/qv-design` selesai.
+
+`IGD-OQ-069` **tidak** ditanyakan pada pass ini karena tidak memblokir apa pun.
+
+### Bukti source yang dikumpulkan lebih dulu
+
+Dua dari tiga pertanyaan memuat asumsi yang dapat diperiksa dari source, sehingga tidak
+ditanyakan kepada pengguna. Diperiksa pada backend `f69e9e48` dan frontend `96a91201`.
+
+| Kode | Yang diperiksa | Hasil |
+| --- | --- | --- |
+| `IGD-EV-090` | Pemanggil route `emergency-transfers` di frontend | **Satu** pemanggil nyata: `TRANSFER_URL` pada `emergency-assessment-slice.jsx:16`. Satu kecocokan lain hanya komentar pada `emergency-assessment-constant.jsx:432` |
+| `IGD-EV-091` | URL halaman yang memuat kata `transfer` | **Nol.** Tab perpindahan berada di dalam `emergency-assessment/[slug]`, sehingga tidak ada bookmark petugas yang rusak oleh penggantian nama route |
+| `IGD-EV-092` | Berkas backend yang menyebut `EmergencyTransfer` | **25 kecocokan, 9 berkas nyata**: controller, DTO, enum, model, `TrxEmergencyVisit`, dua service, konfigurasi EF, `Program.cs`, `ApplicationDbContext`. Enam belas sisanya adalah `*.Designer.cs` dan snapshot migration yang dihasilkan tooling dan tidak disentuh manual |
+| `IGD-EV-093` | Kolom pemetaan organisasi pada `MstServiceUnit` | **Belum ada sama sekali.** `MstServiceUnit.cs` tidak memuat `OrganizationUnitId` maupun padanannya. Konsekuensinya: pada hari migration mendarat, **100% unit layanan berstatus belum dipetakan** — bukan sebagian kecil |
+
+`IGD-EV-093` mengubah bentuk `IGD-OQ-071` secara mendasar dan disampaikan kepada pengguna
+sebelum ia menjawab.
+
+### Decision log pass berjalan
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-068` | Open Question | Bentuk penyimpanan kepergian pasien: kolom status saja, tabel kejadian saja, atau keduanya | Product/Domain Owner IGD + Clinical Governance | `superseded` oleh `IGD-DEC-090` | — | `02-backend-architecture.md` bagian 2.4 |
+| `IGD-DEC-090` | Decision | Kepergian pasien disimpan dalam **dua lapis**. Lapis pertama: dua kolom status pada `TrxEmergencyDeparture` (`PhysicalStatus`, `HandoverStatus`) yang tetap ada dan tetap cepat dibaca untuk daftar pantau dan penyaring — sesuai `IGD-DEC-070`. Lapis kedua: `TrxEmergencyDepartureEvent` yang bersifat **tambah-saja** dan menyimpan setiap perubahan beserta pelaku, waktu server, waktu kejadian sebenarnya, alasan, koreksi, dan pembalikan. Kolom status adalah **turunan** dari kejadian terakhir yang berlaku, bukan sumber kebenaran tandingan; setiap penulisan kejadian memperbarui kolom status **dalam transaksi yang sama**. Baris kejadian **tidak pernah** ditimpa maupun dihapus — koreksi ditulis sebagai baris baru yang menunjuk baris lama lewat `SupersedesEventId`, dan baris lama ditandai tidak-efektif | Product/Domain Owner IGD, dengan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna jelas; approval Clinical Governance belum tercatat | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-068`; **memperluas `IGD-DEC-070`, tidak membatalkannya**; menegakkan `IGD-DEC-065`, `IGD-DEC-066`, `IGD-DEC-080`, `IGD-DEC-085` |
+| `IGD-OQ-070` | Open Question | Apakah `TrxEmergencyTransfer` diganti nama menjadi `TrxEmergencyDeparture` | Product/Domain Owner IGD + pemilik integrasi | `superseded` oleh `IGD-DEC-091` | — | `02-backend-architecture.md` bagian 2.3 |
+| `IGD-DEC-091` | Decision | Penggantian nama **diterima penuh**. `TrxEmergencyTransfer` menjadi `TrxEmergencyDeparture`; kelas, enum, service, controller, DTO, dan konfigurasi EF ikut berganti; grup route `emergency-transfers` menjadi `emergency-departures`. **Tidak ada** route usang yang dipertahankan. Migration wajib memakai `RENAME TABLE`, **bukan** drop-create, sehingga nol baris data hilang dan langkah mundurnya sekadar `RENAME` balik. Dasarnya: nama lama menyesatkan setelah `IGD-DEC-069` mengubah artinya — pasien pulang dan pasien meninggal juga tercatat pada tabel ini, dan tak satu pun "pindah" | Product/Domain Owner IGD, dengan pemilik integrasi sebagai approver akhir | `draft` — pilihan pengguna jelas; approval pemilik integrasi belum tercatat | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-070`; berdasar `IGD-EV-090`, `IGD-EV-091`, `IGD-EV-092` |
+| `IGD-OQ-071` | Open Question | Perilaku unit layanan yang kolom simpul organisasinya belum diisi | Security/Privacy owner + Product/Domain Owner IGD | `superseded` oleh `IGD-DEC-092` | — | `contracts/validation-matrix.md` bagian 7 aturan 3 |
+| `IGD-DEC-092` | Decision | Unit layanan yang kolom simpul organisasinya kosong **menolak** akses — fail-closed. Tersedia **jalan keluar beralasan** yang mencatat nama pengguna, unit, waktu, dan alasan, mengikuti pola `IGD-DEC-084`. Pelayanan klinis darurat **tidak pernah** diblokir aturan ini, sesuai `IGD-DEC-086` butir 7. **Syarat yang melekat pada keputusan ini:** karena `IGD-EV-093` membuktikan seluruh unit kosong pada hari migration, penjagaan hanya boleh dinyalakan **setelah** pengisian pemetaan dinyatakan selesai oleh pemilik Master Data. Jalan keluar beralasan diperuntukkan bagi **sisa celah**, bukan bagi keadaan kosong massal; bila dipakai setiap hari oleh semua orang, catatannya berhenti menjadi bukti dan berubah menjadi derau | Product/Domain Owner IGD **sebagai keputusan sementara**; Security/Privacy owner sebagai approver akhir | `draft` — **sementara**. Pemilik sah pertanyaan ini adalah Security/Privacy owner yang **belum ditunjuk**. Keputusan ini berlaku sebagai arah kerja, dan **wajib ditinjau ulang** begitu Security/Privacy owner ada | — | Jawaban pengguna 24 Agustus 2026, pilihan B untuk `IGD-OQ-071`; syarat urutan ditambahkan atas dasar `IGD-EV-093` |
+
+### Penutupan Amendment Pass 2026-08-24 (kedua)
+
+**Yang terbuka blokirnya.**
+
+| Epic | Sebelumnya | Sekarang |
+| --- | --- | --- |
+| `EPIC IGD-05` | Terblokir `IGD-OQ-068` dan `IGD-OQ-070` | **Tidak terblokir keputusan.** Tetap menunggu `IGD-UNK-03` untuk gelombang `MVP-3` |
+| `EPIC IGD-06` | Terblokir `IGD-OQ-068` | **Tidak terblokir keputusan** |
+| `EPIC IGD-08` | Terblokir `IGD-OQ-071` | **Tidak terblokir keputusan.** Tetap menunggu pengisian data pemetaan, dan pengesahan Security/Privacy owner |
+
+**Yang tidak berubah.**
+
+| Hal | Keadaan |
+| --- | --- |
+| `EPIC IGD-09` | Tetap `OPEN DECISION`. Pemilik `ClinicalManagement` dan `PharmacyManagement` tetap belum ditunjuk |
+| `IGD-OQ-069` | Tetap terbuka. Tidak memblokir apa pun |
+| `IGD-OQ-067`, `IGD-OQ-037`, `IGD-OQ-038` | Tetap terbuka |
+| `IGD-UNK-01` sampai `IGD-UNK-07` | Tetap hanya dapat dijawab kueri basis data bersama |
+| Sembilan belas peran yang belum ditunjuk | Tetap belum ditunjuk |
+| Status blueprint revision `5` | Tetap `draft` |
+| Otorisasi menjalankan migration | Tetap belum diberikan |
+| Gerbang kemampuan rumah sakit | Tetap belum terpenuhi |
+
+**Catatan atas bagian "Approval 2026-08-24" di atas.** Baris yang berbunyi *"`IGD-OQ-068`,
+`IGD-OQ-070`, `IGD-OQ-071` tetap terbuka dan tetap memblokir implementasi tiga epic"* benar
+pada saat pass itu ditulis. Pass ini menggantikannya. Baris tersebut sengaja **tidak dihapus**
+karena merupakan catatan keadaan pada pass sebelumnya.
+
+**Yang tidak dikerjakan pass ini.**
+
+| Yang tidak dikerjakan | Alasan |
+| --- | --- |
+| Menandai keputusan `approved` | Approval adalah tindakan manusia. `IGD-DEC-090`, `091`, `092` seluruhnya `draft` |
+| Menyunting `02-backend-architecture.md`, `04-prd-to-mvp.md`, dan contracts | Keluaran `/qv-design`, bukan `/qv-grill`. Ketiga keputusan ini **membenarkan** isi yang sudah tertulis di sana, sehingga tidak ada yang perlu diubah — hanya status pertanyaannya |
+| Source code, migration, atau UI | Di luar wewenang tahap wawancara |
+| Roadmap dan task | Keluaran `/qv-plan` |
+
+---
+
+## Approval sempit 2026-08-24 — gerbang `/qv-plan` untuk `EPIC IGD-03`
+
+Rizki Gunawan, Product/Domain Owner IGD (`IGD-DEC-089`), memberi approval **terbatas** agar
+`/qv-plan` dapat berjalan untuk gelombang `MVP-0`. Approval ini sengaja dipersempit ke bagian
+kontrak yang benar-benar dibutuhkan `EPIC IGD-03`, bukan ke seluruh kontrak `0.3.0`.
+
+### Decision log
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-093` | Approval | `contracts/state-transition-matrix.md` bagian 1, 1.1, dan 1.2 — seluruhnya mengenai `EmergencyVisitStatus` — beserta `contracts/validation-matrix.md` bagian 2 aturan 4 dan 5 dinyatakan **`approved`** pada versi `0.3.0`. Bagian lain kedua kontrak, dan tiga kontrak sisanya, **tetap `draft`**. Dasar kewenangan: seluruh enum dan tabel yang disentuh bagian tersebut — `EmergencyVisitStatus`, `TrxEmergencyVisit`, `TrxEmergencyTriage` — milik `EmergencyInstallationManagement`, sehingga tidak memerlukan approver modul lain | Rizki Gunawan | **`approved`** | **Rizki Gunawan / 2026-08-24** | Jawaban pengguna 24 Agustus 2026, pilihan A pada gerbang `/qv-plan` |
+
+### Yang dibuka approval ini
+
+`/qv-plan` boleh menghasilkan task untuk `EPIC IGD-03` — `FR-IGD-013`, `FR-IGD-014`,
+`FR-IGD-015` — dengan kontrak terkunci pada hash yang tercatat di roadmap revision `2`.
+
+### Yang **tidak** dibuka approval ini
+
+| Hal | Alasan |
+| --- | --- |
+| `EPIC IGD-05`, `06`, `07`, `08` | Kontraknya masih `draft` meski keputusannya sudah ada |
+| Dua isi `MVP-0` selain `EPIC IGD-03` | Master kelas pasien IGD dan pemetaan unit ke simpul organisasi menyentuh `MstServiceUnit` dan data master milik **Master Data**, yang pemiliknya belum ditunjuk |
+| Otorisasi menjalankan migration | Tetap belum diberikan. `EPIC IGD-03` memang tidak membutuhkannya |
+| Status blueprint revision `5` | Tetap `draft` |
+
+### Temuan yang mengubah bukti acceptance
+
+`QuilvianSystemBackend.Tests` **ada** di dalam solution — project xUnit dengan
+`Microsoft.EntityFrameworkCore.InMemory`, ber-`ProjectReference` ke project utama. Dicatat
+sebagai `IGD-EV-094`.
+
+Ini membantah dua catatan yang beredar: `NewQuilvianSystemBackend/CLAUDE.md` yang menyatakan
+solution *"hanya berisi satu project — tidak ada test project sama sekali"*, dan catatan pada
+laporan-laporan `BE-IGD-*` sebelumnya yang menyimpulkan `AT-IGD-*` tidak dapat dijalankan.
+
+Akibatnya, butir 1 Definition of Done (`04-prd-to-mvp.md` bagian 6) — *"seluruh functional
+requirement gelombangnya punya test yang lulus"* — **dapat dipenuhi** untuk `EPIC IGD-03`,
+dan roadmap revision `2` menuntutnya sebagai bukti, bukan mengecualikannya.

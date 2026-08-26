@@ -4,164 +4,120 @@
 
 ```yaml
 module_id: igd
-roadmap_revision: 1
+roadmap_revision: 2
+wave: MVP-0
 status: DRAFT
+generated_at: "2026-08-24"
 input_revisions:
-  blueprint-manifest.md: 4
-  00-interview-decisions.md: 4
-  01-existing-capability-map.md: 2
+  blueprint-manifest.md: 5
+  00-interview-decisions.md: "91 keputusan, sampai IGD-DEC-093"
+  01-existing-capability-map.md: 3
+  04-prd-to-mvp.md: 5
 contract_versions:
-  - "API 0.2.0"
-  - "State 0.2.0"
-  - "Validation 0.2.0"
-  - "Integration 0.2.0"
-  - "Permission/Audit 0.2.0"
+  - "State 0.3.0 — bagian 1, 1.1, 1.2 APPROVED"
+  - "Validation 0.3.0 — bagian 2 aturan 4-5 APPROVED"
+  - "API 0.3.0 — draft, tidak dipakai"
+  - "Integration 0.3.0 — draft, tidak dipakai"
+  - "Permission/Audit 0.3.0 — draft, tidak dipakai"
 source_commits:
-  backend: "e5331a015fa416a89454b435de0014455f0326d8"
-  frontend: "08c84d371ed90640189ce1758019184b0a955e13"
+  backend: "f69e9e483052845d11c91d8b7bbdce33c4acc8d8"
+  frontend: "96a9120111f6acc6b7c0f37973ea0c717ba41f17"
+supersedes: "roadmap/archive/revision-1/requirement-traceability.md"
 ```
 
-Dokumen ini menjawab satu pertanyaan: **setiap keputusan yang sudah diambil, dikerjakan oleh
-task mana dan dibuktikan oleh test mana.** Kalau ada baris yang kolom task atau kolom test-nya
-kosong, itu bukan kelalaian penulisan, melainkan temuan yang memang harus terlihat.
+Dokumen ini menelusuri **hanya** gelombang `MVP-0`. Penelusuran task `BE-IGD-001`…`016` dan
+`FE-IGD-001`…`011` ada di `roadmap/archive/revision-1/requirement-traceability.md`.
 
 ---
 
-## 1. Keputusan yang tertutup roadmap ini
+## 1. Rantai penuh: requirement → keputusan → kontrak → task → uji
 
-| Requirement | Decision ID | Design/ERD | Contract | Backend task | Frontend task | Test/bukti | Status |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Modul IGD dapat dipanggil saat aplikasi berjalan | `CAP-16` | `01-existing-capability-map.md#capability-register` | API `0.2.0` | `BE-IGD-001` | — | Build lulus + penelusuran constructor lengkap ([laporan](../../../task/report/be-igd-001-registrasi-service-igd.md)); test aktivasi controller **belum ada** | In progress — kode terdaftar, bukti runtime tertunda |
-| Target waktu yang belum diatur tidak dianggap nol menit | `IGD-DEC-027`, `IGD-DEC-035` | `contracts/validation-matrix.md#2-triage` | Validation `0.2.0` | `BE-IGD-002` | `FE-IGD-003` | Build lulus + migration terbentuk ([laporan](../../../task/report/be-igd-002-target-waktu-boleh-kosong.md)); `AT-IGD-011` dan `AT-IGD-012` **belum ada** | In progress — kode dan migration selesai, uji berjalan tertunda; penyimpangan 1 migration menunggu pengesahan owner |
-| Data master IGD tersedia sehingga modul dapat dipakai | `IGD-DEC-047`, `IGD-DEC-048` | `02-backend-architecture.md#7-rencana-data-master-awal` | — | `BE-IGD-003` | `FE-IGD-004`, `FE-IGD-008` | Build lulus ([laporan](../../../task/report/be-igd-003-seeder-master-data-igd.md)); `AT-IGD-070` dan `AT-IGD-073` **belum ada** | Blocked sebagian — 50 baris siap di-seed, baris Hitam terhalang `CK_MstEmergencyTriageLevel_Level`; menunggu keputusan owner |
-| Retriage append-only dan menunjuk penilaian sebelumnya | `IGD-DEC-004`, `IGD-DEC-048` | `erd/emergency-episode.md` | API `0.2.0`, State `0.2.0` | `BE-IGD-004` | `FE-IGD-004` | Build lulus ([laporan](../../../task/report/be-igd-004-retriage-append-only.md)); `AT-IGD-013` sampai `AT-IGD-015` **belum ada** | In progress — endpoint selesai, uji berjalan tertunda; `CG-07` (`PUT` masih dapat menimpa) sengaja belum ditutup |
-| Pelampauan target respons tercatat pada penilaian | `IGD-DEC-027`, `IGD-GAP-007` | `erd/data-dictionary.md#62` | — | `BE-IGD-005` | — | Build lulus; migration tulisan tangan **terbukti setara keluaran tooling** (migration verifikasi menghasilkan `Up`/`Down` kosong); kolom dan index terverifikasi di database lokal **dan** `QuilvianNewDevTim01` ([laporan](../../../task/report/be-igd-005-penanda-pelampauan-sla.md)) | In progress — kriteria 1, 2, 3 terbukti dan migrasi maju sudah diterapkan; migrasi mundur belum diuji dan kriteria 4 belum dapat dibuktikan karena `TrxEmergencyTriage` masih nol baris di kedua database |
-| Sistem menandai sendiri pasien yang terlambat ditangani | `IGD-DEC-027`, `IGD-GAP-007` | `contracts/integration-contract.md#proses-terjadwal-di-dalam-aplikasi` | Integration `0.2.0` | `BE-IGD-006` | — | Hosted service + pemindaian selesai; **build Release lulus 19 Agu 2026 (0 error)**, `AT-IGD-020` sampai `AT-IGD-023` **belum ada** | In progress — kode selesai dan terdaftar, frekuensi dapat dikonfigurasi; kompilasi terbukti lulus, eksekusi runtime belum diamati |
-| Daftar pasien yang melampaui batas dapat diambil | `IGD-DEC-027` | `contracts/api-contract.md` | API `0.2.0` | `BE-IGD-007` | `FE-IGD-003` | Endpoint `GET /sla-breaches` selesai; **build Release lulus 19 Agu 2026 (0 error)**, `AT-IGD-024` **belum ada** | In progress — kode selesai, kolom sensitif dikecualikan dari balasan; kompilasi terbukti lulus |
-| Penyelesaian klinis terpisah dari penetapan tindak lanjut | `IGD-DEC-049`, `IGD-GAP-001` | `contracts/state-transition-matrix.md#1` | State `0.2.0` | `BE-IGD-008` | `FE-IGD-005` | Enum + perilaku `VisitCompletedAt` selesai ([laporan](../../../task/report/be-igd-008-009-penyelesaian-kunjungan.md)); **build Release lulus 19 Agu 2026 (0 error)**, `AT-IGD-035` **belum ada** | In progress — kode selesai; `FE-IGD-005` **sudah rilis lebih dulu** (peta status frontend menangani `Completed = 9` dan nilai tak dikenal), sehingga gate urutan rilis terpenuhi |
-| Kunjungan hanya selesai bila closure gate terpenuhi | `IGD-DEC-049` | `contracts/validation-matrix.md#3` | API `0.2.0`, Validation `0.2.0` | `BE-IGD-009` | `FE-IGD-006` | Endpoint `PATCH /{id}/complete` + closure gate selesai ([laporan](../../../task/report/be-igd-008-009-penyelesaian-kunjungan.md)); **build Release lulus 19 Agu 2026 (0 error)**, `AT-IGD-030`–`034` **belum ada** | In progress — kode selesai; ketidakcocokan controller ditutup ke `EmergencyVisitController` |
-| Billing yang belum final tidak menahan penyelesaian klinis | `IGD-DEC-021` | `contracts/validation-matrix.md#3` | Validation `0.2.0` | `BE-IGD-009` | `FE-IGD-006` | Billing sengaja tidak diperiksa sama sekali ([laporan](../../../task/report/be-igd-008-009-penyelesaian-kunjungan.md)); `AT-IGD-031` **belum ada** | In progress — ketiadaan pemeriksaan billing disengaja sesuai `IGD-DEC-021` |
-| Pemeriksaan akses mengenal unit dan sumber daya | `IGD-DEC-026`, `IGD-GAP-006` | `contracts/permission-audit-matrix.md#3` | Permission `0.2.0` | `BE-IGD-010` | `FE-IGD-009` | Hanya `AT-IGD-041` yang ditegakkan ([laporan](../../../task/report/be-igd-010-scope-akses-unit.md)); **build Release lulus 19 Agu 2026 (0 error)** | **Blocked** — tidak ada relasi pengguna ke unit pelayanan di model mana pun; scope unit butuh `/design-business-module` |
-| Akses darurat klinis tercatat dan berbatas waktu | `IGD-DEC-050`, `IGD-FACT-010` | `contracts/permission-audit-matrix.md#rincian-kebutuhan-3` | Permission `0.2.0` | `BE-IGD-011` | — | Belum dikerjakan | **Blocked** — bergantung `BE-IGD-010` yang terhalang relasi pengguna ke unit; juga butuh desain baru dan security/privacy owner |
-| Kewenangan SuperAdmin dipisahkan menurut jenis endpoint | `IGD-DEC-050`, `IGD-CONFLICT-003` | `contracts/permission-audit-matrix.md#rincian-kebutuhan-1` | Permission `0.2.0` | `BE-IGD-012` | — | Belum dikerjakan | **Blocked** — bergantung `BE-IGD-011`; menutup bypass tanpa jalur darurat memindahkan risiko ke keselamatan pasien |
-| Modul IGD tidak meniru penyimpangan struktur folder | `DEC-RSK-003` | `02-backend-architecture.md#4-arsitektur-folder` | — | `BE-IGD-013` | — | Rename terverifikasi nol referensi tersisa ([laporan](../../../task/report/be-igd-013-rapikan-struktur-folder.md)); **build Release lulus 19 Agu 2026 (0 error)**, regression **tidak ada** | In progress — 2 dari 3 bagian selesai; penyelarasan namespace master IGD ditahan karena arah perapiannya ambigu |
-| Layar menangani nilai status kunjungan yang baru | `IGD-DEC-049` | `03-frontend-architecture.md#7` | State `0.2.0` | — | `FE-IGD-005` | Peta status `EmergencyVisitStatus` (termasuk `Completed = 9`), `EmergencyRegistrationStatus`, dan `EmergencyTriageStatus` selesai; nilai tak dikenal dikembalikan apa adanya lewat `resolveEnumLabel`; lint bersih dan `next build` lulus; test unit peta status **belum ada** | In progress — kriteria 1-3 terpenuhi di kode dan **sudah rilis sebelum** `BE-IGD-008`; uji unit tertunda |
-| Perawat melihat antrean triage beserta penanda terlambat | `IGD-DEC-027` | `03-frontend-architecture.md#2-layar-yang-dibutuhkan` | API `0.2.0` | `BE-IGD-007` | `FE-IGD-003` | Layar dua tab (antrean + pelampauan batas) selesai; warna kategori **sepenuhnya dari master** (`ColorHex`), target kosong ditampilkan sebagai `Target belum diatur` dan tidak dihitung terlambat maupun patuh; lint bersih, `next build` lulus (route `/triage-queue`); test komponen **belum ada** | In progress — kriteria 1-5 terpenuhi di kode, uji komponen tertunda |
-| Dokter dapat menyelesaikan kunjungan dari layar | `IGD-DEC-049` | `contracts/validation-matrix.md#3` | API `0.2.0` | `BE-IGD-009` | `FE-IGD-006` | Tombol + dialog konfirmasi selesai; tombol hanya muncul pada kunjungan `Disposed`; pesan 409 backend ditampilkan apa adanya; kirim ganda dijaga dua lapis (`actionLoading` + penjaga lokal); lint bersih, `next build` lulus; test komponen tiga jenis penolakan **belum ada** | In progress — kriteria 1-4 terpenuhi di kode; `FE-IGD-010` (halaman detail) belum ada sehingga aksi ditempatkan pada daftar kunjungan |
-| Frontend memakai tipe encounter canonical | `IGD-DEC-041`, `CAP-17` | `01-existing-capability-map.md#as-is-contract` | API `0.2.0` | — | `FE-IGD-001` | Test pembentukan payload | Planned |
-| Petugas dapat melihat pasien yang sedang di IGD | `IGD-DEC-046` | `03-frontend-architecture.md#2-layar-yang-dibutuhkan` | API `0.2.0` | — | `FE-IGD-002` | Layar + tabel selesai, lint bersih, `next build` lulus (route `/emergency-visits` terdaftar); test komponen tujuh keadaan **belum ada** | In progress — kode selesai, uji komponen tertunda |
-| Perawat mencatat pemantauan berkala tanpa duplikasi data klinis | `IGD-DEC-003` | `02-backend-architecture.md#1-kepemilikan-data` | API `0.2.0` | — | `FE-IGD-007` | Test komponen rujukan tanda vital | Planned |
-| Tindak lanjut terpisah dari eksekusi perpindahan | `IGD-DEC-005` | `contracts/state-transition-matrix.md#3` | State `0.2.0` | — | `FE-IGD-008`, `FE-IGD-009` | `AT-IGD-040`, `AT-IGD-042` | Planned |
-| Seluruh perjalanan pasien terlihat dalam satu halaman | `IGD-DEC-046` | `03-frontend-architecture.md#2-layar-yang-dibutuhkan` | API `0.2.0` | — | `FE-IGD-010` | Test komponen kegagalan sebagian | Planned |
-| Bukti penerimaan lintas-slice tersedia | seluruh `AT-IGD-*` | `testing/acceptance-test-matrix.md` | — | `BE-IGD-014` | — | Laporan per `AT-IGD-*` | Planned |
+| Requirement | Isi | Keputusan asal | Kontrak (bagian, status) | Task | Uji |
+| --- | --- | --- | --- | --- | --- |
+| `FR-IGD-013` | Penilaian ulang tidak mengembalikan status kunjungan ke `Triaged` | `IGD-GAP-014` | State `0.3.0` §1.1 baris 2 — **approved** | `BE-IGD-019`, `FE-IGD-012` | `AT-IGD-086` |
+| `FR-IGD-014` | Triase tidak dapat diselesaikan pada kunjungan yang sudah tertutup | `IGD-GAP-014` | Validation `0.3.0` §2 aturan 4 — **approved** | `BE-IGD-019`, `BE-IGD-020`, `FE-IGD-012` | `AT-IGD-087`, `AT-IGD-088` |
+| `FR-IGD-015` | Seluruh penulisan status kunjungan melewati pemeriksaan transisi | `IGD-CONF-05` | State `0.3.0` §1, §1.2 — **approved**; Validation `0.3.0` §2 aturan 5 — **approved** | `BE-IGD-018`, `BE-IGD-019`, `BE-IGD-021`, `BE-IGD-022` | `AT-IGD-089` |
+
+Tiga functional requirement, seluruhnya milik `EPIC IGD-03`. **Tidak ada** requirement
+gelombang ini yang tidak punya task, dan tidak ada task gelombang ini yang tidak punya
+requirement — kecuali `BE-IGD-017`, lihat bagian 3.
 
 ---
 
-## 1b. Progres delivery per 19 Agustus 2026
+## 2. Penelusuran terbalik: task → requirement
 
-Angka di bawah memisahkan dua hal yang sering dicampur: **kode yang selesai dan terbukti
-terkompilasi**, versus **DoD yang benar-benar terpenuhi** menurut aturan roadmap sendiri
-("Jangan menandai `Done` tanpa bukti").
+| Task | Requirement | Berkas yang disentuh | Uji |
+| --- | --- | --- | --- |
+| `BE-IGD-017` | **Tidak ada** — perbaikan build, lihat bagian 3 | `Program.cs` | `dotnet build` |
+| `BE-IGD-018` | `FR-IGD-015` (fondasi) | `Services/EmergencyVisitService.cs` | `AT-IGD-089` sebagian |
+| `BE-IGD-019` | `FR-IGD-013`, `FR-IGD-014`, `FR-IGD-015` | `Controllers/EmergencyTriageController.cs` 250, 356 | `AT-IGD-086`, `087`, `088` |
+| `BE-IGD-020` | `FR-IGD-014` | `Services/EmergencyTriageService.cs` 141–143 | `AT-IGD-088` |
+| `BE-IGD-021` | `FR-IGD-015` | `EmergencyObservationController.cs` 277/279/283, `EmergencyResuscitationController.cs` 295, `EmergencyDispositionController.cs` 335 | `AT-IGD-089` |
+| `BE-IGD-022` | `FR-IGD-015` | `EmergencyVisitController.cs` 433 | `AT-IGD-089` |
+| `FE-IGD-012` | `FR-IGD-013`, `FR-IGD-014` sisi tampilan | `emergency-triage-form-view.jsx`, `emergency-management-triage-slice.jsx` | `AT-IGD-086` sisi tampilan |
 
-### Bukti yang diperbarui hari ini
+---
 
-| Bukti | Hasil |
+## 3. Satu task tanpa requirement, dan alasannya
+
+`BE-IGD-017` tidak menelusuri ke functional requirement mana pun karena ia bukan pekerjaan
+produk. Ia memulihkan kompilasi yang rusak pada commit `f69e9e48`:
+
+```
+Program.cs(273,32): error CS0246: The type or namespace name 'LabOrderService'
+could not be found
+```
+
+Tanpa task ini, **tidak satu pun** requirement di bagian 1 dapat dibuktikan — `dotnet build`
+dan `dotnet test` sama-sama gagal, sehingga seluruh `AT-IGD-*` tidak dapat dijalankan.
+
+Ia dicantumkan dalam roadmap, bukan dikerjakan diam-diam, supaya jelas bahwa gelombang ini
+menyentuh satu berkas di luar `EmergencyInstallationManagement` dan butir 10 Definition of
+Done berlaku untuknya.
+
+---
+
+## 4. Keputusan yang dipakai gelombang ini
+
+| Keputusan | Status | Dipakai oleh |
+| --- | --- | --- |
+| `IGD-GAP-014` | Gap tercatat | `FR-IGD-013`, `FR-IGD-014` |
+| `IGD-CONF-05` | Konflik tercatat | `FR-IGD-015` |
+| `IGD-DEC-089` | **`approved`** — penetapan Product/Domain Owner | Kewenangan approval `IGD-DEC-093` |
+| `IGD-DEC-093` | **`approved`** — approval kontrak sempit | Seluruh gelombang |
+
+Keputusan `IGD-DEC-090`, `091`, dan `092` yang lahir 24 Agustus 2026 **tidak** dipakai
+gelombang ini. Ketiganya menyangkut `EPIC IGD-05`, `06`, dan `08` pada gelombang berikutnya.
+
+---
+
+## 5. Requirement yang **tidak** ditelusuri gelombang ini
+
+Enam puluh lima dari enam puluh delapan functional requirement `04-prd-to-mvp.md` berada di
+luar `MVP-0`.
+
+| Epic | Requirement | Gelombang | Penghalang tersisa |
+| --- | --- | --- | --- |
+| `EPIC IGD-01` | `FR-IGD-001`…`004` | `MVP-1` | Kontrak `draft`; master kelas pasien belum terisi |
+| `EPIC IGD-02` | `FR-IGD-005`…`012` | `MVP-1` | Kontrak `draft`; Registration API owner belum ditunjuk |
+| `EPIC IGD-04` | `FR-IGD-016`…`022` | `MVP-2` | Kontrak `draft` |
+| `EPIC IGD-05` | `FR-IGD-023`…`035` | `MVP-3` | Kontrak `draft`; `IGD-UNK-03` |
+| `EPIC IGD-06` | `FR-IGD-036`…`043` | `MVP-3` | Kontrak `draft` |
+| `EPIC IGD-07` | `FR-IGD-044`…`052` | `MVP-4` | Kontrak `draft` |
+| `EPIC IGD-08` | `FR-IGD-053`…`059` | `MVP-5` | Kontrak `draft`; data pemetaan belum terisi; pengesahan Security/Privacy owner |
+| `EPIC IGD-09` | `FR-IGD-060`…`064` | `POST-MVP` | Pemilik `ClinicalManagement` dan `PharmacyManagement` belum ditunjuk |
+| `EPIC IGD-10` | `FR-IGD-065`…`068` | `MVP-2` | Kontrak `draft` |
+
+Penghalang berupa "kontrak `draft`" seluruhnya dapat dicabut Rizki Gunawan sendiri untuk
+bagian yang tabelnya milik IGD, dengan cara yang sama seperti `IGD-DEC-093`. Penghalang berupa
+penunjukan pemilik **tidak** dapat.
+
+---
+
+## 6. Lubang yang diketahui
+
+| Lubang | Akibat |
 | --- | --- |
-| `dotnet build ./QuilvianSystemBackend.sln --configuration Release` | **Lulus — 0 error, 125 warning** (seluruh warning bersifat gaya dan sudah ada sebelum modul IGD) |
-| Pendaftaran DI | 8 dari 8 service IGD terdaftar (`AddScoped<Emergency*Service>`) |
-| Hosted service SLA | Terdaftar beserta `EmergencyTriageSlaMonitorOptions` yang dapat dikonfigurasi |
-| `FE-IGD-005` | **Sudah rilis** — gate urutan sebelum `BE-IGD-008` terpenuhi |
-
-Enam task yang sebelumnya tercatat "build belum dijalankan" (`BE-IGD-006` sampai `BE-IGD-013`)
-kini terbukti terkompilasi.
-
-### Persentase penyelesaian backend
-
-| Slice | Task | Kode selesai & terkompilasi | Catatan |
-| --- | --- | ---: | --- |
-| S0 — Modul hidup | `BE-IGD-001`, `002`, `003` | **95%** | `003` tertahan satu baris (kategori Hitam) oleh `CK_MstEmergencyTriageLevel_Level` |
-| S1 — Retriage | `BE-IGD-004` | **100%** | Celah `CG-07` sengaja tidak ditutup task ini |
-| S2 — Penanda SLA | `BE-IGD-005`, `006`, `007` | **100%** | Migrasi mundur belum diuji |
-| S3 — Penyelesaian kunjungan | `BE-IGD-008`, `009` | **100%** | Gate `FE-IGD-005` kini terpenuhi |
-| S4 — Hak akses | `BE-IGD-010`, `011`, `012` | **10%** | Terhalang: tidak ada relasi pengguna ke unit pelayanan di model mana pun |
-| S5 — Utang teknis | `BE-IGD-013`, `014` | **33%** | `013` 2 dari 3 bagian; `014` butuh proyek test |
-
-**Rata-rata tertimbang 14 task: ± 70% kode selesai dan terkompilasi.**
-
-**DoD terpenuhi penuh: 0 dari 14 task.** Alasannya struktural dan bukan kelalaian pelaksana:
-solution backend **tidak memiliki satu pun proyek test** (`QuilvianSystemBackend.sln` hanya
-memuat satu project aplikasi), sedangkan kolom *Verification* hampir setiap task mensyaratkan
-unit test atau integration test. Selama proyek test belum ada, tidak ada satu pun `AT-IGD-*`
-yang dapat dijalankan, sehingga tidak ada task yang boleh ditandai `Done`.
-
-### Yang menahan sisa 30%
-
-| Penahan | Task terdampak | Sifat penahan | Keputusan yang diminta |
-| --- | ---: | --- | --- |
-| Tidak ada proyek test di solution | seluruh 14 | Teknis — dapat dikerjakan | Setujui pembuatan proyek test sebagai task tersendiri |
-| Tidak ada relasi pengguna ↔ unit pelayanan | `010`, `011`, `012` | Desain — butuh `/design-business-module` | Tetapkan model penugasan unit bagi pengguna |
-| `CK_MstEmergencyTriageLevel_Level` menolak baris Hitam | `003` | Klinis + desain | Pilih satu dari tiga jalan keluar pada laporan `BE-IGD-003` |
-| Arah perapian namespace master IGD ambigu | `013` | Konvensi | Tegaskan cara A atau cara B |
-| Migrasi mundur belum diuji | `005` | Operasional | Basis data dev dipakai bersama tim; rollback butuh izin eksplisit |
-
----
-
-## 2. Test penerimaan yang belum punya task
-
-Ketiga baris berikut ada pada acceptance test matrix tetapi tidak dapat dijalankan oleh satu
-pun task pada roadmap revisi ini.
-
-| Test | Skenario | Mengapa belum dapat dijalankan | Coverage gap |
-| --- | --- | --- | --- |
-| `AT-IGD-002` | Membuat kunjungan untuk pasien tidak dikenal tanpa `PatientId` | `TrxEmergencyVisit` memang mengizinkan pasien kosong, tetapi encounter yang menaunginya mewajibkan pasien. Jalur utuhnya belum dirancang | `CG-01` |
-| `AT-IGD-003` | Pasien gawat mulai ditangani sebelum registrasi selesai | Sama seperti di atas; jalur provisional belum dirancang | `CG-01` |
-| `AT-IGD-017` | Aplikasi mencoba menetapkan kategori Hitam secara otomatis | Baris Hitam baru ada setelah `BE-IGD-003`, tetapi larangan penetapan otomatisnya belum punya tempat penegakan di kode | `CG-07` |
-
-Ketiganya **tidak** boleh dianggap lulus hanya karena belum diuji, sesuai penutup acceptance
-test matrix.
-
----
-
-## 3. Requirement tanpa task sama sekali
-
-Ringkasan dari bagian 7 `backend-roadmap.md`, ditulis ulang di sini supaya traceability dapat
-dibaca berdiri sendiri.
-
-| Coverage gap | Requirement | Decision ID | Status capability | Langkah berikutnya |
-| --- | --- | --- | --- | --- |
-| `CG-01` | Encounter provisional dan pasien tidak dikenal | `IGD-DEC-002`, `IGD-DEC-016` | `CAP-02` `Conflict` | `/design-business-module` |
-| `CG-02` | Mode korban massal atau bencana | `IGD-DEC-009` | `CAP-19` `Missing` | `/grill-me` lalu `/design-business-module` |
-| `CG-03` | Lifecycle dan penggabungan identitas pasien sementara | `IGD-DEC-017`–`019`, `IGD-DEC-031` | `CAP-03` `Repair` | `/design-business-module` |
-| `CG-04` | Serah terima billing saat kunjungan selesai | `IGD-DEC-021` | `CAP-09` `Missing` | `/design-business-module` |
-| `CG-05` | Tindak lanjut hasil penunjang terlambat | `IGD-DEC-024`, `IGD-DEC-032` | `CAP-11` `Missing` | `/grill-me` |
-| `CG-06` | Outbox, inbox, dan rekonsiliasi lintas modul | `IGD-DEC-025`, `IGD-DEC-033` | `CAP-14` `Missing` | Tinjau saat integrasi eksternal pertama muncul |
-| `CG-07` | Perlindungan sifat append-only riwayat klinis | `IGD-DEC-029` | `CAP-04`, `CAP-07`, `CAP-08` `Repair` | `/design-business-module` |
-
-Perbandingan yang jujur: decision log memuat sekitar 50 keputusan bernomor. Roadmap revisi ini
-menutup keputusan yang dirancang pada blueprint revision 4, yaitu seputar triase, penyelesaian
-kunjungan, dan otorisasi. Tujuh kelompok besar di atas belum tertutup, dan sebagian besarnya
-menunggu desain, bukan menunggu pengetikan kode.
-
----
-
-## 4. Gate go-live yang belum terpenuhi
-
-| Gate | Menunggu | Task yang terdampak | Sifat |
-| --- | --- | --- | --- |
-| SOP triase MMC untuk target level 2 sampai 5 | Pemilik SOP MMC | `BE-IGD-003` isi master, `FE-IGD-003` tampilan | Menahan pengisian data, tidak menahan kode |
-| Security/privacy owner | Sponsor governance MMC | `BE-IGD-011`, `BE-IGD-012` | Menahan aktivasi produksi, tidak menahan pembangunan |
-| Clinical governance owner | Sponsor governance MMC | `BE-IGD-003`, `FE-IGD-003`, `FE-IGD-004` | Menahan pengesahan klinis; baseline regulasi tetap berlaku sementara |
-| `GovernanceAssignment` bernama | Sponsor governance MMC | Seluruh klaim approval formal | Menahan bukti approval, tidak menahan delivery |
-
----
-
-## 5. Cara memakai dokumen ini
-
-1. Setiap kali sebuah task selesai, ubah kolom **Status** baris terkait dari `Planned` menjadi
-   `Done` dan cantumkan bukti test yang benar-benar dijalankan.
-2. Jangan menandai `Done` tanpa bukti. Task yang selesai secara kode tetapi belum punya bukti
-   test berstatus `In Progress`, bukan `Done`.
-3. Bila muncul requirement baru, tambahkan barisnya lebih dulu di sini. Baris tanpa task adalah
-   informasi yang berguna, bukan cacat dokumen.
-4. Bila salah satu SHA sumber berubah, jalankan impact scan sebelum memakai roadmap ini untuk
-   implementasi, sesuai aturan pada `01-existing-capability-map.md` bagian Impact Scan Trigger.
+| `AT-IGD-089` menuntut pembuktian *"tidak ada penulisan langsung"* pada seluruh jalur | Test biasa tidak dapat membuktikan ketiadaan. Pembuktiannya berupa penelusuran kode yang dilampirkan pada laporan `BE-IGD-021`, ditambah test perilaku per jalur |
+| Alur simpan lewat layar belum pernah dijalankan sungguhan | Butuh kredensial petugas. Berlaku sejak revision `1` dan belum terselesaikan |
+| Gerbang kemampuan rumah sakit belum terpenuhi | `evidence/02-requirement-completeness-gate.md` dan `evidence/03-hospital-domain-architecture.md` tidak ada. Tidak memblokir gelombang ini, tetapi berarti `MVP-0` tidak punya klasifikasi kesiapan requirement |

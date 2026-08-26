@@ -1,253 +1,145 @@
-# ERD Bounded Context — Emergency Episode
+# ERD — Episode IGD
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `4` |
-| Bounded context | Emergency Installation |
-| Commit diaudit | backend `e5331a0` |
-| Basis data | PostgreSQL, schema `public` |
+| Blueprint | `IGD-BP-001` revision `5` |
+| Status | `draft` |
+| Bounded context | Emergency Installation — kunjungan, triase, dan penetapan dokter |
+| Keputusan | `IGD-DEC-067`, `074`, `075`, `076`, `082`, `084` |
 
-Diagram dipecah menjadi tiga agar setiap gambar muat dibaca dalam satu layar.
+---
 
-Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki sepuluh kolom audit
-(`CreateDateTime`, `CreateBy`, `UpdateDateTime`, `UpdateBy`, `DeleteDateTime`, `DeleteBy`,
-`CancelDateTime`, `CancelBy`, `IsCancel`, `IsDelete`). Kolom-kolom itu **tidak digambar**
-karena sama di setiap tabel dan akan membuat diagram tidak terbaca.
-
-Seluruh enum disimpan sebagai `integer` melalui `HasConversion<int>` pada EF Core.
-
-## 1. Kunjungan, triage, dan master triage
+## 1. Diagram
 
 ```mermaid
 erDiagram
+    TrxPatientEncounter {
+        uuid Id PK
+        string EncounterNumber UK
+        uuid PatientId FK
+        uuid ServiceUnitId FK
+        uuid PatientClassId FK "nullable"
+        uuid DoctorId FK "nullable, nilai efektif"
+        int EncounterType "Emergency=2 untuk IGD"
+        int EncounterStatus
+        uuid OriginEncounterId FK "nullable, BARU"
+    }
     TrxEmergencyVisit {
         uuid Id PK
-        varchar EmergencyVisitNumber UK
-        uuid EncounterId FK "milik Registration, unique"
-        uuid PatientId FK "kosong bila belum dikenal"
-        uuid ServiceUnitId FK "menentukan konteks IGD"
-        uuid ArrivalModeId FK
-        uuid CaseTypeId FK
-        boolean IsUnknownPatient
-        boolean IsImmediateCareAllowed
-        int RegistrationStatus "enum"
-        int VisitStatus "enum, tambah Completed"
-        timestamp VisitCompletedAt
-        varchar ChiefComplaint "SENSITIF"
+        string EmergencyVisitNumber UK
+        uuid EncounterId FK "UK, nullable"
+        uuid PatientId FK "nullable"
+        uuid ServiceUnitId FK
+        uuid ArrivalModeId FK "nullable"
+        uuid CaseTypeId FK "nullable"
+        bool IsUnknownPatient
+        string TemporaryPatientAlias "nullable, 100"
+        bool IsImmediateCareAllowed
+        int RegistrationStatus
+        int VisitStatus
+        datetime TreatmentStartedAt "nullable"
+        datetime VisitCompletedAt "nullable"
     }
     TrxEmergencyTriage {
         uuid Id PK
         uuid EmergencyVisitId FK
         uuid TriageLevelId FK
-        uuid PatientVitalSignId FK "milik Clinical"
-        int Sequence "unik bersama EmergencyVisitId"
-        boolean IsRetriage
-        uuid PreviousTriageId FK "penilaian yang digantikan"
-        int TriageSystem "enum ATS atau ESI"
-        int TriageStatus "enum"
-        timestamp StartedAt
-        timestamp CompletedAt
-        int MaxWaitingMinutesSnapshot
-        timestamp ResponseDueAt "dihitung server"
-        boolean ImmediateCareAllowed
-        varchar RingkasanKlinis "8 kolom SENSITIF, maks 1000"
-        uuid PerformedByUserId FK
-        boolean IsSlaBreached "BARU"
-        timestamp SlaBreachedAt "BARU"
+        uuid PatientVitalSignId FK "nullable"
+        int Sequence "UK bersama EmergencyVisitId"
+        bool IsRetriage
+        uuid PreviousTriageId FK "nullable"
+        int TriageStatus
+        int MaxWaitingMinutesSnapshot "nullable"
+        datetime ResponseDueAt "nullable"
+        bool IsSlaBreached
     }
     TrxEmergencyTriageDetail {
         uuid Id PK
         uuid EmergencyTriageId FK
-        uuid TriageIndicatorId FK
-        boolean IsMatched
-        int Sequence
-        varchar SnapshotMaster "kode dan nama indikator"
+        uuid TriageIndicatorId FK "nullable"
+        string IndicatorCodeSnapshot "50"
+        bool IsMatched
+    }
+    TrxEmergencyDoctorAssignment {
+        uuid Id PK
+        uuid EmergencyVisitId FK
+        uuid DoctorId FK
+        datetime EffectiveFrom
+        datetime EffectiveTo "nullable"
+        uuid AssignedByUserId FK
+        string AssignmentReason "nullable, 500"
     }
     MstEmergencyTriageLevel {
         uuid Id PK
-        int Level "1 sampai 5"
-        varchar Code UK
-        varchar Name
-        varchar ColorName "Merah, Kuning, Hijau, Hitam"
-        varchar ColorHex
-        int MaxWaitingMinutes
-        boolean IsActive
+        string Code UK
+        int Level
+        int MaxWaitingMinutes "nullable"
+        bool AllowsTreatmentBeforeRegistration
     }
-    MstEmergencyTriageIndicator {
+    MstPatientClass {
         uuid Id PK
-        uuid TriageLevelId FK
-        varchar Code UK
-        varchar Name
-        varchar IndicatorGroup "ABCDE"
+        string PatientClassCode UK
+        bool IsForEmergency
+        bool IsDefault
     }
-    MstEmergencyArrivalMode {
-        uuid Id PK
-        varchar Code UK
-        varchar Name
-        boolean IsAmbulance
-        boolean IsReferral
-    }
-    MstEmergencyCaseType {
-        uuid Id PK
-        varchar Code UK
-        varchar Name
-    }
-    TrxEmergencyVisit ||--o{ TrxEmergencyTriage : "1:N — Sudah ada"
-    TrxEmergencyTriage ||--o{ TrxEmergencyTriageDetail : "1:N — Sudah ada"
-    TrxEmergencyTriage |o--o| TrxEmergencyTriage : "0:1 — Sudah ada, PreviousTriageId"
-    MstEmergencyTriageLevel ||--o{ TrxEmergencyTriage : "1:N — Sudah ada"
-    MstEmergencyTriageLevel ||--o{ MstEmergencyTriageIndicator : "1:N — Sudah ada"
-    MstEmergencyTriageIndicator |o--o{ TrxEmergencyTriageDetail : "0..1:N — Sudah ada"
-    MstEmergencyArrivalMode |o--o{ TrxEmergencyVisit : "0..1:N — Sudah ada"
-    MstEmergencyCaseType |o--o{ TrxEmergencyVisit : "0..1:N — Sudah ada"
+
+    TrxPatientEncounter ||--o| TrxEmergencyVisit : "diperluas oleh"
+    TrxPatientEncounter |o--o| TrxPatientEncounter : "OriginEncounterId"
+    TrxPatientEncounter }o--o| MstPatientClass : "kelas"
+    TrxEmergencyVisit ||--o{ TrxEmergencyTriage : "dinilai"
+    TrxEmergencyTriage ||--o{ TrxEmergencyTriageDetail : "indikator"
+    TrxEmergencyTriage |o--o| TrxEmergencyTriage : "PreviousTriageId"
+    TrxEmergencyTriage }o--|| MstEmergencyTriageLevel : "level"
+    TrxEmergencyVisit ||--o{ TrxEmergencyDoctorAssignment : "dokter"
 ```
 
-Relasi `TrxEmergencyTriage` ke dirinya sendiri adalah rantai retriage. Penilaian ulang membuat
-baris baru yang menunjuk baris sebelumnya, sehingga riwayat perubahan kondisi pasien utuh dan
-dapat diaudit.
+---
 
-Delapan kolom ringkasan klinis (`TriageReason`, `AirwaySummary`, `BreathingSummary`,
-`CirculationSummary`, `DisabilitySummary`, `ExposureSummary`, `RedFlagSummary`, `Notes`)
-diringkas menjadi satu baris pada diagram. Rinciannya ada di
-[data-dictionary.md](data-dictionary.md).
+## 2. Status entity dan pemiliknya
 
-## 2. Resusitasi, observasi, dan tindakan
-
-```mermaid
-erDiagram
-    TrxEmergencyResuscitation {
-        uuid Id PK
-        uuid EmergencyVisitId FK
-        varchar ResuscitationNumber UK
-        int ResuscitationStatus "enum"
-        uuid TeamLeaderDoctorId FK
-        uuid RecordedByUserId FK
-        timestamp StartedAt
-        timestamp EndedAt
-        varchar Pemicu "SENSITIF"
-        varchar Outcome "SENSITIF"
-    }
-    TrxEmergencyObservation {
-        uuid Id PK
-        uuid EmergencyVisitId FK
-        varchar ObservationNumber UK
-        int ObservationStatus "enum"
-        uuid ResponsibleDoctorId FK
-        uuid ResponsibleNurseUserId FK
-        timestamp StartedAt
-        timestamp EndedAt
-        varchar EscalationReason
-    }
-    TrxEmergencyObservationDetail {
-        uuid Id PK
-        uuid EmergencyObservationId FK
-        uuid PatientVitalSignId FK "milik Clinical"
-        uuid ProgressNoteId FK "CPPT, milik Clinical"
-        uuid RecordedByUserId FK
-        timestamp RecordedAt
-        varchar KondisiKlinis "SENSITIF"
-        varchar Intervensi "SENSITIF"
-    }
-    TrxEmergencyProcedureDetail {
-        uuid Id PK
-        uuid EmergencyVisitId FK
-        uuid PatientProcedureId FK "unique, milik Clinical"
-        uuid EmergencyResuscitationId FK "konteks opsional"
-        uuid EmergencyObservationId FK "konteks opsional"
-        int DetailType "enum 7 nilai"
-        varchar HasilKhusus "skin test, tetanus"
-    }
-    TrxEmergencyVisit ||--o{ TrxEmergencyResuscitation : "1:N — Sudah ada"
-    TrxEmergencyVisit ||--o{ TrxEmergencyObservation : "1:N — Sudah ada"
-    TrxEmergencyVisit ||--o{ TrxEmergencyProcedureDetail : "1:N — Sudah ada"
-    TrxEmergencyObservation ||--o{ TrxEmergencyObservationDetail : "1:N — Sudah ada"
-    TrxEmergencyResuscitation |o--o{ TrxEmergencyProcedureDetail : "0..1:N — Sudah ada"
-    TrxEmergencyObservation |o--o{ TrxEmergencyProcedureDetail : "0..1:N — Sudah ada"
-```
-
-`TrxEmergencyProcedureDetail` hanya menyimpan atribut tambahan khas IGD. Tindakan medis
-sebenarnya tetap satu sumber di `TrxPatientProcedure` milik Clinical Management, dan relasinya
-unique satu banding satu.
-
-## 3. Disposition dan transfer
-
-```mermaid
-erDiagram
-    TrxEmergencyDisposition {
-        uuid Id PK
-        uuid EmergencyVisitId FK
-        uuid DispositionTypeId FK
-        int DispositionStatus "enum"
-        uuid DecidedByDoctorId FK
-        uuid ConfirmedByUserId FK
-        uuid DestinationServiceUnitId FK
-        varchar ReferralNumber
-        boolean IsPatientDeceased
-        boolean IsVisumRequested
-        timestamp DecisionAt
-        varchar KondisiSaatKeluar "SENSITIF"
-    }
-    TrxEmergencyTransfer {
-        uuid Id PK
-        uuid EmergencyVisitId FK
-        varchar TransferNumber UK
-        uuid FromServiceUnitId FK
-        uuid ToServiceUnitId FK
-        uuid FromRoomId FK "menunggu entity final"
-        uuid ToRoomId FK "menunggu entity final"
-        uuid FromBedId FK "menunggu entity final"
-        uuid ToBedId FK "menunggu entity final"
-        int TransferStatus "enum 6 nilai"
-        uuid RequestedByUserId FK
-        uuid AcceptedByUserId FK
-        timestamp RequestedAt
-        timestamp ArrivedAt
-        varchar HandoverSummary
-    }
-    MstEmergencyDispositionType {
-        uuid Id PK
-        varchar Code UK
-        varchar Name
-        boolean RequiresDestinationServiceUnit
-        boolean RequiresReferralFacility
-        boolean ClosesEmergencyVisit
-    }
-    TrxEmergencyVisit ||--o{ TrxEmergencyDisposition : "1:N — Sudah ada"
-    TrxEmergencyVisit ||--o{ TrxEmergencyTransfer : "1:N — Sudah ada"
-    MstEmergencyDispositionType ||--o{ TrxEmergencyDisposition : "1:N — Sudah ada"
-```
-
-Transfer terjadi setelah disposition rawat inap, ICU, atau kamar operasi, dan juga untuk
-perpindahan internal. Kewenangan pengaju dan penerima wajib dipisahkan.
-
-## Status entity
-
-| Entity | Status | Owner | Catatan |
+| Entity | Status | Pemilik | Perubahan pada revisi ini |
 | --- | --- | --- | --- |
-| `TrxEmergencyVisit` | Sudah ada | Emergency Installation | Enum status bertambah nilai `Completed` |
-| `TrxEmergencyTriage` | **Diperbarui** | Emergency Installation | Tambah `IsSlaBreached` dan `SlaBreachedAt` |
-| `TrxEmergencyTriageDetail` | Sudah ada | Emergency Installation | Menyimpan snapshot master indikator |
-| `TrxEmergencyResuscitation` | Sudah ada | Emergency Installation | — |
-| `TrxEmergencyObservation` | Sudah ada | Emergency Installation | — |
-| `TrxEmergencyObservationDetail` | Sudah ada | Emergency Installation | Menunjuk tanda vital dan CPPT, tidak menyalinnya |
-| `TrxEmergencyProcedureDetail` | Sudah ada | Emergency Installation | Satu banding satu terhadap `TrxPatientProcedure` |
-| `TrxEmergencyDisposition` | Sudah ada | Emergency Installation | — |
-| `TrxEmergencyTransfer` | Sudah ada | Emergency Installation | Relasi ruangan dan bed menunggu entity final |
-| `MstEmergencyTriageLevel` | Sudah ada | Emergency Installation | Membutuhkan data awal |
-| `MstEmergencyTriageIndicator` | Sudah ada | Emergency Installation | Membutuhkan data awal |
-| `MstEmergencyArrivalMode` | Sudah ada | Emergency Installation | Membutuhkan data awal |
-| `MstEmergencyCaseType` | Sudah ada | Emergency Installation | Membutuhkan data awal |
-| `MstEmergencyDispositionType` | Sudah ada | Emergency Installation | Membutuhkan data awal |
-| `MstEmergencySetting` | Sudah ada | Emergency Installation | Hanya satu baris default |
-| `TrxPatientEncounter` | Sudah ada | Registration Management | Direferensikan, **tidak** disalin |
-| `TrxPatientProcedure` | Sudah ada | Clinical Management | Direferensikan, **tidak** disalin |
-| `TrxPatientVitalSign` | Sudah ada | Clinical Management | Direferensikan, **tidak** disalin |
-| `TrxPatientIntegratedProgressNote` | Sudah ada | Clinical Management | Direferensikan, **tidak** disalin |
+| `TrxPatientEncounter` | `Extend` | **Registration Management** | Tambah `OriginEncounterId`; nilai `EncounterType` untuk IGD berubah menjadi `Emergency` |
+| `TrxEmergencyVisit` | `Existing` | Emergency Installation | Tidak berubah |
+| `TrxEmergencyTriage` | `Existing` | Emergency Installation | Tidak berubah |
+| `TrxEmergencyTriageDetail` | `Existing` | Emergency Installation | Tidak berubah |
+| `TrxEmergencyDoctorAssignment` | `New` | Emergency Installation | Tabel baru |
+| `MstEmergencyTriageLevel` | `Existing` | Master Data | Tidak berubah |
+| `MstPatientClass` | `Existing` | Master Data | Tidak berubah strukturnya; `IsForEmergency` mulai dipakai |
 
-## Perilaku hapus
+---
 
-Seluruh relasi klinis memakai `DeleteBehavior.Restrict`, sehingga penghapusan master, pasien,
-atau encounter tidak menghapus riwayat transaksi secara berantai. Penghapusan tetap berupa
-penandaan `IsDelete`, bukan penghapusan baris.
+## 3. Aturan integritas
 
-Skema tabel dalam bentuk DDL ada di [data-dictionary.md](data-dictionary.md) bagian 6.
+| Aturan | Ditegakkan oleh | Keputusan |
+| --- | --- | --- |
+| Satu kunjungan pasien hanya boleh punya satu kunjungan IGD | Unique index pada `TrxEmergencyVisit.EncounterId`, **tanpa** penyaring `IsDelete` | Sudah ada |
+| Satu pasien tidak boleh punya dua kunjungan IGD aktif | Validasi service; **bukan** index basis data karena "aktif" bergantung pada nilai status | `IGD-DEC-084` |
+| Nomor urut triase unik per kunjungan | Unique `(EmergencyVisitId, Sequence)` | Sudah ada |
+| Penilaian triase lama tidak pernah ditimpa | Status menjadi `Superseded`, baris baru menunjuk yang lama | `IGD-DEC-004` |
+| Tepat satu dokter aktif per kunjungan IGD | **Unique index bersyarat** pada `(EmergencyVisitId)` untuk baris dengan `EffectiveTo IS NULL` | `IGD-DEC-082` |
+| Kunjungan tidak boleh menunjuk dirinya sendiri sebagai asal | Validasi service | `IGD-DEC-075` |
+| Rangkaian kunjungan tidak boleh membentuk lingkaran | Validasi service saat pembuatan | `IGD-DEC-075` |
+| Kunjungan IGD wajib bertipe `Emergency` | Validasi di **dua tempat** — service dan controller | `IGD-DEC-074`, `IGD-CONF-01` |
+| Kelas pasien IGD wajib terisi | Validasi service saat pembuatan kunjungan | `IGD-DEC-076` |
+| Status kunjungan tidak boleh mundur | Seluruh penulisan `VisitStatus` **wajib** lewat `CanTransition` | `IGD-GAP-014` |
+
+> **Unique index bersyarat.** PostgreSQL mendukungnya lewat
+> `CREATE UNIQUE INDEX ... WHERE "EffectiveTo" IS NULL`. Ini menjaga invariant "tepat satu
+> dokter aktif" di lapisan basis data, bukan hanya di service, sehingga dua permintaan
+> bersamaan tidak dapat menghasilkan dua dokter aktif.
+
+---
+
+## 4. Yang membedakan kunjungan IGD dari kunjungan poliklinik
+
+Setelah `IGD-DEC-074`, pembedanya adalah `EncounterType`, bukan tebakan dari unit atau nama:
+
+| Aspek | Poliklinik | IGD |
+| --- | --- | --- |
+| `EncounterType` | `Outpatient` = 1 | `Emergency` = 2 |
+| Baris `TrxQueue` | Ada | **Tidak ada** |
+| Kelas pasien | Master bernama `RAWAT JALAN` | Master bertanda `IsForEmergency` |
+| Pengkajian butuh antrean | Ya | **Tidak** setelah `IGD-DEC-068` |
+| Diagnosis butuh konsultasi | Ya | **Tidak** setelah `IGD-DEC-068` |
+| Dokter | Satu kolom pada kunjungan | Riwayat penugasan beserta nilai efektif |

@@ -16,8 +16,9 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Seeders;
@@ -26,6 +27,8 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services;
 using QuilvianSystemBackend.Hubs;
@@ -275,7 +278,7 @@ try
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
     builder.Services.AddScoped<LabOrderService>();
-    builder.Services.AddBillingManagement();
+    builder.Services.AddScoped<BillingFolioService>();
 
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
@@ -292,6 +295,19 @@ try
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
+    builder.Services.AddScoped<PharmacyDepotRoutingService>();
+    builder.Services.AddScoped<OperatingRoomCaseService>();
+    builder.Services.AddScoped<OperatingRoomCredentialResolver>();
+    // Buffer dan durasi jadwal operasi dikonfigurasi (OPS-DEC-016), bukan ditanam di kode.
+    builder.Services.Configure<OperatingRoomSchedulingOptions>(
+        builder.Configuration.GetSection("OperatingRoom:Scheduling"));
+    builder.Services.AddScoped<OperatingRoomSchedulingService>();
+    builder.Services.AddScoped<OperatingRoomPreparationService>();
+    builder.Services.AddScoped<OperatingRoomExecutionService>();
+    builder.Services.AddScoped<OperatingRoomRecoveryService>();
+    builder.Services.AddScoped<OperatingRoomIntegrationService>();
+    builder.Services.AddScoped<OperatingRoomMaterialService>();
+    builder.Services.AddScoped<OperatingRoomReportService>();
 
     // Instalasi Gawat Darurat (IGD). Tanpa pendaftaran ini seluruh controller IGD gagal
     // dibuat oleh dependency injection, sehingga endpoint-nya membalas 500 sebelum kode
