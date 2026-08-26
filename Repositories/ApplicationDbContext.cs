@@ -4,6 +4,9 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -530,6 +533,39 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstPatientCompanyGuarantor> MstPatientCompanyGuarantors { get; set; }
         public DbSet<MstPaymentMethod> MstPaymentMethods { get; set; }
         public DbSet<MstBillingItemCategory> MstBillingItemCategories { get; set; }
+        public DbSet<MstAdministrationFeePolicy> MstAdministrationFeePolicies { get; set; }
+        public DbSet<MstDiscountPolicy> MstDiscountPolicies { get; set; }
+        public DbSet<MstTaxRule> MstTaxRules { get; set; }
+        public DbSet<MstRoomChargePolicy> MstRoomChargePolicies { get; set; }
+        public DbSet<MstRegister> MstRegisters { get; set; }
+        public DbSet<BilInvoice> BilInvoices { get; set; }
+        public DbSet<BilInvoiceItem> BilInvoiceItems { get; set; }
+        public DbSet<BilCalculationVersion> BilCalculationVersions { get; set; }
+        public DbSet<BilDiscountApplication> BilDiscountApplications { get; set; }
+        public DbSet<BilChargeReceipt> BilChargeReceipts { get; set; }
+        public DbSet<BilNumberSeries> BilNumberSeries { get; set; }
+        public DbSet<BilDepositAccount> BilDepositAccounts { get; set; }
+        public DbSet<BilDepositMovement> BilDepositMovements { get; set; }
+        public DbSet<BilSettlement> BilSettlements { get; set; }
+        public DbSet<BilTender> BilTenders { get; set; }
+        public DbSet<BilPaymentAllocation> BilPaymentAllocations { get; set; }
+        public DbSet<BilRefundableCredit> BilRefundableCredits { get; set; }
+        public DbSet<BilRefundCase> BilRefundCases { get; set; }
+        public DbSet<BilRefundLine> BilRefundLines { get; set; }
+        public DbSet<BilAdjustment> BilAdjustments { get; set; }
+        public DbSet<BilWriteOffCase> BilWriteOffCases { get; set; }
+        public DbSet<BilFinalizationRecord> BilFinalizationRecords { get; set; }
+        public DbSet<BilArHandoff> BilArHandoffs { get; set; }
+        public DbSet<BilApHandoff> BilApHandoffs { get; set; }
+        public DbSet<BilHandoffAdjustment> BilHandoffAdjustments { get; set; }
+        public DbSet<BilCashierShift> BilCashierShifts { get; set; }
+        public DbSet<BilCashVarianceReview> BilCashVarianceReviews { get; set; }
+        public DbSet<BilCashierShiftHandover> BilCashierShiftHandovers { get; set; }
+        public DbSet<BilCashierShiftCommand> BilCashierShiftCommands { get; set; }
+        public DbSet<BilFolio> BilFolios { get; set; }
+        public DbSet<BilChargeLine> BilChargeLines { get; set; }
+        public DbSet<BilChargeComponent> BilChargeComponents { get; set; }
+        public DbSet<BilProcessingEffect> BilProcessingEffects { get; set; }
         public DbSet<MstProcedure> MstProcedures { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
@@ -544,6 +580,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstInsuranceTariff> MstInsuranceTariffs { get; set; }
         public DbSet<MstDoctorSchedule> MstDoctorSchedules { get; set; }
         public DbSet<MstDoctorServiceRule> MstDoctorServiceRules { get; set; }
+        public DbSet<MstInpatientSetting> MstInpatientSettings { get; set; }
+        public DbSet<MstInpatientClearanceItem> MstInpatientClearanceItems { get; set; }
         public DbSet<TrxKioskScanSession> TrxKioskScanSessions { get; set; }
         public DbSet<TrxPatientEncounter> TrxPatientEncounters { get; set; }
         public DbSet<TrxPatientEncounterGuarantor> TrxPatientEncounterGuarantors { get; set; }
@@ -580,6 +618,14 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxPrescriptionFinalCheckItem> TrxPrescriptionFinalCheckItems { get; set; }
         public DbSet<TrxPrescriptionDrugSubstitution> TrxPrescriptionDrugSubstitutions { get; set; }
         public DbSet<TrxPrescriptionClarification> TrxPrescriptionClarifications { get; set; }
+        public DbSet<MstDiagnosisDrugRecommendation> MstDiagnosisDrugRecommendations { get; set; }
+        public DbSet<MstDiagnosisEducationRecommendation> MstDiagnosisEducationRecommendations { get; set; }
+        public DbSet<MstDiagnosisProcedureRecommendation> MstDiagnosisProcedureRecommendations { get; set; }
+        public DbSet<MstDrugSupplier> MstDrugSuppliers { get; set; }
+        public DbSet<MstSupplier> MstSuppliers { get; set; }
+
+        public DbSet<MstNurseStationClusterStaffClinic> MstNurseStationClusterStaffClinics { get; set; }
+
 
         #region HEALTH SERVICE - Laboratory Management
 

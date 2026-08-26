@@ -58,6 +58,7 @@ governance_dependency: BKC-BLK-FE-001
 | Verifikasi | Component tests success/invalid/conflict/403, lint/build |
 | Risiko/pemilik | UI tidak boleh memberi hak void di luar source authority. Owner Billing/Security |
 | DoD | Aksi mengikuti Available permission/state; tests dan audit correlation display selesai |
+| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — source ditulis, lulus `lint`, `build`, dan `test:unit` (harness; 33/34 pass, 1 gagal pre-existing tidak terkait) di branch `yasmina`, belum di-commit. Smoke-test browser headless tanpa login menunjukkan 0 exception JS pada halaman yang diubah. Klik-coba ter-autentikasi dengan invoice nyata dan unit/component test baru untuk kode ini belum dilakukan. Laporan: [`task/report/frontend/fe-bkc-003-hitung-ulang-dan-pembatalan-item-invoice.md`](../task/report/frontend/fe-bkc-003-hitung-ulang-dan-pembatalan-item-invoice.md) |
 
 ## `FE-BKC-004` — Diskon promo dan approval dokter
 
@@ -73,6 +74,7 @@ governance_dependency: BKC-BLK-FE-001
 | Verifikasi | Component/security tests, lint/build |
 | Risiko/pemilik | Menampilkan share dokter ke pihak tidak berhak. Owner Doctor/Finance/Security |
 | DoD | Role-specific UI dan negative paths terbukti |
+| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — source ditulis, lulus `lint`, `build`, dan `test:unit` (harness; 33/34 pass, 1 gagal pre-existing tidak terkait) di branch `yasmina`, belum di-commit. Smoke-test browser headless tanpa login menunjukkan 0 exception JS. Klik-coba ter-autentikasi (ajukan diskon, approve dokter, kasus eskalasi Finance) dan unit/component test baru belum dilakukan. Laporan: [`task/report/frontend/fe-bkc-004-diskon-promo-dan-approval-dokter.md`](../task/report/frontend/fe-bkc-004-diskon-promo-dan-approval-dokter.md) |
 
 ## `FE-BKC-005` — Deposit rawat inap dan progress allocation
 
@@ -88,6 +90,7 @@ governance_dependency: BKC-BLK-FE-001
 | Verifikasi | Component/E2E mock tests, lint/build, decimal formatting |
 | Risiko/pemilik | Pengguna menyamakan saldo deposit dengan pembayaran. Owner Cashier/Billing |
 | DoD | Label dana belum dialokasikan dan ledger history jelas; tests lulus |
+| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — source ditulis, lulus `lint`, `build`, dan `test:unit` (38/38 pass) di branch `yasmina`, belum di-commit. Smoke-test browser headless tanpa login menunjukkan 0 exception JS. Reversal top-up dan panel refundable credit permanen di luar scope (lihat laporan). Klik-coba ter-autentikasi belum dilakukan. Laporan: [`task/report/frontend/fe-bkc-005-deposit-rawat-inap-dan-progress-allocation.md`](../task/report/frontend/fe-bkc-005-deposit-rawat-inap-dan-progress-allocation.md) |
 
 ## `FE-BKC-006` — Split tender dan reconciliation status
 
@@ -103,6 +106,7 @@ governance_dependency: BKC-BLK-FE-001
 | Verifikasi | Component/API/E2E tests dan idempotency assertion |
 | Risiko/pemilik | Browser refresh kehilangan key. Owner Frontend/Treasury |
 | DoD | Payment draft recovery yang aman, tests/lint/build, no provider payload logs |
+| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — source ditulis, lulus `lint`/`build`/`test:unit` (38/38) di branch `yasmina`, belum di-commit. Dikerjakan sebelum `FE-BKC-007` atas keputusan pemilik task — tender tunai belum bisa diverifikasi manual sampai shift kasir tersedia; tender non-tunai selalu Pending di environment ini karena provider payment belum terintegrasi (`BKC-BLK-PROV-001`, bukti bukan bug). Recovery settlement lewat localStorage per invoice untuk mitigasi risiko refresh browser. Laporan: [`task/report/frontend/fe-bkc-006-split-tender-dan-reconciliation-status.md`](../task/report/frontend/fe-bkc-006-split-tender-dan-reconciliation-status.md) |
 
 ## `FE-BKC-007` — Operasi shift kasir
 
@@ -118,6 +122,7 @@ governance_dependency: BKC-BLK-FE-001
 | Verifikasi | Role/component tests, lint/build |
 | Risiko/pemilik | Saldo kas termasuk data sensitif internal. Owner Kepala Kasir/Security |
 | DoD | State/action matrix UI terbukti dan accessible |
+| Status | `SOURCE_DONE_PENDING_MANUAL_VERIFICATION` — source ditulis (route baru `/health-services/billing-management/cashier/shifts`), lulus `lint`/`build`/`test:unit` (38/38) di branch `yasmina`, belum di-commit. Temuan penting: backend belum punya `GET` by-id untuk shift lain maupun master data Register — tiga aksi (confirm handover, review variance, reopen) memakai relay Shift ID/Row Version manual, bukan pencarian otomatis. Klik-coba ter-autentikasi (butuh ≥2 akun kasir + 1 Kepala Kasir) belum dilakukan. Laporan: [`task/report/frontend/fe-bkc-007-operasi-shift-kasir.md`](../task/report/frontend/fe-bkc-007-operasi-shift-kasir.md) |
 
 ## `FE-BKC-008` — Financial exception workbench
 
@@ -133,6 +138,7 @@ governance_dependency: BKC-BLK-FE-001
 | Verifikasi | Role/state/component tests, lint/build |
 | Risiko/pemilik | High-risk financial action. Owner Finance/Security |
 | DoD | Explicit confirmation, reason, audit timeline, negative tests selesai |
+| Status | Source selesai 25 Agustus 2026, lulus lint/build/`test:unit`, menunggu verifikasi manual. Panel dibangun di halaman invoice detail (bukan workbench mandiri) karena backend tidak punya satu pun endpoint GET untuk case (`ISSUE-FE-008`, gap paling signifikan sejauh ini) — case dilacak lokal per invoice, approve/reverse case lain lewat relay ID manual. Refund tidak bisa diuji end-to-end tanpa akses database (tidak ada endpoint pencarian `RefundableCreditId`). Lihat `task/report/frontend/fe-bkc-008-pengecualian-finansial-refund-adjustment-write-off.md`. |
 
 ## `FE-BKC-009` — Preview dan finalisasi invoice
 

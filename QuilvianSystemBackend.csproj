@@ -9,10 +9,13 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>.</DockerfileContext>
     <PlatformTarget>x64</PlatformTarget>
+    <DefaultItemExcludes>$(DefaultItemExcludes);QuilvianSystemBackend.Tests\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="QuilvianSystemBackend.Tests\**" />
+    <Compile Remove="Tests\**" />
+    <Content Remove="Tests\**" />
     <Compile Remove="Areas\HealthServices\DeviceManagement\**" />
     <Compile Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <Compile Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
