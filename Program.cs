@@ -23,6 +23,8 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallatio
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services;
 using QuilvianSystemBackend.Hubs;
@@ -289,6 +291,19 @@ try
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
+    builder.Services.AddScoped<PharmacyDepotRoutingService>();
+    builder.Services.AddScoped<OperatingRoomCaseService>();
+    builder.Services.AddScoped<OperatingRoomCredentialResolver>();
+    // Buffer dan durasi jadwal operasi dikonfigurasi (OPS-DEC-016), bukan ditanam di kode.
+    builder.Services.Configure<OperatingRoomSchedulingOptions>(
+        builder.Configuration.GetSection("OperatingRoom:Scheduling"));
+    builder.Services.AddScoped<OperatingRoomSchedulingService>();
+    builder.Services.AddScoped<OperatingRoomPreparationService>();
+    builder.Services.AddScoped<OperatingRoomExecutionService>();
+    builder.Services.AddScoped<OperatingRoomRecoveryService>();
+    builder.Services.AddScoped<OperatingRoomIntegrationService>();
+    builder.Services.AddScoped<OperatingRoomMaterialService>();
+    builder.Services.AddScoped<OperatingRoomReportService>();
 
     // Instalasi Gawat Darurat (IGD). Tanpa pendaftaran ini seluruh controller IGD gagal
     // dibuat oleh dependency injection, sehingga endpoint-nya membalas 500 sebelum kode

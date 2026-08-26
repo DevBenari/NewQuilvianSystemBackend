@@ -43,6 +43,11 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Mo
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories
 {
@@ -655,6 +660,24 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxEmergencyDisposition> TrxEmergencyDispositions { get; set; }
         public DbSet<TrxEmergencyTransfer> TrxEmergencyTransfers { get; set; }
         #endregion
+
+        #endregion
+
+        #region HEALTH SERVICE - Operating Room Management
+
+        public DbSet<OprCase> OprCases { get; set; }
+        public DbSet<OprCaseProcedure> OprCaseProcedures { get; set; }
+        public DbSet<OprSchedule> OprSchedules { get; set; }
+        public DbSet<OprTeamMember> OprTeamMembers { get; set; }
+        public DbSet<OprSafetyChecklist> OprSafetyChecklists { get; set; }
+        public DbSet<OprExecutionRecord> OprExecutionRecords { get; set; }
+        public DbSet<OprExecutionAddendum> OprExecutionAddenda { get; set; }
+        public DbSet<OprAnesthesiaRecord> OprAnesthesiaRecords { get; set; }
+        public DbSet<OprMaterialUsage> OprMaterialUsages { get; set; }
+        public DbSet<OprRecovery> OprRecoveries { get; set; }
+        public DbSet<OprHandover> OprHandovers { get; set; }
+        public DbSet<OprStatusHistory> OprStatusHistories { get; set; }
+        public DbSet<OprIntegrationDelivery> OprIntegrationDeliveries { get; set; }
 
         #endregion
 
