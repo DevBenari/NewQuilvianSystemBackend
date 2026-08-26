@@ -1,137 +1,129 @@
-# State Transition Matrix — Modul IGD
+# Matriks Transisi Status — Modul IGD
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `4` |
-| `contract_version` | `0.2.0` |
-| Status | `approved` — disetujui Product/Domain Owner 14 Agustus 2026 sesuai `IGD-DEC-046` |
-| Commit diaudit | backend `e5331a0` |
-
-Transisi yang **tidak** sah ikut dituliskan, bukan hanya yang sah. Tanpa itu, implementer
-menebak apa yang harus ditolak.
+| `contract_version` | `0.3.0` |
+| Status | `draft`, **kecuali bagian 1, 1.1, dan 1.2 yang `approved`** |
+| Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 1, 1.1, 1.2 (`EmergencyVisitStatus`) lewat `IGD-DEC-093`. Bagian 2 sampai 7 tetap `draft` |
+| Versi sebelumnya | `0.2.0` |
 
 ---
 
-## 1. Status kunjungan — `EmergencyVisitStatus`
+## 1. `EmergencyVisitStatus`
 
-| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
-| --- | --- | --- | --- | --- | --- |
-| — | Pasien tiba | `Arrived` | Petugas pendaftaran atau perawat | Unit IGD terisi | — |
-| `Arrived` | Masuk antrean triage | `WaitingForTriage` | Perawat | — | 409 |
-| `WaitingForTriage` | Triage selesai | `Triaged` | Perawat | Ada `TrxEmergencyTriage` berstatus `Completed` | 409 |
-| `Triaged` | Mulai penanganan | `InTreatment` | Dokter atau perawat | — | 409 |
-| `InTreatment` | Mulai observasi | `UnderObservation` | Dokter atau perawat | Ada `TrxEmergencyObservation` aktif | 409 |
-| `InTreatment` | Menunggu keputusan | `AwaitingDisposition` | Dokter | — | 409 |
-| `UnderObservation` | Menunggu keputusan | `AwaitingDisposition` | Dokter | Observasi berstatus `Completed` atau `Escalated` | 409 |
-| `AwaitingDisposition` | Keputusan ditetapkan | `Disposed` | Dokter | Ada `TrxEmergencyDisposition` berstatus `Confirmed` atau `Executed` | 409 |
-| **`Disposed`** | **Selesaikan secara klinis** | **`Completed`** | **Dokter penanggung jawab** | **Seluruh closure gate klinis dan transfer terpenuhi; `VisitCompletedAt` terisi** | **409** |
-| `Arrived` sampai `AwaitingDisposition` | Batalkan | `Cancelled` | Kepala jaga | Wajib mengisi alasan | 400 bila alasan kosong |
+| Dari \ Ke | Arrived | WaitingForTriage | Triaged | InTreatment | UnderObservation | AwaitingDisposition | Disposed | Completed | Cancelled |
+| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| **Arrived** | — | ✓ | — | ✓ | — | — | — | — | ✓ |
+| **WaitingForTriage** | — | — | ✓ | ✓ | — | — | — | — | ✓ |
+| **Triaged** | — | — | — | ✓ | ✓ | ✓ | — | — | ✓ |
+| **InTreatment** | — | — | — | — | ✓ | ✓ | — | — | ✓ |
+| **UnderObservation** | — | — | — | ✓ | — | ✓ | — | — | ✓ |
+| **AwaitingDisposition** | — | — | — | ✓ | — | — | ✓ | — | ✓ |
+| **Disposed** | — | — | — | — | — | — | — | ✓ | — |
+| **Completed** | — | — | — | — | — | — | — | — | — |
+| **Cancelled** | — | — | — | — | — | — | — | — | — |
 
-### Transisi yang tidak sah
+### 1.1 Perubahan terhadap `0.2.0`
 
-| Transisi | Alasan penolakan |
+| Perubahan | Sebab |
 | --- | --- |
-| `Disposed` ke `InTreatment` | Keputusan akhir sudah ditetapkan; penanganan baru memerlukan kunjungan baru |
-| `Completed` ke status mana pun | Penyelesaian klinis bersifat final; koreksi memakai jalur correction yang tercatat |
-| `Cancelled` ke status mana pun | Kunjungan yang dibatalkan tidak dibuka kembali |
-| Melompati `Triaged` | Pasien tidak boleh ditangani sebelum dinilai, kecuali jalur `ImmediateCareAllowed` |
+| Transisi ke `Triaged` **hanya** dari `WaitingForTriage` | Menutup `IGD-GAP-014`. Sebelumnya controller triase menulis `Triaged` dari status mana pun |
+| Penilaian ulang **tidak** mengubah status kunjungan | Pasien yang sudah `InTreatment` tetap `InTreatment` setelah dinilai ulang |
+| `Disposed` → `Completed` **hanya** lewat aksi selesaikan kunjungan | Sudah berlaku sejak `0.2.0`; kini ditegakkan konsisten |
 
-### Pengecualian keselamatan
+### 1.2 Aturan penegakan
 
-Pasien dengan `IsImmediateCareAllowed` bernilai benar boleh masuk `InTreatment` sebelum
-registrasi selesai. Ini jalur keselamatan dan **tidak boleh** diblokir oleh syarat
-administratif apa pun.
-
-Penutupan klinis **tidak** bergantung pada status billing, sesuai `IGD-DEC-021`. Billing yang
-belum final tidak membuat pasien tetap dianggap aktif secara klinis.
-
----
-
-## 2. Status triage — `EmergencyTriageStatus`
-
-| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
-| --- | --- | --- | --- | --- | --- |
-| — | Mulai penilaian | `Draft` | Perawat | Kunjungan aktif | — |
-| `Draft` | Simpan penilaian | `InProgress` | Perawat | Ringkasan ABCDE terisi minimal satu | 400 |
-| `InProgress` | Selesaikan | `Completed` | Perawat | `TriageLevelId` terisi; `ResponseDueAt` terhitung | 400 |
-| `Completed` | Nilai ulang | `Superseded` | Perawat | Ada penilaian baru yang menunjuk baris ini lewat `PreviousTriageId` | 409 |
-| `Draft` atau `InProgress` | Batalkan | `Cancelled` | Kepala jaga | Wajib mengisi alasan | 400 bila alasan kosong |
-
-### Transisi yang tidak sah
-
-| Transisi | Alasan penolakan |
+| Aturan | Sebab |
 | --- | --- |
-| `Cancelled` ke `Superseded` | Penilaian yang dibatalkan tidak pernah berlaku, sehingga tidak dapat digantikan |
-| `Superseded` ke status mana pun | Baris yang sudah digantikan bersifat historis |
-| `Completed` ke `InProgress` | Koreksi memakai retriage, bukan pengubahan baris lama |
-
-`Superseded` dipakai **hanya** ketika penilaian digantikan retriage, bukan saat dibatalkan.
-Ini menutup `IGD-CONFLICT-001` versi lama pada decision log.
+| **Seluruh** penulisan `VisitStatus` wajib lewat `CanTransition` | Dua controller pernah menulisnya langsung — `IGD-CONF-05` |
+| Triase yang diselesaikan pada kunjungan `Disposed`, `Completed`, atau `Cancelled` **ditolak** `409` | Mencegah kunjungan tertutup terbuka kembali |
+| `Completed` bersifat final; `Completed` → `Completed` pun ditolak | Sudah berlaku sejak `0.2.0` |
 
 ---
 
-## 3. Status disposition — `EmergencyDispositionStatus`
+## 2. `EmergencyPhysicalStatus` — baru
 
-| Dari | Tindakan | Ke | Siapa yang boleh | Syarat |
-| --- | --- | --- | --- | --- |
-| — | Buat keputusan | `Draft` | Dokter | Kunjungan berstatus `AwaitingDisposition` |
-| `Draft` | Konfirmasi | `Confirmed` | Dokter penanggung jawab | Unit tujuan atau fasilitas rujukan terisi bila jenis disposition mensyaratkannya |
-| `Confirmed` | Laksanakan | `Executed` | Perawat | Transfer terkait sudah `Completed` bila disposition memerlukan perpindahan |
-| `Draft` atau `Confirmed` | Batalkan | `Cancelled` | Dokter penanggung jawab | Wajib mengisi alasan |
+| Dari \ Ke | Prepared | Departed | Arrived | Cancelled |
+| --- | :-: | :-: | :-: | :-: |
+| **Prepared** | — | ✓ | — | ✓ |
+| **Departed** | — | — | ✓ | ✓ |
+| **Arrived** | — | — | — | — |
+| **Cancelled** | — | — | — | — |
 
-`Executed` pada disposition tidak otomatis menyelesaikan kunjungan. Penyelesaian klinis tetap
-melalui transisi `Disposed` ke `Completed` pada kunjungan.
-
----
-
-## 4. Status transfer — `EmergencyTransferStatus`
-
-| Dari | Tindakan | Ke | Siapa yang boleh | Syarat |
-| --- | --- | --- | --- | --- |
-| — | Ajukan | `Requested` | Perawat IGD | Unit tujuan terisi |
-| `Requested` | Terima | `Accepted` | Petugas unit tujuan | Kewenangan pada unit tujuan |
-| `Requested` | Tolak | `Rejected` | Petugas unit tujuan | Wajib mengisi alasan |
-| `Accepted` | Berangkat | `InTransit` | Perawat pengantar | — |
-| `InTransit` | Tiba | `Completed` | Perawat penerima | Handover tercatat |
-| `Requested` atau `Accepted` | Batalkan | `Cancelled` | Perawat IGD | Wajib mengisi alasan |
-
-Kewenangan pengaju dan penerima **wajib dipisahkan**. Satu pengguna tidak boleh mengajukan
-sekaligus menerima transfer yang sama.
-
----
-
-## 5. Status observasi dan resusitasi
-
-### `EmergencyObservationStatus`
-
-| Dari | Tindakan | Ke | Syarat |
+| Transisi | Pemilik klinis sesudahnya | Siapa yang boleh | Keputusan |
 | --- | --- | --- | --- |
-| — | Mulai observasi | `Active` | Kunjungan aktif |
-| `Active` | Selesaikan | `Completed` | Kesimpulan terisi |
-| `Active` | Eskalasi | `Escalated` | Alasan eskalasi terisi |
-| `Active` | Batalkan | `Cancelled` | Alasan terisi |
+| → `Prepared` | IGD | Perawat IGD | `IGD-DEC-072` |
+| → `Departed` | **Tetap IGD** | Perawat IGD | `IGD-DEC-072` |
+| → `Arrived` | **Unit penerima** | Petugas berwenang atas unit tujuan | `IGD-DEC-064`, `IGD-DEC-086` |
+| → `Cancelled` | IGD | Perawat IGD; alasan wajib | `IGD-DEC-069` |
 
-### `EmergencyResuscitationStatus`
-
-| Dari | Tindakan | Ke | Syarat |
-| --- | --- | --- | --- |
-| — | Rencanakan | `Planned` | Kunjungan aktif |
-| `Planned` | Mulai | `InProgress` | Ketua tim terisi |
-| `InProgress` | Selesaikan | `Completed` | Hasil akhir terisi |
-| `InProgress` | Hentikan | `Stopped` | Alasan penghentian terisi |
-| `Planned` atau `InProgress` | Batalkan | `Cancelled` | Alasan terisi |
+`Arrived` bersifat final pada rangkaian ini. Koreksinya **tidak** memakai transisi, melainkan
+kejadian `Amended` atau `Reversed` pada `TrxEmergencyDepartureEvent`.
 
 ---
 
-## 6. Status registrasi — `EmergencyRegistrationStatus`
+## 3. `EmergencyHandoverStatus` — baru
 
-| Dari | Tindakan | Ke | Syarat |
-| --- | --- | --- | --- |
-| — | Pasien tiba | `Pending` | — |
-| `Pending` | Buat encounter provisional | `Provisional` | Pasien gawat atau belum teridentifikasi |
-| `Pending` atau `Provisional` | Lengkapi identitas | `Registered` | Identitas pasien terverifikasi |
-| `Registered` | Selesaikan administrasi | `Completed` | Berkas administrasi lengkap |
-| Mana pun kecuali `Completed` | Batalkan | `Cancelled` | Alasan terisi |
+| Dari \ Ke | Submitted | Pending | Accepted | Rejected | Cancelled |
+| --- | :-: | :-: | :-: | :-: | :-: |
+| **Submitted** | — | ✓ | ✓ | ✓ | ✓ |
+| **Pending** | — | — | ✓ | ✓ | ✓ |
+| **Accepted** | — | — | — | — | — |
+| **Rejected** | — | ✓ | ✓ | — | ✓ |
+| **Cancelled** | — | — | — | — | — |
 
-Status registrasi berjalan **paralel** dengan status kunjungan dan tidak memblokirnya.
-Pasien dapat berada pada `InTreatment` sementara registrasi masih `Provisional`.
+`Rejected` → `Pending` mewakili pengirim memperbaiki dokumen lalu mengajukannya kembali.
+`Rejected` **bukan** status terminal, karena serah terima yang ditolak tetap wajib dituntaskan
+(`IGD-DEC-062`).
+
+---
+
+## 4. Kombinasi dua rangkaian
+
+| Fisik | Dokumen | Sah | Arti |
+| --- | --- | :-: | --- |
+| `Prepared` | `Submitted` | ✓ | Menunggu keberangkatan |
+| `Prepared` | `Pending` | ✓ | Dokumen menunggu peninjauan, pasien masih di IGD |
+| `Prepared` | `Accepted` | ✗ | **Ditolak** — penerima tidak dapat menerima pasien yang belum berangkat |
+| `Departed` | `Pending` | ✓ | Pasien di perjalanan, dokumen belum ditinjau |
+| `Departed` | `Accepted` | ✓ | Dokumen selesai lebih dulu daripada kedatangan |
+| `Arrived` | `Pending` | ✓ | **Keadaan sah** yang menjadi alasan pemisahan dua rangkaian — `IGD-DEC-070` |
+| `Arrived` | `Rejected` | ✓ | Pemilik klinis sudah unit penerima; dokumen tetap outstanding — `IGD-DEC-062` |
+| `Arrived` | `Accepted` | ✓ | Tuntas |
+| `Cancelled` | selain `Cancelled` | ✗ | **Ditolak** — pembatalan fisik membatalkan dokumennya |
+
+---
+
+## 5. `EmergencyDispositionStatus`
+
+Tidak berubah bentuknya. Yang berubah adalah akibatnya:
+
+| Transisi | Akibat pada `0.2.0` | Akibat pada `0.3.0` |
+| --- | --- | --- |
+| → `Executed` | Kunjungan **selalu** menjadi `Disposed` | Kunjungan menjadi `Disposed` **hanya bila** `ClosesEmergencyVisit` bernilai benar pada jenis tindak lanjutnya |
+
+---
+
+## 6. `TrxEmergencyDoctorAssignment` — bukan status, melainkan rentang waktu
+
+Entity ini tidak memiliki kolom status. Keadaannya ditentukan `EffectiveTo`:
+
+| Keadaan | Ditandai oleh | Invariant |
+| --- | --- | --- |
+| Aktif | `EffectiveTo IS NULL` | **Tepat satu** per kunjungan IGD, dijaga unique index bersyarat |
+| Berakhir | `EffectiveTo` terisi | Tidak pernah ditimpa |
+
+Pengalihan dokter menutup baris lama dan membuka baris baru dalam **satu transaksi**.
+
+---
+
+## 7. Status yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Ditolak karena |
+| --- | --- |
+| Status `InTransit` tersendiri | Sudah diwakili rangkaian fisik `Departed` |
+| Status `BedAllocated` | Alokasi tempat tidur milik Rawat Inap — `IGD-DEC-069` |
+| Status `ReadyToTransfer` tersendiri | Sudah diwakili `Prepared` |
+| Status kunjungan `Reopened` | Kunjungan tertutup **tidak boleh** dibuka kembali — `IGD-GAP-014` |
+| Rangkaian ketiga untuk serah terima dokter | `IGD-DEC-079` memilih satu dokumen untuk rilis pertama |
