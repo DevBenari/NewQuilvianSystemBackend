@@ -1,0 +1,26 @@
+﻿name: QBE PR Trigger Smoke
+
+on:
+  pull_request:
+    branches:
+      - QuilvianIntegrationBackend
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: read
+
+jobs:
+  qbe-pr-trigger-smoke:
+    name: QBE PR Trigger Smoke
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Confirm pull request trigger
+        run: |
+          echo "QBE pull_request trigger is working."
+          echo "Base branch: ${{ github.base_ref }}"
+          echo "Head branch: ${{ github.head_ref }}"
+          echo "Event: ${{ github.event_name }}"

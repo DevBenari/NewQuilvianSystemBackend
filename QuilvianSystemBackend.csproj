@@ -112,4 +112,8 @@
     <Folder Include="SeedData\ICD10\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include=".github\workflows\qbe-pr-trigger-smoke.yml" />
+  </ItemGroup>
+
 </Project>
