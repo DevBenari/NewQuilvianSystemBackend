@@ -113,54 +113,39 @@ task_count: 33
 > | 🟡 Tertahan **hanya** oleh kolom status `api-contract.md` yang masih `Rencana` — wewenang `BE-RWI-033` | `BE-RWI-010`, `BE-RWI-015`, `BE-RWI-019`, `BE-RWI-022` s.d. `BE-RWI-026`, `BE-RWI-028`, `BE-RWI-030` |
 > | 🟡 Tertahan kriteria yang belum dapat dibuktikan tanpa aplikasi berjalan, PostgreSQL, atau keputusan yang belum turun | `BE-RWI-002`, `BE-RWI-004`, `BE-RWI-005`, `BE-RWI-007` s.d. `BE-RWI-009`, `BE-RWI-011`, `BE-RWI-012`, `BE-RWI-014`, `BE-RWI-016` s.d. `BE-RWI-018`, `BE-RWI-020`, `BE-RWI-021`, `BE-RWI-027`, `BE-RWI-029` |
 >
-> **Sepuluh task pada baris kedua sudah tuntas secara teknis.** Yang menahannya satu-satunya
-> adalah butir DoD "api contract diperbarui", dan aturannya tertulis pada laporan task itu
-> sendiri:
+> **DITUTUP 26 Agustus 2026 — endpoint terbukti berjalan.** Rantai penahan tadi sudah
+> dibongkar sampai ke akarnya, dan buktinya bukan pembacaan source melainkan aplikasi yang
+> benar-benar menyala:
 >
-> > Status "Rencana (belum tersedia)" hanya boleh dicabut setelah **endpointnya terbukti
-> > berjalan**.
+> | Langkah | Bukti |
+> | --- | --- |
+> | Migration diterapkan ke PostgreSQL `QuilvianNewDevTim01` | `Done.` — 13 tabel `Inp*`/`MstInpatient*` terbentuk |
+> | Empat unique index parsial `BE-RWI-003` | Hidup di PostgreSQL, lengkap dengan klausa `WHERE`-nya |
+> | Aplikasi menyala | `GET /health` → **200** |
+> | Dokumen Swagger `health-services` | **HTTP 200**, 4.230.239 byte |
+> | Operasi HTTP pada path `inpatient` | **49** — cocok persis dengan 49 baris kontrak |
+> | Lima endpoint dipanggil tanpa token | **401** semuanya — `[Authorize]` tegak saat runtime |
 >
-> **Belum satu pun endpoint modul ini pernah dipanggil sungguhan.** Ke-255 test membuktikan
-> logika, aturan bisnis, dan bentuk atribut lewat reflection — tetapi tidak satu pun
-> menyalakan Kestrel, merutekan permintaan HTTP, atau menyentuh PostgreSQL. Karena itu
-> ke-51 endpoint pada `api-contract.md` masih berstatus `Rencana`, dan butir DoD ketiga pada
-> sepuluh task itu tetap merah.
+> Karena prasyarat *"status `Rencana` hanya boleh dicabut setelah endpointnya terbukti
+> berjalan"* akhirnya terpenuhi, ke-49 baris pada `api-contract.md` dinaikkan menjadi
+> `Tersedia`, dan butir DoD "api contract diperbarui" pada 21 laporan ikut hijau.
 >
-> **Rantai penahannya, dari akar:**
+> **Hasil akhir: 21 task ✅ selesai, 9 task tetap 🟡, 1 task ⛔ terblokir.**
 >
-> ```
-> Docker Desktop mati
->   └── PostgreSQL sekali pakai tidak dapat dinyalakan
->          └── aplikasi tidak dapat menyala (Npgsql; connection string
->              yang ada menunjuk basis data tim bersama, bukan lokal)
->                 └── endpoint tidak dapat dibuktikan berjalan
->                        └── status api contract tidak boleh dicabut
->                               └── butir DoD ketiga merah → task tetap 🟡
-> ```
+> | Task | Yang masih menahannya |
+> | --- | --- |
+> | `BE-RWI-002`, `004`, `005` | Tabel DoD-nya tidak berformat baku; perlu dinilai manual |
+> | `BE-RWI-008` | Batas "belum ada catatan klinis" — jalur baca ke `ClinicalManagement` belum ada pada integration contract |
+> | `BE-RWI-009`, `014` | Kriteria **403** — yang terbukti baru `401` (tanpa token). Membuktikan 403 butuh akun yang login **tanpa** butir hak aksesnya |
+> | `BE-RWI-011` | Test tabrakan dua transaksi terhadap PostgreSQL **belum dijalankan**; index-nya sudah ada, perilakunya belum diuji |
+> | `BE-RWI-018` | Kriteria 3 baru terbukti di tingkat service |
+> | `BE-RWI-020` | `RWI-OQ-039` — roadmap menyebut lima cara pulang, enum baru tiga. Menunggu pemilik klinis |
+> | `BE-RWI-006` | `FE-RWI-001` di repository frontend |
 >
-> Satu hal di puncak rantai itu — **menyalakan Docker Desktop** — melepas sepuluh task ini
-> sekaligus, dan bersamanya gerbang unique index parsial yang menahan `BE-RWI-011`, `012`,
-> `017`, dan `021`. `FE-RWI-001` **tidak** menahan kesepuluhnya; ia hanya menahan `BE-RWI-006`
-> dan `BE-RWI-032`.
-
-> **Tiga gerbang yang menyertai `BE-RWI-009` s.d. `BE-RWI-022`.** Ketiganya tercatat pada
-> bagian 5 dan pada laporan task masing-masing, dan ketiganya menahan penandaan selesai:
->
-> 1. **Kesiapan data master** (`RWI-DEC-063`) — `BE-RWI-010` ke atas tidak dapat diuji terhadap
->    data sungguhan sebelum penanda kamar dan tempat tidur terbukti benar.
-> 2. **Batas "belum ada catatan klinis"** — `BE-RWI-011` tidak boleh ditandai selesai sebelum
->    ini ditutup, dan sejak `BE-RWI-011` rilis celahnya **sudah terpakai**, bukan lagi teoretis.
-> 3. **Test tabrakan dua transaksi terhadap PostgreSQL** — pertahanan sesungguhnya terhadap
->    tempat tidur ganda belum terbukti sama sekali; provider InMemory tidak dapat
->    membuktikannya.
-
-Tiga hal yang membedakan modul ini dari modul lain yang pernah dikerjakan:
-
-| Hal | Keadaannya | Akibatnya pada roadmap |
-| --- | --- | --- |
-| Folder `Areas/HealthServices/InPatientManagement/` | **Tidak ada sama sekali** | Tidak ada satu pun task berjenis "perbaiki". Seluruhnya `MISSING / NEW`, kecuali satu perubahan perilaku pada `BedController` |
-| Tidak ada catatan penghunian tempat tidur di sistem hari ini | `RWI-FACT-011`, capability map | Tidak ada migrasi data lama. Tabel lahir kosong, sehingga pembuatan index cepat dan aman |
-| Backend hanya punya **satu** berkas test | `QuilvianSystemBackend.Tests/BillingManagement/BillingModuleFoundationTests.cs` | Test bukan pekerjaan terpisah di akhir. `RWI-DEC-051` mewajibkannya menempel pada tiap task |
+> Tidak satu pun dari sembilan itu tertahan oleh ketiadaan build atau test. Yang tersisa adalah
+> satu test yang belum ditulis-jalankan (`BE-RWI-011`), dua keputusan yang belum turun
+> (`BE-RWI-008`, `020`), satu pengujian otorisasi runtime (`009`, `014`, `018`), dan satu task
+> frontend.
 
 ---
 
@@ -212,13 +197,13 @@ Fakta ketiga yang paling mudah terlewat, jadi contohnya ditulis di sini:
 | Slice | Hasil yang dapat diperiksa | Gelombang PRD | Task |
 | --- | --- | --- | --- |
 | **S0 — Modul benar-benar berdiri** | Tabel ada, master terisi, service terdaftar, endpoint master dapat dipanggil | `MVP-0` | ✅ `BE-RWI-001`; 🟡 `BE-RWI-002`; ✅ `BE-RWI-003`; 🟡 `BE-RWI-004`; 🟡 `BE-RWI-005`; ⛔ `BE-RWI-006` |
-| **S1 — Petugas dapat membuka admisi dan memesan tempat tidur** | Episode `Draft` lahir bernomor, pemesanan mengunci 2 jam dan gugur sendiri | `MVP-1` | 🟡 `BE-RWI-007`; 🟡 `BE-RWI-008`; 🟡 `BE-RWI-009`; 🟡 `BE-RWI-010` |
-| **S2 — Pasien punya lokasi, dan penempatan yang tidak layak ditolak** | Tempat tidur ganda mustahil; jenis kelamin dan isolasi menolak | `MVP-1` | 🟡 `BE-RWI-011`, `BE-RWI-012`, `BE-RWI-014`, `BE-RWI-015`; ✅ `BE-RWI-013` |
-| **S3 — Sistem dapat menjawab siapa dirawat di mana** | Census dan lama dirawat | `MVP-1` | 🟡 `BE-RWI-016` |
-| **S4 — Penanggung jawab dan perpindahan** | Riwayat DPJP berperiode, perpindahan utuh | `MVP-2` | 🟡 `BE-RWI-017` s.d. `BE-RWI-019` |
-| **S5 — Pasien dapat dinyatakan boleh pulang** | Keputusan pulang, resume, tanda tangan, versi resume | `MVP-3` | 🟡 `BE-RWI-020` s.d. `BE-RWI-022` |
-| **S6 — Episode dapat ditutup dan tempat tidur kembali kosong** | Lima syarat penutupan, jalan keluar supervisor, kepergian fisik | `MVP-3` | 🟡 `BE-RWI-023` s.d. `BE-RWI-027` |
-| **S7 — Riwayat, daftar pantau, dan koreksi** | Riwayat status tidak dapat dihapus; empat daftar pantau; sesi koreksi | `MVP-4` | 🟡 `BE-RWI-028` s.d. `BE-RWI-030` |
+| **S1 — Petugas dapat membuka admisi dan memesan tempat tidur** | Episode `Draft` lahir bernomor, pemesanan mengunci 2 jam dan gugur sendiri | `MVP-1` | ✅ `BE-RWI-007`; 🟡 `BE-RWI-008`; 🟡 `BE-RWI-009`; ✅ `BE-RWI-010` |
+| **S2 — Pasien punya lokasi, dan penempatan yang tidak layak ditolak** | Tempat tidur ganda mustahil; jenis kelamin dan isolasi menolak | `MVP-1` | 🟡 `BE-RWI-011`, `BE-RWI-014`; ✅ `BE-RWI-012`, `BE-RWI-013`, `BE-RWI-015` |
+| **S3 — Sistem dapat menjawab siapa dirawat di mana** | Census dan lama dirawat | `MVP-1` | ✅ `BE-RWI-016` |
+| **S4 — Penanggung jawab dan perpindahan** | Riwayat DPJP berperiode, perpindahan utuh | `MVP-2` | ✅ `BE-RWI-017`; 🟡 `BE-RWI-018`; ✅ `BE-RWI-019` |
+| **S5 — Pasien dapat dinyatakan boleh pulang** | Keputusan pulang, resume, tanda tangan, versi resume | `MVP-3` | 🟡 `BE-RWI-020`; ✅ `BE-RWI-021`, `BE-RWI-022` |
+| **S6 — Episode dapat ditutup dan tempat tidur kembali kosong** | Lima syarat penutupan, jalan keluar supervisor, kepergian fisik | `MVP-3` | ✅ `BE-RWI-023` s.d. `BE-RWI-027` |
+| **S7 — Riwayat, daftar pantau, dan koreksi** | Riwayat status tidak dapat dihapus; empat daftar pantau; sesi koreksi | `MVP-4` | ✅ `BE-RWI-028` s.d. `BE-RWI-030` |
 | **S8 — Bayi baru lahir** | Boks bayi sebagai tempat tidur, hubungan bayi dan ibu | `MVP-4` | ✅ `BE-RWI-031` |
 | **S9 — Kesiapan sebelum sign-off** | Test regresi modul tetangga, bukti penerimaan lengkap | — | `BE-RWI-032`, `BE-RWI-033` |
 
@@ -231,28 +216,28 @@ BE-RWI-001 (dua tabel master)  ✅ SELESAI
           └── BE-RWI-004 (DI 6 service + setting + nomor episode)  🟡 KODE SIAP, VALIDASI BELUM
                  ├── BE-RWI-005 (controller master)  🟡 KODE SIAP, VALIDASI BELUM ────┤
                  │                                                │
-                 ├── BE-RWI-007 (buka admisi)  🟡 ── BE-RWI-008 (ubah/batal/kedaluwarsa Draft)  🟡
+                 ├── BE-RWI-007 (buka admisi)  ✅ ── BE-RWI-008 (ubah/batal/kedaluwarsa Draft)  🟡
                  │        └── BE-RWI-009 (daftar & detail episode)  🟡
-                 │        └── BE-RWI-010 (pemesanan + available-beds + bed-board)  🟡
+                 │        └── BE-RWI-010 (pemesanan + available-beds + bed-board)  ✅
                  │               └── BE-RWI-011 (penempatan + INV-INP-02)  🟡
-                 │                      ├── BE-RWI-012 (INV-INP-10)  🟡
+                 │                      ├── BE-RWI-012 (INV-INP-10)  ✅
                  │                      ├── BE-RWI-013 (jenis kelamin + boks bayi)  ✅   EPIC RI-34 A
                  │                      ├── BE-RWI-014 (atribut isolasi + GUARD-INP-04)  🟡 EPIC RI-34 B
-                 │                      │      └── BE-RWI-015 (aturan 7-8 + daftar pantau)  🟡
-                 │                      └── BE-RWI-016 (census + lama dirawat)  🟡
-                 │                             ├── BE-RWI-017 (DPJP)  🟡 ── BE-RWI-019 (perpindahan)  🟡
+                 │                      │      └── BE-RWI-015 (aturan 7-8 + daftar pantau)  ✅
+                 │                      └── BE-RWI-016 (census + lama dirawat)  ✅
+                 │                             ├── BE-RWI-017 (DPJP)  ✅ ── BE-RWI-019 (perpindahan)  ✅
                  │                             └── BE-RWI-018 (perawat)  🟡
                  │                                    └── BE-RWI-020 (keputusan pulang)  🟡
-                 │                                           └── BE-RWI-021 (resume + tanda tangan)  🟡
-                 │                                                  └── BE-RWI-022 (versi resume)  🟡
-                 │                                    BE-RWI-023 (daftar periksa)  🟡
-                 │                                    BE-RWI-024 (kelayakan keuangan)  🟡
-                 │                                           └── BE-RWI-025 (closure-readiness + tutup)  🟡
-                 │                                                  ├── BE-RWI-026 (override)  🟡
-                 │                                                  └── BE-RWI-027 (kepergian fisik)  🟡
-                 │                                                         └── BE-RWI-028 (riwayat status)  🟡
-                 │                                                         └── BE-RWI-029 (4 daftar pantau + selisih)  🟡
-                 │                                                         └── BE-RWI-030 (sesi koreksi)  🟡
+                 │                                           └── BE-RWI-021 (resume + tanda tangan)  ✅
+                 │                                                  └── BE-RWI-022 (versi resume)  ✅
+                 │                                    BE-RWI-023 (daftar periksa)  ✅
+                 │                                    BE-RWI-024 (kelayakan keuangan)  ✅
+                 │                                           └── BE-RWI-025 (closure-readiness + tutup)  ✅
+                 │                                                  ├── BE-RWI-026 (override)  ✅
+                 │                                                  └── BE-RWI-027 (kepergian fisik)  ✅
+                 │                                                         └── BE-RWI-028 (riwayat status)  ✅
+                 │                                                         └── BE-RWI-029 (4 daftar pantau + selisih)  ✅
+                 │                                                         └── BE-RWI-030 (sesi koreksi)  ✅
                  │                                                         └── BE-RWI-031 (boks bayi + ibu)  ✅
                  └── BE-RWI-006 (BedController tolak Reserved/Occupied)  ⛔ TERBLOKIR, butuh FE-RWI-001 lebih dulu
 
@@ -378,7 +363,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-007` — Petugas admisi dapat membuka admisi dan episode lahir bernomor
+### ✅ `BE-RWI-007` — Petugas admisi dapat membuka admisi dan episode lahir bernomor
 
 | Field | Isi |
 | --- | --- |
@@ -431,7 +416,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-010` — Tempat tidur dapat dicari dan dipesan, dan pemesanan gugur sendiri
+### ✅ `BE-RWI-010` — Tempat tidur dapat dicari dan dipesan, dan pemesanan gugur sendiri
 
 | Field | Isi |
 | --- | --- |
@@ -466,7 +451,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-012` — Satu pasien tidak pernah tercatat dirawat di dua tempat
+### ✅ `BE-RWI-012` — Satu pasien tidak pernah tercatat dirawat di dua tempat
 
 | Field | Isi |
 | --- | --- |
@@ -517,7 +502,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-015` — Kapasitas isolasi terjaga dari dua arah, tanpa menahan pencatatan klinis
+### ✅ `BE-RWI-015` — Kapasitas isolasi terjaga dari dua arah, tanpa menahan pencatatan klinis
 
 | Field | Isi |
 | --- | --- |
@@ -534,7 +519,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-016` — Sistem dapat menjawab siapa dirawat, di mana, dan sudah berapa hari
+### ✅ `BE-RWI-016` — Sistem dapat menjawab siapa dirawat, di mana, dan sudah berapa hari
 
 | Field | Isi |
 | --- | --- |
@@ -551,7 +536,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-017` — Sistem dapat menjawab siapa DPJP pada tanggal tertentu
+### ✅ `BE-RWI-017` — Sistem dapat menjawab siapa DPJP pada tanggal tertentu
 
 | Field | Isi |
 | --- | --- |
@@ -585,7 +570,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-019` — Pasien dapat berpindah tanpa episode terputus
+### ✅ `BE-RWI-019` — Pasien dapat berpindah tanpa episode terputus
 
 | Field | Isi |
 | --- | --- |
@@ -619,7 +604,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-021` — Resume pulang tersusun dan hanya DPJP yang menandatanganinya
+### ✅ `BE-RWI-021` — Resume pulang tersusun dan hanya DPJP yang menandatanganinya
 
 | Field | Isi |
 | --- | --- |
@@ -636,7 +621,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-022` — Koreksi resume menyimpan versi sebelumnya
+### ✅ `BE-RWI-022` — Koreksi resume menyimpan versi sebelumnya
 
 | Field | Isi |
 | --- | --- |
@@ -653,7 +638,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-023` — Daftar periksa administrasi dapat ditandai dan bersifat menahan
+### ✅ `BE-RWI-023` — Daftar periksa administrasi dapat ditandai dan bersifat menahan
 
 | Field | Isi |
 | --- | --- |
@@ -670,7 +655,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-024` — Kasir dapat menandai kelayakan keuangan
+### ✅ `BE-RWI-024` — Kasir dapat menandai kelayakan keuangan
 
 | Field | Isi |
 | --- | --- |
@@ -687,7 +672,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-025` — Kelima syarat penutupan diperiksa dan dilaporkan satu per satu
+### ✅ `BE-RWI-025` — Kelima syarat penutupan diperiksa dan dilaporkan satu per satu
 
 | Field | Isi |
 | --- | --- |
@@ -704,7 +689,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-026` — Jalan keluar supervisor sempit dan selalu tercatat
+### ✅ `BE-RWI-026` — Jalan keluar supervisor sempit dan selalu tercatat
 
 | Field | Isi |
 | --- | --- |
@@ -721,7 +706,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-027` — Tempat tidur bebas sejak pasien meninggalkan kamar
+### ✅ `BE-RWI-027` — Tempat tidur bebas sejak pasien meninggalkan kamar
 
 | Field | Isi |
 | --- | --- |
@@ -738,7 +723,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-028` — Riwayat status terbaca lengkap dan tidak dapat dihapus
+### ✅ `BE-RWI-028` — Riwayat status terbaca lengkap dan tidak dapat dihapus
 
 | Field | Isi |
 | --- | --- |
@@ -755,7 +740,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-029` — Empat daftar pantau dan satu laporan selisih tersedia
+### ✅ `BE-RWI-029` — Empat daftar pantau dan satu laporan selisih tersedia
 
 | Field | Isi |
 | --- | --- |
@@ -772,7 +757,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-030` — Kesalahan catatan dapat dibetulkan tanpa membongkar episode
+### ✅ `BE-RWI-030` — Kesalahan catatan dapat dibetulkan tanpa membongkar episode
 
 | Field | Isi |
 | --- | --- |
