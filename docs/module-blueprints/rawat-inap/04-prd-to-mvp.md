@@ -5,9 +5,9 @@
 | Field | Nilai |
 | --- | --- |
 | Produk | Quilvian Hospital Information System |
-| Modul | Rawat Inap — `InPatientManagement`, prefix entity `Inp`, lifecycle registry `PLANNED` |
+| Modul | Rawat Inap — `InPatientManagement`, prefix entity `Inp`, lifecycle registry `ACTIVE` sejak `RWI-DEC-068` |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.3.0` |
+| `contract_version` | `0.4.0` |
 | Status | `draft` — **belum disetujui manusia** |
 | Repository target | `NewQuilvianSystemBackend` dan `QuilvianSystemFrontendDev` |
 | Backend SHA baseline | `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
@@ -206,7 +206,7 @@ Setiap baris menyebut **alasan bersebab** dan **pengganti selama MVP berjalan**.
 | --- | --- | --- | --- |
 | Pengkajian awal, catatan dokter, CPPT, tindakan, visite | `RWI-CAP-015`, `018`, `019`, `023`, `024` | Mesin klinis mewajibkan antrean dan konsultasi, dan hanya mengizinkan satu konsultasi per kunjungan. Pelonggaran menyentuh dua modul `ACTIVE` yang pemiliknya belum menyetujui — `DEC-INP-001` | Dokumentasi klinis tetap ditulis di luar sistem sebagaimana hari ini. Modul ini menyediakan riwayat lokasi, riwayat DPJP, dan resume, sehingga rekam medis tetap punya kerangka waktunya |
 | Resep rawat inap dan obat pulang | `RWI-CAP-021`, `RWI-CAP-022` | Sama seperti di atas; resep terikat konsultasi | Butir "obat pulang sudah diserahkan" tersedia pada daftar periksa administrasi dan **ditandai manual** petugas admisi |
-| Serah terima IGD ke rawat inap | `RWI-CAP-038` | Menentukan kunjungan mana yang menjadi jangkar episode; menyentuh modul IGD — `DEC-INP-002` | Petugas admisi membuka admisi rawat inap secara manual untuk pasien yang datang dari IGD, memakai jalur pasien datang langsung |
+| Serah terima IGD ke rawat inap | `RWI-CAP-038` | Menentukan kunjungan mana yang menjadi jangkar episode; menyentuh modul IGD — `DEC-INP-002`, yang pemiliknya bernama sejak `RWI-DEC-069`: Rizki Gunawan | Petugas admisi membuka admisi rawat inap secara manual untuk pasien yang datang dari IGD, memakai jalur pasien datang langsung |
 | Persetujuan umum rawat inap | `RWI-CAP-031` | Keputusan hukum dan privasi, pemiliknya belum ditunjuk — `DEC-INP-003` | Persetujuan tetap dikumpulkan di atas kertas seperti hari ini. Butir daftar periksa dapat ditambahkan admin bila diinginkan |
 | Pengiriman SATUSEHAT | Belum punya ID kemampuan | Belum pernah dibahas; pemilik dan isi kiriman belum ditentukan — `DEC-INP-005` | Data disimpan dalam bentuk riwayat yang dapat dibaca ulang, sehingga pengiriman kelak tinggal membaca |
 | Serah terima klinis antar shift | Belum punya ID kemampuan | Ditandai `SAFETY_CHECK` oleh baseline; belum pernah dibahas — `DEC-INP-006` | Serah terima tetap dilakukan lisan dan tertulis di luar sistem. Modul mencatat siapa perawat penanggung jawab dan sejak kapan |

@@ -1,6 +1,6 @@
-# Template Laporan Serah Terima Codex
+# Template Laporan Task Codex
 
-Pakai struktur ini untuk laporan lokal yang di-ignore di bawah `.quilvian-local/`. Catat bukti saja; jangan menuliskan nilai rahasia.
+Pakai struktur ini untuk laporan task tracked di `docs/module-blueprints/<module-slug>/task/report/<backend|frontend>/<TASK-ID>.md`. Catat bukti saja; jangan menuliskan nilai rahasia.
 
 Nama field dan nilai statusnya sengaja dipertahankan dalam bahasa Inggris karena keduanya adalah kunci kontrak laporan yang dibaca lintas repository. Keterangan setiap field ada pada tabel di bawah.
 

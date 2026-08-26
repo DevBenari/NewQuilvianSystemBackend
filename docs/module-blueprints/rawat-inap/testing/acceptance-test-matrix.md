@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.3.0` |
+| `contract_version` | `0.4.0` |
 | Status | `draft` |
-| Masukan | `00-interview-decisions.md` revision `5` (139 acceptance criteria); `contracts/api-contract.md`, `contracts/validation-matrix.md`, dan `contracts/permission-audit-matrix.md` revision `0.3.0`; kontrak lain revision `0.2.0` |
+| Masukan | `00-interview-decisions.md` revision `6` (149 acceptance criteria); `contracts/api-contract.md`, `contracts/validation-matrix.md`, dan `contracts/permission-audit-matrix.md` revision `0.3.0`; kontrak lain revision `0.2.0` |
 | Backend SHA | `5afb54b` |
 | Frontend SHA | `dec4fdeff` |
 
@@ -44,6 +44,7 @@ Keadaan hari ini yang harus disadari: backend hanya punya **satu** berkas test
 | **Gagal — paling penting** | **Dua petugas merebut tempat tidur yang sama pada waktu hampir bersamaan** | Integrasi dengan dua transaksi bersamaan | Satu berhasil, satu ditolak 409. **Tepat satu** baris `InpBedPlacement` aktif untuk tempat tidur itu. Tidak ada penempatan ganda yang tersimpan |
 | `RWI-AC-062` | Bila penulisan catatan penempatan gagal, `MstBed.BedStatus` juga tidak berubah | Integrasi | Paksa kegagalan di tengah transaksi; kedua tabel kembali ke keadaan semula |
 | **Gagal** | Menempatkan pasien pada episode yang sudah `Admitted` | Integrasi | 409 |
+| `RWI-AC-147` | Untuk jalur datang langsung dan poliklinik, waktu mulai penempatan tetap waktu penempatan dibuat dan tidak menunggu apa pun | Integrasi | `StartDateTime` sama dengan waktu server saat endpoint dipanggil; tidak ada pembacaan ke modul IGD |
 | `RWI-AC-063` | Laporan selisih menampilkan tempat tidur yang statusnya tidak cocok dengan penghuninya | Integrasi | Buat selisih secara sengaja lewat perubahan langsung di database uji; laporan menampilkannya |
 
 ## 2A. Kelayakan penempatan — jenis kelamin dan isolasi
@@ -276,6 +277,19 @@ yang sedang terburu-buru.
 | Pengiriman SATUSEHAT | Slice di luar scope | `DEC-INP-005` |
 | Cara pulang meninggal dan kabur | Slice di luar scope | `DEC-INP-007` |
 | Daftar pantau kepatuhan pengkajian dan CPPT | Bergantung pada slice yang di luar scope | `DEC-INP-001` |
+
+**Sembilan acceptance criteria baru dari Amendment Pass 2026-08-24 juga belum dapat diuji di
+sini,** dan alasannya sama: keduanya milik slice yang di luar scope. Didaftar supaya tidak
+hilang, bukan supaya dilupakan.
+
+| Requirement | Kenapa belum diuji | Milik siapa |
+| --- | --- | --- |
+| `RWI-AC-140` s.d. `RWI-AC-144` | Pelonggaran mesin klinis untuk kunjungan `Emergency` dan penjagaan agar rawat jalan tidak berubah | `DEC-INP-001`; pelaksananya modul IGD lewat `IGD-DEC-068` |
+| `RWI-AC-145`, `RWI-AC-146` | Penempatan menunggu event `Tiba` dan waktu mulai dibaca dari IGD | `DEC-INP-002`; jalur `INP-S09` |
+| `RWI-AC-148`, `RWI-AC-149` | Rangkaian kedatangan lewat `OriginEncounterId` | `DEC-INP-002`; kolomnya dikerjakan modul IGD lewat `IGD-DEC-075` |
+
+`RWI-AC-147` **tidak** ada pada daftar ini. Ia justru dapat diuji sekarang, dan sudah masuk
+bagian 2 sebagai penjaga agar jalur datang langsung tidak ikut berubah.
 
 Ketiadaan test untuk **keenam** butir itu adalah **keadaan yang disengaja**, bukan cakupan yang
 terlupa.

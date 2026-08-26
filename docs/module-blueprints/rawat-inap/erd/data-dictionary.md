@@ -3,7 +3,7 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.3` |
+| Revision | `0.4` |
 | Status | `draft` |
 | Backend SHA | `5afb54b` |
 
@@ -101,13 +101,19 @@ contoh berisi data asli, dan perlu ditinjau kebutuhan penyamarannya pada respons
 | `ServiceUnitId` | `Guid` | Ya | — | Index | FK ke `MstServiceUnit` | `Restrict` | Tidak | Salinan saat penempatan dibuat |
 | `PatientClassId` | `Guid` | Ya | — | Index | FK ke `MstPatientClass` | `Restrict` | Tidak | Salinan saat penempatan dibuat. Inilah kelas yang ditagihkan |
 | `SequenceNumber` | `int` | Ya | — | Unique bersama `EpisodeId` | — | — | Tidak | Urutan penempatan di dalam episode |
-| `StartDateTime` | `DateTime` | Ya | `UtcNow` | Index | — | — | Tidak | Mulai ditempati |
+| `StartDateTime` | `DateTime` | Ya | `UtcNow` | Index | — | — | Tidak | Mulai ditempati. Bawaan `UtcNow` hanya berlaku untuk jalur datang langsung dan poliklinik; untuk episode yang lahir dari serah terima IGD nilainya **dibaca dari event `Tiba`** pada catatan kepergian IGD dan tidak pernah dikoreksi setelah tersimpan — `RWI-DEC-072`. Bentuk kolomnya tidak berubah |
 | `EndDateTime` | `DateTime?` | Tidak | — | Index | — | — | Tidak | Kosong berarti masih ditempati |
 | `EndReason` | `InpBedPlacementEndReason?` | Tidak | — | — | — | — | Tidak | Kenapa penempatan berakhir: perpindahan, penutupan episode, pembatalan admisi, atau **kepergian fisik pasien**. Disimpan sebagai `int` |
 | `TransferReason` | `string(500)?` | Tidak | — | — | — | — | Tidak | Alasan medis perpindahan. Wajib bila baris ini lahir dari perpindahan |
 | `PlacedByUserId` | `Guid` | Ya | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | Siapa yang menempatkan |
 | `EndedByUserId` | `Guid?` | Tidak | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | Siapa yang mengakhiri penempatan |
 | `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | — |
+
+**Satu kolom milik modul lain yang dibaca tabel ini secara tidak langsung.**
+`TrxPatientEncounter.OriginEncounterId` — `Guid?`, boleh kosong, milik `RegistrationManagement`,
+**dibuat dan diisi modul IGD** lewat `IGD-DEC-075`. Rawat Inap memakainya hanya untuk mengetahui
+apakah sebuah episode lahir dari serah terima IGD. Kolom itu **tidak** dibuat, tidak diubah, dan
+tidak masuk migration milik modul ini — `RWI-DEC-073`.
 
 ## 6. `InpDischargeSummary` — status `Baru`
 
@@ -552,5 +558,7 @@ DDL-nya tidak ditulis ulang di sini karena tidak menambah informasi baru.
 | Pada revision `0.3`: `InpEpisode` bertambah enam kolom kebutuhan isolasi, dan enum baru `InpIsolationSource` | `RWI-DEC-065` |
 | Tabel baru `InpDischargeSummaryRevision` beserta DDL-nya | `RWI-DEC-057` |
 | Penomoran bagian bergeser karena satu tabel baru disisipkan pada urutan 7 | — |
+| Pada revision `0.4`: `InpBedPlacement.StartDateTime` berubah **asal nilainya** untuk jalur serah terima IGD. Tidak ada kolom, tipe, index, maupun DDL yang berubah | `RWI-DEC-072` |
+| Pada revision `0.4`: satu kolom milik modul lain dicatat sebagai **dibaca**, yaitu `TrxPatientEncounter.OriginEncounterId`. Tidak dibuat modul ini | `RWI-DEC-073` |
 
 Tidak ada kolom yang dihapus dan tidak ada tipe yang berubah pada revision ini.

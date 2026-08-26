@@ -3,13 +3,13 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.3` |
+| Revision | `0.4` |
 | Status | `draft` — belum disetujui manusia |
-| Tanggal | 21 Agustus 2026 (`Asia/Jakarta`) |
-| Modul | `InPatientManagement`, prefix entity `Inp`, lifecycle registry `PLANNED` |
+| Tanggal | 24 Agustus 2026 (`Asia/Jakarta`) untuk revision `0.4`; revision `0.3` pada 21 Agustus 2026 |
+| Modul | `InPatientManagement`, prefix entity `Inp`, lifecycle registry `ACTIVE` sejak `RWI-DEC-068` |
 | Masukan arsitektur domain | [`evidence/03-hospital-domain-architecture.md`](./evidence/03-hospital-domain-architecture.md) revision `0.1`, kesiapan `DOMAIN_ARCHITECTURE_PARTIAL` |
 | Masukan requirement | [`evidence/02-requirement-completeness-gate.md`](./evidence/02-requirement-completeness-gate.md) revision `1.0`, kesiapan `PARTIALLY_READY` |
-| Masukan keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `5` |
+| Masukan keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `6` |
 | Masukan keadaan saat ini | [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `1.2` |
 | Backend SHA | `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
 | Frontend SHA | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
@@ -44,10 +44,27 @@ terhenti. **`INP-S11` kini masuk scope.**
 Titik penyisipannya sudah disiapkan sejak revision `0.1`, sehingga tidak satu pun perintah bisnis
 atau invariant yang harus dibongkar. Yang berubah hanyalah isi daftar aturan Kelayakan Penempatan.
 
-> **Peringatan.** Dokumen ini adalah **desain target**, bukan izin menulis kode. Modul
-> `InPatientManagement` masih berstatus `PLANNED` pada registry, dan menurut `RWI-FACT-002` status
-> itu hanya memberi hak penamaan. Empat gerbang implementasi pada dokumen keputusan juga masih
-> terbuka.
+### Perubahan pada revision `0.4`
+
+Revision ini memasukkan empat keputusan Amendment Pass 2026-08-24. Keempatnya lahir dari tiga
+usulan lintas modul yang datang dari blueprint IGD, bukan dari kebutuhan baru Rawat Inap.
+
+| Keputusan | Yang berubah di dokumen ini |
+| --- | --- |
+| `RWI-DEC-070` | **Tidak ada.** Pelonggaran mesin klinis menyentuh `ClinicalManagement` dan `PharmacyManagement`; dokumentasi klinis rawat inap berada **di luar scope** dokumen ini sesuai bagian 2 |
+| `RWI-DEC-071` | **Tidak ada.** Keputusannya tidak berubah, hanya justifikasinya yang ditulis ulang pada decision log |
+| `RWI-DEC-072` | Kelayakan Penempatan tumbuh dari delapan aturan menjadi **sembilan**. Satu baris baru pada tabel kepemilikan data: catatan kepergian IGD **dibaca**, tidak ditulis |
+| `RWI-DEC-073` | Satu baris baru pada tabel kepemilikan data: `TrxPatientEncounter.OriginEncounterId` **dibaca**, tidak ditulis dan tidak dibuat modul ini |
+
+**Aturan 9 tidak menyala pada MVP.** Ia hanya berlaku bila episode lahir dari serah terima IGD,
+dan jalur itu adalah `INP-S09` yang sengaja tidak dirancang pada revisi ini. Untuk seluruh task
+MVP — `BE-RWI-011` termasuk — perilaku penempatan tidak berubah sama sekali. Aturannya ditulis
+sekarang supaya tidak dikarang ulang ketika `INP-S09` akhirnya dikerjakan.
+> **Peringatan.** Dokumen ini adalah **desain target**. Sejak `RWI-DEC-067` dan `RWI-DEC-068`
+> penulisan source code sudah dibuka dan modul `InPatientManagement` berstatus `ACTIVE` pada
+> registry, tetapi izinnya berlaku **satu task per pengerjaan** mengikuti roadmap — bukan izin
+> membongkar desain ini. Dua gerbang implementasi masih terbuka: kesiapan data master, dan
+> persetujuan pemilik `EmergencyInstallationManagement` yang hanya menahan `INP-S09`.
 
 ---
 
@@ -142,7 +159,7 @@ untuk setiap tindakan.
 
 Perintah menempatkan dan memindahkan pasien tidak memeriksa syarat satu per satu di dalam badannya,
 melainkan memanggil satu pemeriksaan bernama **Kelayakan Penempatan** yang isinya berupa daftar
-aturan. Sejak revision `0.3` daftar itu berisi delapan aturan.
+aturan. Sejak revision `0.4` daftar itu berisi sembilan aturan.
 
 | No | Aturan | Kode penolakan | Dasar |
 | ---: | --- | ---: | --- |
@@ -154,6 +171,7 @@ aturan. Sejak revision `0.3` daftar itu berisi delapan aturan.
 | 6 | Kamar belum dihuni pasien berjenis kelamin berbeda | 422 | `RWI-RULE-012` B.3 |
 | 7 | Pasien yang membutuhkan isolasi hanya boleh ke tempat tidur isolasi | 422 | `RWI-RULE-012` A.5 |
 | 8 | Pasien yang tidak membutuhkan isolasi tidak boleh ke tempat tidur isolasi | 422 | `RWI-RULE-012` A.6 |
+| 9 | Bila episode lahir dari serah terima IGD, catatan kepergian IGD sudah bertanda `Tiba` | 422 | `RWI-RULE-029` aturan 8 |
 
 **Dua pengecualian boks bayi**, dan keduanya berlaku dua arah:
 
@@ -162,6 +180,12 @@ aturan. Sejak revision `0.3` daftar itu berisi delapan aturan.
 | Menempatkan **ke** boks bayi | Aturan 4, 5, dan 6 dilewati. Bayi laki-laki boleh menempati boks di kamar ibunya |
 | Penghuni yang **berada di** boks bayi | Tidak dihitung saat aturan 6 memeriksa penghuni kamar. Bayi tidak menutup kamar bagi pasien lain |
 
+**Aturan 9 punya lingkup yang sempit.** Ia hanya diperiksa bila episode punya kunjungan asal,
+yaitu bila `TrxPatientEncounter.OriginEncounterId` terisi. Untuk pasien datang langsung dan
+pasien poliklinik aturan ini dilewati begitu saja, dan `InpBedPlacement.StartDateTime` tetap
+diisi waktu penempatan dibuat. Karena jalur serah terima IGD adalah `INP-S09` yang di luar
+scope revisi ini, pada MVP aturan 9 tidak pernah menyala.
+
 Aturan 6 diperiksa dari **penghuni yang sedang ada**, bukan dari penanda pada master kamar.
 Alasannya ada pada `RWI-DEC-066`: penanda `MstRoom.IsForMale` dan `IsForFemale` bernilai benar
 secara bawaan untuk setiap kamar, sehingga tidak dapat membedakan kamar yang boleh campur.
@@ -169,7 +193,8 @@ secara bawaan untuk setiap kamar, sehingga tidak dapat membedakan kamar yang bol
 **Kenapa bentuk daftar ini penting.** Bentuk ini dipilih sejak revision `0.1` justru supaya aturan
 jenis kelamin dan isolasi dapat ditambahkan tanpa membongkar perintah penempatan maupun
 perpindahan. Pada revision `0.3` bentuk itu terbukti: lima aturan bertambah, dan tidak satu baris
-pun perintah bisnisnya berubah.
+pun perintah bisnisnya berubah. Pada revision `0.4` bertambah satu aturan lagi, dan sekali lagi
+tidak ada perintah bisnis yang disentuh.
 
 Pemeriksaan ini mengembalikan **daftar aturan yang gagal**, bukan hanya boleh atau tidak, supaya
 layar dapat menyebut alasan pastinya kepada petugas.
@@ -198,7 +223,9 @@ yang berisi "Ya" wajib punya alasan.
 | Dokumentasi klinis, resep, tindakan | Clinical Management, Pharmacy Management | **Belum** | Tidak — di luar scope, menunggu `DEC-INP-001` |
 | Surat keterangan medis | Clinical Management | Ya | Tidak — dipakai apa adanya untuk lembar yang diserahkan pasien |
 | Faktur, tagihan, pembayaran | Billing Management | Tidak | Tidak — tidak dipakai pada MVP |
-| Disposisi IGD | Emergency Installation Management | **Belum** | Tidak — di luar scope, menunggu `DEC-INP-002` |
+| Disposisi IGD | Emergency Installation Management | **Belum** | Tidak — di luar scope. Pemiliknya bernama sejak `RWI-DEC-069`, yaitu Rizki Gunawan; persetujuan `DEC-INP-002` masih ditunggu |
+| Catatan kepergian pasien dari IGD | Emergency Installation Management | **Dibaca**, hanya pada jalur serah terima | Tidak — waktu tiba dibaca dari event `Tiba` di sana dan tidak pernah ditetapkan modul ini, sesuai `RWI-DEC-072` |
+| Rangkaian kedatangan antar kunjungan | Registration Management | **Dibaca** | Tidak — kolom `TrxPatientEncounter.OriginEncounterId` dibuat dan diisi modul IGD lewat `IGD-DEC-075`, sesuai `RWI-DEC-073` |
 
 ### 2.1 Satu-satunya penulisan lintas modul
 
@@ -212,7 +239,7 @@ penempatan milik Rawat Inap. Artinya modul ini menulis ke dalam tabel milik Mast
 | Nilai yang boleh ditulis Rawat Inap | Hanya `Available`, `Reserved`, dan `Occupied` |
 | Nilai yang tetap wewenang admin | `Cleaning`, `Maintenance`, `Blocked`, `Inactive` |
 | Pengaman | Laporan selisih pada `InpCensusQueryService.GetBedDriftAsync` |
-| Persetujuan yang dibutuhkan | Pemilik Master Data, tercatat sebagai `RWI-OQ-033`, **belum ada** |
+| Persetujuan yang dibutuhkan | Pemilik Master Data, tercatat sebagai `RWI-OQ-033` — **sudah diberikan** 2026-08-21 lewat `RWI-DEC-062` |
 
 ---
 
@@ -487,6 +514,7 @@ diulang pada tabel di bawah.
 | Field penting | `EpisodeId`, `BedId`, `RoomId`, `ServiceUnitId`, `PatientClassId`, `StartDateTime`, `EndDateTime`, `EndReason`, `TransferReason`, `PlacedByUserId`, `EndedByUserId` |
 | Navigation property dan relasi | Milik `InpEpisode`; menunjuk `MstBed`, `MstRoom`, `MstServiceUnit`, `MstPatientClass` |
 | Pemakaian dalam alur bisnis | Dibuat saat pasien menempati tempat tidur, ditutup saat pasien pindah atau episode berakhir |
+| Asal `StartDateTime` | Jalur datang langsung dan poliklinik: waktu penempatan dibuat. Episode yang lahir dari serah terima IGD: **dibaca dari event `Tiba`** pada catatan kepergian IGD, tidak pernah ditetapkan modul ini dan tidak pernah dikoreksi setelah tersimpan, sesuai `RWI-DEC-072`. Bentuk kolomnya tidak berubah |
 | Catatan desain | `RoomId`, `ServiceUnitId`, dan `PatientClassId` adalah **salinan saat penempatan dibuat**, bukan pembacaan langsung. Kalau kamar dipindahkan ke kelas lain tahun depan, riwayat tahun ini tetap menunjukkan kelas yang benar-benar berlaku saat itu. Inilah yang membuat `RWI-RULE-007` dapat dijalankan |
 | Ekuivalen model lama | — |
 

@@ -1,0 +1,28 @@
+# FE-RWI-001 — Perbaikan perubahan status aktif tempat tidur
+
+- TASK ID: `FE-RWI-001`
+- TASK TYPE: Perbaikan frontend
+- COMPLEXITY: `LIGHT`
+- CLASSIFICATION SCORE: 1 — satu repository, dua berkas diubah, logika sederhana, mengonsumsi kontrak API yang sudah ada
+- MODEL: GPT-5 (Codex)
+- TASK MODE: `FRONTEND`
+- WRITE TARGET: `QuilvianSystemFrontendDev` pada branch `HamzahV2`, upstream `origin/HamzahV2`
+- FILES INSPECTED: roadmap Rawat Inap; kontrak API dan controller Bed backend secara read-only; slice, hook detail, test, dan aturan repository frontend
+- FILES CHANGED: `src/lib/state/slice/health-services/master-data/master-data-bed-slice.jsx`; `tests/unit/inpatient-bed-status.test.mjs`
+- IMPLEMENTATION: Aksi aktifkan dan nonaktifkan tempat tidur sekarang sama-sama memanggil `PATCH /v1/health-services/master-data/beds/{id}/status`, masing-masing dengan `isActive: true` dan `isActive: false`. Reducer yang sudah ada tetap memperbarui `bedDetail` tanpa muat ulang browser.
+- API CONTRACT IMPACT: Tidak mengubah kontrak; memperbaiki consumer agar sesuai kontrak backend yang sudah ada.
+- DATABASE IMPACT: Tidak ada.
+- SECURITY IMPACT: Tidak ada perubahan authorization atau authentication.
+- VISUAL REFERENCE: NOT REQUIRED
+- VALIDATION: `node --test tests/unit/inpatient-bed-status.test.mjs` | PASS, 2/2 | TASK | endpoint lama tidak ada, payload eksplisit, reducer memperbarui detail, dan tidak ada reload/refresh browser
+- VALIDATION: `node --test tests/unit/*.test.mjs` | PASS, 15/15 | TASK | seluruh unit test repository lulus
+- VALIDATION: `git diff --check` | PASS | TASK | tidak ada whitespace error
+- VALIDATION: pemeriksaan kontrak/controller backend | PASS | TASK | `PATCH /beds/{id}/status` menerima body `UpdateBedStatusRequest.IsActive`
+- VALIDATION: lint/build | NOT RUN | ENVIRONMENT ISSUE | `node_modules`, binary ESLint, dan binary Next tidak tersedia; dependency tidak dipasang karena tidak ada wewenang package install/update
+- WARNINGS: Verifikasi jaringan langsung untuk memastikan respons bukan 404 memerlukan frontend, backend, data, dan sesi login aktif.
+- KNOWN ISSUES: Tidak ada cacat implementasi yang diketahui pada scope task.
+- MANUAL TEST: NOT FEASIBLE — runtime frontend terautentikasi tidak tersedia di workspace saat validasi
+- INCIDENTAL CHANGES: NONE
+- INTERRUPTIONS: NONE
+- GIT STATUS: Perubahan lokal belum di-stage dan belum di-commit; backend tetap bersih dan tidak diubah.
+- NEXT RECOMMENDED STEP: Setelah dependency/runtime tersedia, buka master tempat tidur dan uji aktifkan serta nonaktifkan sambil memeriksa Network bahwa kedua aksi memakai `/status` tanpa 404.
