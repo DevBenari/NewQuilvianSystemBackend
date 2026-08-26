@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.DTOs
 {
@@ -38,6 +39,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         public bool IsExpired { get; set; }
         public int? DaysUntilExpiry { get; set; }
         public string? FilePath { get; set; }
+        public string? FileUrl { get; set; }
         public string? FileContentType { get; set; }
         public bool HasFile { get; set; }
         public bool IsVerified { get; set; }
@@ -125,12 +127,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         [MaxLength(50)]
         public string? RequirementCode { get; set; }
 
-        [Required]
-        [MaxLength(100)]
+        [Required, MaxLength(100)]
         public string CertificationType { get; set; } = string.Empty;
 
-        [Required]
-        [MaxLength(200)]
+        [Required, MaxLength(200)]
         public string CertificationName { get; set; } = string.Empty;
 
         [MaxLength(200)]
@@ -149,10 +149,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
         [MaxLength(150)]
         public string? FileContentType { get; set; }
 
+        public IFormFile? File { get; set; }
         public bool IsVerified { get; set; }
 
-        [Required]
-        [MaxLength(30)]
+        [Required, MaxLength(30)]
         public string VerificationStatus { get; set; } = "Pending";
 
         public bool BlocksSchedulingWhenInvalid { get; set; } = true;
@@ -165,6 +165,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
 
     public class UpdateWfpCertificationRequest : CreateWfpCertificationRequest
     {
+        public bool ReplaceExistingFile { get; set; }
     }
 
     public class UpdateWfpCertificationStatusRequest
@@ -179,8 +180,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManag
     {
         public bool IsVerified { get; set; } = true;
 
-        [Required]
-        [MaxLength(30)]
+        [Required, MaxLength(30)]
         public string VerificationStatus { get; set; } = "Verified";
     }
 }

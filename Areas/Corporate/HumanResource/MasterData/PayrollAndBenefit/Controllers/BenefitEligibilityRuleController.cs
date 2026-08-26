@@ -11,6 +11,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Controllers
 {
@@ -46,6 +47,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             var result = new BenefitEligibilityRuleFilterMetadataResponse
             {
                 DefaultFilter = new BenefitEligibilityRuleDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 SortOptions = new List<BenefitEligibilityRuleSortOptionResponse>
                 {
                     new() { Value = "priority", Label = "Prioritas" },
@@ -89,6 +91,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         [AccessAction("Read", "Read Benefit Eligibility Rule", Description = "Melihat data benefit eligibility rule", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("BenefitEligibilityRule", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? benefitPlanId,
             [FromQuery] bool? allowProbationEmployee,
             [FromQuery] bool? allowContractEmployee,
@@ -134,6 +139,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     x.EligibilityRuleCode.ToLower().Contains(keyword));
             }
 
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
 
             var items = await query
@@ -587,6 +593,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             return string.IsNullOrWhiteSpace(value)
                 ? null
                 : value.Trim();
+        }
+
+        private static List<BenefitEligibilityRuleCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<BenefitEligibilityRuleCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
         }
     }
 }

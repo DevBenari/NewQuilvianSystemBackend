@@ -31,12 +31,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         public int WorkLocationCount { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }
+        public string? CreateByName { get; set; }
     }
 
     public class LegalEntityDetailResponse : LegalEntityResponse
     {
         public DateTime? UpdateDateTime { get; set; }
         public Guid? UpdateBy { get; set; }
+        public string? UpdateByName { get; set; }
     }
 
     public class LegalEntityOptionResponse
@@ -60,6 +62,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
     public class LegalEntityFilterMetadataResponse
     {
         public LegalEntityDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<LegalEntityCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<LegalEntitySortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
@@ -67,6 +70,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
 
     public class LegalEntityDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public bool? IsDefault { get; set; }
         public bool? IsActive { get; set; }
         public string? Search { get; set; }
@@ -74,6 +80,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         public string SortDirection { get; set; } = "asc";
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 25;
+    }
+
+    public class LegalEntityCustomPeriodOptionResponse
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
     }
 
     public class LegalEntitySortOptionResponse

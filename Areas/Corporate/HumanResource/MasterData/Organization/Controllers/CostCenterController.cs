@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 using CostCenterPagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.DTOs.CostCenterResponse>;
 
@@ -50,6 +51,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             var result = new CostCenterFilterMetadataResponse
             {
                 DefaultFilter = new CostCenterDefaultFilterResponse(),
+                CustomPeriods = BuildPeriodOptions(),
                 SortOptions = new List<CostCenterSortOptionResponse>
                 {
                     new() { Value = "costCenterCode", Label = "Kode pusat biaya" },
@@ -94,6 +96,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         [AccessAction("Read", "Read Cost Center", Description = "Melihat data cost center", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("CostCenter", "Read")]
         public async Task<IActionResult> GetData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? customPeriod,
             [FromQuery] Guid? legalEntityId,
             [FromQuery] Guid? hospitalSiteId,
             [FromQuery] Guid? organizationUnitId,
@@ -107,6 +112,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
         {
             NormalizePaging(ref pageNumber, ref pageSize);
             var query = ApplyFilter(BaseQuery(), legalEntityId, hospitalSiteId, organizationUnitId, departmentId, isActive, search);
+            query = WorkflowMasterDataSupport.ApplyDateFilter(query, startDate, endDate, customPeriod);
             var totalData = await query.CountAsync();
 
             var items = await ApplySorting(query, sortBy, sortDirection)
@@ -138,6 +144,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                     CreateBy = x.CreateBy == Guid.Empty ? null : x.CreateBy
                 })
                 .ToListAsync();
+
+            var actorNames = await GetActorNameMapAsync(items.Select(x => x.CreateBy));
+            foreach (var item in items)
+                item.CreateByName = GetActorName(actorNames, item.CreateBy);
 
             return Ok(ApiResponse<CostCenterPagedResult>.Ok(new CostCenterPagedResult
             {
@@ -202,6 +212,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Cost center tidak ditemukan."));
 
+            var actorNames = await GetActorNameMapAsync(new Guid?[] { entity.CreateBy, entity.UpdateBy });
+
             return Ok(ApiResponse<CostCenterDetailResponse>.Ok(new CostCenterDetailResponse
             {
                 Id = entity.Id,
@@ -226,8 +238,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
                 IsActive = entity.IsActive,
                 CreateDateTime = entity.CreateDateTime,
                 CreateBy = entity.CreateBy == Guid.Empty ? null : entity.CreateBy,
+                CreateByName = GetActorName(actorNames, entity.CreateBy),
                 UpdateDateTime = entity.UpdateDateTime,
-                UpdateBy = entity.UpdateBy == Guid.Empty ? null : entity.UpdateBy
+                UpdateBy = entity.UpdateBy == Guid.Empty ? null : entity.UpdateBy,
+                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             }, "Detail cost center berhasil diambil."));
         }
 
@@ -478,6 +492,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
             return CodePrefix + next.ToString().PadLeft(CodeNumberLength, '0');
         }
 
+        private async Task<Dictionary<Guid, string>> GetActorNameMapAsync(IEnumerable<Guid?> actorIds)
+        {
+            var ids = actorIds
+                .Where(x => x.HasValue && x.Value != Guid.Empty)
+                .Select(x => x!.Value)
+                .Distinct()
+                .ToList();
+            if (ids.Count == 0) return new Dictionary<Guid, string>();
+
+            return await _dbContext.Users.AsNoTracking()
+                .Where(x => ids.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode);
+        }
+
+        private static string? GetActorName(IReadOnlyDictionary<Guid, string> actorNames, Guid? actorId) =>
+            !actorId.HasValue || actorId.Value == Guid.Empty ? null : actorNames.GetValueOrDefault(actorId.Value);
+
         private Guid CurrentUserId()
         {
             var value = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("user_id");
@@ -492,5 +523,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organiz
 
         private static Guid? NormalizeGuid(Guid? value) => !value.HasValue || value.Value == Guid.Empty ? null : value.Value;
         private static string? NormalizeText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        private static List<CostCenterCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<CostCenterCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
+        }
     }
 }

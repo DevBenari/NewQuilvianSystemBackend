@@ -104,6 +104,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     request.PatientId.Value != Guid.Empty &&
                     encounter.PatientId != request.PatientId.Value)
                     return "PatientId tidak sesuai dengan pasien pada encounter.";
+
+                // Satu encounter hanya boleh memiliki satu kunjungan IGD. Pemeriksaan ini
+                // sengaja TIDAK menyaring IsDelete, karena unique index di basis data juga
+                // tidak menyaringnya. Menyaring di sini akan meloloskan permintaan yang
+                // kemudian ditolak database sebagai 409 tanpa penjelasan.
+                var encounterSudahDipakai = await _dbContext.Set<TrxEmergencyVisit>()
+                    .AsNoTracking()
+                    .AnyAsync(
+                        x => x.EncounterId == request.EncounterId.Value,
+                        cancellationToken);
+
+                if (encounterSudahDipakai)
+                    return "Encounter ini sudah memiliki kunjungan IGD. Gunakan kunjungan yang sudah ada atau buat encounter baru.";
             }
 
             if (request.PatientId.HasValue &&
@@ -158,6 +171,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public bool CanTransition(EmergencyVisitStatus current, EmergencyVisitStatus target)
         {
+            // Penyelesaian klinis bersifat final. Diperiksa sebelum jalan pintas status-sama
+            // di bawah, supaya Completed ke Completed pun ikut tertolak.
+            if (current == EmergencyVisitStatus.Completed)
+                return false;
+
             if (current == target)
                 return true;
 
@@ -182,6 +200,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EmergencyVisitStatus.AwaitingDisposition => target is EmergencyVisitStatus.Disposed
                     or EmergencyVisitStatus.InTreatment
                     or EmergencyVisitStatus.Cancelled,
+                // Sah menurut state matrix, tetapi closure gate-nya hanya ditegakkan oleh
+                // PATCH /{id}/complete. UpdateStatus menolak target ini secara terpisah.
+                EmergencyVisitStatus.Disposed => target is EmergencyVisitStatus.Completed,
                 _ => false
             };
         }
@@ -196,10 +217,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             for (var attempt = 0; attempt < 10; attempt++)
             {
                 var number = _documentNumberService.Generate(prefix, now);
+                // Tanpa saringan IsDelete. Unique index EmergencyVisitNumber berlaku untuk
+                // seluruh baris termasuk yang sudah ditandai terhapus, sehingga menyaringnya
+                // di sini membuat nomor yang sebenarnya bentrok dianggap tersedia.
                 var alreadyExists = await _dbContext.Set<TrxEmergencyVisit>()
                     .AsNoTracking()
                     .AnyAsync(
-                        x => !x.IsDelete && x.EmergencyVisitNumber == number,
+                        x => x.EmergencyVisitNumber == number,
                         cancellationToken);
 
                 if (!alreadyExists)

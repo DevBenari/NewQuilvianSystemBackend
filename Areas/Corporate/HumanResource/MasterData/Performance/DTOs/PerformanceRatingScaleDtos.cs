@@ -64,6 +64,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
     public class PerformanceRatingScaleFilterMetadataResponse
     {
         public PerformanceRatingScaleDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<PerformanceCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<PerformanceStringOptionResponse> ScaleTypeOptions { get; set; } = new();
         public List<PerformanceSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
@@ -72,6 +73,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
 
     public class PerformanceRatingScaleDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public string? ScaleType { get; set; }
         public bool? IsDefault { get; set; }
         public bool? IsActive { get; set; }

@@ -80,6 +80,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
     public class PerformanceTemplateFilterMetadataResponse
     {
         public PerformanceTemplateDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<PerformanceCustomPeriodOptionResponse> CustomPeriods { get; set; } = new();
         public List<PerformanceStringOptionResponse> TemplateTypeOptions { get; set; } = new();
         public List<PerformanceSortOptionResponse> SortOptions { get; set; } = new();
         public List<string> SortDirections { get; set; } = new();
@@ -88,6 +89,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Perform
 
     public class PerformanceTemplateDefaultFilterResponse
     {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CustomPeriod { get; set; }
         public Guid? PerformanceCycleId { get; set; }
         public Guid? RatingScaleId { get; set; }
         public string? TemplateType { get; set; }

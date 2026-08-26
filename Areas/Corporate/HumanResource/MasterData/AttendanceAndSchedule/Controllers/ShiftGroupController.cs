@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Controllers;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Controllers
 {
@@ -33,7 +34,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
     [AccessPermission("ShiftGroup","Read")]
         public IActionResult GetFilterMetadata()=>Ok(ApiResponse<ShiftGroupFilterMetadataResponse>.Ok(new()
         {
-            DefaultFilter=new(),SortDirections=new()
+            DefaultFilter=new(),CustomPeriods=BuildPeriodOptions(),SortDirections=new()
             {
                 "asc","desc"
             }
@@ -60,7 +61,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
         [HttpGet]
     [AccessAction("Read","Read ShiftGroup",AccessType=AccessTypes.Read,SortOrder=1)]
     [AccessPermission("ShiftGroup","Read")]
-        public async Task<IActionResult> GetShiftGroups([FromQuery]bool? isActive,[FromQuery]string? search,[FromQuery]int pageNumber=1,[FromQuery]int pageSize=25,CancellationToken ct=default)
+        public async Task<IActionResult> GetShiftGroups([FromQuery]DateTime? startDate,[FromQuery]DateTime? endDate,[FromQuery]string? customPeriod,[FromQuery]bool? isActive,[FromQuery]string? search,[FromQuery]int pageNumber=1,[FromQuery]int pageSize=25,CancellationToken ct=default)
         {
             pageNumber=Math.Max(1,pageNumber);
             pageSize=Math.Min(100,Math.Max(1,pageSize));
@@ -71,6 +72,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
                 var k=search.Trim().ToLower();
                 q=q.Where(x=>x.ShiftGroupCode.ToLower().Contains(k)||x.ShiftGroupName.ToLower().Contains(k));
             }
+            q=WorkflowMasterDataSupport.ApplyDateFilter(q,startDate,endDate,customPeriod);
             var total=await q.CountAsync(ct);
             var rows=await q.OrderBy(x=>x.ShiftGroupName).Skip((pageNumber-1)*pageSize).Take(pageSize).ToListAsync(ct);
             var ids=rows.Select(x=>x.CreateBy).Where(x=>x!=Guid.Empty).Distinct().ToList();
@@ -209,5 +211,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
         }
         static string? N(string? v)=>string.IsNullOrWhiteSpace(v)?null:v.Trim();
         static Guid? NG(Guid? v)=>!v.HasValue||v==Guid.Empty?null:v;
+
+        private static List<ShiftGroupCustomPeriodOptionResponse> BuildPeriodOptions()
+        {
+            return new List<ShiftGroupCustomPeriodOptionResponse>
+            {
+                new() { Value = "today", Label = "Hari ini" },
+                new() { Value = "last7days", Label = "7 hari terakhir" },
+                new() { Value = "thismonth", Label = "Bulan ini" },
+                new() { Value = "lastmonth", Label = "Bulan lalu" }
+            };
+        }
     }
 }

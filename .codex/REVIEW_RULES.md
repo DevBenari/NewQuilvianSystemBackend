@@ -1,15 +1,15 @@
-# Completion Review Rules
+# Aturan Review Penyelesaian
 
-Before completion, perform and record a review proportionate to the task.
+Sebelum menyatakan selesai, lakukan dan catat review yang sepadan dengan bobot task-nya.
 
-- **QBE conformance:** identify applicable QBE IDs from `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`, verify compliance, and record any approved scoped exception.
+- **Kesesuaian QBE:** tentukan ID QBE yang berlaku dari `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`, verifikasi kepatuhannya, dan catat setiap pengecualian terbatas yang sudah disetujui.
 
-- **Diff review:** inspect every changed file and confirm the diff implements the requested behavior only.
-- **Scope review:** verify no unrelated source, dependency, configuration, workflow, migration, or generated-output change was introduced.
-- **Regression review:** consider affected callers, routes, contracts, state, workflows, and error paths; run relevant validation.
-- **Validation evidence:** list commands actually run and their real outcomes. Never fabricate a PASS result or infer one from an unrun command.
-- **Validation classification:** report each relevant check as **PASS**, **NEW ERROR** (introduced by or clearly caused by the current diff), **EXISTING / ENVIRONMENT ISSUE** (reproducible or evidence-supported and unrelated), or **NOT RUN** (intentionally not required). Do not call a failure existing without evidence. A task with an existing/environment issue remains reviewable only when the changed scope is independently reviewed, the failure is not caused by the task, and the remaining risk is reported.
-- **Secrets check:** ensure no credential, token, connection string, key, or sensitive configuration value appears in changed files or reports.
-- **Shared-file impact:** review shared components, contracts, configuration, and cross-repository consumers when they are changed or affected.
-- **Blueprint review:** treat blueprint artifacts as tracked documentation changes. Confirm architecture and status claims cite evidence, `MODULE-STATUS` does not mark a module `DONE` without verification evidence, and a phase is not `DONE` merely because files exist. Report stale evidence, blocked phases, and independently continuable phases distinctly.
-- **Final Git status:** run `git status --short`, identify task changes versus pre-existing changes, and do not stage, commit, or push without explicit authorization.
+- **Review diff:** periksa setiap berkas yang berubah dan pastikan diff-nya hanya mengimplementasikan perilaku yang diminta.
+- **Review scope:** pastikan tidak ada perubahan source, dependency, konfigurasi, workflow, migration, atau keluaran hasil generate yang tidak berkaitan.
+- **Review regresi:** pertimbangkan pemanggil, route, kontrak, state, workflow, dan jalur error yang terdampak; jalankan validasi yang relevan.
+- **Bukti validasi:** cantumkan perintah yang benar-benar dijalankan beserta hasil sebenarnya. Jangan pernah mengarang hasil `PASS` atau menyimpulkannya dari perintah yang tidak dijalankan.
+- **Klasifikasi validasi:** laporkan setiap pemeriksaan yang relevan sebagai **PASS**, **NEW ERROR** (muncul akibat diff saat ini atau jelas disebabkan olehnya), **EXISTING / ENVIRONMENT ISSUE** (dapat direproduksi atau didukung bukti, dan tidak berkaitan dengan task), atau **NOT RUN** (memang sengaja tidak diperlukan). Jangan menyebut sebuah kegagalan sebagai sudah ada sebelumnya tanpa bukti. Task dengan `EXISTING / ENVIRONMENT ISSUE` tetap dapat direview hanya bila scope yang berubah sudah direview secara mandiri, kegagalan itu bukan disebabkan task tersebut, dan sisa risikonya dilaporkan.
+- **Pemeriksaan rahasia:** pastikan tidak ada credential, token, connection string, key, atau nilai konfigurasi sensitif yang muncul pada berkas yang berubah maupun pada laporan.
+- **Dampak berkas bersama:** review komponen bersama, kontrak, konfigurasi, dan konsumen lintas repository ketika hal-hal itu berubah atau terdampak.
+- **Review blueprint:** perlakukan artefak blueprint sebagai perubahan dokumentasi yang dilacak. Pastikan klaim arsitektur dan status mengutip bukti, `MODULE-STATUS` tidak menandai sebuah modul `DONE` tanpa bukti verifikasi, dan sebuah fase tidak dianggap `DONE` hanya karena berkasnya sudah ada. Laporkan bukti yang basi, fase yang terblokir, dan fase yang dapat dilanjutkan secara mandiri sebagai tiga hal yang berbeda.
+- **Status Git akhir:** jalankan `git status --short`, bedakan perubahan hasil task dari perubahan yang sudah ada sebelumnya, dan jangan melakukan stage, commit, atau push tanpa wewenang eksplisit.

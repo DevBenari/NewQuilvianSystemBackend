@@ -1,49 +1,49 @@
-# Quilvian Database and EF Rules
+# Aturan Database dan EF Quilvian
 
-These rules preserve the existing EF Core and PostgreSQL implementation. `AGENTS.md` remains authoritative; inspect the owning model, `ApplicationDbContext`, controller/service, and nearest migration before making persistence decisions.
+Aturan ini menjaga implementasi EF Core dan PostgreSQL yang sudah ada. `AGENTS.md` tetap menjadi pemegang wewenang; periksa model pemiliknya, `ApplicationDbContext`, controller/service, dan migration terdekat sebelum mengambil keputusan persistence.
 
-## Canonical QBE alignment
+## Keselarasan dengan QBE canonical
 
-Read `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` and the registry before persistence work. Apply QBE-ENT-001, QBE-CFG-001, QBE-NAM-001–003, QBE-DB-001–002, QBE-CODE-004 and QBE-MOD-002. A reference implementation does not supersede the canonical contract.
+Baca `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` beserta registry-nya sebelum mengerjakan persistence. Terapkan QBE-ENT-001, QBE-CFG-001, QBE-NAM-001–003, QBE-DB-001–002, QBE-CODE-004, dan QBE-MOD-002. Implementasi rujukan tidak menggantikan kontrak canonical.
 
-## Model and context discipline
+## Disiplin model dan context
 
-- Keep entity/model ownership inside the established domain. Preserve table/schema, base-model, relationship, audit, soft-delete, and active-status conventions.
-- Inspect `Repositories/ApplicationDbContext.cs` registration/configuration and the relevant model before changing persistence behavior. Do not invent a repository layer where the nearest implementation uses `ApplicationDbContext` directly.
-- Keep configuration and dependency registration consistent with `Program.cs`; do not introduce a new persistence architecture or configuration path without explicit authorization.
+- Pertahankan ownership entity/model di dalam domain yang sudah mapan. Jaga konvensi tabel/schema, base model, relasi, audit, soft delete, dan status aktif.
+- Periksa registrasi/konfigurasi pada `Repositories/ApplicationDbContext.cs` beserta model terkait sebelum mengubah perilaku persistence. Jangan mengarang lapisan repository bila implementasi terdekat memakai `ApplicationDbContext` secara langsung.
+- Jaga konfigurasi dan registrasi dependency tetap selaras dengan `Program.cs`; jangan memperkenalkan arsitektur persistence atau jalur konfigurasi baru tanpa wewenang eksplisit.
 
-## Query and relationship discipline
+## Disiplin query dan relasi
 
-- Preserve existing query patterns, filters, ordering, tracking, projections, and pagination. Use `AsNoTracking` for read-only queries where the nearest pattern does; retain tracking when mutation or existing behavior requires it.
-- Prefer projection/selects when the owning domain already supports them, rather than materializing unnecessary entities or navigation graphs.
-- Load relationships deliberately using the nearest `Include`, projection, or query pattern. Avoid broad query rewrites, accidental N+1 behavior, or unrelated relationship changes.
-- Preserve existing soft-delete, active-status, audit metadata, concurrency, transaction, retry, and idempotency behavior where relevant.
+- Pertahankan pola query, filter, urutan, tracking, projection, dan pagination yang sudah ada. Pakai `AsNoTracking` untuk query hanya-baca bila pola terdekat melakukannya; tetap pakai tracking bila mutasi atau perilaku yang sudah ada memang membutuhkannya.
+- Utamakan projection/select bila domain pemiliknya sudah mendukungnya, daripada memuat entity atau graf navigation yang tidak diperlukan.
+- Muat relasi secara sengaja memakai pola `Include`, projection, atau query terdekat. Hindari penulisan ulang query secara luas, perilaku N+1 yang tidak disengaja, atau perubahan relasi yang tidak berkaitan.
+- Pertahankan perilaku soft delete, status aktif, metadata audit, concurrency, transaksi, retry, dan idempotency yang sudah ada bila relevan.
 
-## Mutation, transactions, and safety
+## Mutasi, transaksi, dan keselamatan
 
-- Follow the owning controller/service's create/update/delete and `SaveChangesAsync` pattern. Use transactions only where the existing multi-step workflow/service establishes a transaction boundary.
-- Never automatically drop databases/tables, truncate business data, mass-delete records, reset migrations, overwrite configuration, or update a production/shared database.
-- Database commands are not routine source validation. Report database validation as pending when it was not explicitly authorized.
+- Ikuti pola create/update/delete dan `SaveChangesAsync` milik controller/service pemiliknya. Pakai transaksi hanya di tempat workflow/service multi-langkah yang sudah ada memang menetapkan batas transaksi.
+- Jangan pernah secara otomatis menghapus database/tabel, mengosongkan data bisnis, menghapus record secara massal, mereset migration, menimpa konfigurasi, atau memperbarui database production/bersama.
+- Perintah database bukan validasi source yang rutin. Laporkan validasi database sebagai belum dilakukan bila memang tidak diberi wewenang eksplisit.
 
-## Migration and execution authorization
+## Wewenang migration dan eksekusi
 
-An entity change does **not** automatically authorize any of the following:
+Perubahan entity **tidak** dengan sendirinya memberi wewenang atas hal-hal berikut:
 
-- migration generation;
+- pembuatan migration;
 - `Update-Database`;
-- database execution; or
+- eksekusi database; atau
 - deployment.
 
-Schema/entity impact, migration generation, database execution, and deployment are separate explicitly authorized actions. Do not create, delete, reset, rewrite, or execute migrations without the applicable authorization and a clearly bounded target.
+Dampak schema/entity, pembuatan migration, eksekusi database, dan deployment adalah tindakan terpisah yang masing-masing perlu wewenang eksplisit. Jangan membuat, menghapus, mereset, menulis ulang, atau menjalankan migration tanpa wewenang yang berlaku dan target yang jelas batasnya.
 
-## Representative evidence
+## Bukti representatif
 
-- DbContext and DbSet/configuration ownership: `Repositories/ApplicationDbContext.cs`
-- Composition and DbContext/service registration: `Program.cs`
-- Master-data entity/persistence counterpart: `Areas/Administrator/MasterData/Models/MstBank.cs`; `Areas/Administrator/MasterData/Controllers/BankController.cs`
-- Transaction/query/current-user evidence: `Areas/SelfServices/HumanResource/Services/OvertimeSelfServiceService.cs`; `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowService.cs`
-- Migration convention example: `Migrations/20260521081743_initializeLeaveBalanceAndLeaveRequest.cs`
+- Ownership DbContext dan DbSet/configuration: `Repositories/ApplicationDbContext.cs`
+- Komposisi serta registrasi DbContext/service: `Program.cs`
+- Padanan entity/persistence master data: `Areas/Administrator/MasterData/Models/MstBank.cs`; `Areas/Administrator/MasterData/Controllers/BankController.cs`
+- Bukti transaksi/query/current-user: `Areas/SelfServices/HumanResource/Services/OvertimeSelfServiceService.cs`; `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowService.cs`
+- Contoh konvensi migration: `Migrations/20260521081743_initializeLeaveBalanceAndLeaveRequest.cs`
 
-## Multi-developer consistency
+## Konsistensi lintas developer
 
-New modules follow the nearest mature domain implementation. Do not introduce a new persistence model, migration convention, repository abstraction, query architecture, or error model merely because a module is new.
+Modul baru mengikuti implementasi domain matang terdekat. Jangan memperkenalkan model persistence, konvensi migration, abstraksi repository, arsitektur query, atau model error yang baru hanya karena modulnya baru.
