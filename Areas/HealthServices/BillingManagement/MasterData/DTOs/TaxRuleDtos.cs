@@ -34,7 +34,9 @@ public class CreateTaxRuleRequest
     [Required, MaxLength(30)] public string Code { get; set; } = string.Empty;
     [Required, MaxLength(100)] public string Name { get; set; } = string.Empty;
     [Required, MaxLength(30)] public string TaxableCategory { get; set; } = string.Empty;
-    [Range(typeof(decimal), "0.000001", "100.000000")] public decimal Rate { get; set; }
+    [Range(typeof(decimal), "0.000001", "100.000000",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)] public decimal Rate { get; set; }
     [Required, MaxLength(30)] public string RoundingMode { get; set; } = string.Empty;
     [Required, MaxLength(50)] public string AllocationRule { get; set; } = string.Empty;
     public DateTimeOffset EffectiveFrom { get; set; }

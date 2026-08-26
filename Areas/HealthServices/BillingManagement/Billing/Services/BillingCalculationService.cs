@@ -269,6 +269,20 @@ public sealed class BillingCalculationService
         if (policy is null)
             return new AdministrationFeeCalculationResponse { BusinessDate = businessDate };
 
+        // Pre-filter SQL pada TrxPatientEncounter.EncounterDate (kolom relasional, sumber businessDate
+        // yang sama persis dengan yang dipakai invoice ini) sebelum menarik BreakdownSnapshot ke
+        // memori - tanpa ini, query menarik SELURUH riwayat kalkulasi pasien (bisa ribuan baris pada
+        // pasien dengan riwayat kunjungan panjang) hanya untuk mencari kecocokan satu hari lewat
+        // deserialisasi JSON. CalculatedAt SENGAJA tidak dipakai untuk pre-filter ini - itu adalah
+        // jam sungguhan saat kalkulasi dijalankan (bisa direcalculate kapan saja setelah encounter),
+        // bukan proxy yang aman untuk tanggal klinis. Rentang dilebarkan H-1/H+1 di luar businessDate
+        // sebagai margin aman; kecocokan presisi (BusinessDate persis) tetap ditegakkan di memori
+        // sesudahnya - filter ini murni pengurang kandidat, tidak pernah mengubah hasil.
+        var (rangeStart, _) = AdministrationFeePolicyService.GetBusinessDateUtcRange(businessDate.AddDays(-1));
+        var (_, rangeEnd) = AdministrationFeePolicyService.GetBusinessDateUtcRange(businessDate.AddDays(1));
+        var rangeStartUtc = rangeStart.UtcDateTime;
+        var rangeEndUtc = rangeEnd.UtcDateTime;
+
         var priorSnapshots = await (
             from priorInvoice in _dbContext.BilInvoices.AsNoTracking()
             join priorEncounter in _dbContext.TrxPatientEncounters.AsNoTracking()
@@ -278,6 +292,7 @@ public sealed class BillingCalculationService
                 equals new { calculation.InvoiceId, calculation.VersionNo }
             where priorInvoice.Id != invoice.Id && !priorInvoice.IsDelete && !priorEncounter.IsDelete
                 && priorEncounter.PatientId == encounter.PatientId && !calculation.IsDelete
+                && priorEncounter.EncounterDate >= rangeStartUtc && priorEncounter.EncounterDate < rangeEndUtc
             select calculation.BreakdownSnapshot)
             .ToListAsync(cancellationToken);
 

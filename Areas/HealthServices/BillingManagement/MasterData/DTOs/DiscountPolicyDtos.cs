@@ -40,8 +40,11 @@ public class CreateDiscountPolicyRequest
     [Required, MaxLength(30)] public string DiscountType { get; set; } = string.Empty;
     [Required, MaxLength(30)] public string TargetComponent { get; set; } = string.Empty;
     [Required, MaxLength(20)] public string ValueType { get; set; } = string.Empty;
-    [Range(typeof(decimal), "0.01", "9999999999999999.99")] public decimal Value { get; set; }
-    [Range(typeof(decimal), "0.01", "9999999999999999.99")] public decimal? Limit { get; set; }
+    [Range(typeof(decimal),"0.01","9999999999999999.99", ParseLimitsInInvariantCulture = true, ConvertValueInInvariantCulture = true)]
+    public decimal Value { get; set; }
+
+    [Range(typeof(decimal),"0.01","9999999999999999.99",ParseLimitsInInvariantCulture = true,ConvertValueInInvariantCulture = true)]
+    public decimal? Limit { get; set; }
     public DateTimeOffset EffectiveFrom { get; set; }
     public DateTimeOffset? EffectiveTo { get; set; }
     public bool IsActive { get; set; }

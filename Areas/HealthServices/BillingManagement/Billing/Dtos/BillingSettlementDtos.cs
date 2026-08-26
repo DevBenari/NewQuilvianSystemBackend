@@ -8,7 +8,12 @@ public sealed class CreateSettlementRequest
     public Guid? InvoiceId { get; set; }
     public Guid? DepositAccountId { get; set; }
     [Required, MaxLength(30)] public string Purpose { get; set; } = string.Empty;
-    [Range(typeof(decimal), "0.01", "9999999999999999.99")]
+    [Range(
+        typeof(decimal),
+        "0.01",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
     public decimal RequestedAmount { get; set; }
     public Guid CorrelationId { get; set; }
     public Guid CausationId { get; set; }
@@ -17,7 +22,12 @@ public sealed class CreateSettlementRequest
 public sealed class CreateTenderRequest
 {
     public Guid PaymentMethodId { get; set; }
-    [Range(typeof(decimal), "0.01", "9999999999999999.99")]
+    [Range(
+        typeof(decimal),
+        "0.01",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
     public decimal Amount { get; set; }
     public Guid ExpectedRowVersion { get; set; }
     public Guid CorrelationId { get; set; }
