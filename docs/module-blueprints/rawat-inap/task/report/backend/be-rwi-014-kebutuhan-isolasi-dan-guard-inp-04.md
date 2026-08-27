@@ -203,7 +203,7 @@ yang sudah dibatalkan tidak dapat diubah kebutuhan isolasinya.
 | Endpoint dan penjaga aktif | ✅ Ada di dalam kode |
 | Keenam kriteria lulus | ❌ **Belum.** Kriteria 6 belum dapat diuji |
 | Permission matrix dan kenyataan cocok | ✅ Butir `InpatientEpisode : SetIsolation` dipakai apa adanya |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 

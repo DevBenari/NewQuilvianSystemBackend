@@ -169,7 +169,7 @@ pulang ketiganya dijalankan pada episode yang tidak punya perawat, dan ketiganya
 | --- | --- |
 | Dua endpoint sesuai kontrak | ✅ Ada di dalam kode |
 | Kelima kriteria lulus | ❌ **Belum.** Kriteria 3 baru terbukti di tingkat service |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 

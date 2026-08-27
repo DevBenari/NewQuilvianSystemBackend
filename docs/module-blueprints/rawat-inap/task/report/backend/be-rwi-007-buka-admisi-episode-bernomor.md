@@ -6,8 +6,9 @@
 > dan **255 test hijau, 0 gagal**. Perinciannya ada pada
 > [laporan validasi](be-rwi-validasi-build-dan-test.md).
 >
-> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
-> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+> **Task ini kini ✅ SELESAI.** Seluruh butir DoD-nya hijau: test lulus (255/255) dan
+> endpointnya terbukti berjalan lewat Swagger pada aplikasi tersambung PostgreSQL.
+> Tandanya pada roadmap sudah dinaikkan 🟡 → ✅.
 
 ## Metadata
 
@@ -23,7 +24,7 @@
 | Commit backend saat pekerjaan dimulai | `11711a1` |
 | Tanggal pengerjaan | 25 Agustus 2026 |
 | Jenis perubahan | Pengisian `InpEpisodeService`, satu controller baru, satu berkas DTO baru |
-| Status | **IMPLEMENTASI SELESAI — VALIDASI BELUM DIJALANKAN.** Lihat bagian 6 |
+| Status | ✅ **SELESAI** — seluruh acceptance criteria dan DoD terbukti; build+test hijau dan endpoint terbukti berjalan 26 Agustus 2026 |
 
 > **Peringatan yang tidak boleh dilewat.** Pemilik pekerjaan meminta pengerjaan dilakukan
 > **tanpa menjalankan build**. `dotnet build` dan `dotnet test` **tidak dijalankan** pada sesi
@@ -329,8 +330,8 @@ ia dicatat sebagai verifikasi tertunda pada bagian 8.
 | --- | --- |
 | Endpoint sesuai kontrak `0.4.0` | ✅ Bentuk, verb, route, dan hak aksesnya sesuai; dijaga `InpatientEpisodeControllerContractTests` |
 | Keenam kriteria lulus | ✅ **Lulus** — seluruh test-nya dijalankan 26 Agustus 2026 dan hijau (255/255) |
-| Test transaksi gagal lulus | ❌ **Belum dijalankan**, dan cakupannya terbatas — lihat bagian 6.3 |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh.** Status "Rencana (belum tersedia)" hanya boleh dicabut setelah endpointnya terbukti berjalan |
+| Test transaksi gagal lulus | ⚠️ **Dijalankan dan lulus** 26 Agustus 2026, tetapi cakupannya tetap terbatas|
+| Api contract diperbarui | ✅ **Sudah** — `Rencana` → `Tersedia` 26 Agustus 2026, setelah endpointnya terbukti berjalan |
 
 ---
 

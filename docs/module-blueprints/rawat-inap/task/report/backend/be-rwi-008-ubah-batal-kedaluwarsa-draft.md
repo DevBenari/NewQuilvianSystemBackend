@@ -288,7 +288,7 @@ dan **tidak ada satu pun proses** yang dijalankan di antara keduanya.
 | --- | --- |
 | Tiga kemampuan selesai | ✅ Ubah isian, batalkan, dan gugur sendiri — ketiganya ada di dalam kode |
 | Keenam kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan. Kriteria 2 dan 3 cakupannya belum penuh — bagian 5.1 dan 5.2 |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** sebelum endpointnya terbukti berjalan |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 
