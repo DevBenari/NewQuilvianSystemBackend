@@ -870,7 +870,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (encounter == null)
                 return (false, "Encounter tidak ditemukan.");
 
-            var isEmergencyEncounter = await _dbContext.Set<TrxEmergencyVisit>()
+            var isEmergencyEncounter = await _dbContext.Set<EmgVisit>()
                 .AsNoTracking()
                 .AnyAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete);
 

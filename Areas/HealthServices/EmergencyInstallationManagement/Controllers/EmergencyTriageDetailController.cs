@@ -268,7 +268,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (string.IsNullOrWhiteSpace(request.IndicatorNameSnapshot))
                 return "IndicatorNameSnapshot wajib diisi.";
 
-            if (!await _dbContext.Set<TrxEmergencyTriage>().AsNoTracking().AnyAsync(x => x.Id == request.EmergencyTriageId && !x.IsDelete, cancellationToken))
+            if (!await _dbContext.Set<EmgTriage>().AsNoTracking().AnyAsync(x => x.Id == request.EmergencyTriageId && !x.IsDelete, cancellationToken))
                 return "EmergencyTriageId tidak ditemukan.";
 
             if (request.TriageIndicatorId.HasValue && request.TriageIndicatorId.Value != Guid.Empty &&

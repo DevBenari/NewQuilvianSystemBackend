@@ -9,8 +9,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models
 {
-    [Table("TrxEmergencyVisit", Schema = "public")]
-    public class TrxEmergencyVisit : IdentityModel
+    [Table("EmgVisit", Schema = "public")]
+    public class EmgVisit : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -107,22 +107,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public ApplicationUser? RegistrationCompletedByUser { get; set; }
 
-        public ICollection<TrxEmergencyTriage> Triages { get; set; }
-            = new List<TrxEmergencyTriage>();
+        public ICollection<EmgTriage> Triages { get; set; }
+            = new List<EmgTriage>();
 
-        public ICollection<TrxEmergencyResuscitation> Resuscitations { get; set; }
-            = new List<TrxEmergencyResuscitation>();
+        public ICollection<EmgResuscitation> Resuscitations { get; set; }
+            = new List<EmgResuscitation>();
 
-        public ICollection<TrxEmergencyObservation> Observations { get; set; }
-            = new List<TrxEmergencyObservation>();
+        public ICollection<EmgObservation> Observations { get; set; }
+            = new List<EmgObservation>();
 
-        public ICollection<TrxEmergencyDisposition> Dispositions { get; set; }
-            = new List<TrxEmergencyDisposition>();
+        public ICollection<EmgDisposition> Dispositions { get; set; }
+            = new List<EmgDisposition>();
 
         public ICollection<EmgDeparture> Departures { get; set; }
             = new List<EmgDeparture>();
 
-        public ICollection<TrxEmergencyProcedureDetail> ProcedureDetails { get; set; }
-            = new List<TrxEmergencyProcedureDetail>();
+        public ICollection<EmgProcedureDetail> ProcedureDetails { get; set; }
+            = new List<EmgProcedureDetail>();
     }
 }

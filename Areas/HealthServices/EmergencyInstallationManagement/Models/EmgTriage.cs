@@ -7,8 +7,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models
 {
-    [Table("TrxEmergencyTriage", Schema = "public")]
-    public class TrxEmergencyTriage : IdentityModel
+    [Table("EmgTriage", Schema = "public")]
+    public class EmgTriage : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -92,20 +92,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// </summary>
         public DateTime? SlaBreachedAt { get; set; }
 
-        public TrxEmergencyVisit? EmergencyVisit { get; set; }
+        public EmgVisit? EmergencyVisit { get; set; }
 
         public EmgTriageLevel? TriageLevel { get; set; }
 
         public TrxPatientVitalSign? PatientVitalSign { get; set; }
 
-        public TrxEmergencyTriage? PreviousTriage { get; set; }
+        public EmgTriage? PreviousTriage { get; set; }
 
         public ApplicationUser? PerformedByUser { get; set; }
 
         public ApplicationUser? ReviewedByUser { get; set; }
 
-        public ICollection<TrxEmergencyTriage> Retriages { get; set; }
-            = new List<TrxEmergencyTriage>();
+        public ICollection<EmgTriage> Retriages { get; set; }
+            = new List<EmgTriage>();
 
         public ICollection<EmgTriageDetail> Details { get; set; }
             = new List<EmgTriageDetail>();

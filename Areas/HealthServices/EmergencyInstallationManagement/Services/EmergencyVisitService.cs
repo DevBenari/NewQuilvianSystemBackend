@@ -110,7 +110,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 // sengaja TIDAK menyaring IsDelete, karena unique index di basis data juga
                 // tidak menyaringnya. Menyaring di sini akan meloloskan permintaan yang
                 // kemudian ditolak database sebagai 409 tanpa penjelasan.
-                var encounterSudahDipakai = await _dbContext.Set<TrxEmergencyVisit>()
+                var encounterSudahDipakai = await _dbContext.Set<EmgVisit>()
                     .AsNoTracking()
                     .AnyAsync(
                         x => x.EncounterId == request.EncounterId.Value,
@@ -204,7 +204,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// </para>
         /// </remarks>
         public static string? PeriksaEncounterPendaftaran(
-            TrxEmergencyVisit visit,
+            EmgVisit visit,
             EmergencyRegistrationStatus target)
         {
             ArgumentNullException.ThrowIfNull(visit);
@@ -246,7 +246,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// justru paling gawat di depan pintu IGD.
         /// </para>
         /// </remarks>
-        public async Task<TrxEmergencyVisit?> CariEpisodeAktifAsync(
+        public async Task<EmgVisit?> CariEpisodeAktifAsync(
             Guid? patientId,
             Guid? kecualiVisitId = null,
             CancellationToken cancellationToken = default)
@@ -254,7 +254,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (!patientId.HasValue || patientId.Value == Guid.Empty)
                 return null;
 
-            return await _dbContext.Set<TrxEmergencyVisit>()
+            return await _dbContext.Set<EmgVisit>()
                 .AsNoTracking()
                 .Where(x => x.PatientId == patientId.Value
                     && !x.IsDelete
@@ -269,7 +269,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// Pesan penolakan episode ganda. Wajib menyebut <b>nomor kunjungan yang sudah ada</b>
         /// beserta cara membukanya, sesuai aturan penulisan pesan pada validation matrix.
         /// </summary>
-        public static string PesanEpisodeGanda(TrxEmergencyVisit episodeAktif)
+        public static string PesanEpisodeGanda(EmgVisit episodeAktif)
         {
             ArgumentNullException.ThrowIfNull(episodeAktif);
 
@@ -340,7 +340,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         }
 
         /// <summary>
-        /// Satu-satunya jalan yang dibenarkan untuk mengubah <see cref="TrxEmergencyVisit.VisitStatus"/>.
+        /// Satu-satunya jalan yang dibenarkan untuk mengubah <see cref="EmgVisit.VisitStatus"/>.
         /// Memeriksa <see cref="CanTransition(EmergencyVisitStatus, EmergencyVisitStatus)"/> lebih dulu,
         /// lalu menulis status beserta jejak auditnya sekaligus.
         /// </summary>
@@ -358,7 +358,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// lain di jalur itu.
         /// </remarks>
         public bool TryApplyVisitStatus(
-            TrxEmergencyVisit visit,
+            EmgVisit visit,
             EmergencyVisitStatus target,
             Guid actorUserId,
             DateTime now,
@@ -398,7 +398,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 // Tanpa saringan IsDelete. Unique index EmergencyVisitNumber berlaku untuk
                 // seluruh baris termasuk yang sudah ditandai terhapus, sehingga menyaringnya
                 // di sini membuat nomor yang sebenarnya bentrok dianggap tersedia.
-                var alreadyExists = await _dbContext.Set<TrxEmergencyVisit>()
+                var alreadyExists = await _dbContext.Set<EmgVisit>()
                     .AsNoTracking()
                     .AnyAsync(
                         x => x.EmergencyVisitNumber == number,
