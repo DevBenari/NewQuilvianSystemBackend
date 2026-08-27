@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
@@ -57,15 +58,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly QueueRealtimeService _queueRealtimeService;
+        private readonly ClinicalDocumentIntegrityService _integrityService;
 
         public PatientEncounterController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            QueueRealtimeService queueRealtimeService)
+            QueueRealtimeService queueRealtimeService,
+            ClinicalDocumentIntegrityService integrityService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _queueRealtimeService = queueRealtimeService;
+            _integrityService = integrityService;
         }
 
         [HttpGet("admin/filters/metadata")]
@@ -880,13 +884,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Kunjungan yang sudah batal atau selesai tidak dapat diubah statusnya."));
             }
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             entity.EncounterStatus = request.EncounterStatus;
-            entity.UpdateDateTime = DateTime.UtcNow;
-            entity.UpdateBy = GetCurrentUserId();
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
 
             if (!string.IsNullOrWhiteSpace(request.Reason))
             {
                 entity.Notes = request.Reason.Trim();
+            }
+
+            // RM-DEC-003 lapis kedua — catatan klinis yang belum ditandatangani terkunci
+            // otomatis saat kunjungan selesai, supaya tidak ada catatan yang menggantung
+            // terbuka selamanya.
+            //
+            // Dipicu oleh TUJUAN perpindahan, bukan urutannya, karena endpoint ini tidak
+            // memvalidasi perpindahan status (RM-CAP-019) sehingga status dapat melompat dari
+            // nilai mana pun ke Completed.
+            //
+            // Penguncian tidak menyimpan sendiri: ia ikut SaveChanges di bawah, sehingga bila
+            // penguncian gagal, perubahan status kunjungan ikut dibatalkan.
+            if (request.EncounterStatus == EncounterStatus.Completed)
+            {
+                await _integrityService.LockOpenDocumentsForEncounterAsync(
+                    entity.Id, actorUserId, now, entity.CompletedAt ?? now);
             }
 
             await _dbContext.SaveChangesAsync();

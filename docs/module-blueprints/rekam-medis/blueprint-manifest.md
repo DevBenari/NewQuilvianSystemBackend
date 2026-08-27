@@ -4,14 +4,14 @@
 |---|---|
 | `blueprint_id` | `RM-BP-001` |
 | `revision` | `1` |
-| `status` | **`draft`** — tidak ada satu pun bagian yang disetujui |
+| `status` | **`approved`** — disahkan Yoga Aji Pratama 26 Agustus 2026, kecuali kontrak API yang masih menunggu pemilik API |
 | `module` | `rekam-medis` |
 | `design_snapshot_at` | `2026-08-24` |
 | `backend_commit_sha` | `ab37e3a2e80f0e34efe22ec0f6a8c9b90a3ae45e` |
 | `frontend_commit_sha` | `c4e2ef2a6080f3ce328d2faad79be1893ac13e22` |
-| `owners` | Product/domain: `OPEN`. Clinical governance: `OPEN`. Security/privacy: `OPEN`. API authority: `OPEN`. Frontend authority: `OPEN` |
-| `approved_by` | **— tidak ada** |
-| `approved_at` | **— tidak ada** |
+| `owners` | Product/domain, clinical governance, security/privacy: **Yoga Aji Pratama**. API authority: `OPEN`. Frontend authority: `OPEN` |
+| `approved_by` | **Yoga Aji Pratama** — penanggung jawab modul |
+| `approved_at` | **26 Agustus 2026** |
 | `input_revisions` | `00-interview-decisions.md` revision `4`; `01-existing-capability-map.md` revision `2` |
 | `input_hashes` | Decisions `sha256:2d4c37bc456a39f70d7f10e40852f5e23ba2f7f5b47b71ec0a0ed24ba248aa3c`; capability map `sha256:9cacecf803c0d552623a5f1ce5841af7bea7da5fc49aaf1b3142a076dd4416ae` |
 | `contract_versions` | API `0.1.0`; state `0.1.0`; validation `0.1.0`; integration `0.1.0`; permission/audit `0.1.0` — seluruhnya `draft` |
@@ -21,16 +21,18 @@
 
 ## Design gate
 
-**Ini desain target, bukan spesifikasi yang disetujui.** Blueprint ini disusun di atas keputusan
-yang seluruhnya berstatus `draft`, atas pilihan sadar yang tercatat pada `RM-DEC-025`.
+**Blueprint ini sudah disahkan dan implementasi backend boleh dimulai.** Pengesahan dilakukan
+Yoga Aji Pratama selaku penanggung jawab modul pada 26 Agustus 2026, memegang ketiga peran
+owner sekaligus. Rinciannya pada `RM-DEC-027`.
 
-Gate berikut berlaku sebelum implementasi dimulai:
+Keadaan gate setelah pengesahan:
 
 | Gate | Keadaan | Yang tertahan bila belum terpenuhi |
 |---|---|---|
-| Product/domain owner ditunjuk | **`OPEN`** | Seluruh keputusan scope dan alur |
-| Clinical governance owner ditunjuk | **`OPEN`** | `RM-DEC-003`, `RM-DEC-004`, `RM-DEC-013`, `RM-DEC-020` |
-| Security/privacy owner ditunjuk | **`OPEN`** | `RM-DEC-005`, `RM-DEC-015`, `RM-DEC-016`, `RM-DEC-017`, `RM-DEC-018`, `RM-DEC-021`, `RM-DEC-022` |
+| Product/domain owner ditunjuk | **Terpenuhi** — Yoga Aji Pratama | — |
+| Clinical governance owner ditunjuk | **Terpenuhi** — Yoga Aji Pratama | Tinjauan komite medik atas `RM-DEC-003`, `004`, `020` **belum** dilakukan; lihat `RM-DEC-027` |
+| Security/privacy owner ditunjuk | **Terpenuhi** — Yoga Aji Pratama | Tinjauan pihak perlindungan data atas `RM-DEC-017`, `021`, `022`, `024` **belum** dilakukan; lihat `RM-DEC-027` |
+| API authority menyetujui kontrak | **`OPEN`** | Seluruh pekerjaan frontend. **Tidak** memblokir backend |
 | Angka masa simpan jejak akses ditetapkan | **Terpenuhi** 24 Agustus 2026 — **25 tahun** (`RM-DEC-024`) | Tidak ada lagi yang tertahan. Tabel `TrxMedicalRecordAccessLog` dirancang terbagi per tahun berdasarkan `AccessedAt`, 25 bagian pada keadaan penuh. Dasar regulasi wajib dilampirkan owner saat pengesahan |
 | SOP rekam medis rumah sakit tersedia | **`OPEN`** | Isi awal `MstMedicalRecordAccessPurpose` |
 | Penelusuran alur penggabungan pasien | **Selesai** 24 Agustus 2026. Hasilnya: penggabungan hanya penandaan, tidak memindahkan data klinis. Status `RM-CAP-007` naik menjadi `Conflict` | Yang tersisa: keputusan closure question nomor 8 tentang perilaku layar penelusuran untuk pasien bernomor ganda |

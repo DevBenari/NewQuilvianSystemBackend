@@ -16,6 +16,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
@@ -276,6 +277,16 @@ try
     builder.Services.AddScoped<ConsultationValidationService>();
     builder.Services.AddScoped<DoctorConsultationLifecycleService>();
     builder.Services.AddScoped<ConsultationFinalizationService>();
+
+    // Modul Rekam Medis — keutuhan dokumen klinis
+    builder.Services.AddScoped<ClinicalDocumentIntegrityService>();
+    builder.Services.AddScoped<ClinicalNoteAddendumService>();
+    builder.Services.AddScoped<ClinicalNoteAuthorDelegationService>();
+    builder.Services.AddScoped<MedicalRecordBackfillService>();
+    builder.Services.AddScoped<MedicalRecordAccessAuditService>();
+    builder.Services.AddScoped<MedicalRecordAccessReviewService>();
+    builder.Services.AddScoped<MedicalRecordTimelineService>();
+
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();

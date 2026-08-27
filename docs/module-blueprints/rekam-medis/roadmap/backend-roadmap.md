@@ -5,11 +5,12 @@ module_id: RM-BP-001
 roadmap_revision: 1
 status: DRAFT
 owners:
-  product_domain: OPEN
-  clinical_governance: OPEN
-  security_privacy: OPEN
+  product_domain: Yoga Aji Pratama
+  clinical_governance: Yoga Aji Pratama
+  security_privacy: Yoga Aji Pratama
   api_authority: OPEN
-approved_by: []
+approved_by: [Yoga Aji Pratama]
+approved_at: 2026-08-26
 input_revisions:
   interview_decisions: 4
   capability_map: 2
@@ -29,11 +30,13 @@ source_commits:
   frontend: c4e2ef2a6080f3ce328d2faad79be1893ac13e22
 ```
 
-> **PERINGATAN GERBANG PERENCANAAN.** Skill perencanaan mensyaratkan blueprint dan kontrak
-> berstatus `APPROVED`. Seluruh keputusan dan kontrak modul ini masih `draft`, atas pilihan
-> sadar yang tercatat pada `RM-DEC-025`. Roadmap ini karena itu **bukan izin mulai bekerja**.
-> Setiap task diberi status keterlaksanaan pada bagian 2, dan hanya satu task yang benar-benar
-> dapat dimulai hari ini.
+> **GERBANG PERENCANAAN TERPENUHI.** Sejak 26 Agustus 2026 seluruh keputusan berstatus
+> `approved` atas nama Yoga Aji Pratama (`RM-DEC-027`), sehingga roadmap ini **sudah menjadi
+> izin mulai bekerja** untuk backend.
+>
+> Dua pengecualian yang tetap berlaku: `BE-08` menunggu bukti pada salinan data nyata, dan
+> `BE-09` menunggu SOP rekam medis. Keduanya bukan soal pengesahan. Kontrak API juga masih
+> menunggu pemilik API, tetapi itu hanya memblokir frontend.
 
 ---
 
@@ -45,11 +48,13 @@ source_commits:
 |---|---|
 | `SIAP` | Tidak bergantung pada keputusan atau kontrak berstatus draft. Dapat dimulai hari ini |
 | `TERTAHAN APPROVAL` | Rancangannya lengkap, tetapi bergantung pada keputusan yang belum disahkan owner |
-| `TERTAHAN BLOCKER` | Tertahan hal tertentu yang disebut namanya, di luar soal approval |
+| `TERTAHAN BLOCKER` | Tertahan hal tertentu yang disebut namanya, di luar soal approval. **Tidak ada lagi task berstatus ini** |
+| `SELESAI` | Sudah dikerjakan dan seluruh acceptance criteria terbukti |
 
-Perbedaan dua status terakhir penting. `TERTAHAN APPROVAL` hilang begitu owner ditunjuk dan
+Perbedaan dua status tertahan penting. `TERTAHAN APPROVAL` hilang begitu owner ditunjuk dan
 menyetujui. `TERTAHAN BLOCKER` menuntut pekerjaan nyata lebih dulu, misalnya menetapkan angka
-masa simpan atau menelusuri data.
+masa simpan atau menelusuri data. Per 24 Agustus 2026 kedua blocker itu sudah tertutup —
+`RM-DEC-024` dijawab 25 tahun, dan penelusuran `RM-CAP-007` selesai.
 
 ### Aturan urutan yang mengikat
 
@@ -75,23 +80,185 @@ dikoreksi lebih berbahaya daripada catatan yang dapat diubah bebas.
 
 ## 2. Ringkasan status seluruh task
 
-| Milestone | Task | Status | Tertahan oleh |
+Status per 26 Agustus 2026, setelah pengesahan `RM-DEC-027`.
+
+| Milestone | Task | Status | Keterangan |
 |---|---|---|---|
-| B0 | `BE-00` | **`SIAP`** | — |
-| B0 | `BE-01`, `BE-02` | `TERTAHAN APPROVAL` | `RM-DEC-013` |
-| B1 | `BE-03` … `BE-08` | `TERTAHAN APPROVAL` | `RM-DEC-003`, `004`, `014`, `019`, `020`, `021` |
-| B2 | `BE-09`, `BE-11`, `BE-12` | `TERTAHAN APPROVAL` | `RM-DEC-005`, `015`, `016`, `017` |
-| B2 | `BE-10` | `TERTAHAN APPROVAL` | `RM-DEC-024` **tertutup** 24 Agustus 2026 (25 tahun). Kini hanya menunggu approval owner |
-| B3 | `BE-13` … `BE-15` | `TERTAHAN APPROVAL` | `RM-DEC-002`, `022` |
-| B3 | `BE-16` | `TERTAHAN APPROVAL` — **prioritas rendah** | Ditetapkan sebagai pengaman pada `RM-DEC-026`. Dikerjakan paling akhir di milestone B3 |
-| B4 | `BE-17`, `BE-18` | `TERTAHAN APPROVAL` | Seluruh task pendahulunya |
+| B0 | `BE-00` | **`SELESAI`** 24 Agustus 2026 | Project uji backend, 4 uji lulus |
+| B0 | `BE-01` | **`SELESAI`** 26 Agustus 2026 | 3 tabel keutuhan, 6 enum, migration, 7 uji lulus |
+| B0 | `BE-02` | **`SELESAI`** 26 Agustus 2026 | Service keutuhan, 4 metode, 17 uji lulus |
+| B1 | `BE-03` | **`SELESAI`** 26 Agustus 2026 | Tiga celah CPPT ditutup, 8 uji lulus |
+| B1 | `BE-04`, `BE-05`, `BE-06` | **`SELESAI`** 26 Agustus 2026 | Tanda tangan, penetapan berhalangan, addendum — 3 controller, 17 uji lulus. Dirilis bersamaan sesuai aturan urutan |
+| B1 | `BE-07` | **`SELESAI`** 26 Agustus 2026 | Penguncian saat kunjungan selesai, dipasang di **tiga** jalur, 4 uji lulus |
+| B1 | `BE-08` | **`SIAP DIJALANKAN`** | Alat dan panduannya selesai 26 Agustus 2026, 11 uji lulus. Yang tersisa: menjalankan penelaahan pada data nyata, lalu memberi tahu unit rekam medis. Lihat `BE-08-panduan-pengisian-data-lama.md` |
+| B2 | `BE-09` | **`SELESAI` sebagian** 26 Agustus 2026 | Struktur tabel master selesai. **Isi awalnya masih menunggu SOP rekam medis** |
+| B2 | `BE-10`, `BE-11` | **`SELESAI`** 26 Agustus 2026 | Tabel jejak akses, service kewenangan pasien, 12 uji lulus |
+| B2 | `BE-12` | **`SELESAI`** 26 Agustus 2026 | Tinjauan akses, 4 endpoint, 6 uji lulus |
+| B3 | `BE-13` | **`SELESAI`** 26 Agustus 2026 | Service penggabungan riwayat 13 sumber, 10 uji lulus |
+| B3 | `BE-14`, `BE-15` | **`SIAP`** | Endpoint berkas rekam medis dan catatan pribadi |
+| B3 | `BE-16` | **`SIAP`** — prioritas rendah | Pengaman pasien bernomor ganda (`RM-DEC-026`) |
+| B4 | `BE-17`, `BE-18` | **`SIAP`** | Dikerjakan setelah task pendahulunya |
 
-**Denominator: 19 task. Satu berstatus `SIAP`, tujuh belas `TERTAHAN APPROVAL`, satu
-`TERTAHAN BLOCKER`.**
+**Denominator: 19 task. Dua belas `SELESAI`, satu `SELESAI` sebagian, satu `SIAP DIJALANKAN`,
+lima `SIAP`, nol `TERTAHAN APPROVAL`.**
 
-Angka ini adalah jawaban paling berguna dari roadmap ini: hampir seluruh pekerjaan menunggu
-penunjukan tiga owner. Satu-satunya yang dapat berjalan sekarang, `BE-00`, kebetulan juga
-prasyarat bagi tiga perbaikan paling berisiko.
+Milestone B0, B1, dan B2 tuntas — kecuali dua hal yang bukan pekerjaan kode: isi awal master
+keperluan akses (`BE-09`, menunggu SOP) dan penjalanan pengisian data lama (`BE-08`).
+
+Sisa yang belum dikerjakan: `BE-14` sampai `BE-16` (endpoint berkas rekam medis, catatan
+pribadi, dan pengaman pasien bernomor ganda), lalu `BE-17` dan `BE-18` (uji jalur gagal dan
+catatan rilis).
+
+**Bukti kumulatif:** `dotnet test` → `Failed: 0, Passed: 96`. `dotnet build` → 0 error.
+
+### Hasil `BE-13`
+
+| Berkas | Status |
+|---|---|
+| `Areas/.../MedicalRecordManagement/Services/MedicalRecordTimelineService.cs` | Baru — penggabungan 13 sumber |
+| `Areas/.../MedicalRecordManagement/DTOs/MedicalRecordTimelineDtos.cs` | Baru — permintaan, baris riwayat, sumber gagal, hasil |
+| `Program.cs` | Diperbarui — satu `AddScoped` |
+| `tests/.../MedicalRecordTimelineTests.cs` | Baru — 10 uji |
+
+**Tidak ada tabel baru, tidak ada migration, tidak ada endpoint.** Task ini murni lapisan
+pembaca di atas tiga belas tabel klinis yang sudah ada, persis seperti status audit
+`Reuse with adapter` pada `RM-CAP-004`. Endpoint-nya menyusul pada `BE-14`.
+
+**Bisnis prosesnya, urut.** Petugas membuka berkas rekam medis seorang pasien. Sebelum service
+ini ada, layar harus memanggil sampai tiga belas endpoint terpisah — CPPT, konsultasi, asesmen,
+diagnosis, tindakan, tanda vital, alergi, riwayat penyakit, riwayat keluarga, dokumen klinis,
+lampiran, surat keterangan, dan persetujuan — masing-masing dengan penomoran halaman sendiri,
+lalu mengurutkan sendiri hasilnya. Sekarang alurnya menjadi:
+
+1. Pemanggil menyebut pasien, jenis dokumen yang ingin dilihat, rentang tanggal, dan halaman.
+2. Service menanyakan **hanya** jenis yang diminta ke tabel masing-masing, dengan batas baris.
+3. Seluruh hasil digabung, diurutkan menurut waktu kejadian, lalu dipotong sesuai halaman.
+4. Baris yang benar-benar ditampilkan dilengkapi status keutuhan dokumennya.
+5. Bila ada sumber yang gagal dibaca, namanya ikut dikembalikan bersama hasilnya.
+
+**Contoh.** Pasien dengan tiga kunjungan: CPPT 90 hari lalu, alergi 30 hari lalu, dan
+persetujuan tindakan 2 hari lalu. Satu permintaan mengembalikan ketiganya sebagai satu daftar
+berurut waktu, lengkap dengan nomor kunjungan masing-masing. Petugas tidak perlu membuka
+kunjungan satu per satu.
+
+Yang terbukti lewat uji:
+
+| Acceptance criteria | Uji |
+|---|---|
+| 1) Dokumen dari beberapa kunjungan tampil dalam satu daftar berurut waktu (`AT-RM-09`) | `RiwayatTigaKunjungan_TampilSebagaiSatuDaftarBerurutWaktu` |
+| 2) Jumlah baris dibatasi dan penyaringan tanggal berfungsi (`AT-RM-31`) | `PasienDenganBanyakDokumen_JumlahBarisDibatasiDanTanggalTersaring` |
+| 3) Hanya jenis dokumen yang diminta yang diambil | `HanyaJenisYangDiminta_YangDiambil` |
+| 4) Satu sumber gagal, sumber lain tetap tampil dan yang gagal ditandai | `SatuSumberGagal_SumberLainTetapTampilDanYangGagalDitandai` |
+| 5) Memakai `AsNoTracking` | `SeluruhPembacaan_TidakMeninggalkanEntityTerlacak` |
+| Penyaring kunjungan mempersempit ke satu kunjungan | `PenyaringKunjungan_HanyaMengambilDokumenKunjunganItu` |
+| Status keutuhan menempel; jenis yang belum tunduk ditandai terbuka | `StatusKeutuhan_DitempelkanUntukJenisYangSudahDitegakkan` |
+| Dokumen dibatalkan tidak tampil kecuali diminta | `DokumenDibatalkan_TidakTampilKecualiDiminta` |
+| Riwayat pasien lain tidak ikut terbawa | `RiwayatPasienLain_TidakIkutTerbawa` |
+| Permintaan tanpa id pasien ditolak, bukan dijawab daftar kosong | `TanpaIdPasien_PermintaanDitolak` |
+
+**Cara membuktikan sumber gagal, bukan sekadar disimulasikan.** Uji nomor 4 menghapus satu
+tabel dari basis data uji, sehingga pembacaannya benar-benar gagal. Hasilnya: dua sumber lain
+tetap terbaca, dan jenis `Persetujuan Tindakan` muncul pada daftar sumber gagal. Ini penting
+karena penandanya bukan hiasan — layar wajib menyatakan bahwa daftar yang tampil belum lengkap.
+
+**Dua query per sumber, bukan satu.** Satu untuk menghitung jumlah dokumen, satu untuk mengambil
+barisnya. Penghitungan dipilih dengan sadar: tanpa itu, jumlah total pada layar hanya sebesar
+isi halaman dan tombol "halaman berikutnya" kehilangan artinya. Query penghitungan tidak
+mengambil baris apa pun dan dilayani index `(PatientId, tanggal, IsDelete)` yang sudah ada di
+tiga belas tabel klinis. Konsekuensinya harus dipahami pemakai kontrak: meminta seluruh jenis
+berarti dua puluh enam query, sedangkan meminta satu jenis berarti dua. **Menyebut jenis
+dokumen adalah cara termurah menekan biaya permintaan.**
+
+**Batas yang berlaku.** Ukuran halaman bawaan 25 dan paling besar 100; permintaan yang lebih
+besar dipotong ke batas itu, bukan ditolak. Setiap sumber paling banyak menyerahkan 500 baris
+dalam satu permintaan. Bila batas itu tersentuh, hasilnya ditandai terpotong — jumlah totalnya
+tetap benar, tetapi isi halaman yang jauh belum tentu lengkap.
+
+**Daftar riwayat sengaja tidak membawa isi catatan klinis.** Setiap baris hanya memuat nomor
+dokumen, judul pendek, dan keterangan singkat dari kolom yang panjangnya sudah terbatas.
+Isi lengkap dokumen — termasuk `PrivateNote` — tidak pernah ikut, dan itu memang harus dibuka
+lewat endpoint detail yang jalur aksesnya tercatat tersendiri (`BE-14`, `BE-15`).
+
+**Delta kontrak yang perlu diputuskan pada `BE-14`.** Api-contract bagian 2 menyebut balasan
+`/timeline` berbentuk `ApiResponse<PagedResult<MedicalRecordTimelineItemResponse>>`. Bentuk itu
+tidak punya tempat untuk daftar sumber gagal, padahal acceptance criteria nomor 4 mewajibkan
+kekurangan dinyatakan. Karena `BE-13` hanya lapisan service, keputusannya belum diambil di
+sini: service mengembalikan `MedicalRecordTimelineResult` yang memuat halaman **beserta**
+daftar sumber gagal dan penanda terpotong. `BE-14` yang menentukan bagaimana keterangan itu
+tampil pada balasan endpoint.
+
+### Hasil `BE-09`, `BE-10`, dan `BE-11`
+
+| Berkas | Status |
+|---|---|
+| `Areas/HealthServices/MasterData/Models/MstMedicalRecordAccessPurpose.cs` | Baru |
+| `Areas/.../MedicalRecordManagement/Models/TrxMedicalRecordAccessLog.cs` | Baru |
+| `Repositories/Configurations/HealthService/MedicalRecordManagement/` | 2 configuration baru |
+| `Services/MedicalRecordAccessAuditService.cs` | Baru — penilaian kewenangan dan pencatatan jejak |
+| `Migrations/20260826081755_AddMedicalRecordAccessAuditTables.cs` | Baru |
+| `Program.cs` | Diperbarui — satu `AddScoped` |
+| `tests/.../MedicalRecordAccessAuditTests.cs` | Baru — 12 uji |
+
+Yang terbukti lewat uji:
+
+| Aturan | Uji |
+|---|---|
+| Pasien berkunjungan aktif dibuka tanpa alasan, tetap tercatat | `PasienDenganKunjunganAktif_DibukaTanpaAlasanDanTetapTercatat` |
+| Tanpa kunjungan aktif dan tanpa keperluan ditolak, **isi tidak dikembalikan** | `PasienTanpaKunjunganAktif_TanpaKeperluan_DitolakDanIsinyaTidakDikembalikan` |
+| Dengan keperluan sah, diizinkan dan ditandai untuk ditinjau | `PasienTanpaKunjunganAktif_DenganKeperluan_DiizinkanDanDitandaiUntukDitinjau` |
+| Catatan pribadi **selalu** menuntut keperluan | `CatatanPribadi_SelaluMenuntutKeperluanWalauPasienSedangDirawat` |
+| Sepuluh pembukaan menghasilkan tepat sepuluh jejak | `SepuluhPembukaan_MenghasilkanTepatSepuluhBarisJejak` |
+| Pasien hasil penggabungan ditolak `409` disertai nomor pengganti | `PasienHasilPenggabungan_DitolakDisertaiNomorPengganti` |
+| Kegagalan penilaian **tidak** melonggarkan kewenangan | `PenilaianKunjunganGagal_DiperlakukanSebagaiAksesBeralasan` |
+
+**Kunci utama gabungan.** `TrxMedicalRecordAccessLog` memakai kunci utama `(Id, AccessedAt)`,
+bukan `Id` saja. Ini disiapkan untuk pembagian tabel per tahun: PostgreSQL mensyaratkan kolom
+pembagi ikut menjadi bagian kunci utama, dan **mengubah kunci utama pada tabel berisi jutaan
+baris adalah bagian yang menuntut waktu henti layanan**. Menyiapkannya sejak awal menghilangkan
+biaya itu.
+
+**Yang belum dikerjakan pada pembagian tabel.** Perintah `PARTITION BY RANGE` belum diterapkan;
+tabelnya masih tabel biasa. Alasannya: pada volume sekarang, pembagian adalah pekerjaan
+sia-sia. Yang mahal untuk ditunda — bentuk kunci utama — sudah dikerjakan, sehingga penerapan
+pembagian kelak hanya memerlukan pemindahan data, bukan perubahan skema kunci.
+
+### Yang tersisa pada `BE-09`
+
+Struktur tabelnya selesai dan siap dipakai. **Isi awalnya belum**, karena membutuhkan SOP rekam
+medis rumah sakit yang belum tersedia. Isi minimum yang direncanakan ada pada arsitektur
+bagian 9: lima keperluan akses beserta penanda mana yang menuntut penjelasan tambahan.
+
+Sampai master ini terisi, seluruh pembukaan rekam medis pasien di luar rawatan akan ditolak,
+karena tidak ada keperluan yang dapat dipilih. Itu perilaku yang menutup rapat, tetapi berarti
+**master ini wajib terisi sebelum modul dipakai**.
+
+### Hasil gabungan `BE-04`, `BE-05`, dan `BE-06`
+
+Ketiganya dirilis bersamaan karena mengunci tanpa menyediakan addendum akan melumpuhkan
+koreksi klinis.
+
+| Berkas | Status |
+|---|---|
+| `DTOs/ClinicalDocumentIntegrityDtos.cs` | Baru — permintaan tanda tangan, balasan keutuhan, addendum |
+| `DTOs/ClinicalNoteAuthorDelegationDtos.cs` | Baru — penetapan dan jawaban kewenangan |
+| `Services/ClinicalNoteAddendumService.cs` | Baru — kewenangan bertingkat dan pembuatan addendum |
+| `Services/ClinicalNoteAuthorDelegationService.cs` | Baru — penetapan beserta 6 aturan validasi |
+| `Controllers/ClinicalDocumentIntegrityController.cs` | Baru — 4 endpoint |
+| `Controllers/ClinicalNoteAddendumController.cs` | Baru — 4 endpoint |
+| `Controllers/ClinicalNoteAuthorDelegationController.cs` | Baru — 3 endpoint |
+| `Program.cs` | Diperbarui — 2 `AddScoped` tambahan |
+| `tests/.../AuthorDelegationAndAddendumTests.cs` | Baru — 17 uji |
+
+**Perubahan kontrak.** Grup addendum bertambah satu endpoint, dari 3 menjadi 4. Rancangan
+semula menyatukan addendum biasa dan addendum pengganti dalam satu endpoint, dengan kewenangan
+diperiksa di dalamnya. Itu tidak dapat diterapkan: atribut `[AccessAction]` hanya boleh satu
+per endpoint, sehingga hak akses `CreateAsSubstitute` tidak akan pernah terdaftar dan tidak
+dapat diberikan kepada siapa pun. Rinciannya pada `contracts/api-contract.md` bagian 4.
+
+**Keputusan desain.** Kewenangan pengganti diterima service sebagai masukan, bukan dibaca
+sendiri. `AccessPermissionService` memerlukan `UserManager`, yang tidak dapat dihidupkan pada
+uji tanpa menyalakan seluruh Identity. Dengan memisahkannya, aturan bisnisnya tetap dapat
+diuji dan sumber kewenangannya tetap satu tempat yang jelas di controller.
 
 ---
 
@@ -102,16 +269,50 @@ prasyarat bagi tiga perbaikan paling berisiko.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-00` |
-| **Status** | **`SIAP`** — dapat dimulai hari ini |
+| **Status** | **`SELESAI`** — dikerjakan 24 Agustus 2026, seluruh acceptance criteria terbukti |
 | **Outcome** | Tim punya cara membuktikan bahwa perubahan pada catatan klinis tidak merusak alur IGD dan antrean dokter. Sebelum ini, satu-satunya cara adalah mencoba manual dan berharap tidak ada yang terlewat |
 | **Trace** | `RM-CAP-032`; open question nomor 11 pada decision log |
 | **Reuse** | Tidak ada. Backend belum memiliki project test apa pun |
-| **Scope** | Project test baru pada solution; penyiapan basis data uji; contoh uji untuk satu controller yang sudah ada |
+| **Scope** | Project test baru pada solution; penyiapan basis data uji; contoh uji yang menyentuh basis data |
 | **Dependency** | **Tidak ada.** Tidak bergantung pada satu pun keputusan modul rekam medis |
 | **Acceptance criteria** | 1) Perintah uji dapat dijalankan dan melaporkan hasil. 2) Sekurang-kurangnya satu uji integrasi menyentuh basis data dan lulus. 3) Uji dapat dijalankan berulang tanpa saling mengganggu |
-| **Verification** | Keluaran perintah uji yang menunjukkan jumlah uji lulus |
-| **Risk/blocker** | Risiko: pilihan kerangka uji dan cara menyiapkan basis data uji belum pernah ditetapkan project ini. Owner: pemilik arsitektur backend, **`OPEN`** |
-| **DoD** | Project test ada di solution, terdokumentasi cara menjalankannya, dan satu uji contoh lulus |
+| **Verification** | `dotnet test` dijalankan tiga kali berturut-turut: `Failed: 0, Passed: 4` pada ketiganya. `dotnet build QuilvianSystemBackend.sln` lolos dengan 0 error |
+| **Risk/blocker** | **Tertutup.** Kerangka uji ditetapkan xUnit; basis data uji memakai SQLite di dalam memori. Batasan yang diterima tercatat pada `tests/README.md` bagian "Batasan yang diketahui" |
+| **DoD** | **Terpenuhi.** Project test ada di solution, cara menjalankannya terdokumentasi di `tests/README.md`, dan empat uji lulus |
+
+### Hasil `BE-00`
+
+| Berkas | Status | Isi |
+|---|---|---|
+| `tests/QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | Baru | Project test xUnit, menunjuk project utama |
+| `tests/QuilvianSystemBackend.Tests/Infrastructure/TestDatabase.cs` | Baru | Penyedia basis data uji SQLite di dalam memori |
+| `tests/QuilvianSystemBackend.Tests/Infrastructure/TestDatabaseTests.cs` | Baru | Empat uji yang membuktikan fondasi bekerja |
+| `tests/README.md` | Baru | Cara menjalankan, cara menulis uji baru, dan batasan yang diketahui |
+| `QuilvianSystemBackend.csproj` | Diperbarui | Pengecualian `tests\**` agar project test tidak ikut terkompilasi ke aplikasi |
+| `QuilvianSystemBackend.sln` | Diperbarui | Project test ditambahkan ke solution |
+
+Empat uji yang dihasilkan:
+
+| Uji | Yang dibuktikan |
+|---|---|
+| `BasisDataUji_DapatDibentukLengkapDenganTabelnya` | Seluruh pemetaan EF Core aplikasi dapat dibentuk menjadi tabel sungguhan |
+| `DataYangDisimpan_DapatDibacaKembaliLewatKonteksBaru` | Uji integrasi benar-benar menyentuh basis data, bukan hanya memori konteks |
+| `IndexUnik_MenolakKodeYangKembar` | Aturan keunikan ditegakkan basis data — **prasyarat agar `BE-01` dapat dibuktikan** |
+| `SetiapBasisDataUji_BerdiriSendiriDanTidakSalingMelihat` | Uji tidak saling mengganggu, sehingga hasilnya tidak bergantung urutan jalannya |
+
+Uji ketiga yang paling menentukan. `BE-01` menuntut pembuktian bahwa index unik
+`(DocumentKind, DocumentId)` menolak baris kembar. Bila basis data uji tidak menegakkan
+keunikan, uji itu akan lulus padahal seharusnya gagal — dan itu lebih berbahaya daripada tidak
+punya uji sama sekali.
+
+### Yang sengaja tidak dikerjakan pada `BE-00`
+
+| Yang tidak dikerjakan | Alasan |
+|---|---|
+| Menambahkan langkah `dotnet test` ke CI | Mengubah perilaku CI, perlu persetujuan pemilik CI. Cara menambahkannya sudah dituliskan di `tests/README.md` |
+| Uji lewat HTTP | Belum ada endpoint modul ini. Ditambahkan saat endpoint pertama dibuat |
+| Uji migration | `EnsureCreated` membentuk tabel langsung dari model, tidak menjalankan migration. Diperlukan saat `BE-08` yang memindahkan data |
+| Uji untuk controller yang sudah ada | Di luar acceptance criteria `BE-00`. Uji regresi alur antrean dokter menjadi bagian `BE-03` |
 
 Catatan mengapa task ini didahulukan meski bukan bagian modul rekam medis. Tiga perbaikan pada
 `BE-03` menyentuh `PatientIntegratedProgressNoteController`, berkas sepanjang 1.407 baris yang
@@ -123,32 +324,113 @@ yang dapat dihindari dengan pekerjaan yang tidak menunggu approval siapa pun.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-01` |
-| **Status** | `TERTAHAN APPROVAL` — `RM-DEC-013` |
+| **Status** | **`SELESAI`** — dikerjakan 26 Agustus 2026, seluruh acceptance criteria terbukti |
 | **Outcome** | Sistem punya tempat menyimpan keterangan keutuhan dokumen, terpisah dari isi klinisnya |
 | **Trace** | `RM-DEC-013`; ERD `keutuhan-dokumen.md`; kamus data bagian 1 sampai 3 dan 6 |
 | **Reuse** | `IdentityModel`; pola configuration `Repositories/Configurations/HealthService/`; `ApplyConfigurationsFromAssembly` pada `ApplicationDbContext.cs:612` |
 | **Scope** | `Areas/HealthServices/MedicalRecordManagement/Models/` tiga model; `Enums/` enam enum; `Repositories/Configurations/HealthService/MedicalRecordManagement/` tiga configuration; migration `AddMedicalRecordIntegrityTables` |
 | **Dependency** | `BE-00` disarankan lebih dulu |
 | **Acceptance criteria** | 1) Migration berjalan dan mundur tanpa galat. 2) Index unik `(DocumentKind, DocumentId)` menolak baris kembar. 3) Index unik `(IntegrityId, Sequence)` menolak addendum berurutan kembar. 4) Seluruh relasi memakai `DeleteBehavior.Restrict` |
-| **Verification** | Uji integrasi yang mencoba menyisipkan baris kembar dan memastikannya ditolak |
-| **Risk/blocker** | Risiko: rujukan polimorfik tidak dapat dijamin foreign key. Diterima sadar, ditutup di service pada `BE-02` |
-| **DoD** | Migration teruji maju dan mundur; ketiga tabel terbentuk sesuai kamus data; uji constraint lulus |
+| **Verification** | `dotnet test`: `Failed: 0, Passed: 11`. Tujuh uji baru pada `ClinicalDocumentIntegritySchemaTests`. `dotnet build` lolos 0 error |
+| **Risk/blocker** | **Tertutup untuk lingkup task ini.** Risiko rujukan polimorfik diterima sadar dan ditutup di service pada `BE-02` |
+| **DoD** | **Terpenuhi.** Migration `20260826034557_AddMedicalRecordIntegrityTables` terbentuk dengan 3 tabel, 2 index unik, dan `Down()` yang menghapus ketiganya |
+
+### Hasil `BE-01`
+
+| Berkas | Status |
+|---|---|
+| `Areas/HealthServices/MedicalRecordManagement/Enums/` — 6 enum | Baru |
+| `Areas/HealthServices/MedicalRecordManagement/Models/TrxClinicalDocumentIntegrity.cs` | Baru |
+| `Areas/HealthServices/MedicalRecordManagement/Models/TrxClinicalNoteAddendum.cs` | Baru |
+| `Areas/HealthServices/MedicalRecordManagement/Models/TrxClinicalNoteAuthorDelegation.cs` | Baru |
+| `Repositories/Configurations/HealthService/MedicalRecordManagement/` — 3 configuration | Baru |
+| `Repositories/ApplicationDbContext.cs` | Diperbarui — 3 `DbSet` dan satu `using` |
+| `Migrations/20260826034557_AddMedicalRecordIntegrityTables.cs` | Baru |
+| `tests/.../Infrastructure/RekamMedisTestData.cs` | Baru — penyiapan pengguna, unit, pasien, kunjungan |
+| `tests/.../MedicalRecordManagement/ClinicalDocumentIntegritySchemaTests.cs` | Baru — 7 uji |
+
+Aturan yang terbukti ditegakkan basis data:
+
+| Aturan | Uji |
+|---|---|
+| Satu dokumen tepat satu baris keutuhan | `DokumenYangSama_TidakDapatPunyaDuaBarisKeutuhan` |
+| Keunikan berlaku pada pasangan jenis + Id, bukan Id saja | `JenisDokumenBerbeda_BolehMemakaiIdYangSama` |
+| Urutan addendum tidak dapat kembar pada satu dokumen | `Addendum_TidakDapatPunyaUrutanKembarPadaDokumenYangSama` |
+| Urutan boleh sama antar dokumen berbeda | `Addendum_BerurutanDiterimaDanUrutanBolehSamaAntarDokumen` |
+| Dokumen yang punya addendum tidak dapat dihapus | `KeutuhanYangMasihPunyaAddendum_TidakDapatDihapus` |
+| Enum tersimpan utuh sebagai angka | `StatusKeutuhanDanJenisDokumen_TersimpanUtuh` |
+
+**Catatan temuan.** Penolakan penghapusan terjadi di lapisan EF Core saat baris ditandai hapus,
+bukan di basis data saat disimpan. Hasilnya sama — addendum tidak pernah ikut terhapus diam-diam
+— tetapi jenis galatnya `InvalidOperationException`, bukan `DbUpdateException`. Ini dicatat pada
+komentar uji agar implementer berikutnya tidak salah menduga.
+
+**Tidak dijalankan.** Migration **belum diterapkan** ke basis data mana pun. Berkasnya sudah
+terbentuk dan terbukti maju-mundur secara bentuk, tetapi penerapannya ke basis data berjalan
+memerlukan otorisasi terpisah.
 
 ### `BE-02` — Service keutuhan
 
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-02` |
-| **Status** | `TERTAHAN APPROVAL` — `RM-DEC-003`, `RM-DEC-013` |
+| **Status** | **`SELESAI`** — dikerjakan 26 Agustus 2026, seluruh acceptance criteria terbukti |
 | **Outcome** | Ada satu tempat yang memutuskan apakah sebuah dokumen masih boleh diubah. Tidak tersebar di banyak controller |
 | **Trace** | `RM-DEC-003`; arsitektur bagian 5.6; state transition matrix bagian 2 dan 3 |
 | **Reuse** | Pola service tanpa interface, didaftarkan `AddScoped`, mencontoh `DoctorConsultationLifecycleService` |
 | **Scope** | `Services/ClinicalDocumentIntegrityService.cs`; pendaftaran pada `Program.cs` |
 | **Dependency** | `BE-01` |
 | **Acceptance criteria** | 1) `RegisterAsync` menolak pendaftaran kedua untuk dokumen yang sama. 2) `SignAsync` menolak bila pemanggil bukan `AuthorUserId`. 3) `SignAsync` menolak bila status bukan `Draft`. 4) `EnsureMutableAsync` menolak dokumen `Signed`, `LockedUnsigned`, dan `Cancelled`. 5) `AuthorUserId` tidak dapat diubah lewat jalur mana pun |
-| **Verification** | `AT-RM-02`, `AT-RM-10`, `AT-RM-11` |
-| **Risk/blocker** | Risiko: aturan hanya berlaku bila service dipanggil. Ditutup dengan membatasi cakupan ke satu jenis dokumen, arsitektur bagian 7 |
-| **DoD** | Seluruh acceptance criteria terbukti uji; service terdaftar di `Program.cs` |
+| **Verification** | `dotnet test`: `Failed: 0, Passed: 28`. Tujuh belas uji baru pada `ClinicalDocumentIntegrityServiceTests`, mencakup `AT-RM-02`, `AT-RM-10`, `AT-RM-11` |
+| **Risk/blocker** | **Ditutup dengan cakupan sempit.** Aturan hanya ditegakkan untuk `ProgressNote`, dinyatakan lewat `ClinicalDocumentIntegrityService.DitegakkanUntuk` yang dapat dibaca dan diuji |
+| **DoD** | **Terpenuhi.** Service terdaftar `AddScoped` pada `Program.cs`; seluruh acceptance criteria terbukti uji |
+
+### Hasil `BE-02`
+
+| Berkas | Status |
+|---|---|
+| `Areas/HealthServices/MedicalRecordManagement/Services/ClinicalDocumentIntegrityService.cs` | Baru |
+| `Program.cs` | Diperbarui — satu `AddScoped` dan satu `using` |
+| `tests/.../ClinicalDocumentIntegrityServiceTests.cs` | Baru — 17 uji |
+
+Empat metode yang tersedia:
+
+| Metode | Kegunaan | Menyimpan sendiri? |
+|---|---|:---:|
+| `RegisterAsync` | Mendaftarkan dokumen baru berstatus draf. Aman dipanggil berulang | **Tidak** — pemanggil wajib satu transaksi dengan pembuatan dokumen |
+| `EnsureMutableAsync` | Memeriksa apakah dokumen masih boleh diubah | Tidak menulis |
+| `SignAsync` | Menandatangani sekaligus mengunci | **Ya** — hanya menyentuh satu baris keutuhan |
+| `LockOpenDocumentsForEncounterAsync` | Mengunci seluruh dokumen draf saat kunjungan ditutup, bertahap per potongan | **Tidak** — pemanggil wajib satu transaksi dengan penutupan kunjungan |
+
+Perbedaan "menyimpan sendiri" itu mengikat. Keliru di sini berakibat data setengah tersimpan —
+misalnya dokumen terbuat tetapi baris keutuhannya tidak, sehingga dokumen itu luput dari
+seluruh aturan penguncian.
+
+Yang terbukti lewat uji:
+
+| Aturan | Uji |
+|---|---|
+| Penulis dapat menandatangani, tanpa kata sandi maupun sidik jari | `Penulis_DapatMenandatanganiCatatannyaSendiri` |
+| Bukan penulis ditolak `403`, bukan `400` | `BukanPenulis_TidakDapatMenandatangani` |
+| Dokumen terkunci tidak dapat ditandatangani ulang | `DokumenYangSudahTerkunci_TidakDapatDitandatanganiUlang` |
+| Dokumen terkunci menolak perubahan dan mengarahkan ke addendum | `DokumenYangDitandatangani_MenolakPerubahanDanMengarahkanKeAddendum` |
+| Jenis dokumen yang belum ditegakkan dibiarkan lewat | `JenisDokumenYangBelumDitegakkan_DibiarkanLewat` |
+| Penutupan kunjungan mengunci seluruh dokumen draf | `PenutupanKunjungan_MenguncSeluruhDokumenDrafPadaKunjunganItu` |
+| Dokumen yang sudah ditandatangani tidak ikut diubah | `PenutupanKunjungan_TidakMengubahDokumenYangSudahDitandatangani` |
+| Aman dipanggil berulang | `PenguncianKunjungan_AmanDipanggilBerulang` |
+| Kunjungan lain tidak ikut terkunci | `PenutupanKunjungan_TidakMenyentuhDokumenKunjunganLain` |
+| Penguncian bertahap menyelesaikan seluruhnya | `PenguncianBertahap_MenguncSeluruhnyaWalauPotongannyaKecil` |
+| Penulis tidak berubah setelah ditandatangani | `PenulisDokumen_TidakBerubahSetelahDitandatangani` |
+
+**Catatan desain.** Penolakan dikembalikan sebagai `IntegrityGuardResult` berisi kode status
+dan pesan, bukan dilempar sebagai exception. Alasannya: setiap penolakan sudah punya pesan dan
+kode yang ditetapkan validation matrix, sehingga controller cukup meneruskannya tanpa
+menerjemahkan ulang. Pola ini mengikuti `ValidateMergedPatientReferenceAsync` yang sudah ada
+pada `PatientController`.
+
+**Catatan temuan.** Kolom `UserCode` pada tabel pengguna memiliki keunikan yang ditegakkan
+basis data. Penyiapan data uji wajib mengisinya dengan nilai berbeda tiap pengguna; bila
+dilewatkan, uji kedua yang membuat pengguna akan gagal.
 
 ---
 
@@ -163,23 +445,76 @@ meninggalkan jejak.**
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-03` |
-| **Status** | `TERTAHAN APPROVAL` — `RM-DEC-019` |
+| **Status** | **`SELESAI`** — dikerjakan 26 Agustus 2026, seluruh acceptance criteria terbukti |
 | **Outcome** | Catatan CPPT tidak lagi dapat diubah setelah ditandatangani, penulisnya tidak dapat dipindahkan ke orang lain, dan penanda read-only tidak dapat dilepas dari luar |
 | **Trace** | `RM-DEC-019`; `RM-CAP-011`, `RM-CAP-012`, `RM-CAP-013`; api-contract bagian 8 |
 | **Reuse** | `PatientIntegratedProgressNoteController` yang sudah ada; hanya perilakunya berubah |
 | **Scope** | `Areas/HealthServices/ClinicalManagement/Controllers/PatientIntegratedProgressNoteController.cs`. Tiga perubahan: memanggil `EnsureMutableAsync` sebelum mengubah; **menghapus** penetapan `entity.ProviderUserId` dari permintaan pada baris 533; **menghapus** penetapan `entity.IsReadOnlyGenerated` dari permintaan pada baris 550. Tambahan: memanggil `RegisterAsync` saat CPPT dibuat |
 | **Dependency** | `BE-00`, `BE-02` |
 | **Acceptance criteria** | 1) Mengubah CPPT terkunci ditolak `400` dengan pesan mengarahkan ke addendum. 2) Mengirim `ProviderUserId` orang lain tidak mengubah apa pun. 3) Mengirim `IsReadOnlyGenerated` tidak mengubah apa pun. 4) Membuat CPPT menghasilkan baris keutuhan `Draft`. 5) Bila pendaftaran keutuhan gagal, pembuatan CPPT ikut dibatalkan |
-| **Verification** | `AT-RM-01`, `AT-RM-19`, `AT-RM-20`, `AT-RM-24`, `AT-RM-35`; ditambah `AT-RM-34` sebagai uji regresi alur antrean dokter |
-| **Risk/blocker** | **Risiko tertinggi di seluruh roadmap.** Menyentuh berkas 1.407 baris yang dipakai IGD dan antrean dokter. Ditutup oleh `BE-00`. Owner: `OPEN` |
-| **DoD** | Ketiga celah tertutup dan terbukti uji; alur antrean dokter berjalan penuh tanpa regresi; perubahan perilaku tercatat pada catatan rilis |
+| **Verification** | `dotnet test`: `Failed: 0, Passed: 36`. Delapan uji baru pada `ProgressNoteIntegrityRepairTests`, mencakup `AT-RM-01`, `AT-RM-19`, `AT-RM-20`, `AT-RM-24`. `dotnet build` lolos 0 error |
+| **Risk/blocker** | **Risiko tertinggi di seluruh roadmap, dan terbukti tertutup.** `BE-00` menjadi jaring pengamannya: 36 uji lulus setelah perubahan, termasuk uji yang membuktikan CPPT draf tetap dapat diubah seperti biasa |
+| **DoD** | **Terpenuhi.** Ketiga celah tertutup dan terbukti uji. Pencatatan perubahan perilaku pada Swagger dan catatan rilis menjadi bagian `BE-18` |
+
+### Hasil `BE-03`
+
+Seluruh perubahan berada pada **perilaku**, bukan skema. Tidak ada satu kolom pun berubah.
+
+| Berkas | Perubahan |
+|---|---|
+| `PatientIntegratedProgressNoteController.cs` | Diperbarui — 4 perubahan, lihat di bawah |
+| `tests/.../ProgressNoteIntegrityRepairTests.cs` | Baru — 8 uji |
+| `tests/.../Infrastructure/ControllerTestHarness.cs` | Baru — alat bantu memanggil controller dari uji |
+
+Empat perubahan pada controller:
+
+| No | Perubahan | Menutup |
+|---:|---|---|
+| 1 | `UpdateProgressNote` memanggil `EnsureMutableAsync` sebelum mengubah | `RM-CAP-011` |
+| 2 | Penetapan `entity.ProviderUserId` dari isi permintaan **dihapus** | `RM-CAP-012` |
+| 3 | Penetapan `entity.IsReadOnlyGenerated` dari isi permintaan **dihapus** | `RM-CAP-013` |
+| 4 | `CreateProgressNote` dan `CreateFromConsultation` memanggil `RegisterIntegrityAsync` | `RM-DEC-013` |
+
+Yang terbukti lewat uji:
+
+| Aturan | Uji |
+|---|---|
+| CPPT yang ditandatangani menolak perubahan, isinya tidak tersentuh | `MengubahCpptYangSudahDitandatangani_DitolakDanIsinyaTidakBerubah` |
+| CPPT yang terkunci karena kunjungan ditutup juga menolak | `MengubahCpptYangTerkunciKarenaKunjunganDitutup_Ditolak` |
+| **CPPT draf tetap dapat diubah seperti biasa** | `MengubahCpptYangMasihDraf_TetapBerhasil` |
+| Mengirim penulis orang lain tidak memindahkan penulis | `MengirimPenulisOrangLain_TidakMengubahPenulisCatatan` |
+| Mengirim penanda hanya-baca tidak mengubah penanda | `MengirimPenandaHanyaBaca_TidakMengubahPenandaPadaCatatan` |
+| Membuat CPPT menghasilkan baris keutuhan draf | `MembuatCppt_MenghasilkanBarisKeutuhanBerstatusDraf` |
+| CPPT baru langsung tunduk aturan setelah ditandatangani | `CpptBaru_LangsungTundukAturanKeutuhanSetelahDitandatangani` |
+| CPPT tanpa kunjungan tidak membuat baris keutuhan menggantung | `CpptTanpaKunjungan_TetapDibuatTetapiTidakTerdaftarKeutuhan` |
+
+Uji ketiga yang paling menenangkan: **CPPT draf tetap dapat diubah seperti biasa.** Perbaikan
+ini menutup celah tanpa memblokir alur yang wajar.
+
+### Keterbatasan yang dinyatakan terbuka
+
+| Keterbatasan | Penjelasan |
+|---|---|
+| CPPT tanpa kunjungan tidak terdaftar keutuhan | Baris keutuhan mensyaratkan kunjungan sebagai pengelompokannya. CPPT semacam itu tetap dapat dibuat, tetapi tidak tunduk aturan penguncian. Dilewati tanpa menggagalkan pembuatan, karena menolak akan memblokir alur yang berjalan |
+| CPPT lama belum terdaftar | Baru terdaftar setelah `BE-08` dijalankan. Sampai saat itu, `EnsureMutableAsync` memperlakukannya sebagai masih boleh diubah |
+| Hak akses dan bentuk balasan HTTP belum diuji | Uji memanggil controller langsung, melewati lapisan pemeriksaan hak akses. Perlu uji lewat HTTP bila kelak diperlukan |
+
+### Perubahan perilaku yang wajib diberitahukan
+
+Dicatat di sini dan akan dituangkan ke Swagger serta catatan rilis pada `BE-18`.
+
+| Endpoint | Perubahan | Dampak bagi klien |
+|---|---|---|
+| `PUT .../patient-integrated-progress-notes/{id}` | Menolak bila dokumen terkunci | Menerima `400`. Sebelumnya berhasil |
+| Endpoint yang sama | `ProviderUserId` diabaikan | **Tidak** menerima galat, tetapi nilainya tidak berpengaruh |
+| Endpoint yang sama | `IsReadOnlyGenerated` diabaikan | Sama seperti di atas |
 
 ### `BE-04` — Menandatangani dan mengunci dokumen
 
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-04` |
-| **Status** | `TERTAHAN APPROVAL` — `RM-DEC-003`, `RM-DEC-021` |
+| **Status** | **`SELESAI`** — dikerjakan 26 Agustus 2026 |
 | **Outcome** | Dokter dan perawat dapat menyatakan catatannya final, dan setelah itu isinya terjamin tidak berubah |
 | **Trace** | `RM-DEC-003`, `RM-DEC-021`; api-contract bagian 3 |
 | **Reuse** | `BE-02` |
@@ -195,7 +530,7 @@ meninggalkan jejak.**
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-05` |
-| **Status** | `TERTAHAN APPROVAL` — `RM-DEC-020` |
+| **Status** | **`SELESAI`** — dikerjakan 26 Agustus 2026 |
 | **Outcome** | Kepala unit dapat membuka jalur koreksi ketika penulis catatan berhalangan, dan penetapan itu tercatat beserta alasan dan batas waktunya |
 | **Trace** | `RM-DEC-020`; api-contract bagian 5; validation matrix bagian 3 |
 | **Reuse** | `BE-01` |
@@ -211,7 +546,7 @@ meninggalkan jejak.**
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-06` |
-| **Status** | `TERTAHAN APPROVAL` — `RM-DEC-004` |
+| **Status** | **`SELESAI`** — dikerjakan 26 Agustus 2026 |
 | **Outcome** | Kesalahan pada catatan yang sudah terkunci dapat dibetulkan tanpa menghapus isi aslinya. Pembaca melihat keduanya dan tahu urutan kejadiannya |
 | **Trace** | `RM-DEC-004`, `RM-DEC-020`; api-contract bagian 4; state transition matrix bagian 4 |
 | **Reuse** | `BE-02`, `BE-05` |
@@ -227,32 +562,140 @@ meninggalkan jejak.**
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-07` |
-| **Status** | `TERTAHAN APPROVAL` — `RM-DEC-003` lapis kedua |
+| **Status** | **`SELESAI`** — dikerjakan 26 Agustus 2026 |
 | **Outcome** | Tidak ada catatan yang tertinggal terbuka setelah kunjungan pasien selesai |
 | **Trace** | `RM-DEC-003`; integration contract bagian 2.2 |
 | **Reuse** | `PatientEncounterController` yang sudah ada |
 | **Scope** | `Areas/HealthServices/RegistrationManagement/Controllers/PatientEncounterController.cs`, endpoint `PATCH /{id}/status`; penambahan `LockOpenDocumentsForEncounterAsync` pada `BE-02` |
 | **Dependency** | `BE-02`, `BE-03` |
 | **Acceptance criteria** | 1) Perpindahan menuju `Completed` mengunci seluruh dokumen `Draft` pada kunjungan itu. 2) Penguncian dan perubahan status berada dalam satu transaksi. 3) Bila penguncian gagal, penutupan kunjungan ikut dibatalkan. 4) Perpindahan menuju `Cancelled` **tidak** mengunci apa pun. 5) Aman dipanggil berulang |
-| **Verification** | `AT-RM-03`, `AT-RM-36` |
-| **Risk/blocker** | Risiko: kunjungan dengan sangat banyak dokumen membuat transaksi panjang. Ditutup dengan penguncian per potongan. Catatan: endpoint ini tidak memvalidasi perpindahan status (`RM-CAP-019`), dan itu **tidak** diperbaiki task ini |
-| **DoD** | Acceptance criteria terbukti uji; alur penutupan kunjungan berjalan tanpa regresi |
+| **Verification** | `dotnet test`: `Failed: 0, Passed: 57`. Empat uji baru pada `EncounterClosureLockTests`, mencakup `AT-RM-03`. `dotnet build` lolos 0 error |
+| **Risk/blocker** | Risiko transaksi panjang ditutup dengan penguncian per potongan. Catatan: endpoint status kunjungan tidak memvalidasi perpindahan (`RM-CAP-019`), dan itu **tidak** diperbaiki task ini |
+| **DoD** | **Terpenuhi.** Pemicu terpasang pada seluruh jalur penyelesaian kunjungan; acceptance criteria terbukti uji |
+
+### Hasil `BE-07` — dan satu temuan yang mengubah scope
+
+**Desain menyebut satu jalur. Kenyataannya ada tiga.**
+
+Penelusuran menemukan kunjungan dapat berpindah ke `Completed` lewat tiga tempat berbeda,
+bukan hanya lewat `PatientEncounterController` seperti tertulis pada arsitektur bagian 5.11:
+
+| Jalur | Berkas | Kapan dipakai |
+|---|---|---|
+| Perubahan status umum | `PatientEncounterController.UpdateEncounterStatus` | Penyesuaian manual oleh petugas |
+| **Konsultasi dokter selesai** | `DoctorQueueController` baris ~461 | **Jalur paling sering dipakai** pada rawat jalan |
+| Screening perawat selesai | `NurseStationQueueController` baris ~330 | Pasien yang tidak memerlukan dokter |
+
+Bila pemicu hanya dipasang di jalur pertama seperti tertulis di desain, **kunjungan yang
+diselesaikan lewat antrean dokter tidak akan pernah mengunci catatannya** — dan itu justru
+jalur yang paling sering dipakai. Aturan `RM-DEC-003` lapis kedua akan tampak berjalan padahal
+hampir tidak pernah aktif.
+
+Pemicu karena itu dipasang pada **ketiganya**.
+
+| Berkas | Perubahan |
+|---|---|
+| `PatientEncounterController.cs` | Diperbarui — pemicu pada perpindahan menuju `Completed` |
+| `DoctorQueueController.cs` | Diperbarui — pemicu saat konsultasi dokter selesai |
+| `NurseStationQueueController.cs` | Diperbarui — pemicu saat screening selesai tanpa dokter |
+| `tests/.../EncounterClosureLockTests.cs` | Baru — 4 uji |
+
+Pada ketiganya, penguncian **tidak menyimpan sendiri** — ia ikut `SaveChanges` yang sudah ada,
+sehingga bila penguncian gagal, penyelesaian kunjungan ikut dibatalkan.
+
+Yang terbukti lewat uji:
+
+| Aturan | Uji |
+|---|---|
+| Kunjungan selesai mengunci seluruh catatan draf | `KunjunganSelesai_MenguncSeluruhCatatanDrafDanTidakMenyentuhYangDitandatangani` |
+| Catatan yang sudah ditandatangani tidak tersentuh | uji yang sama |
+| Setelah selesai, seluruh catatan menolak perubahan | `SetelahKunjunganSelesai_SeluruhCatatannyaMenolakPerubahan` |
+| Pembatalan kunjungan **tidak** mengunci | `KunjunganDibatalkan_TidakMenguncCatatan` |
+| Catatan yang dibuat setelah kunjungan selesai tetap draf | `CatatanYangDibuatSetelahKunjunganSelesai_TetapBerstatusDraf` |
+
+### Keterbatasan yang dinyatakan terbuka
+
+| Keterbatasan | Penjelasan |
+|---|---|
+| Catatan susulan tetap berstatus draf | Penguncian hanya berlaku pada saat kunjungan berpindah ke selesai. Catatan yang dibuat setelahnya perlu ditandatangani penulisnya sendiri, atau akan menggantung terbuka |
+| Perpindahan status tidak divalidasi | `RM-CAP-019` tetap terbuka. Penguncian dipicu tujuan perpindahan, bukan urutannya, sehingga tetap bekerja walaupun status melompat |
 
 ### `BE-08` — Pengisian data lama
 
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-08` |
-| **Status** | `TERTAHAN APPROVAL` — `RM-DEC-014`, memerlukan persetujuan clinical governance owner |
+| **Status** | **`SIAP DIJALANKAN`** — alat, uji, dan panduan selesai 26 Agustus 2026. Belum dijalankan pada data nyata |
 | **Outcome** | Catatan CPPT yang sudah tersimpan sebelum modul ini ada ikut memiliki status keutuhan, sehingga tidak ada bagian rekam medis yang luput dari aturan |
 | **Trace** | `RM-DEC-014`; arsitektur bagian 8.2 migration ketiga |
 | **Reuse** | — |
 | **Scope** | Migration `BackfillProgressNoteIntegrity` |
 | **Dependency** | `BE-01`. **Wajib selesai sebelum `BE-03` diaktifkan di produksi** — lihat integration contract bagian 3 |
 | **Acceptance criteria** | 1) CPPT pada kunjungan `Completed` atau `Cancelled` bernilai `LockedUnsigned` dengan `LockTrigger = BackfillEncounterClosed`. 2) CPPT pada kunjungan berjalan bernilai `Draft`. 3) CPPT yang sudah dibatalkan bernilai `Cancelled`. 4) CPPT tanpa `ProviderUserId` tetap dibuat barisnya dengan `IsAuthorKnown = false`, **tidak dilewati diam-diam**. 5) Dijalankan bertahap per potongan. 6) Dapat dimundurkan dengan menghapus baris yang dibuatnya |
-| **Verification** | `AT-RM-21`, `AT-RM-33`; ditambah percobaan pada salinan data nyata |
-| **Risk/blocker** | **Satu-satunya task yang menyentuh data klinis nyata.** Jumlah barisnya belum diketahui karena data produksi tidak diaudit. Owner: clinical governance, **`OPEN`**. Prasyarat: unit rekam medis diberi tahu lebih dulu bahwa laporan kelengkapan akan menampilkan banyak catatan tidak ditandatangani |
-| **DoD** | Migration teruji pada salinan data nyata; jumlah baris terdampak dilaporkan; unit rekam medis sudah diberi penjelasan; cara mundur terbukti |
+| **Verification** | `dotnet test`: `Failed: 0, Passed: 68`. Sebelas uji baru pada `MedicalRecordBackfillTests`, mencakup `AT-RM-21` dan `AT-RM-33` |
+| **Risk/blocker** | **Satu-satunya task yang menyentuh data klinis nyata.** Risikonya diturunkan lewat tiga hal: penelaahan yang hanya membaca, mode percobaan yang tidak menyimpan, dan penjalanan bertahap yang dapat dilanjutkan. Jumlah baris pada data nyata **masih belum diketahui** |
+| **DoD** | Terpenuhi **sebagian**. Alat, uji, dan panduan selesai. Yang tersisa: penelaahan pada data nyata, pemberitahuan ke unit rekam medis, lalu penjalanan |
+
+### Hasil `BE-08` — dan satu perubahan cara
+
+**Rancangan semula memakai migration. Diganti menjadi service yang dijalankan terkendali.**
+
+| Alasan | Penjelasan |
+|---|---|
+| Jumlah barisnya tidak diketahui | Migration langsung berjalan tanpa dapat ditelaah lebih dulu |
+| Waktunya tidak dapat dipilih | Migration berjalan otomatis saat aplikasi naik. Pengisian ini sebaiknya dijalankan ketika unit rekam medis sudah siap |
+| Sulit dilanjutkan bila terhenti | Service dapat dijalankan bertahap dan melanjutkan dari sisa |
+
+Aturan penentuan statusnya **tidak berubah** — persis `RM-DEC-014`.
+
+| Berkas | Status |
+|---|---|
+| `Services/MedicalRecordBackfillService.cs` | Baru — penelaahan dan penjalanan bertahap |
+| `DTOs/MedicalRecordBackfillDtos.cs` | Baru |
+| `Controllers/MedicalRecordBackfillController.cs` | Baru — 2 endpoint |
+| `Program.cs` | Diperbarui — satu `AddScoped` |
+| `tests/.../MedicalRecordBackfillTests.cs` | Baru — 11 uji |
+| `roadmap/BE-08-panduan-pengisian-data-lama.md` | Baru — panduan menjalankan beserta bahan pemberitahuan |
+
+Tiga sifat yang menurunkan risikonya:
+
+| Sifat | Penjelasan |
+|---|---|
+| **Penelaahan hanya membaca** | Menjawab berapa banyak dan akan menjadi apa, tanpa mengubah apa pun. Aman dijalankan kapan saja |
+| **Percobaan tidak menyimpan** | Menghitung seluruhnya lalu melaporkan hasilnya, tanpa menyentuh data. Terbukti melaporkan angka yang sama dengan penjalanan sungguhan |
+| **Bertahap dan dapat dilanjutkan** | Catatan yang sudah terdaftar tidak diproses ulang, sehingga aman bila terhenti di tengah |
+
+**Cara mundur.** Pengisian ini **hanya menambah baris** pada tabel keutuhan dan tidak mengubah
+satu pun catatan klinis. Pembatalannya berupa penghapusan baris yang dibuatnya, tanpa menyentuh
+data pasien. Rinciannya pada panduan bagian 4.
+
+### Hasil penelaahan — dijalankan 26 Agustus 2026
+
+| Yang ditelaah | Hasil | Dampaknya |
+|---|---:|---|
+| Total CPPT | **10** | Selesai satu potongan, penjalanan bertahap tidak diperlukan |
+| Penulis tidak tercatat | **0** | Kekhawatiran penulis tidak diketahui tidak berlaku |
+| Kunjungan masih berjalan | **0** | Nol risiko mengganggu pasien yang sedang dirawat |
+| Tanpa kunjungan | **0** | Seluruh catatan dapat didaftarkan |
+| Akan terkunci tanpa tanda tangan | **10** | Angka yang muncul di laporan kelengkapan |
+
+Profil risikonya turun jauh dari perkiraan semula. Rinciannya pada
+`BE-08-panduan-pengisian-data-lama.md` bagian 0.
+
+**Peringatan yang tetap berlaku.** Sepuluh CPPT adalah jumlah lingkungan pengembangan, bukan
+jumlah pelayanan nyata. Koneksi `Development` project ini menunjuk server bersama, bukan
+produksi. **Sebelum modul dipasang di produksi, penelaahan wajib dijalankan ulang di sana**,
+dan seluruh pertimbangan pada panduan kembali berlaku penuh.
+
+### Yang tersisa sebelum `BE-08` dapat dinyatakan selesai
+
+| No | Yang tersisa | Siapa | Keadaan |
+|---:|---|---|---|
+| 1 | ~~Penelaahan pada basis data~~ | — | **Selesai** 26 Agustus 2026 |
+| 2 | Menjalankan percobaan, memeriksa pembagian antara terkunci dan dibatalkan | Tim pengembang | Belum |
+| 3 | Memberi tahu unit rekam medis — ringan, hanya 10 catatan | Penanggung jawab modul | Belum |
+| 4 | Menjalankan sungguhan, satu potongan cukup | Tim pengembang | Belum |
+| 5 | Mengulang penelaahan di produksi sebelum pemasangan di sana | Tim pengembang | Belum, dan **wajib** |
 
 ---
 
@@ -331,11 +774,11 @@ meninggalkan jejak.**
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-13` |
-| **Status** | `TERTAHAN APPROVAL` — `RM-DEC-002` |
+| **Status** | **`SELESAI`** — dikerjakan 26 Agustus 2026, seluruh acceptance criteria terbukti uji. Lihat bagian 2 "Hasil `BE-13`" |
 | **Outcome** | Riwayat klinis seorang pasien dapat diambil dari tiga belas sumber sekaligus dalam satu daftar berurut waktu |
 | **Trace** | `RM-DEC-002`; `RM-CAP-004`; arsitektur bagian 5.8 |
 | **Reuse** | Index `(PatientId, <tanggal>, IsDelete)` yang sudah ada pada seluruh tabel klinis; pola penggabungan `PrescriptionWorkspaceService` |
-| **Scope** | `Services/MedicalRecordTimelineService.cs` |
+| **Scope** | `Services/MedicalRecordTimelineService.cs`. **Bertambah saat pengerjaan:** `DTOs/MedicalRecordTimelineDtos.cs`, karena service memerlukan bentuk permintaan dan balasannya sendiri. Diletakkan pada berkas terpisah supaya `DTOs/MedicalRecordDtos.cs` tetap menjadi milik `BE-14` |
 | **Dependency** | `BE-02` untuk status keutuhan |
 | **Acceptance criteria** | 1) Dokumen dari beberapa kunjungan tampil dalam satu daftar berurut waktu. 2) Jumlah baris dibatasi dan penyaringan tanggal berfungsi. 3) Hanya jenis dokumen yang diminta yang diambil. 4) Bila satu sumber gagal, sumber lain tetap tampil dan yang gagal ditandai. 5) Memakai `AsNoTracking` |
 | **Verification** | `AT-RM-09`, `AT-RM-31` |

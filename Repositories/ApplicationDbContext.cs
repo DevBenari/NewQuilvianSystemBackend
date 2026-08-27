@@ -39,6 +39,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Mod
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories
 {
@@ -602,6 +603,14 @@ namespace QuilvianSystemBackend.Repositories
         #endregion
 
         #endregion
+
+        #region MEDICAL RECORD MANAGEMENT
+        public DbSet<TrxClinicalDocumentIntegrity> TrxClinicalDocumentIntegrities { get; set; }
+        public DbSet<TrxClinicalNoteAddendum> TrxClinicalNoteAddendums { get; set; }
+        public DbSet<TrxClinicalNoteAuthorDelegation> TrxClinicalNoteAuthorDelegations { get; set; }
+        public DbSet<TrxMedicalRecordAccessLog> TrxMedicalRecordAccessLogs { get; set; }
+        public DbSet<MstMedicalRecordAccessPurpose> MstMedicalRecordAccessPurposes { get; set; }
+        #endregion MEDICAL RECORD MANAGEMENT
 
         #endregion HEALTH SERVICE
 

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260826034557_AddMedicalRecordIntegrityTables")]
+    partial class AddMedicalRecordIntegrityTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -62878,78 +62881,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("MstMeasurementConversion", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMedicalRecordAccessPurpose", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsFreeTextRequired")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("PurposeCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("PurposeName")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<bool>("RequiresReview")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PurposeCode")
-                        .IsUnique();
-
-                    b.HasIndex("IsActive", "SortOrder");
-
-                    b.ToTable("MstMedicalRecordAccessPurpose", "public");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstPatientClass", b =>
                 {
                     b.Property<Guid>("Id")
@@ -64099,115 +64030,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("OriginalAuthorUserId", "IsActive", "ValidUntil");
 
                     b.ToTable("TrxClinicalNoteAuthorDelegation", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.TrxMedicalRecordAccessLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("AccessedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("AccessPurposeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("AccessReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int>("AccessScope")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("AccessType")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ClientInfo")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("HasActiveEncounter")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("IpAddress")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsFlaggedForReview")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("PatientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("RequestPath")
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
-
-                    b.Property<string>("ReviewNote")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ReviewedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UserDisplayNameSnapshot")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("UserRoleSnapshot")
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.HasKey("Id", "AccessedAt");
-
-                    b.HasIndex("AccessPurposeId");
-
-                    b.HasIndex("AccessType", "AccessedAt");
-
-                    b.HasIndex("PatientId", "AccessedAt");
-
-                    b.HasIndex("UserId", "AccessedAt");
-
-                    b.HasIndex("IsFlaggedForReview", "ReviewedAt", "AccessedAt");
-
-                    b.ToTable("TrxMedicalRecordAccessLog", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", b =>
@@ -87970,24 +87792,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Delegation");
 
                     b.Navigation("Integrity");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.TrxMedicalRecordAccessLog", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMedicalRecordAccessPurpose", "AccessPurpose")
-                        .WithMany()
-                        .HasForeignKey("AccessPurposeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("AccessPurpose");
-
-                    b.Navigation("Patient");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", b =>

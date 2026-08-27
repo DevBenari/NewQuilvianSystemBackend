@@ -124,9 +124,23 @@ Contract version: `0.1.0` — status `draft`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `GET` | `/by-document/{documentKind}/{documentId}` | Daftar addendum sebuah dokumen, urut `Sequence` | `ClinicalNoteAddendum : Read` | — | `ApiResponse<List<ClinicalNoteAddendumResponse>>` | **Rencana (belum tersedia)** |
-| `POST` | `/by-document/{documentKind}/{documentId}` | Membuat addendum | `ClinicalNoteAddendum : Create` | `CreateClinicalNoteAddendumRequest` | `ApiResponse<ClinicalNoteAddendumResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/authority/{documentKind}/{documentId}` | Memeriksa apakah pengguna berhak membuat addendum, dan atas dasar apa | `ClinicalNoteAddendum : Read` | — | `ApiResponse<AddendumAuthorityResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/by-document/{documentKind}/{documentId}` | Daftar addendum sebuah dokumen, urut `Sequence` | `ClinicalNoteAddendum : Read` | — | `ApiResponse<List<ClinicalNoteAddendumResponse>>` | **Tersedia** — `BE-06` |
+| `POST` | `/by-document/{documentKind}/{documentId}` | Membuat addendum pada catatan sendiri | `ClinicalNoteAddendum : Create` | `CreateClinicalNoteAddendumRequest` | `ApiResponse<ClinicalNoteAddendumResponse>` | **Tersedia** — `BE-06` |
+| `POST` | `/by-document/{documentKind}/{documentId}/as-substitute` | Membuat addendum menggantikan penulis yang berhalangan | `ClinicalNoteAddendum : CreateAsSubstitute` | `CreateClinicalNoteAddendumRequest` | `ApiResponse<ClinicalNoteAddendumResponse>` | **Tersedia** — `BE-06`. **Endpoint tambahan**, lihat catatan di bawah |
+| `GET` | `/authority/{documentKind}/{documentId}` | Memeriksa apakah pengguna berhak membuat addendum, dan atas dasar apa | `ClinicalNoteAddendum : Read` | — | `ApiResponse<AddendumAuthorityResponse>` | **Tersedia** — `BE-06` |
+
+**Perubahan kontrak pada `BE-06`: satu endpoint tambahan.** Rancangan semula menyatukan
+pembuatan addendum biasa dan addendum pengganti dalam satu endpoint, dengan kewenangan
+pengganti diperiksa di dalamnya. Itu ternyata tidak dapat diterapkan: atribut `[AccessAction]`
+hanya boleh satu per endpoint, sehingga hak akses `CreateAsSubstitute` tidak akan pernah
+terdaftar dan karenanya tidak dapat diberikan kepada siapa pun.
+
+Pemisahan menjadi dua endpoint menyelesaikannya, sekaligus membawa dua keuntungan: tindakan
+pengganti terdaftar sebagai hak akses tersendiri sehingga dapat diberikan kepada kepala unit
+dan DPJP tanpa ikut memberi hak lain, dan pemakaiannya tercatat terpisah pada log sehingga
+dapat ditinjau tersendiri.
+
+Jumlah endpoint pada grup ini menjadi **4**, bukan 3.
 
 `CreateClinicalNoteAddendumRequest`:
 
