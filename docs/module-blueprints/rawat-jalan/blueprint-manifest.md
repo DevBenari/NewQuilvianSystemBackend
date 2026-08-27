@@ -6,17 +6,17 @@
 | `module_name` | Dokter / Rawat Jalan Billing |
 | `module_slug` | `rawat-jalan` |
 | `module_prefix` | `RJ-BIL` |
-| `revision` | `14` |
+| `revision` | `16` |
 | `status` | `PARTIAL` |
 | `current_phase` | `RJ-BIL-PH-008` — Delivery Planning |
 | `created_at` | `2026-08-20T15:06:30+07:00` |
-| `updated_at` | `2026-08-27T12:52:04+07:00` |
-| `last_verified_at` | `2026-08-27T12:52:04+07:00` |
+| `updated_at` | `2026-08-27T15:31:52+07:00` |
+| `last_verified_at` | `2026-08-27T15:31:52+07:00` |
 | `backend_source_sha` | `6b25e6049e60e055593968abe463262b59842527` cabang `sukmagp`; working tree `RJ-BIL-BE-003` beserta remediasi penamaan belum di-commit |
 | `frontend_source_sha` | `ab4bd836e05c72d0679e02899258f3773f3869a2` |
 | `skill_suite_version` | `1.0.0-rc2` |
-| `input_revision_hash` | `decisions:sha256:59723FA1F8D84298152632C7021B5C101E5E033096BFEB5AD324B4A67AAFB056; capability:sha256:D1CB1D052474FA96F0BE801F7CEA277AEB0604A9969247B7323F82D23F5152B7` |
-| `decision_revision` | `12` |
+| `input_revision_hash` | `decisions:sha256:5E3A1EF42631041C3F9B0A4595F0A70A030F4B88787FA73DE39FCC90DE0E8919; capability:sha256:D1CB1D052474FA96F0BE801F7CEA277AEB0604A9969247B7323F82D23F5152B7` |
+| `decision_revision` | `13` |
 | `contract_versions` | `RJ-BIL-CONTRACT-001@1.0.0 (OWNER_APPROVED)` |
 | `active_dependency_ids` | `RJ-BIL-DEP-001` s.d. `RJ-BIL-DEP-009` |
 | `active_roadmap_revision` | `1` |
@@ -50,16 +50,24 @@ berkasnya ada. Sembilan artefak desain dan kontrak diverifikasi ulang pada tangg
 | `contracts/permission-audit-matrix.md` | `1424ADE6BB5084C8A77105477C65B347959C6C17570A88E2E9663C38C23FF093` |
 | `testing/acceptance-test-matrix.md` | `FEC2E3816EF086540FB85EAB9242A559906BF65154B1DC311068A5C999840EF6` |
 | `owner-review-checklist.md` | `review artifact; hash dihitung setelah owner mengisi record approval` |
-| `roadmap/backend-roadmap.md` | `1454222F93792E3305415181B6E978189411DAA83F0ED7EAAE540976344B0B51` |
+| `roadmap/backend-roadmap.md` | `2488CBB0162DBB923099ADAA28632E239598C38893B287DB07BA916E1FE6ED95` |
 | `roadmap/frontend-roadmap.md` | `09500DE9A72A941594767CA2FC74E9A3F1A3210A9647F29086F60A5B206CF354` |
 | `roadmap/requirement-traceability.md` | `E60274E7C7D10B425E5F8B9CBF91F1265C3AE7B305C7991923E8E6B798DC2937` |
 
-Catatan verifikasi `2026-08-27` (revision `14`). Seluruh hash artefak dihitung ulang. Sebelas
-artefak cocok tanpa perubahan. Satu artefak berubah dan hash-nya diperbarui di sini:
-`roadmap/backend-roadmap.md`, karena penandaan status task dan koreksi keadaan migration. Baris
-`owner-review-checklist.md` sengaja tidak memuat hash; isinya catatan, dan tetap demikian sampai
-owner mengisi record approval. `active_roadmap_revision` tetap `1` karena pembaruan itu tidak
-menyentuh cakupan, acceptance criteria, maupun dependency task mana pun.
+Catatan verifikasi `2026-08-27` (revision `16`). `RJ-BIL-BE-006` dibangun, diuji, dan
+migration-nya diterapkan; hash `roadmap/backend-roadmap.md` diperbarui mengikuti penandaan
+🟡 menjadi ✅. Bukti: `157` test lulus, `0` gagal, dan `0` migration berstatus `(Pending)`.
+
+**`roadmap/frontend-roadmap.md` masih melenceng dan hash-nya tetap TIDAK diperbarui.** Berkas
+itu berubah `2026-08-27` pukul `14:07` di luar sesi ini dan belum ditelaah siapa pun di sini.
+Memperbarui hash-nya akan membuat perubahan yang tidak pernah diperiksa tampak seolah sudah
+diverifikasi. Drift ini dibiarkan terbaca sampai pemiliknya menyatakan isinya memang
+dikehendaki.
+
+Baris `owner-review-checklist.md` sengaja tidak memuat hash; isinya catatan, dan tetap demikian
+sampai owner mengisi record approval. `active_roadmap_revision` tetap `1`: seluruh pembaruan
+backend roadmap hari ini menyentuh status eksekusi, bukan cakupan, acceptance criteria, maupun
+dependency task mana pun.
 
 Arsitektur domain revision `1` sudah tersedia. Fase berikutnya adalah `design-business-module`
 untuk slice core internal/manual yang siap. Aktivasi adapter eksternal tetap terblokir oleh

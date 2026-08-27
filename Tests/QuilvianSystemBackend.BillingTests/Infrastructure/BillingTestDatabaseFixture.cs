@@ -386,6 +386,26 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
                     .Select(x => x.Id)
                     .ToListAsync(cancellationToken);
 
+                // Tindakan finansial (RJ-BIL-BE-006) dibersihkan paling awal: persetujuan
+                // menggantung pada permintaan, permintaan menunjuk folio dan baris tagihan,
+                // dan riwayat penutupan memiliki foreign key Restrict ke folio.
+                var actionRequestIds = await context.BilFinancialActionRequests
+                    .Where(x => folioIds.Contains(x.FolioId))
+                    .Select(x => x.Id)
+                    .ToListAsync(cancellationToken);
+
+                await context.BilFinancialApprovals
+                    .Where(x => actionRequestIds.Contains(x.RequestId))
+                    .ExecuteDeleteAsync(cancellationToken);
+
+                await context.BilFolioClosureHistories
+                    .Where(x => folioIds.Contains(x.FolioId))
+                    .ExecuteDeleteAsync(cancellationToken);
+
+                await context.BilFinancialActionRequests
+                    .Where(x => actionRequestIds.Contains(x.Id))
+                    .ExecuteDeleteAsync(cancellationToken);
+
                 // Reconciliation case dibersihkan lebih dulu karena merujuk efek pemrosesan.
                 // Tanpa ini, unique index case akan menabrak sisa baris test sebelumnya pada
                 // database yang dipakai berulang kali.

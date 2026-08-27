@@ -575,6 +575,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilClinicalMilestoneFact> BilClinicalMilestoneFacts { get; set; }
         public DbSet<BilReconciliationCase> BilReconciliationCases { get; set; }
         public DbSet<MstBillingReconciliationPolicy> MstBillingReconciliationPolicies { get; set; }
+        public DbSet<BilFinancialActionRequest> BilFinancialActionRequests { get; set; }
+        public DbSet<BilFinancialApproval> BilFinancialApprovals { get; set; }
+        public DbSet<BilFolioClosureHistory> BilFolioClosureHistories { get; set; }
+        public DbSet<MstBillingApprovalPolicy> MstBillingApprovalPolicies { get; set; }
         public DbSet<MstProcedure> MstProcedures { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }

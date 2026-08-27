@@ -25,7 +25,7 @@
 
 | Backend | Frontend | Integration | Verification |
 |---|---|---|---|
-| `IN_PROGRESS` — `4` dari `9` task selesai | `APPROVED_FOR_EXECUTION`, belum dimulai | `NOT_STARTED` | `PARTIAL` — `RJ-BIL-BE-001`, `BE-002`, `BE-003`, dan `BE-007` |
+| `IN_PROGRESS` — `5` dari `9` task selesai | `APPROVED_FOR_EXECUTION`, belum dimulai | `NOT_STARTED` | `PARTIAL` — `RJ-BIL-BE-001`, `BE-002`, `BE-003`, `BE-006`, dan `BE-007` |
 
 ### Progress task backend
 
@@ -41,7 +41,7 @@ tanda ada pada [roadmap/backend-roadmap.md](roadmap/backend-roadmap.md).
 | `RJ-BIL-BE-003` | ✅ | `COMPLETE` — `39` test berbasis database yang sebelumnya tertahan sudah dijalankan dan lulus; governance `OPEN`; `QBE-MOD-002` `CLOSED` | [execution-evidence-RJ-BIL-BE-003.md](execution-evidence-RJ-BIL-BE-003.md); [remediasi penamaan QBE](task/report/backend/be-rj-bil-003-remediasi-penamaan-qbe.md) |
 | `RJ-BIL-BE-004` | ⛔ | **TERBLOKIR, menunggu penunjukan owner `RadiologyManagement` dan kenaikan prefix `Rad` dari `PLANNED` ke `ACTIVE` lebih dulu** | Greenfield penuh; area `RadiologyManagement` belum ada pada source; registry baris `19` |
 | `RJ-BIL-BE-005` | ⛔ | **TERBLOKIR, menunggu keputusan owner atas `RJ-BIL-CONFLICT-001` lebih dulu** | `RJ-BIL-OQ-001`, `OQ-002`, dan `OQ-005` belum dijawab |
-| `RJ-BIL-BE-006` | ⛔ | **TERBLOKIR, menunggu `BUILDER_EXECUTION` dinaikkan dari `NOT_AUTHORIZED` lebih dulu** | Dependency teknis sudah terpenuhi sejak `RJ-BIL-BE-007` selesai; Workflow, Finance, dan Security owner belum bernama; `RJ-BIL-OQ-004` belum ditetapkan |
+| `RJ-BIL-BE-006` | ✅ | **SELESAI.** Ketiga acceptance criteria terbukti melalui `46` automated test di dalam suite `157` test yang seluruhnya lulus. Migration `20260827075329_AddBillingFinancialAction` diterapkan ke `QuilvianNewDevTim01` atas `RJ-BIL-DEC-009`. Arsitektur maker-checker ditetapkan `RJ-BIL-DEC-011`; wewenang eksekusi `RJ-BIL-DEC-012` | Sign-off Finance dan Security/Privacy tetap `OPEN`; `RJ-BIL-OQ-004` belum ditetapkan | [preflight-RJ-BIL-BE-006.md](preflight-RJ-BIL-BE-006.md); [laporan task](task/report/backend/be-rj-bil-006-tindakan-finansial-dan-persetujuan.md) |
 | `RJ-BIL-BE-007` | ✅ | `COMPLETE` — governance `OPEN` | [be-rj-bil-007-reconciliation-case-dan-recovery-status.md](task/report/backend/be-rj-bil-007-reconciliation-case-dan-recovery-status.md) |
 | `RJ-BIL-BE-008` | ⛔ | **TERBLOKIR, menunggu `RJ-BIL-BE-005` selesai lebih dulu** | Claim dan settlement per payer juga bergantung pada `RJ-BIL-OQ-007` |
 | `RJ-BIL-BE-009` | ⛔ | **TERBLOKIR, menunggu `RJ-BIL-BE-001` s.d. `RJ-BIL-BE-008` selesai lebih dulu** | Cakupannya menutup coverage gap seluruh task |
