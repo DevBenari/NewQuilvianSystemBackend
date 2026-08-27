@@ -54,6 +54,9 @@ public class OprScheduleResponse
     public int BufferAfterMinutes { get; set; }
     public int Revision { get; set; }
     public string? ChangeReason { get; set; }
+
+    /// <summary>Menandai revisi yang sedang berlaku; berguna pada daftar histori.</summary>
+    public bool IsCurrent { get; set; }
     public OprCaseStatus Status { get; set; }
     public int Version { get; set; }
     public List<OprTeamMemberResponse> TeamMembers { get; set; } = [];
