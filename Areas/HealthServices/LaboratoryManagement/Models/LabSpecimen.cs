@@ -17,7 +17,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
     /// Sampel yang ditolak tidak pernah dihapus. Pengambilan ulang membuat baris baru yang
     /// menunjuk sampel sebelumnya melalui <see cref="SupersededSpecimenId"/>.
     /// </summary>
-    public class TrxLabSpecimen : IdentityModel
+    public class LabSpecimen : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -117,6 +117,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
 
         public MstLabRejectionReason? RejectionReason { get; set; }
 
-        public TrxLabSpecimen? SupersededSpecimen { get; set; }
+        public LabSpecimen? SupersededSpecimen { get; set; }
     }
 }

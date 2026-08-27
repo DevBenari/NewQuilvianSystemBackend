@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using QuilvianSystemBackend.Services.Logging;
@@ -27,6 +29,14 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
     /// itulah yang menyebabkan `dotnet test` menerapkan migration ke database dev bersama
     /// QuilvianNewDevTim01 tanpa ada yang memerintahkannya. Menghapus fallback juga membuat
     /// fixture tidak lagi membaca kredensial dari file konfigurasi mana pun.
+    ///
+    /// Sejak keputusan pemilik pada RJ-BIL-BE-007, database bersama dapat dipakai — tetapi
+    /// hanya melalui opt-in kedua QUILVIAN_BILLING_TEST_DB_ALLOW_SHARED yang harus diketik
+    /// sengaja. Yang mencegah terulangnya insiden RJ-BIL-BE-002 bukan larangannya, melainkan
+    /// hilangnya jalur diam: tidak ada lagi keadaan di mana migration terpasang ke database
+    /// tim tanpa seseorang menyatakannya lebih dulu.
+    ///
+    /// Penanda production, staging, dan UAT tetap ditolak mutlak dan tidak mengenal opt-in.
     /// </summary>
     public sealed class BillingTestDatabaseFixture : IAsyncLifetime
     {
@@ -46,29 +56,58 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
         private const string RequiredTestMarker = "test";
 
         /// <summary>
-        /// Nama database yang ditolak secara eksplisit. Daftar ini menutup database dev bersama
-        /// yang pernah tersentuh pada RJ-BIL-BE-002.
+        /// Environment variable kedua yang membuka penggunaan database bersama. Keputusan
+        /// pemilik RJ-BIL-BE-007 mengizinkan test berjalan terhadap QuilvianNewDevTim01, tetapi
+        /// izin itu sengaja tidak dijadikan perilaku bawaan.
+        ///
+        /// Insiden RJ-BIL-BE-002 terjadi karena fallback yang DIAM: seseorang menjalankan
+        /// `dotnet test` dan migration ikut terpasang ke database tim tanpa ada yang
+        /// memerintahkannya. Yang mencegah pengulangannya bukan larangan, melainkan syarat
+        /// bahwa izin itu harus DIKETIK dengan sengaja. Gerbang tetap tertutup bagi siapa pun
+        /// yang tidak tahu variable ini ada.
         /// </summary>
-        private static readonly string[] ForbiddenDatabaseNames =
+        public const string SharedDatabaseOptInVariable = "QUILVIAN_BILLING_TEST_DB_ALLOW_SHARED";
+
+        /// <summary>
+        /// Nilai yang harus diketik persis. Kalimatnya sengaja panjang dan menyatakan akibatnya,
+        /// sehingga tidak mungkin terisi karena salah salin.
+        /// </summary>
+        public const string SharedDatabaseOptInValue = "I_ACCEPT_SHARED_DB_MUTATION";
+
+        /// <summary>
+        /// Nama database yang ditolak secara eksplisit. Daftar ini menutup database dev bersama
+        /// yang pernah tersentuh pada RJ-BIL-BE-002. Dapat dibuka dengan opt-in.
+        /// </summary>
+        private static readonly string[] SharedDatabaseNames =
         {
             "QuilvianNewDevTim01"
         };
 
         /// <summary>
-        /// Penanda nama yang menunjukkan database dipakai bersama orang lain atau melayani
-        /// pengguna nyata. Test menerapkan migration dan menulis baris, sehingga tidak pernah
-        /// benar dijalankan terhadap database seperti itu dan tidak disediakan override apa pun.
+        /// Penanda nama yang menunjukkan database dipakai bersama anggota tim lain. Dapat dibuka
+        /// dengan opt-in, karena "bersama" berarti mengganggu rekan kerja — bukan mengganggu
+        /// pasien.
         /// </summary>
-        private static readonly string[] ForbiddenDatabaseMarkers =
+        private static readonly string[] SharedDatabaseMarkers =
+        {
+            "dev",
+            "shared"
+        };
+
+        /// <summary>
+        /// Penanda yang menunjukkan database melayani pengguna nyata atau menjadi gerbang rilis.
+        /// Daftar ini TIDAK dapat dibuka oleh opt-in mana pun dan tidak boleh diberi jalan
+        /// keluar. Menerapkan migration di sana bukan kecerobohan terhadap rekan kerja,
+        /// melainkan terhadap orang yang datanya ada di dalamnya.
+        /// </summary>
+        private static readonly string[] AbsolutelyForbiddenMarkers =
         {
             "prod",
             "production",
             "live",
             "staging",
             "stage",
-            "uat",
-            "dev",
-            "shared"
+            "uat"
         };
 
         public string ConnectionString { get; private set; } = string.Empty;
@@ -91,9 +130,22 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
         /// variable kosong, nilai tidak sah, nama database kosong, nama terlarang, lalu bukti
         /// afirmatif penanda test.
         /// </summary>
-        private static string ResolveDedicatedTestConnectionString()
+        private static string ResolveDedicatedTestConnectionString() =>
+            ValidateTargetDatabase(
+                Environment.GetEnvironmentVariable(ConnectionStringVariable),
+                Environment.GetEnvironmentVariable(SharedDatabaseOptInVariable));
+
+        /// <summary>
+        /// Bentuk murni dari gerbang di atas: seluruh keputusan diambil dari kedua argumen dan
+        /// tidak ada satu pun pembacaan environment di dalamnya.
+        ///
+        /// Pemisahan ini bukan kerapian belaka. Test yang menguji gerbang ini perlu mencoba
+        /// belasan nama database, dan bila pengujiannya dilakukan dengan mengubah environment
+        /// variable proses, ia akan bertabrakan dengan fixture kelas lain yang berjalan paralel
+        /// dan sedang membaca variable yang sama.
+        /// </summary>
+        internal static string ValidateTargetDatabase(string? fromEnvironment, string? optInValue)
         {
-            var fromEnvironment = Environment.GetEnvironmentVariable(ConnectionStringVariable);
 
             if (string.IsNullOrWhiteSpace(fromEnvironment))
             {
@@ -131,38 +183,55 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
                     "Tambahkan bagian 'Database=' pada connection string.");
             }
 
-            foreach (var forbidden in ForbiddenDatabaseNames)
-            {
-                if (string.Equals(database, forbidden, StringComparison.OrdinalIgnoreCase))
-                {
-                    throw new InvalidOperationException(
-                        $"{BlockedMarker}: database '{database}' termasuk daftar terlarang karena " +
-                        "dipakai bersama anggota tim lain. Test ini menerapkan migration, sehingga " +
-                        "menjalankannya di sana mengubah skema milik orang lain. Arahkan " +
-                        $"{ConnectionStringVariable} ke database test tersendiri.");
-                }
-            }
-
-            foreach (var marker in ForbiddenDatabaseMarkers)
+            // Penanda production diperiksa lebih dulu dan tidak mengenal opt-in. Urutan ini
+            // disengaja: apa pun isi variable opt-in, database yang melayani pengguna nyata
+            // tetap ditolak.
+            foreach (var marker in AbsolutelyForbiddenMarkers)
             {
                 if (database.Contains(marker, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException(
                         $"{BlockedMarker}: nama database '{database}' mengandung penanda '{marker}', " +
-                        "yang menandakan database bersama, staging, atau production. Test ini " +
-                        "menerapkan migration dan menulis baris, sehingga hanya boleh berjalan " +
-                        "terhadap database test tersendiri.");
+                        "yang menandakan production, staging, atau UAT. Test ini menerapkan migration " +
+                        "dan menulis baris. Penolakan ini mutlak dan tidak dapat dibuka oleh " +
+                        $"{SharedDatabaseOptInVariable}.");
                 }
             }
 
-            if (!database.Contains(RequiredTestMarker, StringComparison.OrdinalIgnoreCase))
+            var sharedOptIn = string.Equals(optInValue, SharedDatabaseOptInValue, StringComparison.Ordinal);
+
+            var namedShared = SharedDatabaseNames.Any(
+                forbidden => string.Equals(database, forbidden, StringComparison.OrdinalIgnoreCase));
+
+            var markedShared = SharedDatabaseMarkers.FirstOrDefault(
+                marker => database.Contains(marker, StringComparison.OrdinalIgnoreCase));
+
+            var missingTestMarker = !database.Contains(RequiredTestMarker, StringComparison.OrdinalIgnoreCase);
+
+            if (namedShared || markedShared is not null || missingTestMarker)
             {
-                throw new InvalidOperationException(
-                    $"{BlockedMarker}: nama database '{database}' tidak mengandung penanda " +
-                    $"'{RequiredTestMarker}'. Fixture menuntut bukti afirmatif bahwa targetnya memang " +
-                    "database test, sehingga salah ketik nama berakhir sebagai penolakan dan bukan " +
-                    "sebagai migration yang terlanjur diterapkan ke database yang salah. Beri nama " +
-                    "database test Anda misalnya 'QuilvianBillingTest'.");
+                if (!sharedOptIn)
+                {
+                    var alasan = namedShared
+                        ? $"database '{database}' termasuk daftar database yang dipakai bersama anggota tim lain"
+                        : markedShared is not null
+                            ? $"nama database '{database}' mengandung penanda '{markedShared}' yang menandakan database bersama"
+                            : $"nama database '{database}' tidak mengandung penanda afirmatif '{RequiredTestMarker}'";
+
+                    throw new InvalidOperationException(
+                        $"{BlockedMarker}: {alasan}. Test ini menerapkan migration dan menulis baris, " +
+                        "sehingga secara bawaan hanya berjalan terhadap database test tersendiri. " +
+                        "Bila Anda memang bermaksud menjalankannya terhadap database bersama, isi " +
+                        $"{SharedDatabaseOptInVariable} dengan nilai persis '{SharedDatabaseOptInValue}'. " +
+                        "Izin itu sengaja tidak dijadikan perilaku bawaan agar tidak ada yang " +
+                        "menerapkan migration ke database tim tanpa menyadarinya, seperti yang " +
+                        "terjadi pada RJ-BIL-BE-002.");
+                }
+
+                Console.WriteLine(
+                    $"[BILLING-TEST] PERINGATAN: {SharedDatabaseOptInVariable} aktif. Migration dan " +
+                    $"penulisan baris akan dijalankan terhadap database bersama '{database}'. " +
+                    "Dasar: keputusan pemilik pada RJ-BIL-BE-007.");
             }
 
             // Hanya nama host dan database yang dicetak. Username dan password tidak pernah
@@ -170,7 +239,8 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
             Console.WriteLine(
                 $"[BILLING-TEST] Target database test '{database}' pada host '{builder.Host}'.");
 
-            return fromEnvironment;
+            // Non-null karena pemeriksaan kosong di awal sudah melempar.
+            return fromEnvironment!;
         }
 
         public Task DisposeAsync() => Task.CompletedTask;
@@ -183,11 +253,48 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
         public static LoggerService CreateLoggerService() =>
             new(NullLogger<LoggerService>.Instance, new HttpContextAccessor());
 
+        /// <summary>
+        /// Menyediakan <see cref="IHttpContextAccessor"/> yang sudah memuat identitas petugas.
+        ///
+        /// Service klinis mengambil identitas pelakunya dari klaim pengguna pada HTTP context.
+        /// Sebelum pembantu ini ada, test membuat <c>new HttpContextAccessor()</c> kosong,
+        /// sehingga identitas pelakunya menjadi <c>Guid.Empty</c> dan seluruh penyerahan fakta
+        /// ke Billing ditolak sebagai <c>CLIN_FACT_ACTOR_INVALID</c>. Yang diuji akhirnya bukan
+        /// perilaku domain, melainkan ketiadaan pengguna yang login.
+        /// </summary>
+        public static IHttpContextAccessor CreateHttpContextAccessor(Guid actorUserId)
+        {
+            var identity = new ClaimsIdentity(
+                new[] { new Claim(ClaimTypes.NameIdentifier, actorUserId.ToString()) },
+                authenticationType: "BillingTest");
+
+            return new HttpContextAccessor
+            {
+                HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) }
+            };
+        }
+
         public ApplicationDbContext CreateContext()
         {
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseNpgsql(ConnectionString)
                 .EnableSensitiveDataLogging()
+                // EF Core 9 menjadikan PendingModelChangesWarning sebagai error, sehingga
+                // Database.Migrate() menolak berjalan selama ada entity di model yang belum
+                // punya migration. Keadaan itu memang sedang terjadi, dan penyebabnya di luar
+                // blueprint ini: MstRegister, MstRoomChargePolicy, dan MstTaxRule milik modul
+                // lain ada sebagai entity tetapi belum pernah dibuatkan migration.
+                //
+                // Membuatkan migration untuk modul orang lain bukan wewenang task ini, dan
+                // menerapkannya ke database bersama justru menambah masalah. Yang ditekan di
+                // sini hanya penjagaannya, bukan penyebabnya: migration yang tercatat tetap
+                // diterapkan apa adanya, dan ketiga tabel yatim itu tetap tidak wujud. Test
+                // Billing tidak menyentuh satu pun dari ketiganya.
+                //
+                // Penekanan ini sengaja dibatasi pada fixture test dan tidak menyentuh
+                // konfigurasi aplikasi. Drift-nya dilaporkan, bukan disembunyikan.
+                .ConfigureWarnings(warnings =>
+                    warnings.Ignore(RelationalEventId.PendingModelChangesWarning))
                 .Options;
 
             return new ApplicationDbContext(options);
@@ -279,6 +386,16 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
                     .Select(x => x.Id)
                     .ToListAsync(cancellationToken);
 
+                // Reconciliation case dibersihkan lebih dulu karena merujuk efek pemrosesan.
+                // Tanpa ini, unique index case akan menabrak sisa baris test sebelumnya pada
+                // database yang dipakai berulang kali.
+                await context.BilReconciliationCases
+                    .Where(x =>
+                        x.EncounterId == seed.EncounterId ||
+                        (x.FolioId != null && folioIds.Contains(x.FolioId.Value)) ||
+                        (x.ChargeLineId != null && chargeLineIds.Contains(x.ChargeLineId.Value)))
+                    .ExecuteDeleteAsync(cancellationToken);
+
                 await context.BilProcessingEffects
                     .Where(x =>
                         (x.FolioId != null && folioIds.Contains(x.FolioId.Value)) ||
@@ -307,12 +424,12 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
 
             if (labOrderIds.Count > 0)
             {
-                var specimenIds = await context.TrxLabSpecimens
+                var specimenIds = await context.LabSpecimens
                     .Where(x => labOrderIds.Contains(x.LabOrderId))
                     .Select(x => x.Id)
                     .ToListAsync(cancellationToken);
 
-                await context.TrxLabTransitionHistories
+                await context.LabTransitionHistories
                     .Where(x =>
                         labOrderIds.Contains(x.LabOrderId) ||
                         (x.LabSpecimenId != null && specimenIds.Contains(x.LabSpecimenId.Value)))
@@ -320,13 +437,13 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
 
                 // Recollection membuat rantai specimen yang menunjuk specimen sebelumnya, sehingga
                 // penghapusan diulang sampai tidak ada lagi baris yang tersisa.
-                while (await context.TrxLabSpecimens
+                while (await context.LabSpecimens
                     .AnyAsync(x => labOrderIds.Contains(x.LabOrderId), cancellationToken))
                 {
-                    var removed = await context.TrxLabSpecimens
+                    var removed = await context.LabSpecimens
                         .Where(x =>
                             labOrderIds.Contains(x.LabOrderId) &&
-                            !context.TrxLabSpecimens.Any(child => child.SupersededSpecimenId == x.Id))
+                            !context.LabSpecimens.Any(child => child.SupersededSpecimenId == x.Id))
                         .ExecuteDeleteAsync(cancellationToken);
 
                     if (removed == 0)
@@ -340,7 +457,7 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
 
             // Ledger fakta klinis (RJ-BIL-BE-002) memiliki FK Restrict ke encounter, sehingga
             // wajib dihapus sebelum encounter-nya.
-            await context.TrxClinicalMilestoneFacts
+            await context.BilClinicalMilestoneFacts
                 .Where(x => x.EncounterId == seed.EncounterId)
                 .ExecuteDeleteAsync(cancellationToken);
 

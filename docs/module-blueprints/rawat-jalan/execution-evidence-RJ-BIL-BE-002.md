@@ -23,6 +23,13 @@
 
 ---
 
+
+> **Catatan `2026-08-26`.** Tabel yang di dokumen ini disebut `BilClinicalMilestoneFact`
+> semula bernama `TrxClinicalMilestoneFact`. Nama itu melanggar `QBE-NAM-001` dan diganti
+> melalui migration `20260826101500_RenameClinicalMilestoneFactToBillingOwnership` yang
+> mempertahankan data. Rinciannya pada
+> [task/report/backend/be-rj-bil-003-remediasi-penamaan-qbe.md](task/report/backend/be-rj-bil-003-remediasi-penamaan-qbe.md).
+
 ## 1. Ringkasan untuk pembaca non-teknis
 
 Sebelum pekerjaan ini, modul Farmasi masih bisa menyatakan sebuah resep **lunas**. Siapa pun
@@ -113,7 +120,7 @@ benar-benar dieksekusi, bukan pemilihan atau order.
 |---|---|
 | `Areas/HealthServices/BillingManagement/Operational/Constants/BillingSourceContract.cs` | Daftar konteks sumber dan effect type yang sah |
 | `Areas/HealthServices/ClinicalBillingIntegration/Enums/ClinicalMilestoneFactEnums.cs` | `ClinicalMilestoneKind`, `ClinicalFactDispatchStatus` |
-| `Areas/HealthServices/ClinicalBillingIntegration/Models/TrxClinicalMilestoneFact.cs` | Ledger satu baris satu revisi fakta |
+| `Areas/HealthServices/ClinicalBillingIntegration/Models/BilClinicalMilestoneFact.cs` | Ledger satu baris satu revisi fakta |
 | `Areas/HealthServices/ClinicalBillingIntegration/Configurations/ClinicalBillingIntegrationConfigurations.cs` | Index unik, filter, concurrency token, FK `Restrict` |
 | `Areas/HealthServices/ClinicalBillingIntegration/DTOs/ClinicalMilestoneFactDtos.cs` | Permintaan dan hasil penerbitan fakta |
 | `Areas/HealthServices/ClinicalBillingIntegration/Services/ClinicalMilestoneFactProducer.cs` | Penerbit fakta; seluruh kebijakan `CASE A/B/C` |
@@ -133,7 +140,7 @@ benar-benar dieksekusi, bukan pemilihan atau order.
 | `Areas/HealthServices/PharmacyManagement/DTOs/ConsultationFinalizationDtos.cs` | Tambah `BillingHandoffIssues` |
 | `Areas/HealthServices/PharmacyManagement/Services/ConsultationFinalizationService.cs` | Menerbitkan fakta setelah commit |
 | `Areas/HealthServices/ClinicalManagement/Controllers/PatientProcedureController.cs` | `execute` dan `cancel` menerbitkan fakta |
-| `Repositories/ApplicationDbContext.cs` | Tambah `DbSet<TrxClinicalMilestoneFact>` |
+| `Repositories/ApplicationDbContext.cs` | Tambah `DbSet<BilClinicalMilestoneFact>` |
 | `Program.cs` | Registrasi `ClinicalMilestoneFactProducer` |
 | `Tests/.../BillingTestDatabaseFixture.cs` | Teardown ledger; helper `CreateLoggerService` |
 | `Tests/.../BillingFolioServiceTests.cs` | `Prescription` dan `Procedure` dikeluarkan dari daftar konteks yang ditolak |
@@ -252,7 +259,7 @@ lagi menunjuk ke route mana pun.
 
 | Migration | Isi | Rollback |
 |---|---|---|
-| `20260824074649_AddClinicalMilestoneFactHandoff` | Membuat tabel `TrxClinicalMilestoneFact` beserta `5` index dan FK `Restrict` ke `TrxPatientEncounter` | `DropTable` |
+| `20260824074649_AddClinicalMilestoneFactHandoff` | Membuat tabel `BilClinicalMilestoneFact` beserta `5` index dan FK `Restrict` ke `TrxPatientEncounter` | `DropTable` |
 | `20260824080430_StoreClinicalFactSnapshotAsText` | Mengubah `TariffSnapshot` dan `RuleSnapshot` dari `jsonb` menjadi `text` | Kembali ke `jsonb` |
 
 Migration kedua ditulis manual memakai klausa `USING` karena PostgreSQL tidak menyediakan cast
@@ -348,7 +355,7 @@ celah yang sudah ada menjadi terlihat.
 |---|---|---|
 | Pemulihan baris `Pending` dan `OutcomeUnknown` | Ledger menyimpan statusnya dan dapat dipindai, tetapi belum ada alur pemulihan otomatis | `RJ-BIL-BE-007` |
 | `PaymentStatus` resep tidak lagi memiliki penulis selain nilai awal `NotBilled` | Sesuai `RJ-BIL-GATE-DEC-007`, kolom ini menjadi proyeksi read-only. Proyeksinya belum diisi karena Billing belum memiliki konsep pelunasan | `RJ-BIL-BE-006`, `RJ-BIL-BE-008` |
-| Registry sistem `docs/system-registry/` belum ada | Pemeriksaan kavling nama pada `rule-prascan` dilakukan manual lewat grep; tidak ditemukan tabrakan nama `TrxClinicalMilestoneFact` maupun namespace `ClinicalBillingIntegration` | `/qv-scan` |
+| Registry sistem `docs/system-registry/` belum ada | Pemeriksaan kavling nama pada `rule-prascan` dilakukan manual lewat grep; tidak ditemukan tabrakan nama `BilClinicalMilestoneFact` maupun namespace `ClinicalBillingIntegration` | `/qv-scan` |
 | `RemoveDraftProcedure` tidak menerbitkan fakta | Penjaganya mensyaratkan status `Planned`, sehingga charge tidak mungkin sudah terbentuk | — |
 
 ### 9.3 Keputusan domain yang belum selesai

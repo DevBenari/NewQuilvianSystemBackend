@@ -281,6 +281,7 @@ try
     builder.Services.AddScoped<LabOrderService>();
     builder.Services.AddScoped<LabSpecimenService>();
     builder.Services.AddScoped<BillingFolioService>();
+    builder.Services.AddScoped<BillingReconciliationService>();
     builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 
     builder.Services.AddScoped<EncounterInsuranceService>();

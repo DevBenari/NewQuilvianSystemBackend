@@ -11,11 +11,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Config
     // IEntityTypeConfiguration yang ditemukannya, sehingga dua konfigurasi untuk entity yang
     // sama hanya akan menyulitkan penelusuran.
 
-    public class TrxLabSpecimenConfiguration : IEntityTypeConfiguration<TrxLabSpecimen>
+    public class LabSpecimenConfiguration : IEntityTypeConfiguration<LabSpecimen>
     {
-        public void Configure(EntityTypeBuilder<TrxLabSpecimen> builder)
+        public void Configure(EntityTypeBuilder<LabSpecimen> builder)
         {
-            builder.ToTable("TrxLabSpecimen", "public");
+            builder.ToTable("LabSpecimen", "public");
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.SpecimenBarcode).HasMaxLength(64).IsRequired();
@@ -61,11 +61,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Config
         }
     }
 
-    public class TrxLabTransitionHistoryConfiguration : IEntityTypeConfiguration<TrxLabTransitionHistory>
+    public class LabTransitionHistoryConfiguration : IEntityTypeConfiguration<LabTransitionHistory>
     {
-        public void Configure(EntityTypeBuilder<TrxLabTransitionHistory> builder)
+        public void Configure(EntityTypeBuilder<LabTransitionHistory> builder)
         {
-            builder.ToTable("TrxLabTransitionHistory", "public");
+            builder.ToTable("LabTransitionHistory", "public");
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.Scope).HasConversion<int>().IsRequired();
