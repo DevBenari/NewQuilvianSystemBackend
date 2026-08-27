@@ -152,8 +152,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement
         public TrxShiftAssignment? ShiftAssignment { get; set; }
         public MstWorkSchedule? WorkSchedule { get; set; }
         public MstShift? Shift { get; set; }
-        public TrxAttendance? Attendance { get; set; }
-        public TrxAttendanceDaily? AttendanceDaily { get; set; }
+        public HrdAttendance? Attendance { get; set; }
+        public HrdAttendanceDaily? AttendanceDaily { get; set; }
         public MstRequestReason? RequestReason { get; set; }
         public MstRejectionReason? RejectionReason { get; set; }
         public MstWorkflowDefinition? WorkflowDefinition { get; set; }

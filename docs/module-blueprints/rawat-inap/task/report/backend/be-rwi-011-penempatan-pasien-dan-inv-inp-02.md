@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-011`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -175,8 +184,8 @@ dan supervisor dapat membatalkan episode yang sudah punya pengkajian dan tanda v
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | **Test dua transaksi bersamaan terhadap PostgreSQL** | **NOT RUN** — inilah verifikasi terpenting task ini, dan ia tidak dapat dijalankan tanpa database sungguhan |
 | Pemanggilan `POST /placements` terhadap aplikasi berjalan | **NOT RUN** |
 
@@ -187,13 +196,13 @@ milik `BE-RWI-012`).
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Sistem menjawab siapa menempati dan sejak jam berapa | `Kriteria1_SetelahPenempatanSistemMenjawabSiapaMenempatiDanSejakJamBerapa` | Ditulis, **belum dijalankan** |
+| 1. Sistem menjawab siapa menempati dan sejak jam berapa | `Kriteria1_SetelahPenempatanSistemMenjawabSiapaMenempatiDanSejakJamBerapa` | ✅ **Lulus** 26 Agu 2026 |
 | 2. Dua transaksi bersamaan: satu berhasil, satu 409, tepat satu baris aktif | `Kriteria2_PenempatanKeduaPadaTempatTidurYangSamaDitolak409DanHanyaSatuBarisAktifTersimpan` — **hanya lapis 2** | Ditulis; **lapis 1 dan 3 belum terbukti** |
-| 3. Kegagalan penulisan salinan status tidak menyisakan penempatan | `Kriteria3_KegagalanPenyimpananTidakMenyisakanPenempatanDanEpisodeTetapDraft` | Ditulis, **belum dijalankan** |
-| 4. Keadaan tempat tidur diperiksa ulang saat penempatan | `Kriteria4_KeadaanTempatTidurDiperiksaUlangSaatPenempatanBukanHanyaSaatPemesanan` | Ditulis, **belum dijalankan** |
-| 5. Penolakan tidak menghapus isian admisi | `Kriteria5_PenolakanTidakMenghapusIsianAdmisiDanPesannyaMengatakannya` | Ditulis, **belum dijalankan** |
-| 6. Pemesanan milik episode ini dipakai, bukan ditolak | `Kriteria6_PemesananMilikEpisodeIniYangMasihBerlakuDipakaiBukanDitolak` | Ditulis, **belum dijalankan** |
-| 7. `RWI-AC-147` — waktu mulai adalah waktu penempatan dibuat | Bagian dari `Kriteria1_...` | Ditulis, **belum dijalankan** |
+| 3. Kegagalan penulisan salinan status tidak menyisakan penempatan | `Kriteria3_KegagalanPenyimpananTidakMenyisakanPenempatanDanEpisodeTetapDraft` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Keadaan tempat tidur diperiksa ulang saat penempatan | `Kriteria4_KeadaanTempatTidurDiperiksaUlangSaatPenempatanBukanHanyaSaatPemesanan` | ✅ **Lulus** 26 Agu 2026 |
+| 5. Penolakan tidak menghapus isian admisi | `Kriteria5_PenolakanTidakMenghapusIsianAdmisiDanPesannyaMengatakannya` | ✅ **Lulus** 26 Agu 2026 |
+| 6. Pemesanan milik episode ini dipakai, bukan ditolak | `Kriteria6_PemesananMilikEpisodeIniYangMasihBerlakuDipakaiBukanDitolak` | ✅ **Lulus** 26 Agu 2026 |
+| 7. `RWI-AC-147` — waktu mulai adalah waktu penempatan dibuat | Bagian dari `Kriteria1_...` | ✅ **Lulus** 26 Agu 2026 |
 
 Tiga test tambahan menjaga: pemesanan yang gugur tidak menghalangi penempatan, episode yang
 sudah ditempatkan tidak dapat ditempatkan lagi, dan pembatalan mengembalikan salinan status

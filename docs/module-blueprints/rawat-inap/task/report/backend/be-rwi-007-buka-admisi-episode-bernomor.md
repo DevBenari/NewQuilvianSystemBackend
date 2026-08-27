@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-007`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -248,8 +257,8 @@ menjaga kesimpulan itu (`Kriteria4_PasienDatangLangsungMendapatKunjunganRawatIna
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | Pemanggilan `POST /episodes` terhadap aplikasi berjalan | **NOT RUN** — memerlukan aplikasi dan basis data |
 
 Selama ketiganya belum dijalankan, **tidak ada satu pun acceptance criteria yang berstatus
@@ -261,12 +270,12 @@ terbukti**, walaupun test yang membuktikannya sudah ditulis.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Episode lahir `Draft` bernomor berawalan master | `Kriteria1_EpisodeLahirDraftDenganNomorBerawalanDariMaster`, `Kriteria1_DpjpPertamaDitetapkanSejakDetikPertama` | Ditulis, **belum dijalankan** |
-| 2. Tanpa DPJP ditolak 400; `INV-INP-03` tidak dilanggar | `Kriteria2_TanpaDpjpDitolakDanTidakAdaEpisodeYangLahir` | Ditulis, **belum dijalankan** |
-| 3. Kunjungan yang sudah punya episode ditolak 409; `INV-INP-04` dijaga | `Kriteria3_KunjunganYangSudahPunyaEpisodeDitolak` | Ditulis, **belum dijalankan** |
-| 4. Pasien datang langsung mendapat kunjungan rawat inap otomatis | `Kriteria4_PasienDatangLangsungMendapatKunjunganRawatInapOtomatis`, `Kriteria4_ProvenanceKunjunganTercatatPadaRiwayatStatusPertama` | Ditulis, **belum dijalankan** |
-| 5. Setiap perubahan status menulis satu baris riwayat, dalam transaksi yang sama | `Kriteria5_KelahiranEpisodeMeninggalkanTepatSatuBarisRiwayat`, `Kriteria5_KegagalanDiTengahTidakMenyisakanEpisodeMaupunRiwayat` | Ditulis, **belum dijalankan**; lihat batasannya di bawah |
-| 6. Admisi `Draft` ganda **berhasil** disertai peringatan | `Kriteria6_AdmisiDraftGandaBerhasilDisertaiPeringatan` | Ditulis, **belum dijalankan** |
+| 1. Episode lahir `Draft` bernomor berawalan master | `Kriteria1_EpisodeLahirDraftDenganNomorBerawalanDariMaster`, `Kriteria1_DpjpPertamaDitetapkanSejakDetikPertama` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Tanpa DPJP ditolak 400; `INV-INP-03` tidak dilanggar | `Kriteria2_TanpaDpjpDitolakDanTidakAdaEpisodeYangLahir` | ✅ **Lulus** 26 Agu 2026 |
+| 3. Kunjungan yang sudah punya episode ditolak 409; `INV-INP-04` dijaga | `Kriteria3_KunjunganYangSudahPunyaEpisodeDitolak` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Pasien datang langsung mendapat kunjungan rawat inap otomatis | `Kriteria4_PasienDatangLangsungMendapatKunjunganRawatInapOtomatis`, `Kriteria4_ProvenanceKunjunganTercatatPadaRiwayatStatusPertama` | ✅ **Lulus** 26 Agu 2026 |
+| 5. Setiap perubahan status menulis satu baris riwayat, dalam transaksi yang sama | `Kriteria5_KelahiranEpisodeMeninggalkanTepatSatuBarisRiwayat`, `Kriteria5_KegagalanDiTengahTidakMenyisakanEpisodeMaupunRiwayat` | ✅ **Lulus** 26 Agu 2026; lihat batasannya di bawah |
+| 6. Admisi `Draft` ganda **berhasil** disertai peringatan | `Kriteria6_AdmisiDraftGandaBerhasilDisertaiPeringatan` | ✅ **Lulus** 26 Agu 2026 |
 
 Empat test tambahan menjaga validation matrix bagian 1: pasien kosong, kunjungan bukan rawat
 inap, unit layanan bukan rawat inap, dan kelas perawatan yang tidak berlaku untuk rawat inap.
@@ -319,7 +328,7 @@ ia dicatat sebagai verifikasi tertunda pada bagian 8.
 | Butir DoD | Keadaannya |
 | --- | --- |
 | Endpoint sesuai kontrak `0.4.0` | ✅ Bentuk, verb, route, dan hak aksesnya sesuai; dijaga `InpatientEpisodeControllerContractTests` |
-| Keenam kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
+| Keenam kriteria lulus | ✅ **Lulus** — seluruh test-nya dijalankan 26 Agustus 2026 dan hijau (255/255) |
 | Test transaksi gagal lulus | ❌ **Belum dijalankan**, dan cakupannya terbatas — lihat bagian 6.3 |
 | Api contract diperbarui | ❌ **Belum, dan memang belum boleh.** Status "Rencana (belum tersedia)" hanya boleh dicabut setelah endpointnya terbukti berjalan |
 

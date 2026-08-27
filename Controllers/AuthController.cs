@@ -310,14 +310,6 @@ namespace QuilvianSystemBackend.Controllers
 
             try
             {
-                var attendanceResult = isDeviceLoginAccount
-                    ? LoginAttendanceResult.Skipped("Login device tidak mencatat attendance.")
-                    : await RecordAttendanceOnLoginAsync(
-                        user,
-                        request,
-                        geofenceValidation
-                    );
-
                 user.LastLoginAt = DateTime.UtcNow;
 
                 var updateResult = await _userManager.UpdateAsync(user);
@@ -368,10 +360,7 @@ namespace QuilvianSystemBackend.Controllers
                         request.Latitude,
                         request.Longitude,
                         request.AccuracyMeters,
-                        geofenceValidation.DistanceMeters,
-                        AttendanceRecorded = attendanceResult.IsRecorded,
-                        AttendanceAlreadyExists = attendanceResult.IsAlreadyExists,
-                        AttendanceMessage = attendanceResult.Message
+                        geofenceValidation.DistanceMeters
                     }
                 );
 
@@ -557,21 +546,6 @@ namespace QuilvianSystemBackend.Controllers
                 );
             }
 
-            var loginLikeRequest = new LoginRequest
-            {
-                Email = user.Email ?? string.Empty,
-                Password = string.Empty,
-                Latitude = request.Latitude,
-                Longitude = request.Longitude,
-                AccuracyMeters = request.AccuracyMeters
-            };
-
-            var attendanceResult = await RecordAttendanceOnLoginAsync(
-                user,
-                loginLikeRequest,
-                geofenceValidation
-            );
-
             user.LastLoginAt = DateTime.UtcNow;
             await _userManager.UpdateAsync(user);
 
@@ -594,9 +568,7 @@ namespace QuilvianSystemBackend.Controllers
                     credential.FingerPosition,
                     request.Score,
                     request.DeviceId,
-                    request.DeviceModel,
-                    AttendanceRecorded = attendanceResult.IsRecorded,
-                    AttendanceAlreadyExists = attendanceResult.IsAlreadyExists
+                    request.DeviceModel
                 }
             );
 
@@ -881,196 +853,6 @@ namespace QuilvianSystemBackend.Controllers
             ));
         }
 
-        [HttpPost("attendance/check-out")]
-        [Authorize]
-        [Produces("application/json")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        public async Task<IActionResult> AttendanceCheckOut([FromBody] AttendanceCheckoutRequest request)
-        {
-            try
-            {
-                var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-                if (!Guid.TryParse(userIdText, out var userId))
-                {
-                    return Unauthorized(ApiResponse<object>.Fail(
-                        StatusCodes.Status401Unauthorized,
-                        "Token tidak valid."
-                    ));
-                }
-
-                var user = await _userManager.FindByIdAsync(userId.ToString());
-
-                if (user == null)
-                {
-                    return Unauthorized(ApiResponse<object>.Fail(
-                        StatusCodes.Status401Unauthorized,
-                        "User tidak ditemukan."
-                    ));
-                }
-
-                if (!user.IsActive)
-                {
-                    return Unauthorized(ApiResponse<object>.Fail(
-                        StatusCodes.Status401Unauthorized,
-                        "Akun tidak aktif."
-                    ));
-                }
-
-                if (!IsAttendanceUser(user))
-                {
-                    return BadRequest(ApiResponse<object>.Fail(
-                        StatusCodes.Status400BadRequest,
-                        "User ini tidak termasuk employee atau doctor, sehingga tidak perlu absen pulang."
-                    ));
-                }
-
-                var geofenceValidation = ValidateGeofence(
-                    user,
-                    request.Latitude,
-                    request.Longitude,
-                    request.AccuracyMeters
-                );
-
-                if (!geofenceValidation.IsValid)
-                {
-                    await _loggerService.WarningAsync(
-                        "Auth",
-                        "Attendance.CheckOut",
-                        "Absen pulang gagal. Lokasi di luar area yang diizinkan.",
-                        new
-                        {
-                            user.Id,
-                            user.Email,
-                            user.UserName,
-                            request.Latitude,
-                            request.Longitude,
-                            request.AccuracyMeters,
-                            geofenceValidation.DistanceMeters,
-                            geofenceValidation.Message
-                        }
-                    );
-
-                    return StatusCode(
-                        StatusCodes.Status403Forbidden,
-                        ApiResponse<object>.Fail(
-                            StatusCodes.Status403Forbidden,
-                            geofenceValidation.Message
-                        )
-                    );
-                }
-
-                var nowJakarta = GetSystemNow();
-
-                var attendance = await ResolveOpenAttendanceForCheckOutAsync(
-                    user.Id,
-                    nowJakarta
-                );
-
-                if (attendance == null)
-                {
-                    return BadRequest(ApiResponse<object>.Fail(
-                        StatusCodes.Status400BadRequest,
-                        "Absensi masuk hari ini belum tercatat."
-                    ));
-                }
-
-                if (attendance.CheckOutAt.HasValue)
-                {
-                    return BadRequest(ApiResponse<object>.Fail(
-                        StatusCodes.Status400BadRequest,
-                        "Absensi pulang hari ini sudah tercatat."
-                    ));
-                }
-
-                var checkOutAtUtc = DateTime.UtcNow;
-
-                attendance.CheckOutAt = checkOutAtUtc;
-                attendance.CheckOutLatitude = request.Latitude;
-                attendance.CheckOutLongitude = request.Longitude;
-                attendance.CheckOutAccuracyMeters = request.AccuracyMeters;
-                attendance.CheckOutDistanceMeters = geofenceValidation.DistanceMeters ?? 0;
-
-                if (geofenceValidation.IsBypassed)
-                {
-                    attendance.IsGeofenceBypassed = true;
-                    attendance.GeofenceBypassReason = geofenceValidation.BypassReason;
-                }
-
-                attendance.CheckOutSource = "ManualCheckOut";
-                attendance.CheckOutIpAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-                attendance.CheckOutUserAgent = Request.Headers.UserAgent.ToString();
-                attendance.Status = "CheckedOut";
-                attendance.WorkDurationMinutes = (int)Math.Max(
-                    0,
-                    (checkOutAtUtc - attendance.CheckInAt).TotalMinutes
-                );
-                attendance.UpdateDateTime = DateTime.UtcNow;
-                attendance.UpdateBy = user.Id;
-
-                await _dbContext.SaveChangesAsync();
-
-                await _loggerService.InfoAsync(
-                    "Auth",
-                    "Attendance.CheckOut",
-                    "Absensi pulang berhasil dicatat.",
-                    new
-                    {
-                        AttendanceId = attendance.Id,
-                        attendance.UserId,
-                        attendance.EmployeeId,
-                        attendance.DoctorId,
-                        attendance.AttendanceDate,
-                        attendance.CheckInAt,
-                        attendance.CheckOutAt,
-                        attendance.WorkDurationMinutes,
-                        attendance.CheckOutDistanceMeters
-                    }
-                );
-
-                return Ok(ApiResponse<object>.Ok(
-                    new
-                    {
-                        attendance.Id,
-                        attendance.AttendanceDate,
-                        attendance.CheckInAt,
-                        attendance.CheckOutAt,
-                        attendance.WorkDurationMinutes,
-                        attendance.Status
-                    },
-                    "Absensi pulang berhasil dicatat."
-                ));
-            }
-            catch (Exception ex)
-            {
-                var detailError = GetFullExceptionMessage(ex);
-
-                await _loggerService.ErrorAsync(
-                    "Auth",
-                    "Attendance.CheckOut",
-                    $"Terjadi error saat absensi pulang. Detail: {detailError}",
-                    ex,
-                    new
-                    {
-                        request.Latitude,
-                        request.Longitude,
-                        request.AccuracyMeters
-                    }
-                );
-
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiResponse<object>.Fail(
-                        StatusCodes.Status500InternalServerError,
-                        $"Terjadi error saat absensi pulang: {detailError}"
-                    )
-                );
-            }
-        }
-
         private static string GetFullExceptionMessage(Exception ex)
         {
             var messages = new List<string>();
@@ -1160,7 +942,7 @@ namespace QuilvianSystemBackend.Controllers
             var nowJakarta = GetSystemNow();
             var attendanceDate = DateOnly.FromDateTime(nowJakarta);
 
-            var alreadyExists = await _dbContext.TrxAttendances
+            var alreadyExists = await _dbContext.HrdAttendances
                 .AnyAsync(x =>
                     x.UserId == user.Id &&
                     x.AttendanceDate == attendanceDate &&
@@ -1181,7 +963,7 @@ namespace QuilvianSystemBackend.Controllers
                 schedule
             );
 
-            var attendance = new TrxAttendance
+            var attendance = new HrdAttendance
             {
                 Id = Guid.NewGuid(),
 
@@ -1238,7 +1020,7 @@ namespace QuilvianSystemBackend.Controllers
                 IsCancel = false
             };
 
-            _dbContext.TrxAttendances.Add(attendance);
+            _dbContext.HrdAttendances.Add(attendance);
 
             await _dbContext.SaveChangesAsync();
 
@@ -1649,14 +1431,14 @@ namespace QuilvianSystemBackend.Controllers
             };
         }
 
-        private async Task<TrxAttendance?> ResolveOpenAttendanceForCheckOutAsync(
+        private async Task<HrdAttendance?> ResolveOpenAttendanceForCheckOutAsync(
             Guid userId,
             DateTime nowJakarta)
         {
             var today = DateOnly.FromDateTime(nowJakarta);
             var yesterday = today.AddDays(-1);
 
-            var todayAttendance = await _dbContext.TrxAttendances
+            var todayAttendance = await _dbContext.HrdAttendances
                 .FirstOrDefaultAsync(x =>
                     x.UserId == userId &&
                     x.AttendanceDate == today &&
@@ -1668,7 +1450,7 @@ namespace QuilvianSystemBackend.Controllers
                 return todayAttendance;
             }
 
-            var overnightAttendance = await _dbContext.TrxAttendances
+            var overnightAttendance = await _dbContext.HrdAttendances
                 .FirstOrDefaultAsync(x =>
                     x.UserId == userId &&
                     x.AttendanceDate == yesterday &&

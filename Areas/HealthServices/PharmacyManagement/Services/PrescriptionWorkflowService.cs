@@ -57,41 +57,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 "Resep tidak diajukan secara terpisah. Selesaikan konsultasi dokter untuk memfinalkan resep."));
         }
 
-        public async Task<PrescriptionWorkflowResult> MarkBillingGeneratedAsync(
-            TrxPrescription entity,
-            Guid? billingId,
-            Guid actorUserId,
-            DateTime now,
-            CancellationToken cancellationToken = default)
-        {
-            if (entity.PrescriptionStatus != PrescriptionStatus.Submitted)
-                return PrescriptionWorkflowResult.Fail("Billing hanya dapat dibuat untuk resep yang sudah difinalkan bersama konsultasi.");
-
-            if (entity.PaymentStatus != PrescriptionPaymentStatus.NotBilled &&
-                entity.PaymentStatus != PrescriptionPaymentStatus.BillingGenerated)
-            {
-                return PrescriptionWorkflowResult.Fail("Status pembayaran resep tidak valid untuk pembuatan billing.");
-            }
-
-            entity.BillingId = billingId ?? entity.BillingId;
-            entity.PaymentStatus = PrescriptionPaymentStatus.WaitingForPayment;
-            entity.BillingGeneratedAt ??= now;
-            entity.FulfillmentStatus = PrescriptionFulfillmentStatus.WaitingForPayment;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            return PrescriptionWorkflowResult.Ok();
-        }
-
-        public Task<PrescriptionWorkflowResult> MarkPaidAsync(TrxPrescription entity, Guid actorUserId, DateTime now, CancellationToken cancellationToken = default)
-            => CompletePaymentAsync(entity, PrescriptionPaymentStatus.Paid, actorUserId, now, cancellationToken);
-
-        public Task<PrescriptionWorkflowResult> MarkInsuranceApprovedAsync(TrxPrescription entity, Guid actorUserId, DateTime now, CancellationToken cancellationToken = default)
-            => CompletePaymentAsync(entity, PrescriptionPaymentStatus.InsuranceApproved, actorUserId, now, cancellationToken);
-
-        public Task<PrescriptionWorkflowResult> MarkPaymentWaivedAsync(TrxPrescription entity, Guid actorUserId, DateTime now, CancellationToken cancellationToken = default)
-            => CompletePaymentAsync(entity, PrescriptionPaymentStatus.PaymentWaived, actorUserId, now, cancellationToken);
+        // RJ-BIL-BE-002 / RJ-BIL-CONFLICT-006 keputusan author 1A.
+        //
+        // MarkBillingGeneratedAsync, MarkPaidAsync, MarkInsuranceApprovedAsync,
+        // MarkPaymentWaivedAsync, dan CompletePaymentAsync dihapus dari modul klinis.
+        // Kelimanya menetapkan status finansial canonical dari kewenangan klinis
+        // Prescription : Update, sehingga siapa pun yang boleh mengubah resep dapat
+        // menyatakan resep lunas. Status finansial sekarang hanya berasal dari Billing.
+        //
+        // Modul klinis menyerahkan fakta melalui ClinicalMilestoneFactProducer, dan Billing
+        // yang menentukan akibat finansialnya.
 
         public async Task<PrescriptionWorkflowResult> CancelAsync(
             TrxPrescription entity,
@@ -114,8 +89,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 return PrescriptionWorkflowResult.Fail("Resep yang sudah diproses farmasi tidak dapat dibatalkan dari modul dokter.");
             }
 
+            // RJ-BIL-BE-002 / keputusan author 1B: pembatalan klinis bersifat otoritatif atas
+            // status klinis dan status pemenuhan saja. PaymentStatus sengaja tidak disentuh —
+            // pembatalan klinis bukan pembatalan finansial. Konsekuensi finansialnya ditentukan
+            // Billing setelah menerima fakta pembatalan.
             entity.PrescriptionStatus = PrescriptionStatus.Cancelled;
-            entity.PaymentStatus = PrescriptionPaymentStatus.Cancelled;
             entity.FulfillmentStatus = PrescriptionFulfillmentStatus.Cancelled;
             entity.CancelledAt = now;
             entity.CancelledByUserId = actorUserId;
@@ -139,33 +117,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                    entity.FulfillmentStatus == PrescriptionFulfillmentStatus.WaitingForClinicalFinalization;
         }
 
-        private async Task<PrescriptionWorkflowResult> CompletePaymentAsync(
-            TrxPrescription entity,
-            PrescriptionPaymentStatus completedStatus,
-            Guid actorUserId,
-            DateTime now,
-            CancellationToken cancellationToken)
-        {
-            if (entity.PrescriptionStatus != PrescriptionStatus.Submitted)
-                return PrescriptionWorkflowResult.Fail("Pembayaran hanya dapat diselesaikan untuk resep yang sudah difinalkan.");
-
-            if (entity.PaymentStatus is PrescriptionPaymentStatus.Paid or PrescriptionPaymentStatus.InsuranceApproved or PrescriptionPaymentStatus.PaymentWaived)
-                return PrescriptionWorkflowResult.Fail("Pembayaran resep sudah diselesaikan.");
-
-            if (entity.PaymentStatus == PrescriptionPaymentStatus.Cancelled)
-                return PrescriptionWorkflowResult.Fail("Pembayaran resep sudah dibatalkan.");
-
-            entity.PaymentStatus = completedStatus;
-            entity.PaymentCompletedAt = now;
-            entity.PaymentCompletedByUserId = actorUserId;
-            entity.FulfillmentStatus = PrescriptionFulfillmentStatus.ReadyForPharmacy;
-            entity.ReadyForPharmacyAt = now;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            return PrescriptionWorkflowResult.Ok();
-        }
     }
 
     public class PrescriptionWorkflowResult

@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-021`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -141,8 +150,8 @@ State matrix bagian 5 baris 1 menetapkan penyusunan resume dimulai saat episode
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | Test unique index `IX_InpDischargeSummary_EpisodeId` terhadap PostgreSQL | **NOT RUN** |
 | `UAT-10` terhadap aplikasi berjalan | **NOT RUN** |
 
@@ -153,11 +162,11 @@ State matrix bagian 5 baris 1 menetapkan penyusunan resume dimulai saat episode
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Resume dapat disusun dan diperbarui selagi belum ditandatangani | `Kriteria1_ResumeDapatDisusunDanDiperbaruiSelagiBelumDitandatangani` | Ditulis, **belum dijalankan** |
-| 2. Hanya DPJP aktif yang dapat menandatangani; peran lain 403 | `Kriteria2_HanyaDpjpAktifYangDapatMenandatangani` | Ditulis, **belum dijalankan** |
-| 3. Resume tertandatangani tidak dapat diubah lewat endpoint biasa | `Kriteria3_ResumeYangSudahDitandatanganiTidakDapatDiubahLewatEndpointBiasa` | Ditulis, **belum dijalankan** |
-| 4. Satu episode punya paling banyak satu resume berlaku | `Kriteria4_SatuEpisodePunyaPalingBanyakSatuResume` | Ditulis, **belum dijalankan**; unique index belum diuji |
-| 5. Isi resume tidak ikut pada endpoint daftar mana pun | `Kriteria5_IsiResumeTidakIkutPadaEndpointDaftarMANaPun` — memeriksa empat bentuk jawaban | Ditulis, **belum dijalankan** |
+| 1. Resume dapat disusun dan diperbarui selagi belum ditandatangani | `Kriteria1_ResumeDapatDisusunDanDiperbaruiSelagiBelumDitandatangani` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Hanya DPJP aktif yang dapat menandatangani; peran lain 403 | `Kriteria2_HanyaDpjpAktifYangDapatMenandatangani` | ✅ **Lulus** 26 Agu 2026 |
+| 3. Resume tertandatangani tidak dapat diubah lewat endpoint biasa | `Kriteria3_ResumeYangSudahDitandatanganiTidakDapatDiubahLewatEndpointBiasa` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Satu episode punya paling banyak satu resume berlaku | `Kriteria4_SatuEpisodePunyaPalingBanyakSatuResume` | ✅ **Lulus** 26 Agu 2026; unique index belum diuji |
+| 5. Isi resume tidak ikut pada endpoint daftar mana pun | `Kriteria5_IsiResumeTidakIkutPadaEndpointDaftarMANaPun` — memeriksa empat bentuk jawaban | ✅ **Lulus** 26 Agu 2026 |
 
 Dua test tambahan menjaga: menandatangani resume rujukan tanpa tujuan rujukan ditolak 400, dan
 resume hanya dapat disusun setelah DPJP menyatakan pasien boleh pulang.

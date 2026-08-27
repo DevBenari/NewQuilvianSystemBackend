@@ -9,24 +9,25 @@
 | Contract | `RJ-BIL-CONTRACT-001@1.0.0` |
 | Decision revision | `10` |
 | Domain architecture | revision `1`, core independen dari `DOMAIN_ARCHITECTURE_PARTIAL` |
-| Backend source SHA | `36456ead5d8d116e5631aef859df3d55b0ec7e81` cabang `sukmagp` |
+| Backend source SHA | `d0544e53bc876c0a74bc7befedb1a036dd08e1fd` cabang `sukmagp`; working tree `RJ-BIL-BE-003` belum di-commit |
 | Frontend source SHA | `29422c83eaf6fd231cbb72f2ba04e306367934e1` cabang `QuilvianDevV2` |
 | Approval | `OWNER_APPROVED` pada `2026-08-21` |
 | External adapter | `RJ-BIL-DEP-009 = INACTIVE / OUT OF CURRENT DELIVERY SCOPE` |
 | Task approval | `RJ-BIL-BE-001` s.d. `RJ-BIL-BE-009` disetujui pengguna pada `2026-08-21` |
 | Status seluruh task revision 1 | `APPROVED_FOR_EXECUTION` |
-| IMPLEMENTATION_AUTHORITY | `GRANTED` untuk `RJ-BIL-BE-001` saja |
-| BUILDER_EXECUTION | `EXECUTED` untuk `RJ-BIL-BE-001`; task lain `NOT_AUTHORIZED` |
-| Progress | `1` dari `9` task backend selesai per `2026-08-24` |
+| IMPLEMENTATION_AUTHORITY | `GRANTED` untuk `RJ-BIL-BE-001`, `RJ-BIL-BE-002`, dan `RJ-BIL-BE-003` |
+| BUILDER_EXECUTION | `EXECUTED` untuk `RJ-BIL-BE-001`, `RJ-BIL-BE-002`, dan `RJ-BIL-BE-003`; task lain `NOT_AUTHORIZED` |
+| Progress | `3` dari `9` task backend selesai per `2026-08-24`; governance `RJ-BIL-BE-003` masih `OPEN` |
 
 ## Progress eksekusi
 
 | Task | Status | Bukti |
 |---|---|---|
 | `RJ-BIL-BE-001` | `COMPLETE` | [execution-evidence-RJ-BIL-BE-001.md](../execution-evidence-RJ-BIL-BE-001.md) |
-| `RJ-BIL-BE-002` | `BLOCKED` — menunggu keputusan owner atas `RJ-BIL-CONFLICT-006` | [owner-decision-request-RJ-BIL-001.md](../owner-decision-request-RJ-BIL-001.md) pertanyaan `1A` dan `1B` |
+| `RJ-BIL-BE-002` | `COMPLETE` | [execution-evidence-RJ-BIL-BE-002.md](../execution-evidence-RJ-BIL-BE-002.md) |
 | `RJ-BIL-BE-005` | `BLOCKED` — menunggu keputusan owner atas `RJ-BIL-CONFLICT-001` | [RJ-BIL-CONFLICT-001-source-audit.md](../RJ-BIL-CONFLICT-001-source-audit.md); pertanyaan `RJ-BIL-OQ-001` s.d. `OQ-007` |
-| `RJ-BIL-BE-003`, `RJ-BIL-BE-004` | `NOT_STARTED` — tidak diblokir konflik mana pun | Memerlukan owner Lab atau Radiology beserta Clinical Governance |
+| `RJ-BIL-BE-003` | `IMPLEMENTATION_COMPLETE` — governance sign-off Lab, Clinical Governance, dan Billing/Finance tetap `OPEN` | [execution-evidence-RJ-BIL-BE-003.md](../execution-evidence-RJ-BIL-BE-003.md); [preflight-RJ-BIL-BE-003.md](../preflight-RJ-BIL-BE-003.md) |
+| `RJ-BIL-BE-004` | `NOT_STARTED` — tidak diblokir konflik, tetapi greenfield penuh | Area `RadiologyManagement` belum ada di source; memerlukan owner Radiology beserta Clinical Governance |
 | `RJ-BIL-BE-006` s.d. `RJ-BIL-BE-009` | `NOT_STARTED` | Menunggu dependency sequence |
 
 Audit read-only `RJ-BIL-CONFLICT-001` per `2026-08-24` menyimpulkan konflik `CONFIRMED` dengan
@@ -39,6 +40,33 @@ atas hasil allocation.
 Migration `20260821033911_AddBillingOperationalBaseline` sudah diterapkan ke database
 `QuilvianNewDevTim01` atas otorisasi terpisah yang diberikan pengguna pada `2026-08-21`.
 Otorisasi tersebut terbatas pada satu migration itu dan tidak berlaku untuk task berikutnya.
+
+Dua migration `RJ-BIL-BE-002` — `20260824074649_AddClinicalMilestoneFactHandoff` dan
+`20260824080430_StoreClinicalFactSnapshotAsText` — ikut diterapkan ke database yang sama karena
+`BillingTestDatabaseFixture` memanggil `Database.Migrate()` sebelum test pertama. Ini bukan
+otorisasi baru; penjelasan dan dampaknya ada pada bagian `8`
+[execution-evidence-RJ-BIL-BE-002.md](../execution-evidence-RJ-BIL-BE-002.md).
+
+`RJ-BIL-BE-002` menyisakan satu blocker kebijakan, `RJ-BIL-BE-002-BLOCKER-001`, yaitu pintu
+masuk telaah farmasi setelah kewenangan finansial klinis dihapus. Blocker itu tidak menahan
+acceptance criteria `RJ-BIL-BE-002` dan tidak menahan task berikutnya.
+
+Preflight read-only `RJ-BIL-BE-003` per `2026-08-24` menyimpulkan lifecycle Lab sudah terkunci penuh
+pada `RJ-BIL-GATE-DEC-003`, sehingga tidak ada SOP lab yang perlu dikarang. Empat pertanyaan pemilik
+`RJ-BIL-OQ-008` s.d. `RJ-BIL-OQ-011` dijawab author pada tanggal yang sama, lalu `RJ-BIL-BE-003`
+dieksekusi. Kelayakan tagih dinilai per specimen/komponen pemeriksaan, sehingga satu pesanan
+`Rp450.000` yang salah satu komponennya ditolak menagih `Rp350.000`.
+
+Migration `RJ-BIL-BE-003` — `20260824091610_AddLaboratorySpecimenLifecycle` — **tidak** diterapkan
+ke database mana pun. Statusnya terverifikasi `(Pending)` melalui `dotnet ef migrations list`.
+Pengulangan insiden `RJ-BIL-BE-002` dicegah dengan menghapus fallback `appsettings.Development.json`
+pada `BillingTestDatabaseFixture`: tanpa `QUILVIAN_BILLING_TEST_DB` yang menunjuk database test
+tersendiri, test berhenti dengan `BLOCKED_BY_TEST_DB_CONFIGURATION` sebelum membuka koneksi.
+
+Akibatnya `37` test berbasis database — `16` milik `RJ-BIL-BE-003` dan `21` milik task
+sebelumnya — belum dapat dijalankan sampai database test khusus tersedia. `21` test yang tidak
+memerlukan database lulus seluruhnya. Rinciannya pada bagian `10`
+[execution-evidence-RJ-BIL-BE-003.md](../execution-evidence-RJ-BIL-BE-003.md).
 
 ## Aturan eksekusi
 

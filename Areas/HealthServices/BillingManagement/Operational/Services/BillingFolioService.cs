@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
@@ -67,8 +68,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
     {
         public const string InternalConsumer = "BillingInternalApi";
         public const string RecognizeMilestoneOperation = "RecognizeMilestone";
-        public const string InternalTestSourceContext = "InternalTest";
-        public const string InternalTestEffectType = "InternalTestCharge";
+        public const string InternalTestSourceContext = BillingSourceContract.InternalTestSourceContext;
+        public const string InternalTestEffectType = BillingSourceContract.InternalTestEffectType;
+
+        /// <summary>
+        /// Consumer yang dipakai producer clinical fact internal (<c>RJ-BIL-BE-002</c>).
+        /// Dibedakan dari <see cref="InternalConsumer"/> agar idempotency scope endpoint HTTP
+        /// dan producer in-process tidak saling menimpa.
+        /// </summary>
+        public const string ClinicalFactConsumer = "ClinicalFactProducer";
 
         private const int MaxPersistenceAttempts = 3;
         private const string ReviewRequiredCode = "BIL_CALCULATION_REVIEW_REQUIRED";
@@ -613,14 +621,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
             if (request.SourceItemId == Guid.Empty)
                 return ("BIL_SOURCE_INVALID", "SourceItemId tidak boleh Guid.Empty.");
 
-            if (!string.Equals(request.SourceContext?.Trim(), InternalTestSourceContext, StringComparison.Ordinal))
-                return ("BIL_SOURCE_INVALID", "SourceContext belum diizinkan untuk task ini.");
+            var sourceContext = request.SourceContext?.Trim();
+            if (string.IsNullOrWhiteSpace(sourceContext) || sourceContext.Length > 50)
+                return ("BIL_SOURCE_INVALID", "SourceContext wajib diisi dan maksimal 50 karakter.");
+
+            if (!BillingSourceContract.IsKnownSourceContext(sourceContext))
+                return ("BIL_SOURCE_INVALID", "SourceContext belum diizinkan oleh kontrak Billing.");
 
             if (string.IsNullOrWhiteSpace(request.EffectType) || request.EffectType.Trim().Length > 100)
                 return ("BIL_SOURCE_INVALID", "EffectType wajib diisi dan maksimal 100 karakter.");
 
-            if (!string.Equals(request.EffectType.Trim(), InternalTestEffectType, StringComparison.Ordinal))
-                return ("BIL_SOURCE_INVALID", "EffectType belum diizinkan untuk task ini.");
+            if (!BillingSourceContract.IsAllowedEffectType(sourceContext, request.EffectType.Trim()))
+                return ("BIL_SOURCE_INVALID", "EffectType belum diizinkan untuk SourceContext tersebut.");
 
             if (request.OccurredAt == default)
                 return ("BIL_SOURCE_INVALID", "OccurredAt wajib diisi.");

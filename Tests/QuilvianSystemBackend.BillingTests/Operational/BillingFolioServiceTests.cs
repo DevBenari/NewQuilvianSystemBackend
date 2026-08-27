@@ -265,12 +265,16 @@ namespace QuilvianSystemBackend.BillingTests.Operational
         // Acceptance criteria 4 — Tidak ada clinical financial mutation
         // ---------------------------------------------------------------------
 
+        // Catatan RJ-BIL-BE-003: `Laboratory` sudah masuk kontrak sejak task ini dan diuji
+        // pada LaboratorySpecimenLifecycleTests, sehingga tidak lagi menjadi contoh konteks
+        // yang ditolak. Yang tersisa di sini adalah konteks yang memang belum dikontrak —
+        // `Radiology` menjadi cakupan RJ-BIL-BE-004 — dan nama yang memang tidak pernah sah:
+        // `Pharmacy` bukan konteks yang benar karena fakta resep memakai `Prescription`, dan
+        // `LabOrder` bukan konteks yang benar karena fakta Lab memakai `Laboratory`.
         [Theory]
         [InlineData("Pharmacy")]
-        [InlineData("Prescription")]
-        [InlineData("Procedure")]
-        [InlineData("Laboratory")]
         [InlineData("Radiology")]
+        [InlineData("LabOrder")]
         public async Task KonteksKlinis_TidakDapatMembuatMutasiFinansial(string sourceContext)
         {
             var seed = await NewEncounterAsync();
