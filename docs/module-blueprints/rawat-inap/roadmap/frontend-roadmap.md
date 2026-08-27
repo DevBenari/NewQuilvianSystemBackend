@@ -347,6 +347,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e per peran; e2e koreksi resume yang membuktikan versi lama tetap terbaca |
 | **Risk/blocker** | Kriteria 2: cara pulang yang punya nilai bawaan akan tersimpan salah pada pasien yang petugasnya terburu-buru, dan dua di antaranya — meninggal dan kabur — aturan klinisnya bahkan **belum disahkan** pemilik klinis. Owner: Frontend bersama Product/Domain |
 | **DoD** | Layar selesai; kelima kriteria lulus; test e2e ada |
+| **Status** | 🟡 **Selesai, satu kriteria tertahan di luar frontend.** Empat kriteria lulus penuh. Kedua aksi **tidak dirender** bagi lima peran lain — termasuk supervisor dan kepala ruangan — bukan dirender lalu dinonaktifkan; resume tertandatangani terkunci bahkan bagi DPJP aktif sendiri; dua versi resume yang dikirim terbalik terbaca urut beserta nama penandatangan tiap versi; dan penjaga payload census diperluas sehingga kini mencakup ketujuh kolom isi resume, bukan enam. **Kriteria 2 baru terpenuhi sebagian:** bagian "dipilih sadar" lulus — tidak ada nilai bawaan dan permintaan tanpa pilihan ditolak sebelum dialog konfirmasi tampil — sedangkan bagian "lima cara pulang" tertahan `RWI-OQ-039` dan `RWI-DEC-059` yang berstatus `draft`, butir yang **sudah** dicatat `BE-RWI-020`. Layar menyebut kedua cara pulang yang belum tersedia beserta jalan keluar supervisornya, bukan menyembunyikannya. Perubahan **masih lokal, belum di-commit** ([laporan](../task/report/frontend/FE-RWI-012.md)) |
 
 ---
 
@@ -364,6 +365,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e per peran; e2e penandaan tanpa catatan |
 | **Risk/blocker** | Penandaan ini **manual** dan bukan cerminan tagihan sebenarnya — `RWI-RISK-003`. Layar tidak boleh memberi kesan angkanya berasal dari sistem billing. Owner: Frontend bersama Product/Domain |
 | **DoD** | Layar selesai; keempat kriteria lulus; test e2e ada |
+| **Status** | 🟡 **Selesai, satu kriteria tertahan kontrak.** Kriteria 1, 2, dan 4 lulus. Aksi penandaan **tidak dirender** bagi petugas admisi, perawat, kepala ruangan, dan DPJP; penandaan tanpa catatan ditolak dengan nol permintaan terkirim; ketiga nilai punya penjelasan bebas istilah teknis di layar. Peringatan `RWI-RISK-003` dirender tanpa syarat dan tidak hilang bahkan ketika nilainya sudah lunas. **Kriteria 3 baru terpenuhi sebagian:** kontrak `0.4.0` tidak menyediakan `GET .../financial-clearance` — method service-nya **sudah ada** di `InpDischargeService.Closure.cs:222` tetapi tidak pernah dipasang sebagai aksi controller — sehingga riwayat penandaan baru terbaca setelah ada penandaan baru dikirim dari layar itu. Layar menyatakan batasan itu apa adanya, bukan menampilkan daftar kosong yang terbaca seolah belum pernah ditandai. Satu delta lain dicatat: matriks perpindahan bagian 4 hanya mengenal dua tindakan, sehingga `Pending` terbaca tetapi tidak dapat ditandai. Perubahan **masih lokal, belum di-commit** ([laporan](../task/report/frontend/FE-RWI-013.md)) |
 
 ---
 
