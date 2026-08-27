@@ -1,5 +1,5 @@
 {
-  "backendVersion": "0.2.0",
-  "releaseName": "Feature Billing Management, Clinical Billing Integration, Clinical Management, Emergency, InPatient, Laboratory, Operating Room, Pharmacy, Registration",
-  "description": "Release including Feature Billing Management, Clinical Billing Integration, Clinical Management, Emergency, InPatient, Laboratory, Operating Room, Pharmacy, Registration."
+  "backendVersion": "0.2.1",
+  "releaseName": "Create Roadmap Human Resource",
+  "description": "Release Create Roadmap Human Resource."
 }
