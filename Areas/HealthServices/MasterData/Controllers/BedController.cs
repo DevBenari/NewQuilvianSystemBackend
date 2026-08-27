@@ -453,7 +453,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.IsReservable = request.IsReservable;
             entity.SortOrder = request.SortOrder;
             entity.Description = NormalizeNullableText(request.Description);
-            entity.IsActive = request.IsActive;
+            entity.IsActive = request.IsActive ?? entity.IsActive;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
