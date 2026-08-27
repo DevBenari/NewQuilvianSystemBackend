@@ -45,10 +45,6 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Mo
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Models;
-using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories
