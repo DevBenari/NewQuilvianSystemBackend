@@ -3,12 +3,12 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `IGD-BP-001` |
-| `revision` | `5` |
+| `revision` | `6` |
 | `status` | `draft` — **tidak disetujui siapa pun**. Revision `4` yang berstatus `approved sebagian` tetap berlaku sebagai baseline sampai revisi ini disetujui |
 | `module` | `igd` / `EmergencyInstallationManagement`, prefix entity `TrxEmergency`/`MstEmergency` |
 | `registry_lifecycle` | `ACTIVE` |
-| `design_snapshot_at` | `2026-08-24` |
-| `backend_commit_sha` | `f69e9e483052845d11c91d8b7bbdce33c4acc8d8` (branch `rizkiG`) |
+| `design_snapshot_at` | `2026-08-26` (revisi 6); revisi 5 pada `2026-08-24` |
+| `backend_commit_sha` | `300922c` (branch `rizkiG`) — merge Hamzah/Ikbal/Yasmina. Revisi 5 disusun pada `f69e9e483052845d11c91d8b7bbdce33c4acc8d8` |
 | `frontend_commit_sha` | `96a9120111f6acc6b7c0f37973ea0c717ba41f17` (branch `RizkiV2`) |
 | `owners` | Product/Domain: **Rizki Gunawan**, ditetapkan `IGD-DEC-089` 2026-08-24. Clinical Governance, Nursing authority, Security/Privacy: `OPEN`. Pemilik `ClinicalManagement`, `PharmacyManagement`, `LaboratoryManagement`: **belum ditunjuk** |
 | `approved_by` | Sebagian: **Rizki Gunawan** menyetujui `IGD-DEC-067`, `IGD-DEC-088`, `IGD-DEC-089`, dan `IGD-DEC-093` pada 24 Agustus 2026. Blueprint secara keseluruhan **belum** disetujui |
@@ -16,10 +16,13 @@
 | `requirement_readiness` | **`UNCLASSIFIED`** — lihat bagian 0 |
 | `domain_architecture_revision` | **Tidak ada** — lihat bagian 0 |
 | `domain_architecture_readiness` | **`NOT_ASSESSED`** |
-| `input_revisions` | `00-interview-decisions.md` 91 keputusan (`IGD-DEC-090`…`092` ditambahkan Amendment Pass kedua 2026-08-24); `01-existing-capability-map.md` revision `3` |
-| `amendment` | **2026-08-24 (kedua)** — `IGD-OQ-068`, `IGD-OQ-070`, `IGD-OQ-071` ditutup. Desain revision `5` **tidak berubah isinya**: ketiga jawaban membenarkan bentuk teknis yang sudah tertulis. Yang berubah hanya status pertanyaan dan gerbang |
-| `contract_versions` | API `0.3.0`; state `0.3.0`; validation `0.3.0`; integration `0.3.0`; permission/audit `0.3.0`. Seluruhnya `draft` **kecuali** dua irisan yang di-`approved` `IGD-DEC-093` 2026-08-24: state bagian 1/1.1/1.2, dan validation bagian 2 aturan 4–5 |
-| `roadmap_revision` | `2` — gelombang `MVP-0`, terbit 2026-08-24. Revision `1` diarsipkan ke `roadmap/archive/revision-1/` |
+| `input_revisions` | `00-interview-decisions.md` **105 keputusan**, terakhir `IGD-DEC-105`; `01-existing-capability-map.md` revision `3` + **suplemen `3.1`** (audit terarah `EmergencyTransfer` pada `300922c`) |
+| `delivery_state` | **`MVP-0` berjalan.** `BE-IGD-017`…`020` selesai 2026-08-26, **belum di-commit**. Suite `518 → 720`. Berikutnya `BE-IGD-021` (lima titik tulis observasi/resusitasi/disposisi) |
+| `amendment` | **2026-08-24 (kedua)** — `IGD-OQ-068`/`070`/`071` ditutup. **2026-08-26 (correction pass revisi 6)** — enam butir, lihat 0a.2 sampai 0a.4 |
+| `contract_versions` | API `0.4.0` **bukan aditif**; validation `0.4.0` **bukan aditif**; state `0.4.0` aditif; permission/audit `0.4.0` aditif; integration `0.3.0` tidak berubah. Rinciannya di 0a.2. Seluruhnya `draft`. `IGD-DEC-093` **tidak diperluas**: yang `approved` tetap hanya state §1/§1.1/§1.2 dan validation §2 aturan 4–5 |
+| `roadmap_revision` | `3` — 2026-08-26, diperluas ke perjalanan pasien penuh: pendaftaran & triase, pengkajian, kepergian. Revision `2` (`MVP-0`) tetap di berkas yang sama; revision `1` diarsipkan ke `roadmap/archive/revision-1/`. **Penomoran gelombang bergeser**: pengkajian masuk `MVP-3`, kepergian ke `MVP-4`, serah terima `MVP-5`, kewenangan unit `MVP-6` |
+| `belum_direncanakan` | **Penunjang medis, pemakaian alat, billing IGD.** Batas lingkup ditutup `IGD-DEC-095`…`105`; masih nol epic, nol FR, nol kontrak. **Ditahan atas instruksi Product/Domain Owner** sampai correction pass revisi 6 tuntas dan `MVP-0` selesai |
+| `koreksi_desain_tertunda` | **Nihil.** Empat koreksi selesai pada revisi 6; enam butir correction pass 26 Agustus selesai — audit `EmergencyTransfer`, koreksi klaim aditif, penyelarasan metadata, pembentukan pesanan internal, unique constraint, kewenangan pesanan |
 | `compatibility_impact` | **Empat perubahan memutus.** Lihat bagian 3 |
 
 ---
@@ -40,6 +43,106 @@ tersebar pada 88 keputusan, bukan pada berkas hulu tersendiri.
 Gerbang ini **tidak** ditandai terpenuhi. Bila Product/Domain Owner menghendaki kesetaraan
 dengan Rawat Inap, `/requirement-completeness-gate` dan `hospital-domain-architect` perlu
 dijalankan lebih dulu dan revisi ini ditinjau ulang terhadap hasilnya.
+
+---
+
+## 0a. Yang berubah pada revision 6 — 26 Agustus 2026
+
+Revisi sempit. **Empat koreksi** yang diminta Product/Domain Owner setelah Scope Pass ketiga,
+ditambah satu penegasan arti. Tidak ada tabel baru, tidak ada endpoint yang dibuang.
+
+| # | Koreksi | Keputusan | Berkas |
+| ---: | --- | --- | --- |
+| 1 | `EmergencyOrderAction` menjadi **`Continue`=1, `Handover`=2, `Cancel`=9** | `IGD-DEC-100` | `02-…` §3.4, `erd/emergency-departure.md` |
+| 2 | `EmergencyOrderKind` menambah **`RadiologyOrder`=4** | `IGD-DEC-099` | Sama |
+| 3 | **`EmergencyOrderSource`** memisahkan pesanan internal dari luar sistem; `OrderReferenceId` menjadi nullable, `ExternalReference` dan `OrderDescription` ditambahkan | `IGD-DEC-103` | Sama, + `contracts/api-contract.md` §2.3 |
+| 4 | **`EmergencyOrderAcceptanceStatus`** — lifecycle penerimaan **per pesanan**, terpisah dari `EmergencyHandoverStatus` | `IGD-DEC-102` | Sama, + `contracts/state-transition-matrix.md` §6a |
+| 5 | Arti validation §2 aturan 5 dipertegas per status kunjungan | `IGD-DEC-104` | `contracts/validation-matrix.md` §2.1 |
+
+### 0a.1 Mengapa `Completed` bukan sekadar salah nama
+
+Daftar sikap **hanya memuat pesanan yang belum selesai**, sehingga `Completed` adalah nilai
+yang tidak pernah terpakai. Yang justru tidak punya nilai adalah keadaan sebenarnya: pesanan
+yang **masih berjalan** dan akan diproses sampai hasil final meski pasien sudah pergi.
+
+### 0a.2 Koreksi — revisi 6 **bukan** murni aditif
+
+> **Klaim yang diperbaiki.** Terbitan pertama revisi 6 menyatakan kenaikan `0.3.0 → 0.4.0`
+> bersifat *"aditif — nol bagian lama diubah"*. **Klaim itu salah.** Endpoint lama diganti, dan
+> beberapa bagian validation berubah teksnya. Diperbaiki pada correction pass 26 Agustus 2026.
+
+#### Yang benar-benar berubah, bukan sekadar bertambah
+
+| # | Perubahan | Sifat |
+| ---: | --- | --- |
+| 1 | `GET /{id}/pending-orders` dan `POST /{id}/order-actions` **dihapus** dari tabel endpoint, diganti lima route keluarga `order-items` | **Memutus** secara kontrak — meski nol pemakai nyata, karena keduanya belum pernah diimplementasikan |
+| 2 | Validation §5 aturan 2: *"Sikap `Cancelled` wajib beralasan"* → *"Sikap **`Cancel`** wajib beralasan"* | Teks berubah mengikuti `IGD-DEC-100` |
+| 3 | Validation §5 aturan 4: *"Pemeriksaan penunjang tidak ikut dihitung"* → *"…tidak ikut dihitung **otomatis**"* | Teks berubah — artinya menyempit, bukan sekadar bertambah |
+| 4 | `EmergencyOrderAction` dan `EmergencyOrderKind` **diganti nilainya**, bukan ditambah | Entitas `New` yang belum diimplementasikan; nol data terdampak |
+| 5 | `OrderReferenceId` berubah dari wajib menjadi **nullable** | Sama seperti nomor 4 |
+| 6 | Rumusan unique constraint diganti seluruhnya | Correction pass; rumusan lama **tidak dapat ditegakkan** — lihat `02-backend-architecture.md` §11.2 |
+
+#### Satu baris `approved` yang ikut tersentuh
+
+| Bagian | Yang berubah | Yang **tidak** berubah |
+| --- | --- | --- |
+| Validation §2 **aturan 5** | Kolom *Keputusan* bertambah *"; artinya dipertegas `IGD-DEC-104`"* | Kolom **Aturan, Kode, dan Pesan identik** — isi normatifnya utuh |
+| Validation §2 aturan 4 | — | **Seluruhnya identik** |
+| State §1, §1.1, §1.2 | — | **Seluruhnya identik.** `§6a` adalah bagian baru yang berdiri sendiri |
+
+Perubahan pada aturan 5 hanyalah rujukan ke keputusan yang menafsirkannya, ditetapkan
+**approver yang sama** lewat `IGD-DEC-104`. Aturan yang ditegakkan kode **tidak berubah**, dan
+`BE-IGD-019` yang berjalan di atasnya tetap sahih.
+
+Meski begitu, menyebutnya "teks identik" **tidak akurat** dan sudah diperbaiki di sini.
+
+#### Akibat pada penomoran versi
+
+Karena bukan murni aditif, kenaikan `0.3.0 → 0.4.0` pada API dan validation adalah
+**perubahan yang memutus pada tingkat kontrak**, bukan penambahan. State `0.4.0` tetap aditif —
+`§6a` murni bagian baru.
+
+### 0a.3 Gerbang yang dilanggar sebagian, dan alasannya dicatat
+
+| Gerbang `/qv-design` | Keadaan |
+| --- | --- |
+| Decision log `approved` | **Tidak terpenuhi.** `IGD-DEC-099`…`104` seluruhnya `draft`. Sama seperti revisi 5, yang juga disusun di atas keputusan `draft`; keluaran desain pun `draft` |
+| Capability map terbaru | **Stale** — revision `3` dihitung pada `f69e9e48`, `HEAD` kini `300922c`. **Tidak berdampak pada revisi ini**: kelima entitas yang dikoreksi — `EmergencyOrderAction`, `EmergencyOrderKind`, `TrxEmergencyHandoverOrderItem`, `TrxEmergencyDeparture`, `EmergencyPhysicalStatus` — **nol berkas di source**. Tidak ada perilaku existing yang dapat salah dibaca |
+
+Capability map tetap **perlu** diperbarui sebelum gelombang yang menyentuh kode yang sudah ada.
+
+---
+
+### 0a.4 Revisi 6 tetap `draft` — approval yang diajukan
+
+**Tidak satu pun bagian revisi 6 ditandai `approved`.** Correction pass 26 Agustus 2026
+menegaskannya kembali atas permintaan Product/Domain Owner.
+
+`IGD-DEC-093` yang lama **tetap berlaku apa adanya** dan **tidak diperluas** oleh revisi ini:
+ia menyetujui state §1/§1.1/§1.2 dan validation §2 aturan 4–5, dan hanya itu. `BE-IGD-018`,
+`019`, dan `020` berjalan di atas irisan itu — sah, dan tidak terpengaruh revisi 6.
+
+#### Yang membutuhkan approval, dan dari siapa
+
+| Bagian | Approver | Kenapa mereka |
+| --- | --- | --- |
+| `IGD-DEC-100` — tiga sikap pesanan, larangan pembatalan otomatis | **Clinical Governance** | Menentukan pesanan klinis mana yang boleh dihentikan saat pasien pergi |
+| `IGD-DEC-101` — sikap pesanan lab ditetapkan manual klinisi | **Clinical Governance** + **pemilik `LaboratoryManagement`** | Menetapkan sikap tanpa data status adalah penilaian klinis; dan lab yang menanggung akibatnya |
+| `IGD-DEC-102` — penerimaan per pesanan, penolakan tidak membatalkan penerimaan pasien | **Nursing authority** | Serah terima antar-unit adalah pekerjaan keperawatan |
+| Permission §3.1 — kewenangan `accept`/`reject` atas unit tujuan | **Nursing authority** + Security/Privacy owner | Menentukan siapa berhak menyatakan penerimaan |
+| Validation §5 aturan 5 — larangan menampilkan sikap lab seolah dari `LabOrder` | **Pemilik `LaboratoryManagement`** | Melindungi lab dari klaim yang tidak mereka buat |
+| `02-backend-architecture.md` §11.1 — pembentukan baris `Medication` dan `Procedure` | Pemilik `PharmacyManagement` dan `ClinicalManagement` | Membaca tabel milik mereka |
+
+#### Tiga peran approver itu **belum ditunjuk**
+
+Clinical Governance, Nursing authority, dan pemilik `LaboratoryManagement` seluruhnya masih
+kosong. Permintaan penunjukannya sudah disiapkan di
+`approval-requests/2026-08-24-permintaan-penunjukan-pemilik-modul.md`, dan `IGD-OQ-081`
+mencatat langkah termurahnya: menanyakan `andryzainhome` yang membuat fondasi
+`LaboratoryManagement` lewat commit `1a8a9ce`.
+
+**Akibatnya butir 10 Definition of Done tidak dapat dijawab "ya"** untuk `EPIC IGD-07` maupun
+gelombang mana pun yang memakai bagian di atas. Ini dicatat terbuka, bukan dilewati.
 
 ---
 
@@ -67,21 +170,21 @@ Dihitung 24 Agustus 2026 pada keadaan akhir seluruh berkas.
 
 | Artifact | SHA-256 |
 |---|---|
-| `00-interview-decisions.md` | `43ba0661bf30d0bd626bca8d4592abbfb6a334fe18dffeaba2d9d4ad1bbb7fb0` — dihitung ulang 2026-08-24 setelah Amendment Pass kedua **dan** approval sempit `IGD-DEC-093`. Hash pada revision `5` semula `d3188d29e5e872e99ba4fc030af18a9b9a4a519bff7ea4404a560ca2261f0ad8` |
-| `01-existing-capability-map.md` | `d8e092d3d9d71b0679c6a690979de488b2c51d4cdf32864915bc1c7fe544ec67` |
-| `02-backend-architecture.md` | `20fcaad625ab52b7058f751cad96c8732d234264d1d94a28b1f1ccd6f3aa6753` |
+| `00-interview-decisions.md` | `a48c1e9105e8caa595daade7cd6b7903993d1ce275e104dd0bc811761fb10dea` |
+| `01-existing-capability-map.md` | `75da54a6f529b76bc42e996c924f4004723046d84355694b1e11474036244bb5` |
+| `02-backend-architecture.md` | `b7c93dda4ffeb66b8f9541f136eb09aa89a43fb305b7a6dd8856c2b92ec23992` |
 | `03-frontend-architecture.md` | `2b4339f9587ed1daff8444ccb68cb5415df578d76a2157dd3ec168f9a2a1fd95` |
 | `04-prd-to-mvp.md` | `7061525001d9a7e6b311424b8e3a8d85de13e35f59e545a78dcefedd600b79db` |
 | `erd/00-context-erd.md` | `60c862c6516e6bc641c3fea61725d58fa805a2acfdab5315c567f250a3403c63` |
 | `erd/emergency-episode.md` | `43f2403785d3b0cd5ba6bdd59854b8f24eb0904e03d8f8d746a0772a0a727822` |
-| `erd/emergency-departure.md` | `94f8362fa7b8cad023fb539cdb1de61d21a629c2ae0a83a03395bf258b172251` |
+| `erd/emergency-departure.md` | `0f5445e06cc9bbd60ed15942cb9aeae34d109baee142af76995f0664909a8097` |
 | `erd/data-dictionary.md` | `fb6586a130ba527c3d27ec979c66f5a3e3f8a212270f928a16440170f28b0636` |
-| `contracts/api-contract.md` | `1efcac528e2360fdeccd9b7373d724727a3f4d51f5acf34f496e14e3a62e6d62` |
-| `contracts/state-transition-matrix.md` | `a41efd8d9adc87e1cf1eec2a9397b3521fdc0ebf935ccf0a19a5aa975b6c7c75` — dihitung ulang setelah `IGD-DEC-093` menandai bagian 1/1.1/1.2 `approved`. Hash semula `770cf8ea0517ebdcdc71be6409cf3c7071e83663f57446488bd52196e7cb6faa` |
-| `contracts/validation-matrix.md` | `0ee98b750a29e01603db894ed3766614fe8989b2eef3573eab7d72cdc1a6b907` — dihitung ulang setelah `IGD-DEC-093` menandai bagian 2 aturan 4–5 `approved`. Hash semula `5ab17e6b540071adcbe797c074193edc74c8648e05cd94d19291559050d1abfc` |
-| `contracts/integration-contract.md` | `0b3ea15dd192023f6798cc3c4caa10ec96355c0598357783eae6bf8c2eafe5a5` |
-| `contracts/permission-audit-matrix.md` | `dae15a4c1c85712659379928f2da5a233d8c2de89c73533862808b90e646bc5b` |
-| `testing/acceptance-test-matrix.md` | `0795daa024928a583b3b7ca4ef75e15abedac5f7c937814c14dec6a3ad392b8e` |
+| `contracts/api-contract.md` | `a1dd52d376e7e434554a26379ff3bb0258f23816934f84251c95c9bd9b70d9ef` |
+| `contracts/state-transition-matrix.md` | `ca6f3e8b8cfee84cdcf94a56ce306bea84df0db5372ce638059650a7859ccea8` |
+| `contracts/validation-matrix.md` | `f0831b4d89f13b152cc587a3951735875fc5486d5b17990947b3c56b157095b8` |
+| `contracts/integration-contract.md` | `98590b1b5e587fe10f0338f4f7da3aba3a0a448231ffef02b06592f2f7633bdb` |
+| `contracts/permission-audit-matrix.md` | `cb2cc6a102726f523098a56317b92a1dd8f4b9d5b88a243b4e3ac42e9cc6b993` |
+| `testing/acceptance-test-matrix.md` | `c3c37e0b38f9fcaf8b6cfc5ebdd5809cddfaff7992554bed47e807f1bc701de2` |
 
 Manifest tidak menghitung hash dirinya sendiri.
 

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
@@ -20,8 +20,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.EncounterId)
                 .IsRequired();
 
+            // BE-IGD-028 - lihat catatan pada TrxDoctorConsultation.QueueId.
             entity.Property(x => x.QueueId)
-                .IsRequired();
+                .IsRequired(false);
 
             entity.Property(x => x.AssessmentId)
                 .IsRequired(false);

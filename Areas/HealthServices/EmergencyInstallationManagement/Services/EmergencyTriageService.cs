@@ -1,9 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -40,9 +40,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var visitExists = await _dbContext.Set<TrxEmergencyVisit>()
                 .AsNoTracking()
                 .AnyAsync(
+                    // Completed ditambahkan BE-IGD-019. Sebelumnya hanya Disposed dan Cancelled
+                    // yang dianggap tertutup, sehingga triase masih dapat dibuat pada kunjungan
+                    // yang sudah benar-benar selesai — AT-IGD-088.
                     x => x.Id == request.EmergencyVisitId &&
                          !x.IsDelete &&
                          x.VisitStatus != EmergencyVisitStatus.Disposed &&
+                         x.VisitStatus != EmergencyVisitStatus.Completed &&
                          x.VisitStatus != EmergencyVisitStatus.Cancelled,
                     cancellationToken);
 
@@ -139,7 +143,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (visit == null)
                 return RetriageOutcome.Conflict("Kunjungan IGD milik penilaian ini tidak ditemukan.");
 
+            // Completed ditambahkan BE-IGD-020. Ini kembaran cacat yang ditutup BE-IGD-019 pada
+            // ValidateRequestAsync: sebelumnya hanya Disposed dan Cancelled yang dianggap
+            // tertutup, sehingga kunjungan yang sudah benar-benar selesai masih dapat dinilai
+            // ulang — AT-IGD-088.
             if (visit.VisitStatus == EmergencyVisitStatus.Disposed ||
+                visit.VisitStatus == EmergencyVisitStatus.Completed ||
                 visit.VisitStatus == EmergencyVisitStatus.Cancelled)
                 return RetriageOutcome.Conflict("Kunjungan IGD sudah ditutup, sehingga tidak dapat dinilai ulang.");
 

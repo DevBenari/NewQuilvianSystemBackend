@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -6,7 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -38,15 +38,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly EmergencyDispositionService _emergencyDispositionService;
+        private readonly EmergencyVisitService _emergencyVisitService;
 
         public EmergencyDispositionController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            EmergencyDispositionService emergencyService)
+            EmergencyDispositionService emergencyService,
+            EmergencyVisitService emergencyVisitService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _emergencyDispositionService = emergencyService;
+            _emergencyVisitService = emergencyVisitService;
         }
 
         [HttpGet]
@@ -298,6 +301,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [ProducesResponseType(typeof(ApiResponse<EmergencyDispositionResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Update", "Update Emergency Disposition DispositionStatus", Description = "Mengubah status tindak lanjut IGD", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("EmergencyDisposition", "Update")]
         public async Task<IActionResult> UpdateDispositionStatus(Guid id, [FromBody] UpdateEmergencyDispositionDispositionStatusRequest request, CancellationToken cancellationToken = default)
@@ -322,6 +326,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+
+            // BE-IGD-021 — titik tulis VisitStatus kelima. Penjaga BE-IGD-018 dipanggil
+            // sebelum entity diubah, supaya penolakan 409 tidak meninggalkan tindak lanjut
+            // yang terlanjur berstatus Executed sementara kunjungannya tidak ikut pindah.
+            if (request.DispositionStatus == EmergencyDispositionStatus.Executed)
+            {
+                var visit = await _dbContext.Set<TrxEmergencyVisit>().FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
+
+                if (!_emergencyVisitService.TryApplyVisitStatus(
+                        visit, EmergencyVisitStatus.Disposed, actorUserId, now, out var penolakanStatusKunjungan))
+                {
+                    return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, penolakanStatusKunjungan!));
+                }
+
+                // VisitCompletedAt sengaja TIDAK diisi di sini, sejalan dengan BE-IGD-008.
+                // "Keputusan tindak lanjut sudah ditetapkan" bukan berarti "urusan pasien di
+                // IGD sudah tuntas": pasien masih dapat menunggu observasi selesai atau
+                // menunggu proses kepergian. Waktu selesai hanya diisi oleh
+                // PATCH /emergency-visits/{id}/complete setelah closure gate lulus.
+            }
+
             entity.DispositionStatus = request.DispositionStatus;
             if (request.DispositionStatus == EmergencyDispositionStatus.Confirmed)
             {
@@ -331,16 +356,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (request.DispositionStatus == EmergencyDispositionStatus.Executed)
             {
                 entity.ExecutedAt ??= now;
-                var visit = await _dbContext.Set<TrxEmergencyVisit>().FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
-                visit.VisitStatus = EmergencyVisitStatus.Disposed;
-
-                // VisitCompletedAt sengaja TIDAK diisi di sini, sejalan dengan BE-IGD-008.
-                // "Keputusan tindak lanjut sudah ditetapkan" bukan berarti "urusan pasien di
-                // IGD sudah tuntas": pasien masih dapat menunggu observasi selesai atau
-                // menunggu proses perpindahan. Waktu selesai hanya diisi oleh
-                // PATCH /emergency-visits/{id}/complete setelah closure gate lulus.
-                visit.UpdateDateTime = now;
-                visit.UpdateBy = actorUserId;
             }
             if (!string.IsNullOrWhiteSpace(request.Notes))
             {

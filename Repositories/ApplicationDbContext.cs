@@ -28,7 +28,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Models;
@@ -46,7 +46,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.M
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 
@@ -670,7 +670,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxEmergencyObservationDetail> TrxEmergencyObservationDetails { get; set; }
         public DbSet<TrxEmergencyProcedureDetail> TrxEmergencyProcedureDetails { get; set; }
         public DbSet<TrxEmergencyDisposition> TrxEmergencyDispositions { get; set; }
-        public DbSet<TrxEmergencyTransfer> TrxEmergencyTransfers { get; set; }
+        public DbSet<TrxEmergencyDeparture> TrxEmergencyDepartures { get; set; }
+        public DbSet<TrxEmergencyDepartureEvent> TrxEmergencyDepartureEvents { get; set; }
+        public DbSet<TrxEmergencyHandoverOrderItem> TrxEmergencyHandoverOrderItems { get; set; }
         #endregion
 
         #endregion

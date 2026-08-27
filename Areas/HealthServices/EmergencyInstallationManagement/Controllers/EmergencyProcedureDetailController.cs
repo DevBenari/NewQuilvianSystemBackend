@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
@@ -63,7 +63,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         )
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
-            IQueryable<TrxEmergencyProcedureDetail> query = _dbContext.Set<TrxEmergencyProcedureDetail>().AsNoTracking().Where(x => !x.IsDelete);
+            IQueryable<TrxEmergencyProcedureDetail> query = _dbContext.Set<TrxEmergencyProcedureDetail>()
+                .AsNoTracking()
+                .Include(x => x.PatientProcedure!)
+                    .ThenInclude(p => p.Doctor)
+                .Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -127,7 +131,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyProcedureDetail", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyProcedureDetail>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<TrxEmergencyProcedureDetail>()
+                .AsNoTracking()
+                .Include(x => x.PatientProcedure!)
+                    .ThenInclude(p => p.Doctor)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data detail tindakan khusus IGD tidak ditemukan."));
 
@@ -189,6 +197,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new { EntityId = entity.Id, Controller = "EmergencyProcedureDetail", Action = "Create" }
             );
 
+
+            await _dbContext.Entry(entity).Reference(x => x.PatientProcedure).LoadAsync(cancellationToken);
+
+            if (entity.PatientProcedure != null)
+            {
+                await _dbContext.Entry(entity.PatientProcedure).Reference(p => p.Doctor).LoadAsync(cancellationToken);
+            }
+
             return Ok(ApiResponse<EmergencyProcedureDetailResponse>.Ok(ToResponse(entity), "Data detail tindakan khusus IGD berhasil dibuat."));
         }
 
@@ -243,6 +259,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 "Mengubah data Emergency Procedure Detail.",
                 new { EntityId = id, Controller = "EmergencyProcedureDetail", Action = "Update" }
             );
+
+
+            await _dbContext.Entry(entity).Reference(x => x.PatientProcedure).LoadAsync(cancellationToken);
+
+            if (entity.PatientProcedure != null)
+            {
+                await _dbContext.Entry(entity.PatientProcedure).Reference(p => p.Doctor).LoadAsync(cancellationToken);
+            }
 
             return Ok(ApiResponse<EmergencyProcedureDetailResponse>.Ok(ToResponse(entity), "Data detail tindakan khusus IGD berhasil diubah."));
         }
@@ -314,6 +338,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 Id = x.Id,
                 EmergencyVisitId = x.EmergencyVisitId,
                 PatientProcedureId = x.PatientProcedureId,
+                ProcedureName = x.PatientProcedure != null
+                    ? x.PatientProcedure.ProcedureNameSnapshot
+                    : null,
+                // Waktu selesai lebih dipercaya daripada waktu rencana. Urutannya turun
+                // ke waktu mulai, lalu ke waktu tindakan, supaya baris yang belum tuntas
+                // tetap punya waktu yang berarti alih-alih tampil kosong.
+                PerformedAt = x.PatientProcedure != null
+                    ? (x.PatientProcedure.CompletedAt
+                        ?? x.PatientProcedure.StartedAt
+                        ?? x.PatientProcedure.ProcedureDateTime)
+                    : null,
+                Quantity = x.PatientProcedure != null ? x.PatientProcedure.Quantity : null,
+                PerformedByName = x.PatientProcedure != null && x.PatientProcedure.Doctor != null
+                    ? x.PatientProcedure.Doctor.FullName
+                    : null,
                 EmergencyResuscitationId = x.EmergencyResuscitationId,
                 EmergencyObservationId = x.EmergencyObservationId,
                 DetailType = x.DetailType,

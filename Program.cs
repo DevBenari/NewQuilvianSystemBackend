@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -21,8 +21,8 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Seeders;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
@@ -318,7 +318,8 @@ try
     builder.Services.AddScoped<EmergencyResuscitationService>();
     builder.Services.AddScoped<EmergencyObservationService>();
     builder.Services.AddScoped<EmergencyDispositionService>();
-    builder.Services.AddScoped<EmergencyTransferService>();
+    builder.Services.AddScoped<EmergencyDepartureService>();
+    builder.Services.AddScoped<EmergencyUnitAuthorityService>();
     builder.Services.AddScoped<EmergencySettingService>();
 
     // Rawat Inap. Tanpa pendaftaran ini seluruh controller Rawat Inap gagal dibuat oleh

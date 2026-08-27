@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 
@@ -22,6 +22,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Emerg
             builder.Property(x => x.TraumaLocation).HasMaxLength(250);
             builder.Property(x => x.TemporaryPatientAlias).HasMaxLength(100);
             builder.Property(x => x.Notes).HasMaxLength(1000);
+            builder.Property(x => x.DuplicateEpisodeOverrideReason).HasMaxLength(1000);
 
             builder.Property(x => x.RegistrationStatus).HasConversion<int>();
             builder.Property(x => x.VisitStatus).HasConversion<int>();
@@ -31,6 +32,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Emerg
             builder.HasIndex(x => new { x.PatientId, x.ArrivalDateTime });
             builder.HasIndex(x => new { x.ServiceUnitId, x.VisitStatus, x.ArrivalDateTime });
             builder.HasIndex(x => new { x.RegistrationStatus, x.ArrivalDateTime });
+
+            // BE-IGD-025 - daftar pantau pemakaian jalan keluar episode ganda menyaring kolom
+            // ini, dan jumlah baris yang terisi selalu jauh lebih kecil daripada seluruh
+            // kunjungan, sehingga index parsial yang tepat.
+            builder.HasIndex(x => x.DuplicateEpisodeOverrideAt)
+                .HasFilter("\"DuplicateEpisodeOverrideAt\" IS NOT NULL");
+
+            // Satu kunjungan hanya boleh menembus satu kunjungan lain, dan penembusan yang
+            // sama tidak boleh tercatat dua kali.
+            builder.HasIndex(x => x.DuplicateEpisodeOverrideOfVisitId)
+                .HasFilter("\"DuplicateEpisodeOverrideOfVisitId\" IS NOT NULL");
 
             builder.HasOne(x => x.Encounter)
                 .WithMany()
@@ -82,7 +94,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Emerg
                 .HasForeignKey(x => x.EmergencyVisitId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasMany(x => x.Transfers)
+            builder.HasMany(x => x.Departures)
                 .WithOne(x => x.EmergencyVisit)
                 .HasForeignKey(x => x.EmergencyVisitId)
                 .OnDelete(DeleteBehavior.Restrict);

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ActionConstraints;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -67,6 +67,7 @@ namespace QuilvianSystemBackend.Seeders
             }
 
             await NormalizeEmployeeSelfServiceLegacyEntriesAsync(dbContext);
+            await NormalizeEmergencyMasterDataModuleMoveAsync(dbContext);
             await NormalizeSystemOnlyVisibilityAsync(dbContext);
 
             await dbContext.SaveChangesAsync();
@@ -305,6 +306,73 @@ namespace QuilvianSystemBackend.Seeders
                     .ToListAsync();
 
                 foreach (var action in staleActions)
+                {
+                    action.VisibleInRoleAccess = false;
+                    action.IsActive = false;
+                    action.IsDelete = true;
+                    action.UpdateDateTime = now;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Menutup pendaftaran lama enam controller master IGD yang berpindah modul.
+        /// </summary>
+        /// <remarks>
+        /// Master IGD sebelumnya terdaftar pada modul <c>HEALTH_SERVICE_MASTER_DATA</c> dan
+        /// kini pindah ke <c>HEALTH_SERVICE_EMERGENCY_INSTALLATION_MANAGEMENT</c>.
+        /// <para>
+        /// <see cref="EnsureControllerAsync"/> mencari controller berdasarkan pasangan
+        /// modul dan nama, sehingga perpindahan modul membuatnya membuat baris baru alih-alih
+        /// memindahkan yang lama. Tanpa penutupan ini, layar Manajemen Role akan menampilkan
+        /// keenam master dua kali: satu di bawah Master Data, satu di bawah IGD, dan petugas
+        /// tidak punya cara membedakan mana yang menegakkan izin.
+        /// </para>
+        /// <para>
+        /// Baris lama <b>ditutup</b>, bukan dihapus, mengikuti cara
+        /// <see cref="NormalizeEmployeeSelfServiceLegacyEntriesAsync"/> menangani perpindahan
+        /// serupa. Nol kebijakan pada <c>SysAccessPolicy</c> menunjuk keenamnya saat
+        /// perpindahan dikerjakan, sehingga tidak ada izin yang hangus.
+        /// </para>
+        /// </remarks>
+        private static async Task NormalizeEmergencyMasterDataModuleMoveAsync(
+            ApplicationDbContext dbContext)
+        {
+            var now = DateTime.UtcNow;
+
+            var movedControllerNames = new[]
+            {
+                "EmergencyTriageLevel",
+                "EmergencyTriageIndicator",
+                "EmergencyArrivalMode",
+                "EmergencyCaseType",
+                "EmergencyDispositionType",
+                "EmergencySetting"
+            };
+
+            var legacyControllers = await (
+                from controller in dbContext.SysControllerAccesses
+                join module in dbContext.SysApplicationModules
+                    on controller.ModuleId equals module.Id
+                where
+                    module.ModuleCode == "HEALTH_SERVICE_MASTER_DATA" &&
+                    movedControllerNames.Contains(controller.ControllerName) &&
+                    !controller.IsDelete
+                select controller)
+                .ToListAsync();
+
+            foreach (var controller in legacyControllers)
+            {
+                controller.VisibleInRoleAccess = false;
+                controller.IsActive = false;
+                controller.IsDelete = true;
+                controller.UpdateDateTime = now;
+
+                var actions = await dbContext.SysActionAccesses
+                    .Where(x => x.ControllerAccessId == controller.Id)
+                    .ToListAsync();
+
+                foreach (var action in actions)
                 {
                     action.VisibleInRoleAccess = false;
                     action.IsActive = false;
