@@ -9,6 +9,7 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>.</DockerfileContext>
     <PlatformTarget>x64</PlatformTarget>
+    <DefaultItemExcludes>$(DefaultItemExcludes);QuilvianSystemBackend.Tests\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <!--
@@ -24,6 +25,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="QuilvianSystemBackend.Tests\**" />
+    <Compile Remove="Tests\**" />
+    <Content Remove="Tests\**" />
     <Compile Remove="Areas\HealthServices\DeviceManagement\**" />
     <Compile Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <Compile Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
@@ -31,6 +35,7 @@
     <Compile Remove="Areas\HealthServices\PatientManagement\Patient\**" />
     <Compile Remove="Areas\SelfServices\Models\**" />
     <Compile Remove="Areas\SelfServices\Views\**" />
+    <Compile Remove="QuilvianSystemBackend.Tests\**" />
     <Content Remove="Areas\HealthServices\DeviceManagement\**" />
     <Content Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <Content Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
@@ -38,6 +43,7 @@
     <Content Remove="Areas\HealthServices\PatientManagement\Patient\**" />
     <Content Remove="Areas\SelfServices\Models\**" />
     <Content Remove="Areas\SelfServices\Views\**" />
+    <Content Remove="QuilvianSystemBackend.Tests\**" />
     <EmbeddedResource Remove="Areas\HealthServices\DeviceManagement\**" />
     <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
     <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
@@ -52,6 +58,7 @@
     <None Remove="Areas\HealthServices\PatientManagement\Patient\**" />
     <None Remove="Areas\SelfServices\Models\**" />
     <None Remove="Areas\SelfServices\Views\**" />
+    <None Remove="QuilvianSystemBackend.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -105,7 +112,6 @@
     <Folder Include="Areas\Corporate\TaxManagement\" />
     <Folder Include="Areas\Corporate\ProcurementManagement\" />
     <Folder Include="Areas\HealthServices\InpatientManagement\" />
-    <Folder Include="Areas\HealthServices\EmergencyInstallationManagement\" />
     <Folder Include="Areas\HealthServices\MedicalRecordManagement\" />
     <Folder Include="Areas\HealthServices\LaboratoryManagement\" />
     <Folder Include="Areas\HealthServices\InsuranceManagement\" />

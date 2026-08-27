@@ -1,0 +1,29 @@
+# FE-RWI-002 — Fondasi pemanggilan Rawat Inap
+
+- TASK ID: `FE-RWI-002`
+- TASK TYPE: Implementasi fondasi frontend
+- COMPLEXITY: `HEAVY`
+- CLASSIFICATION SCORE: 9 — dua repository diperiksa, lebih dari 20 berkas/bukti diperiksa, lebih dari 8 berkas diubah, logika fondasi moderat, mengonsumsi kontrak API, dan menambah satu route
+- MODEL: GPT-5 (Codex)
+- TASK MODE: `FRONTEND`
+- WRITE TARGET: `QuilvianSystemFrontendDev` pada branch `HamzahV2`, upstream `origin/HamzahV2`; `NewQuilvianSystemBackend` hanya dibaca pada branch `MHamzah`
+- FILES INSPECTED: governance frontend; roadmap, arsitektur frontend, dan kontrak API Rawat Inap; tujuh controller/base URL backend; pola `InstanceAxios`, service konsultasi dokter, Redux store/slice, App Router, menu sidebar, dan komponen UI frontend
+- FILES CHANGED: satu pembungkus API; lima service domain Rawat Inap; dua service master data; satu slice Redux; Redux store; satu route; menu sidebar; satu unit test fondasi
+- IMPLEMENTATION: Menambahkan pembungkus terpusat `ApiResponse` dan pemakluman 404, service untuk tujuh base URL kontrak, state resource Redux terpusat yang terdaftar di store, route `/health-services/inpatient-management`, serta menu `Rawat Inap`. Tidak ada endpoint turunan atau aturan bisnis task berikutnya yang ditebak.
+- API CONTRACT IMPACT: Tidak mengubah kontrak. Mengonsumsi tujuh base URL kontrak revision `0.3.0` melalui `InstanceAxios`.
+- DATABASE IMPACT: Tidak ada.
+- SECURITY IMPACT: Tidak mengubah authorization atau authentication. Hak akses layar operasional tetap menjadi scope task lanjutan.
+- VISUAL REFERENCE: NOT REQUIRED
+- VALIDATION: `node --test tests/unit/inpatient-foundation.test.mjs` | PASS, 4/4 | TASK | InstanceAxios, pembungkus tunggal, tujuh base URL, slice/store, route/menu, route lama, dan larangan menyalin workspace antrean dokter terverifikasi
+- VALIDATION: `node --test tests/unit/*.test.mjs` | PASS, 15/15 | TASK | seluruh unit test repository lulus
+- VALIDATION: `git diff --check` | PASS | TASK | tidak ada whitespace error
+- VALIDATION: pemeriksaan source route lama | PASS | TASK | route dokter, pendaftaran IGD, triage, farmasi, dan master tempat tidur tetap tersedia
+- VALIDATION: pencarian `fetch(` dan `useDoctorConsultationWorkspace` pada fondasi baru | PASS | TASK | tidak ditemukan; seluruh request diarahkan melalui factory berbasis `InstanceAxios`
+- VALIDATION: lint/build | NOT RUN | ENVIRONMENT ISSUE | `node_modules`, binary ESLint, dan binary Next tidak tersedia; dependency tidak dipasang karena tidak ada wewenang package install/update
+- WARNINGS: Route telah terhubung secara source dan menu, tetapi eksplorasi browser memerlukan dependency dan runtime frontend aktif.
+- KNOWN ISSUES: Layar operasional belum dibuat karena memang berada pada `FE-RWI-003` dan seterusnya serta menunggu endpoint pasangannya.
+- MANUAL TEST: NOT FEASIBLE — runtime frontend tidak tersedia di workspace saat validasi
+- INCIDENTAL CHANGES: NONE
+- INTERRUPTIONS: NONE
+- GIT STATUS: Semua perubahan masih lokal, belum di-stage, belum di-commit, belum di-push; repository backend bersih dan tidak diubah.
+- NEXT RECOMMENDED STEP: Setelah dependency tersedia, jalankan lint/build dan jelajahi route baru serta route smoke lama; lanjutkan `FE-RWI-003` hanya ketika `BE-RWI-005` benar-benar dapat dipanggil dan mengembalikan 200.

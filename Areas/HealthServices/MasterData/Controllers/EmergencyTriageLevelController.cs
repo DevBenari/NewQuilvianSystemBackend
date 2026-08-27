@@ -311,7 +311,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
             if (string.IsNullOrWhiteSpace(request.ColorName))
                 return "ColorName wajib diisi.";
 
-            if (request.MaxWaitingMinutes < 0)
+            // Kosong diperbolehkan dan berarti "target belum ditetapkan SOP". Yang dilarang
+            // hanya angka negatif. Nol tetap sah dan berarti "harus dilayani seketika".
+            if (request.MaxWaitingMinutes.HasValue && request.MaxWaitingMinutes.Value < 0)
                 return "MaxWaitingMinutes tidak boleh negatif.";
 
             return null;

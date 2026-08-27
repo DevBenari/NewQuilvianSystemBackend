@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -944,6 +944,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             await _dbContext.SaveChangesAsync();
 
             return Ok(ApiResponse<object>.Ok(null, "Patient encounter berhasil check-in."));
+        }
+
+        /// <summary>
+        /// Menetapkan atau mencabut dokter pemeriksa pada satu kunjungan pasien.
+        /// </summary>
+        [HttpPatch("{id:guid}/doctor")]
+        [HttpPatch("admin/{id:guid}/doctor")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Assign Doctor Patient Encounter", Description = "Menetapkan dokter pemeriksa pada kunjungan pasien", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("PatientEncounter", "Update")]
+        public async Task<IActionResult> AssignEncounterDoctor(
+            Guid id,
+            [FromBody] PatientEncounterAssignDoctorRequest request)
+        {
+            var entity = await _dbContext.Set<TrxPatientEncounter>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+
+            if (entity == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Kunjungan pasien tidak ditemukan."));
+            }
+
+            if (entity.CancelledAt.HasValue || entity.NoShowAt.HasValue || entity.CompletedAt.HasValue)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Kunjungan yang sudah selesai, no-show, atau batal tidak dapat diubah dokternya."));
+            }
+
+            // Guid kosong diperlakukan sebagai pencabutan, bukan sebagai dokter ber-id nol.
+            var doctorId = request?.DoctorId.HasValue == true && request.DoctorId.Value != Guid.Empty
+                ? request.DoctorId.Value
+                : (Guid?)null;
+
+            if (doctorId.HasValue &&
+                !await _dbContext.Set<MstDoctor>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == doctorId.Value && !x.IsDelete && x.IsActive))
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Dokter tidak ditemukan atau tidak aktif."));
+            }
+
+            entity.DoctorId = doctorId;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = GetCurrentUserId();
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(ApiResponse<object>.Ok(
+                null,
+                doctorId.HasValue
+                    ? "Dokter pemeriksa berhasil ditetapkan."
+                    : "Penetapan dokter pemeriksa berhasil dicabut."));
         }
 
         [HttpPatch("{id:guid}/cancel")]

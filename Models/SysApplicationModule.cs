@@ -9,7 +9,7 @@ namespace QuilvianSystemBackend.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
-        [MaxLength(50)]
+        [MaxLength(250)]
         public string ModuleCode { get; set; } = string.Empty;
 
         [Required]

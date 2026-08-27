@@ -16,9 +16,20 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services;
 using QuilvianSystemBackend.Hubs;
@@ -37,6 +48,7 @@ using Serilog.Formatting.Compact;
 using System.Security.Claims;
 using System.Text;
 
+
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
     .WriteTo.Console(new CompactJsonFormatter())
@@ -45,6 +57,7 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
     var backendVersionManifest = BackendVersionManifest.Load(builder.Environment.ContentRootPath);
 
     builder.Host.UseSerilog((context, services, loggerConfiguration) =>
@@ -265,6 +278,8 @@ try
     builder.Services.AddScoped<AccessPermissionService>();
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
+    builder.Services.AddScoped<LabOrderService>();
+    builder.Services.AddScoped<BillingFolioService>();
 
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
@@ -291,6 +306,58 @@ try
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
+    builder.Services.AddScoped<PharmacyDepotRoutingService>();
+    builder.Services.AddScoped<OperatingRoomCaseService>();
+    builder.Services.AddScoped<OperatingRoomCredentialResolver>();
+    // Buffer dan durasi jadwal operasi dikonfigurasi (OPS-DEC-016), bukan ditanam di kode.
+    builder.Services.Configure<OperatingRoomSchedulingOptions>(
+        builder.Configuration.GetSection("OperatingRoom:Scheduling"));
+    builder.Services.AddScoped<OperatingRoomSchedulingService>();
+    builder.Services.AddScoped<OperatingRoomPreparationService>();
+    builder.Services.AddScoped<OperatingRoomExecutionService>();
+    builder.Services.AddScoped<OperatingRoomRecoveryService>();
+    builder.Services.AddScoped<OperatingRoomIntegrationService>();
+    builder.Services.AddScoped<OperatingRoomMaterialService>();
+    builder.Services.AddScoped<OperatingRoomReportService>();
+
+    // Instalasi Gawat Darurat (IGD). Tanpa pendaftaran ini seluruh controller IGD gagal
+    // dibuat oleh dependency injection, sehingga endpoint-nya membalas 500 sebelum kode
+    // modul sempat dijalankan. Pola mengikuti service lain: kelas konkret, tanpa interface.
+    builder.Services.AddScoped<EmergencyDocumentNumberService>();
+    builder.Services.AddScoped<EmergencyVisitService>();
+    builder.Services.AddScoped<EmergencyTriageService>();
+    builder.Services.AddScoped<EmergencyResuscitationService>();
+    builder.Services.AddScoped<EmergencyObservationService>();
+    builder.Services.AddScoped<EmergencyDispositionService>();
+    builder.Services.AddScoped<EmergencyTransferService>();
+    builder.Services.AddScoped<EmergencySettingService>();
+
+    // Rawat Inap. Tanpa pendaftaran ini seluruh controller Rawat Inap gagal dibuat oleh
+    // dependency injection, sehingga endpoint-nya membalas 500 sebelum kode modul sempat
+    // dijalankan. Pola mengikuti service lain: kelas konkret, tanpa interface.
+    //
+    // Urutan pendaftaran tidak menentukan urutan pembentukan — container yang menyusunnya
+    // sendiri — tetapi ditulis dari yang paling tidak bergantung supaya rantainya terbaca:
+    // InpSettingService dibaca hampir seluruh service lain, dan InpEpisodeNumberService
+    // mengambil awalan nomor episode darinya.
+    builder.Services.AddScoped<InpSettingService>();
+    builder.Services.AddScoped<InpEpisodeNumberService>();
+    builder.Services.AddScoped<InpBedOccupancyService>();
+    builder.Services.AddScoped<InpEpisodeService>();
+    builder.Services.AddScoped<InpDischargeService>();
+    builder.Services.AddScoped<InpCensusQueryService>();
+
+    // Master data Rawat Inap. Dipakai dua controller pada layar admin, bukan oleh service
+    // Rawat Inap. Keduanya memegang seluruh pembacaan dan perubahan tabel masternya supaya
+    // controller tidak menyentuh ApplicationDbContext langsung.
+    builder.Services.AddScoped<InpatientSettingService>();
+    builder.Services.AddScoped<InpatientClearanceItemService>();
+
+    // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
+    // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
+    builder.Services.Configure<EmergencyTriageSlaMonitorOptions>(
+        builder.Configuration.GetSection("HealthServices:EmergencyTriageSlaMonitor"));
+    builder.Services.AddHostedService<EmergencyTriageSlaMonitorHostedService>();
 
     builder.Services.AddScoped<HumanResourceContextService>();
     builder.Services.AddScoped<EmployeeProfileChangeService>();
@@ -656,6 +723,173 @@ try
             "Seeder master kriteria telaah resep selesai.");
     }
 
+    static async Task SeedEmergencyMasterDataAsync(
+        IServiceProvider services,
+        CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("EmergencyMasterDataSeeder");
+
+        var systemUserId = await dbContext.Users
+            .AsNoTracking()
+            .Where(x =>
+                x.NormalizedUserName == "SUPERADMIN" ||
+                x.NormalizedEmail == "SUPERADMIN@ADMIN.COM")
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (systemUserId == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                "Seeder master data IGD membutuhkan akun SuperAdmin.");
+        }
+
+        logger.LogInformation("Memulai seeder master data IGD.");
+
+        var seedResult = await EmergencyMasterDataSeeder.SeedAsync(
+            dbContext,
+            systemUserId,
+            cancellationToken);
+
+        logger.LogInformation(
+            "Seeder master data IGD selesai. Baris baru: level triase {TriageLevel}, " +
+            "indikator {Indicator}, cara kedatangan {ArrivalMode}, jenis kasus {CaseType}, " +
+            "jenis tindak lanjut {DispositionType}, pengaturan {Setting}. Total {Total}.",
+            seedResult.TriageLevelInserted,
+            seedResult.TriageIndicatorInserted,
+            seedResult.ArrivalModeInserted,
+            seedResult.CaseTypeInserted,
+            seedResult.DispositionTypeInserted,
+            seedResult.SettingInserted,
+            seedResult.TotalInserted);
+
+        if (seedResult.TriageLevelSkipped > 0)
+        {
+            logger.LogWarning(
+                "{Count} level triase dilewati karena slot (sistem triase, level)-nya sudah " +
+                "dipakai baris lain. Seeder tidak pernah menimpa master yang sudah ada.",
+                seedResult.TriageLevelSkipped);
+        }
+
+        if (!string.IsNullOrWhiteSpace(seedResult.TriageIndicatorSkippedReason))
+        {
+            logger.LogWarning(
+                "Indikator triase dilewati: {Reason}",
+                seedResult.TriageIndicatorSkippedReason);
+        }
+
+        if (!string.IsNullOrWhiteSpace(seedResult.ArrivalModeSkippedReason))
+        {
+            logger.LogWarning(
+                "Cara kedatangan dilewati: {Reason}",
+                seedResult.ArrivalModeSkippedReason);
+        }
+
+        if (!string.IsNullOrWhiteSpace(seedResult.CaseTypeSkippedReason))
+        {
+            logger.LogWarning(
+                "Jenis kasus dilewati: {Reason}",
+                seedResult.CaseTypeSkippedReason);
+        }
+
+        if (!string.IsNullOrWhiteSpace(seedResult.DispositionTypeSkippedReason))
+        {
+            logger.LogWarning(
+                "Jenis tindak lanjut dilewati: {Reason}",
+                seedResult.DispositionTypeSkippedReason);
+        }
+
+        if (!string.IsNullOrWhiteSpace(seedResult.SettingSkippedReason))
+        {
+            logger.LogWarning(
+                "Pengaturan IGD dilewati: {Reason}",
+                seedResult.SettingSkippedReason);
+        }
+    }
+
+    static async Task SeedInpatientMasterDataAsync(
+        IServiceProvider services,
+        string environmentName,
+        CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("InpatientMasterDataSeeder");
+
+        var systemUserId = await dbContext.Users
+            .AsNoTracking()
+            .Where(x =>
+                x.NormalizedUserName == "SUPERADMIN" ||
+                x.NormalizedEmail == "SUPERADMIN@ADMIN.COM")
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (systemUserId == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                "Seeder master data Rawat Inap membutuhkan akun SuperAdmin.");
+        }
+
+        logger.LogInformation("Memulai seeder master data Rawat Inap.");
+
+        var seedResult = await InpatientMasterDataSeeder.SeedAsync(
+            dbContext,
+            systemUserId,
+            environmentName,
+            cancellationToken);
+
+        if (seedResult.Refused)
+        {
+            logger.LogWarning(
+                "Seeder master data Rawat Inap tidak dijalankan: {Reason}",
+                seedResult.RefusedReason);
+
+            return;
+        }
+
+        logger.LogInformation(
+            "Seeder master data Rawat Inap selesai. Baris baru: pengaturan {Setting}, " +
+            "butir administrasi {ClearanceItem}. Total {Total}.",
+            seedResult.SettingInserted,
+            seedResult.ClearanceItemInserted,
+            seedResult.TotalInserted);
+
+        if (!string.IsNullOrWhiteSpace(seedResult.SettingSkippedReason))
+        {
+            logger.LogWarning(
+                "Pengaturan Rawat Inap dilewati: {Reason}",
+                seedResult.SettingSkippedReason);
+        }
+
+        if (seedResult.ClearanceItemSkipped > 0)
+        {
+            logger.LogWarning(
+                "{Count} butir administrasi Rawat Inap dilewati karena kodenya sudah ada. " +
+                "Seeder tidak pernah menimpa master yang sudah dipakai.",
+                seedResult.ClearanceItemSkipped);
+        }
+
+        if (seedResult.SettingInserted > 0)
+        {
+            logger.LogWarning(
+                "InitialAssessmentTargetHours dan ProgressNoteVerificationTargetHours " +
+                "di-seed sebagai nilai bawaan 24 jam. Keduanya bersumber dari RWI-RULE-021 " +
+                "yang belum final secara klinis, dan wajib ditinjau pemilik klinis sebelum " +
+                "dipakai untuk pasien sungguhan.");
+        }
+    }
+
     Log.Information(
         "Starting {Application} {BackendVersion} in {Environment} environment.",
         appName,
@@ -805,6 +1039,30 @@ try
     if (runPrescriptionReviewCriterionSeed)
     {
         await SeedPrescriptionReviewCriteriaAsync(app.Services);
+    }
+
+    // Master data IGD. Bawaannya mati supaya menjalankan aplikasi tidak otomatis menulis ke
+    // basis data bersama. Nyalakan lewat konfigurasi bila lingkungannya memang perlu diisi.
+    var runEmergencyMasterDataSeed =
+        builder.Configuration.GetValue<bool>(
+            "Seeders:RunEmergencyMasterDataSeed");
+
+    if (runEmergencyMasterDataSeed)
+    {
+        await SeedEmergencyMasterDataAsync(app.Services);
+    }
+
+    // Master data Rawat Inap. Sama seperti IGD, bawaannya mati supaya menjalankan aplikasi
+    // tidak otomatis menulis ke basis data bersama. Seeder-nya sendiri juga menolak berjalan
+    // di lingkungan produksi (RWI-DEC-048), sehingga menyalakan konfigurasi ini di produksi
+    // pun tidak menghasilkan tulisan apa pun.
+    var runInpatientMasterDataSeed =
+        builder.Configuration.GetValue<bool>(
+            "Seeders:RunInpatientMasterDataSeed");
+
+    if (runInpatientMasterDataSeed)
+    {
+        await SeedInpatientMasterDataAsync(app.Services, app.Environment.EnvironmentName);
     }
 
     // Seed Awal Saja

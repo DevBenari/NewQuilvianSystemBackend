@@ -9,12 +9,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
     [Table("MstEmergencyTriageLevel", Schema = "public")]
     public class MstEmergencyTriageLevel : IdentityModel
     {
+        /// <summary>
+        /// Nilai <see cref="Level"/> yang menandai kategori di luar skala antrean, yaitu
+        /// Hitam. Dipakai bersama oleh seeder, service, dan penyaring daftar level supaya
+        /// arti angka 0 tidak ditulis ulang di banyak tempat lalu berbeda-beda.
+        /// </summary>
+        public const int OutOfQueueScaleLevel = 0;
+
         public Guid Id { get; set; } = Guid.NewGuid();
 
         public EmergencyTriageSystem TriageSystem { get; set; }
             = EmergencyTriageSystem.ATS;
 
-        [Range(1, 5)]
+        /// <summary>
+        /// Urutan level pada skala antrean triase. Nilai 1 sampai 5 adalah skala antrean
+        /// biasa. Nilai 0 dipakai khusus kategori Hitam, yang menurut arsitektur berada
+        /// "di luar skala antrean" sehingga tidak pernah ikut diurutkan sebagai antrean
+        /// dan tidak boleh ditetapkan otomatis oleh aplikasi.
+        /// </summary>
+        [Range(0, 5)]
         public int Level { get; set; }
 
         [Required]
@@ -32,7 +45,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
         [MaxLength(20)]
         public string? ColorHex { get; set; }
 
-        public int MaxWaitingMinutes { get; set; }
+        /// <summary>
+        /// Target waktu respons dalam menit. Kosong berarti SOP belum menetapkan target,
+        /// bukan berarti nol menit. Nol menit berarti harus dilayani seketika.
+        /// </summary>
+        public int? MaxWaitingMinutes { get; set; }
 
         public bool AllowsTreatmentBeforeRegistration { get; set; }
 

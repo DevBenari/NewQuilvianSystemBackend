@@ -54,6 +54,16 @@
 
         public Guid? EmployeeGradeId { get; set; }
 
+        public string? HospitalSiteName { get; set; }
+
+        public string? OrganizationUnitName { get; set; }
+
+        public string? DepartmentName { get; set; }
+
+        public string? PositionName { get; set; }
+
+        public string? WorkLocationName { get; set; }
+
         public string? AssignmentType { get; set; }
 
         public bool HasOrganizationAssignment { get; set; }
