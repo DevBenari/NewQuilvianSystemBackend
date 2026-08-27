@@ -33,7 +33,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public EmgTriageLevel? TriageLevel { get; set; }
 
-        public ICollection<TrxEmergencyTriageDetail> TriageDetails { get; set; }
-            = new List<TrxEmergencyTriageDetail>();
+        public ICollection<EmgTriageDetail> TriageDetails { get; set; }
+            = new List<EmgTriageDetail>();
     }
 }

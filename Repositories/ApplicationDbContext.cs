@@ -672,7 +672,7 @@ namespace QuilvianSystemBackend.Repositories
         #region transaction
         public DbSet<TrxEmergencyVisit> TrxEmergencyVisits { get; set; }
         public DbSet<TrxEmergencyTriage> TrxEmergencyTriages { get; set; }
-        public DbSet<TrxEmergencyTriageDetail> TrxEmergencyTriageDetails { get; set; }
+        public DbSet<EmgTriageDetail> EmgTriageDetails { get; set; }
         public DbSet<TrxEmergencyResuscitation> TrxEmergencyResuscitations { get; set; }
         public DbSet<TrxEmergencyObservation> TrxEmergencyObservations { get; set; }
         public DbSet<TrxEmergencyObservationDetail> TrxEmergencyObservationDetails { get; set; }

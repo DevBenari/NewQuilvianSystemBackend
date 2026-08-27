@@ -59937,7 +59937,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxEmergencyTriage", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.TrxEmergencyTriageDetail", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgTriageDetail", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -60025,7 +60025,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("EmergencyTriageId", "TriageIndicatorId");
 
-                    b.ToTable("TrxEmergencyTriageDetail", "public");
+                    b.ToTable("EmgTriageDetail", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.TrxEmergencyVisit", b =>
@@ -89833,7 +89833,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("TriageLevel");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.TrxEmergencyTriageDetail", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgTriageDetail", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.TrxEmergencyTriage", "EmergencyTriage")
                         .WithMany("Details")

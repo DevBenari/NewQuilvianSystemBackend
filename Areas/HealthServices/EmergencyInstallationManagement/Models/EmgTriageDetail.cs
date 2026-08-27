@@ -5,8 +5,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models
 {
-    [Table("TrxEmergencyTriageDetail", Schema = "public")]
-    public class TrxEmergencyTriageDetail : IdentityModel
+    [Table("EmgTriageDetail", Schema = "public")]
+    public class EmgTriageDetail : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 

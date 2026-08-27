@@ -107,7 +107,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public ICollection<TrxEmergencyTriage> Retriages { get; set; }
             = new List<TrxEmergencyTriage>();
 
-        public ICollection<TrxEmergencyTriageDetail> Details { get; set; }
-            = new List<TrxEmergencyTriageDetail>();
+        public ICollection<EmgTriageDetail> Details { get; set; }
+            = new List<EmgTriageDetail>();
     }
 }
