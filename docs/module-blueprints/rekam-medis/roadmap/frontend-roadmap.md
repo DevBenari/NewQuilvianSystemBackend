@@ -2,7 +2,7 @@
 
 ```yaml
 module_id: RM-BP-001
-roadmap_revision: 1
+roadmap_revision: 2
 status: DRAFT
 owners:
   frontend_authority: Yoga Aji Pratama
@@ -13,10 +13,10 @@ approved_at: 2026-08-27
 input_revisions:
   interview_decisions: 4
   capability_map: 1
-  frontend_architecture: 1
+  frontend_architecture: 2
 artifact_hashes:
   interview_decisions: sha256:2d4c37bc456a39f70d7f10e40852f5e23ba2f7f5b47b71ec0a0ed24ba248aa3c
-  frontend_architecture: sha256:b7087f7bd19260f2deb7646860a02ddc354dda8377f73c9219388f9e9e1669c5
+  frontend_architecture: sha256:3c2662e502668f3b57c92921d38e7f5b57ff79ac48f9a781b7b85b775c349b1f
   api_contract: sha256:a20372c4b3a6b05842e733206d13b7599895b127a2c638f5533b2004e626bed8
 contract_versions:
   api: 0.1.0 (approved 2026-08-27)
@@ -238,14 +238,14 @@ Status per 27 Agustus 2026, setelah pengesahan `RM-DEC-028` dan selesainya selur
 | **Task ID** | `FE-07` |
 | **Status** | **`SIAP`** — gerbang kontrak terbuka 27 Agustus 2026 (`RM-DEC-028`). Yang menahan tinggal dependency antar-task pada baris di bawah |
 | **Outcome** | Petugas dapat mencapai layar rekam medis dari menu |
-| **Trace** | `RM-CAP-008`; `RM-FE-004` |
-| **Reuse** | `src/utils/menu-sidebar/menu-items.jsx` |
-| **Scope** | Penambahan entri menu; pendaftaran rute pada uji asap rute |
+| **Trace** | `RM-CAP-008`; `RM-FE-004`, `RM-FE-013`, `RM-FE-016`; arsitektur frontend bagian 10 |
+| **Reuse** | `src/utils/menu-sidebar/menu-items.jsx`. Kedalaman tiga tingkat sudah didukung — `subItems` sudah terdaftar pada `NESTED_MENU_KEYS`. **Tidak ada perubahan komponen sidebar yang diperlukan** |
+| **Scope** | Penambahan entri menu sesuai arsitektur frontend bagian 10.2: satu menu induk `Rekam Medis` berisi tiga entri, ditambah satu entri pada `healthServicesMasterData` yang sudah ada |
 | **Dependency** | `FE-01` |
-| **Acceptance criteria** | 1) Menu rekam medis dapat dicapai. 2) Menu hanya muncul bagi peran yang berhak. 3) Rute baru terdaftar pada `tests/e2e/route-smoke.spec.mjs` |
+| **Acceptance criteria** | 1) Empat entri menu pada arsitektur frontend bagian 10.3 dapat dicapai. 2) **Dihapus pada revisi 2** — "menu hanya muncul bagi peran yang berhak" tidak dapat dibuktikan pada rilis pertama; penyaringan menu per izin belum ada di frontend dan penegakannya ditunda (arsitektur frontend bagian 10.5). Isi tetap ditahan `403`. **Menambal dengan pencocokan nama peran dilarang.** 3) Seluruh berkas `page.jsx` baru lulus uji asap rute |
 | **Verification** | `tests/e2e/route-smoke.spec.mjs` |
-| **Risk/blocker** | Catatan: kunci `menuLaboratorium` dan sejenisnya pada `left-sidebar-menu-handle.jsx:6-19` **bukan** definisi menu, melainkan daftar nama kelompok menu bersarang. Menu sesungguhnya ada di `menu-items.jsx`. Jangan tertukar |
-| **DoD** | Menu dan rute berjalan; uji asap rute lulus |
+| **Risk/blocker** | Dua catatan. Pertama: kunci `menuLaboratorium` dan sejenisnya pada `left-sidebar-menu-handle.jsx:3-34` **bukan** definisi menu, melainkan daftar nama kelompok menu bersarang. Menu sesungguhnya ada di `menu-items.jsx`. Kedua: **tidak ada langkah pendaftaran rute** — `route-smoke.spec.mjs:11-54` menelusuri `src/app` sendiri. Membuat berkas halamannya sudah cukup |
+| **DoD** | Menu dan rute berjalan; uji asap rute lulus. `RM-FE-013` tercatat sebagai utang terbuka, bukan butir selesai |
 
 ### `FE-08` — Penanganan keadaan tidak biasa
 
@@ -287,29 +287,32 @@ Status per 27 Agustus 2026, setelah pengesahan `RM-DEC-028` dan selesainya selur
 
 ## 9. Ruang `DEV_DISCRETION` dan invariant yang tetap mengikat
 
-Empat butir berikut diserahkan ke developer **hanya karena belum ada brief UI yang disetujui**,
-bukan karena memang kewenangan developer:
+**Berubah pada revisi 2.** Brief UI sudah ada — arsitektur frontend bagian 10 dan 11, disahkan
+pemilik frontend 27 Agustus 2026. Ruang bebas menyusut dari empat butir menjadi tiga:
 
-| Butir | Ruang bebas |
+| Butir | Ruang bebas yang tersisa |
 |---|---|
-| `RM-FE-004` | Bentuk navigasi: menu, rute, tab, modal, atau drawer |
-| `RM-FE-005` | Tata letak, warna, ikon, komponen tabel |
+| `RM-FE-005` | Warna, jarak, tipografi, ikon, dan pemilihan komponen tabel. **Penempatan wilayah layar sudah ditetapkan** pada arsitektur frontend bagian 11 |
 | `RM-FE-011` | Cara memuat bertahap: gulir tanpa batas, tombol muat lagi, atau halaman |
 | `RM-FE-012` | Bentuk penanda dokumen gagal dimuat sebagian |
 
-Delapan butir berikut **tidak** boleh diputuskan developer, karena berasal dari keputusan
-keamanan, privasi, atau invariant klinis:
+Tiga belas butir berikut **tidak** boleh diputuskan developer:
 
-| Butir | Yang mengikat |
-|---|---|
-| `RM-FE-001` | Penanda status keutuhan wajib terlihat |
-| `RM-FE-002` | Addendum wajib menempel pada dokumen induknya |
-| `RM-FE-003` | Isian keperluan wajib mendahului tampilnya isi, termasuk mendahului permintaan ke server |
-| `RM-FE-006` | Keterangan bahwa label kerahasiaan belum membatasi akses |
-| `RM-FE-007` | `PrivateNote` tidak tampil pada tampilan rutin |
-| `RM-FE-008` | Dua status harus dapat dibedakan pembaca |
-| `RM-FE-009` | Keterangan bahwa baru CPPT yang tunduk aturan keutuhan |
-| `RM-FE-010` | Tombol yang tidak berhak ditekan tidak ditampilkan |
+| Butir | Yang mengikat | Asal |
+|---|---|---|
+| `RM-FE-001` | Penanda status keutuhan wajib terlihat | Keputusan klinis |
+| `RM-FE-002` | Addendum wajib menempel pada dokumen induknya | Keputusan klinis |
+| `RM-FE-003` | Isian keperluan wajib mendahului tampilnya isi, termasuk mendahului permintaan ke server | Keputusan privasi |
+| `RM-FE-006` | Keterangan bahwa label kerahasiaan belum membatasi akses | Keputusan privasi |
+| `RM-FE-007` | `PrivateNote` tidak tampil pada tampilan rutin | Keputusan privasi |
+| `RM-FE-008` | Dua status harus dapat dibedakan pembaca | Keputusan klinis |
+| `RM-FE-009` | Keterangan bahwa baru CPPT yang tunduk aturan keutuhan | Invariant cakupan |
+| `RM-FE-010` | Tombol yang tidak berhak ditekan tidak ditampilkan | Invariant |
+| `RM-FE-004` | Susunan menu dan rute sesuai arsitektur frontend bagian 10.2 dan 10.3 | Brief UI, revisi 2 |
+| `RM-FE-013` | Menu `Tinjauan Akses` hanya bagi pemegang `MedicalRecordAccessLog : Read`. **Penegakannya ditunda**; menambal dengan pencocokan nama peran dilarang | Brief UI, revisi 2 |
+| `RM-FE-014` | Berkas dicapai lewat pencarian pasien, bukan daftar seluruh pasien | Brief UI, revisi 2 |
+| `RM-FE-015` | Isi dokumen, addendum, dan `PrivateNote` dibuka dari panel detail | Brief UI, revisi 2 |
+| `RM-FE-016` | Master keperluan akses di bawah menu `Master Data` yang sudah ada | Brief UI, revisi 2 |
 
 Invariant yang berlaku pada seluruh ruang `DEV_DISCRETION`: apa pun bentuk visual yang dipilih,
 **tidak boleh** menyembunyikan keberadaan penanda status, penanda gagal sebagian, maupun
@@ -322,6 +325,8 @@ keterangan cakupan. Kebebasan berlaku pada bentuknya, bukan pada ada atau tidakn
 | Yang tidak dikerjakan | Alasan |
 |---|---|
 | Layar kelengkapan berkas, koding, resume medis, peminjaman | Cakupan 4 sampai 8, rilis berikutnya |
+| Layar penetapan penulis berhalangan | **Ditunda 27 Agustus 2026** oleh pemilik frontend. Ketiga endpointnya masih `Rencana`, sehingga tidak ada yang tertahan. Akibatnya `UnitHeadGrant` hanya dapat dibuat lewat API langsung; `InactiveAccount` tidak terpengaruh. Arsitektur frontend bagian 10.6 |
+| Penyaringan menu per izin | **Ditunda 27 Agustus 2026.** Mekanismenya belum ada di frontend dan perbaikannya menyentuh seluruh aplikasi, sehingga menjadi task tersendiri di luar roadmap modul ini. Arsitektur frontend bagian 10.5 |
 | Portal pasien untuk melihat rekam medisnya sendiri | Di luar scope. `SelfServices` tidak memuat kemampuan klinis apa pun |
 | Penyuntingan catatan klinis dari layar rekam medis | Melanggar `RM-DEC-001` |
 | Pengunduhan seluruh riwayat sebagai satu berkas | Menciptakan salinan rekam medis di luar sistem tanpa jejak. Perlu keputusan pelepasan informasi lebih dulu |

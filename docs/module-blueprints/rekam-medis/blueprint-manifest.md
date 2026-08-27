@@ -65,7 +65,7 @@ Dihitung pada 24 Agustus 2026.
 | `00-interview-decisions.md` | `2d4c37bc456a39f70d7f10e40852f5e23ba2f7f5b47b71ec0a0ed24ba248aa3c` |
 | `01-existing-capability-map.md` | `9cacecf803c0d552623a5f1ce5841af7bea7da5fc49aaf1b3142a076dd4416ae` |
 | `02-backend-architecture.md` | `32ab3711e9203bedf2838cdadbbeb1ab6400c20d49b1b1497eaed9efaa5243a1` |
-| `03-frontend-architecture.md` | `b7087f7bd19260f2deb7646860a02ddc354dda8377f73c9219388f9e9e1669c5` |
+| `03-frontend-architecture.md` | `3c2662e502668f3b57c92921d38e7f5b57ff79ac48f9a781b7b85b775c349b1f` — **revisi 2**, dihitung ulang 27 Agustus 2026 |
 | `erd/00-context-erd.md` | `292c301a70004a730a1be7b93f99de9088ad5c9c62714afa52a43787202380f7` |
 | `erd/keutuhan-dokumen.md` | `09cc9588dec0f464ab4a9e3a46a66d0a2a6df9d9c82f9b66c7acff827c41469d` |
 | `erd/jejak-akses.md` | `f78ea5013e8ef516ea8ece969f4f95e9203212cc0a00f787e9d5e90ac1b9ec7f` |
@@ -80,6 +80,14 @@ Dihitung pada 24 Agustus 2026.
 Hash `00-interview-decisions.md` dan `01-existing-capability-map.md` juga tercatat sebagai
 `input_hashes`. Bila salah satunya berubah, seluruh artefak desain menjadi **stale** dan wajib
 ditinjau ulang sebelum dipakai.
+
+`03-frontend-architecture.md` naik ke **revisi 2** pada 27 Agustus 2026: brief UI ditambahkan —
+entri menu (bagian 10) dan skema tampilan per menu (bagian 11) — dan status kepemilikannya
+disesuaikan dengan `RM-DEC-027` serta `RM-DEC-028`. Hash-nya dihitung ulang di atas, dan
+`roadmap/frontend-roadmap.md` sudah disesuaikan mengikutinya (`roadmap_revision: 2`).
+
+Perubahan ini **tidak** membuat artefak lain stale. Ia tidak menyentuh input hash mana pun,
+tidak mengubah kontrak API, dan tidak mengubah satu pun keputusan pada `00-interview-decisions.md`.
 
 ---
 
