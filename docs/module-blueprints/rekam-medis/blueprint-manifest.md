@@ -3,29 +3,30 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `RM-BP-001` |
-| `revision` | `1` |
-| `status` | **`approved`** — disahkan Yoga Aji Pratama 26 Agustus 2026, kecuali kontrak API yang masih menunggu pemilik API |
+| `revision` | `2` — diperbarui 27 Agustus 2026 |
+| `status` | **`approved`** — disahkan Yoga Aji Pratama 26 Agustus 2026 (`RM-DEC-027`); kontrak API menyusul 27 Agustus 2026 (`RM-DEC-028`). **Tidak ada lagi yang menunggu pengesahan** |
 | `module` | `rekam-medis` |
 | `design_snapshot_at` | `2026-08-24` |
 | `backend_commit_sha` | `ab37e3a2e80f0e34efe22ec0f6a8c9b90a3ae45e` |
 | `frontend_commit_sha` | `c4e2ef2a6080f3ce328d2faad79be1893ac13e22` |
 | `owners` | Seluruh peran dipegang **Yoga Aji Pratama**: product/domain, clinical governance, security/privacy (`RM-DEC-027`), serta API authority dan frontend authority (`RM-DEC-028`). **Tidak ada peran yang masih `OPEN`** |
 | `approved_by` | **Yoga Aji Pratama** — penanggung jawab modul |
-| `approved_at` | **26 Agustus 2026** |
+| `approved_at` | **26 Agustus 2026** — kepemilikan API dan frontend menyusul **27 Agustus 2026** |
 | `input_revisions` | `00-interview-decisions.md` revision `4`; `01-existing-capability-map.md` revision `2` |
 | `input_hashes` | Decisions `sha256:2d4c37bc456a39f70d7f10e40852f5e23ba2f7f5b47b71ec0a0ed24ba248aa3c`; capability map `sha256:9cacecf803c0d552623a5f1ce5841af7bea7da5fc49aaf1b3142a076dd4416ae` |
-| `contract_versions` | API `0.1.0`; state `0.1.0`; validation `0.1.0`; integration `0.1.0`; permission/audit `0.1.0` — seluruhnya `draft` |
+| `contract_versions` | API **`0.1.1`** — `approved` 27 Agustus 2026, hash terkunci. `0.1.0` disahkan pada `RM-DEC-028`; `0.1.1` hanya menyegarkan kolom status, **bentuk kontrak tidak berubah** sehingga klien `0.1.0` tetap sah. State `0.1.0`; validation `0.1.0`; integration `0.1.0`; permission/audit `0.1.0` — keempatnya masih `draft` |
 | `compatibility_impact` | **Aditif pada skema.** Lima tabel baru; **nol perubahan kolom** pada tabel yang sedang dipakai. Tiga perubahan **perilaku** pada endpoint berjalan, dirinci pada bagian "Dampak kompatibilitas" |
 
 ---
 
 ## Design gate
 
-**Blueprint ini sudah disahkan dan implementasi backend boleh dimulai.** Pengesahan dilakukan
-Yoga Aji Pratama selaku penanggung jawab modul pada 26 Agustus 2026, memegang ketiga peran
-owner sekaligus. Rinciannya pada `RM-DEC-027`.
+**Blueprint ini sudah disahkan, dan implementasi backend sudah berjalan sampai hampir tuntas.**
+Pengesahan dilakukan Yoga Aji Pratama selaku penanggung jawab modul pada 26 Agustus 2026,
+memegang ketiga peran owner sekaligus (`RM-DEC-027`), dilengkapi kepemilikan API dan frontend
+pada 27 Agustus 2026 (`RM-DEC-028`).
 
-Keadaan gate setelah pengesahan:
+Keadaan gate per 27 Agustus 2026 — **tujuh dari sembilan terpenuhi**:
 
 | Gate | Keadaan | Yang tertahan bila belum terpenuhi |
 |---|---|---|
@@ -35,9 +36,9 @@ Keadaan gate setelah pengesahan:
 | API authority menyetujui kontrak | **Terpenuhi** 27 Agustus 2026 — Yoga Aji Pratama (`RM-DEC-028`). Kontrak `0.1.0` naik menjadi `approved`, hash dikunci | Tidak ada lagi yang tertahan. **Gerbang paralel frontend terbuka** |
 | Angka masa simpan jejak akses ditetapkan | **Terpenuhi** 24 Agustus 2026 — **25 tahun** (`RM-DEC-024`) | Tidak ada lagi yang tertahan. Tabel `TrxMedicalRecordAccessLog` dirancang terbagi per tahun berdasarkan `AccessedAt`, 25 bagian pada keadaan penuh. Dasar regulasi wajib dilampirkan owner saat pengesahan |
 | SOP rekam medis rumah sakit tersedia | **`OPEN`** | Isi awal `MstMedicalRecordAccessPurpose` |
-| Penelusuran alur penggabungan pasien | **Selesai** 24 Agustus 2026. Hasilnya: penggabungan hanya penandaan, tidak memindahkan data klinis. Status `RM-CAP-007` naik menjadi `Conflict` | Yang tersisa: keputusan closure question nomor 8 tentang perilaku layar penelusuran untuk pasien bernomor ganda |
-| Jumlah pasien bernomor rekam medis ganda di data nyata | **`OPEN`** | Menentukan apakah `BE-16` mendesak atau sekadar pengaman. Tidak dapat dijawab dari source |
-| Project test backend tersedia | **`OPEN`** (`RM-CAP-032`) | Perubahan pada `RM-CAP-011`, `012`, `013` yang menyentuh kode berjalan |
+| Penelusuran alur penggabungan pasien | **Selesai** 24 Agustus 2026. Hasilnya: penggabungan hanya penandaan, tidak memindahkan data klinis. Status `RM-CAP-007` naik menjadi `Conflict`. Perilaku layarnya ditetapkan `409` dan sudah dijaga `BE-16` pada empat pintu masuk | Tidak ada lagi yang tertahan |
+| Jumlah pasien bernomor rekam medis ganda di data nyata | **`OPEN`** | Tidak lagi memblokir apa pun. `BE-16` sudah selesai 27 Agustus 2026, sehingga pengamannya terpasang apa pun jawabannya. Angka ini kini hanya menentukan prioritas pembersihan data, bukan prioritas kode |
+| Project test backend tersedia | **Terpenuhi** 24 Agustus 2026 — `BE-00` selesai, project `QuilvianSystemBackend.Tests` berjalan | Tidak ada lagi yang tertahan. `RM-CAP-032` tertutup |
 
 Dua gate yang paling menentukan:
 
@@ -65,12 +66,12 @@ Dihitung pada 24 Agustus 2026.
 | `00-interview-decisions.md` | `2d4c37bc456a39f70d7f10e40852f5e23ba2f7f5b47b71ec0a0ed24ba248aa3c` |
 | `01-existing-capability-map.md` | `9cacecf803c0d552623a5f1ce5841af7bea7da5fc49aaf1b3142a076dd4416ae` |
 | `02-backend-architecture.md` | `32ab3711e9203bedf2838cdadbbeb1ab6400c20d49b1b1497eaed9efaa5243a1` |
-| `03-frontend-architecture.md` | `3c2662e502668f3b57c92921d38e7f5b57ff79ac48f9a781b7b85b775c349b1f` — **revisi 2**, dihitung ulang 27 Agustus 2026 |
+| `03-frontend-architecture.md` | `6c5f875a2e2e005919d34816fee3e3ed7341d97a110e92a961afbe3686f42931` — **revisi 2**, dihitung ulang 27 Agustus 2026 |
 | `erd/00-context-erd.md` | `292c301a70004a730a1be7b93f99de9088ad5c9c62714afa52a43787202380f7` |
 | `erd/keutuhan-dokumen.md` | `09cc9588dec0f464ab4a9e3a46a66d0a2a6df9d9c82f9b66c7acff827c41469d` |
 | `erd/jejak-akses.md` | `f78ea5013e8ef516ea8ece969f4f95e9203212cc0a00f787e9d5e90ac1b9ec7f` |
 | `erd/data-dictionary.md` | `f90106beda3faa6c2f6c635c92c11475bbf91e0a4c8223d1d7b4a10480e9f062` |
-| `contracts/api-contract.md` | `a20372c4b3a6b05842e733206d13b7599895b127a2c638f5533b2004e626bed8` |
+| `contracts/api-contract.md` | `f057ab9531458383f067b3b79308adb0414593a52a82dc84d607cc5fc3c5a2a2` — **`0.1.1`**, dihitung ulang 27 Agustus 2026 |
 | `contracts/state-transition-matrix.md` | `ef23b7a6c4c443ec6dad8c97466d73a4a672f5b565b4c89c3e17983cddcf1325` |
 | `contracts/validation-matrix.md` | `c47601f7f1e62822f13ded3b532e33f1c9d6f0305fe870dd30a458c2bc4bb4ca` |
 | `contracts/integration-contract.md` | `c73d66096e2e1ec1ec7f6949238530d83e72ef136c38cc777a78bc7adff8a037` |
@@ -151,15 +152,21 @@ dengan membatasi cakupan rilis pertama pada **satu jenis dokumen saja**, yaitu C
 
 ### Endpoint
 
-| Grup | Jumlah endpoint | Status |
-|---|---:|---|
-| Medical Record | 5 | Rencana |
-| Clinical Document Integrity | 4 | Rencana |
-| Clinical Note Addendum | 3 | Rencana |
-| Clinical Note Author Delegation | 3 | Rencana |
-| Medical Record Access Log | 4 | Rencana |
-| Medical Record Access Purpose | 6 | Rencana |
-| **Total endpoint baru** | **25** | Seluruhnya `Rencana (belum tersedia)` |
+Status per 27 Agustus 2026, dihitung dari atribut rute pada source — bukan dari kolom status
+api-contract, yang sebagiannya sudah usang.
+
+| Grup | Direncanakan | Hidup | Status |
+|---|---:|---:|---|
+| Medical Record | 5 | 5 | **Tersedia** |
+| Clinical Document Integrity | 4 | 4 | **Tersedia** |
+| Clinical Note Addendum | 3 | 4 | **Tersedia.** Bertambah satu: `/authority`, dipakai frontend untuk memutuskan menggambar tombol addendum atau tidak |
+| Clinical Note Author Delegation | 3 | 3 | **Tersedia.** Belum ada layarnya — lihat `03-frontend-architecture.md` bagian 10.6 |
+| Medical Record Access Log | 4 | 4 | **Tersedia** |
+| Medical Record Access Purpose | 6 | 0 | **Belum ada.** Hanya model dan configuration; controller-nya tidak pernah dibuat |
+| **Total** | **25** | **20** | 20 hidup, 6 belum ada — selisihnya karena addendum bertambah satu |
+
+Di luar kontrak terdapat `MedicalRecordBackfillController` dengan 2 endpoint, alat penelaahan
+data lama milik `BE-08`. Ia tidak masuk hitungan karena bukan endpoint pelayanan.
 
 ### Uji penerimaan
 
@@ -218,14 +225,57 @@ Bila commit SHA kedua repository berubah sebelum implementasi dimulai, jalankan
 
 ## Langkah berikutnya
 
-Menurut tabel skill, langkah setelah desain adalah `/plan-module-delivery` — **dengan syarat
-owner sudah menyetujui blueprint dan kontraknya.** Syarat itu belum terpenuhi.
+**Diperbarui 27 Agustus 2026.** Bagian ini pada revisi sebelumnya masih berbunyi "owner belum
+menyetujui" dan menandai hampir semuanya tertahan. Itu sudah tidak benar: approval turun
+26–27 Agustus (`RM-DEC-027`, `RM-DEC-028`), `/plan-module-delivery` sudah dijalankan, dan
+sembilan belas task backend sudah dikerjakan.
 
-Yang tertahan dan yang tidak:
+### Yang sudah selesai
 
-| Bagian | Dapat dilanjutkan? |
+| Tahap | Keadaan |
 |---|---|
-| Penyusunan urutan kerja | Ya, tetapi hasilnya ikut berstatus `draft` |
-| Implementasi tabel baru | Seluruhnya tertahan approval owner. `RM-DEC-024` sudah tertutup, sehingga `TrxMedicalRecordAccessLog` tidak lagi punya hambatan teknis |
-| Perubahan pada kode berjalan | Tertahan sampai project test backend tersedia dan owner menyetujui |
-| Migration pengisian data lama | Tertahan approval clinical governance owner dan penelusuran data nyata |
+| Desain dan pengesahan | Selesai. Seluruh peran owner terisi; kontrak API `0.1.1` `approved` dengan hash terkunci |
+| Perencanaan | Selesai. `roadmap/backend-roadmap.md` (`BE-00`–`BE-18`) dan `roadmap/frontend-roadmap.md` (`FE-00`–`FE-09`) |
+| Brief UI | Selesai 27 Agustus 2026. Entri menu dan skema tampilan per layar pada `03-frontend-architecture.md` bagian 10 dan 11 |
+| Kode backend | 20 endpoint hidup di `Areas/HealthServices/MedicalRecordManagement/Controllers/`. Enam belas task `SELESAI` penuh |
+
+### Yang tersisa di backend
+
+| Sisa | Task | Sifatnya |
+|---|---|---|
+| Controller master keperluan akses | `BE-09` bagian pertama | **Pekerjaan kode yang terlewat.** Model, configuration, dan migration ada; DTO, controller, dan keenam endpoint api-contract bagian 7 **tidak pernah dibuat**. Ini yang menahan `FE-06` |
+| Isi awal master keperluan akses | `BE-09` bagian kedua | Menunggu SOP rekam medis rumah sakit. Bukan pekerjaan kode |
+| Penelaahan data lama | `BE-08` | Alat dan panduannya selesai; yang tersisa menjalankannya pada data nyata lalu memberi tahu unit rekam medis |
+| Pemberitahuan ke penulis CPPT | `BE-15` | Bukan pekerjaan kode. Lihat `BE-15-pemberitahuan-penulis-cppt.md` |
+
+Baris pertama perlu dibaca dua kali, karena akibatnya berantai dan tidak kelihatan dari status
+`SELESAI sebagian` yang tertulis sebelumnya. Selama master keperluan akses kosong, **pembukaan
+berkas pasien di luar rawatan selalu ditolak** — dan tanpa controller-nya, tidak ada cara
+mengisinya lewat antarmuka. Dua penahan bertumpuk di satu tempat: SOP yang belum ada, dan
+endpoint yang belum dibuat. Yang kedua dapat dikerjakan sekarang juga tanpa menunggu yang pertama.
+
+### Yang tersisa di frontend
+
+**Nol dari sepuluh task dikerjakan.** Tidak ada direktori `medical-record-management` di
+`src/app/health-services/` maupun di `src/components/view/health-services/`.
+
+| Urutan | Task | Keadaan |
+|---|---|---|
+| 1 | `FE-00` | **Pintunya.** Lapisan service dan hook; seluruh task lain bergantung padanya |
+| 2 | `FE-01`, `FE-02` | Backend-nya sudah tersedia |
+| 3 | `FE-03`, `FE-04`, `FE-05` | Backend-nya sudah tersedia |
+| 4 | `FE-06` | **Tertahan backend** — menunggu controller master keperluan akses |
+| 5 | `FE-07`, `FE-08`, `FE-09` | Menunggu task pendahulunya |
+
+### Utang yang tercatat terbuka
+
+| Utang | Tercatat di |
+|---|---|
+| Penyaringan menu per izin belum ada di frontend; `RM-FE-013` belum ditegakkan | `03-frontend-architecture.md` bagian 10.5 |
+| Layar penetapan penulis berhalangan tidak dibuat pada rilis pertama | `03-frontend-architecture.md` bagian 7 dan 10.6 |
+| ~~Kolom status api-contract bagian 3, 5, dan 6 usang~~ | **Ditutup** 27 Agustus 2026 lewat kontrak `0.1.1`. Sebelas baris status dikoreksi; bentuk kontrak tidak berubah |
+| Tinjauan komite medik dan pihak perlindungan data | `RM-DEC-027` |
+
+Tiga baris pertama tidak memblokir pekerjaan mana pun. Ia dicatat supaya tidak hilang — utang
+yang tercatat terbuka dapat dijadwalkan, utang yang tidak tercatat akan ditemukan orang lain
+sebagai kejutan.

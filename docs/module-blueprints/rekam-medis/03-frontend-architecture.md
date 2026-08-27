@@ -5,7 +5,7 @@
 | Blueprint ID | `RM-BP-001` |
 | Revision | `2` |
 | Status | `approved` — disahkan Yoga Aji Pratama 27 Agustus 2026 (`RM-DEC-028`) |
-| Contract version | `0.1.0` — `approved` 27 Agustus 2026 |
+| Contract version | `0.1.1` — `approved` 27 Agustus 2026. Bentuk kontrak sama dengan `0.1.0`; yang berubah hanya kolom status |
 | Frontend SHA | `c4e2ef2a6080f3ce328d2faad79be1893ac13e22` |
 | Input revisions | `00-interview-decisions.md` revision `4`; `01-existing-capability-map.md` revision `2` |
 | Owners | Frontend authority: **Yoga Aji Pratama** (`RM-DEC-028`); security/privacy authority: **Yoga Aji Pratama** (`RM-DEC-027`) |
@@ -69,7 +69,7 @@ Bukan layar penuh, melainkan penghalang yang muncul sebelum isi terlihat.
 | Aspek | Kebutuhan |
 |---|---|
 | Kapan muncul | Ketika pasien tidak punya kunjungan aktif, dan selalu ketika membuka `PrivateNote` |
-| Data yang dikonsumsi | `GET /medical-record-access-purposes/options` |
+| Data yang dikonsumsi | `GET /medical-records/filters/metadata` → `data.accessPurposes`. **Dikoreksi pada revisi 2** — semula tertulis `GET /medical-record-access-purposes/options`, endpoint yang ternyata belum dibuat. Lihat bagian 11.2 |
 | Yang wajib terlihat | Pilihan keperluan dari master, dan kotak alasan bebas bila keperluan yang dipilih menuntutnya |
 | Aturan mengikat | **Isi rekam medis tidak boleh terlihat sedikit pun sebelum keperluan diisi.** Termasuk tidak boleh memuat isi di belakang layar lalu menutupinya dengan lapisan buram |
 | Pesan yang jujur | Pengguna diberi tahu bahwa akses ini akan dicatat dan ditinjau. Menyembunyikan hal itu membuat pencatatan terasa seperti jebakan |
@@ -635,7 +635,7 @@ pembukaan catatan pribadi.
 |---|---|---|---|
 | Kepala | Nomor RM dan nama pasien | Hasil pencarian, sudah ada di sisi klien | **Hanya identitas.** Tidak ada satu pun isi klinis di kotak ini |
 | Sebab | Kalimat mengapa keperluan diminta | Penanda kunjungan aktif dari hasil pencarian | Membedakan "pasien di luar rawatan Anda" dari "pembukaan catatan pribadi selalu meminta keperluan" |
-| Pilihan keperluan | Daftar dari master | `GET /medical-record-access-purposes/options` | Wajib dari master; **tidak** ditulis tetap di kode |
+| Pilihan keperluan | Daftar dari master | `GET /medical-records/filters/metadata` → `data.accessPurposes` | Wajib dari master; **tidak** ditulis tetap di kode. **Bukan** dari `/medical-record-access-purposes/options` — endpoint itu belum ada; lihat catatan di bawah |
 | Alasan bebas | Kotak teks, maksimum 500 karakter | — | Muncul hanya bila keperluan terpilih bertanda `IsFreeTextRequired` |
 | Pemberitahuan | Bahwa pembukaan ini dicatat dan dapat ditinjau | — | Wajib. Menyembunyikannya membuat pencatatan terasa seperti jebakan |
 
@@ -660,6 +660,18 @@ Keadaan khusus — master keperluan masih kosong:
 │                        [ Tutup ]   [ Buka berkas ]·nonaktif │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+**Catatan sumber daftar keperluan.** Kontrak merencanakan `GET /medical-record-access-purposes/options`
+(api-contract bagian 7), dan bagian 2.2 dokumen ini masih menyebutnya. **Endpoint itu belum ada** —
+seluruh controller master keperluan akses belum dibuat; `BE-09` baru menyelesaikan tabel dan
+konfigurasinya. Yang sudah tersedia adalah `GET /medical-records/filters/metadata`, yang
+mengembalikan `accessPurposes` langsung dari master
+(`MedicalRecordController.cs:100`, `MedicalRecordDtos.cs:303-321`).
+
+Frontend memakai `/filters/metadata`. Ia bukan jalan pintas: satu panggilan itu membawa daftar
+keperluan, pilihan penyaring, dan penanda master kosong sekaligus, dan ia **tidak menghasilkan
+jejak akses** sehingga aman dipanggil sebelum penghalang dijawab. `/options` tetap berguna kelak
+bagi layar master (11.5), bukan bagi kotak ini.
 
 `GET /medical-records/filters/metadata` mengembalikan `isAccessPurposeMasterEmpty`. Bila benar,
 kotak ini **wajib** menyatakan keadaannya. Menampilkan daftar pilihan kosong tanpa penjelasan

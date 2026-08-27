@@ -20,7 +20,7 @@ artifact_hashes:
   capability_map: sha256:9cacecf803c0d552623a5f1ce5841af7bea7da5fc49aaf1b3142a076dd4416ae
   backend_architecture: sha256:32ab3711e9203bedf2838cdadbbeb1ab6400c20d49b1b1497eaed9efaa5243a1
 contract_versions:
-  api: 0.1.0 (approved 2026-08-27)
+  api: 0.1.1 (approved 2026-08-27; penyegaran status, bentuk kontrak tidak berubah dari 0.1.0)
   state_transition: 0.1.0 (draft)
   validation: 0.1.0 (draft)
   integration: 0.1.0 (draft)
@@ -94,7 +94,7 @@ Status per 26 Agustus 2026, setelah pengesahan `RM-DEC-027`.
 | B1 | `BE-04`, `BE-05`, `BE-06` | **`SELESAI`** 26 Agustus 2026 | Tanda tangan, penetapan berhalangan, addendum — 3 controller, 17 uji lulus. Dirilis bersamaan sesuai aturan urutan |
 | B1 | `BE-07` | **`SELESAI`** 26 Agustus 2026 | Penguncian saat kunjungan selesai, dipasang di **tiga** jalur, 4 uji lulus |
 | B1 | `BE-08` | **`SIAP DIJALANKAN`** | Alat dan panduannya selesai 26 Agustus 2026, 11 uji lulus. Yang tersisa: menjalankan penelaahan pada data nyata, lalu memberi tahu unit rekam medis. Lihat `BE-08-panduan-pengisian-data-lama.md` |
-| B2 | `BE-09` | **`SELESAI` sebagian** 26 Agustus 2026 | Struktur tabel master selesai. **Isi awalnya masih menunggu SOP rekam medis** |
+| B2 | `BE-09` | **`SELESAI` sebagian** 26 Agustus 2026 | Model, configuration, dan migration selesai. **Dua hal belum:** (1) DTO, controller, dan keenam endpoint api-contract bagian 7 **belum dibuat** — dikoreksi 27 Agustus 2026 terhadap source, dan ini menahan `FE-06`; (2) isi awalnya masih menunggu SOP rekam medis |
 | B2 | `BE-10`, `BE-11` | **`SELESAI`** 26 Agustus 2026 | Tabel jejak akses, service kewenangan pasien, 12 uji lulus |
 | B2 | `BE-12` | **`SELESAI`** 26 Agustus 2026 | Tinjauan akses, 4 endpoint, 6 uji lulus |
 | B3 | `BE-13` | **`SELESAI`** 26 Agustus 2026 | Service penggabungan riwayat 13 sumber, 10 uji lulus |
@@ -1085,16 +1085,16 @@ dan seluruh pertimbangan pada panduan kembali berlaku penuh.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-09` |
-| **Status** | `TERTAHAN APPROVAL` — memerlukan SOP rekam medis untuk isi awalnya |
+| **Status** | **`SELESAI` sebagian** — dikoreksi 27 Agustus 2026 terhadap source. **Dua bagian scope belum dikerjakan, bukan satu.** Rinciannya pada baris Risk/blocker |
 | **Outcome** | Petugas punya daftar keperluan akses yang dapat dipilih, bukan kotak teks kosong yang jawabannya tidak dapat dibandingkan |
-| **Trace** | Arsitektur bagian 9; api-contract bagian 7 |
+| **Trace** | Arsitektur bagian 9; api-contract bagian 7; arsitektur frontend bagian 11.5 |
 | **Reuse** | Pola master data yang sudah ada, misalnya `MstBillingItemCategory` |
 | **Scope** | `Areas/HealthServices/MasterData/Models/MstMedicalRecordAccessPurpose.cs`; DTO; controller; configuration; migration `AddMedicalRecordAccessAuditTables` bagian master; data awal |
 | **Dependency** | Tidak ada task pendahulu |
 | **Acceptance criteria** | 1) Lima keperluan minimum terisi. 2) Baris `Lainnya` memiliki `IsFreeTextRequired` bernilai benar. 3) `PurposeCode` dijamin unik. 4) Endpoint `/options` mengembalikan hanya yang aktif |
 | **Verification** | Uji integrasi endpoint master; pemeriksaan data awal setelah migration |
-| **Risk/blocker** | **Blocker:** isi awal harus berasal dari SOP rekam medis rumah sakit yang belum tersedia. Owner: product/domain, **`OPEN`** |
-| **DoD** | Master terisi; daftar keperluan disetujui unit rekam medis; endpoint berjalan |
+| **Risk/blocker** | **Dua hal terbuka.** (1) **Kode belum lengkap** — model, configuration, dan migration ada; **DTO, controller, dan keenam endpoint api-contract bagian 7 belum dibuat**. Tidak ada `MedicalRecordAccessPurposeController` di seluruh source. Akibatnya `FE-06` tertahan dan master hanya dapat diisi lewat seeder atau SQL langsung. (2) **Isi awal** harus berasal dari SOP rekam medis rumah sakit yang belum tersedia; owner product/domain |
+| **DoD** | Controller dan enam endpoint berjalan; master terisi; daftar keperluan disetujui unit rekam medis. **Butir pertama belum terpenuhi**, dan ia tidak menunggu SOP — ia pekerjaan kode yang terlewat |
 
 ### `BE-10` — Tabel jejak akses
 

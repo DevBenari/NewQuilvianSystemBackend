@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `RM-BP-001` |
-| Contract version | `0.1.0` |
+| Contract version | `0.1.1` — penyegaran status, **bentuk kontrak tidak berubah** |
 | Status | **`approved`** |
 | Owner | API authority: **Yoga Aji Pratama**; Product/domain: **Yoga Aji Pratama** |
-| `approved_by` / `approved_at` | Yoga Aji Pratama / 27 Agustus 2026 (`RM-DEC-028`) |
-| Input revisions | `00-interview-decisions.md` revision `2`; `01-existing-capability-map.md` revision `1` |
+| `approved_by` / `approved_at` | Yoga Aji Pratama / 27 Agustus 2026 (`RM-DEC-028`); `0.1.1` disahkan 27 Agustus 2026 |
+| Input revisions | `00-interview-decisions.md` revision `4`; `01-existing-capability-map.md` revision `2` |
 | Backend SHA | `ab37e3a2e80f0e34efe22ec0f6a8c9b90a3ae45e` |
 | Compatibility impact | **Aditif.** Seluruh endpoint baru. Tidak ada endpoint berjalan yang berubah bentuk permintaan maupun responsnya. Yang berubah adalah **perilaku** dua endpoint yang sudah ada, dijelaskan pada bagian 7 |
 
@@ -22,6 +22,45 @@
 > Batas yang tetap berlaku, sama seperti `RM-DEC-027`: tinjauan komite medik dan pihak
 > perlindungan data belum dilakukan. Bila tinjauan itu kelak menghasilkan keputusan berbeda,
 > bagian kontrak yang bergantung padanya wajib dirombak.
+
+### Revisi `0.1.1` — 27 Agustus 2026
+
+**Yang berubah hanya kolom Status.** Tidak satu pun path, method, hak akses, bentuk permintaan,
+atau bentuk balasan berubah. Klien yang ditulis di atas `0.1.0` **tidak perlu disesuaikan
+sedikit pun**. Ini penting dinyatakan di depan: kenaikan versi kontrak biasanya berarti
+bentuknya bergeser, dan di sini tidak.
+
+Alasannya: kolom status pada `0.1.0` sudah usang. Bagian 3, 5, dan 6 masih menandai grupnya
+`Rencana (belum tersedia)` padahal ketiga controller-nya sudah ada sejak 26 Agustus 2026.
+Kontrak yang menyatakan endpoint belum dibangun padahal sudah hidup membuat frontend menunda
+pekerjaan yang sebenarnya tidak tertahan apa pun.
+
+Penyegaran ini dihitung dari atribut `[Route]`, `[Http*]`, dan `[AccessPermission]` pada
+`Areas/HealthServices/MedicalRecordManagement/Controllers/`, bukan dari catatan roadmap:
+
+| Grup | Direncanakan | Hidup | `0.1.0` menyatakan | `0.1.1` menyatakan |
+|---|---:|---:|---|---|
+| 2 — Medical Record | 5 | 5 | Tersedia | Tersedia — tidak berubah |
+| 3 — Clinical Document Integrity | 4 | 4 | `Rencana` | **Tersedia** — dikoreksi |
+| 4 — Clinical Note Addendum | 4 | 4 | Tersedia | Tersedia — tidak berubah |
+| 5 — Clinical Note Author Delegation | 3 | 3 | `Rencana` | **Tersedia** — dikoreksi |
+| 6 — Medical Record Access Log | 4 | 4 | `Rencana` | **Tersedia** — dikoreksi |
+| 7 — Medical Record Access Purpose | 6 | 0 | `Rencana` | `Rencana` — **tetap benar**, lihat catatan bagian 7 |
+| **Total** | **26** | **20** | — | 20 hidup, 6 belum ada |
+
+Seluruh path, method, dan hak akses pada bagian 2 sampai 6 diperiksa satu per satu terhadap
+source dan **cocok persis**. Tidak ada endpoint yang berbeda dari yang dijanjikan kontrak, dan
+tidak ada endpoint tak terdaftar yang menyelinap masuk ke dalam grup mana pun.
+
+**Satu endpoint hidup di luar kontrak, dan disengaja.** `MedicalRecordBackfillController`
+menyediakan `GET api/v1/health-services/medical-record-management/backfill/survey` dan
+`POST .../run-batch`, izin `MedicalRecordBackfill : Read` dan `: Update`. Ia alat penelaahan dan
+pengisian data lama milik `BE-08`, dipakai sekali oleh operator, **bukan** endpoint pelayanan.
+Ia tidak dimasukkan ke dalam kontrak karena frontend tidak boleh memanggilnya — dicatat di sini
+supaya keberadaannya tidak terbaca sebagai endpoint liar saat seseorang membandingkan Swagger
+dengan dokumen ini.
+
+---
 
 Status keterlaksanaan tiap endpoint tercantum pada kolom **Status** masing-masing tabel.
 Endpoint modul Rekam Medis berlabel **Tersedia** sudah dapat dipanggil; yang berlabel
@@ -61,7 +100,7 @@ medis membutuhkan riwayat gabungan dari tiga belas sumber, dan itu belum ada.
 ## 2. Health Services / Medical Record Management / Medical Record
 
 Base URL: `api/v1/health-services/medical-record-management/medical-records`
-Contract version: `0.1.0` — status `draft`
+Contract version: `0.1.1` — status `approved`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
@@ -121,8 +160,8 @@ kode frontend yang memanggil endpoint ini, sehingga tidak ada pemanggil lama yan
 Ini disengaja: pengguna berhak tahu bahwa pembukaannya tercatat, dan bila aksesnya ditandai
 untuk ditelaah, ia berhak tahu sekarang — bukan baru saat ditanya unit rekam medis.
 
-**Perlu pengesahan pemilik API.** Sampai `api_authority` ditunjuk, perubahan ini berstatus
-diterapkan pada backend dan tercatat di sini, belum disahkan.
+**Sudah disahkan.** Kedua delta disetujui pemilik API pada 27 Agustus 2026 bersama kontrak
+`0.1.0` (`RM-DEC-028`), dan tidak berubah pada `0.1.1`.
 
 ### Catatan `BE-15`: endpoint `private-note`
 
@@ -151,14 +190,14 @@ mereka bawa hanya penanda `hasPrivateNote` pada detail dokumen.
 ## 3. Health Services / Medical Record Management / Clinical Document Integrity
 
 Base URL: `api/v1/health-services/medical-record-management/clinical-document-integrities`
-Contract version: `0.1.0` — status `draft`
+Contract version: `0.1.1` — status `approved`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `GET` | `/by-document/{documentKind}/{documentId}` | Status keutuhan satu dokumen | `ClinicalDocumentIntegrity : Read` | — | `ApiResponse<ClinicalDocumentIntegrityResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/by-document/{documentKind}/{documentId}/sign` | Menandatangani dan mengunci dokumen | `ClinicalDocumentIntegrity : Update` | `SignClinicalDocumentRequest` | `ApiResponse<ClinicalDocumentIntegrityResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/my-unsigned` | Daftar catatan milik pengguna yang belum ditandatangani | `ClinicalDocumentIntegrity : Read` | Query: `page`, `pageSize` | `ApiResponse<PagedResult<UnsignedDocumentResponse>>` | **Rencana (belum tersedia)** |
-| `GET` | `/by-encounter/{encounterId}` | Daftar keutuhan seluruh dokumen dalam satu kunjungan | `ClinicalDocumentIntegrity : Read` | — | `ApiResponse<List<ClinicalDocumentIntegrityResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/by-document/{documentKind}/{documentId}` | Status keutuhan satu dokumen | `ClinicalDocumentIntegrity : Read` | — | `ApiResponse<ClinicalDocumentIntegrityResponse>` | **Tersedia** — `BE-04` |
+| `POST` | `/by-document/{documentKind}/{documentId}/sign` | Menandatangani dan mengunci dokumen | `ClinicalDocumentIntegrity : Update` | `SignClinicalDocumentRequest` | `ApiResponse<ClinicalDocumentIntegrityResponse>` | **Tersedia** — `BE-04` |
+| `GET` | `/my-unsigned` | Daftar catatan milik pengguna yang belum ditandatangani | `ClinicalDocumentIntegrity : Read` | Query: `page`, `pageSize` | `ApiResponse<PagedResult<UnsignedDocumentResponse>>` | **Tersedia** — `BE-04`. Dipakai `FE-03` |
+| `GET` | `/by-encounter/{encounterId}` | Daftar keutuhan seluruh dokumen dalam satu kunjungan | `ClinicalDocumentIntegrity : Read` | — | `ApiResponse<List<ClinicalDocumentIntegrityResponse>>` | **Tersedia** — `BE-04` |
 
 Kode status:
 
@@ -184,7 +223,7 @@ sebagai `LockedUnsigned` saat kunjungan ditutup — hasil yang berlawanan dengan
 ## 4. Health Services / Medical Record Management / Clinical Note Addendum
 
 Base URL: `api/v1/health-services/medical-record-management/clinical-note-addendums`
-Contract version: `0.1.0` — status `draft`
+Contract version: `0.1.1` — status `approved`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
@@ -236,13 +275,19 @@ gagal saat ditekan adalah pengalaman yang buruk dan mendorong pengguna mencari j
 ## 5. Health Services / Medical Record Management / Clinical Note Author Delegation
 
 Base URL: `api/v1/health-services/medical-record-management/clinical-note-author-delegations`
-Contract version: `0.1.0` — status `draft`
+Contract version: `0.1.1` — status `approved`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `GET` | `/` | Daftar penetapan berhalangan | `ClinicalNoteAuthorDelegation : Read` | Query: `originalAuthorUserId`, `isActive`, `page`, `pageSize` | `ApiResponse<PagedResult<AuthorDelegationResponse>>` | **Rencana (belum tersedia)** |
-| `POST` | `/` | Menetapkan seorang penulis berhalangan | `ClinicalNoteAuthorDelegation : Create` | `CreateAuthorDelegationRequest` | `ApiResponse<AuthorDelegationResponse>` | **Rencana (belum tersedia)** |
-| `PATCH` | `/{id}/revoke` | Mencabut penetapan lebih awal | `ClinicalNoteAuthorDelegation : Update` | `RevokeAuthorDelegationRequest` | `ApiResponse<AuthorDelegationResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar penetapan berhalangan | `ClinicalNoteAuthorDelegation : Read` | Query: `originalAuthorUserId`, `isActive`, `page`, `pageSize` | `ApiResponse<PagedResult<AuthorDelegationResponse>>` | **Tersedia** — `BE-05` |
+| `POST` | `/` | Menetapkan seorang penulis berhalangan | `ClinicalNoteAuthorDelegation : Create` | `CreateAuthorDelegationRequest` | `ApiResponse<AuthorDelegationResponse>` | **Tersedia** — `BE-05` |
+| `PATCH` | `/{id}/revoke` | Mencabut penetapan lebih awal | `ClinicalNoteAuthorDelegation : Update` | `RevokeAuthorDelegationRequest` | `ApiResponse<AuthorDelegationResponse>` | **Tersedia** — `BE-05` |
+
+**Ketiga endpoint ini hidup, tetapi belum punya layar.** Layar penetapan penulis berhalangan
+ditunda dari rilis pertama oleh pemilik frontend pada 27 Agustus 2026
+(`03-frontend-architecture.md` bagian 7 dan 10.6). Sampai layarnya dibuat, `UnitHeadGrant` hanya
+dapat dibuat lewat pemanggilan API langsung. Ini disebut terbuka supaya tidak ada yang mengira
+kemampuannya belum ada — ia ada, hanya belum dapat dicapai dari antarmuka.
 
 `CreateAuthorDelegationRequest`:
 
@@ -262,14 +307,14 @@ seseorang mengingat untuk mencatatnya.
 ## 6. Health Services / Medical Record Management / Medical Record Access Log
 
 Base URL: `api/v1/health-services/medical-record-management/medical-record-access-logs`
-Contract version: `0.1.0` — status `draft`
+Contract version: `0.1.1` — status `approved`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `GET` | `/` | Daftar jejak akses | `MedicalRecordAccessLog : Read` | Query: `patientId`, `userId`, `accessType`, `isFlaggedForReview`, `startDate`, `endDate`, `page`, `pageSize` | `ApiResponse<PagedResult<MedicalRecordAccessLogResponse>>` | **Rencana (belum tersedia)** |
-| `GET` | `/pending-review` | Antrean akses yang belum ditinjau | `MedicalRecordAccessLog : Read` | Query: `page`, `pageSize` | `ApiResponse<PagedResult<MedicalRecordAccessLogResponse>>` | **Rencana (belum tersedia)** |
-| `PATCH` | `/{id}/mark-reviewed` | Menandai satu akses sudah ditinjau | `MedicalRecordAccessLog : Update` | `MarkAccessReviewedRequest` | `ApiResponse<MedicalRecordAccessLogResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/summary` | Rekap jumlah akses per jenis dan per periode | `MedicalRecordAccessLog : Read` | Query: `startDate`, `endDate` | `ApiResponse<MedicalRecordAccessSummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar jejak akses | `MedicalRecordAccessLog : Read` | Query: `patientId`, `userId`, `accessType`, `isFlaggedForReview`, `startDate`, `endDate`, `page`, `pageSize` | `ApiResponse<PagedResult<MedicalRecordAccessLogResponse>>` | **Tersedia** — `BE-12` |
+| `GET` | `/pending-review` | Antrean akses yang belum ditinjau | `MedicalRecordAccessLog : Read` | Query: `page`, `pageSize` | `ApiResponse<PagedResult<MedicalRecordAccessLogResponse>>` | **Tersedia** — `BE-12`. Dipakai `FE-05` |
+| `PATCH` | `/{id}/mark-reviewed` | Menandai satu akses sudah ditinjau | `MedicalRecordAccessLog : Update` | `MarkAccessReviewedRequest` | `ApiResponse<MedicalRecordAccessLogResponse>` | **Tersedia** — `BE-12` |
+| `GET` | `/summary` | Rekap jumlah akses per jenis dan per periode | `MedicalRecordAccessLog : Read` | Query: `startDate`, `endDate` | `ApiResponse<MedicalRecordAccessSummaryResponse>` | **Tersedia** — `BE-12`. Belum dipakai layar mana pun pada rilis pertama |
 
 Tidak ada endpoint `POST`, `PUT`, maupun `DELETE` untuk jejak akses, dan itu bukan kelalaian.
 Baris jejak hanya dibuat sistem saat rekam medis dibuka, tidak pernah oleh permintaan manusia.
@@ -286,7 +331,7 @@ sebaiknya terbatas pada unit rekam medis serta auditor.
 ## 7. Health Services / Master Data / Medical Record Access Purpose
 
 Base URL: `api/v1/health-services/master-data/medical-record-access-purposes`
-Contract version: `0.1.0` — status `draft`
+Contract version: `0.1.1` — status `approved`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
@@ -296,6 +341,32 @@ Contract version: `0.1.0` — status `draft`
 | `POST` | `/` | Menambah keperluan | `MedicalRecordAccessPurpose : Create` | `CreateMedicalRecordAccessPurposeRequest` | `ApiResponse<MedicalRecordAccessPurposeResponse>` | **Rencana (belum tersedia)** |
 | `PUT` | `/{id}` | Mengubah keperluan | `MedicalRecordAccessPurpose : Update` | `UpdateMedicalRecordAccessPurposeRequest` | `ApiResponse<MedicalRecordAccessPurposeResponse>` | **Rencana (belum tersedia)** |
 | `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan | `MedicalRecordAccessPurpose : Update` | `StatusRequest` | `ApiResponse<object>` | **Rencana (belum tersedia)** |
+
+### Satu-satunya grup yang benar-benar belum ada
+
+Ditegaskan pada `0.1.1` karena mudah disalahbaca sebagai "menunggu SOP". Yang ada dan yang tidak:
+
+| Bagian | Keadaan |
+|---|---|
+| `MstMedicalRecordAccessPurpose.cs` | **Ada** — `Areas/HealthServices/MasterData/Models/` |
+| Configuration dan migration | **Ada** — `MstMedicalRecordAccessPurposeConfiguration.cs`, migration `AddMedicalRecordAccessAuditTables` |
+| DTO, controller, keenam endpoint di atas | **Tidak ada.** Tidak ada `MedicalRecordAccessPurposeController` di seluruh source backend |
+| Isi masternya | **Kosong** — menunggu SOP rekam medis rumah sakit |
+
+Dua penahan yang berbeda menumpuk di satu tempat, dan pemisahannya penting: **isi** menunggu SOP,
+**endpoint** menunggu seseorang menulisnya. Yang kedua dapat dikerjakan sekarang juga tanpa
+menunggu yang pertama. Bacaan "`BE-09` tinggal menunggu SOP" membuat pekerjaan kode yang terlewat
+ini tidak terlihat.
+
+Akibatnya berantai: selama master kosong, **pembukaan berkas pasien di luar rawatan selalu
+ditolak** — dan tanpa controller-nya, tidak ada cara mengisi lewat antarmuka. `FE-06` tertahan
+karenanya.
+
+**Sumber daftar keperluan bagi frontend, sementara ini.** `FE-02` **tidak** memakai `/options`.
+Daftar keperluan sudah tersedia pada `GET /medical-records/filters/metadata` → `accessPurposes`,
+bersama penanda `isAccessPurposeMasterEmpty` (bagian 2). Endpoint itu juga tidak menghasilkan
+jejak akses, sehingga aman dipanggil sebelum penghalang keperluan dijawab. `/options` tetap
+direncanakan untuk layar master, bukan untuk kotak keperluan.
 
 ---
 

@@ -16,10 +16,10 @@ input_revisions:
   frontend_architecture: 2
 artifact_hashes:
   interview_decisions: sha256:2d4c37bc456a39f70d7f10e40852f5e23ba2f7f5b47b71ec0a0ed24ba248aa3c
-  frontend_architecture: sha256:3c2662e502668f3b57c92921d38e7f5b57ff79ac48f9a781b7b85b775c349b1f
-  api_contract: sha256:a20372c4b3a6b05842e733206d13b7599895b127a2c638f5533b2004e626bed8
+  frontend_architecture: sha256:6c5f875a2e2e005919d34816fee3e3ed7341d97a110e92a961afbe3686f42931
+  api_contract: sha256:f057ab9531458383f067b3b79308adb0414593a52a82dc84d607cc5fc3c5a2a2
 contract_versions:
-  api: 0.1.0 (approved 2026-08-27)
+  api: 0.1.1 (approved 2026-08-27; penyegaran status, bentuk kontrak tidak berubah dari 0.1.0)
 source_commits:
   backend: ab37e3a2e80f0e34efe22ec0f6a8c9b90a3ae45e
   frontend: c4e2ef2a6080f3ce328d2faad79be1893ac13e22
@@ -67,37 +67,62 @@ jelas, dan inilah datanya.
 
 ### Keadaan backend saat gerbang dibuka
 
-Seluruh pekerjaan kode backend selesai. Yang perlu diketahui frontend:
+Dikoreksi 27 Agustus 2026 terhadap source backend. Kalimat revisi 1 — "seluruh pekerjaan kode
+backend selesai" — **tidak seluruhnya benar**. Keadaan sebenarnya, dihitung dari atribut rute
+pada `Areas/HealthServices/MedicalRecordManagement/Controllers/`:
+
+| Grup endpoint | Keadaan |
+|---|---|
+| Medical Record | **Tersedia** — 5 endpoint (`MedicalRecordController.cs`) |
+| Clinical Document Integrity | **Tersedia** — 4 endpoint |
+| Clinical Note Addendum | **Tersedia** — 4 endpoint, termasuk `/authority` |
+| Clinical Note Author Delegation | **Tersedia** — 3 endpoint |
+| Medical Record Access Log | **Tersedia** — 4 endpoint |
+| **Medical Record Access Purpose** | **BELUM ADA** — 0 dari 6 endpoint. Hanya model dan konfigurasi EF yang ada; tidak ada controller-nya |
+| *Di luar kontrak* | `MedicalRecordBackfillController` — 2 endpoint, alat `BE-08` |
+
+**20 endpoint hidup, 6 belum ada.** Kolom status api-contract sudah disegarkan lewat kontrak
+`0.1.1` pada 27 Agustus 2026: sebelas baris pada bagian 3, 5, dan 6 dikoreksi dari `Rencana`
+menjadi `Tersedia`. Bagian 7 tetap `Rencana` karena memang belum ada. **Bentuk kontrak tidak
+berubah** — tidak ada penyesuaian yang perlu dilakukan frontend.
+
+Yang perlu diketahui frontend:
 
 | Hal | Keadaan |
 |---|---|
 | Endpoint berkas rekam medis | **Tersedia** — lima endpoint, lihat api-contract bagian 2 |
-| Master keperluan akses (`MstMedicalRecordAccessPurpose`) | **Masih kosong** — menunggu SOP. Selama kosong, pembukaan pasien di luar rawatan **selalu** ditolak |
+| Daftar keperluan akses | Dibaca dari `GET /medical-records/filters/metadata` → `accessPurposes` (`MedicalRecordController.cs:100`). **Bukan** dari `/medical-record-access-purposes/options`, yang belum ada |
+| Isi master keperluan akses | **Masih kosong** — menunggu SOP. Selama kosong, pembukaan pasien di luar rawatan **selalu** ditolak |
+| Cara mengisinya | **Belum ada layarnya** (`FE-06` tertahan) dan belum ada endpointnya. Sementara ini hanya lewat seeder atau SQL langsung |
 | Penanda master kosong | `/filters/metadata` mengembalikan `isAccessPurposeMasterEmpty` beserta peringatannya |
 
-Butir kedua langsung menyentuh `FE-02`: layar keperluan akses akan menampilkan daftar pilihan
-kosong sampai master itu terisi. **Keadaan itu wajib dinyatakan di layar**, bukan tampil sebagai
-daftar kosong tanpa penjelasan yang membuat pengguna mengira sistemnya rusak.
+Tiga baris tengah itu bersambung menjadi satu masalah yang perlu dilihat utuh: `FE-01` dan
+`FE-02` dapat dibangun dan berjalan, tetapi **berkas pasien di luar rawatan tetap tidak dapat
+dibuka siapa pun** sampai master keperluan terisi — dan tidak ada jalan mengisinya lewat
+antarmuka sampai endpoint master dibuat. `FE-02` wajib menyatakan keadaan itu di layar, bukan
+menampilkan daftar kosong tanpa penjelasan yang membuat pengguna mengira sistemnya rusak.
 
 ---
 
 ## 2. Ringkasan status seluruh task
 
-Status per 27 Agustus 2026, setelah pengesahan `RM-DEC-028` dan selesainya seluruh kode backend.
+Status per 27 Agustus 2026, setelah pengesahan `RM-DEC-028` dan pemeriksaan ulang terhadap
+source backend.
 
 | Milestone | Task | Status | Keterangan |
 |---|---|---|---|
 | F0 | `FE-00` | **`SIAP`** | Lapisan service dan hook. **Kerjakan lebih dulu** — seluruh task lain bergantung padanya |
 | F1 | `FE-01` | **`SIAP`** setelah `FE-00` | Backend-nya sudah tersedia (`BE-14`) |
-| F1 | `FE-02` | **`SIAP`** setelah `FE-00` | Backend-nya sudah tersedia (`BE-11`). **Daftar keperluan akses masih kosong** sampai master `BE-09` terisi |
+| F1 | `FE-02` | **`SIAP`** setelah `FE-00` | Backend-nya sudah tersedia (`BE-11`, `BE-14`). Daftar keperluan dibaca dari `/filters/metadata` → `accessPurposes`, **bukan** dari `/options` yang belum ada. **Daftarnya masih kosong** sampai master terisi |
 | F2 | `FE-03`, `FE-04` | **`SIAP`** setelah `FE-00` | Backend-nya sudah tersedia (`BE-04`, `BE-06`) |
 | F3 | `FE-05` | **`SIAP`** setelah `FE-00` | Backend-nya sudah tersedia (`BE-12`) |
-| F3 | `FE-06` | **`SIAP`** setelah `FE-00` | Layar master keperluan akses. Strukturnya siap; isinya menunggu SOP |
+| F3 | `FE-06` | **`TERTAHAN BACKEND`** | **Dikoreksi 27 Agustus 2026.** Keenam endpoint master keperluan akses belum ada — `BE-09` menyelesaikan tabelnya, bukan controller-nya. Perlu task backend baru lebih dulu |
 | F4 | `FE-07`, `FE-08` | **`SIAP`** setelah `FE-00` | — |
 | F5 | `FE-09` | **`SIAP`** setelah seluruh task pendahulu | — |
 
-**Denominator: 10 task. Nol tertahan kontrak. Yang menahan tinggal urutan dependency, dan
-`FE-00` adalah pintunya.**
+**Denominator: 10 task. Nol tertahan kontrak — gerbang kontrak memang terbuka. Sembilan task
+menunggu urutan dependency saja, dan `FE-00` adalah pintunya. Satu task, `FE-06`, tertahan
+backend dan tidak dapat dimulai sampai controller master keperluan akses dibuat.**
 
 ---
 
@@ -110,7 +135,7 @@ Status per 27 Agustus 2026, setelah pengesahan `RM-DEC-028` dan selesainya selur
 | **Task ID** | `FE-00` |
 | **Status** | **`SIAP`** — gerbang kontrak terbuka 27 Agustus 2026 (`RM-DEC-028`). Yang menahan tinggal dependency antar-task pada baris di bawah |
 | **Outcome** | Frontend punya cara memanggil API rekam medis, dengan penanganan galat yang seragam |
-| **Trace** | API contract `0.1.0`; arsitektur frontend bagian 5 |
+| **Trace** | API contract `0.1.1`; arsitektur frontend bagian 5 |
 | **Reuse** | Pola `src/lib/services/health-services/clinical-management/`; `InstanceAxios`; pembungkus `unwrapApiResponse` |
 | **Scope** | `src/lib/services/health-services/medical-record-management/` empat berkas service; `src/lib/hooks/health-services/medical-record-management/` tiga hook |
 | **Dependency** | Kontrak API `APPROVED`; `BE-14` tersedia |
@@ -216,16 +241,16 @@ Status per 27 Agustus 2026, setelah pengesahan `RM-DEC-028` dan selesainya selur
 | Field | Isi |
 |---|---|
 | **Task ID** | `FE-06` |
-| **Status** | **`SIAP`** — gerbang kontrak terbuka 27 Agustus 2026 (`RM-DEC-028`). Yang menahan tinggal dependency antar-task pada baris di bawah |
+| **Status** | **`TERTAHAN BACKEND`** — dikoreksi 27 Agustus 2026. Bukan `SIAP`. Keenam endpoint master keperluan akses **belum ada**: `BE-09` menyelesaikan tabel `MstMedicalRecordAccessPurpose.cs` dan konfigurasi EF-nya, **bukan** controller-nya. Tidak ada `MedicalRecordAccessPurposeController` di seluruh source backend |
 | **Outcome** | Unit rekam medis dapat mengubah daftar keperluan akses sendiri, tanpa meminta perubahan kode |
-| **Trace** | Arsitektur backend bagian 9 |
+| **Trace** | Arsitektur backend bagian 9; arsitektur frontend bagian 11.5; `RM-FE-016` |
 | **Reuse** | Pola layar master data pada `src/components/view/health-services/master-data/`. **Tidak perlu pola baru** |
-| **Scope** | Layar master mengikuti pola yang sudah ada |
-| **Dependency** | `FE-00`; `BE-09` |
-| **Acceptance criteria** | 1) Tambah, ubah, dan aktifkan atau nonaktifkan berjalan. 2) Penanda "menuntut alasan bebas" dapat diatur |
+| **Scope** | Layar master pada rute `/health-services/master-data/medical-record-access-purposes`, mengikuti pola yang sudah ada. Kolom yang ditampilkan pada arsitektur frontend bagian 11.5 |
+| **Dependency** | `FE-00`; **task backend baru** yang membuat `MedicalRecordAccessPurposeController` dengan enam endpoint pada api-contract bagian 7. Task itu belum ada di backend-roadmap |
+| **Acceptance criteria** | 1) Tambah, ubah, dan aktifkan atau nonaktifkan berjalan. 2) Penanda `IsFreeTextRequired` dan `RequiresReview` dapat diatur, dan keterangan bahwa keduanya menentukan perilaku layar lain terlihat |
 | **Verification** | Uji rute dapat dicapai; pemeriksaan manual |
-| **Risk/blocker** | Rendah. Mengikuti pola yang sudah terbukti pada 24 layar master lain |
-| **DoD** | Layar berjalan mengikuti pola master data yang ada |
+| **Risk/blocker** | **Bukan risiko rendah seperti tertulis pada revisi 1.** Selama layar ini tidak ada, master keperluan akses hanya dapat diisi lewat seeder atau SQL langsung — dan selama master itu kosong, **pembukaan berkas pasien di luar rawatan selalu ditolak**. Layar ini bukan pelengkap; ia pintu yang membuat `FE-01` dan `FE-02` berguna |
+| **DoD** | Layar berjalan mengikuti pola master data yang ada; unit rekam medis dapat mengisi master tanpa bantuan developer |
 
 ---
 
