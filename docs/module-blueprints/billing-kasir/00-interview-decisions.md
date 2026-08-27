@@ -451,3 +451,91 @@ untuk memperbarui kontrak terdampak sebelum `plan-module-delivery`.
 
 Delivery planning dan implementation tetap berhenti sampai amendment approved, blueprint target
 disetujui, dan task/write authority diberikan secara terpisah.
+
+## Amendment 27 Agustus 2026 — Layar Menu Pembayaran Kasir
+
+Sesi wawancara `/grill-me` mode **Amendment pass** (blueprint `BIL-CASH-001` sudah `approved`
+revision `0.4`). Backend SHA yang tercatat pada `blueprint-manifest.md` (`c99f0a51...`) sudah
+berbeda dari `HEAD` saat sesi ini (`e047e39`) — map berpotensi sebagian basi, tapi wawancara tetap
+dijalankan karena tidak ada perubahan struktural yang diketahui pada domain terkait keputusan di
+bawah ini.
+
+### Batas scope pass ini
+
+**Di dalam scope**: layar "Menu Pembayaran" kasir — ringkasan tagihan (tindakan/resep/kamar),
+"Tambah Biaya Lain-lain", Promo/Voucher, Diskon Dokter, Catatan, Ringkasan Pembayaran (Subtotal
+Mandiri/Asuransi/Pajak/Harus Dibayar + status Lunas), modal "Pilih Metode Pembayaran"
+(Tunai/QRIS/Transfer Bank/Metode Lainnya + Nomor Referensi), split payment lintas metode, dan
+tombol Proses Pembayaran. Dikonfirmasi pengguna agar tetap memperhatikan konfigurasi/master data
+billing yang belum lengkap, mengacu pada referensi legacy `KasirQuilvian1/` (`BeKasir`,
+`FE kasir app`, `FE kasir view` — implementasi kasir versi sebelumnya, dipakai sebagai bukti
+perilaku as-is, bukan kontrak yang otomatis mengikat).
+
+**Di luar scope — untuk pass/modul lain**:
+
+- Layar worklist Kasir IGD/Rawat Jalan/Rawat Inap (daftar antrian kasir) — entry point ke Menu
+  Pembayaran, tapi punya keputusan UI/filter sendiri; belum digali di pass ini.
+- Riwayat Pembayaran (layar riwayat terpisah) — belum digali.
+- Shift Kasir — sudah diputuskan `BKC-DEC-038`, sudah dibangun; tidak dibuka ulang.
+- Master Diskon (CRUD kebijakan diskon) — sudah ada (`MstDiscountPolicy` + layanan terkait);
+  pass ini hanya menyangkut cara Menu Pembayaran MEMAKAI kebijakan yang sudah ada, bukan
+  aturan pembuatan kebijakannya.
+- Invoice & Billing (layar daftar invoice back-office) — sudah ada dari pekerjaan FE
+  sebelumnya (`FE-BKC-003`–`010`).
+- Layar console approval Diskon Dokter/Diskon Direksi (antrian approval terpisah) — aturan
+  approval-nya sudah diputuskan (lihat `BKC-DEC-046`), tapi UI antrian approval itu sendiri
+  adalah slice terpisah dari Menu Pembayaran.
+- **Petty Cash** — tidak disebut di dokumen blueprint billing-kasir manapun sebelum pass ini.
+  Pengguna menyatakan ini bagian dari billing-kasir dan perlu digali pada sesi `/grill-me`
+  lanjutan; dicatat sebagai antrian, bukan diputuskan di sini.
+
+### Keputusan baru
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-045` | Decision | Diskon Dokter dan Promo/Voucher pada Menu Pembayaran memakai mekanisme `MstDiscountPolicy` + `BilDiscountApplication` yang sudah ada (endpoint `POST .../billing/invoices/{id}/discounts` dan `POST .../discounts/{discountId}/approve`); kode voucher pada Menu Pembayaran adalah pencarian/filter terhadap `MstDiscountPolicy.Code` yang sudah ada, bukan mekanisme redemption baru. Tidak ada field atau endpoint backend baru yang diperlukan untuk keperluan ini. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026; dikonfirmasi dari source `MstDiscountPolicy.cs` (field `Code`, `RequiresApproval`, `ApproverRole` sudah ada, tidak ada field redemption/single-use) |
+| `BKC-DEC-046` | Decision | Selama ada Diskon Dokter berstatus menunggu approval (`RequiresApproval = true`, belum disetujui/ditolak) pada invoice yang sedang dibayar, tombol Proses Pembayaran WAJIB dinonaktifkan/diblokir sampai approval selesai (disetujui atau ditolak). Kasir tidak dapat memproses pembayaran dengan diskon yang masih menggantung. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026 |
+| `BKC-DEC-047` | Decision | "Tambah Biaya Lain-lain" mengizinkan kasir mengisi nama item/layanan dan harga secara BEBAS (tidak dibatasi katalog/master tarif resmi). Sebagai kompensasi kontrol, setiap baris biaya bebas WAJIB tercatat pada audit log (identitas kasir, waktu, nominal, kategori, keterangan) melalui `LoggerService.AuditAsync`, tanpa gerbang approval tambahan sebelum bisa dibayarkan. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026 |
+| `BKC-DEC-048` | Decision | Field "Catatan (Opsional)" pada Menu Pembayaran bersifat internal — hanya terlihat oleh kasir/petugas billing pada layar dan riwayat internal, dan TIDAK PERNAH dicetak pada struk/Dokumen Kasir yang diserahkan ke pasien. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026 |
+| `BKC-DEC-049` | Decision | Kasir BOLEH secara sengaja memasukkan nominal pembayaran lebih kecil dari "Harus Dibayar" dan menekan Proses Pembayaran, menghasilkan status Pembayaran Sebagian (`BillingSettlementStatuses.PartiallySettled`) yang sudah ada di source. Ini bukan status yang hanya muncul dari kegagalan sistem/split payment — melainkan pilihan sah kasir untuk kasus pasien yang hanya mampu membayar sebagian saat itu; sisanya tetap tercatat sebagai outstanding invoice. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026; dikonfirmasi `BilSettlement.Status` sudah memiliki nilai `PARTIALLY_SETTLED` di source |
+
+### Acceptance criteria bisnis (lanjutan, no. 17 dst.)
+
+17. Menu Pembayaran menolak submit (tombol nonaktif) selama ada Diskon Dokter berstatus
+    pending approval pada invoice yang sama; begitu disetujui/ditolak, tombol aktif kembali.
+18. Setiap baris "Biaya Lain-lain" yang tersimpan menghasilkan satu entri audit log yang
+    memuat identitas kasir, waktu, kategori, nama item, dan nominal — tanpa entri audit
+    berarti baris itu tidak sah dianggap tersimpan.
+19. Nilai field Catatan tidak pernah muncul pada payload/template pencetakan Dokumen Kasir;
+    field ini hanya boleh dikembalikan pada endpoint yang diakses kasir/petugas billing.
+20. Proses Pembayaran dengan nominal kurang dari Harus Dibayar berhasil tersimpan sebagai
+    Pembayaran Sebagian dan invoice tetap menampilkan sisa outstanding yang benar — bukan
+    ditolak sebagai error validasi.
+21. Voucher/kode promo yang dicari pada Menu Pembayaran mengembalikan `MstDiscountPolicy`
+    yang sudah ada (tidak membuat entitas/redemption baru); pencarian kode yang tidak
+    ditemukan menghasilkan pesan "tidak ditemukan", bukan crash atau silent-fail.
+
+### Open question / belum diputuskan
+
+- Perilaku detail split payment saat SEBAGIAN tender pada satu settlement berhasil dan
+  SEBAGIAN gagal (mis. QRIS ditolak di tengah split dengan tunai) — apakah tender yang sudah
+  berhasil tetap berdiri (partial success) atau seluruh settlement rollback. Belum ditanyakan
+  pada pass ini; owner: Product/Domain Owner. Tidak memblokir `DESIGN` karena
+  `BillingSettlementStatuses` sudah punya state `PartiallySettled`/`Failed` yang cukup untuk
+  desain awal, tapi perlu dikonfirmasi sebelum `IMPLEMENTATION` alur split payment selesai.
+- Detail kontrol "Metode Lainnya" (metode pembayaran di luar Tunai/QRIS/Transfer Bank yang
+  sudah dikategorikan) — apakah ini hanya grouping tampilan atas `MstPaymentMethod` yang
+  `PaymentGroupName`-nya bukan salah satu dari tiga kategori utama, atau ada aturan khusus.
+  Kemungkinan besar `DEV_DISCRETION` (murni pengelompokan tampilan atas master data yang
+  sudah ada), tapi belum dikonfirmasi eksplisit.
+
+### Langkah berikutnya
+
+Keputusan `BKC-DEC-045`–`049` masih berstatus `draft` — belum ada pernyataan approval eksplisit
+dari Product/Domain Owner untuk amendment ini (berbeda dengan `BKC-DEC-031`–`044` yang sudah
+`approved`). Sebelum desain final: (1) dapatkan approval eksplisit untuk kelima keputusan ini,
+(2) jalankan `/trace-existing-capabilities` untuk memetakan `KasirQuilvian1/` (BeKasir,
+FE kasir app/view) terhadap kapabilitas backend/frontend saat ini secara rinci — pass ini baru
+memverifikasi beberapa fakta source (`MstPaymentMethod`, `MstDiscountPolicy`, `BilTender`,
+`BilSettlement`) secara ad-hoc, belum melakukan audit menyeluruh gaya `01-existing-capability-map.md`
+khusus untuk Menu Pembayaran.

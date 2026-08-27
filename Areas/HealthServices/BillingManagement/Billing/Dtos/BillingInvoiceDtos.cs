@@ -115,6 +115,7 @@ public sealed class CalculationResponse
     public int VersionNo { get; set; }
     public decimal GrossAmount { get; set; }
     public decimal AdministrationFeeAmount { get; set; }
+    public decimal RoomChargeAmount { get; set; }
     public decimal ItemDiscount { get; set; }
     public decimal TotalDiscount { get; set; }
     public decimal TaxAmount { get; set; }
@@ -134,6 +135,7 @@ public sealed class CalculationBreakdownResponse
 {
     public string ContractVersion { get; set; } = BillingCalculationContract.Version;
     public AdministrationFeeCalculationResponse AdministrationFee { get; set; } = new();
+    public RoomChargeCalculationResponse RoomCharge { get; set; } = new();
     public IReadOnlyList<CalculationItemResponse> Items { get; set; } = [];
     public IReadOnlyList<DiscountCalculationResponse> Discounts { get; set; } = [];
     public IReadOnlyList<TaxCalculationResponse> Taxes { get; set; } = [];
@@ -151,6 +153,39 @@ public sealed class AdministrationFeeCalculationResponse
     public int ReplacementPriority { get; set; }
     public bool Coverable { get; set; }
     public bool ReplacesEarlierFee { get; set; }
+}
+
+// BKC-DEC-043: occupancy timeline (InpBedPlacement) adalah source of truth; komponen ini
+// dihitung ulang penuh setiap recalculate persis seperti AdministrationFee - bukan
+// BilInvoiceItem, sehingga tidak lewat IBillingChargeSourceAdapter (BKC-DEC-039 memisahkan
+// room charge dari kontrak charge-source generik). LeaveRule policy SELALU diperlakukan
+// seperti INCLUDE_LEAVE karena belum ada model pencatatan cuti pasien di InPatientManagement -
+// ini gap yang disengaja dicatat di sini, bukan ditebak diam-diam.
+public sealed class RoomChargeCalculationResponse
+{
+    public Guid? PolicyId { get; set; }
+    public string? PolicyCode { get; set; }
+    public decimal AppliedAmount { get; set; }
+    public bool LeaveRuleEnforced { get; set; }
+    public IReadOnlyList<RoomChargeSegmentResponse> Segments { get; set; } = [];
+}
+
+public sealed class RoomChargeSegmentResponse
+{
+    public Guid PlacementId { get; set; }
+    public Guid RoomId { get; set; }
+    public Guid ServiceUnitId { get; set; }
+    public Guid PatientClassId { get; set; }
+    public DateTime StartDateTime { get; set; }
+    public DateTime? EndDateTime { get; set; }
+    public bool IsOngoing { get; set; }
+    public int OccupiedMinutes { get; set; }
+    public decimal ChargeUnits { get; set; }
+    public Guid? TariffId { get; set; }
+    public string? TariffCode { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal SegmentAmount { get; set; }
+    public bool MissingTariff { get; set; }
 }
 
 public sealed class CalculationItemResponse
