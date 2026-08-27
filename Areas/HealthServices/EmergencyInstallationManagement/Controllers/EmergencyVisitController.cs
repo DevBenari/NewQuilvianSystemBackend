@@ -5,7 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -68,6 +68,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             [FromQuery] EmergencyRegistrationStatus? registrationStatus,
             [FromQuery] EmergencyVisitStatus? visitStatus,
             [FromQuery] bool? isActive,
+            [FromQuery] bool? hasDuplicateEpisodeOverride,
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? sortBy = null,
@@ -105,6 +106,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (patientId.HasValue && patientId.Value != Guid.Empty)
                 query = query.Where(x => x.PatientId == patientId.Value);
+
+            // BE-IGD-025 butir 4 - pemakaian jalan keluar episode ganda wajib dapat dipantau.
+            // Disediakan sebagai saringan pada daftar yang sudah ada, bukan layar baru.
+            if (hasDuplicateEpisodeOverride.HasValue)
+            {
+                query = hasDuplicateEpisodeOverride.Value
+                    ? query.Where(x => x.DuplicateEpisodeOverrideAt != null)
+                    : query.Where(x => x.DuplicateEpisodeOverrideAt == null);
+            }
 
             if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
                 query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
@@ -186,6 +196,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (!string.IsNullOrWhiteSpace(normalizedNumber) && await _dbContext.Set<TrxEmergencyVisit>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.EmergencyVisitNumber == normalizedNumber, cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "EmergencyVisitNumber sudah digunakan."));
 
+            // BE-IGD-025 - satu pasien satu episode IGD aktif, IGD-DEC-084. Pasien yang belum
+            // teridentifikasi tidak pernah ikut tertahan (AT-IGD-085); itu ditangani di dalam
+            // CariEpisodeAktifAsync, bukan dengan percabangan di sini.
+            var episodeAktif = await _emergencyVisitService.CariEpisodeAktifAsync(
+                ToNullableReference(request.PatientId),
+                cancellationToken: cancellationToken);
+
+            var alasanEpisodeGanda = NormalizeText(request.DuplicateEpisodeOverrideReason);
+
+            if (episodeAktif != null && string.IsNullOrWhiteSpace(alasanEpisodeGanda))
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    EmergencyVisitService.PesanEpisodeGanda(episodeAktif)));
+            }
+
+            // Alasan tanpa episode aktif berarti petugas salah paham keadaannya. Menyimpannya
+            // membuat daftar pantau memuat penembusan yang tidak pernah terjadi.
+            if (episodeAktif == null && !string.IsNullOrWhiteSpace(alasanEpisodeGanda))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien ini tidak punya kunjungan IGD yang masih berjalan, sehingga alasan " +
+                    "pendaftaran ganda tidak perlu diisi. Kosongkan kolom itu lalu simpan lagi."));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
@@ -223,6 +259,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 VisitCompletedAt = request.VisitCompletedAt,
                 Notes = NormalizeText(request.Notes),
                 IsActive = request.IsActive,
+                DuplicateEpisodeOverrideReason = episodeAktif == null ? null : alasanEpisodeGanda,
+                DuplicateEpisodeOverrideByUserId = episodeAktif == null ? null : actorUserId,
+                DuplicateEpisodeOverrideAt = episodeAktif == null ? null : now,
+                DuplicateEpisodeOverrideOfVisitId = episodeAktif?.Id,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
                 IsDelete = false,
@@ -315,6 +355,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [ProducesResponseType(typeof(ApiResponse<EmergencyVisitResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Update", "Update Emergency Visit RegistrationStatus", Description = "Mengubah status kunjungan IGD", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("EmergencyVisit", "Update")]
         public async Task<IActionResult> UpdateRegistrationStatus(Guid id, [FromBody] UpdateEmergencyVisitRegistrationStatusRequest request, CancellationToken cancellationToken = default)
@@ -325,6 +366,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (!_emergencyVisitService.CanTransition(entity.RegistrationStatus, request.RegistrationStatus))
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, $"Perubahan status dari {entity.RegistrationStatus} ke {request.RegistrationStatus} tidak diperbolehkan."));
+
+            // BE-IGD-024 - pendaftaran yang dituntaskan tanpa encounter menghasilkan kunjungan
+            // IGD yang tidak dapat menyimpan catatan klinis apa pun.
+            var pesanEncounter = EmergencyVisitService.PeriksaEncounterPendaftaran(entity, request.RegistrationStatus);
+            if (pesanEncounter != null)
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, pesanEncounter));
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
@@ -430,7 +477,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            entity.VisitStatus = EmergencyVisitStatus.Completed;
+            // BE-IGD-022 — penulisan Completed dialihkan lewat penjaga BE-IGD-018. Bersama
+            // BE-IGD-019 dan BE-IGD-021, seluruh perubahan VisitStatus kini bersumber pada
+            // satu matriks transisi. PATCH /{id}/visit-status memanggil CanTransition secara
+            // langsung dan mempertahankan pesan 400-nya yang sudah dipakai frontend.
+            //
+            // Closure gate di atas tetap dijalankan lebih dulu dan tetap yang menentukan
+            // pesan penolakannya: ia memeriksa aturan bisnis validation bagian 6 — observasi
+            // aktif, kepergian yang belum tuntas, pesanan tanpa sikap — yang bukan urusan
+            // matriks transisi. Penjaga di sini lapis kedua, bukan penggantinya.
+            if (!_emergencyVisitService.TryApplyVisitStatus(
+                    entity, EmergencyVisitStatus.Completed, actorUserId, now, out var penolakanTransisi))
+            {
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, penolakanTransisi!));
+            }
+
             entity.VisitCompletedAt = now;
 
             if (!string.IsNullOrWhiteSpace(request?.Notes) && entity.GetType().GetProperty("Notes") != null)
@@ -450,7 +511,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new { EntityId = id, Controller = "EmergencyVisit", Action = "Complete" }
             );
 
-            return Ok(ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(entity), "Kunjungan IGD berhasil diselesaikan."));
+            // IGD-DEC-106 syarat (d) - penutupan tidak boleh pernah diam soal dokumen serah
+            // terima yang masih menggantung. Dokumen itu memang TIDAK menahan penutupan, tetapi
+            // petugas yang menutup wajib tahu bahwa ia meninggalkan berkas yang belum tuntas di
+            // unit tujuan. Menahan penutupan dan membiarkannya diam-diam sama-sama salah; yang
+            // benar adalah menutup sambil menyebutkannya.
+            var dokumenMenggantung = await _dbContext.Set<EmgDeparture>()
+                .AsNoTracking()
+                .Where(x => x.EmergencyVisitId == entity.Id
+                    && !x.IsDelete
+                    && x.HandoverStatus != EmergencyHandoverStatus.Accepted
+                    && x.HandoverStatus != EmergencyHandoverStatus.Cancelled)
+                .OrderBy(x => x.RequestedAt)
+                .Select(x => x.DepartureNumber)
+                .ToListAsync(cancellationToken);
+
+            var pesanPenutupan = dokumenMenggantung.Count == 0
+                ? "Kunjungan IGD berhasil diselesaikan."
+                : $"Kunjungan IGD berhasil diselesaikan. Dokumen serah terima " +
+                  $"{string.Join(", ", dokumenMenggantung)} masih menunggu unit tujuan dan " +
+                  "tetap dapat diterima atau ditolak setelah kunjungan ditutup.";
+
+            return Ok(ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(entity), pesanPenutupan));
         }
 
         [HttpDelete("{id:guid}")]
@@ -500,7 +582,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 (!request.EncounterId.HasValue || request.EncounterId.Value == Guid.Empty))
                 return "EncounterId wajib tersedia ketika registrasi IGD sudah terdaftar atau selesai.";
 
-            var emergencySetting = await _dbContext.Set<MstEmergencySetting>()
+            var emergencySetting = await _dbContext.Set<EmgSetting>()
                 .AsNoTracking()
                 .Where(x => x.IsActive && !x.IsDelete)
                 .OrderByDescending(x => x.IsDefault)
@@ -522,8 +604,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 if (encounter == null)
                     return "EncounterId tidak ditemukan.";
 
-                if (encounter.EncounterType != EncounterType.Outpatient)
-                    return "Jenis kunjungan pasien IGD harus OP (EncounterType.Outpatient).";
+                // BE-IGD-023 - aturannya milik EmergencyVisitService supaya jalur controller
+                // dan jalur service tidak dapat menyimpang. Lihat catatan di sana.
+                var pesanJenisEncounter = EmergencyVisitService.PeriksaJenisEncounter(encounter.EncounterType);
+                if (pesanJenisEncounter != null)
+                    return pesanJenisEncounter;
 
                 if (encounter.ServiceUnitId != request.ServiceUnitId)
                     return "ServiceUnitId kunjungan IGD harus sama dengan ServiceUnitId pada encounter.";
@@ -540,11 +625,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return "ServiceUnitId tidak ditemukan.";
 
             if (request.ArrivalModeId.HasValue && request.ArrivalModeId.Value != Guid.Empty &&
-                !await _dbContext.Set<MstEmergencyArrivalMode>().AsNoTracking().AnyAsync(x => x.Id == request.ArrivalModeId.Value && !x.IsDelete, cancellationToken))
+                !await _dbContext.Set<EmgArrivalMode>().AsNoTracking().AnyAsync(x => x.Id == request.ArrivalModeId.Value && !x.IsDelete, cancellationToken))
                 return "ArrivalModeId tidak ditemukan.";
 
             if (request.CaseTypeId.HasValue && request.CaseTypeId.Value != Guid.Empty &&
-                !await _dbContext.Set<MstEmergencyCaseType>().AsNoTracking().AnyAsync(x => x.Id == request.CaseTypeId.Value && !x.IsDelete, cancellationToken))
+                !await _dbContext.Set<EmgCaseType>().AsNoTracking().AnyAsync(x => x.Id == request.CaseTypeId.Value && !x.IsDelete, cancellationToken))
                 return "CaseTypeId tidak ditemukan.";
 
             return null;
@@ -638,6 +723,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 VisitCompletedAt = x.VisitCompletedAt,
                 Notes = x.Notes,
                 IsActive = x.IsActive,
+                DuplicateEpisodeOverrideReason = x.DuplicateEpisodeOverrideReason,
+                DuplicateEpisodeOverrideByUserId = x.DuplicateEpisodeOverrideByUserId,
+                DuplicateEpisodeOverrideAt = x.DuplicateEpisodeOverrideAt,
+                DuplicateEpisodeOverrideOfVisitId = x.DuplicateEpisodeOverrideOfVisitId,
                 CreateDateTime = x.CreateDateTime,
                 UpdateDateTime = x.UpdateDateTime
             };

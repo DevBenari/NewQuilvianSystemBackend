@@ -2,11 +2,11 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.3.0` |
+| `contract_version` | `0.4.0` — revisi 6. **Aditif**: bagian 6a murni baru, nol bagian lama diubah |
 | Status | `draft`, **kecuali bagian 1, 1.1, dan 1.2 yang `approved`** |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 1, 1.1, 1.2 (`EmergencyVisitStatus`) lewat `IGD-DEC-093`. Bagian 2 sampai 7 tetap `draft` |
-| Versi sebelumnya | `0.2.0` |
+| Versi sebelumnya | `0.3.0`, sebelumnya `0.2.0` |
 
 ---
 
@@ -118,6 +118,52 @@ Pengalihan dokter menutup baris lama dan membuka baris baru dalam **satu transak
 
 ---
 
+## 6a. `EmergencyOrderAcceptanceStatus` — baru pada revisi 6
+
+Penerimaan **per pesanan**, terpisah dari `EmergencyHandoverStatus` milik dokumen serah terima.
+Ditetapkan `IGD-DEC-102`.
+
+| Dari \ Ke | NotRequired | Pending | Accepted | Rejected |
+| --- | :-: | :-: | :-: | :-: |
+| **NotRequired** | — | — | — | — |
+| **Pending** | — | — | ✓ | ✓ |
+| **Accepted** | — | — | — | — |
+| **Rejected** | — | — | — | — |
+
+### 6a.1 Nilai awal ditentukan sikap pesanan
+
+| `Action` | `AcceptanceStatus` awal | Sebab |
+| --- | --- | --- |
+| `Continue` | `NotRequired` | Pesanan tetap berjalan di tempatnya; tidak ada unit penerima yang perlu menerima |
+| `Cancel` | `NotRequired` | Pesanan dihentikan; tidak ada yang diserahkan |
+| `Handover` | `Pending` | Menunggu penerimaan eksplisit unit penerima |
+
+### 6a.2 Aturan penegakan
+
+| Aturan | Sebab |
+| --- | --- |
+| `Accepted` dan `Rejected` bersifat **final** pada barisnya | Perubahan sesudahnya ditulis sebagai baris baru, bukan menimpa — `IGD-DEC-102` butir (c) |
+| `Rejected` **wajib** beralasan | `IGD-DEC-102` |
+| `Rejected` **tidak** mengubah `EmergencyHandoverStatus` maupun status kepergian pasien | `IGD-DEC-102` butir (a) dan (d). Perpindahan pasien tetap sah |
+| Pesanan `Rejected` wajib punya baris pengganti ber-`SupersedesOrderItemId` sebelum kunjungan ditutup | `IGD-DEC-102` butir (c) |
+| Baris pengganti boleh ber-`Action` `Continue`, `Handover` ke penerima lain, atau `Cancel` | `IGD-DEC-102` butir (c) |
+
+### 6a.3 Tiga rangkaian yang berjalan sendiri-sendiri
+
+`IGD-DEC-102` menyatakan penerimaan pasien, dokumen serah terima, dan setiap pesanan adalah
+fakta yang terpisah. Akibatnya modul ini punya **tiga** rangkaian yang tidak saling menahan:
+
+| Rangkaian | Enum | Menjawab |
+| --- | --- | --- |
+| Keadaan fisik pasien | `EmergencyPhysicalStatus` | Pasien sudah berangkat dan tiba? |
+| Dokumen serah terima | `EmergencyHandoverStatus` | Unit tujuan menerima **pasiennya**? |
+| Tiap pesanan | `EmergencyOrderAcceptanceStatus` | Unit tujuan menerima **pesanan ini**? |
+
+Satu pesanan yang `Rejected` **tidak** menggeser dua rangkaian di atasnya. Inilah alasan
+penerimaan pesanan tidak ditumpangkan pada `EmergencyHandoverStatus`.
+
+---
+
 ## 7. Status yang sengaja tidak dibuat
 
 | Yang dipertimbangkan | Ditolak karena |
@@ -127,3 +173,5 @@ Pengalihan dokter menutup baris lama dan membuka baris baru dalam **satu transak
 | Status `ReadyToTransfer` tersendiri | Sudah diwakili `Prepared` |
 | Status kunjungan `Reopened` | Kunjungan tertutup **tidak boleh** dibuka kembali — `IGD-GAP-014` |
 | Rangkaian ketiga untuk serah terima dokter | `IGD-DEC-079` memilih satu dokumen untuk rilis pertama |
+| Status pesanan yang mencerminkan keadaan di laboratorium | `LabOrder` tidak punya kolom status. Sistem **dilarang** menebaknya — `IGD-DEC-101` |
+| Menumpangkan penerimaan pesanan pada `EmergencyHandoverStatus` | Satu pesanan yang ditolak akan menggagalkan penerimaan pasien, yang dilarang `IGD-DEC-102` butir (d) |

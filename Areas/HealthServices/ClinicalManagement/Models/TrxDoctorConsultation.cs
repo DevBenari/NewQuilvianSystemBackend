@@ -21,8 +21,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         [Required]
         public Guid EncounterId { get; set; }
 
-        [Required]
-        public Guid QueueId { get; set; }
+        /// <summary>
+        /// Antrean asal konsultasi. <b>Boleh kosong</b> sejak <c>BE-IGD-028</c>, dengan alasan
+        /// yang sama seperti <c>TrxPatientAssessment.QueueId</c>: pasien IGD tidak berantre.
+        /// </summary>
+        /// <remarks>
+        /// <c>FR-IGD-062</c>. Tabel milik <c>ClinicalManagement</c>; perubahan dikerjakan IGD
+        /// atas wewenang <c>IGD-DEC-107</c>.
+        /// </remarks>
+        public Guid? QueueId { get; set; }
 
         public Guid? AssessmentId { get; set; }
 

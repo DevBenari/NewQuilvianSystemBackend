@@ -232,9 +232,20 @@ classDiagram
         +Guid Id «new»
         +Guid EmergencyDepartureId
         +EmergencyOrderKind OrderKind
-        +Guid OrderReferenceId
+        +EmergencyOrderSource OrderSource «rev6»
+        +Guid? OrderReferenceId «rev6»
+        +string? ExternalReference «rev6»
+        +string OrderDescription «rev6»
         +EmergencyOrderAction Action
         +string? ActionReason
+        +Guid ActionByUserId «rev6»
+        +DateTime ActionAt «rev6»
+        +EmergencyOrderAcceptanceStatus AcceptanceStatus «rev6»
+        +Guid? AcceptedByUserId «rev6»
+        +DateTime? AcceptedAt «rev6»
+        +string? RejectionReason «rev6»
+        +bool IsEffective «rev6»
+        +Guid? SupersedesOrderItemId «rev6»
     }
 
     TrxEmergencyVisit "1" --> "0..*" TrxEmergencyDisposition
@@ -243,7 +254,28 @@ classDiagram
     TrxEmergencyDeparture "1" --> "1..*" TrxEmergencyDepartureEvent
     TrxEmergencyDeparture "1" --> "0..*" TrxEmergencyHandoverOrderItem
     TrxEmergencyDepartureEvent "0..1" --> "0..1" TrxEmergencyDepartureEvent : SupersedesEventId
+    TrxEmergencyHandoverOrderItem "0..1" --> "0..1" TrxEmergencyHandoverOrderItem : SupersedesOrderItemId
 ```
+
+#### Penjelasan field baru revisi 6 pada `TrxEmergencyHandoverOrderItem`
+
+| Field | Arti | Keputusan |
+| --- | --- | --- |
+| `OrderSource` | `Internal` bila pesanan punya baris di sistem; `External` bila dibuat di luar sistem | `IGD-DEC-103` |
+| `OrderReferenceId` | **Boleh kosong.** Terisi hanya untuk `Internal` | `IGD-DEC-103` |
+| `ExternalReference` | **Wajib** bila `OrderSource` = `External`. Identitas atau nomor rujukan dari sistem luar | `IGD-DEC-103` |
+| `OrderDescription` | **Wajib selalu.** Deskripsi yang dapat diaudit — tanpa ini pesanan luar sistem tidak dapat ditelusuri sama sekali | `IGD-DEC-103` |
+| `ActionByUserId`, `ActionAt` | Pelaku dan waktu penetapan sikap. **Wajib**, termasuk untuk pesanan laboratorium yang sikapnya ditetapkan manual | `IGD-DEC-101` |
+| `ActionReason` | **Wajib** bila `Action` = `Cancel`; opsional selain itu | `IGD-DEC-100` butir (c) |
+| `AcceptanceStatus` | Penerimaan **per pesanan**, terpisah dari `EmergencyHandoverStatus` milik dokumen serah terima | `IGD-DEC-102` |
+| `AcceptedByUserId`, `AcceptedAt` | Terisi saat unit penerima menerima pesanan | `IGD-DEC-102` |
+| `RejectionReason` | **Wajib** bila `AcceptanceStatus` = `Rejected` | `IGD-DEC-102` |
+| `IsEffective`, `SupersedesOrderItemId` | Sikap pengganti setelah penolakan ditulis sebagai **baris baru** yang menunjuk baris lama; baris lama ditandai tidak berlaku dan **tidak dihapus** | `IGD-DEC-102` butir (c), mengikuti pola tambah-saja `IGD-DEC-090` |
+
+> **Mengapa penerimaan tidak menumpang `EmergencyHandoverStatus`.** `IGD-DEC-102` menyatakan
+> penerimaan pasien, dokumen serah terima, dan setiap pesanan adalah **tiga fakta terpisah**.
+> Menumpangkannya berarti satu pesanan yang ditolak akan menggagalkan penerimaan pasien —
+> akibat yang secara tegas dilarang butir (d).
 
 > **Penamaan.** `TrxEmergencyTransfer` diganti nama menjadi `TrxEmergencyDeparture` mengikuti
 > `IGD-DEC-069` yang mengubah artinya dari "perpindahan beserta tempat tidur" menjadi "catatan
@@ -297,12 +329,12 @@ dapat dijalankan dan ketiganya harus ditinjau ulang. Dicatat sebagai `IGD-OQ-068
 
 | Class | Status | Lokasi file | Perubahan |
 | --- | --- | --- | --- |
-| `MstEmergencyTriageLevel` | Sudah ada | `Areas/HealthServices/MasterData/Models/MstEmergencyTriageLevel.cs` | Tidak ada |
-| `MstEmergencyTriageIndicator` | Sudah ada | `.../MasterData/Models/MstEmergencyTriageIndicator.cs` | Tidak ada |
-| `MstEmergencyArrivalMode` | Sudah ada | `.../MasterData/Models/MstEmergencyArrivalMode.cs` | Tidak ada |
-| `MstEmergencyCaseType` | Sudah ada | `.../MasterData/Models/MstEmergencyCaseType.cs` | Tidak ada |
-| `MstEmergencyDispositionType` | Sudah ada | `.../MasterData/Models/MstEmergencyDispositionType.cs` | Tidak ada struktur; `ClosesEmergencyVisit` mulai dibaca |
-| `MstEmergencySetting` | **Diperbarui** | `.../MasterData/Models/MstEmergencySetting.cs` | Empat kolom mati diberi arti atau dicabut — lihat bagian 5 |
+| `MstEmergencyTriageLevel` | Sudah ada | `Areas/HealthServices/EmergencyInstallationManagement/MasterData/Models/MstEmergencyTriageLevel.cs` | Tidak ada |
+| `MstEmergencyTriageIndicator` | Sudah ada | `.../EmergencyInstallationManagement/MasterData/Models/MstEmergencyTriageIndicator.cs` | Tidak ada |
+| `MstEmergencyArrivalMode` | Sudah ada | `.../EmergencyInstallationManagement/MasterData/Models/MstEmergencyArrivalMode.cs` | Tidak ada |
+| `MstEmergencyCaseType` | Sudah ada | `.../EmergencyInstallationManagement/MasterData/Models/MstEmergencyCaseType.cs` | Tidak ada |
+| `MstEmergencyDispositionType` | Sudah ada | `.../EmergencyInstallationManagement/MasterData/Models/MstEmergencyDispositionType.cs` | Tidak ada struktur; `ClosesEmergencyVisit` mulai dibaca |
+| `MstEmergencySetting` | **Diperbarui** | `.../EmergencyInstallationManagement/MasterData/Models/MstEmergencySetting.cs` | Empat kolom mati diberi arti atau dicabut — lihat bagian 5 |
 | `MstServiceUnit` | **Diperbarui** | `.../MasterData/Models/MstServiceUnit.cs` | Tambah `OrganizationUnitId` — **milik Master Data, bukan IGD** |
 | `MstPatientClass` | Sudah ada | `.../MasterData/Models/MstPatientClass.cs` | Tidak ada. `IsForEmergency` sudah tersedia dan mulai dipakai |
 
@@ -334,14 +366,43 @@ dapat dijalankan dan ketiganya harus ditinjau ulang. Dicatat sebagai `IGD-OQ-068
 | `EmergencyPhysicalStatus` | **Baru** | `.../Enums/EmergencyPhysicalStatus.cs` | `Prepared`=1, `Departed`=2, `Arrived`=3, `Cancelled`=9 |
 | `EmergencyHandoverStatus` | **Baru** | `.../Enums/EmergencyHandoverStatus.cs` | `Submitted`=1, `Pending`=2, `Accepted`=3, `Rejected`=4, `Cancelled`=9 |
 | `EmergencyDepartureEventType` | **Baru** | `.../Enums/EmergencyDepartureEventType.cs` | `Prepared`=1, `Departed`=2, `Arrived`=3, `HandoverSubmitted`=4, `HandoverAccepted`=5, `HandoverRejected`=6, `Cancelled`=9, `Amended`=10, `Reversed`=11 |
-| `EmergencyOrderKind` | **Baru** | `.../Enums/EmergencyOrderKind.cs` | `Medication`=1, `Procedure`=2, `LaboratoryOrder`=3 |
-| `EmergencyOrderAction` | **Baru** | `.../Enums/EmergencyOrderAction.cs` | `Completed`=1, `Cancelled`=2, `HandedOver`=3 |
+| `EmergencyOrderKind` | **Baru** | `.../Enums/EmergencyOrderKind.cs` | `Medication`=1, `Procedure`=2, `LaboratoryOrder`=3, **`RadiologyOrder`=4** |
+| `EmergencyOrderSource` | **Baru — revisi 6** | `.../Enums/EmergencyOrderSource.cs` | `Internal`=1, `External`=2 |
+| `EmergencyOrderAction` | **Baru — nilainya berubah pada revisi 6** | `.../Enums/EmergencyOrderAction.cs` | **`Continue`=1, `Handover`=2, `Cancel`=9** |
+| `EmergencyOrderAcceptanceStatus` | **Baru — revisi 6** | `.../Enums/EmergencyOrderAcceptanceStatus.cs` | `NotRequired`=1, `Pending`=2, `Accepted`=3, `Rejected`=4 |
 
 Nilai `Cancelled` sengaja diberi angka `9` pada enum baru agar penambahan nilai antara tidak
 menggeser nilai terminal.
 
 `EmergencyOrderKind.LaboratoryOrder` **sudah didefinisikan tetapi belum dipakai** pada rilis
 pertama, sesuai `IGD-DEC-087`. Ia ada supaya penambahannya kelak tidak menggeser nilai lain.
+
+#### 3.4.1 Empat koreksi revisi 6
+
+Revisi 5 menetapkan `EmergencyOrderAction` bernilai `Completed`/`Cancelled`/`HandedOver`.
+`IGD-DEC-100` membuktikan nilai itu **salah**, bukan sekadar salah nama.
+
+| Nilai revisi 5 | Revisi 6 | Sebab |
+| --- | --- | --- |
+| `Completed`=1 | **`Continue`=1** | Daftar sikap **hanya memuat pesanan yang belum selesai**. Pesanan yang sudah tuntas tidak pernah muncul di sana, sehingga `Completed` adalah nilai yang tidak pernah terpakai. Yang justru tidak punya nilai adalah keadaan sebenarnya: pesanan yang **masih berjalan** dan akan diproses sampai hasil final meski pasien sudah pergi — `IGD-DEC-100` butir (a) |
+| `HandedOver`=3 | **`Handover`=2** | Arti sama. Kini menuntut **penerimaan eksplisit** per pesanan — `IGD-DEC-102` |
+| `Cancelled`=2 | **`Cancel`=9** | Arti sama. Dipindah ke `9` mengikuti aturan modul ini: nilai terminal diberi `9` agar penambahan nilai antara tidak menggesernya |
+
+Tiga koreksi lain:
+
+| # | Koreksi | Keputusan |
+| ---: | --- | --- |
+| 2 | `EmergencyOrderKind` menambah `RadiologyOrder`=4 | `IGD-DEC-099` menetapkan pemesanan radiologi sebagai kebutuhan klinis IGD |
+| 3 | `EmergencyOrderSource` memisahkan pesanan **internal** dari **luar sistem** | `IGD-DEC-103`. Selama modul radiologi belum ada, pesanannya dibuat di luar sistem dan tidak punya baris untuk ditunjuk |
+| 4 | `EmergencyOrderAcceptanceStatus` — penerimaan **per pesanan** | `IGD-DEC-102`. Penerimaan pasien, dokumen serah terima, dan tiap pesanan adalah tiga fakta terpisah |
+
+**`EmergencyOrderSource` sengaja dibuat terpisah, bukan ditumpangkan pada `EmergencyOrderKind`.**
+Menambahkan nilai seperti `ExternalRadiologyOrder` akan menggandakan setiap jenis pesanan
+begitu ada jenis kedua yang dipesan di luar sistem, dan membuat "jenis pemeriksaan" bercampur
+dengan "asal pesanan" — dua hal yang berubah karena sebab berbeda.
+
+`EmergencyOrderAcceptanceStatus.NotRequired` berlaku untuk `Continue` dan `Cancel`: keduanya
+tidak melibatkan unit penerima, sehingga tidak ada yang perlu diterima.
 
 ### 3.5 Service
 
@@ -692,3 +753,89 @@ modul yang belum ditunjuk.
 | `IGD-OQ-068` | `IGD-DEC-070` memilih dua kolom status dan menolak daftar kejadian, tetapi `IGD-DEC-065`, `066`, `085` menuntut penyimpanan yang hanya mungkin sebagai daftar kejadian. Apakah penafsiran bagian 2.4 — kolom status sebagai turunan, daftar kejadian sebagai sumber audit — dapat diterima? | `IMPLEMENTATION` catatan kepergian |
 | `IGD-OQ-069` | Apakah `AutoCreateProvisionalEncounter` dan `RequireTriageBeforeStandardRegistration` benar dicabut, atau justru harus diberi arti? | `IMPLEMENTATION` `MstEmergencySetting` |
 | `IGD-OQ-070` | Penggantian nama `TrxEmergencyTransfer` menjadi `TrxEmergencyDeparture` mengubah nama tabel dan seluruh route-nya. Apakah penggantian nama diterima, atau nama lama dipertahankan demi kompatibilitas pemakai luar? | `IMPLEMENTATION` |
+
+---
+
+## 11. Correction pass revisi 6 — 26 Agustus 2026
+
+Ditambahkan atas permintaan Product/Domain Owner. **Bukan** perancangan area baru.
+
+### 11.1 Cara baris pesanan internal dibentuk
+
+Revisi 6 memperkenalkan `EmergencyOrderSource`, tetapi **belum menetapkan** dari mana baris
+`Internal` datang. Tanpa itu, `TrxEmergencyHandoverOrderItem` hanya dapat diisi manual, dan
+`IGD-DEC-100` butir (d) — larangan pembatalan otomatis — kehilangan artinya karena tidak ada
+daftar yang dibentuk sistem.
+
+Sumber per jenis, seluruhnya diverifikasi pada `300922c`:
+
+| `OrderKind` | Tabel sumber | `OrderReferenceId` menunjuk | Penanda "belum selesai" | Pemilik tabel |
+| --- | --- | --- | --- | --- |
+| `Medication` | `TrxPrescription` | `TrxPrescription.Id` | `FulfillmentStatus` belum terminal | `PharmacyManagement` |
+| `Procedure` | `TrxPatientProcedure` | `TrxPatientProcedure.Id` | `ProcedureStatus` belum terminal; nilai awalnya `Planned` | `ClinicalManagement` |
+| `LaboratoryOrder` | `LabOrder` | `LabOrder.Id` | **Tidak dapat ditentukan sistem** | `LaboratoryManagement` |
+| `RadiologyOrder` | — | **Selalu kosong** | Tidak berlaku | Belum ada modulnya |
+
+#### Tiga akibat yang harus diterima secara sadar
+
+**① Dua dari empat jenis bergantung pada tabel milik modul lain yang pemiliknya belum
+ditunjuk.** `Medication` dan `Procedure` hanya dapat dibentuk otomatis setelah `MVP-3` membuka
+jalur klinis IGD. Sebelum itu keduanya **kosong**, bukan salah.
+
+**② `LaboratoryOrder` tidak akan pernah terbentuk otomatis dengan benar** selama `LabOrder`
+tidak punya kolom status. Baris tetap dapat dibentuk — pesanan lab memang ada dan menempel
+pada encounter — tetapi **sikapnya** wajib ditetapkan manual, sesuai `IGD-DEC-101`. Sistem
+membentuk barisnya, klinisi menentukan sikapnya.
+
+**③ `RadiologyOrder` selalu `External`.** Selama modul radiologi belum ada, tidak ada baris
+untuk ditunjuk, sehingga `OrderReferenceId` selalu kosong dan `ExternalReference` selalu wajib
+— `IGD-DEC-099`, `IGD-DEC-103`.
+
+#### Kapan daftar dibentuk
+
+Daftar disusun **saat dokumen serah terima diajukan**, bukan saat pesanan dibuat. Alasannya:
+pesanan yang selesai sebelum pasien pergi tidak pernah perlu diberi sikap, dan membentuk
+barisnya lebih awal hanya menghasilkan baris yang langsung usang.
+
+`EmergencyHandoverOrderService` menyusunnya dengan menanyakan tiap modul sumber, lalu
+menyimpan **snapshot** uraian pesanan pada `OrderDescription`. Snapshot dipakai supaya daftar
+tetap terbaca meski baris sumbernya kelak berubah — pola yang sama dengan
+`OrderLabelSnapshot` yang sudah ada.
+
+### 11.2 Unique constraint yang mendukung tiga keadaan sekaligus
+
+Rancangan revisi 6 menulis *"tepat satu baris `IsEffective = true` per pesanan yang sama"*.
+Rumusan itu **tidak dapat ditegakkan** apa adanya: pesanan `External` tidak punya
+`OrderReferenceId` untuk dijadikan kunci, sehingga seluruh pesanan luar sistem akan dianggap
+"pesanan yang sama" dan saling menolak.
+
+Diperbaiki menjadi **dua index parsial**, masing-masing dengan kuncinya sendiri:
+
+| Index | Kunci | Syarat |
+| --- | --- | --- |
+| `UX_EmergencyHandoverOrderItem_Internal` | `EmergencyDepartureId`, `OrderKind`, `OrderReferenceId` | `IsEffective` **dan** `OrderSource = Internal` **dan** `NOT IsDelete` |
+| `UX_EmergencyHandoverOrderItem_External` | `EmergencyDepartureId`, `OrderKind`, `ExternalReference` | `IsEffective` **dan** `OrderSource = External` **dan** `NOT IsDelete` |
+
+Ditambah satu `CHECK` yang menjaga keduanya tidak pernah kosong bersamaan:
+
+```
+(OrderSource = Internal AND OrderReferenceId IS NOT NULL AND ExternalReference IS NULL)
+OR
+(OrderSource = External AND ExternalReference IS NOT NULL AND OrderReferenceId IS NULL)
+```
+
+#### Kenapa koreksi tambah-saja tidak bertabrakan dengan index ini
+
+Baris yang digantikan ditandai `IsEffective = false` **dalam transaksi yang sama** dengan
+penulisan baris penggantinya. Karena kedua index hanya berlaku pada baris `IsEffective = true`,
+riwayat sepanjang apa pun tidak pernah melanggarnya — dan urutan penulisannya tidak perlu
+diatur khusus.
+
+Ini pola yang sama dengan `TrxEmergencyDepartureEvent` (`IGD-DEC-090`) dan dengan unique index
+bersyarat pada `TrxEmergencyDoctorAssignment`. Konsisten, bukan mekanisme baru.
+
+> **Catatan PostgreSQL.** `NULL` tidak dianggap sama dengan `NULL` pada unique index. Tanpa
+> syarat `OrderSource` pada tiap index, baris `External` yang `OrderReferenceId`-nya sama-sama
+> kosong akan lolos begitu saja — bukan karena aturannya benar, melainkan karena
+> perbandingannya tidak pernah terjadi. Syarat `OrderSource` itulah yang membuat index kedua
+> benar-benar menjaga.
