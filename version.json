@@ -1,5 +1,5 @@
 {
-  "backendVersion": "0.0.1",
-  "releaseName": "Versioning V2 Baseline",
-  "description": "Authoritative Semantic Versioning baseline for Quilvian System Backend."
+  "backendVersion": "0.2.0",
+  "releaseName": "Feature Billing Management, Clinical Billing Integration, Clinical Management, Emergency, InPatient, Laboratory, Operating Room, Pharmacy, Registration",
+  "description": "Release including Feature Billing Management, Clinical Billing Integration, Clinical Management, Emergency, InPatient, Laboratory, Operating Room, Pharmacy, Registration."
 }

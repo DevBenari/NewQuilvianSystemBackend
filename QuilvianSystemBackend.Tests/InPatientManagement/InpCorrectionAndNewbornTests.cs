@@ -111,8 +111,8 @@ public sealed class InpCorrectionAndNewbornTests
         Assert.Empty(censusSesudah.Items);
 
         // Tidak ada baris riwayat status baru — sesi koreksi bukan perpindahan status.
-        var riwayat = await world.EpisodeService.GetStatusHistoryAsync(episode.Id);
-        Assert.Equal(riwayatSebelum.Count, riwayat.Count);
+        var riwayatSesudah = await world.EpisodeService.GetStatusHistoryAsync(episode.Id);
+        Assert.Equal(riwayatSebelum.Count, riwayatSesudah.Count);
     }
 
     [Fact]

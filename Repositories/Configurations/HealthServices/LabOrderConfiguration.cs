@@ -18,9 +18,29 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.Property(x => x.ProcedureId)
                 .IsRequired();
 
+            // RJ-BIL-BE-003: siklus hidup operasional pesanan laboratorium.
+            entity.Property(x => x.OrderStatus)
+                .HasConversion<int>()
+                .IsRequired();
+
+            entity.Property(x => x.StatusBeforeHold)
+                .HasConversion<int>();
+
+            // Dua petugas yang memindahkan status pesanan yang sama secara bersamaan tidak
+            // boleh sama-sama berhasil.
+            entity.Property(x => x.Version)
+                .IsConcurrencyToken();
+
             entity.HasIndex(x => x.EncounterId);
 
             entity.HasIndex(x => x.ProcedureId);
+
+            entity.HasIndex(x => x.OrderStatus);
+
+            entity.HasMany(x => x.Specimens)
+                .WithOne(x => x.LabOrder)
+                .HasForeignKey(x => x.LabOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.Encounter)
                 .WithMany()

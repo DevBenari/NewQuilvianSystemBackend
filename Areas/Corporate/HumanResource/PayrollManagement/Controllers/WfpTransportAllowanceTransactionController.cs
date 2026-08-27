@@ -655,7 +655,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
             }
 
             if (request.AttendanceDailyId.HasValue && request.AttendanceDailyId.Value != Guid.Empty &&
-                !await _dbContext.Set<TrxAttendanceDaily>().AnyAsync(x =>
+                !await _dbContext.Set<HrdAttendanceDaily>().AnyAsync(x =>
                     x.Id == request.AttendanceDailyId.Value &&
                     !x.IsDelete,
                     cancellationToken))

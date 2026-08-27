@@ -43,8 +43,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BusinessTravelMana
         public TrxBusinessTravelParticipant? BusinessTravelParticipant { get; set; }
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public MstEmployee? Employee { get; set; }
-        public TrxBusinessTripAttendance? BusinessTripAttendance { get; set; }
-        public TrxAttendanceDaily? AttendanceDaily { get; set; }
+        public HrdBusinessTripAttendance? BusinessTripAttendance { get; set; }
+        public HrdAttendanceDaily? AttendanceDaily { get; set; }
         public ApplicationUser? SyncedByUser { get; set; }
     }
 }

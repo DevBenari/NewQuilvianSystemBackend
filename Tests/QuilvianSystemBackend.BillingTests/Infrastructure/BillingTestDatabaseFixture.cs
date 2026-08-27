@@ -1,6 +1,8 @@
-using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
+using QuilvianSystemBackend.Services.Logging;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -11,71 +13,69 @@ using Xunit;
 namespace QuilvianSystemBackend.BillingTests.Infrastructure
 {
     /// <summary>
-    /// Menyiapkan database PostgreSQL untuk acceptance criteria RJ-BIL-BE-001.
+    /// Menyiapkan database PostgreSQL khusus test untuk acceptance criteria Billing.
     ///
-    /// Connection string diambil dari environment variable QUILVIAN_BILLING_TEST_DB bila diisi,
-    /// dan bila tidak, jatuh kembali ke ConnectionStrings:DefaultConnection pada
-    /// appsettings.Development.json milik project utama.
+    /// Fixture ini menjalankan <c>Database.Migrate()</c> dan menulis baris nyata, sehingga
+    /// targetnya wajib database test tersendiri yang boleh dibuang kapan saja.
     ///
-    /// Test membuat lalu menghapus kembali seluruh baris miliknya sendiri dan tidak pernah
-    /// menyentuh data yang sudah ada. Database production ditolak tanpa mekanisme override.
+    /// Perilaku fail-closed sesuai keputusan author RJ-BIL-BE-003:
+    /// connection string HANYA dibaca dari environment variable QUILVIAN_BILLING_TEST_DB.
+    /// Bila variable tersebut kosong, fixture berhenti dengan configuration error dan tidak
+    /// menyentuh database mana pun.
+    ///
+    /// Fallback ke appsettings.Development.json sengaja DIHAPUS. Pada RJ-BIL-BE-002 fallback
+    /// itulah yang menyebabkan `dotnet test` menerapkan migration ke database dev bersama
+    /// QuilvianNewDevTim01 tanpa ada yang memerintahkannya. Menghapus fallback juga membuat
+    /// fixture tidak lagi membaca kredensial dari file konfigurasi mana pun.
     /// </summary>
     public sealed class BillingTestDatabaseFixture : IAsyncLifetime
     {
         public const string ConnectionStringVariable = "QUILVIAN_BILLING_TEST_DB";
 
         /// <summary>
-        /// Database dev bersama. Test tetap boleh berjalan di sini karena teardown menghapus
-        /// kembali seluruh baris yang dibuatnya, tetapi namanya dicetak ke output test agar
-        /// tidak pernah menjadi kejutan bagi yang menjalankannya.
+        /// Penanda yang dicetak pada setiap configuration error agar hasil test dapat dilaporkan
+        /// sebagai "terhalang konfigurasi", bukan sebagai kegagalan domain.
         /// </summary>
-        private static readonly string[] SharedDevelopmentDatabases =
+        public const string BlockedMarker = "BLOCKED_BY_TEST_DB_CONFIGURATION";
+
+        /// <summary>
+        /// Bukti afirmatif bahwa target memang database test. Fixture menolak berjalan tanpa
+        /// penanda ini, sehingga salah ketik nama database berakhir sebagai penolakan, bukan
+        /// sebagai migration yang terlanjur diterapkan ke database orang lain.
+        /// </summary>
+        private const string RequiredTestMarker = "test";
+
+        /// <summary>
+        /// Nama database yang ditolak secara eksplisit. Daftar ini menutup database dev bersama
+        /// yang pernah tersentuh pada RJ-BIL-BE-002.
+        /// </summary>
+        private static readonly string[] ForbiddenDatabaseNames =
         {
             "QuilvianNewDevTim01"
         };
 
         /// <summary>
-        /// Penanda nama database production. Test menulis dan menghapus baris, sehingga
-        /// menjalankannya terhadap production tidak pernah benar dan tidak disediakan
-        /// mekanisme override apa pun.
+        /// Penanda nama yang menunjukkan database dipakai bersama orang lain atau melayani
+        /// pengguna nyata. Test menerapkan migration dan menulis baris, sehingga tidak pernah
+        /// benar dijalankan terhadap database seperti itu dan tidak disediakan override apa pun.
         /// </summary>
-        private static readonly string[] ProductionMarkers =
+        private static readonly string[] ForbiddenDatabaseMarkers =
         {
             "prod",
-            "production"
+            "production",
+            "live",
+            "staging",
+            "stage",
+            "uat",
+            "dev",
+            "shared"
         };
 
         public string ConnectionString { get; private set; } = string.Empty;
 
         public Task InitializeAsync()
         {
-            var (resolved, origin) = ResolveConnectionString();
-
-            var database = new NpgsqlConnectionStringBuilder(resolved).Database ?? string.Empty;
-
-            foreach (var marker in ProductionMarkers)
-            {
-                if (database.Contains(marker, StringComparison.OrdinalIgnoreCase))
-                {
-                    throw new InvalidOperationException(
-                        $"Database '{database}' terindikasi production. Test ini membuat dan menghapus " +
-                        "baris, sehingga tidak pernah benar dijalankan terhadap production. " +
-                        $"Arahkan {ConnectionStringVariable} ke database dev atau test.");
-                }
-            }
-
-            foreach (var shared in SharedDevelopmentDatabases)
-            {
-                if (string.Equals(database, shared, StringComparison.OrdinalIgnoreCase))
-                {
-                    Console.WriteLine(
-                        $"[BILLING-TEST] Target database '{database}' adalah database dev bersama " +
-                        $"(sumber: {origin}). Test membuat pasien, encounter, unit layanan, dan user " +
-                        "sementara, lalu menghapus seluruhnya kembali pada teardown.");
-                }
-            }
-
-            ConnectionString = resolved;
+            ConnectionString = ResolveDedicatedTestConnectionString();
 
             using var context = CreateContext();
             context.Database.Migrate();
@@ -84,67 +84,104 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
         }
 
         /// <summary>
-        /// Mengambil connection string dari environment variable bila tersedia, dan bila tidak,
-        /// jatuh kembali ke konfigurasi aplikasi. Fallback ini dipilih agar test tidak menuntut
-        /// penyalinan kredensial ke environment variable atau perintah shell.
+        /// Mengambil connection string dari environment variable dan membuktikan bahwa targetnya
+        /// database test tersendiri sebelum satu perintah pun dikirim ke server.
+        ///
+        /// Urutan pemeriksaan disusun agar pesan yang muncul adalah pesan yang paling berguna:
+        /// variable kosong, nilai tidak sah, nama database kosong, nama terlarang, lalu bukti
+        /// afirmatif penanda test.
         /// </summary>
-        private static (string ConnectionString, string Origin) ResolveConnectionString()
+        private static string ResolveDedicatedTestConnectionString()
         {
             var fromEnvironment = Environment.GetEnvironmentVariable(ConnectionStringVariable);
-            if (!string.IsNullOrWhiteSpace(fromEnvironment))
-                return (fromEnvironment, ConnectionStringVariable);
 
-            var configPath = LocateApplicationConfiguration();
-            if (configPath == null)
+            if (string.IsNullOrWhiteSpace(fromEnvironment))
             {
                 throw new InvalidOperationException(
-                    $"Environment variable {ConnectionStringVariable} belum diisi dan " +
-                    "appsettings.Development.json tidak ditemukan pada direktori induk mana pun. " +
-                    "Isi environment variable tersebut dengan connection string PostgreSQL.");
+                    $"{BlockedMarker}: environment variable {ConnectionStringVariable} belum diisi. " +
+                    "Integration test Billing menjalankan migration dan menulis baris nyata, sehingga " +
+                    "hanya boleh berjalan terhadap database test tersendiri yang boleh dibuang. " +
+                    "Fallback ke appsettings.Development.json sudah dihapus setelah temuan " +
+                    "RJ-BIL-BE-002 agar test tidak pernah lagi menerapkan migration ke database dev " +
+                    "bersama. Isi variable tersebut dengan connection string PostgreSQL yang menunjuk " +
+                    $"database khusus test, dan pastikan nama database-nya mengandung '{RequiredTestMarker}'.");
             }
 
-            using var document = JsonDocument.Parse(File.ReadAllText(configPath));
+            NpgsqlConnectionStringBuilder builder;
 
-            if (!document.RootElement.TryGetProperty("ConnectionStrings", out var connectionStrings) ||
-                !connectionStrings.TryGetProperty("DefaultConnection", out var defaultConnection))
+            try
+            {
+                builder = new NpgsqlConnectionStringBuilder(fromEnvironment);
+            }
+            catch (Exception exception)
+            {
+                // Pesan exception asli dapat memuat potongan connection string, sehingga tidak
+                // ikut ditampilkan agar kredensial tidak bocor ke output test.
+                throw new InvalidOperationException(
+                    $"{BlockedMarker}: nilai {ConnectionStringVariable} bukan connection string " +
+                    $"PostgreSQL yang sah ({exception.GetType().Name}).");
+            }
+
+            var database = builder.Database ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(database))
             {
                 throw new InvalidOperationException(
-                    $"ConnectionStrings:DefaultConnection tidak ditemukan pada '{configPath}'.");
+                    $"{BlockedMarker}: {ConnectionStringVariable} tidak menyebutkan nama database. " +
+                    "Tambahkan bagian 'Database=' pada connection string.");
             }
 
-            var value = defaultConnection.GetString();
-            if (string.IsNullOrWhiteSpace(value))
+            foreach (var forbidden in ForbiddenDatabaseNames)
+            {
+                if (string.Equals(database, forbidden, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        $"{BlockedMarker}: database '{database}' termasuk daftar terlarang karena " +
+                        "dipakai bersama anggota tim lain. Test ini menerapkan migration, sehingga " +
+                        "menjalankannya di sana mengubah skema milik orang lain. Arahkan " +
+                        $"{ConnectionStringVariable} ke database test tersendiri.");
+                }
+            }
+
+            foreach (var marker in ForbiddenDatabaseMarkers)
+            {
+                if (database.Contains(marker, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        $"{BlockedMarker}: nama database '{database}' mengandung penanda '{marker}', " +
+                        "yang menandakan database bersama, staging, atau production. Test ini " +
+                        "menerapkan migration dan menulis baris, sehingga hanya boleh berjalan " +
+                        "terhadap database test tersendiri.");
+                }
+            }
+
+            if (!database.Contains(RequiredTestMarker, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException(
-                    $"ConnectionStrings:DefaultConnection kosong pada '{configPath}'.");
+                    $"{BlockedMarker}: nama database '{database}' tidak mengandung penanda " +
+                    $"'{RequiredTestMarker}'. Fixture menuntut bukti afirmatif bahwa targetnya memang " +
+                    "database test, sehingga salah ketik nama berakhir sebagai penolakan dan bukan " +
+                    "sebagai migration yang terlanjur diterapkan ke database yang salah. Beri nama " +
+                    "database test Anda misalnya 'QuilvianBillingTest'.");
             }
 
-            return (value, Path.GetFileName(configPath));
-        }
+            // Hanya nama host dan database yang dicetak. Username dan password tidak pernah
+            // ikut ke output test.
+            Console.WriteLine(
+                $"[BILLING-TEST] Target database test '{database}' pada host '{builder.Host}'.");
 
-        /// <summary>
-        /// Menelusuri direktori induk dari lokasi assembly test sampai menemukan project utama,
-        /// lalu mengembalikan path appsettings.Development.json di sebelahnya.
-        /// </summary>
-        private static string? LocateApplicationConfiguration()
-        {
-            var directory = new DirectoryInfo(AppContext.BaseDirectory);
-
-            while (directory != null)
-            {
-                var candidate = Path.Combine(directory.FullName, "appsettings.Development.json");
-                var projectMarker = Path.Combine(directory.FullName, "QuilvianSystemBackend.csproj");
-
-                if (File.Exists(candidate) && File.Exists(projectMarker))
-                    return candidate;
-
-                directory = directory.Parent;
-            }
-
-            return null;
+            return fromEnvironment;
         }
 
         public Task DisposeAsync() => Task.CompletedTask;
+
+        /// <summary>
+        /// Menyediakan LoggerService untuk service yang membutuhkannya. Test tidak menjalankan
+        /// HTTP request, sehingga HttpContext-nya memang kosong; LoggerService sudah menangani
+        /// keadaan tersebut dengan menulis tanda "-".
+        /// </summary>
+        public static LoggerService CreateLoggerService() =>
+            new(NullLogger<LoggerService>.Instance, new HttpContextAccessor());
 
         public ApplicationDbContext CreateContext()
         {
@@ -222,9 +259,7 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
         /// melanggar DeleteBehavior.Restrict.
         ///
         /// Teardown mencakup baris Billing sekaligus prasyarat FK-nya — encounter, pasien,
-        /// unit layanan, dan user. Ini penting ketika test dijalankan terhadap database
-        /// bersama: tanpa teardown penuh, pasien dan encounter palsu akan tertinggal dan
-        /// muncul pada daftar yang dilihat anggota tim lain.
+        /// unit layanan, dan user.
         /// </summary>
         public async Task CleanupEncounterAsync(
             EncounterSeed seed,
@@ -262,6 +297,52 @@ namespace QuilvianSystemBackend.BillingTests.Infrastructure
                     .Where(x => folioIds.Contains(x.Id))
                     .ExecuteDeleteAsync(cancellationToken);
             }
+
+            // Riwayat transisi dan specimen Lab (RJ-BIL-BE-003) menggantung pada LabOrder, dan
+            // LabOrder menggantung pada encounter, sehingga urutannya dari yang paling anak.
+            var labOrderIds = await context.LabOrders
+                .Where(x => x.EncounterId == seed.EncounterId)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+
+            if (labOrderIds.Count > 0)
+            {
+                var specimenIds = await context.TrxLabSpecimens
+                    .Where(x => labOrderIds.Contains(x.LabOrderId))
+                    .Select(x => x.Id)
+                    .ToListAsync(cancellationToken);
+
+                await context.TrxLabTransitionHistories
+                    .Where(x =>
+                        labOrderIds.Contains(x.LabOrderId) ||
+                        (x.LabSpecimenId != null && specimenIds.Contains(x.LabSpecimenId.Value)))
+                    .ExecuteDeleteAsync(cancellationToken);
+
+                // Recollection membuat rantai specimen yang menunjuk specimen sebelumnya, sehingga
+                // penghapusan diulang sampai tidak ada lagi baris yang tersisa.
+                while (await context.TrxLabSpecimens
+                    .AnyAsync(x => labOrderIds.Contains(x.LabOrderId), cancellationToken))
+                {
+                    var removed = await context.TrxLabSpecimens
+                        .Where(x =>
+                            labOrderIds.Contains(x.LabOrderId) &&
+                            !context.TrxLabSpecimens.Any(child => child.SupersededSpecimenId == x.Id))
+                        .ExecuteDeleteAsync(cancellationToken);
+
+                    if (removed == 0)
+                        break;
+                }
+
+                await context.LabOrders
+                    .Where(x => labOrderIds.Contains(x.Id))
+                    .ExecuteDeleteAsync(cancellationToken);
+            }
+
+            // Ledger fakta klinis (RJ-BIL-BE-002) memiliki FK Restrict ke encounter, sehingga
+            // wajib dihapus sebelum encounter-nya.
+            await context.TrxClinicalMilestoneFacts
+                .Where(x => x.EncounterId == seed.EncounterId)
+                .ExecuteDeleteAsync(cancellationToken);
 
             await context.TrxPatientEncounters
                 .Where(x => x.Id == seed.EncounterId)
