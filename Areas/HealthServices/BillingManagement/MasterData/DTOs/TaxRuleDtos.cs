@@ -61,3 +61,11 @@ public sealed class TaxRuleResponse
     public DateTime CreateDateTime { get; set; }
     public DateTime? UpdateDateTime { get; set; }
 }
+
+public sealed class TaxRuleDeleteResponse
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool IsDelete { get; set; }
+}

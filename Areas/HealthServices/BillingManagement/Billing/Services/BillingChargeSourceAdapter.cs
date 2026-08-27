@@ -34,7 +34,12 @@ public sealed class ContractBillingChargeSourceAdapter : IBillingChargeSourceAda
                 ["CANCELLED", "VOIDED"]),
             // Dispense dan usage adalah fakta final producer. Koreksinya harus berupa event/adjustment baru.
             ["PHARMACY"] = Policy(["DISPENSED"], [], []),
-            ["CONSUMABLE"] = Policy(["USED"], [], [])
+            ["CONSUMABLE"] = Policy(["USED"], [], []),
+            // Biaya bebas yang diketik langsung oleh kasir pada Menu Pembayaran (BKC-DEC-047):
+            // nama/harga bebas, tanpa gerbang approval, tapi tetap boleh dibatalkan kasir sendiri
+            // sebelum invoice final - beda dari domain producer klinis di atas yang begitu
+            // selesai (dispensed/used) tidak lagi bisa dibatalkan normal.
+            ["ADHOC"] = Policy(["ADDED"], ["ADDED"], ["VOIDED"])
         };
 
     public BillingChargeSourceSnapshot ValidateAndNormalize(UpsertChargeRequest request)

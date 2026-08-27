@@ -466,6 +466,30 @@ public sealed class BillingSettlementServiceTests
     }
 
     [Fact]
+    public async Task SettlementNoteAndTenderCashierReferenceNoteRoundTripIndependentlyOfProviderReference()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var (invoice, paymentMethod, _) = await SeedInvoiceAsync(db, 100_000m);
+        var provider = new SequenceProviderAdapter();
+        provider.EnqueueResult(BillingPaymentProviderOutcome.Pending, null, "PROCESSING");
+        var service = CreateService(db, provider);
+        var createRequest = InvoiceSettlementRequest(invoice.Id, 100_000m);
+        createRequest.Note = "Pasien hanya membawa uang pas, sisanya menyusul.";
+        var settlement = await service.CreateAsync(
+            createRequest, Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+        var tenderRequest = TenderRequest(paymentMethod.Id, 100_000m, settlement.RowVersion!.Value);
+        tenderRequest.CashierReferenceNote = "TRF-MANUAL-00123";
+
+        var tender = await service.AddTenderAsync(
+            settlement.Id!.Value, tenderRequest, Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
+        var result = await service.GetAsync(settlement.Id.Value, CancellationToken.None);
+
+        Assert.Equal("Pasien hanya membawa uang pas, sisanya menyusul.", result.Note);
+        Assert.Equal("TRF-MANUAL-00123", tender.CashierReferenceNote);
+        Assert.Null(tender.ProviderReferenceMasked);
+    }
+
+    [Fact]
     public void SettlementModelHasLockedUniquenessAndConcurrencyConfiguration()
     {
         using var db = IsolatedBillingDbContextFactory.Create();

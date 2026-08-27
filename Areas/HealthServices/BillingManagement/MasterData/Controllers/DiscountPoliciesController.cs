@@ -62,6 +62,33 @@ public sealed class DiscountPoliciesController : ControllerBase
     public Task<IActionResult> Deactivate(Guid id, [FromBody] DeactivatePolicyRequest request, CancellationToken cancellationToken) =>
         ExecuteCommandAsync(() => _service.DeactivateAsync(id, request, CurrentUserId(), cancellationToken));
 
+    [HttpPost("{id:guid}/activate")]
+    [AccessAction("Update", "Activate Discount Policy", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission("DiscountPolicy", "Update")]
+    public Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken) =>
+        ExecuteCommandAsync(() => _service.ActivateAsync(id, CurrentUserId(), cancellationToken));
+
+    [HttpDelete("{id:guid}")]
+    [AccessAction("Delete", "Delete Discount Policy", AccessType = AccessTypes.Delete, SortOrder = 6)]
+    [AccessPermission("DiscountPolicy", "Delete")]
+    [ProducesResponseType(typeof(ApiResponse<DiscountPolicyDeleteResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.DeleteAsync(id, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<DiscountPolicyDeleteResponse>.Ok(result, "Policy diskon berhasil dihapus."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (DiscountPolicyValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
     private async Task<IActionResult> ExecuteCommandAsync(Func<Task<DiscountPolicyResponse>> command)
     {
         try

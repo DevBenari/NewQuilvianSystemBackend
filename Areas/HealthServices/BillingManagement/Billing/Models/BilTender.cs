@@ -14,6 +14,13 @@ public sealed class BilTender : IdentityModel
     [Required, MaxLength(30)] public string Status { get; set; } = BillingTenderStatuses.Created;
     [MaxLength(150)] public string? ProviderReference { get; set; }
     [MaxLength(50)] public string? ProviderStatusCode { get; set; }
+    // Catatan referensi yang diketik kasir sendiri saat tender dibuat (mis. nomor bukti transfer
+    // manual). BERBEDA dari ProviderReference: kolom itu murni hasil rekonsiliasi provider
+    // pembayaran (IBillingPaymentProviderAdapter) dan tidak pernah diisi manual - lihat
+    // BillingSettlementService.AddTenderAsync. Kolom ini tidak divalidasi/direkonsiliasi apa pun;
+    // murni catatan kasir untuk ditelusuri manual selama provider pembayaran belum terintegrasi
+    // (BKC-BLK-PROV-001).
+    [MaxLength(150)] public string? CashierReferenceNote { get; set; }
     public Guid IdempotencyKey { get; set; }
     [Required, MaxLength(64)] public string PayloadHash { get; set; } = string.Empty;
     public Guid CorrelationId { get; set; }

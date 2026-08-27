@@ -22,6 +22,7 @@ public sealed class BilTenderConfiguration : IEntityTypeConfiguration<BilTender>
         entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
         entity.Property(x => x.ProviderReference).HasMaxLength(150);
         entity.Property(x => x.ProviderStatusCode).HasMaxLength(50);
+        entity.Property(x => x.CashierReferenceNote).HasMaxLength(150);
         entity.Property(x => x.PayloadHash).HasMaxLength(64).IsRequired();
         entity.Property(x => x.LastProviderEventId).HasMaxLength(100);
         entity.Property(x => x.LastProviderPayloadHash).HasMaxLength(64);

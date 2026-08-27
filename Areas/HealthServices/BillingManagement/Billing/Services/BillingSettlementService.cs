@@ -108,6 +108,7 @@ public sealed class BillingSettlementService
                 InvoiceId = request.InvoiceId,
                 DepositAccountId = request.DepositAccountId,
                 Purpose = request.Purpose,
+                Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
                 RequestedAmount = request.RequestedAmount,
                 SuccessfulAmount = 0,
                 AllocatedAmount = 0,
@@ -229,6 +230,9 @@ public sealed class BillingSettlementService
                     Settlement = settlement,
                     PaymentMethodId = request.PaymentMethodId,
                     Amount = request.Amount,
+                    CashierReferenceNote = string.IsNullOrWhiteSpace(request.CashierReferenceNote)
+                        ? null
+                        : request.CashierReferenceNote.Trim(),
                     Status = BillingTenderStatuses.Created,
                     IdempotencyKey = idempotencyKey,
                     PayloadHash = payloadHash,
@@ -907,6 +911,7 @@ public sealed class BillingSettlementService
             request.DepositAccountId?.ToString("N") ?? string.Empty,
             request.Purpose,
             request.RequestedAmount.ToString(CultureInfo.InvariantCulture),
+            request.Note ?? string.Empty,
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
         return Hash(canonical);
@@ -920,6 +925,7 @@ public sealed class BillingSettlementService
             settlementId.ToString("N"),
             request.PaymentMethodId.ToString("N"),
             request.Amount.ToString(CultureInfo.InvariantCulture),
+            request.CashierReferenceNote ?? string.Empty,
             request.ExpectedRowVersion.ToString("N"),
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
@@ -956,6 +962,7 @@ public sealed class BillingSettlementService
             InvoiceId = settlement.InvoiceId,
             DepositAccountId = settlement.DepositAccountId,
             Purpose = settlement.Purpose,
+            Note = settlement.Note,
             Status = settlement.Status,
             RequestedAmount = settlement.RequestedAmount,
             SuccessfulAmount = settlement.SuccessfulAmount,
@@ -984,6 +991,7 @@ public sealed class BillingSettlementService
         PaymentMethodId = tender.PaymentMethodId,
         Amount = tender.Amount,
         Status = tender.Status,
+        CashierReferenceNote = tender.CashierReferenceNote,
         ProviderReferenceMasked = MaskProviderReference(tender.ProviderReference),
         ProviderStatusCode = tender.ProviderStatusCode,
         AttemptedAt = tender.AttemptedAt,

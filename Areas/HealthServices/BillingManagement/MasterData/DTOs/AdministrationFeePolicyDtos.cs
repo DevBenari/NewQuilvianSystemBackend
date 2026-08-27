@@ -48,6 +48,14 @@ public sealed class DeactivatePolicyRequest
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
 }
 
+public sealed class AdministrationFeePolicyDeleteResponse
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool IsDelete { get; set; }
+}
+
 public sealed class AdministrationFeePolicyResponse
 {
     public Guid Id { get; set; }

@@ -70,6 +70,34 @@ public sealed class InvoiceDetailResponse : InvoiceSummaryResponse
     public IReadOnlyList<InvoiceItemResponse> Items { get; set; } = [];
     public IReadOnlyList<DiscountResponse> Discounts { get; set; } = [];
     public IReadOnlyList<CalculationResponse> CalculationVersions { get; set; } = [];
+    // Hanya diisi oleh GetDetailAsync (layar Menu Pembayaran) - konteks pasien/kunjungan untuk
+    // ditampilkan kasir, bukan bagian dari alur charge/void/recalculate lain yang me-return
+    // InvoiceDetailResponse yang sama.
+    public InvoicePatientSummaryResponse? Patient { get; set; }
+}
+
+public sealed class KwitansiNumberResponse
+{
+    public Guid InvoiceId { get; set; }
+    public string KwitansiNumber { get; set; } = string.Empty;
+    public bool IsNewlyAllocated { get; set; }
+}
+
+public sealed class InvoicePatientSummaryResponse
+{
+    public Guid PatientId { get; set; }
+    public string MedicalRecordNumber { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string? Gender { get; set; }
+    public string? AgeText { get; set; }
+    public string EncounterNumber { get; set; } = string.Empty;
+    public DateTime EncounterDate { get; set; }
+    public string EncounterType { get; set; } = string.Empty;
+    public string PaymentType { get; set; } = string.Empty;
+    public string? RoomName { get; set; }
+    public string? ServiceUnitName { get; set; }
+    public string? PatientClassName { get; set; }
+    public string? GuarantorName { get; set; }
 }
 
 public sealed class InvoiceItemResponse

@@ -81,6 +81,89 @@ public sealed class AdministrationFeePolicyServiceTests
     }
 
     [Fact]
+    public async Task Activate_ReactivatesDeactivatedPolicyWithoutCreatingNewVersion()
+    {
+        await using var dbContext = IsolatedBillingDbContextFactory.Create();
+        var service = CreateService(dbContext);
+        var created = await service.CreateAsync(Request("ADM-RAJAL-REACT", DateTimeOffset.UtcNow.AddDays(1), null), Guid.NewGuid(), CancellationToken.None);
+        await service.DeactivateAsync(created.Id, new DeactivatePolicyRequest { Reason = "Sementara dihentikan" }, Guid.NewGuid(), CancellationToken.None);
+
+        var reactivated = await service.ActivateAsync(created.Id, Guid.NewGuid(), CancellationToken.None);
+
+        Assert.True(reactivated.IsActive);
+        Assert.Equal(created.Id, reactivated.Id);
+        Assert.Equal(created.Code, reactivated.Code);
+    }
+
+    [Fact]
+    public async Task Activate_RejectsWhenAnotherActivePolicyNowOverlaps()
+    {
+        await using var dbContext = IsolatedBillingDbContextFactory.Create();
+        var service = CreateService(dbContext);
+        var start = DateTimeOffset.UtcNow.AddDays(2);
+        var first = await service.CreateAsync(Request("ADM-IGD-OLD", start, start.AddDays(5)), Guid.NewGuid(), CancellationToken.None);
+        await service.DeactivateAsync(first.Id, new DeactivatePolicyRequest { Reason = "Diganti policy baru" }, Guid.NewGuid(), CancellationToken.None);
+
+        // CreateAsync/ValidateAsync sengaja memeriksa overlap terhadap SELURUH policy non-delete
+        // (aktif atau tidak), sehingga tidak bisa dipakai untuk membuat policy baru yang overlap
+        // dengan "ADM-IGD-OLD" selama baris itu masih ada (walau nonaktif). Baris kedua yang
+        // benar-benar hanya boleh bentrok dengan yang AKTIF di-seed langsung lewat DbContext agar
+        // menguji EnsureNoActiveOverlapAsync milik ActivateAsync secara terisolasi, bukan
+        // ValidateAsync milik CreateAsync yang sudah punya test sendiri.
+        dbContext.MstAdministrationFeePolicies.Add(new Areas.HealthServices.BillingManagement.MasterData.Models.MstAdministrationFeePolicy
+        {
+            Code = "ADM-IGD-NEW",
+            Name = "ADM-IGD-NEW",
+            ServiceType = AdministrationFeeServiceTypes.Igd,
+            Amount = 50_000,
+            EffectiveFrom = start.AddDays(1),
+            EffectiveTo = start.AddDays(6),
+            IsActive = true,
+            CreateDateTime = DateTime.UtcNow,
+            CreateBy = Guid.NewGuid()
+        });
+        await dbContext.SaveChangesAsync(CancellationToken.None);
+
+        var exception = await Assert.ThrowsAsync<AdministrationFeePolicyConflictException>(() =>
+            service.ActivateAsync(first.Id, Guid.NewGuid(), CancellationToken.None));
+
+        Assert.Contains("masih aktif dan bertumpang tindih", exception.Message);
+    }
+
+    [Fact]
+    public async Task Delete_RejectsWhilePolicyStillActive()
+    {
+        await using var dbContext = IsolatedBillingDbContextFactory.Create();
+        var service = CreateService(dbContext);
+        var created = await service.CreateAsync(Request("ADM-OTC-ACTIVE", DateTimeOffset.UtcNow.AddDays(1), null), Guid.NewGuid(), CancellationToken.None);
+
+        var exception = await Assert.ThrowsAsync<AdministrationFeePolicyValidationException>(() =>
+            service.DeleteAsync(created.Id, Guid.NewGuid(), CancellationToken.None));
+
+        Assert.Contains("nonaktifkan terlebih dahulu", exception.Message);
+    }
+
+    [Fact]
+    public async Task Delete_SoftDeletesInactivePolicyAndExcludesFromFutureLookup()
+    {
+        await using var dbContext = IsolatedBillingDbContextFactory.Create();
+        var service = CreateService(dbContext);
+        var created = await service.CreateAsync(Request("ADM-OTC-DELETE", DateTimeOffset.UtcNow.AddDays(1), null), Guid.NewGuid(), CancellationToken.None);
+        await service.DeactivateAsync(created.Id, new DeactivatePolicyRequest { Reason = "Tidak dipakai lagi" }, Guid.NewGuid(), CancellationToken.None);
+
+        var deleted = await service.DeleteAsync(created.Id, Guid.NewGuid(), CancellationToken.None);
+
+        Assert.True(deleted.IsDelete);
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            service.ActivateAsync(created.Id, Guid.NewGuid(), CancellationToken.None));
+
+        // Kode yang sudah dihapus (soft-delete) boleh dipakai ulang, konsisten dengan pola
+        // RegisterService yang sudah ada.
+        var recreated = await service.CreateAsync(Request("ADM-OTC-DELETE", DateTimeOffset.UtcNow.AddDays(1), null), Guid.NewGuid(), CancellationToken.None);
+        Assert.Equal("ADM-OTC-DELETE", recreated.Code);
+    }
+
+    [Fact]
     public void BusinessDate_UsesAsiaJakartaBoundary()
     {
         var firstVisit = new DateTimeOffset(2026, 8, 19, 17, 30, 0, TimeSpan.Zero);

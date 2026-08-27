@@ -65,6 +65,34 @@ public sealed class AdministrationFeePoliciesController : ControllerBase
     public Task<IActionResult> Deactivate(Guid id, [FromBody] DeactivatePolicyRequest request, CancellationToken cancellationToken) =>
         ExecuteCommandAsync(() => _service.DeactivateAsync(id, request, CurrentUserId(), cancellationToken));
 
+    [HttpPost("{id:guid}/activate")]
+    [AccessAction("Update", "Activate Administration Fee Policy", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission("AdministrationFeePolicy", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<AdministrationFeePolicyResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken) =>
+        ExecuteCommandAsync(() => _service.ActivateAsync(id, CurrentUserId(), cancellationToken));
+
+    [HttpDelete("{id:guid}")]
+    [AccessAction("Delete", "Delete Administration Fee Policy", AccessType = AccessTypes.Delete, SortOrder = 6)]
+    [AccessPermission("AdministrationFeePolicy", "Delete")]
+    [ProducesResponseType(typeof(ApiResponse<AdministrationFeePolicyDeleteResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.DeleteAsync(id, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<AdministrationFeePolicyDeleteResponse>.Ok(result, "Policy biaya administrasi berhasil dihapus."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (AdministrationFeePolicyValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
     private async Task<IActionResult> ExecuteCommandAsync(Func<Task<AdministrationFeePolicyResponse>> command)
     {
         try

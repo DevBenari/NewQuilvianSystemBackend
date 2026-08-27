@@ -10,6 +10,9 @@ public sealed class BilInvoice : IdentityModel
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid EncounterId { get; set; }
     [Required, MaxLength(50)] public string InvoiceNumber { get; set; } = string.Empty;
+    // Nomor Kwitansi dialokasikan SEKALI saat pertama kali diminta (BKC-DEC-054) dan disimpan di
+    // sini supaya reprint mengembalikan nomor yang sama, bukan mengonsumsi nomor urut baru.
+    [MaxLength(50)] public string? KwitansiNumber { get; set; }
     [Required, MaxLength(30)] public string ServiceType { get; set; } = string.Empty;
     [Required, MaxLength(30)] public string Status { get; set; } = BillingInvoiceStatuses.Open;
     public int CurrentCalculationVersion { get; set; }

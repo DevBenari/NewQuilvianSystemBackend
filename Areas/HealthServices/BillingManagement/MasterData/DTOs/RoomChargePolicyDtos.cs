@@ -61,3 +61,11 @@ public sealed class RoomChargePolicyResponse
     public DateTime CreateDateTime { get; set; }
     public DateTime? UpdateDateTime { get; set; }
 }
+
+public sealed class RoomChargePolicyDeleteResponse
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool IsDelete { get; set; }
+}
