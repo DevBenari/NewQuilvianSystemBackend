@@ -22,4 +22,12 @@
     <ProjectReference Include="..\..\QuilvianSystemBackend.csproj" />
   </ItemGroup>
 
+  <!--
+    LoggerService membaca IHttpContextAccessor, sehingga test membutuhkan tipe ASP.NET Core
+    walaupun project ini bukan project web.
+  -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
 </Project>

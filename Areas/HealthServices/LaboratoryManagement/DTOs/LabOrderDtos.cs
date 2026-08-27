@@ -23,6 +23,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         public string ProcedureName { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Status operasional pesanan. Bukan status pembayaran — Laboratorium tidak memiliki
+        /// status finansial apa pun.
+        /// </summary>
+        public string OrderStatus { get; set; } = string.Empty;
+
+        public int SpecimenCount { get; set; }
+
+        /// <summary>
+        /// Jumlah sampel yang sudah dinyatakan layak, yaitu jumlah komponen pemeriksaan yang
+        /// sudah memenuhi milestone kelayakan tagih.
+        /// </summary>
+        public int AcceptedSpecimenCount { get; set; }
+
         public bool IsCancel { get; set; }
 
         public DateTime CreateDateTime { get; set; }
@@ -30,6 +44,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
     public class LabOrderDetailResponse : LabOrderListResponse
     {
+        public DateTime? RequestedAt { get; set; }
+
+        public DateTime? CompletedAt { get; set; }
+
+        public string? StatusBeforeHold { get; set; }
+
+        public int Version { get; set; }
+
         public DateTime? CancelDateTime { get; set; }
 
         public Guid? CancelBy { get; set; }

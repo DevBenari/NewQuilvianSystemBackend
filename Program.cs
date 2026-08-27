@@ -17,6 +17,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.S
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
@@ -279,7 +280,9 @@ try
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
     builder.Services.AddScoped<LabOrderService>();
+    builder.Services.AddScoped<LabSpecimenService>();
     builder.Services.AddScoped<BillingFolioService>();
+    builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();

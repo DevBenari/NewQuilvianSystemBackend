@@ -54,6 +54,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid CompletedByUserId { get; set; }
         public int FinalizedPrescriptionCount { get; set; }
         public int FinalizedProcedureCount { get; set; }
+
+        /// <summary>
+        /// Resep yang sudah difinalkan secara klinis tetapi penyerahan faktanya ke Billing
+        /// belum tuntas. Kosong berarti seluruh fakta tersampaikan. Konsultasi tetap selesai.
+        /// </summary>
+        public List<string> BillingHandoffIssues { get; set; } = new();
+
         public ConsultationFinalizationValidationResponse Validation { get; set; } = new();
     }
 }

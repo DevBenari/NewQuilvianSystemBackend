@@ -57005,6 +57005,159 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("BilProcessingEffect", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Models.TrxClinicalMilestoneFact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BillingChargeLineId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("BillingFolioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BillingOutcomeCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("BillingOutcomeMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("BillingProcessingEffectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CausationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DispatchAttemptCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DispatchStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DispatchedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EffectType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("MilestoneFactId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("MilestoneFactVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MilestoneKind")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayloadFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<decimal?>("Quantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)");
+
+                    b.Property<string>("RuleSnapshot")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("SourceAggregateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceContext")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("SourceItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TariffSnapshot")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DispatchStatus");
+
+                    b.HasIndex("EncounterId");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("SourceContext", "MilestoneFactId", "MilestoneFactVersion", "EffectType")
+                        .IsUnique();
+
+                    b.HasIndex("SourceContext", "SourceAggregateId", "SourceItemId", "EffectType")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("SourceContext", "SourceAggregateId", "SourceItemId", "EffectType"), false);
+
+                    b.ToTable("TrxClinicalMilestoneFact", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxClinicalNoteAttachment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -63617,6 +63770,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("CancelDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("CreateBy")
                         .HasColumnType("uuid");
 
@@ -63638,8 +63794,331 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("IsDelete")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("OrderStatus")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("ProcedureId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("StatusBeforeHold")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EncounterId");
+
+                    b.HasIndex("OrderStatus");
+
+                    b.HasIndex("ProcedureId");
+
+                    b.ToTable("LabOrder", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.MstLabRejectionReason", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsInternalHospitalError")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ReasonName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("RequiresNote")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReasonCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("MstLabRejectionReason", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.TrxLabSpecimen", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CollectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CollectedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DecidedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProcedureCodeSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("ProcedureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProcedureNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReceivedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("RecollectionAuthorizedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RecollectionAuthorizedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("RecollectionCause")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RecollectionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("RejectionNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("RejectionReasonCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("RejectionReasonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SpecimenBarcode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("SpecimenDescription")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SpecimenSequence")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SpecimenStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("StatusBeforeHold")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("SupersededSpecimenId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TariffCodeSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("TariffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("UnitPriceSnapshot")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcedureId");
+
+                    b.HasIndex("RejectionReasonId");
+
+                    b.HasIndex("SpecimenBarcode")
+                        .IsUnique();
+
+                    b.HasIndex("SpecimenStatus");
+
+                    b.HasIndex("SupersededSpecimenId");
+
+                    b.HasIndex("LabOrderId", "SpecimenSequence");
+
+                    b.ToTable("TrxLabSpecimen", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.TrxLabTransitionHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CorrelationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FromStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("LabSpecimenId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReasonCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ReasonNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("Scope")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -63651,9 +64130,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("EncounterId");
 
-                    b.HasIndex("ProcedureId");
+                    b.HasIndex("LabSpecimenId");
 
-                    b.ToTable("LabOrder", "public");
+                    b.HasIndex("LabOrderId", "OccurredAt");
+
+                    b.ToTable("TrxLabTransitionHistory", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models.MstEmergencyArrivalMode", b =>
@@ -91580,6 +92061,15 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Models.TrxClinicalMilestoneFact", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", null)
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxClinicalNoteAttachment", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ArchivedByUser")
@@ -93506,6 +93996,63 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Encounter");
 
                     b.Navigation("Procedure");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.TrxLabSpecimen", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", "LabOrder")
+                        .WithMany("Specimens")
+                        .HasForeignKey("LabOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstProcedure", "Procedure")
+                        .WithMany()
+                        .HasForeignKey("ProcedureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.MstLabRejectionReason", "RejectionReason")
+                        .WithMany()
+                        .HasForeignKey("RejectionReasonId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.TrxLabSpecimen", "SupersededSpecimen")
+                        .WithMany()
+                        .HasForeignKey("SupersededSpecimenId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("LabOrder");
+
+                    b.Navigation("Procedure");
+
+                    b.Navigation("RejectionReason");
+
+                    b.Navigation("SupersededSpecimen");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.TrxLabTransitionHistory", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.TrxPatientEncounter", null)
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", "LabOrder")
+                        .WithMany()
+                        .HasForeignKey("LabOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.TrxLabSpecimen", "LabSpecimen")
+                        .WithMany()
+                        .HasForeignKey("LabSpecimenId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("LabOrder");
+
+                    b.Navigation("LabSpecimen");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models.MstEmergencySetting", b =>
@@ -96596,6 +97143,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Transfers");
 
                     b.Navigation("Triages");
+                });
+
+                            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", b =>
+                {
+                    b.Navigation("Specimens");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpCorrectionSession", b =>

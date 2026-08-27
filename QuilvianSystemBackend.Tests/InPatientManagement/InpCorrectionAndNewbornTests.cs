@@ -68,6 +68,8 @@ public sealed class InpCorrectionAndNewbornTests
 
         var censusSebelum = await world.CensusQueryService.GetCensusAsync(new CensusQuery());
 
+        var riwayatSebelum = await world.EpisodeService.GetStatusHistoryAsync(episode.Id);
+
         var buka = await world.EpisodeService.OpenCorrectionSessionAsync(
             episode.Id,
             new OpenCorrectionSessionRequest
@@ -109,8 +111,8 @@ public sealed class InpCorrectionAndNewbornTests
         Assert.Empty(censusSesudah.Items);
 
         // Tidak ada baris riwayat status baru — sesi koreksi bukan perpindahan status.
-        var riwayat = await world.EpisodeService.GetStatusHistoryAsync(episode.Id);
-        Assert.Equal(3, riwayat.Count);
+        var riwayatSesudah = await world.EpisodeService.GetStatusHistoryAsync(episode.Id);
+        Assert.Equal(riwayatSebelum.Count, riwayatSesudah.Count);
     }
 
     [Fact]
