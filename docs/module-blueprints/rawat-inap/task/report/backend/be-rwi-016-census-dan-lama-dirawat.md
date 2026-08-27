@@ -6,8 +6,9 @@
 > dan **255 test hijau, 0 gagal**. Perinciannya ada pada
 > [laporan validasi](be-rwi-validasi-build-dan-test.md).
 >
-> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
-> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+> **Task ini kini ✅ SELESAI.** Seluruh butir DoD-nya hijau: test lulus (255/255) dan
+> endpointnya terbukti berjalan lewat Swagger pada aplikasi tersambung PostgreSQL.
+> Tandanya pada roadmap sudah dinaikkan 🟡 → ✅.
 
 ## Metadata
 
@@ -22,7 +23,7 @@
 | Commit backend saat pekerjaan dimulai | `bd97e5d` |
 | Tanggal pengerjaan | 25 Agustus 2026 |
 | Dependency | `BE-RWI-011` — dikerjakan pada sesi yang sama |
-| Status | **IMPLEMENTASI SELESAI — VALIDASI BELUM DIJALANKAN** |
+| Status | ✅ **SELESAI** — seluruh acceptance criteria dan DoD terbukti; build+test hijau dan endpoint terbukti berjalan 26 Agustus 2026 |
 
 ---
 
@@ -187,9 +188,9 @@ bahwa `CensusItemResponse` **tidak** memuat kolom klinis mana pun.
 | Butir DoD | Keadaannya |
 | --- | --- |
 | Tiga endpoint sesuai kontrak | ✅ Ada di dalam kode |
-| Kelima kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
-| Unit test perhitungan lulus | ❌ **Belum dijalankan** — lima kasus batas sudah ditulis |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
+| Kelima kriteria lulus | ✅ **Lulus** — dijalankan 26 Agustus 2026, hijau (255/255) |
+| Unit test perhitungan lulus | ✅ **Lulus** — dijalankan 26 Agustus 2026, hijau (255/255), termasuk kelima kasus batas |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 

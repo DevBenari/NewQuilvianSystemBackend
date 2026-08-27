@@ -6,8 +6,9 @@
 > dan **255 test hijau, 0 gagal**. Perinciannya ada pada
 > [laporan validasi](be-rwi-validasi-build-dan-test.md).
 >
-> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
-> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+> **Task ini kini ✅ SELESAI.** Seluruh butir DoD-nya hijau: test lulus (255/255) dan
+> endpointnya terbukti berjalan lewat Swagger pada aplikasi tersambung PostgreSQL.
+> Tandanya pada roadmap sudah dinaikkan 🟡 → ✅.
 
 ## Metadata
 
@@ -22,7 +23,7 @@
 | Commit backend saat pekerjaan dimulai | `bd97e5d` |
 | Tanggal pengerjaan | 25 Agustus 2026 |
 | Dependency | `BE-RWI-011` — dikerjakan pada sesi yang sama |
-| Status | **IMPLEMENTASI SELESAI — VALIDASI BELUM DIJALANKAN** |
+| Status | ✅ **SELESAI** — seluruh acceptance criteria dan DoD terbukti; build+test hijau dan endpoint terbukti berjalan 26 Agustus 2026 |
 
 ---
 
@@ -177,7 +178,7 @@ kepergian milik `BE-RWI-027`. Jalur endpoint-nya diuji ulang pada task tersebut.
 | Butir DoD | Keadaannya |
 | --- | --- |
 | Pemeriksaan aktif | ✅ Ada di dalam kode dan dipanggil `PlacePatientAsync` |
-| Keempat kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
+| Keempat kriteria lulus | ✅ **Lulus** — dijalankan 26 Agustus 2026, hijau (255/255) |
 | Pesan penolakan sesuai validation matrix | ✅ Kalimatnya sama, dengan nomor episode dan lokasi disisipkan |
 
 ---

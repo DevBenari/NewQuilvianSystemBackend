@@ -216,7 +216,7 @@ sama dengan endpoint daftar lain.
 | --- | --- |
 | Empat endpoint sesuai kontrak | ✅ Ada di dalam kode |
 | Kelima kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan; kriteria 5 belum dapat diuji |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** sebelum endpointnya terbukti berjalan |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 
