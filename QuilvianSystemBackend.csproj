@@ -83,6 +83,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include=".github\workflows\" />
     <Folder Include="Areas\Administrator\Dashboard\" />
     <Folder Include="Areas\Administrator\DocumentManagement\" />
     <Folder Include="Areas\Corporate\HumanResource\AttendanceManagement\Constants\" />
