@@ -91,7 +91,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             {
                 AttendanceCorrectionReferenceType,
                 "AttendanceCorrection",
-                "TrxAttendanceCorrectionRequest",
+                "HrdAttendanceCorrectionRequest",
                 "ATTENDANCE_CORRECTION_REQUEST"
             };
 

@@ -23,4 +23,8 @@
     <ProjectReference Include="..\QuilvianSystemBackend.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
 </Project>

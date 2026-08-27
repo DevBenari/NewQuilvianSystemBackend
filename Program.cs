@@ -7,23 +7,31 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Services;
-using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
-using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services;
 using QuilvianSystemBackend.Hubs;
@@ -39,8 +47,10 @@ using QuilvianSystemBackend.Shared.HumanResource.Services;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
+using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
+
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -272,6 +282,9 @@ try
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
     builder.Services.AddScoped<LabOrderService>();
+    builder.Services.AddScoped<LabSpecimenService>();
+    builder.Services.AddScoped<BillingFolioService>();
+    builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
@@ -293,7 +306,7 @@ try
     builder.Services.AddScoped<OperatingRoomCredentialResolver>();
     // Buffer dan durasi jadwal operasi dikonfigurasi (OPS-DEC-016), bukan ditanam di kode.
     builder.Services.Configure<OperatingRoomSchedulingOptions>(
-        builder.Configuration.GetSection("OperatingRoom:Scheduling"));
+    builder.Configuration.GetSection("OperatingRoom:Scheduling"));
     builder.Services.AddScoped<OperatingRoomSchedulingService>();
     builder.Services.AddScoped<OperatingRoomPreparationService>();
     builder.Services.AddScoped<OperatingRoomExecutionService>();
@@ -313,6 +326,27 @@ try
     builder.Services.AddScoped<EmergencyDispositionService>();
     builder.Services.AddScoped<EmergencyTransferService>();
     builder.Services.AddScoped<EmergencySettingService>();
+
+    // Rawat Inap. Tanpa pendaftaran ini seluruh controller Rawat Inap gagal dibuat oleh
+    // dependency injection, sehingga endpoint-nya membalas 500 sebelum kode modul sempat
+    // dijalankan. Pola mengikuti service lain: kelas konkret, tanpa interface.
+    //
+    // Urutan pendaftaran tidak menentukan urutan pembentukan — container yang menyusunnya
+    // sendiri — tetapi ditulis dari yang paling tidak bergantung supaya rantainya terbaca:
+    // InpSettingService dibaca hampir seluruh service lain, dan InpEpisodeNumberService
+    // mengambil awalan nomor episode darinya.
+    builder.Services.AddScoped<InpSettingService>();
+    builder.Services.AddScoped<InpEpisodeNumberService>();
+    builder.Services.AddScoped<InpBedOccupancyService>();
+    builder.Services.AddScoped<InpEpisodeService>();
+    builder.Services.AddScoped<InpDischargeService>();
+    builder.Services.AddScoped<InpCensusQueryService>();
+
+    // Master data Rawat Inap. Dipakai dua controller pada layar admin, bukan oleh service
+    // Rawat Inap. Keduanya memegang seluruh pembacaan dan perubahan tabel masternya supaya
+    // controller tidak menyentuh ApplicationDbContext langsung.
+    builder.Services.AddScoped<InpatientSettingService>();
+    builder.Services.AddScoped<InpatientClearanceItemService>();
 
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
@@ -344,6 +378,7 @@ try
     builder.Services.AddScoped<ResignationLifecycleHandoffService>();
 
     builder.Services.AddScoped<AttendanceRawLogService>();
+    builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();
     builder.Services.AddScoped<AttendanceScheduleResolverService>();
     builder.Services.AddScoped<AttendanceProcessingService>();
     builder.Services.AddScoped<AttendanceDailyQueryService>();
@@ -425,6 +460,65 @@ try
     builder.Services.AddScoped<OvertimeSelfServiceContextService>();
     builder.Services.AddScoped<OvertimeSelfServiceQueryService>();
     builder.Services.AddScoped<OvertimeSelfServiceService>();
+
+    //billing - master data
+    builder.Services.AddScoped<AdministrationFeePolicyService>();
+    builder.Services.AddScoped<DiscountPolicyService>();
+    builder.Services.AddScoped<RegisterService>();
+    builder.Services.AddScoped<RoomChargePolicyService>();
+    builder.Services.AddScoped<TaxRuleService>();
+    // ============================================================
+    // BILLING - ADAPTERS
+    // ============================================================
+
+    builder.Services.AddScoped<
+        IBillingChargeSourceAdapter,
+        ContractBillingChargeSourceAdapter>();
+
+    builder.Services.AddScoped<
+        IBillingCoverageAdapter,
+        RegistrationBillingCoverageAdapter>();
+
+    builder.Services.AddScoped<
+        IBillingPaymentProviderAdapter,
+        DeferredBillingPaymentProviderAdapter>();
+
+
+    // ============================================================
+    // BILLING - CORE SERVICES
+    // ============================================================
+
+    builder.Services.AddScoped<BillingModuleService>();
+
+    builder.Services.AddScoped<BillingNumberSeriesService>();
+
+    builder.Services.AddScoped<BillingAllocationService>();
+
+    builder.Services.AddScoped<BillingCalculationService>();
+
+    builder.Services.AddScoped<BillingInvoiceService>();
+
+    builder.Services.AddScoped<BillingDiscountService>();
+
+    builder.Services.AddScoped<BillingDepositService>();
+
+    builder.Services.AddScoped<BillingSettlementService>();
+
+    builder.Services.AddScoped<BillingRefundService>();
+
+    builder.Services.AddScoped<BillingFinalizationService>();
+
+    builder.Services.AddScoped<BillingArApHandoffService>();
+
+    builder.Services.AddScoped<BillingFinancialExceptionService>();
+
+
+    // ============================================================
+    // CASHIER
+    // ============================================================
+
+    builder.Services.AddScoped<CashierShiftService>();
+
 
     builder.Services.AddAuthorization(options =>
     {
@@ -684,65 +778,12 @@ try
             "Seeder master kriteria telaah resep selesai.");
     }
 
-    static async Task SeedEmergencyMasterDataAsync(
-        IServiceProvider services,
-        CancellationToken cancellationToken = default)
+    static async Task RunStartupSeederAsync(string seederName, Func<Task> seed)
     {
-        await using var scope = services.CreateAsyncScope();
-
-        var dbContext = scope.ServiceProvider
-            .GetRequiredService<ApplicationDbContext>();
-
-        var logger = scope.ServiceProvider
-            .GetRequiredService<ILoggerFactory>()
-            .CreateLogger("EmergencyMasterDataSeeder");
-
-        var systemUserId = await dbContext.Users
-            .AsNoTracking()
-            .Where(x =>
-                x.NormalizedUserName == "SUPERADMIN" ||
-                x.NormalizedEmail == "SUPERADMIN@ADMIN.COM")
-            .Select(x => x.Id)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (systemUserId == Guid.Empty)
-        {
-            throw new InvalidOperationException(
-                "Seeder master data IGD membutuhkan akun SuperAdmin.");
-        }
-
-        logger.LogInformation("Memulai seeder master data IGD.");
-
-        var seedResult = await EmergencyMasterDataSeeder.SeedAsync(
-            dbContext,
-            systemUserId,
-            cancellationToken);
-
-        logger.LogInformation(
-            "Seeder master data IGD selesai. Baris baru: level triase {TriageLevel}, " +
-            "indikator {Indicator}, cara kedatangan {ArrivalMode}, jenis kasus {CaseType}, " +
-            "jenis tindak lanjut {DispositionType}, pengaturan {Setting}. Total {Total}.",
-            seedResult.TriageLevelInserted,
-            seedResult.TriageIndicatorInserted,
-            seedResult.ArrivalModeInserted,
-            seedResult.CaseTypeInserted,
-            seedResult.DispositionTypeInserted,
-            seedResult.SettingInserted,
-            seedResult.TotalInserted);
-
-        if (!string.IsNullOrWhiteSpace(seedResult.TriageIndicatorSkippedReason))
-        {
-            logger.LogWarning(
-                "Indikator triase dilewati: {Reason}",
-                seedResult.TriageIndicatorSkippedReason);
-        }
-
-        if (!string.IsNullOrWhiteSpace(seedResult.SettingSkippedReason))
-        {
-            logger.LogWarning(
-                "Pengaturan IGD dilewati: {Reason}",
-                seedResult.SettingSkippedReason);
-        }
+        var stopwatch = Stopwatch.StartNew();
+        await seed();
+        stopwatch.Stop();
+        Log.Information("[StartupSeed] {Seeder} completed in {ElapsedMilliseconds} ms", seederName, stopwatch.ElapsedMilliseconds);
     }
 
     Log.Information(
@@ -882,10 +923,10 @@ try
 
     app.MapHealthChecks("/health");
 
-    await AppVersionSeeder.SeedAsync(app.Services);
-    await DefaultWorkScheduleSeeder.SeedAsync(app.Services);
-    await SuperAdminSeeder.SeedAsync(app.Services);
-    await AccessMenuSeeder.SeedAsync(app.Services);
+    await RunStartupSeederAsync("AppVersionSeeder", () => AppVersionSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
 
     var runPrescriptionReviewCriterionSeed =
      builder.Configuration.GetValue<bool>(
@@ -893,18 +934,9 @@ try
 
     if (runPrescriptionReviewCriterionSeed)
     {
-        await SeedPrescriptionReviewCriteriaAsync(app.Services);
-    }
-
-    // Master data IGD. Bawaannya mati supaya menjalankan aplikasi tidak otomatis menulis ke
-    // basis data bersama. Nyalakan lewat konfigurasi bila lingkungannya memang perlu diisi.
-    var runEmergencyMasterDataSeed =
-        builder.Configuration.GetValue<bool>(
-            "Seeders:RunEmergencyMasterDataSeed");
-
-    if (runEmergencyMasterDataSeed)
-    {
-        await SeedEmergencyMasterDataAsync(app.Services);
+        await RunStartupSeederAsync(
+            "PrescriptionReviewCriterionSeeder",
+            () => SeedPrescriptionReviewCriteriaAsync(app.Services));
     }
 
     // Seed Awal Saja

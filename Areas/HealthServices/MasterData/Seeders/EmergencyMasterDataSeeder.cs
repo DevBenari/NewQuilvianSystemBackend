@@ -14,6 +14,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
     /// </summary>
     public static class EmergencyMasterDataSeeder
     {
+        private const int OutOfQueueScaleLevel = MstEmergencyTriageLevel.OutOfQueueScaleLevel;
+
         public static async Task<EmergencyMasterDataSeedResult> SeedAsync(
             ApplicationDbContext db,
             Guid actorUserId,
@@ -30,6 +32,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
             await SeedDefaultSettingAsync(db, actorUserId, now, result, ct);
 
             return result;
+        }
+
+
+        /// <summary>
+        /// Menentukan apakah sebuah master sudah diisi sumber lain.
+        /// </summary>
+        /// <remarks>
+        /// Seeder ini mengisi master yang kosong; ia tidak menggabungkan versinya sendiri ke
+        /// dalam master yang sudah dipakai. Bila di tabel ada kode yang tidak dikenal daftar
+        /// seeder — misalnya "WALK_IN" sementara seeder mengenal "SELF" — artinya isinya
+        /// berasal dari sumber lain. Menambah daftar seeder ke sana menghasilkan dua baris
+        /// yang artinya sama dengan kode berbeda, dan laporan yang mengelompokkan menurut
+        /// master itu menjadi salah tanpa ada yang menyadarinya.
+        ///
+        /// Menjalankan seeder dua kali atas datanya sendiri tetap aman: seluruh kode yang ada
+        /// dikenal, sehingga tidak ada yang dianggap asing.
+        /// </remarks>
+        private static bool IsOwnedByAnotherSource(
+            IEnumerable<string> existingCodes,
+            IEnumerable<string> definitionCodes)
+        {
+            var known = new HashSet<string>(definitionCodes, StringComparer.OrdinalIgnoreCase);
+
+            return existingCodes.Any(code => !known.Contains(code));
         }
 
         // ------------------------------------------------------------------
@@ -54,19 +80,48 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
                 new TriageLevelDefinition(2, "L2", "Emergensi", "Merah", "#E53935", null, true, 20),
                 new TriageLevelDefinition(3, "L3", "Urgen", "Kuning", "#FDD835", null, false, 30),
                 new TriageLevelDefinition(4, "L4", "Semi-urgen", "Hijau", "#43A047", null, false, 40),
-                new TriageLevelDefinition(5, "L5", "Tidak gawat darurat", "Hijau", "#43A047", null, false, 50)
+                new TriageLevelDefinition(5, "L5", "Tidak gawat darurat", "Hijau", "#43A047", null, false, 50),
+
+                // Hitam berada di luar skala antrean, karena itu Level-nya 0 dan bukan 1-5.
+                // Ia tidak pernah punya target waktu respons: pasien yang meninggal saat tiba
+                // tidak sedang menunggu dilayani, sehingga menghitung keterlambatan untuknya
+                // tidak punya arti. Penetapannya wajib oleh manusia, tidak pernah oleh aplikasi.
+                new TriageLevelDefinition(OutOfQueueScaleLevel, "L0", "Meninggal saat tiba", "Hitam", "#212121", null, false, 60)
             };
 
-            var existingCodes = await db.Set<MstEmergencyTriageLevel>()
-                .Select(x => x.Code)
+            // Idempotensi diperiksa lewat DUA kunci, bukan hanya Code.
+            //
+            // Tabel ini punya dua index unik: Code, dan pasangan (TriageSystem, Level).
+            // Memeriksa Code saja aman hanya bila basis datanya kosong atau diisi seeder ini
+            // sendiri. Pada basis data yang sudah diisi sumber lain — misalnya level yang
+            // sama tetapi berkode "ATS-L1" — seluruh kode seeder tampak belum ada, sehingga
+            // seeder menyisipkan level 1 sampai 5 sekali lagi dan menabrak index
+            // (TriageSystem, Level). SaveChanges gagal, dan karena pemanggilnya tidak
+            // menangkap exception, aplikasi berhenti sebelum sempat melayani permintaan.
+            var existingRows = await db.Set<MstEmergencyTriageLevel>()
+                .Select(x => new { x.Code, x.TriageSystem, x.Level })
                 .ToListAsync(ct);
 
-            var existing = new HashSet<string>(existingCodes, StringComparer.OrdinalIgnoreCase);
+            var existing = new HashSet<string>(
+                existingRows.Select(x => x.Code),
+                StringComparer.OrdinalIgnoreCase);
+
+            var existingSystemLevels = new HashSet<(EmergencyTriageSystem, int)>(
+                existingRows.Select(x => (x.TriageSystem, x.Level)));
 
             foreach (var d in definitions)
             {
                 if (existing.Contains(d.Code))
                     continue;
+
+                // Level yang slotnya sudah dipakai sistem triase yang sama dilewati apa
+                // adanya. Seeder tidak pernah menimpa, dan juga tidak memaksakan versinya
+                // sendiri berdampingan dengan versi yang sudah dipakai petugas.
+                if (existingSystemLevels.Contains((EmergencyTriageSystem.ATS, d.Level)))
+                {
+                    result.TriageLevelSkipped++;
+                    continue;
+                }
 
                 db.Set<MstEmergencyTriageLevel>().Add(new MstEmergencyTriageLevel
                 {
@@ -80,9 +135,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
                     MaxWaitingMinutes = d.MaxWaitingMinutes,
                     AllowsTreatmentBeforeRegistration = d.AllowsTreatmentBeforeRegistration,
                     Sequence = d.Sequence,
-                    Description = d.MaxWaitingMinutes.HasValue
-                        ? null
-                        : "Target waktu respons belum ditetapkan SOP triase MMC.",
+                    Description = d.Level == OutOfQueueScaleLevel
+                        ? "Kategori di luar skala antrean. Tidak memiliki target waktu respons dan tidak boleh ditetapkan otomatis oleh aplikasi."
+                        : d.MaxWaitingMinutes.HasValue
+                            ? null
+                            : "Target waktu respons belum ditetapkan SOP triase MMC.",
                     IsActive = true,
                     CreateDateTime = now,
                     CreateBy = actorUserId
@@ -131,8 +188,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
             }
 
             var existingCodes = await db.Set<MstEmergencyTriageIndicator>()
+                .Where(x => !x.IsDelete)
                 .Select(x => x.Code)
                 .ToListAsync(ct);
+
+            // Kode indikator dibentuk dari kode level, sehingga daftar kandidatnya harus
+            // disusun lebih dulu sebelum dapat dibandingkan dengan isi tabel.
+            var candidateCodes = levels
+                .SelectMany(level => groups.Select(g => $"TRI-{level.Code}-{g.Key}"))
+                .ToList();
+
+            if (IsOwnedByAnotherSource(existingCodes, candidateCodes))
+            {
+                result.TriageIndicatorSkippedReason =
+                    "Master indikator triase sudah diisi sumber lain; seeder tidak menambah " +
+                    "apa pun supaya checklist perawat tidak berisi dua set indikator sekaligus.";
+                return;
+            }
 
             var existing = new HashSet<string>(existingCodes, StringComparer.OrdinalIgnoreCase);
 
@@ -187,8 +259,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
             };
 
             var existingCodes = await db.Set<MstEmergencyArrivalMode>()
+                .Where(x => !x.IsDelete)
                 .Select(x => x.Code)
                 .ToListAsync(ct);
+
+            if (IsOwnedByAnotherSource(existingCodes, definitions.Select(d => d.Code)))
+            {
+                result.ArrivalModeSkippedReason =
+                    "Master cara kedatangan sudah diisi sumber lain; seeder tidak menambah apa pun " +
+                    "supaya tidak ada dua baris yang artinya sama dengan kode berbeda.";
+                return;
+            }
 
             var existing = new HashSet<string>(existingCodes, StringComparer.OrdinalIgnoreCase);
 
@@ -240,8 +321,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
             };
 
             var existingCodes = await db.Set<MstEmergencyCaseType>()
+                .Where(x => !x.IsDelete)
                 .Select(x => x.Code)
                 .ToListAsync(ct);
+
+            if (IsOwnedByAnotherSource(existingCodes, definitions.Select(d => d.Code)))
+            {
+                result.CaseTypeSkippedReason =
+                    "Master jenis kasus sudah diisi sumber lain; seeder tidak menambah apa pun " +
+                    "supaya tidak ada dua baris yang artinya sama dengan kode berbeda.";
+                return;
+            }
 
             var existing = new HashSet<string>(existingCodes, StringComparer.OrdinalIgnoreCase);
 
@@ -290,8 +380,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
             };
 
             var existingCodes = await db.Set<MstEmergencyDispositionType>()
+                .Where(x => !x.IsDelete)
                 .Select(x => x.Code)
                 .ToListAsync(ct);
+
+            if (IsOwnedByAnotherSource(existingCodes, definitions.Select(d => d.Code)))
+            {
+                result.DispositionTypeSkippedReason =
+                    "Master jenis tindak lanjut sudah diisi sumber lain; seeder tidak menambah apa pun " +
+                    "supaya tidak ada dua baris yang artinya sama dengan kode berbeda.";
+                return;
+            }
 
             var existing = new HashSet<string>(existingCodes, StringComparer.OrdinalIgnoreCase);
 
@@ -431,7 +530,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstall
         public int CaseTypeInserted { get; set; }
         public int DispositionTypeInserted { get; set; }
         public int SettingInserted { get; set; }
+        public int TriageLevelSkipped { get; set; }
         public string? TriageIndicatorSkippedReason { get; set; }
+        public string? ArrivalModeSkippedReason { get; set; }
+        public string? CaseTypeSkippedReason { get; set; }
+        public string? DispositionTypeSkippedReason { get; set; }
         public string? SettingSkippedReason { get; set; }
 
         public int TotalInserted =>

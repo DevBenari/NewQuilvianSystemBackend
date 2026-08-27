@@ -832,7 +832,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
                     return LeaveRequestServiceResult<bool>.Ok(true, "Attendance leave sudah diterapkan.");
                 }
 
-                var daily = await _dbContext.Set<TrxAttendanceDaily>()
+                var daily = await _dbContext.Set<HrdAttendanceDaily>()
                     .Include(x => x.Segments)
                     .Include(x => x.Exceptions)
                     .Include(x => x.RawLogs)
@@ -845,7 +845,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
                 var isCreated = daily == null;
                 if (daily == null)
                 {
-                    daily = new TrxAttendanceDaily
+                    daily = new HrdAttendanceDaily
                     {
                         Id = Guid.NewGuid(),
                         UserId = user.Id,
@@ -934,7 +934,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
 
                 if (segment == null)
                 {
-                    segment = new TrxAttendanceDailySegment
+                    segment = new HrdAttendanceDailySegment
                     {
                         Id = Guid.NewGuid(),
                         AttendanceDailyId = daily.Id,
@@ -1092,7 +1092,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Se
                 return LeaveRequestServiceResult<bool>.Ok(true, "Integration tanpa attendance daily ditandai reversed.");
             }
 
-            var daily = await _dbContext.Set<TrxAttendanceDaily>()
+            var daily = await _dbContext.Set<HrdAttendanceDaily>()
                 .Include(x => x.Segments)
                 .FirstOrDefaultAsync(x => x.Id == integration.AttendanceDailyId.Value && !x.IsDelete, cancellationToken);
 

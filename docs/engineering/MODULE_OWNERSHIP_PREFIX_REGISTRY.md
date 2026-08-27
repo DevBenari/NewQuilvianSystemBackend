@@ -17,12 +17,18 @@ Registry approval grants naming and ownership authority only. It does **not** au
 | HealthServices | BillingManagement / Billing | BUSINESS DOMAIN / MODULE | Bil | ACTIVE |
 | HealthServices | LaboratoryManagement / Laboratory | BUSINESS DOMAIN / MODULE | Lab | PLANNED |
 | HealthServices | RadiologyManagement / Radiology | BUSINESS DOMAIN / MODULE | Rad | PLANNED |
-| HealthServices | InPatientManagement / Inpatient | BUSINESS DOMAIN / MODULE | Inp | PLANNED |
+| HealthServices | InPatientManagement / Inpatient | BUSINESS DOMAIN / MODULE | Inp | ACTIVE |
 | HealthServices | OutPatientManagement / Outpatient | BUSINESS DOMAIN / MODULE | Out | PLANNED |
 | HealthServices | InsuranceManagement / Insurance | BUSINESS DOMAIN / MODULE | Ins | PLANNED |
 | Corporate/HumanResource | WorkflowManagement / Workflow | SHARED PLATFORM CAPABILITY | Wfl | ACTIVE / LEGACY |
 | HealthServices | OperatingRoomManagement / Operating Room | BUSINESS DOMAIN / MODULE | Opr | PLANNED |
 | HealthServices | MedicalRecordManagement / Medical Record | BUSINESS DOMAIN / MODULE | Mrc | PLANNED |
+
+## Lifecycle change log
+
+| Date | Module | Change | Authority |
+|---|---|---|---|
+| 2026-08-24 | InPatientManagement / `Inp` | `PLANNED` → `ACTIVE` | Muhammad Hamzah, blueprint `RWI-BP-001` decision `RWI-DEC-068`. Lifts the QBE-MOD-002 bar on creating `Inp*` operational entities. Database execution outside local and deployment remain separate authorities. |
 
 DoctorAndScheduleManagement is MASTER / REFERENCE by current evidence and has no independent operational prefix. For a new operational entity use `<ApprovedOwnerPrefix><BusinessConcept>` without redundant owner text, e.g. `RegPatientEncounter`, `EmgVisit`, `WflInstance`, `LabOrder`.
 

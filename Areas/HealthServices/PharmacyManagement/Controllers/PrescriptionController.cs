@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
@@ -45,6 +48,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         private readonly PrescriptionNumberService _prescriptionNumberService;
         private readonly PrescriptionSummaryService _prescriptionSummaryService;
         private readonly PrescriptionWorkflowService _prescriptionWorkflowService;
+        private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
         private readonly LoggerService _loggerService;
 
         public PrescriptionController(
@@ -53,6 +57,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             PrescriptionNumberService prescriptionNumberService,
             PrescriptionSummaryService prescriptionSummaryService,
             PrescriptionWorkflowService prescriptionWorkflowService,
+            ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
             LoggerService loggerService)
         {
             _dbContext = dbContext;
@@ -60,6 +65,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             _prescriptionNumberService = prescriptionNumberService;
             _prescriptionSummaryService = prescriptionSummaryService;
             _prescriptionWorkflowService = prescriptionWorkflowService;
+            _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
             _loggerService = loggerService;
         }
 
@@ -372,45 +378,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         // Resep tidak disubmit dari tab resep.
         // Finalisasi resep dilakukan otomatis melalui DoctorConsultationController.CompleteConsultation.
 
-        [HttpPatch("{id:guid}/billing-generated")]
-        [ProducesResponseType(typeof(ApiResponse<PrescriptionDetailResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Update", "Mark Prescription Billing", Description = "Menandai billing resep sudah dibuat", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("Prescription", "Update")]
-        public async Task<IActionResult> MarkBillingGenerated(Guid id, [FromBody] MarkPrescriptionBillingGeneratedRequest request, CancellationToken cancellationToken = default)
-        {
-            var entity = await GetWorkflowEntityAsync(id, cancellationToken);
-            if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Resep tidak ditemukan."));
-
-            var now = DateTime.UtcNow;
-            var result = await _prescriptionWorkflowService.MarkBillingGeneratedAsync(entity, request.BillingId, GetCurrentUserId(), now, cancellationToken);
-            if (!result.IsSuccess)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.ErrorMessage ?? "Billing resep tidak dapat diproses."));
-
-            await _loggerService.InfoAsync(LogCategory, "Prescription.MarkBillingGenerated", "Menandai billing resep sudah dibuat.", new { id, request.BillingId });
-            return Ok(ApiResponse<PrescriptionDetailResponse>.Ok(ToDetailResponse(await ReloadAsync(id, cancellationToken)), "Billing resep berhasil ditandai."));
-        }
-
-        [HttpPatch("{id:guid}/payment-paid")]
-        [ProducesResponseType(typeof(ApiResponse<PrescriptionDetailResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Update", "Mark Prescription Paid", Description = "Menandai pembayaran resep lunas", AccessType = AccessTypes.Update, SortOrder = 6)]
-        [AccessPermission("Prescription", "Update")]
-        public Task<IActionResult> MarkPaid(Guid id, [FromBody] MarkPrescriptionPaymentCompletedRequest request, CancellationToken cancellationToken = default)
-            => CompletePayment(id, request, "paid", cancellationToken);
-
-        [HttpPatch("{id:guid}/insurance-approved")]
-        [ProducesResponseType(typeof(ApiResponse<PrescriptionDetailResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Update", "Approve Prescription Insurance", Description = "Menandai resep disetujui asuransi", AccessType = AccessTypes.Update, SortOrder = 6)]
-        [AccessPermission("Prescription", "Update")]
-        public Task<IActionResult> MarkInsuranceApproved(Guid id, [FromBody] MarkPrescriptionPaymentCompletedRequest request, CancellationToken cancellationToken = default)
-            => CompletePayment(id, request, "insurance", cancellationToken);
-
-        [HttpPatch("{id:guid}/payment-waived")]
-        [ProducesResponseType(typeof(ApiResponse<PrescriptionDetailResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Update", "Waive Prescription Payment", Description = "Menandai pembayaran resep ditiadakan", AccessType = AccessTypes.Update, SortOrder = 6)]
-        [AccessPermission("Prescription", "Update")]
-        public Task<IActionResult> MarkPaymentWaived(Guid id, [FromBody] MarkPrescriptionPaymentCompletedRequest request, CancellationToken cancellationToken = default)
-            => CompletePayment(id, request, "waived", cancellationToken);
+        // RJ-BIL-BE-002 / RJ-BIL-CONFLICT-006 keputusan author 1A.
+        //
+        // Empat endpoint berikut dihapus dari modul klinis:
+        //
+        //   PATCH {id}/billing-generated
+        //   PATCH {id}/payment-paid
+        //   PATCH {id}/insurance-approved
+        //   PATCH {id}/payment-waived
+        //
+        // Keempatnya menetapkan status finansial canonical dengan hak akses klinis
+        // Prescription : Update. Penelusuran repository dan frontend commit 29422c8
+        // menemukan nol konsumen. Route dihapus seluruhnya, bukan sekadar disembunyikan
+        // dari Swagger, agar tidak menyisakan jalur bypass kewenangan finansial.
+        //
+        // Status finansial resep kini hanya berasal dari Billing.
 
         [HttpPatch("{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
@@ -429,8 +411,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.ErrorMessage ?? "Resep tidak dapat dibatalkan."));
 
             await _prescriptionSummaryService.RebuildConsultationSummaryAsync(entity.ConsultationId, actorUserId, now, cancellationToken);
-            await _loggerService.InfoAsync(LogCategory, "Prescription.CancelPrescription", "Membatalkan resep.", new { id, request.CancelReason });
-            return Ok(ApiResponse<object>.Ok(null, "Resep berhasil dibatalkan."));
+
+            // Pembatalan klinis sudah tersimpan. Billing diberi tahu setelahnya, sehingga
+            // gangguan pada Billing tidak membatalkan keputusan klinis dokter.
+            var emission = await _clinicalMilestoneFactProducer.EmitClinicalCancellationAsync(
+                new ClinicalMilestoneFactRequest
+                {
+                    SourceContext = BillingSourceContract.PrescriptionSourceContext,
+                    SourceAggregateId = entity.Id,
+                    EffectType = BillingSourceContract.PrescriptionChargeEffectType,
+                    EncounterId = entity.EncounterId,
+                    OccurredAt = now,
+                    CorrelationId = entity.ConsultationId
+                },
+                actorUserId,
+                cancellationToken);
+
+            await _loggerService.InfoAsync(LogCategory, "Prescription.CancelPrescription", "Membatalkan resep.", new
+            {
+                id,
+                request.CancelReason,
+                BillingHandoff = emission.Kind.ToString(),
+                emission.MilestoneFactVersion
+            });
+
+            return Ok(ApiResponse<object>.Ok(
+                new { BillingHandoff = emission.Kind.ToString() },
+                emission.IsClinicallySafe
+                    ? "Resep berhasil dibatalkan."
+                    : "Resep berhasil dibatalkan, tetapi penyerahan fakta ke Billing memerlukan tinjauan."));
         }
 
         [HttpDelete("{id:guid}")]
@@ -456,32 +465,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             await _dbContext.SaveChangesAsync(cancellationToken);
             await _prescriptionSummaryService.RebuildConsultationSummaryAsync(entity.ConsultationId, actorUserId, now, cancellationToken);
             return Ok(ApiResponse<object>.Ok(null, "Resep draft berhasil dihapus."));
-        }
-
-        private async Task<IActionResult> CompletePayment(
-            Guid id,
-            MarkPrescriptionPaymentCompletedRequest request,
-            string mode,
-            CancellationToken cancellationToken)
-        {
-            var entity = await GetWorkflowEntityAsync(id, cancellationToken);
-            if (entity == null)
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Resep tidak ditemukan."));
-
-            var now = request?.CompletedAt ?? DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-            PrescriptionWorkflowResult result = mode switch
-            {
-                "insurance" => await _prescriptionWorkflowService.MarkInsuranceApprovedAsync(entity, actorUserId, now, cancellationToken),
-                "waived" => await _prescriptionWorkflowService.MarkPaymentWaivedAsync(entity, actorUserId, now, cancellationToken),
-                _ => await _prescriptionWorkflowService.MarkPaidAsync(entity, actorUserId, now, cancellationToken)
-            };
-
-            if (!result.IsSuccess)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.ErrorMessage ?? "Pembayaran resep tidak dapat diselesaikan."));
-
-            await _loggerService.InfoAsync(LogCategory, "Prescription.CompletePayment", "Menyelesaikan pembayaran resep dan membuka proses farmasi.", new { id, mode, now });
-            return Ok(ApiResponse<PrescriptionDetailResponse>.Ok(ToDetailResponse(await ReloadAsync(id, cancellationToken)), "Pembayaran resep selesai dan resep siap diproses farmasi."));
         }
 
         private IQueryable<TrxPrescription> BuildBaseQuery()

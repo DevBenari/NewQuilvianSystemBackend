@@ -1935,7 +1935,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
 
-                AttendanceCount = await _dbContext.Set<TrxAttendance>()
+                AttendanceCount = await _dbContext.Set<HrdAttendance>()
                     .AsNoTracking()
                     .CountAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete),
 

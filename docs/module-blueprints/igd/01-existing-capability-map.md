@@ -2,333 +2,335 @@
 
 | Field | Value |
 |---|---|
-| Blueprint ID | `IGD` |
-| Revision | `1` |
-| Backend root/SHA | `QuilvianBackend` / `fa772b71bab3b66811030477aaaaeec48aedcc4b` |
-| Frontend root/SHA | `QuilvianFrontEnd` / `e77ebd8040fae0509b48d810f94fb0ab9b2bab1e` |
-| Audit boundary | Source-only audit. Runtime composition, database contents and migration application state, seed/configuration values, external diagnostic/payment services, and production authorization assignments were not inspected. A migration file is evidence of source schema only, not deployment. |
-| Decision baseline | The map traces the requirements recorded in `QuilvianBackend — docs/module-blueprints/igd/00-interview-decisions.md:958–1010 (IGD-DEC-016 through IGD-DEC-038), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`. |
-| Snapshot validity | An impact scan from the earlier backend snapshot `36d7eca7cd3d4b3f1f6520a6fe9340936cced320` to this SHA found only a change to the decision log; application source was unchanged. |
-
-The status in each row of the capability register is exactly one of the status terms defined by
-`trace-existing-capabilities`. `Missing` conclusions are source-scan conclusions: no matching
-model, API, or consumer was found in the audited application source; they are not a claim about
-an external service or deployed database.
-
-## Journey yang Ditelusuri
-
-```text
-arrival / unknown identity
-  -> patient + encounter / emergency visit
-  -> triage and retriage
-  -> observation, resuscitation, and shared clinical records
-  -> disposition
-  -> transfer or discharge / completion
-  -> billing, financial release, and late-result follow-up
-
-cross-cutting: authorization, audit, approval, idempotency, and integration reliability
-```
-
-The journey is assessed against the single-episode, provisional-identity, append-only clinical,
-separate disposition/transfer/completion/release, and backend-enforced authority decisions in
-`QuilvianBackend — docs/module-blueprints/igd/00-interview-decisions.md:958–1010 (Decision Log), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-
-## Capability Register
-
-| ID | Kebutuhan | Owner existing | Existing evidence | Status | Gap/adapter | Risk |
-|---|---|---|---|---|---|---|
-| CAP-01 | Emergency visit sebagai extension satu encounter | Emergency Installation Management + Registration Management | `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyVisit.cs:21–67 (TrxEmergencyVisit), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Repositories/Configurations/HealthService/EmergencyInstallationManagement/TrxEmergencyVisitConfiguration.cs:29–43 (TrxEmergencyVisitConfiguration), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Extend | Entity, FK, API, and unique `EncounterId` already exist; lifecycle and closure rules do not yet represent the decided IGD semantics. | A generic update/delete path can alter or retire a clinical visit without governed correction. |
-| CAP-02 | Provisional encounter dan unknown patient pada `EncounterId` yang sama | Registration Management + Emergency Installation Management | `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyVisit.cs:21–67 (nullable EncounterId/PatientId and unknown-patient fields), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounter.cs:25–29 (required PatientId), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyVisitService.cs:42–130 (CreateAsync), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Conflict | Emergency visit can carry partial identity, but the required registration encounter requires a real patient; this cannot satisfy the decided same-encounter temporary identity flow. | A patient needing immediate care can be blocked or forced into a duplicate/master-patient workaround. |
-| CAP-03 | Temporary identity reconciliation, merge, reversal, and audit | Patient Management | `QuilvianBackend — Areas/HealthServices/PatientManagement/MasterData/Models/MstPatient.cs:109–132 (MergedToPatientId/MergeReason), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/PatientManagement/MasterData/Controllers/PatientController.cs:709–794 (generic patient update), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/PatientManagement/MasterData/Controllers/PatientController.cs:2358–2395 (merge target validation), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Repair | A merge pointer exists, but no temporary-identity lifecycle, candidate reconciliation, maker-checker, reversal workflow, idempotency, or controlled audit evidence was found. | Generic update can create an unreviewed link that does not preserve the required identity decision history. |
-| CAP-04 | Four-colour triage, retriage, and SLA evidence | Emergency Installation Management | `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Enums/EmergencyTriageSystem.cs:3–7 (EmergencyTriageSystem), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyTriage.cs:15–43 (TrxEmergencyTriage), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Repositories/Configurations/HealthService/EmergencyInstallationManagement/TrxEmergencyTriageConfiguration.cs:27–31,48–51 (unique sequence and prior-triage relation), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Repair | Sequence and previous-triage relation exist, but source-of-truth remains ATS/ESI; generic update/delete permits rewriting history; SLA is calculated from static master minutes rather than versioned policy/clocks. | Retriage and response measurement can contradict the clinical governance decisions. |
-| CAP-05 | Observation, resuscitation, and emergency procedure detail | Emergency Installation Management | `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyObservation.cs:10–22 (TrxEmergencyObservation), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyResuscitation.cs:10–22 (TrxEmergencyResuscitation), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyProcedureDetail.cs:10–15 (TrxEmergencyProcedureDetail), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Extend | These records are already owned by IGD and linked to `EmergencyVisitId`; their mutation/correction and shared-clinical references still need alignment. | Generic CRUD can make clinically material history mutable. |
-| CAP-06 | Vital sign, CPPT, assessment, diagnosis, and procedure without duplication | Clinical Management | `QuilvianBackend — Areas/HealthServices/ClinicalManagement/Models/TrxPatientVitalSign.cs:25–40 (TrxPatientVitalSign), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/ClinicalManagement/Models/TrxPatientIntegratedProgressNote.cs:25–42 (TrxPatientIntegratedProgressNote), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/ClinicalManagement/Models/TrxPatientAssessment.cs:20–40 (TrxPatientAssessment), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Reuse with adapter | The shared clinical owner should remain Clinical Management. Its records require patient/encounter and generally consultation context, so it cannot serve a temporary identity until the provisional context is supported. | Copying these records into IGD would create competing clinical sources of truth. |
-| CAP-07 | Disposition distinct from clinical completion | Emergency Installation Management | `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyDisposition.cs:16–80 (TrxEmergencyDisposition), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyDispositionService.cs:23–110 (CreateAsync and transition rules), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Controller/EmergencyDispositionController.cs:276–324 (status patch), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Repair | A disposition record and draft/confirmed/executed states exist, but the status patch can execute and complete a visit without repeating the creation gate; clinician privilege and immutable correction were not evidenced. | Disposition can bypass registration/closure gating and collapse decision with completion. |
-| CAP-08 | Transfer Requested → Accepted → Departed → Arrived with separate authority | Emergency Installation Management | `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyTransfer.cs:14–63 (TrxEmergencyTransfer timestamps), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Enums/EmergencyTransferStatus.cs:3–11 (EmergencyTransferStatus), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyTransferService.cs:26–92 (CreateAsync/transition rules), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Repair | Model stores departed/arrived timestamps, but enum/service use `InTransit`/`Completed`; no source/destination actor context is enforced and generic update can move any state. | The receiving/sending separation in the decision log is not protected. |
-| CAP-09 | Billing completion, financial clearance, release, deposit, and exception | Billing Management | `QuilvianBackend — Areas/HealthServices/BillingManagement/MasterData/Models/MstPaymentMethod.cs:14–49 (MstPaymentMethod), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/BillingManagement/MasterData/Models/MstBillingItemCategory.cs:14–61 (MstBillingItemCategory), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Missing | Only billing master-data evidence was found; no transactional invoice, charge, payment, receivable, clearance, release, deposit allocation, or controlled exception workflow was found. | Financial release rules cannot be enforced or audited from the current source. |
-| CAP-10 | Prescription/pharmacy handoff | Pharmacy Management | `QuilvianBackend — Areas/HealthServices/PharmacyManagement/Models/TrxPrescription.cs:25–69 (TrxPrescription), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/PharmacyManagement/Controllers/PrescriptionController.cs:262–313 (Create validation), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Reuse with adapter | Prescription is an existing clinical owner, but its creation validates consultation and encounter context. | An IGD-specific duplicate prescription store would split dispensing ownership. |
-| CAP-11 | Lab/radiology ordering and late-result follow-up | No owner evidenced in application source | Source scans for `Laboratory`, `Lab`, `Radiology`, and diagnostic result APIs/controllers in both repositories produced no implementation candidate at the audited SHAs. The required workflow is recorded in `QuilvianBackend — docs/module-blueprints/igd/00-interview-decisions.md:1004 (IGD-DEC-032), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`. | Missing | No source owner or contract was identified for order/result, criticality, acknowledgment, coverage, or escalation. | Late clinical results have no traced delivery or follow-up capability. |
-| CAP-12 | Context-aware clinical/business authorization | Security / authorization infrastructure | `QuilvianBackend — Attributes/AccessPermissionAttribute.cs:6–18 (AccessPermissionAttribute), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Filters/AccessPermissionFilter.cs:28–76 (AccessPermissionFilter), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Services/Security/AccessPermissionService.cs:22–150 (AccessPermissionService), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Conflict | Existing controller/action RBAC has a universal `SuperAdmin` bypass and no evidenced unit/resource, clinical credential, privilege, maker-checker, or transfer-side context validation. | Broad technical authority can exceed the decision-log clinical/business authority model. |
-| CAP-13 | Approval/maker-checker workflow candidate | HR Workflow Management | `QuilvianBackend — Areas/Corporate/HumanResource/WorkflowManagement/Models/TrxWorkflowInstance.cs:15–74 (TrxWorkflowInstance), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/Corporate/HumanResource/WorkflowManagement/Models/TrxWorkflowApproverAssignment.cs:14–65 (TrxWorkflowApproverAssignment), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowService.cs:374–390,1024–1043 (idempotency and assigned-approver validation), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Reuse with adapter | The workflow foundation has correlation/idempotency and approver assignment, but it does not prove IGD-specific capability, different-maker, credential, resource-context, or privacy controls. | Treating a HR workflow as sufficient without an adapter would leave clinical governance unenforced. |
-| CAP-14 | Transactional outbox/inbox and cross-module reconciliation | No owner evidenced in application source | A source scan for technical `outbox`, processed-message/inbox, integration-event, and broker components found no transactional implementation candidate. The reliability requirement is in `QuilvianBackend — docs/module-blueprints/igd/00-interview-decisions.md:1005 (IGD-DEC-033), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`. | Missing | No local outbox/inbox or cross-module reconciliation mechanism was evidenced. | Client retries and partial failures can produce divergent registration/clinical/financial state. |
-| CAP-15 | Mutation audit without full PHI payload | Shared identity/logging infrastructure | `QuilvianBackend — Models/IdentityModel.cs:5–23 (IdentityModel audit fields), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Services/Logging/LoggerService.cs:19–37,110–164 (LoggerService), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Controller/EmergencyVisitController.cs:224–229 (InfoAsync usage), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Extend | Timestamp/user metadata and logging exist, but immutable domain audit, evidence references, approval history, and PHI classification/redaction enforcement were not evidenced. | Generic mutable audit fields/log calls do not prove compliance for high-impact clinical mutations. |
-| CAP-16 | IGD service runtime wiring | Application host | `QuilvianBackend — Program.cs:259–281 (service registrations), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Controller/EmergencyVisitController.cs:40–52 (EmergencyVisitService injection), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Repair | Emergency controllers inject emergency services, but no matching emergency service registration was found in the application source scan. | A valid controller/service implementation can still fail at runtime through unresolved DI. |
-| CAP-17 | Reachable frontend emergency registration | Frontend Registration Management | `QuilvianFrontEnd — src/app/health-services/registration-management/emergency-registration/page.jsx:1–5 (page route), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`; `QuilvianFrontEnd — src/lib/hooks/health-services/registration-management/emergency-registration/use-emergency-registration.js:798–928 (handleSubmitRegistration), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e` | Conflict | The route is reachable, but it creates a full patient/encounter before the emergency visit and sends contract values that conflict with the backend. | An emergency registration user can hit rejected requests or leave a partial encounter after a failed second call. |
-| CAP-18 | Frontend clinical IGD workspace (triage, observation, transfer, disposition, resuscitation) | No owner evidenced in frontend source | Source scans for consumers of `emergency-triages`, `emergency-transfers`, `emergency-dispositions`, `emergency-observations`, and `emergency-resuscitations` found no App Router/page or API-client implementation at commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e. The only evidenced route is `QuilvianFrontEnd — src/app/health-services/registration-management/emergency-registration/page.jsx:1–5 (page route), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`. | Missing | Existing backend endpoints have no traced clinical frontend consumer. | A backend-only workflow cannot be assumed usable by IGD staff. |
-| CAP-19 | Mass-casualty/disaster mode | No owner evidenced in application source | Source scans for `mass casualty`, `disaster`, `bencana`, and incident-mode terms in the IGD backend/frontend scope returned no implementation. Initial-release scope is decided in `QuilvianBackend — docs/module-blueprints/igd/00-interview-decisions.md:948 (IGD-DEC-009), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`. | Missing | No incident context, activation state, confirmation, tag, or associated UI/API was identified. | A committed scope item has no traced implementation capability. |
-
-## Backend Inventory
-
-### Emergency domain and persistence
-
-- `ApplicationDbContext` registers emergency setting, visit, triage, observation, resuscitation,
-  disposition, transfer, and related transaction sets in
-  `QuilvianBackend — Repositories/ApplicationDbContext.cs:581–601 (ApplicationDbContext DbSets), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-- A source migration creates the emergency-installation tables in
-  `QuilvianBackend — Migrations/20260804071642_initializeEmergencyInstallationManagement.cs:1–end (InitializeEmergencyInstallationManagement migration), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-  It was not used as evidence that the migration is applied anywhere.
-- `TrxEmergencyVisit` has nullable patient/encounter fields, status fields, and arrival/identity
-  attributes, while its configuration enforces unique `EncounterId` and restricted FKs:
-  `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyVisit.cs:21–67 (TrxEmergencyVisit), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Repositories/Configurations/HealthService/EmergencyInstallationManagement/TrxEmergencyVisitConfiguration.cs:29–43 (TrxEmergencyVisitConfiguration), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-
-### Provider contracts and mutation behaviour
-
-- Emergency-visit creation validates setting, patient/service-unit/encounter relationships, and
-  currently requires `EncounterType.Outpatient`:
-  `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyVisitService.cs:42–130 (CreateAsync), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-  The controller exposes generic update, transition, and soft-delete paths in
-  `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Controller/EmergencyVisitController.cs:163–405 (Create, Update, UpdateStatus, Delete), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-- Triage creation uses master-level SLA values, but its DTO accepts sequence, status, system, and
-  timestamps; generic update/delete can rewrite or remove a triage record:
-  `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/DTOs/EmergencyTriageDtos.cs:38–100 (CreateEmergencyTriageRequest), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Controller/EmergencyTriageController.cs:158–383 (Create, Update, Delete), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-- Disposition has a Draft → Confirmed → Executed service transition, but the status endpoint can
-  execute/complete after creation without replaying the creation validation:
-  `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyDispositionService.cs:23–110 (EmergencyDispositionService), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Controller/EmergencyDispositionController.cs:276–324 (UpdateStatus), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-- Transfer persistence already includes requested, accepted, departed, and arrived timestamps,
-  while the current service transition is Requested → Accepted → InTransit → Completed:
-  `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyTransfer.cs:14–63 (TrxEmergencyTransfer), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyTransferService.cs:75–92 (ValidateStatusTransition), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-
-### Reusable upstream/downstream owners
-
-- Registration owns `TrxPatientEncounter` and requires a patient reference:
-  `QuilvianBackend — Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounter.cs:25–29 (TrxPatientEncounter), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/RegistrationManagement/Controllers/PatientEncounterController.cs:1160–1206 (Create), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-- Patient Management owns the master patient and currently exposes merge fields through generic
-  patient update, rather than a dedicated reconciliation API:
-  `QuilvianBackend — Areas/HealthServices/PatientManagement/MasterData/Models/MstPatient.cs:109–132 (MstPatient), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/PatientManagement/MasterData/Controllers/PatientController.cs:709–794 (Update), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-- Clinical Management owns shared clinical records; Pharmacy owns prescriptions and validates
-  consultation/encounter context:
-  `QuilvianBackend — Areas/HealthServices/ClinicalManagement/Models/TrxPatientDiagnosis.cs:17–31 (TrxPatientDiagnosis), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/PharmacyManagement/Controllers/PrescriptionController.cs:262–313 (Create), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-
-### Cross-cutting infrastructure
-
-- The authorization path is action-level permission filtering. It grants a broad `SuperAdmin`
-  bypass and does not evidence clinical-privilege use in IGD. The available privilege model is in
-  `QuilvianBackend — Areas/Corporate/HumanResource/CredentialingManagement/Models/WfpClinicalPrivilege.cs:16–68 (WfpClinicalPrivilege), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`, while the permission implementation is in
-  `QuilvianBackend — Services/Security/AccessPermissionService.cs:22–150 (AccessPermissionService), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-- The HR workflow has useful instance/assignment/idempotency behaviours, but its evidence is not
-  a clinical approval contract:
-  `QuilvianBackend — Areas/Corporate/HumanResource/WorkflowManagement/Models/TrxWorkflowInstance.cs:15–74 (TrxWorkflowInstance), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowService.cs:1024–1043 (assigned approver check), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-- No targeted IGD test/spec filename was found in either repository at the audited SHA. This is a
-  scan result, not proof that untracked or external tests do not exist.
-
-## Frontend Inventory
-
-- The only confirmed reachable IGD page is the registration route, also referenced from the menu:
-  `QuilvianFrontEnd — src/app/health-services/registration-management/emergency-registration/page.jsx:1–5 (default page), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`; `QuilvianFrontEnd — src/utils/menu-sidebar/menu-items.jsx:882 (emergency-registration menu item), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`.
-- Its page copy says administration must complete before nursing triage:
-  `QuilvianFrontEnd — src/components/view/health-services/registration-management/emergency-registration/emergency-registration-page.jsx:18–30 (EmergencyRegistrationPage), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`.
-  That is incompatible with the patient-safety/provisional decision baseline.
-- The API client has separate endpoints and HTTP calls for patient encounter then emergency visit:
-  `QuilvianFrontEnd — src/lib/services/health-services/registration-management/emergency-registration.service.js:22–40 (EMERGENCY_REGISTRATION_API_URLS), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`; `QuilvianFrontEnd — src/lib/services/health-services/registration-management/emergency-registration.service.js:299–332 (createEmergencyPatientEncounter/createEmergencyVisit), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`.
-- The hook submits those writes sequentially. It retains `completedEncounter` for a second-call
-  retry, but has no stable client/server idempotency key or one local backend command:
-  `QuilvianFrontEnd — src/lib/hooks/health-services/registration-management/emergency-registration/use-emergency-registration.js:798–928 (handleSubmitRegistration), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`; `QuilvianFrontEnd — src/lib/state/slice/health-services/registration-management/emergency-registration-slice.jsx:340–369 (submission states), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`.
-- Service-unit selection has frontend string/code heuristics, including `SU-ER-001` and `IGD`,
-  rather than an evidenced authoritative emergency-setting contract:
-  `QuilvianFrontEnd — src/lib/services/health-services/registration-management/emergency-registration.service.js:148–164 (isEmergencyServiceUnit), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`.
-- New-patient registration requires identity, phone, address, and geographic fields before the
-  user can progress. The unknown-patient toggle is only present in the later visit step:
-  `QuilvianFrontEnd — src/lib/constants/health-services/registration-management/emergency-management/emergency-registration.constants.js:394–415 (required fields), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`; `QuilvianFrontEnd — src/lib/hooks/health-services/registration-management/emergency-registration/use-emergency-registration.js:519–601 (handlePatientStepNext), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`; `QuilvianFrontEnd — src/components/view/health-services/registration-management/emergency-registration/emergency-visit-step.jsx:545–579 (unknown patient UI), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`.
-- No clinical IGD route/client consumer was identified for the emergency triage, transfer,
-  disposition, observation, or resuscitation endpoint names. Existing legacy-looking `/IGD/`
-  strings in `config.jsx` are not treated as active routes because no matching App Router route
-  was found.
-
-## Reuse dan Ownership Map
-
-| Data/capability | Existing owner | Reuse boundary | Why IGD should not duplicate it | Evidence |
-|---|---|---|---|---|
-| Master patient | Patient Management | Reuse definitive `MstPatient` after controlled reconciliation; do not reuse generic merge update as the workflow. | A duplicate master-patient owner breaks duplicate prevention and history. | `QuilvianBackend — Areas/HealthServices/PatientManagement/MasterData/Models/MstPatient.cs:109–132 (MstPatient), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` |
-| Encounter/admission | Registration Management | Reuse one encounter as the episode anchor, subject to resolving provisional identity support. | A second IGD encounter would violate the decided same-episode linkage. | `QuilvianBackend — Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounter.cs:25–29 (TrxPatientEncounter), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` |
-| IGD-specific extension | Emergency Installation Management | Retain `TrxEmergencyVisit` and its child observations, resuscitation, triage, disposition, and transfer as IGD-owned data. | Rebuilding the established IGD extension would duplicate the current relationship graph. | `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyVisit.cs:21–67 (TrxEmergencyVisit), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` |
-| Shared clinical facts | Clinical Management | Reference existing vital signs, CPPT, assessment, diagnoses, and procedures through an IGD-compatible clinical context. | Duplicate clinical records create competing clinical source-of-truth and audit trails. | `QuilvianBackend — Areas/HealthServices/ClinicalManagement/Models/TrxPatientVitalSign.cs:25–40 (TrxPatientVitalSign), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` |
-| Prescription/dispensing | Pharmacy Management | Integrate through the existing encounter/consultation contract. | A separate IGD prescription record would split pharmacy fulfilment. | `QuilvianBackend — Areas/HealthServices/PharmacyManagement/Models/TrxPrescription.cs:25–69 (TrxPrescription), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` |
-| Approval engine candidate | HR Workflow Management | Adapt workflow instance/assignment only after IGD authority and separation rules are verified. | An ad-hoc approval table would duplicate reusable idempotency/assignment primitives. | `QuilvianBackend — Areas/Corporate/HumanResource/WorkflowManagement/Models/TrxWorkflowApproverAssignment.cs:14–65 (TrxWorkflowApproverAssignment), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` |
-| Permission infrastructure | Security | Reuse permission evaluation only if its action-level model is extended to the required context and segregation controls. | Replacing it without tracing users/roles would risk parallel authorization systems. | `QuilvianBackend — Services/Security/AccessPermissionService.cs:22–150 (AccessPermissionService), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` |
-| Billing and diagnostics | No transactional owner traced | Do not create IGD-owned financial or diagnostic facts based on this audit alone. | Billing/diagnostic ownership, contracts, and external integrations were not identified. | `QuilvianBackend — Areas/HealthServices/BillingManagement/MasterData/Models/MstPaymentMethod.cs:14–49 (MstPaymentMethod), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` |
-
-## As-Is Contract
-
-### Current frontend-to-backend registration sequence
-
-```text
-frontend form
-  -> POST /v1/health-services/registration-management/patient-encounters
-  -> extract EncounterId from the response
-  -> POST /v1/health-services/emergency-installation-management/emergency-visits
-```
-
-The URL constants and separate calls are in
-`QuilvianFrontEnd — src/lib/services/health-services/registration-management/emergency-registration.service.js:22–40,299–332 (EMERGENCY_REGISTRATION_API_URLS and create functions), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`.
-The ordering and retry state are in
-`QuilvianFrontEnd — src/lib/hooks/health-services/registration-management/emergency-registration/use-emergency-registration.js:798–928 (handleSubmitRegistration), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`.
-
-### Confirmed provider/consumer mismatches
-
-| Area | Frontend consumer | Backend provider | Consequence |
-|---|---|---|---|
-| Encounter type | The encounter payload sends `ENCOUNTER_TYPE.Emergency = 2`: `QuilvianFrontEnd — src/utils/health-services/registration-management/emergency-management/emergency-registration.utils.js:970–1027 (buildEmergencyEncounterPayload), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`; `QuilvianFrontEnd — src/lib/constants/health-services/registration-management/emergency-management/emergency-registration.constants.js:55–62 (ENCOUNTER_TYPE), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e` | Emergency-visit creation accepts only `EncounterType.Outpatient`: `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyVisitService.cs:97–101 (CreateAsync), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | A frontend-created emergency encounter cannot be attached to the emergency visit under the current provider rule. |
-| Payment type | Constants define `COMPANY = 3`: `QuilvianFrontEnd — src/lib/constants/health-services/registration-management/emergency-management/emergency-registration.constants.js:95–102 (PAYMENT_TYPE), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e` | The active encounter enum accepts Cash and Insurance only, with controller validation: `QuilvianBackend — Areas/HealthServices/RegistrationManagement/Enums/EncounterPaymentType.cs:5–12 (EncounterPaymentType), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`; `QuilvianBackend — Areas/HealthServices/RegistrationManagement/Controllers/PatientEncounterController.cs:1190–1194 (payment validation), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | Corporate payload can be rejected. |
-| Emergency registration status | Payload defaults `REGISTERED = 1`: `QuilvianFrontEnd — src/lib/constants/health-services/registration-management/emergency-management/emergency-registration.constants.js:148–158 (EMERGENCY_VISIT_REGISTRATION_STATUS), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e`; `QuilvianFrontEnd — src/utils/health-services/registration-management/emergency-management/emergency-registration.utils.js:1047–1079 (buildEmergencyVisitPayload), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e` | Backend maps `Pending = 1`, `Provisional = 2`, `Registered = 3`, `Completed = 4`: `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Enums/EmergencyRegistrationStatus.cs:3–9 (EmergencyRegistrationStatus), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | The client labels a pending state as registered. |
-| Unknown patient | The UI must select/create a patient before it proceeds: `QuilvianFrontEnd — src/lib/hooks/health-services/registration-management/emergency-registration/use-emergency-registration.js:519–601 (handlePatientStepNext), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e` | The eventual encounter creation requires patient identity: `QuilvianBackend — Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounter.cs:25–29 (TrxPatientEncounter), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` | The later unknown-patient fields do not create a working provisional path. |
-| Atomicity/idempotency | Two client requests and a retained UI result are used for retry: `QuilvianFrontEnd — src/lib/hooks/health-services/registration-management/emergency-registration/use-emergency-registration.js:798–928 (handleSubmitRegistration), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e` | No IGD local command/idempotency/outbox mechanism was identified in source. | A first-call success plus second-call failure persists a partial state and has no server-guaranteed replay contract. |
-
-## Conflict dan Unknown
-
-### Confirmed conflicts
-
-- The current emergency visit service requires an outpatient encounter, while the current UI sends
-  an emergency encounter. See the first row in **As-Is Contract**.
-- The new-patient UI requires administrative demographics before reaching the unknown-patient
-  controls; this contradicts the provisional-care baseline. Evidence is in
-  `QuilvianFrontEnd — src/lib/constants/health-services/registration-management/emergency-management/emergency-registration.constants.js:394–415 (required fields), commit e77ebd8040fae0509b48d810f94fb0ab9b2bab1e` and
-  `QuilvianBackend — docs/module-blueprints/igd/00-interview-decisions.md:958 (IGD-DEC-016), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-- `EmergencyVisitController` sets `VisitCompletedAt` on `Disposed` or `Cancelled`, rather than
-  establishing the decided clinical/billing/administrative closure distinctions:
-  `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Controller/EmergencyVisitController.cs:338–376 (UpdateStatus), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-- Current generic update/delete endpoints for visit, triage, disposition, and transfer do not
-  evidence the append-only/correction/reopen governance. Examples are
-  `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Controller/EmergencyTriageController.cs:253–383 (Update/Delete), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` and
-  `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Controller/EmergencyTransferController.cs:276–350 (Update/Delete), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-- Emergency controller dependency injection is a likely runtime blocker until the registration
-  source is reconciled; the controller requests a service but the inspected registration block
-  contains no corresponding emergency-service registration. See
-  `QuilvianBackend — Areas/HealthServices/EmergencyInstallationManagement/Controller/EmergencyVisitController.cs:40–52 (constructor), commit fa772b71bab3b66811030477aaaaeec48aedcc4b` and
-  `QuilvianBackend — Program.cs:259–281 (service registration block), commit fa772b71bab3b66811030477aaaaeec48aedcc4b`.
-
-### Unknowns outside the source boundary
-
-- Whether the emergency migration has been applied and whether an existing database contains
-  data inconsistent with the desired lifecycle.
-- The effective MMC role-to-capability assignment, clinical privileges, delegation/on-call,
-  break-glass policy, and governance approvers.
-- Final SOP values for temporary-identity evidence, high-impact correction, SLA policy,
-  financial release exception, and disaster-mode activation.
-- External laboratory/radiology, payer, payment, messaging, and runtime queue contracts.
-- Whether a DI registration is supplied by an uninspected composition mechanism or environment;
-  no such source registration was found in the audited application source.
-
-## Closure Questions
-
-Questions below are for `$grill-me`; this map does not answer them.
-
-1. Which Registration/Master Patient owner approves the authoritative provisional-identity contract,
-   including the representation used before a definitive `PatientId` exists?
-2. Which exact MMC evidence determines the capability mapping and approval requirements for
-   reconciliation, reverse merge, high-impact correction, financial exception, and disaster mode?
-3. What is the canonical clinical context required by Clinical Management and Pharmacy when the
-   emergency visit begins provisionally, and which owner may approve its use?
-4. Is `EncounterType.Outpatient` the intentional canonical IGD encounter type, or is the current
-   frontend/backend mismatch an unapproved contract divergence?
-5. Which disposition, transfer, clinical-completion, administrative-release, and billing states
-   already have canonical owners outside IGD, if any?
-6. What system owns lab/radiology order/result, critical-result routing, and late-result follow-up;
-   what is its supported integration/reliability contract?
-7. Which Finance policy and authorization evidence can activate a self-pay `Outstanding + Released`
-   exception, if activation is later approved?
-8. Does a runtime composition root or deployment module register `Emergency*Service` classes, and
-   which test/environment proves controller activation?
-9. What disaster/incident domain, if any, exists outside these repositories and is it the intended
-   owner of the IGD mass-casualty state?
-
-## Impact Scan Trigger
-
-This map becomes stale when either recorded SHA changes. Before it is used for implementation,
-compare the new revision with the SHA above and rescan at least the affected capability rows.
-
-- Changes under `Areas/HealthServices/EmergencyInstallationManagement`, Registration, Patient,
-  Clinical, Pharmacy, Billing, or `Repositories/Configurations` require a journey and contract
-  impact scan.
-- Changes under `Program.cs`, security/permission, credentialing, workflow, logging, or migration
-  files require a cross-cutting capability scan.
-- Changes under frontend routes, registration services/hooks/constants, or IGD clinical UI require
-  a provider/consumer and duplicate-submit scan.
-- Changes to SOP/configuration, runtime DI, database deployment, external integration, or role
-  assignments invalidate the relevant source-only `Unknown` statements and require evidence from
-  the owning environment.
+| `module` | `igd` |
+| `revision` | `3` |
+| `status` | `draft` — audit read-only, belum disetujui siapa pun |
+| `audit_date` | 24 Agustus 2026 |
+| Backend repository / SHA | `NewQuilvianSystemBackend` / `f69e9e483052845d11c91d8b7bbdce33c4acc8d8` (branch `rizkiG`) |
+| Frontend repository / SHA | `QuilvianSystemFrontendDev` / `96a9120111f6acc6b7c0f37973ea0c717ba41f17` (branch `RizkiV2`) |
+| Keadaan working tree backend | Satu berkas dokumen berubah dan belum di-commit: `docs/module-blueprints/igd/00-interview-decisions.md`. **Nol** berkas `.cs` berubah |
+| Keadaan working tree frontend | Bersih |
+| Decision baseline | `docs/module-blueprints/igd/00-interview-decisions.md`, mencakup `IGD-DEC-001` sampai `IGD-DEC-085`. Keputusan `IGD-DEC-067` sampai `IGD-DEC-085` berstatus `draft` |
+| Menggantikan | Revision `2` **seluruhnya** |
 
 ---
 
-## Impact Scan 2026-08-14 — `IGD-GAP-006`, `IGD-GAP-007`, `IGD-GAP-008`
+## 0. Mengapa revision 2 dibuang, bukan ditambal
 
-| Field | Nilai |
-| --- | --- |
-| Mode | Impact scan read-only, terbatas pada tiga gap yang `pending-audit` |
-| Commit diaudit | backend `e5331a0`, frontend `08c84d371` |
-| Pemicu | Closure Pass 2026-08-14 meneruskan ketiga gap ini ke audit source, bukan ke wawancara |
+Revision `2` tidak dapat dipakai lagi. Bukan karena isinya usang saja, melainkan karena
+bukti-buktinya **tidak dapat ditelusuri lagi**.
 
-Temuan utama: **sebagian besar kemampuan yang diduga belum ada ternyata sudah tersedia dalam
-bentuk generik di modul lain.** IGD sebaiknya memakai ulang, bukan membangun kerangka baru.
+| Masalah pada revision 2 | Bukti |
+|---|---|
+| Menyebut repository bernama `QuilvianBackend` dan `QuilvianFrontEnd` | Repository yang ada sekarang bernama `NewQuilvianSystemBackend` dan `QuilvianSystemFrontendDev` |
+| Mengutip path `Repositories/Configurations/HealthService/...` | Folder itu tidak ada. Yang ada `Repositories/Configurations/HealthServices/` — dengan huruf `s` |
+| Mencatat SHA backend `fa772b71` | Berjarak **77 commit** dari `HEAD`. **145** berkas `.cs` berubah di antaranya, **49** menyentuh IGD, klinis, atau registrasi |
+| SHA pada map berbeda dengan SHA pada manifest | Map menulis `fa772b71`; `blueprint-manifest.md` menulis `e5331a0` untuk map revision `2` yang sama |
+| Enam migration masuk setelahnya | `MakeTriageMaxWaitingMinutesNullable`, `initializeLabOrder`, `renameEmployeeRecognitionToHrd`, `AddTriageSlaBreachMarker`, `AllowOutOfQueueScaleTriageLevel`, `AddNosocomialInfection` |
 
-### `IGD-GAP-006` — Ekspresivitas authorization
+Sembilan belas capability lama `CAP-01` sampai `CAP-19` karena itu ditandai `superseded`
+seluruhnya. Penomoran pada revision `3` dimulai ulang dan tidak dapat dibandingkan satu-satu
+dengan penomoran lama.
 
-Cara kerja authorization saat ini: `AccessPermissionAttribute(controllerName, actionName)`
-memasang `AccessPermissionFilter`, yang memanggil `AccessPermissionService.HasAccessAsync`
-dengan hanya nama controller dan nama action. Keputusan diambil dari join
-`ApplicationUserOrganizations` (DepartmentId, PositionId) ke `SysAccessPolicies`.
+Isi revision `2` **tidak dihapus**. Salinannya disimpan di
+[`archive/01-existing-capability-map-rev2.md`](./archive/01-existing-capability-map-rev2.md)
+sehingga hash lama tetap dapat dicocokkan.
 
-| Kemampuan | Status | Bukti |
-| --- | --- | --- |
-| Policy berbasis Department dan Position, bukan sekadar role datar | Ready to reuse | backend + `Services/Security/AccessPermissionService.cs` + baris 85-112 + `e5331a0` |
-| Masa berlaku penugasan organisasi | Ready to reuse | backend + `Services/Security/AccessPermissionService.cs` + `EffectiveStartDate`/`EffectiveEndDate` baris 101-104 + `e5331a0` |
-| Maker-checker | Reuse with adapter | backend + `Areas/Corporate/HumanResource/WorkflowManagement/Models/TrxApprovalAction.cs`, `TrxWorkflowApproverAssignment.cs` + `e5331a0` |
-| Approval bertingkat | Reuse with adapter | backend + `.../WorkflowManagement/Models/TrxWorkflowStepInstance.cs` dan `MasterData/Workflow/Models/MstWorkflowStep.cs` + `e5331a0` |
-| Delegasi sementara | Reuse with adapter | backend + `.../WorkflowManagement/Models/TrxApprovalDelegation.cs` + `EffectiveStartAt`/`EffectiveEndAt` baris 41-43 + `e5331a0` |
-| Scope resource atau unit pelayanan pada pemeriksaan akses | **Missing** | `HasAccessAsync` tidak menerima parameter resource atau unit sama sekali; backend + `Services/Security/AccessPermissionService.cs` + baris 22-25 + `e5331a0` |
-| Pemeriksaan credential atau kompetensi klinis | **Missing** | Tidak ditemukan pada jalur authorization mana pun + `e5331a0` |
-| Bypass SuperAdmin tanpa syarat | **Conflict** | backend + `Services/Security/AccessPermissionService.cs` + `IsSuperAdminUser` baris 54-57 dan 117-151 + `e5331a0` |
+### 0.1 Yang harus diperbaiki pada `blueprint-manifest.md`
 
-Catatan penting mengenai kelayakan pakai ulang: engine workflow **tidak terikat HR**.
-`TrxWorkflowInstance` memakai `ReferenceType` bertipe string dan `ReferenceId` bertipe Guid
-(baris 28 dan 30), sehingga dapat menunjuk entitas domain mana pun. Yang terikat HR hanyalah
-lokasi foldernya, bukan modelnya.
+Manifest revision `4` masih menunjuk capability map revision `2`. Tiga field di bawah menjadi
+tidak benar sejak berkas ini ditulis, dan **wajib** diperbarui saat blueprint naik revisi:
 
-Conflict yang ditemukan bersifat material: `IGD-DEC-026` menyatakan technical administrator
-tidak otomatis memiliki clinical atau business authority, sedangkan kode memberi akses penuh
-tanpa syarat kepada pemegang role `SuperAdmin` atau `UserType == 1`. Keduanya tidak dapat
-berlaku bersamaan.
+| Field pada manifest | Nilai lama | Yang benar sekarang |
+|---|---|---|
+| `input_revisions` | `01-existing-capability-map.md` revision `2` | revision `3` |
+| `input_hashes` | capability map `sha256:ee02f069…` | Hash berkas ini, dihitung ulang saat revisi manifest |
+| Tabel `Artifact hashes` baris capability map | `ee02f0697226da3de9b6046a28a86594498a520b8a6a7b6843321f00e3d8da51` | Hash berkas ini |
 
-### `IGD-GAP-007` — Engine SLA triase
+Pembaruan manifest **bukan** pekerjaan audit ini. Ia dikerjakan saat blueprint disusun ulang,
+supaya seluruh hash dihitung sekali pada keadaan akhir, bukan sepotong-sepotong.
 
-| Kemampuan | Status | Bukti |
-| --- | --- | --- |
-| Snapshot batas waktu dari master | Ready to reuse | backend + `.../EmergencyInstallationManagement/Models/TrxEmergencyTriage.cs` + `MaxWaitingMinutesSnapshot` baris 39 + `e5331a0` |
-| Perhitungan deadline respons di sisi server | Ready to reuse | backend + `.../Controller/EmergencyTriageController.cs` + baris 218-220, `ResponseDueAt = StartedAt.AddMinutes(triageLevel.MaxWaitingMinutes)` + `e5331a0` |
-| Penanda breach pada triage | **Missing** | Tidak ada field breach pada `TrxEmergencyTriage` + `e5331a0` |
-| Preseden penanda breach di modul lain | Reuse with adapter | backend + `Areas/Corporate/HumanResource/HrServiceManagement/Models/TrxHrServiceRequest.cs` + `IsSlaBreached` baris 66 + `e5331a0` |
-| Kebijakan eskalasi berbasis waktu | Reuse with adapter | backend + `MasterData/Workflow/Models/MstWorkflowStep.cs` + `EscalationAfterHours` baris 67; `WorkflowManagement/Services/WorkflowService.cs` baris 1706 + `e5331a0` |
-| Pola background worker terjadwal | Ready to reuse | backend + lima hosted service pada `Areas/Corporate/HumanResource/` (Attendance, Leave Accrual, Leave Carry Forward, Leave Execution, Overtime) + `e5331a0` |
-| Worker pemantau SLA untuk IGD | **Missing** | Tidak ada hosted service satu pun di bawah `Areas/HealthServices/` + `e5331a0` |
+---
 
-Kesimpulan: model timestamp dan deadline sudah authoritative dan dihitung di server, bukan di
-frontend. Yang belum ada hanyalah deteksi breach dan eskalasinya, dan keduanya punya pola
-matang di modul lain yang dapat diikuti.
+## 1. Cara audit ini dikerjakan dan batasnya
 
-### `IGD-GAP-008` — Pemetaan authority dan approver
+**Yang dikerjakan.** Seluruh `Areas/` disurvei sebagai inventaris utuh lebih dulu, bukan
+dicari dengan kata kunci. Barulah setiap kebutuhan pada decision log ditelusuri ke entity,
+konfigurasi EF, migration, controller, service, pendaftaran DI, izin akses, test, dan
+pemakainya di frontend.
 
-| Kemampuan | Status | Bukti |
-| --- | --- | --- |
-| Infrastruktur pemetaan kewenangan | Extend | backend + `SysAccessPolicies` dijoin dengan Department dan Position pada `Services/Security/AccessPermissionService.cs` baris 85-112 + `e5331a0` |
-| Penugasan approver | Reuse with adapter | backend + `.../WorkflowManagement/Models/TrxWorkflowApproverAssignment.cs` + `e5331a0` |
-| Peran governance bernama: Clinical, Finance, Privacy, Security, Integration authority | **Missing** | Tidak ada representasi peran approval per domain; yang ada hanya kombinasi Department dan Position + `e5331a0` |
+**Mengapa inventaris utuh.** Pada tahap wawancara 24 Agustus, pencarian berbasis kata kunci
+dijalankan dan **melewatkan dua hal yang jelas-jelas ada**: modul `LaboratoryManagement` dan
+proyek `QuilvianSystemBackend.Tests`. Keduanya dikoreksi pada bagian 8. Audit ini karena itu
+tidak memakai metode yang sama.
 
-### Rekomendasi untuk tahap desain
+**Yang tidak dikerjakan.** Aplikasi tidak dibangun, tidak dijalankan, dan basis data tidak
+disentuh. Tidak ada perilaku runtime yang diverifikasi. Seluruh pernyataan di bawah adalah
+pembacaan source pada SHA di atas.
 
-1. **Jangan membangun capability framework baru.** Maker-checker, approval bertingkat, dan
-   delegasi sementara sudah tersedia dan generik lewat `ReferenceType`/`ReferenceId`. Yang perlu
-   dirancang adalah adapter dan penempatan namespace-nya, bukan mesinnya.
-2. **Rancang penambahan scope resource/unit pada jalur authorization**, karena inilah satu-satunya
-   kemampuan inti yang benar-benar belum ada dan dibutuhkan `IGD-DEC-026`.
-3. **Angkat bypass SuperAdmin sebagai keputusan tersendiri.** Ini conflict terhadap keputusan yang
-   sudah tercatat dan menyentuh seluruh modul, bukan hanya IGD.
-4. **Ikuti pola hosted service yang sudah ada** untuk pemantau SLA triase; jangan menciptakan
-   mekanisme penjadwalan baru.
+**Batas ketelitian.** Isi tabel basis data pengembangan tidak diperiksa. Pernyataan seperti
+"master belum terisi" berasal dari kode seeder, bukan dari isi basis data.
 
-### Status gap setelah impact scan
+---
 
-| ID | Status baru |
-| --- | --- |
-| `IGD-GAP-006` | `audited` — sebagian besar tersedia untuk dipakai ulang; kekurangan nyata hanya scope resource/unit dan credential check |
-| `IGD-GAP-007` | `audited` — model waktu sudah ada; deteksi breach dan eskalasi belum ada tetapi berpola |
-| `IGD-GAP-008` | `audited` — infrastruktur ada, peran governance bernama belum ada |
-| `IGD-CONFLICT-003` | **baru** — bypass SuperAdmin bertentangan dengan `IGD-DEC-026`; perlu keputusan pemilik security/privacy |
+## 2. Inventaris menyeluruh
+
+Backend memiliki **440 entity** dan **247 controller** di seluruh `Areas/`. Yang relevan bagi
+IGD ada di `Areas/HealthServices/`:
+
+| Area | Jumlah | Entity |
+|---|---:|---|
+| `RegistrationManagement` | 4 | `TrxKioskScanSession`, `TrxPatientEncounter`, `TrxPatientEncounterGuarantor`, `TrxQueue` |
+| `EmergencyInstallationManagement` | 9 | `TrxEmergencyVisit`, `TrxEmergencyTriage`, `TrxEmergencyTriageDetail`, `TrxEmergencyObservation`, `TrxEmergencyObservationDetail`, `TrxEmergencyResuscitation`, `TrxEmergencyProcedureDetail`, `TrxEmergencyDisposition`, `TrxEmergencyTransfer` |
+| `ClinicalManagement` | 14 | `TrxPatientAssessment`, `TrxPatientVitalSign`, `TrxPatientIntegratedProgressNote`, `TrxDoctorConsultation`, `TrxPatientDiagnosis`, `TrxPatientProcedure`, `TrxPatientAllergy`, `TrxPatientMedicalHistory`, `TrxPatientFamilyHistory`, `TrxNosocomialInfection`, `TrxPatientConsent`, `TrxPatientClinicalDocument`, `TrxClinicalNoteAttachment`, `TrxMedicalCertificate` |
+| `LaboratoryManagement` | 1 | `LabOrder` |
+| `PharmacyManagement` | 15 | `TrxPrescription` beserta item, racikan, telaah, penyiapan, klarifikasi, substitusi, dan lima master template |
+| `PatientManagement/MasterData` | 7 | `MstPatient`, `MstPatientInsurance`, `MstPatientCompanyGuarantor`, `MstPatientEmergencyContact`, `MstPatientIdentityDocument`, `MstPatientMembership`, `MstPatientRelationship` |
+| `MasterData` | 32 | termasuk `MstServiceUnit`, `MstRoom`, `MstBed`, `MstPatientClass`, `MstProcedure`, dan enam master IGD |
+| `BillingManagement/MasterData` | 2 | `MstBillingItemCategory`, `MstPaymentMethod` |
+
+**Area yang dicari dan terbukti tidak ada:** `InpatientManagement`, `InPatientManagement`,
+`RadiologyManagement`, `DiagnosticServices`.
+
+---
+
+## 3. Capability Register
+
+Klasifikasi: `Ready to reuse`, `Reuse with adapter`, `Extend`, `Repair`, `Missing`,
+`Conflict`, `Unknown`.
+
+Seluruh bukti berformat `repository — path:baris (simbol), commit`. Commit backend
+`f69e9e48`, commit frontend `96a91201`, kecuali disebut lain.
+
+### 3.1 Pendaftaran dan kunjungan
+
+| ID | Capability | Owner | Klasifikasi | Bukti | Catatan |
+|---|---|---|---|---|---|
+| `IGD-CAP-01` | Kunjungan pasien sebagai jangkar episode | Registration Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounter.cs:15,26,29 (TrxPatientEncounter.Id/PatientId/ServiceUnitId)` | Nomor kunjungan unik ada, relasi lengkap |
+| `IGD-CAP-02` | Kunjungan IGD sebagai perluasan kunjungan | Emergency Installation Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyVisit.cs:15-99 (TrxEmergencyVisit)` | Satu kunjungan hanya boleh punya satu kunjungan IGD, dijaga index unik |
+| `IGD-CAP-03` | Jenis kunjungan `Emergency` | Registration Management | `Conflict` | Enum menyediakannya: `NewQuilvianSystemBackend — Areas/HealthServices/RegistrationManagement/Enums/EncounterType.cs (Emergency = 2)`. Validasi menolaknya: `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyVisitService.cs:97-98` dan `Areas/HealthServices/EmergencyInstallationManagement/Controllers/EmergencyVisitController.cs:525-526` | Nilai `Emergency` **tidak pernah ditulis** oleh satu jalur pun. Aturan ditulis dua kali. Lihat `IGD-CONF-01` |
+| `IGD-CAP-04` | Penghubung kunjungan IGD ke kunjungan rawat inap | Registration Management | `Missing` | `NewQuilvianSystemBackend — Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounter.cs` tidak memuat kolom penunjuk kunjungan lain | Dibutuhkan `IGD-DEC-075` dan `RWI-RULE-029` aturan 2 |
+| `IGD-CAP-05` | Kelas pasien untuk kunjungan IGD | Registration Management + Master Data | `Extend` | Penanda sudah ada: `NewQuilvianSystemBackend — Areas/HealthServices/MasterData/Models/MstPatientClass.cs (IsForEmergency)`. Penetapannya belum memakainya: `Areas/HealthServices/RegistrationManagement/Controllers/PatientEncounterController.cs:55 (DefaultOutpatientPatientClassName = "RAWAT JALAN")`, `:1470 (ResolvePatientClassAsync)` | Kolom `IsForEmergency` sudah dirancang tetapi belum dipakai. Penetapan rawat jalan memakai nama tertulis-tetap |
+| `IGD-CAP-06` | Penjamin pada kunjungan | Registration Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/RegistrationManagement/Models/TrxPatientEncounterGuarantor.cs` | Satu kunjungan satu sumber pembayaran |
+| `IGD-CAP-07` | Pasien tanpa identitas | Emergency Installation Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyVisit.cs:59-63 (IsUnknownPatient, TemporaryPatientAlias)` | Diizinkan bila setting mengizinkan |
+| `IGD-CAP-08` | Pencegahan episode IGD ganda untuk satu pasien | Emergency Installation Management | `Missing` | Yang dijaga hanya satu encounter satu kunjungan IGD: `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyVisitService.cs:104-116` | Dibutuhkan `IGD-DEC-084` |
+| `IGD-CAP-09` | Antrean untuk pasien IGD | Registration Management | `Missing`, dan memang disengaja | Tidak ada jalur yang membuat `TrxQueue` untuk IGD | `IGD-DEC-068` memilih **tidak** membuat antrean semu |
+
+### 3.2 Triase
+
+| ID | Capability | Owner | Klasifikasi | Bukti | Catatan |
+|---|---|---|---|---|---|
+| `IGD-CAP-10` | Penilaian triase beserta indikator | Emergency Installation Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyTriage.cs:15-120`, `Models/TrxEmergencyTriageDetail.cs` | Salinan nilai master tersimpan pada saat penilaian dibuat |
+| `IGD-CAP-11` | Penilaian ulang bersifat tambah, bukan timpa | Emergency Installation Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyTriageService.cs (RetriageAsync)` | Satu transaksi; baris lama menjadi `Superseded`; baris baru menunjuk baris lama. **Inilah pola rujukan untuk `IGD-DEC-080`** |
+| `IGD-CAP-12` | Target waktu respons yang belum disahkan dibiarkan kosong | Emergency Installation Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyTriage.cs (MaxWaitingMinutesSnapshot, ResponseDueAt)` | Tidak pernah dianggap nol menit |
+| `IGD-CAP-13` | Penandaan pelampauan batas waktu | Emergency Installation Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyTriageService.cs (MarkSlaBreachesAsync, GetSlaBreachesAsync)`; `Services/EmergencyTriageSlaMonitorHostedService.cs`; terdaftar di `Program.cs:302-304` | Idempoten. **Pola rujukan untuk daftar pantau `IGD-DEC-083`** |
+| `IGD-CAP-14` | Status kunjungan mengikuti aturan transisinya | Emergency Installation Management | `Repair` | Aturan benar: `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyVisitService.cs (CanTransition)`. Dilewati: `Areas/HealthServices/EmergencyInstallationManagement/Controllers/EmergencyTriageController.cs` menulis `visit.VisitStatus = Triaged` langsung pada `Create` dan `UpdateTriageStatus` | Status dapat mundur; kunjungan `Disposed` dapat terbuka lagi. `IGD-GAP-014` |
+| `IGD-CAP-15` | Penetapan dokter setelah triase | Registration Management | `Extend` | `NewQuilvianSystemBackend — Areas/HealthServices/RegistrationManagement/Controllers/PatientEncounterController.cs:929-977 (AssignEncounterDoctor)`; dipakai `QuilvianSystemFrontendDev — src/lib/state/slice/health-services/emergency-installation-management/emergency-management-triage-slice.jsx:521-541` | Hanya menimpa satu kolom. Tanpa riwayat, waktu, alasan, penerimaan |
+| `IGD-CAP-16` | Riwayat penugasan dokter pada satu pasien | — | `Missing` | Pencarian entity bernama `Dpjp`, `AttendingDoctor`, `DoctorAssignment`, `ResponsibleDoctor` di seluruh `Areas/` menghasilkan nol hasil | Dibutuhkan `IGD-DEC-082` |
+
+### 3.3 Pencatatan klinis
+
+| ID | Capability | Owner | Klasifikasi | Bukti | Catatan |
+|---|---|---|---|---|---|
+| `IGD-CAP-17` | Pengkajian pasien | Clinical Management | `Conflict` | `NewQuilvianSystemBackend — Areas/HealthServices/ClinicalManagement/Models/TrxPatientAssessment.cs (QueueId wajib)`; `Areas/HealthServices/ClinicalManagement/DTOs/PatientAssessmentDtos.cs:138-144 (CreatePatientAssessmentRequest, [Required] QueueId)` | IGD tidak punya antrean, sehingga pengkajian IGD **tidak dapat dibuat**. Lihat `IGD-CONF-02` |
+| `IGD-CAP-18` | Konsultasi dokter | Clinical Management | `Conflict` | `NewQuilvianSystemBackend — Areas/HealthServices/ClinicalManagement/Models/TrxDoctorConsultation.cs:24-25 ([Required] QueueId)` | Sama; menjadi akar terkuncinya diagnosis, tindakan, dan resep |
+| `IGD-CAP-19` | Diagnosis pasien | Clinical Management | `Conflict` | `NewQuilvianSystemBackend — Areas/HealthServices/ClinicalManagement/Models/TrxPatientDiagnosis.cs:20-21 ([Required] ConsultationId)` | Terkunci di balik konsultasi |
+| `IGD-CAP-20` | Tindakan pasien | Clinical Management | `Conflict` | `NewQuilvianSystemBackend — Areas/HealthServices/ClinicalManagement/Models/TrxPatientProcedure.cs:20-21 ([Required] ConsultationId)` | Terkunci. Berakibat pula pada `IGD-CAP-27` |
+| `IGD-CAP-21` | Tanda vital | Clinical Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/ClinicalManagement/DTOs/PatientVitalSignDtos.cs:217-227 (QueueId dan ConsultationId keduanya boleh kosong)` | **Tidak terkunci.** Sudah dipakai layar IGD |
+| `IGD-CAP-22` | Catatan perkembangan terintegrasi | Clinical Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/ClinicalManagement/DTOs/PatientIntegratedProgressNoteDtos.cs:154-166 (QueueId dan ConsultationId boleh kosong)` | **Tidak terkunci.** Sudah dipakai layar IGD untuk SOAP |
+| `IGD-CAP-23` | Infeksi nosokomial | Clinical Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/ClinicalManagement/Models/TrxNosocomialInfection.cs (EmergencyVisitId nullable)`; migration `Migrations/20260821063311_AddNosocomialInfection.cs`; konfigurasi `Repositories/Configurations/HealthServices/TrxNosocomialInfectionConfiguration.cs` | Sudah mengenal kunjungan IGD secara langsung |
+| `IGD-CAP-24` | Riwayat versi catatan klinis | Clinical Management | `Missing` | Basis audit hanya `NewQuilvianSystemBackend — Models/IdentityModel.cs (CreateBy, UpdateBy, DeleteBy, CancelBy)`. `LoggerService.AuditAsync` menulis ke Serilog, bukan tabel: `Services/Logging/LoggerService.cs:34-36` | Hanya penulis terakhir tersimpan. Dibutuhkan `IGD-DEC-080` |
+| `IGD-CAP-25` | Alergi pasien | Clinical Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/ClinicalManagement/Models/TrxPatientAllergy.cs` | Sumber untuk bagian otomatis `IGD-DEC-079` |
+
+### 3.4 Observasi, resusitasi, tindakan IGD
+
+| ID | Capability | Owner | Klasifikasi | Bukti | Catatan |
+|---|---|---|---|---|---|
+| `IGD-CAP-26` | Observasi dan rinciannya | Emergency Installation Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyObservation.cs`, `Models/TrxEmergencyObservationDetail.cs`; `Services/EmergencyObservationService.cs` | Dimiliki IGD sepenuhnya |
+| `IGD-CAP-27` | Rincian tindakan IGD | Emergency Installation Management | `Conflict` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyProcedureDetail.cs ([Required] PatientProcedureId)` | Bergantung `IGD-CAP-20` yang terkunci |
+| `IGD-CAP-28` | Resusitasi | Emergency Installation Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyResuscitation.cs`; `Services/EmergencyResuscitationService.cs` | Dimiliki IGD sepenuhnya |
+
+### 3.5 Penunjang dan obat
+
+| ID | Capability | Owner | Klasifikasi | Bukti | Catatan |
+|---|---|---|---|---|---|
+| `IGD-CAP-29` | Pemesanan laboratorium | Laboratory Management | `Extend` | `NewQuilvianSystemBackend — Areas/HealthServices/LaboratoryManagement/Models/LabOrder.cs (EncounterId, ProcedureId)`; `Controllers/LabOrderController.cs:13,33-108`; migration `Migrations/20260815103436_initializeLabOrder.cs`; commit asal `1a8a9ce` | **Ada dan tidak menuntut `ConsultationId`**, sehingga sudah dapat dipakai IGD hari ini. Tanpa status, hasil, spesimen, dokter pemesan, prioritas, dan nilai kritis |
+| `IGD-CAP-30` | Pemesanan radiologi | — | `Missing` | Tidak ada area `RadiologyManagement` maupun `DiagnosticServices` | |
+| `IGD-CAP-31` | Peresepan obat | Pharmacy Management | `Conflict` | `NewQuilvianSystemBackend — Areas/HealthServices/PharmacyManagement/Models/TrxPrescription.cs:27-28 ([Required] ConsultationId)` | Terkunci di balik konsultasi |
+| `IGD-CAP-32` | Catatan pemberian obat kepada pasien | — | `Missing` | Lima belas entity Farmasi mencakup resep, telaah, racikan, penyiapan, dan penyerahan; tidak satu pun mencatat pemberian ke pasien | Diperlukan `IGD-DEC-078` untuk membedakan "diserahkan" dari "diberikan" |
+
+### 3.6 Tindak lanjut, kepergian, dan rawat inap
+
+| ID | Capability | Owner | Klasifikasi | Bukti | Catatan |
+|---|---|---|---|---|---|
+| `IGD-CAP-33` | Keputusan tindak lanjut | Emergency Installation Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyDisposition.cs`; `Services/EmergencyDispositionService.cs` | Draft, Confirmed, Executed, Cancelled |
+| `IGD-CAP-34` | Penanda jenis tindak lanjut yang menutup kunjungan | Master Data | `Repair` | Kolom ada: `NewQuilvianSystemBackend — Areas/HealthServices/MasterData/Models/MstEmergencyDispositionType.cs (ClosesEmergencyVisit)`. Tidak pernah dibaca untuk memutuskan: hanya muncul pada `Controllers/EmergencyDispositionController.cs:481` sebagai isi balasan | Ketujuh jenis diisi `true` oleh seeder |
+| `IGD-CAP-35` | Gerbang penutupan kunjungan | Emergency Installation Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyDispositionService.cs (ValidateVisitClosureAsync)` | Menolak observasi aktif dan perpindahan belum tuntas. Belum memeriksa pesanan |
+| `IGD-CAP-36` | Catatan kepergian pasien dari IGD | Emergency Installation Management | `Extend` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyTransfer.cs` | Enam status tidak cukup memisahkan jalur fisik dan dokumen; `DepartedAt` dan `ArrivedAt` tidak pernah diisi endpoint mana pun |
+| `IGD-CAP-37` | Kolom tempat tidur dan ruangan pada kepergian | Emergency Installation Management | `Repair` | `NewQuilvianSystemBackend — Repositories/Configurations/HealthServices/EmergencyInstallationManagement/TrxEmergencyTransferConfiguration.cs:29-32` memberi index pada `FromRoomId`, `ToRoomId`, `FromBedId`, `ToBedId` tanpa satu pun `HasOne` | Tanpa foreign key dan tanpa navigation. `IGD-DEC-069` mencabutnya |
+| `IGD-CAP-38` | Master tempat tidur dan ruangan | Master Data | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/MasterData/Models/MstBed.cs (RoomId, BedStatus)`; `Models/MstRoom.cs:14,16 (ServiceUnitId, PatientClassId)` | Rantai tempat tidur ke ruangan ke unit sudah utuh. Dipakai Rawat Inap, bukan IGD |
+| `IGD-CAP-39` | Episode rawat inap, permintaan rawat inap, alokasi tempat tidur | Inpatient Management | `Missing` | Area `InpatientManagement` tidak ada di source. Blueprint `RWI-BP-001` revision `3` berstatus `approved` tetapi belum diimplementasikan | Bukan pekerjaan IGD |
+
+### 3.7 Kewenangan, audit, dan uji
+
+| ID | Capability | Owner | Klasifikasi | Bukti | Catatan |
+|---|---|---|---|---|---|
+| `IGD-CAP-40` | Izin akses per resource | Administrator | `Ready to reuse` | Sepuluh resource terdaftar lewat atribut: `EmergencyVisit`, `EmergencyTriage`, `EmergencyTriageDetail`, `EmergencyObservation`, `EmergencyObservationDetail`, `EmergencyResuscitation`, `EmergencyProcedureDetail`, `EmergencyDisposition`, `EmergencyTransfer`, `LabOrder` | Berbasis peran terhadap endpoint |
+| `IGD-CAP-41` | Kewenangan yang mengenal unit pelayanan | Administrator + Corporate/HR | `Missing` | Dua puluh enam entity penugasan, roster, dan shift diperiksa; **nol** memuat `ServiceUnitId`. `MstServiceUnit.cs` tidak memuat kolom ke organisasi. `MstOrganizationUnit`, `MstWorkLocation`, dan `MstHospitalSite` ada tetapi **nol** menyebut `ServiceUnit` | Sisi organisasi lebih kaya daripada dugaan `BE-IGD-010`. Lihat `IGD-TRQ-03` |
+| `IGD-CAP-42` | Jejak audit perubahan per baris | — | `Missing` | Lihat `IGD-CAP-24` | |
+| `IGD-CAP-43` | Prasarana uji backend | — | `Extend` | `NewQuilvianSystemBackend — QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` (xunit 2.9.2, EFCore.InMemory 9.0.18, net9.0), terdaftar di `QuilvianSystemBackend.sln`, commit asal `504a90a`. Isi: `QuilvianSystemBackend.Tests/BillingManagement/BillingModuleFoundationTests.cs`, `IsolatedBillingDbContextFactory.cs:6-11` | **Prasarana ada dan berjalan.** Cakupan hanya Billing. Nol test untuk IGD, klinis, registrasi, farmasi |
+| `IGD-CAP-44` | Prasarana uji frontend | — | `Ready to reuse` | `QuilvianSystemFrontendDev — package.json:20 (test:unit -> node --test tests/unit/)`; tujuh berkas di `tests/unit/` dan `tests/e2e/` | Tiga di antaranya khusus IGD |
+| `IGD-CAP-45` | Realtime untuk IGD | Registration Management | `Missing` | Hanya `NewQuilvianSystemBackend — Hubs/QueueHub.cs`. Tidak ada rujukan hub di `Areas/HealthServices/EmergencyInstallationManagement/` | Daftar pantau IGD hari ini tidak realtime |
+
+### 3.8 Frontend
+
+| ID | Capability | Owner | Klasifikasi | Bukti | Catatan |
+|---|---|---|---|---|---|
+| `IGD-CAP-46` | Layar pendaftaran IGD | Frontend | `Extend` | `QuilvianSystemFrontendDev — src/app/health-services/registration-management/emergency-registration/page.jsx`; `src/lib/hooks/health-services/registration-management/emergency-registration/use-emergency-registration.js:909-1035` | Tiga panggilan berurutan, tidak atomik |
+| `IGD-CAP-47` | Layar triase | Frontend | `Ready to reuse` | `QuilvianSystemFrontendDev — src/app/health-services/emergency-installation-management/emergency-triage/page.jsx` dan `[slug]/page.jsx` | |
+| `IGD-CAP-48` | Layar pengkajian IGD | Frontend | `Extend` | `QuilvianSystemFrontendDev — src/app/health-services/emergency-installation-management/emergency-assessment/page.jsx` dan `[slug]/page.jsx`; sembilan tab di `src/lib/constants/health-services/emergency-installation-management/emergency-assessment-constant.jsx:89-125` | Tab "Assesmen Awal IGD" dan "Resep" hanya membaca |
+| `IGD-CAP-49` | Konstanta jenis kunjungan di frontend | Frontend | `Ready to reuse` | `QuilvianSystemFrontendDev — src/lib/constants/health-services/registration-management/emergency-management/emergency-registration.constants.js:127-134 (ENCOUNTER_TYPE)` | `Emergency: 2` sudah tersedia |
+| `IGD-CAP-50` | Layar rawat inap | Frontend | `Missing` | Tidak ada route rawat inap | Bukan pekerjaan IGD |
+
+---
+
+## 4. Reuse dan ownership
+
+Aturan yang dipatuhi audit ini: **jangan pernah menyalin pasien, dokter, pegawai, kunjungan,
+asuransi, tindakan, resep, tempat tidur, atau master bersama ke dalam IGD.**
+
+| Yang dibutuhkan IGD | Dipakai ulang dari | Pemilik tetap | Jangan dibuat tandingannya |
+|---|---|---|---|
+| Data pasien | `MstPatient` | Patient Management | Tabel pasien IGD |
+| Dokter | `MstDoctor` | Master Data | Tabel dokter IGD |
+| Kunjungan | `TrxPatientEncounter` | Registration Management | Kunjungan khusus IGD |
+| Penjamin | `TrxPatientEncounterGuarantor`, `MstPatientInsurance` | Registration + Patient Management | Penjamin IGD |
+| Pengkajian, tanda vital, catatan, diagnosis, tindakan | `ClinicalManagement` | Clinical Management | Tabel klinis IGD |
+| Resep | `TrxPrescription` | Pharmacy Management | Resep IGD |
+| Laboratorium | `LabOrder` | Laboratory Management | Pemesanan lab IGD |
+| Tempat tidur dan ruangan | `MstBed`, `MstRoom` | Master Data | Tempat tidur IGD |
+| Unit pelayanan | `MstServiceUnit` | Master Data | Unit IGD |
+
+Entity yang **memang milik IGD** dan boleh diperluas: sembilan `TrxEmergency*` beserta enam
+`MstEmergency*`.
+
+---
+
+## 5. Kontrak as-is versus to-be
+
+Bagian ini memisahkan **apa yang berlaku sekarang** dari **apa yang diminta keputusan
+`draft`**. Yang to-be belum berlaku dan belum boleh dijadikan dasar implementasi.
+
+### 5.1 Kontrak as-is yang terkunci oleh test
+
+Satu test frontend **mengunci perilaku yang hendak diubah** `IGD-DEC-074`:
+
+```
+QuilvianSystemFrontendDev — tests/unit/emergency-registration-payload.test.mjs:24-35
+  test("FE-IGD-001 K1: payload encounter mengirim Outpatient, bukan Emergency")
+    assert.equal(payload.encounterType, ENCOUNTER_TYPE.Outpatient);
+    assert.notEqual(payload.encounterType, ENCOUNTER_TYPE.Emergency);
+```
+
+Komentar di dalamnya berbunyi: *"Backend hanya menerima Outpatient. Mengirim Emergency
+membuat panggilan kedua ditolak dan meninggalkan encounter menggantung."*
+
+Artinya `npm test` **akan gagal** begitu `IGD-DEC-074` dijalankan, kecuali test ini ikut
+diperbarui dalam task yang sama. Ini bukan halangan, melainkan jaring pengaman yang bekerja
+sebagaimana mestinya.
+
+### 5.2 Perbandingan as-is dan to-be
+
+| Aspek | As-is (berlaku sekarang) | To-be (keputusan `draft`) |
+|---|---|---|
+| Jenis kunjungan IGD | `Outpatient`, ditolak bila lain | `Emergency` — `IGD-DEC-074` |
+| Kelas pasien IGD | Diambil dari nama master `RAWAT JALAN` | Dari penanda `IsForEmergency` — `IGD-DEC-076` |
+| Penghubung IGD ke rawat inap | Tidak ada | Kolom penunjuk kunjungan asal — `IGD-DEC-075` |
+| Pengkajian IGD | Tidak dapat dibuat | Dapat dibuat tanpa antrean — `IGD-DEC-068` |
+| Diagnosis, tindakan, resep IGD | Tidak dapat dibuat | Dapat dibuat tanpa konsultasi antrean — `IGD-DEC-068` |
+| Koreksi catatan klinis | Menimpa baris | Tambah baris, baris lama utuh — `IGD-DEC-080` |
+| Status kepergian | Satu rangkaian enam nilai | Dua rangkaian: fisik dan dokumen — `IGD-DEC-070` |
+| Tempat tidur pada kepergian | Empat kolom tanpa foreign key | Dicabut; milik Rawat Inap — `IGD-DEC-069` |
+| Isi serah terima | Satu kolom teks bebas | Empat bagian SBAR + tiga bagian otomatis — `IGD-DEC-079` |
+| Penetapan dokter | Menimpa satu kolom | Riwayat penugasan — `IGD-DEC-082` |
+| Kewenangan unit | Tidak ada | Tabel penugasan + penjaga di service — `IGD-DEC-081` |
+| Pesanan saat pasien pergi | Tidak diperiksa | Wajib bersikap, tidak menahan kepergian — `IGD-DEC-078` |
+| Episode ganda | Tidak dicegah | Ditolak dengan penunjuk kunjungan yang ada — `IGD-DEC-084` |
+| `ClosesEmergencyVisit` | Tidak pernah dibaca | Menjadi penentu perilaku — `IGD-DEC-067` |
+
+---
+
+## 6. Conflict
+
+| ID | Conflict | Tingkat | Bukti | Terkait |
+|---|---|---|---|---|
+| `IGD-CONF-01` | Aturan jenis kunjungan IGD **ditulis dua kali** di tempat berbeda. Mengubah satu saja mengulang cacat `BE-IGD-016` | `HIGH` | `Services/EmergencyVisitService.cs:97-98` dan `Controllers/EmergencyVisitController.cs:525-526` | `IGD-DEC-074` |
+| `IGD-CONF-02` | `RWI-RULE-026` aturan 6 melarang perilaku IGD berubah, sedangkan pembatas yang dilonggarkannya adalah penyebab pengkajian IGD tidak dapat disimpan | `CRITICAL` | `IGD-CAP-17`, `IGD-CAP-18` versus `rawat-inap/00-interview-decisions.md` `RWI-RULE-026` | `IGD-DEC-068`, `IGD-CONFLICT-004` |
+| `IGD-CONF-03` | Test frontend mengunci `Outpatient` dan menolak `Emergency` | `MEDIUM` | `tests/unit/emergency-registration-payload.test.mjs:24-35` | `IGD-DEC-074` |
+| `IGD-CONF-04` | Blueprint Rawat Inap menjanjikan nol perubahan kolom pada tabel modul lain, sedangkan aturannya sendiri menuntut penghubung antar kunjungan | `HIGH` | `rawat-inap/blueprint-manifest.md` field `compatibility_impact` versus `RWI-RULE-029` aturan 2 | `IGD-DEC-075`, `IGD-CONFLICT-005` |
+| `IGD-CONF-05` | Status kunjungan dapat mundur dan kunjungan tertutup dapat terbuka kembali | `CRITICAL` | `IGD-CAP-14` | `IGD-GAP-014` |
+
+---
+
+## 7. Unknown
+
+| ID | Yang belum diketahui | Mengapa tidak dapat dijawab audit ini |
+|---|---|---|
+| `IGD-UNK-01` | Apakah enam master IGD dan master kelas pasien IGD sudah terisi di basis data pengembangan | Audit read-only terhadap source; isi basis data tidak diperiksa |
+| `IGD-UNK-02` | Apakah ada data kunjungan IGD lama yang `EncounterId`-nya kosong sehingga tidak terjangkau migration `IGD-DEC-074` | Perlu kueri ke basis data |
+| `IGD-UNK-03` | Berapa banyak baris `TrxEmergencyTransfer` yang sudah mengisi empat kolom tempat tidur, sehingga pencabutannya kehilangan data | Perlu kueri ke basis data |
+| `IGD-UNK-04` | Apakah `LabOrder` sudah dipakai di produksi atau masih rintisan yang belum tersambung layar | Tidak ditemukan pemakainya di frontend; belum tentu berarti tidak dipakai |
+| `IGD-UNK-05` | Apakah `TrxShiftAssignment` dan `WfpOrganizationAssignment` benar-benar terisi untuk petugas IGD | Perlu kueri ke basis data |
+
+---
+
+## 8. Koreksi terhadap temuan wawancara 24 Agustus
+
+Audit ini menemukan **dua pernyataan salah** pada Amendment Pass 2026-08-24 di
+`00-interview-decisions.md`. Keduanya berasal dari pencarian berbasis kata kunci yang tidak
+menemukan folder yang jelas-jelas ada.
+
+| Butir | Pernyataan yang salah | Yang benar | Akibat |
+|---|---|---|---|
+| `F-17` | "Permintaan laboratorium dan radiologi belum ada dalam bentuk apa pun" | `LaboratoryManagement` **ada** dengan entity, controller, service, DTO, konfigurasi, dan migration. Radiologi memang belum ada | `IGD-GAP-024` dipecah menjadi `024a` laboratorium `EXTEND_EXISTING` dan `024b` radiologi `MISSING_NEW`. Sudah dikoreksi di decision log |
+| `IGD-GAP-033` | "Backend tidak punya proyek test; tidak satu pun `AT-IGD-*` dapat dijalankan" | Proyek `QuilvianSystemBackend.Tests` **ada**, memakai xunit dan EFCore InMemory, terdaftar di solution, dengan pola `IsolatedBillingDbContextFactory` yang dapat dipakai ulang. Frontend juga punya tujuh berkas test, tiga di antaranya khusus IGD | Blokernya berubah dari "membangun prasarana uji" menjadi "memperluas cakupan". Jauh lebih murah |
+
+Catatan memori proyek yang menyatakan "backend tidak punya proyek test" juga sudah tidak
+berlaku.
+
+**Pelajaran yang perlu dicatat.** Discovery yang dikerjakan sambil lalu di dalam pass
+wawancara bukan pengganti audit kemampuan. Dua kali kesalahan pada satu pass menunjukkan
+metode pencarian berbasis kata kunci tidak memadai untuk menyatakan sesuatu **tidak ada**.
+Pernyataan negatif harus berasal dari inventaris menyeluruh, seperti pada bagian 2.
+
+---
+
+## 9. Closure question untuk `/grill-me`
+
+Audit tidak menjawab pertanyaan ini. Seluruhnya diserahkan kepada pass wawancara berikutnya.
+
+| ID | Pertanyaan | Memblokir | Dasar |
+|---|---|---|---|
+| `IGD-TRQ-01` | `LabOrder` sudah ada dan tidak menuntut konsultasi, sehingga pemesanan laboratorium IGD sebenarnya dapat berjalan hari ini. Apakah IGD memakainya apa adanya lebih dulu, atau menunggu `LabOrder` dilengkapi status, hasil, spesimen, dan nilai kritis? | `DESIGN` untuk cakupan pesanan pada `IGD-DEC-078` | `IGD-CAP-29` |
+| `IGD-TRQ-02` | Siapa pemilik modul `LaboratoryManagement`, dan apakah pelengkapan `LabOrder` menjadi pekerjaan IGD atau pekerjaan pemiliknya? | `IMPLEMENTATION` | `IGD-CAP-29` |
+| `IGD-TRQ-03` | Sisi organisasi sudah memiliki `MstOrganizationUnit`, `MstWorkLocation`, dan penugasan pegawai, tetapi `MstServiceUnit` tidak terhubung ke satu pun di antaranya. Apakah `IGD-DEC-081` tetap membuat tabel penugasan pengguna ke unit pelayanan tersendiri, atau cukup menambah jembatan dari `MstServiceUnit` ke `MstOrganizationUnit` lalu menurunkan kewenangan dari penugasan pegawai yang sudah ada? | `DESIGN` untuk `IGD-DEC-081` | `IGD-CAP-41` |
+| `IGD-TRQ-04` | Test `FE-IGD-001 K1` mengunci `Outpatient`. Apakah pembaruannya masuk task yang sama dengan `IGD-DEC-074`, dan apakah ada pemakai lain di luar repositori ini yang bergantung pada jenis kunjungan IGD bernilai `Outpatient`? | `IMPLEMENTATION` | `IGD-CONF-03` |
+| `IGD-TRQ-05` | Empat kolom tempat tidur dan ruangan pada `TrxEmergencyTransfer` akan dicabut. Bila ternyata sudah terisi data, apakah nilainya dipindahkan, diarsipkan, atau dibuang? | `IMPLEMENTATION` | `IGD-CAP-37`, `IGD-UNK-03` |
+| `IGD-TRQ-06` | Cakupan uji minimum apa yang harus dipenuhi sebelum pelonggaran `IGD-DEC-068` boleh menyentuh `ClinicalManagement`, mengingat prasarana uji sudah ada tetapi jalur rawat jalan belum punya satu pun test? | `IMPLEMENTATION` | `IGD-CAP-43`, `RWI-DEC-051` |
+| `IGD-TRQ-07` | Daftar pantau `IGD-DEC-083` dan daftar pelampauan batas waktu triase yang sudah ada tidak realtime. Apakah IGD memerlukan pembaruan langsung lewat `QueueHub` atau cukup muat ulang berkala? | `LATER SLICE` | `IGD-CAP-45` |
+
+---
+
+## 10. Pemicu audit ulang
+
+Map ini menjadi tidak sahih bila salah satu terjadi:
+
+1. SHA backend bergerak dari `f69e9e48` dengan perubahan pada berkas `.cs` mana pun di
+   `Areas/HealthServices/`, `Repositories/`, atau `Migrations/`;
+2. SHA frontend bergerak dari `96a91201` dengan perubahan di `src/lib/state/`,
+   `src/lib/services/`, atau `src/app/health-services/`;
+3. Migration baru diterapkan ke basis data bersama;
+4. Blueprint `RWI-BP-001` naik revisi dan mengubah `RWI-RULE-026` atau `RWI-RULE-029`.
+
+Pemeriksaan kesahihan cukup dengan membandingkan SHA dan menjalankan pemindaian dampak
+terbatas pada berkas yang berubah, bukan mengulang seluruh audit.

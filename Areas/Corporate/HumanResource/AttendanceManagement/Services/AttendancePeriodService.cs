@@ -227,7 +227,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 return AttendancePeriodSchedulerServiceResult<AttendancePeriodDetailResponse>.Fail(StatusCodes.Status400BadRequest, validation);
             }
 
-            var entity = new TrxAttendancePeriod
+            var entity = new HrdAttendancePeriod
             {
                 Id = Guid.NewGuid(),
                 PeriodCode = await GeneratePeriodCodeAsync(request.StartDate, cancellationToken),
@@ -247,7 +247,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 UpdateBy = actorUserId
             };
 
-            _dbContext.Set<TrxAttendancePeriod>().Add(entity);
+            _dbContext.Set<HrdAttendancePeriod>().Add(entity);
             await _dbContext.SaveChangesAsync(cancellationToken);
             var detail = await GetDetailAsync(entity.Id, cancellationToken);
             return AttendancePeriodSchedulerServiceResult<AttendancePeriodDetailResponse>.Ok(detail!, "Attendance period berhasil dibuat.");
@@ -259,7 +259,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxAttendancePeriod>()
+            var entity = await _dbContext.Set<HrdAttendancePeriod>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
             {
@@ -298,7 +298,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid id,
             CancellationToken cancellationToken = default)
         {
-            var period = await _dbContext.Set<TrxAttendancePeriod>()
+            var period = await _dbContext.Set<HrdAttendancePeriod>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (period == null)
@@ -324,7 +324,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
             try
             {
-                var period = await _dbContext.Set<TrxAttendancePeriod>()
+                var period = await _dbContext.Set<HrdAttendancePeriod>()
                     .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
                 if (period == null)
                 {
@@ -353,7 +353,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
                 var dailies = await ApplyScope(
-                        _dbContext.Set<TrxAttendanceDaily>().Where(x => !x.IsDelete && x.AttendanceDate >= period.StartDate && x.AttendanceDate <= period.EndDate),
+                        _dbContext.Set<HrdAttendanceDaily>().Where(x => !x.IsDelete && x.AttendanceDate >= period.StartDate && x.AttendanceDate <= period.EndDate),
                         period)
                     .ToListAsync(cancellationToken);
 
@@ -412,7 +412,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
             try
             {
-                var period = await _dbContext.Set<TrxAttendancePeriod>()
+                var period = await _dbContext.Set<HrdAttendancePeriod>()
                     .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
                 if (period == null)
                 {
@@ -424,7 +424,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     return AttendancePeriodSchedulerServiceResult<AttendancePeriodActionResponse>.Fail(StatusCodes.Status409Conflict, "Hanya attendance period Closed yang dapat dibuka kembali.");
                 }
 
-                var dailies = await _dbContext.Set<TrxAttendanceDaily>()
+                var dailies = await _dbContext.Set<HrdAttendanceDaily>()
                     .Where(x => x.AttendancePeriodId == period.Id && !x.IsDelete)
                     .ToListAsync(cancellationToken);
 
@@ -438,7 +438,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                         $"Terdapat {payrollLinked} attendance yang sudah terhubung ke payroll. Jalankan rollback Attendance Payroll Handoff terlebih dahulu.");
                 }
 
-                var activeJobs = await _dbContext.Set<TrxAttendanceSchedulerJob>()
+                var activeJobs = await _dbContext.Set<HrdAttendanceSchedulerJob>()
                     .AsNoTracking()
                     .CountAsync(x => x.AttendancePeriodId == period.Id && !x.IsDelete && OpenSchedulerStatuses.Contains(x.JobStatus), cancellationToken);
                 if (activeJobs > 0)
@@ -497,7 +497,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 return AttendancePeriodSchedulerServiceResult<AttendancePeriodActionResponse>.Fail(StatusCodes.Status400BadRequest, "Alasan pembatalan wajib diisi.");
             }
 
-            var period = await _dbContext.Set<TrxAttendancePeriod>()
+            var period = await _dbContext.Set<HrdAttendancePeriod>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (period == null)
             {
@@ -509,7 +509,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 return AttendancePeriodSchedulerServiceResult<AttendancePeriodActionResponse>.Fail(StatusCodes.Status409Conflict, "Attendance period Closed tidak dapat dibatalkan.");
             }
 
-            var activeJobs = await _dbContext.Set<TrxAttendanceSchedulerJob>()
+            var activeJobs = await _dbContext.Set<HrdAttendanceSchedulerJob>()
                 .AsNoTracking()
                 .CountAsync(x => x.AttendancePeriodId == id && !x.IsDelete && OpenSchedulerStatuses.Contains(x.JobStatus), cancellationToken);
             if (activeJobs > 0)
@@ -545,7 +545,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var period = await _dbContext.Set<TrxAttendancePeriod>()
+            var period = await _dbContext.Set<HrdAttendancePeriod>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (period == null)
             {
@@ -557,8 +557,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 return AttendancePeriodSchedulerServiceResult<object>.Fail(StatusCodes.Status409Conflict, "Attendance period Closed tidak dapat dihapus.");
             }
 
-            var isUsed = await _dbContext.Set<TrxAttendanceDaily>().AsNoTracking().AnyAsync(x => x.AttendancePeriodId == id && !x.IsDelete, cancellationToken) ||
-                         await _dbContext.Set<TrxAttendanceSchedulerJob>().AsNoTracking().AnyAsync(x => x.AttendancePeriodId == id && !x.IsDelete, cancellationToken);
+            var isUsed = await _dbContext.Set<HrdAttendanceDaily>().AsNoTracking().AnyAsync(x => x.AttendancePeriodId == id && !x.IsDelete, cancellationToken) ||
+                         await _dbContext.Set<HrdAttendanceSchedulerJob>().AsNoTracking().AnyAsync(x => x.AttendancePeriodId == id && !x.IsDelete, cancellationToken);
             if (isUsed)
             {
                 return AttendancePeriodSchedulerServiceResult<object>.Fail(StatusCodes.Status409Conflict, "Attendance period tidak dapat dihapus karena sudah digunakan.");
@@ -576,11 +576,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private async Task<AttendancePeriodClosePreviewResponse> BuildClosePreviewAsync(
-            TrxAttendancePeriod period,
+            HrdAttendancePeriod period,
             CancellationToken cancellationToken)
         {
             var dailyQuery = ApplyScope(
-                _dbContext.Set<TrxAttendanceDaily>().AsNoTracking().Where(x => !x.IsDelete && x.AttendanceDate >= period.StartDate && x.AttendanceDate <= period.EndDate),
+                _dbContext.Set<HrdAttendanceDaily>().AsNoTracking().Where(x => !x.IsDelete && x.AttendanceDate >= period.StartDate && x.AttendanceDate <= period.EndDate),
                 period);
 
             var totalDaily = await dailyQuery.CountAsync(cancellationToken);
@@ -598,7 +598,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 : 0;
 
             var dailyIdsQuery = dailyQuery.Select(x => x.Id);
-            var blockingException = await _dbContext.Set<TrxAttendanceException>()
+            var blockingException = await _dbContext.Set<HrdAttendanceException>()
                 .AsNoTracking()
                 .CountAsync(x =>
                     !x.IsDelete &&
@@ -608,7 +608,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     dailyIdsQuery.Contains(x.AttendanceDailyId),
                     cancellationToken);
 
-            var activeCorrection = await _dbContext.Set<TrxAttendanceCorrectionRequest>()
+            var activeCorrection = await _dbContext.Set<HrdAttendanceCorrectionRequest>()
                 .AsNoTracking()
                 .CountAsync(x =>
                     !x.IsDelete &&
@@ -619,7 +619,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             var startUtc = DateTime.SpecifyKind(period.StartDate.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
             var endUtcExclusive = DateTime.SpecifyKind(period.EndDate.AddDays(1).ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
-            var rawQuery = _dbContext.Set<TrxAttendanceRawLog>().AsNoTracking().Where(x => !x.IsDelete && x.EventAt >= startUtc && x.EventAt < endUtcExclusive);
+            var rawQuery = _dbContext.Set<HrdAttendanceRawLog>().AsNoTracking().Where(x => !x.IsDelete && x.EventAt >= startUtc && x.EventAt < endUtcExclusive);
             if (period.HospitalSiteId.HasValue)
             {
                 rawQuery = rawQuery.Where(x => x.HospitalSiteId == period.HospitalSiteId);
@@ -630,7 +630,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 x.ProcessingStatus == AttendanceValueConstants.RawLogProcessingStatus.Error,
                 cancellationToken);
 
-            var processingQuery = _dbContext.Set<TrxAttendanceProcessingRun>().AsNoTracking().Where(x =>
+            var processingQuery = _dbContext.Set<HrdAttendanceProcessingRun>().AsNoTracking().Where(x =>
                 !x.IsDelete &&
                 x.StartDate <= period.EndDate &&
                 x.EndDate >= period.StartDate &&
@@ -639,7 +639,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             processingQuery = ApplyProcessingScope(processingQuery, period);
             var runningProcessing = await processingQuery.CountAsync(cancellationToken);
 
-            var schedulerQuery = _dbContext.Set<TrxAttendanceSchedulerJob>().AsNoTracking().Where(x =>
+            var schedulerQuery = _dbContext.Set<HrdAttendanceSchedulerJob>().AsNoTracking().Where(x =>
                 !x.IsDelete &&
                 x.StartDate <= period.EndDate &&
                 x.EndDate >= period.StartDate &&
@@ -734,7 +734,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 return "Department tidak ditemukan atau tidak aktif.";
             }
 
-            var overlapQuery = _dbContext.Set<TrxAttendancePeriod>().AsNoTracking().Where(x =>
+            var overlapQuery = _dbContext.Set<HrdAttendancePeriod>().AsNoTracking().Where(x =>
                 !x.IsDelete &&
                 x.PeriodStatus != AttendanceValueConstants.AttendancePeriodStatus.Cancelled &&
                 x.StartDate <= request.EndDate &&
@@ -755,11 +755,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return null;
         }
 
-        private IQueryable<TrxAttendancePeriod> BuildBaseQuery() =>
-            _dbContext.Set<TrxAttendancePeriod>().AsNoTracking().Where(x => !x.IsDelete);
+        private IQueryable<HrdAttendancePeriod> BuildBaseQuery() =>
+            _dbContext.Set<HrdAttendancePeriod>().AsNoTracking().Where(x => !x.IsDelete);
 
-        private static IQueryable<TrxAttendancePeriod> ApplyFilter(
-            IQueryable<TrxAttendancePeriod> query,
+        private static IQueryable<HrdAttendancePeriod> ApplyFilter(
+            IQueryable<HrdAttendancePeriod> query,
             AttendancePeriodQueryRequest request)
         {
             if (request.StartDate.HasValue) query = query.Where(x => x.EndDate >= request.StartDate.Value);
@@ -778,8 +778,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return query;
         }
 
-        private static IOrderedQueryable<TrxAttendancePeriod> ApplySorting(
-            IQueryable<TrxAttendancePeriod> query,
+        private static IOrderedQueryable<HrdAttendancePeriod> ApplySorting(
+            IQueryable<HrdAttendancePeriod> query,
             string? sortBy,
             string? direction)
         {
@@ -795,9 +795,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             };
         }
 
-        private static IQueryable<TrxAttendanceDaily> ApplyScope(
-            IQueryable<TrxAttendanceDaily> query,
-            TrxAttendancePeriod period)
+        private static IQueryable<HrdAttendanceDaily> ApplyScope(
+            IQueryable<HrdAttendanceDaily> query,
+            HrdAttendancePeriod period)
         {
             if (period.HospitalSiteId.HasValue) query = query.Where(x => x.HospitalSiteId == period.HospitalSiteId);
             if (period.OrganizationUnitId.HasValue) query = query.Where(x => x.OrganizationUnitId == period.OrganizationUnitId);
@@ -805,9 +805,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return query;
         }
 
-        private static IQueryable<TrxAttendanceProcessingRun> ApplyProcessingScope(
-            IQueryable<TrxAttendanceProcessingRun> query,
-            TrxAttendancePeriod period)
+        private static IQueryable<HrdAttendanceProcessingRun> ApplyProcessingScope(
+            IQueryable<HrdAttendanceProcessingRun> query,
+            HrdAttendancePeriod period)
         {
             if (period.HospitalSiteId.HasValue) query = query.Where(x => x.HospitalSiteId == period.HospitalSiteId);
             if (period.OrganizationUnitId.HasValue) query = query.Where(x => x.OrganizationUnitId == period.OrganizationUnitId);
@@ -815,9 +815,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return query;
         }
 
-        private static IQueryable<TrxAttendanceSchedulerJob> ApplySchedulerScope(
-            IQueryable<TrxAttendanceSchedulerJob> query,
-            TrxAttendancePeriod period)
+        private static IQueryable<HrdAttendanceSchedulerJob> ApplySchedulerScope(
+            IQueryable<HrdAttendanceSchedulerJob> query,
+            HrdAttendancePeriod period)
         {
             if (period.HospitalSiteId.HasValue) query = query.Where(x => x.HospitalSiteId == period.HospitalSiteId);
             if (period.OrganizationUnitId.HasValue) query = query.Where(x => x.OrganizationUnitId == period.OrganizationUnitId);
@@ -828,7 +828,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         private async Task<string> GeneratePeriodCodeAsync(DateOnly startDate, CancellationToken cancellationToken)
         {
             var prefix = $"ATP-{startDate:yyyyMM}-";
-            var existing = await _dbContext.Set<TrxAttendancePeriod>()
+            var existing = await _dbContext.Set<HrdAttendancePeriod>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && x.PeriodCode.StartsWith(prefix))
                 .Select(x => x.PeriodCode)

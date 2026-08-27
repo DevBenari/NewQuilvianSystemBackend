@@ -104,6 +104,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     request.PatientId.Value != Guid.Empty &&
                     encounter.PatientId != request.PatientId.Value)
                     return "PatientId tidak sesuai dengan pasien pada encounter.";
+
+                // Satu encounter hanya boleh memiliki satu kunjungan IGD. Pemeriksaan ini
+                // sengaja TIDAK menyaring IsDelete, karena unique index di basis data juga
+                // tidak menyaringnya. Menyaring di sini akan meloloskan permintaan yang
+                // kemudian ditolak database sebagai 409 tanpa penjelasan.
+                var encounterSudahDipakai = await _dbContext.Set<TrxEmergencyVisit>()
+                    .AsNoTracking()
+                    .AnyAsync(
+                        x => x.EncounterId == request.EncounterId.Value,
+                        cancellationToken);
+
+                if (encounterSudahDipakai)
+                    return "Encounter ini sudah memiliki kunjungan IGD. Gunakan kunjungan yang sudah ada atau buat encounter baru.";
             }
 
             if (request.PatientId.HasValue &&
@@ -204,10 +217,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             for (var attempt = 0; attempt < 10; attempt++)
             {
                 var number = _documentNumberService.Generate(prefix, now);
+                // Tanpa saringan IsDelete. Unique index EmergencyVisitNumber berlaku untuk
+                // seluruh baris termasuk yang sudah ditandai terhapus, sehingga menyaringnya
+                // di sini membuat nomor yang sebenarnya bentrok dianggap tersedia.
                 var alreadyExists = await _dbContext.Set<TrxEmergencyVisit>()
                     .AsNoTracking()
                     .AnyAsync(
-                        x => !x.IsDelete && x.EmergencyVisitNumber == number,
+                        x => x.EmergencyVisitNumber == number,
                         cancellationToken);
 
                 if (!alreadyExists)
