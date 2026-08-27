@@ -43,8 +43,24 @@ Tidak ada endpoint yang dihapus dan tidak ada bentuk request atau response yang 
 hanya berlaku pada jalur serah terima IGD, yaitu `INP-S09` yang di luar scope revisi ini. Untuk
 seluruh endpoint yang dipakai MVP, perilakunya sama persis seperti `0.3.0`.
 
-> **Seluruh endpoint pada dokumen ini berstatus `Rencana (belum tersedia)`,** kecuali yang
-> disebutkan lain. Tidak satu pun sudah ada di dalam kode pada SHA `5afb54b`.
+> **DIPERBARUI 26 Agustus 2026 — ke-49 endpoint baru berstatus `Tersedia`.**
+>
+> Catatan sebelumnya berbunyi *"Seluruh endpoint pada dokumen ini berstatus `Rencana (belum
+> tersedia)`. Tidak satu pun sudah ada di dalam kode pada SHA `5afb54b`."* Pernyataan itu benar
+> pada SHA tersebut dan **sudah tidak berlaku**.
+>
+> Buktinya bukan pembacaan source, melainkan aplikasi yang benar-benar menyala:
+>
+> | Bukti | Hasil |
+> | --- | --- |
+> | Migration diterapkan ke PostgreSQL | 13 tabel `Inp*`/`MstInpatient*` terbentuk; 6 unique index parsial hidup |
+> | Aplikasi menyala dan melayani | `GET /health` → **200** |
+> | Dokumen Swagger `health-services` | **HTTP 200**, 4.230.239 byte |
+> | Operasi HTTP pada path `inpatient` | **49** — cocok persis dengan jumlah baris pada dokumen ini |
+> | Lima endpoint dipanggil tanpa token | **401** semuanya — `[Authorize]` tegak saat runtime |
+>
+> Baris `PATCH /{id}/availability` pada bagian Bed **tetap** `Rencana perubahan perilaku`: ia
+> milik `BE-RWI-006` yang masih terblokir `FE-RWI-001`.
 
 Base URL modul: `api/v1/health-services/inpatient-management/`
 
@@ -56,21 +72,21 @@ Base URL: `api/v1/health-services/inpatient-management/episodes`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `GET` | `/filters/metadata` | Mengambil pilihan penyaring beserta nilai bawaannya untuk layar daftar episode | `InpatientEpisode : Read` | – | `ApiResponse<InpatientEpisodeFilterMetadataResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/summary` | Ringkasan jumlah episode per status | `InpatientEpisode : Read` | Query | `ApiResponse<InpatientEpisodeSummaryResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/` | Daftar episode bertingkat, dapat disaring unit layanan, status, tanggal, dan nama pasien | `InpatientEpisode : Read` | Query | `ApiResponse<InpatientEpisodePagedResult>` | **Rencana (belum tersedia)** |
-| `GET` | `/{id}` | Detail satu episode beserta DPJP aktif, perawat aktif, dan lokasi terkini | `InpatientEpisode : Read` | – | `ApiResponse<InpatientEpisodeDetailResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/{id}/status-history` | Riwayat perpindahan status episode | `InpatientEpisode : Read` | – | `ApiResponse<List<InpatientStatusHistoryResponse>>` | **Rencana (belum tersedia)** |
-| `POST` | `/` | Membuka admisi. Membuat episode `Draft` dan menetapkan DPJP pertama | `InpatientEpisode : Create` | `OpenAdmissionRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | **Rencana (belum tersedia)** |
-| `PUT` | `/{id}` | Mengubah isian admisi selama episode masih `Draft` | `InpatientEpisode : Update` | `UpdateAdmissionRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | **Rencana (belum tersedia)** |
-| `PATCH` | `/{id}/cancel` | Membatalkan admisi. Melepas pemesanan dan penempatan dalam satu tindakan | `InpatientEpisode : Update` | `CancelAdmissionRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/doctor-assignments` | Mengalihkan DPJP. Menutup penugasan lama dan membuka penugasan baru | `InpatientEpisode : Update` | `HandoverDoctorRequest` | `ApiResponse<InpatientDoctorAssignmentResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/{id}/doctor-assignments` | Riwayat DPJP episode | `InpatientEpisode : Read` | – | `ApiResponse<List<InpatientDoctorAssignmentResponse>>` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/nurse-assignments` | Menugaskan atau mengganti perawat penanggung jawab | `InpatientEpisode : Update` | `AssignNurseRequest` | `ApiResponse<InpatientNurseAssignmentResponse>` | **Rencana (belum tersedia)** |
-| `PATCH` | `/{id}/isolation-requirement` | Menetapkan atau mengubah kebutuhan isolasi episode | `InpatientEpisode : SetIsolation` | `SetIsolationRequirementRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/{id}/nurse-assignments` | Riwayat perawat penanggung jawab | `InpatientEpisode : Read` | – | `ApiResponse<List<InpatientNurseAssignmentResponse>>` | **Rencana (belum tersedia)** |
-| `POST` | `/{id}/correction-sessions` | Membuka sesi koreksi pada episode yang sudah ditutup | `InpatientEpisode : Reopen` | `OpenCorrectionSessionRequest` | `ApiResponse<InpatientCorrectionSessionResponse>` | **Rencana (belum tersedia)** |
-| `PATCH` | `/{id}/correction-sessions/{sessionId}/close` | Menutup sesi koreksi beserta daftar perubahannya | `InpatientEpisode : Reopen` | `CloseCorrectionSessionRequest` | `ApiResponse<InpatientCorrectionSessionResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/filters/metadata` | Mengambil pilihan penyaring beserta nilai bawaannya untuk layar daftar episode | `InpatientEpisode : Read` | – | `ApiResponse<InpatientEpisodeFilterMetadataResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/summary` | Ringkasan jumlah episode per status | `InpatientEpisode : Read` | Query | `ApiResponse<InpatientEpisodeSummaryResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/` | Daftar episode bertingkat, dapat disaring unit layanan, status, tanggal, dan nama pasien | `InpatientEpisode : Read` | Query | `ApiResponse<InpatientEpisodePagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{id}` | Detail satu episode beserta DPJP aktif, perawat aktif, dan lokasi terkini | `InpatientEpisode : Read` | – | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{id}/status-history` | Riwayat perpindahan status episode | `InpatientEpisode : Read` | – | `ApiResponse<List<InpatientStatusHistoryResponse>>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/` | Membuka admisi. Membuat episode `Draft` dan menetapkan DPJP pertama | `InpatientEpisode : Create` | `OpenAdmissionRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PUT` | `/{id}` | Mengubah isian admisi selama episode masih `Draft` | `InpatientEpisode : Update` | `UpdateAdmissionRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PATCH` | `/{id}/cancel` | Membatalkan admisi. Melepas pemesanan dan penempatan dalam satu tindakan | `InpatientEpisode : Update` | `CancelAdmissionRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{id}/doctor-assignments` | Mengalihkan DPJP. Menutup penugasan lama dan membuka penugasan baru | `InpatientEpisode : Update` | `HandoverDoctorRequest` | `ApiResponse<InpatientDoctorAssignmentResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{id}/doctor-assignments` | Riwayat DPJP episode | `InpatientEpisode : Read` | – | `ApiResponse<List<InpatientDoctorAssignmentResponse>>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{id}/nurse-assignments` | Menugaskan atau mengganti perawat penanggung jawab | `InpatientEpisode : Update` | `AssignNurseRequest` | `ApiResponse<InpatientNurseAssignmentResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PATCH` | `/{id}/isolation-requirement` | Menetapkan atau mengubah kebutuhan isolasi episode | `InpatientEpisode : SetIsolation` | `SetIsolationRequirementRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{id}/nurse-assignments` | Riwayat perawat penanggung jawab | `InpatientEpisode : Read` | – | `ApiResponse<List<InpatientNurseAssignmentResponse>>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{id}/correction-sessions` | Membuka sesi koreksi pada episode yang sudah ditutup | `InpatientEpisode : Reopen` | `OpenCorrectionSessionRequest` | `ApiResponse<InpatientCorrectionSessionResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PATCH` | `/{id}/correction-sessions/{sessionId}/close` | Menutup sesi koreksi beserta daftar perubahannya | `InpatientEpisode : Reopen` | `CloseCorrectionSessionRequest` | `ApiResponse<InpatientCorrectionSessionResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 
 Kode status yang mungkin muncul dan artinya bagi pengguna:
 
@@ -92,13 +108,13 @@ Base URL: `api/v1/health-services/inpatient-management/bed-occupancies`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `GET` | `/available-beds` | Mencari tempat tidur yang benar-benar dapat ditempati, sudah memperhitungkan pemesanan yang masih berlaku | `InpatientBedOccupancy : Read` | Query | `ApiResponse<AvailableBedPagedResult>` | **Rencana (belum tersedia)** |
-| `GET` | `/bed-board` | Papan ketersediaan tempat tidur per unit layanan dan kamar | `InpatientBedOccupancy : Read` | Query | `ApiResponse<BedBoardResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/reservations` | Memesan tempat tidur untuk satu episode `Draft` | `InpatientBedOccupancy : Create` | `ReserveBedRequest` | `ApiResponse<BedReservationResponse>` | **Rencana (belum tersedia)** |
-| `PATCH` | `/reservations/{id}/cancel` | Membatalkan pemesanan sebelum dipakai | `InpatientBedOccupancy : Update` | `CancelReservationRequest` | `ApiResponse<BedReservationResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/placements` | Menempatkan pasien ke tempat tidur dan mengaktifkan episode | `InpatientBedOccupancy : Create` | `PlacePatientRequest` | `ApiResponse<BedPlacementResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/placements/transfer` | Memindahkan pasien ke tempat tidur lain dalam satu tindakan utuh | `InpatientBedOccupancy : Transfer` | `TransferPatientRequest` | `ApiResponse<BedPlacementResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/placements/by-episode/{episodeId}` | Riwayat penempatan satu episode, dari tempat tidur pertama sampai terakhir | `InpatientBedOccupancy : Read` | – | `ApiResponse<List<BedPlacementResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/available-beds` | Mencari tempat tidur yang benar-benar dapat ditempati, sudah memperhitungkan pemesanan yang masih berlaku | `InpatientBedOccupancy : Read` | Query | `ApiResponse<AvailableBedPagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/bed-board` | Papan ketersediaan tempat tidur per unit layanan dan kamar | `InpatientBedOccupancy : Read` | Query | `ApiResponse<BedBoardResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/reservations` | Memesan tempat tidur untuk satu episode `Draft` | `InpatientBedOccupancy : Create` | `ReserveBedRequest` | `ApiResponse<BedReservationResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PATCH` | `/reservations/{id}/cancel` | Membatalkan pemesanan sebelum dipakai | `InpatientBedOccupancy : Update` | `CancelReservationRequest` | `ApiResponse<BedReservationResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/placements` | Menempatkan pasien ke tempat tidur dan mengaktifkan episode | `InpatientBedOccupancy : Create` | `PlacePatientRequest` | `ApiResponse<BedPlacementResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/placements/transfer` | Memindahkan pasien ke tempat tidur lain dalam satu tindakan utuh | `InpatientBedOccupancy : Transfer` | `TransferPatientRequest` | `ApiResponse<BedPlacementResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/placements/by-episode/{episodeId}` | Riwayat penempatan satu episode, dari tempat tidur pertama sampai terakhir | `InpatientBedOccupancy : Read` | – | `ApiResponse<List<BedPlacementResponse>>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 
 Kode status tambahan yang khas bagian ini:
 
@@ -124,17 +140,17 @@ Base URL: `api/v1/health-services/inpatient-management/discharges`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `POST` | `/{episodeId}/decide` | DPJP memutuskan pasien boleh pulang beserta cara pulangnya | `InpatientDischarge : Update` | `DecideDischargeRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{episodeId}/record-departure` | Mencatat pasien sudah meninggalkan ruangan. Melepas tempat tidur seketika **tanpa** menutup episode | `InpatientDischarge : RecordDeparture` | `RecordDepartureRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/{episodeId}/summary` | Mengambil resume pulang episode beserta daftar versi sebelumnya bila ada | `InpatientDischarge : Read` | Query `includeRevisions` | `ApiResponse<DischargeSummaryResponse>` | **Rencana (belum tersedia)** |
-| `PUT` | `/{episodeId}/summary` | Menyusun atau memperbarui resume pulang | `InpatientDischarge : Update` | `UpsertDischargeSummaryRequest` | `ApiResponse<DischargeSummaryResponse>` | **Rencana (belum tersedia)** |
-| `PATCH` | `/{episodeId}/summary/sign` | DPJP menandatangani resume pulang | `InpatientDischarge : Sign` | `SignDischargeSummaryRequest` | `ApiResponse<DischargeSummaryResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/{episodeId}/clearance` | Daftar butir administrasi beserta status penandaannya | `InpatientDischarge : Read` | – | `ApiResponse<ClearanceChecklistResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{episodeId}/clearance/{itemId}/mark` | Menandai satu butir daftar periksa administrasi | `InpatientDischarge : Update` | `MarkClearanceItemRequest` | `ApiResponse<ClearanceChecklistResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{episodeId}/financial-clearance` | Petugas kasir menandai kelayakan keuangan | `InpatientFinancialClearance : Update` | `MarkFinancialClearanceRequest` | `ApiResponse<FinancialClearanceResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/{episodeId}/closure-readiness` | Memeriksa kelima syarat penutupan dan menampilkan mana yang belum terpenuhi | `InpatientDischarge : Read` | – | `ApiResponse<ClosureReadinessResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{episodeId}/close` | Menutup episode dan melepas tempat tidur | `InpatientEpisode : Close` | `CloseEpisodeRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/{episodeId}/close-with-override` | Supervisor menutup episode menembus gerbang keuangan | `InpatientEpisode : CloseOverride` | `CloseEpisodeOverrideRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{episodeId}/decide` | DPJP memutuskan pasien boleh pulang beserta cara pulangnya | `InpatientDischarge : Update` | `DecideDischargeRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{episodeId}/record-departure` | Mencatat pasien sudah meninggalkan ruangan. Melepas tempat tidur seketika **tanpa** menutup episode | `InpatientDischarge : RecordDeparture` | `RecordDepartureRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{episodeId}/summary` | Mengambil resume pulang episode beserta daftar versi sebelumnya bila ada | `InpatientDischarge : Read` | Query `includeRevisions` | `ApiResponse<DischargeSummaryResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PUT` | `/{episodeId}/summary` | Menyusun atau memperbarui resume pulang | `InpatientDischarge : Update` | `UpsertDischargeSummaryRequest` | `ApiResponse<DischargeSummaryResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PATCH` | `/{episodeId}/summary/sign` | DPJP menandatangani resume pulang | `InpatientDischarge : Sign` | `SignDischargeSummaryRequest` | `ApiResponse<DischargeSummaryResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{episodeId}/clearance` | Daftar butir administrasi beserta status penandaannya | `InpatientDischarge : Read` | – | `ApiResponse<ClearanceChecklistResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{episodeId}/clearance/{itemId}/mark` | Menandai satu butir daftar periksa administrasi | `InpatientDischarge : Update` | `MarkClearanceItemRequest` | `ApiResponse<ClearanceChecklistResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{episodeId}/financial-clearance` | Petugas kasir menandai kelayakan keuangan | `InpatientFinancialClearance : Update` | `MarkFinancialClearanceRequest` | `ApiResponse<FinancialClearanceResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{episodeId}/closure-readiness` | Memeriksa kelima syarat penutupan dan menampilkan mana yang belum terpenuhi | `InpatientDischarge : Read` | – | `ApiResponse<ClosureReadinessResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{episodeId}/close` | Menutup episode dan melepas tempat tidur | `InpatientEpisode : Close` | `CloseEpisodeRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{episodeId}/close-with-override` | Supervisor menutup episode menembus gerbang keuangan | `InpatientEpisode : CloseOverride` | `CloseEpisodeOverrideRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 
 Kode status tambahan yang khas bagian ini:
 
@@ -163,9 +179,9 @@ Base URL: `api/v1/health-services/inpatient-management/census`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `GET` | `/filters/metadata` | Pilihan penyaring census | `InpatientCensus : Read` | – | `ApiResponse<CensusFilterMetadataResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/summary` | Ringkasan jumlah pasien dirawat per unit layanan dan per kelas | `InpatientCensus : Read` | Query | `ApiResponse<CensusSummaryResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/` | Daftar pasien yang sedang dirawat beserta lokasi, DPJP, perawat, dan lama dirawat | `InpatientCensus : Read` | Query | `ApiResponse<CensusPagedResult>` | **Rencana (belum tersedia)** |
+| `GET` | `/filters/metadata` | Pilihan penyaring census | `InpatientCensus : Read` | – | `ApiResponse<CensusFilterMetadataResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/summary` | Ringkasan jumlah pasien dirawat per unit layanan dan per kelas | `InpatientCensus : Read` | Query | `ApiResponse<CensusSummaryResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/` | Daftar pasien yang sedang dirawat beserta lokasi, DPJP, perawat, dan lama dirawat | `InpatientCensus : Read` | Query | `ApiResponse<CensusPagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 
 ---
 
@@ -175,11 +191,11 @@ Base URL: `api/v1/health-services/inpatient-management/monitoring`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `GET` | `/pending-closures` | Daftar pantau episode yang sudah boleh pulang tetapi belum ditutup melewati ambang waktu | `InpatientMonitoring : Read` | Query | `ApiResponse<PendingClosurePagedResult>` | **Rencana (belum tersedia)** |
-| `GET` | `/closures-without-financial-clearance` | Daftar pantau episode yang ditutup menembus gerbang keuangan | `InpatientMonitoring : Read` | Query | `ApiResponse<OverrideClosurePagedResult>` | **Rencana (belum tersedia)** |
-| `GET` | `/unassigned-nurse-episodes` | Daftar episode aktif yang belum punya perawat penanggung jawab | `InpatientMonitoring : Read` | Query | `ApiResponse<UnassignedNursePagedResult>` | **Rencana (belum tersedia)** |
-| `GET` | `/bed-drift` | Laporan selisih antara salinan status tempat tidur dan catatan penempatan | `InpatientMonitoring : Read` | Query | `ApiResponse<BedDriftPagedResult>` | **Rencana (belum tersedia)** |
-| `GET` | `/isolation-mismatch` | Daftar pantau episode yang kebutuhan isolasinya tidak cocok dengan sifat tempat tidur yang sedang ditempati | `InpatientMonitoring : Read` | Query | `ApiResponse<IsolationMismatchPagedResult>` | **Rencana (belum tersedia)** |
+| `GET` | `/pending-closures` | Daftar pantau episode yang sudah boleh pulang tetapi belum ditutup melewati ambang waktu | `InpatientMonitoring : Read` | Query | `ApiResponse<PendingClosurePagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/closures-without-financial-clearance` | Daftar pantau episode yang ditutup menembus gerbang keuangan | `InpatientMonitoring : Read` | Query | `ApiResponse<OverrideClosurePagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/unassigned-nurse-episodes` | Daftar episode aktif yang belum punya perawat penanggung jawab | `InpatientMonitoring : Read` | Query | `ApiResponse<UnassignedNursePagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/bed-drift` | Laporan selisih antara salinan status tempat tidur dan catatan penempatan | `InpatientMonitoring : Read` | Query | `ApiResponse<BedDriftPagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/isolation-mismatch` | Daftar pantau episode yang kebutuhan isolasinya tidak cocok dengan sifat tempat tidur yang sedang ditempati | `InpatientMonitoring : Read` | Query | `ApiResponse<IsolationMismatchPagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 
 **Daftar pantau ketiga yang tidak ada di sini.** `RWI-RULE-023` menyebut tiga daftar pantau, dan
 salah satunya adalah kepatuhan pengkajian awal dan verifikasi CPPT. Daftar itu **tidak** dirancang
@@ -193,8 +209,8 @@ Base URL: `api/v1/health-services/master-data/inpatient-settings`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `GET` | `/` | Membaca pengaturan Rawat Inap yang berlaku | `InpatientSetting : Read` | – | `ApiResponse<InpatientSettingResponse>` | **Rencana (belum tersedia)** |
-| `PUT` | `/{id}` | Mengubah nilai pengaturan | `InpatientSetting : Update` | `UpdateInpatientSettingRequest` | `ApiResponse<InpatientSettingResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Membaca pengaturan Rawat Inap yang berlaku | `InpatientSetting : Read` | – | `ApiResponse<InpatientSettingResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PUT` | `/{id}` | Mengubah nilai pengaturan | `InpatientSetting : Update` | `UpdateInpatientSettingRequest` | `ApiResponse<InpatientSettingResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 
 ---
 
@@ -204,12 +220,12 @@ Base URL: `api/v1/health-services/master-data/inpatient-clearance-items`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `GET` | `/` | Daftar butir administrasi | `InpatientClearanceItem : Read` | Query | `ApiResponse<InpatientClearanceItemPagedResult>` | **Rencana (belum tersedia)** |
-| `GET` | `/{id}` | Detail satu butir | `InpatientClearanceItem : Read` | – | `ApiResponse<InpatientClearanceItemResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/` | Menambah butir baru | `InpatientClearanceItem : Create` | `CreateInpatientClearanceItemRequest` | `ApiResponse<InpatientClearanceItemResponse>` | **Rencana (belum tersedia)** |
-| `PUT` | `/{id}` | Mengubah butir | `InpatientClearanceItem : Update` | `UpdateInpatientClearanceItemRequest` | `ApiResponse<InpatientClearanceItemResponse>` | **Rencana (belum tersedia)** |
-| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan butir | `InpatientClearanceItem : Update` | `UpdateStatusRequest` | `ApiResponse<InpatientClearanceItemResponse>` | **Rencana (belum tersedia)** |
-| `DELETE` | `/{id}` | Menandai butir terhapus | `InpatientClearanceItem : Delete` | `DeleteRequest` | `ApiResponse<InpatientClearanceItemResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar butir administrasi | `InpatientClearanceItem : Read` | Query | `ApiResponse<InpatientClearanceItemPagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{id}` | Detail satu butir | `InpatientClearanceItem : Read` | – | `ApiResponse<InpatientClearanceItemResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/` | Menambah butir baru | `InpatientClearanceItem : Create` | `CreateInpatientClearanceItemRequest` | `ApiResponse<InpatientClearanceItemResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PUT` | `/{id}` | Mengubah butir | `InpatientClearanceItem : Update` | `UpdateInpatientClearanceItemRequest` | `ApiResponse<InpatientClearanceItemResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan butir | `InpatientClearanceItem : Update` | `UpdateStatusRequest` | `ApiResponse<InpatientClearanceItemResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `DELETE` | `/{id}` | Menandai butir terhapus | `InpatientClearanceItem : Delete` | `DeleteRequest` | `ApiResponse<InpatientClearanceItemResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
 
 ---
 

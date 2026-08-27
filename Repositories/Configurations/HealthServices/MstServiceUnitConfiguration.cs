@@ -53,6 +53,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.IsScreeningRequired)
                 .HasDefaultValue(false);
 
+            entity.HasIndex(x => x.OrganizationUnitId);
+
+            entity.HasOne(x => x.OrganizationUnit)
+                .WithMany()
+                .HasForeignKey(x => x.OrganizationUnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.Property(x => x.SortOrder)
                 .HasDefaultValue(0);
 

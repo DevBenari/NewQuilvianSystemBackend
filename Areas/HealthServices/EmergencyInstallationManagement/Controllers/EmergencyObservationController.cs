@@ -36,15 +36,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly EmergencyObservationService _emergencyObservationService;
+        private readonly EmergencyVisitService _emergencyVisitService;
 
         public EmergencyObservationController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            EmergencyObservationService emergencyService)
+            EmergencyObservationService emergencyService,
+            EmergencyVisitService emergencyVisitService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _emergencyObservationService = emergencyService;
+            _emergencyVisitService = emergencyVisitService;
         }
 
         [HttpGet]
@@ -256,6 +259,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [ProducesResponseType(typeof(ApiResponse<EmergencyObservationResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Update", "Update Emergency Observation ObservationStatus", Description = "Mengubah status observasi IGD", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("EmergencyObservation", "Update")]
         public async Task<IActionResult> UpdateObservationStatus(Guid id, [FromBody] UpdateEmergencyObservationObservationStatusRequest request, CancellationToken cancellationToken = default)
@@ -269,21 +273,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
-            entity.ObservationStatus = request.ObservationStatus;
             var visit = await _dbContext.Set<TrxEmergencyVisit>().FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
+
+            // BE-IGD-021 — tiga dari lima titik tulis VisitStatus yang tersisa ada di
+            // percabangan ini. Targetnya ditentukan lebih dulu, lalu penjaga BE-IGD-018
+            // yang memutuskan boleh atau tidak. Diperiksa SEBELUM entity diubah, supaya
+            // penolakan 409 tidak meninggalkan observasi yang terlanjur berpindah status.
+            // ObservationStatus.Cancelled sengaja tidak memetakan ke status kunjungan mana
+            // pun: membatalkan observasi tidak dengan sendirinya memindahkan pasien.
+            var targetVisitStatus = request.ObservationStatus switch
+            {
+                EmergencyObservationStatus.Active => EmergencyVisitStatus.UnderObservation,
+                EmergencyObservationStatus.Completed => EmergencyVisitStatus.AwaitingDisposition,
+                EmergencyObservationStatus.Escalated => EmergencyVisitStatus.InTreatment,
+                _ => (EmergencyVisitStatus?)null
+            };
+
+            if (targetVisitStatus.HasValue &&
+                !_emergencyVisitService.TryApplyVisitStatus(
+                    visit, targetVisitStatus.Value, actorUserId, now, out var penolakanStatusKunjungan))
+            {
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, penolakanStatusKunjungan!));
+            }
+
+            entity.ObservationStatus = request.ObservationStatus;
             if (request.ObservationStatus != EmergencyObservationStatus.Active)
                 entity.EndedAt ??= now;
-            if (request.ObservationStatus == EmergencyObservationStatus.Active)
-                visit.VisitStatus = EmergencyVisitStatus.UnderObservation;
-            if (request.ObservationStatus == EmergencyObservationStatus.Completed)
-                visit.VisitStatus = EmergencyVisitStatus.AwaitingDisposition;
             if (request.ObservationStatus == EmergencyObservationStatus.Escalated)
-            {
                 entity.EscalationReason = NormalizeText(request.Notes) ?? entity.EscalationReason;
-                visit.VisitStatus = EmergencyVisitStatus.InTreatment;
-            }
-            visit.UpdateDateTime = now;
-            visit.UpdateBy = actorUserId;
             if (!string.IsNullOrWhiteSpace(request.Notes) && entity.GetType().GetProperty("Notes") != null)
             {
                 entity.GetType().GetProperty("Notes")?.SetValue(entity, NormalizeText(request.Notes));

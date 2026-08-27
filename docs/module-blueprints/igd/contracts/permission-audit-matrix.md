@@ -2,11 +2,11 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.3.0` |
+| `contract_version` | `0.4.0` — bagian 3.1 (kewenangan atas pesanan) ditambahkan correction pass revisi 6. **Aditif** |
 | Status | `draft` |
-| Owner | Security/Privacy owner — **belum ditunjuk**; Product/Domain Owner IGD sebagai pemegang sementara |
+| Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | — / — |
-| Versi sebelumnya | `0.2.0` |
+| Versi sebelumnya | `0.3.0`, sebelumnya `0.2.0` |
 
 ---
 
@@ -63,6 +63,38 @@ melewatkan pemetaan ini membuat seluruh petugas kehilangan akses tanpa pesan yan
 | Membalik kejadian | Unit **asal atau tujuan**, ditambah `Approve` | `IGD-DEC-066` |
 | Menetapkan dan mengalihkan dokter | Unit **asal** | |
 | Membaca daftar pantau | Unit mana pun tempat pengguna bertugas | Daftar disaring menurut penugasannya |
+| **Menerima sebuah pesanan** | Unit **tujuan** | `IGD-DEC-102` — revisi 6 |
+| **Menolak sebuah pesanan** | Unit **tujuan** | `IGD-DEC-102` — revisi 6 |
+| **Menetapkan sikap pesanan** (`Continue`/`Handover`/`Cancel`) | Unit **asal** | `IGD-DEC-100`. `Cancel` menuntut klinisi berwenang, bukan sekadar petugas unit |
+| **Mendaftarkan pesanan luar sistem** | Unit **asal** | `IGD-DEC-103` — revisi 6 |
+
+### 3.1 Kewenangan atas pesanan — ditambahkan correction pass revisi 6
+
+`IGD-DEC-102` memisahkan penerimaan pasien dari penerimaan tiap pesanan, tetapi revisi 6 belum
+menetapkan **siapa** yang boleh menerima atau menolak sebuah pesanan. Tanpa itu, endpoint
+`accept` dan `reject` terbuka bagi siapa pun yang dapat memanggilnya.
+
+| Aturan | Kode | Sebab |
+| --- | :-: | --- |
+| `POST /order-items/{itemId}/accept` menuntut kewenangan atas `ToServiceUnitId` milik kepergiannya | `403` | Penerimaan adalah pernyataan unit penerima. Petugas unit lain tidak berada dalam posisi menyatakannya |
+| `POST /order-items/{itemId}/reject` menuntut kewenangan yang sama | `403` | Sama |
+| `PATCH /order-items/{itemId}/action` menuntut kewenangan atas unit **asal** | `403` | Sikap ditetapkan pengirim, bukan penerima |
+| Sikap `Cancel` menuntut **klinisi berwenang**, bukan sekadar petugas unit asal | `403` | `IGD-DEC-100` butir (c). Membatalkan pesanan adalah keputusan klinis |
+| Sikap pengganti setelah penolakan menuntut kewenangan unit **asal** | `403` | `IGD-DEC-102` butir (b) — pesanan kembali menjadi tanggung jawab dokter pemesan |
+
+Penjaganya **`EmergencyUnitAuthorityService`** yang sudah dirancang pada bagian 3.5
+`02-backend-architecture.md` — bukan mekanisme baru, dan bukan mesin hak akses, sesuai
+`IGD-DEC-081` dan `IGD-DEC-086`.
+
+> **Yang tetap berlaku.** `IGD-DEC-086` butir 7: penjagaan kewenangan unit **tidak pernah**
+> memblokir pelayanan klinis darurat. Aturan di atas menahan pencatatan penerimaan pesanan,
+> **bukan** pengerjaan pesanannya.
+>
+> **Yang belum terjawab.** `IGD-DEC-092` menetapkan unit yang belum dipetakan ke simpul
+> organisasi bersifat fail-closed dengan jalan keluar beralasan. Sampai pemetaan terisi,
+> **seluruh** aturan di atas berjalan lewat jalan keluar itu — dan itu berarti catatannya
+> menjadi derau, persis yang diperingatkan `IGD-DEC-092`. Penyalaan penjagaan pesanan karena
+> itu terikat pada gelombang `MVP-6`, bukan `MVP-5`.
 
 ---
 

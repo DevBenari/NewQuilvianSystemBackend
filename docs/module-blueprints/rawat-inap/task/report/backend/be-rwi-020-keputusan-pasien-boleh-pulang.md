@@ -196,7 +196,7 @@ tidak dapat diulang.
 | Endpoint sesuai kontrak | ✅ Ada di dalam kode |
 | Kelima kriteria lulus | ❌ **Belum.** Kriteria 2 baru terpenuhi untuk tiga dari lima cara pulang |
 | Laporan menyebut dua cara pulang yang aturan klinisnya belum final | ✅ Bagian 5.1 |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 
