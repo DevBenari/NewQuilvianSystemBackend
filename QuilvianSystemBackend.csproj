@@ -10,6 +10,19 @@
     <DockerfileContext>.</DockerfileContext>
     <PlatformTarget>x64</PlatformTarget>
     <DefaultItemExcludes>$(DefaultItemExcludes);QuilvianSystemBackend.Tests\**</DefaultItemExcludes>
+
+    <!--
+      Berkas dokumentasi XML dihasilkan supaya keterangan pada controller dan DTO ikut tampil
+      di halaman Swagger. Diaktifkan pada BE-18 modul Rekam Medis, karena beberapa perubahan
+      perilaku wajib terbaca pemakai API dan tidak terlihat dari bentuk permintaan maupun
+      responsnya.
+
+      1591 disenyapkan dengan sadar: peringatan itu menuntut komentar XML pada SETIAP anggota
+      publik di seluruh aplikasi. Menyalakannya akan menghasilkan ribuan peringatan yang
+      menenggelamkan peringatan sungguhan, tanpa membuat dokumentasinya lebih baik.
+    -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <!--

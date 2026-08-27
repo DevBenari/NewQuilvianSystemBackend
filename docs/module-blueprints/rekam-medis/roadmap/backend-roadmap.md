@@ -8,7 +8,7 @@ owners:
   product_domain: Yoga Aji Pratama
   clinical_governance: Yoga Aji Pratama
   security_privacy: Yoga Aji Pratama
-  api_authority: OPEN
+  api_authority: Yoga Aji Pratama
 approved_by: [Yoga Aji Pratama]
 approved_at: 2026-08-26
 input_revisions:
@@ -20,7 +20,7 @@ artifact_hashes:
   capability_map: sha256:9cacecf803c0d552623a5f1ce5841af7bea7da5fc49aaf1b3142a076dd4416ae
   backend_architecture: sha256:32ab3711e9203bedf2838cdadbbeb1ab6400c20d49b1b1497eaed9efaa5243a1
 contract_versions:
-  api: 0.1.0 (draft)
+  api: 0.1.0 (approved 2026-08-27)
   state_transition: 0.1.0 (draft)
   validation: 0.1.0 (draft)
   integration: 0.1.0 (draft)
@@ -35,8 +35,11 @@ source_commits:
 > izin mulai bekerja** untuk backend.
 >
 > Dua pengecualian yang tetap berlaku: `BE-08` menunggu bukti pada salinan data nyata, dan
-> `BE-09` menunggu SOP rekam medis. Keduanya bukan soal pengesahan. Kontrak API juga masih
-> menunggu pemilik API, tetapi itu hanya memblokir frontend.
+> `BE-09` menunggu SOP rekam medis. Keduanya bukan soal pengesahan.
+>
+> **Pembaruan 27 Agustus 2026 (`RM-DEC-028`).** Yoga Aji Pratama ditetapkan pula sebagai pemilik
+> frontend dan pemilik API, sehingga kontrak API naik menjadi `approved` dan **gerbang paralel
+> frontend terbuka**. Tidak ada lagi gerbang pengesahan yang tertutup pada modul ini.
 
 ---
 
@@ -95,21 +98,397 @@ Status per 26 Agustus 2026, setelah pengesahan `RM-DEC-027`.
 | B2 | `BE-10`, `BE-11` | **`SELESAI`** 26 Agustus 2026 | Tabel jejak akses, service kewenangan pasien, 12 uji lulus |
 | B2 | `BE-12` | **`SELESAI`** 26 Agustus 2026 | Tinjauan akses, 4 endpoint, 6 uji lulus |
 | B3 | `BE-13` | **`SELESAI`** 26 Agustus 2026 | Service penggabungan riwayat 13 sumber, 10 uji lulus |
-| B3 | `BE-14`, `BE-15` | **`SIAP`** | Endpoint berkas rekam medis dan catatan pribadi |
-| B3 | `BE-16` | **`SIAP`** — prioritas rendah | Pengaman pasien bernomor ganda (`RM-DEC-026`) |
-| B4 | `BE-17`, `BE-18` | **`SIAP`** | Dikerjakan setelah task pendahulunya |
+| B3 | `BE-14` | **`SELESAI`** 27 Agustus 2026 | Endpoint berkas rekam medis, 4 endpoint, 11 uji lulus |
+| B3 | `BE-15` | **`SELESAI` sebagian** 27 Agustus 2026 | Endpoint catatan pribadi, izin terpisah, 9 uji lulus. **Pemberitahuan ke penulis CPPT belum dijalankan** — lihat `BE-15-pemberitahuan-penulis-cppt.md` |
+| B3 | `BE-16` | **`SELESAI`** 27 Agustus 2026 | Pengaman pasien bernomor ganda, 4 pintu masuk dijaga, 7 uji lulus |
+| B4 | `BE-17` | **`SELESAI`** 27 Agustus 2026 | 14 jalur gagal seluruhnya punya uji dan lulus |
+| B4 | `BE-18` | **`SELESAI`** 27 Agustus 2026 | Swagger dan catatan rilis, 3 uji lulus. Catatan rilis disetujui pemilik API pada hari yang sama (`RM-DEC-028`) |
 
-**Denominator: 19 task. Dua belas `SELESAI`, satu `SELESAI` sebagian, satu `SIAP DIJALANKAN`,
-lima `SIAP`, nol `TERTAHAN APPROVAL`.**
+**Denominator: 19 task. Enam belas `SELESAI`, dua `SELESAI` sebagian, satu `SIAP DIJALANKAN`,
+nol `SIAP`, nol `TERTAHAN APPROVAL`.**
+
+**SELURUH PEKERJAAN KODE BACKEND SELESAI.** Tidak ada lagi task yang menunggu ditulis. Yang
+tersisa seluruhnya bukan pekerjaan kode — lihat tabel di bawah.
 
 Milestone B0, B1, dan B2 tuntas — kecuali dua hal yang bukan pekerjaan kode: isi awal master
 keperluan akses (`BE-09`, menunggu SOP) dan penjalanan pengisian data lama (`BE-08`).
 
-Sisa yang belum dikerjakan: `BE-14` sampai `BE-16` (endpoint berkas rekam medis, catatan
-pribadi, dan pengaman pasien bernomor ganda), lalu `BE-17` dan `BE-18` (uji jalur gagal dan
-catatan rilis).
+**Milestone B3 tuntas.** Seluruh kode `BE-13` sampai `BE-16` selesai dan terbukti uji; yang
+tersisa pada `BE-15` bukan pekerjaan kode, melainkan pemberitahuan kepada penulis CPPT yang
+diwajibkan `RM-DEC-022`.
 
-**Bukti kumulatif:** `dotnet test` → `Failed: 0, Passed: 96`. `dotnet build` → 0 error.
+**Tiga butir yang bukan pekerjaan kode dan menahan penyelesaian penuh:**
+
+| Butir | Task | Menunggu | Akibat bila dilewati |
+|---|---|---|---|
+| Isi awal master keperluan akses | `BE-09` | SOP rekam medis rumah sakit | **Seluruh** pembukaan rekam medis pasien di luar rawatan ditolak. **Sudah terjadi sekarang** — tabelnya ada sejak 27 Agustus 2026, isinya nol |
+| Penjalanan pengisian data lama | `BE-08` | Penelaahan pada salinan data nyata | Catatan lama tidak punya baris keutuhan |
+| Pemberitahuan penulis CPPT | `BE-15` | Pemilik modul menjalankan penyampaian | Penulis CPPT tidak tahu catatan pribadinya dapat dibuka lewat jalur sah |
+
+Butir keempat — persetujuan catatan rilis — **tertutup 27 Agustus 2026** lewat `RM-DEC-028`.
+
+Satu pemeriksaan data juga disarankan sebelum modul dipakai: jumlah pasien yang
+`MergedToPatientId`-nya sudah terisi. Bila ada, berkas mereka tidak dapat dibuka lewat nomor
+lama. Lihat laporan `BE-16`.
+
+**Bukti kumulatif:** `dotnet test` → `Failed: 0, Passed: 132`. `dotnet build` → 0 error.
+
+### Keadaan database — diterapkan 27 Agustus 2026
+
+Bagian ini dicatat terpisah karena **uji hijau tidak membuktikan database sungguhan sudah siap**.
+Uji berjalan di atas SQLite dalam memori yang tabelnya dibentuk langsung dari konfigurasi EF
+Core, tanpa melewati migration sama sekali.
+
+| Field | Isi |
+|---|---|
+| Basis data | `QuilvianNewDevTim01` pada `160.22.250.77` — **basis data dev bersama**, bukan lokal |
+| Dijalankan | `dotnet ef database update`, tanpa `--force`, tanpa reset |
+| Otorisasi | Diberikan pemilik modul pada 27 Agustus 2026 |
+
+Dua migration yang diterapkan:
+
+| Migration | Tabel yang dibuat |
+|---|---|
+| `20260826034557_AddMedicalRecordIntegrityTables` | `TrxClinicalDocumentIntegrity`, `TrxClinicalNoteAddendum`, `TrxClinicalNoteAuthorDelegation` |
+| `20260826081755_AddMedicalRecordAccessAuditTables` | `TrxMedicalRecordAccessLog`, `MstMedicalRecordAccessPurpose` |
+
+**Lima tabel baru, nol perubahan kolom** pada tabel yang sedang dipakai — sesuai `RM-DEC-013`.
+Alur IGD, antrean dokter, dan farmasi tidak tersentuh.
+
+Bukti sebelum dan sesudah, dari `dotnet ef migrations list`:
+
+| Keadaan | Migration tertunda |
+|---|---:|
+| Sebelum | 2 — keduanya milik modul rekam medis |
+| Sesudah | **0** |
+
+Total 107 migration; 105 sisanya sudah diterapkan sebelumnya, termasuk seluruh migration dari
+lima branch yang di-merge pada hari yang sama. **Tidak ada migration modul lain yang ikut
+terbawa**, dan kedua migration rekam medis berada paling akhir dalam urutan sehingga tidak
+menyisipkan apa pun di tengah.
+
+**Kenapa baru dijalankan sekarang.** Aturan kerja modul ini memisahkan empat wewenang: menulis
+source, membuat migration, menjalankan ke database, dan deploy. Ketiga wewenang pertama dipakai
+sepanjang `BE-01` sampai `BE-18`; wewenang menjalankan ke database baru diberikan 27 Agustus
+2026, setelah endpoint `medical-record-access-logs` menjawab `500` dengan sebab
+`42P01: relation "public.TrxMedicalRecordAccessLog" does not exist`.
+
+**Yang masih kosong isinya.** `MstMedicalRecordAccessPurpose` terbuat tetapi **nol baris**,
+karena isi awalnya menunggu SOP rekam medis (`BE-09`). Akibat nyatanya sekarang:
+
+| Keadaan | Perilaku |
+|---|---|
+| Membuka berkas pasien yang punya kunjungan berjalan | Berfungsi |
+| Membuka berkas pasien di luar rawatan | Ditolak `400` — tidak ada keperluan akses yang dapat dipilih |
+| `/filters/metadata` | Berfungsi, mengembalikan `isAccessPurposeMasterEmpty: true` beserta peringatannya |
+
+Baris kedua **bukan kerusakan**, melainkan penerapan `RM-DEC-005` yang menutup rapat.
+
+### Hasil `BE-18`
+
+| Berkas | Status |
+|---|---|
+| `QuilvianSystemBackend.csproj` | Diperbarui — `GenerateDocumentationFile` menyala |
+| `Program.cs` | Diperbarui — Swagger membaca berkas dokumentasi XML |
+| `Areas/.../ClinicalManagement/DTOs/PatientIntegratedProgressNoteDtos.cs` | Diperbarui — keterangan pada dua kolom yang diabaikan |
+| `Areas/.../ClinicalManagement/Controllers/PatientIntegratedProgressNoteController.cs` | Diperbarui — keterangan pada endpoint ubah CPPT |
+| `catatan-rilis.md` | Baru — catatan rilis modul |
+| `tests/.../SwaggerDocumentationTests.cs` | Baru — 3 uji |
+
+**Yang mengubah keadaan: XML documentation diaktifkan.** Sebelum task ini, Swagger **tidak**
+membaca komentar keterangan sama sekali — `GenerateDocumentationFile` tidak menyala dan
+`IncludeXmlComments` tidak dipasang. Artinya seluruh komentar yang ditulis sepanjang `BE-01`
+sampai `BE-17` tidak pernah tampil di halaman Swagger.
+
+Menuliskan keterangan tanpa menyalakannya berarti acceptance criteria nomor 1 tidak akan pernah
+terpenuhi, sebanyak apa pun komentar ditulis. Karena itu penyalaannya menjadi bagian task ini.
+
+Peringatan `CS1591` disenyapkan dengan sadar. Peringatan itu menuntut komentar XML pada **setiap**
+anggota publik di seluruh aplikasi; menyalakannya menghasilkan ribuan peringatan yang
+menenggelamkan peringatan sungguhan. Terbukti pada hasil build: **0 peringatan `CS1591`**.
+
+Yang terbukti lewat uji:
+
+| Acceptance criteria | Uji |
+|---|---|
+| 1) Swagger menyebut `ProviderUserId` dan `IsReadOnlyGenerated` diabaikan | `Swagger_MenyebutDuaKolomYangDiabaikanPadaPermintaanUbah` |
+| 3) Keterangan bahwa baru CPPT yang tunduk aturan keutuhan | `Swagger_MenyatakanBaruCpptYangTundukAturanKeutuhan` |
+| Kode `400` baru pada catatan terkunci beserta jalan keluarnya | `Swagger_MenyebutPenolakanPadaCatatanTerkunciBesertaJalanKeluarnya` |
+
+**Kenapa diuji otomatis padahal verifikasinya manual.** Roadmap menyebut verifikasi `BE-18`
+berupa pemeriksaan manual halaman Swagger. Masalahnya, pemeriksaan manual hanya berlaku pada hari
+ia dilakukan — keterangannya dapat terhapus pada perubahan berikutnya tanpa ada yang menyadari.
+Uji memeriksa berkas dokumentasi XML hasil build, yaitu sumber yang dipakai Swagger. Bila
+keterangannya hilang atau berkas dokumentasinya berhenti dihasilkan, uji gagal.
+
+Yang tetap perlu dilihat dengan mata sekali: tampilan halaman Swagger-nya sendiri.
+
+**Acceptance criteria 2 — catatan rilis** dipenuhi `catatan-rilis.md`, memuat keempat perubahan
+perilaku pada manifest, cakupan aturan keutuhan, endpoint baru beserta kode statusnya, hak akses
+baru, dan daftar hal yang wajib disiapkan sebelum modul dipakai.
+
+**DoD lengkap sejak 27 Agustus 2026.** Definition of Done menuntut catatan rilis disetujui
+pemilik API. Pemilik API ditetapkan pada hari yang sama — Yoga Aji Pratama, `RM-DEC-028` — dan
+catatan rilis beserta kontrak `0.1.0` disahkan bersamanya. Dua hal yang ikut disahkan: perubahan
+bentuk balasan `/timeline`, dan field `access` pada seluruh balasan endpoint berkas.
+
+### Hasil `BE-17`
+
+| Berkas | Status |
+|---|---|
+| `tests/.../MedicalRecordFailurePathTests.cs` | Baru — 6 uji |
+| `tests/.../Infrastructure/HubContextKosong.cs` | Baru — konteks SignalR tiruan |
+
+Tidak ada perubahan pada source aplikasi. Task ini murni pembuktian.
+
+#### Peta lengkap empat belas jalur gagal
+
+Acceptance test matrix bagian 3 mendaftar empat belas jalur gagal. Berikut uji yang menutup
+masing-masing, seluruhnya lulus:
+
+| No | Jalur gagal | ID | Uji | Ditutup task |
+|---:|---|---|---|---|
+| 1 | Mengubah dokumen terkunci | `AT-RM-01` | `MengubahCpptYangSudahDitandatangani_DitolakDanIsinyaTidakBerubah` | `BE-03` |
+| 2 | Menandatangani catatan orang lain | `AT-RM-02` | `BukanPenulis_TidakDapatMenandatangani` | `BE-02` |
+| 3 | Menandatangani dokumen yang sudah terkunci | `AT-RM-11` | `DokumenYangSudahTerkunci_TidakDapatDitandatanganiUlang` | `BE-02` |
+| 4 | Addendum oleh yang tidak berwenang | `AT-RM-05` | `BukanPenulis_TanpaKewenanganPengganti_Ditolak` | `BE-06` |
+| 5 | Addendum memakai penetapan kedaluwarsa | `AT-RM-27` | `PenetapanYangSudahLewatBatasWaktu_TidakLagiMembukaJalur` | `BE-06` |
+| 6 | Penetapan tanpa batas waktu | `AT-RM-26` | `PenetapanTanpaBatasWaktu_DitolakDanTidakTersimpan` | **`BE-17`** |
+| 7 | Akses tanpa alasan pada pasien tanpa kunjungan aktif | `AT-RM-07` | `PasienTanpaKunjunganAktif_TanpaKeperluan_DitolakDanIsinyaTidakDikembalikan` | `BE-11` |
+| 8 | `SuperAdmin` tanpa alasan | `AT-RM-13` | `SuperAdmin_TetapDimintaAlasanDanTetapDitandaiPerluDitinjau` | **`BE-17`** |
+| 9 | Penilaian kunjungan gagal | `AT-RM-25` | `PenilaianKunjunganGagal_DiperlakukanSebagaiAksesBeralasan` | `BE-11` |
+| 10 | Pencatatan jejak gagal | `AT-RM-30` | `PencatatanJejakGagal_Dijawab503DanIsiTidakDikembalikan` | **`BE-17`** |
+| 11 | Pendaftaran keutuhan gagal | `AT-RM-35` | `PendaftaranKeutuhanGagal_PembuatanCpptIkutDibatalkan` | **`BE-17`** |
+| 12 | Penguncian saat penutupan gagal | `AT-RM-36` | `PenguncianGagalSaatKunjunganDitutup_KunjunganTetapTerbuka` | **`BE-17`** |
+| 13 | Pasien hasil penggabungan | `AT-RM-22` | `PasienHasilPenggabungan_DitolakPadaSeluruhPintuMasukBerkas` | `BE-16` |
+| 14 | Data lama tanpa penulis | `AT-RM-33` | `CatatanTanpaPenulis_TetapDibuatDenganPenandaPenulisTidakDiketahui` | `BE-08` |
+
+**Sepuluh sudah terbukti pada task pendahulunya, empat ditutup di sini** — ditambah satu yang
+semula terlihat tertutup padahal belum, lihat di bawah.
+
+#### Cara menirukan kegagalan
+
+Tabel yang bersangkutan **dihapus** dari basis data uji, sehingga query ke tabel itu benar-benar
+gagal. Bukan disimulasikan lewat penanda maupun tiruan objek — yang diuji adalah perilaku sistem
+ketika basis datanya sungguh-sungguh bermasalah.
+
+| Uji | Tabel yang dihapus |
+|---|---|
+| `AT-RM-30` | `TrxMedicalRecordAccessLog` |
+| `AT-RM-35` | `TrxClinicalDocumentIntegrity` |
+| `AT-RM-36` | `TrxClinicalDocumentIntegrity` |
+
+#### Temuan: `AT-RM-26` semula belum benar-benar tertutup
+
+`BE-05` sudah punya `PenetapanDenganBatasWaktuYangSudahLewat_Ditolak`, yang menguji batas waktu
+**diisi tetapi sudah lewat**. Yang diminta `AT-RM-26` berbeda: batas waktunya **tidak diisi sama
+sekali**.
+
+Bedanya bukan main-main. Atribut `[Required]` pada kolom tanggal yang tidak boleh kosong **tidak**
+menangkap keadaan itu — nilai bawaan tanggal bukan nilai kosong, sehingga lolos pemeriksaan
+atribut. Yang benar-benar menahannya adalah aturan "batas waktu harus setelah hari ini" di dalam
+service, yang kebetulan juga menolak nilai bawaan karena nilai itu berada di masa lampau.
+
+Perilakunya sudah benar, tetapi **belum pernah dibuktikan**. Sekarang sudah, dan uji itu menjaga
+agar aturannya tidak dilonggarkan seseorang yang mengira `[Required]` sudah cukup.
+
+#### Alat bantu baru: konteks SignalR tiruan
+
+`AT-RM-36` menuntut pengujian lewat `PatientEncounterController`, yang konstruktornya menerima
+layanan antrean realtime walaupun endpoint yang diuji tidak memakainya. Tanpa tiruan, controller
+itu tidak dapat dibentuk sama sekali dari uji.
+
+Tiruannya sengaja tidak mencatat apa pun. Bila kelak ada uji yang perlu membuktikan pesan
+realtime terkirim, tiruan itu perlu diganti yang mencatat panggilannya — bukan dipakai apa adanya
+lalu dianggap membuktikan sesuatu.
+
+#### Satu uji pembanding
+
+`PenguncianSehat_PenutupanKunjunganBerhasil` memastikan uji `AT-RM-36` benar-benar membuktikan
+**penguncian yang gagal** membatalkan penutupan — bukan sekadar membuktikan bahwa penutupan
+memang tidak pernah bekerja.
+
+### Hasil `BE-16`
+
+| Berkas | Status |
+|---|---|
+| `Areas/.../MedicalRecordManagement/Services/MedicalRecordAccessAuditService.cs` | Diperbarui — penelusuran rantai penggabungan |
+| `tests/.../MergedPatientGuardTests.cs` | Baru — 7 uji |
+
+**Sebagian besar perilakunya sudah berjalan sejak `BE-11`.** Pemeriksaan `MergedToPatientId`
+diletakkan di service jejak akses, yang dipanggil **seluruh** endpoint berkas rekam medis
+sebelum isi diambil. Karena itu `BE-16` sebagian besar berupa pembuktian, bukan penulisan
+perilaku baru.
+
+**Yang benar-benar ditambahkan: penelusuran rantai penggabungan.** Sebelumnya nomor pengganti
+diambil satu langkah saja. Bila pasien A digabung ke B dan B kemudian digabung ke C, pengguna
+disuruh membuka nomor B — yang juga akan ditolak. Petunjuk menyesatkan seperti itu membuat
+sistem terlihat rusak. Sekarang yang disebut adalah nomor di ujung rantai.
+
+Rantai ditelusuri paling banyak sepuluh langkah, dan setiap pasien yang dilewati dicatat.
+Keduanya mencegah rantai melingkar — A ke B lalu B kembali ke A — membuat permintaan berjalan
+tanpa akhir. Keadaan itu seharusnya tidak pernah terjadi, tetapi tidak ada satu pun aturan di
+sistem yang mencegahnya: pemeriksaan saat menggabungkan hanya memastikan pasien tujuan ada dan
+aktif, tanpa memeriksa apakah tujuan itu kelak ikut digabungkan.
+
+Yang terbukti lewat uji:
+
+| Acceptance criteria | Uji |
+|---|---|
+| 1) Dijawab `409` disertai nomor pengganti, pada **seluruh** pintu masuk (`AT-RM-22`) | `PasienHasilPenggabungan_DitolakPadaSeluruhPintuMasukBerkas` |
+| 2) Riwayat sebagian tidak ditampilkan walaupun datanya ada | `RiwayatSebagian_TidakDitampilkanWalaupunDatanyaAda` |
+| Penolakan `409` tidak menghasilkan jejak akses | `Penolakan409_TidakMenghasilkanJejakAkses` |
+| Rantai penggabungan menyebut nomor ujung rantai | `PenggabunganBerantai_MenyebutNomorUjungRantai` |
+| Rantai melingkar tetap dijawab, tidak menggantung | `RantaiPenggabunganMelingkar_TetapDijawabTanpaMenggantung` |
+| Nomor pengganti selalu menunjuk pasien yang ada | `NomorPengganti_SelaluMenunjukPasienYangAda` |
+| Pasien tujuan penggabungan tetap dapat dibuka | `PasienTujuanPenggabungan_TetapDapatDibuka` |
+
+**Keempat pintu masuk diperiksa, bukan hanya riwayat.** Ringkasan, riwayat, detail dokumen, dan
+catatan pribadi diuji satu per satu. Satu pintu yang lupa dijaga sudah cukup untuk menampilkan
+riwayat terpecah, dan pengaman yang berlubang di satu tempat bukan pengaman.
+
+**Pasien tujuan penggabungan tetap dapat dibuka.** Diuji tersendiri karena kekeliruan ke arah
+sebaliknya berakibat fatal: bila nomor penggantinya ikut tertutup, pasiennya justru kehilangan
+seluruh berkas — kebalikan dari maksud `RM-DEC-026`.
+
+**Hasil penelusuran yang menjadi dasar task ini** sudah tercatat sejak 24 Agustus 2026 pada
+`01-existing-capability-map.md` bagian "Penelusuran lanjutan `RM-CAP-007`". Ringkasnya:
+penggabungan pasien di sistem ini hanya penandaan, tidak memindahkan data klinis apa pun, dan
+tidak ada query di modul mana pun yang mengikuti `MergedToPatientId`.
+
+**Satu pertanyaan yang masih terbuka, dan akibatnya perlu diketahui.** Closure question nomor 10
+belum terjawab: berapa banyak pasien yang `MergedToPatientId`-nya sudah terisi pada data nyata.
+Pertanyaan itu tidak dapat dijawab dari source. Akibatnya: **bila ternyata ada pasien seperti
+itu, berkas mereka menjadi tidak dapat dibuka lewat nomor lama sejak modul ini dipakai** —
+pengguna wajib membuka nomor penggantinya. Itu memang perilaku yang dikehendaki `RM-DEC-026`,
+tetapi jumlahnya perlu diketahui sebelum modul dipakai agar unit rekam medis tidak terkejut.
+
+Satu hal yang meringankan: `RM-FACT-008` mencatat fitur penggabungan **tidak dapat dipakai dari
+antarmuka** karena `mergeReason` tidak pernah dikirim. Selama celah itu terbuka, tidak ada pasien
+bernomor ganda baru yang tercipta.
+
+### Hasil `BE-15`
+
+| Berkas | Status |
+|---|---|
+| `Areas/.../MedicalRecordManagement/Controllers/MedicalRecordController.cs` | Diperbarui — 1 endpoint |
+| `Areas/.../MedicalRecordManagement/DTOs/MedicalRecordDtos.cs` | Diperbarui — `MedicalRecordPrivateNoteResponse` |
+| `Areas/.../MedicalRecordManagement/Services/MedicalRecordTimelineService.cs` | Diperbarui — `GetPrivateNoteAsync`, `MendukungCatatanPribadi` |
+| `tests/.../MedicalRecordPrivateNoteTests.cs` | Baru — 9 uji |
+| `roadmap/BE-15-pemberitahuan-penulis-cppt.md` | Baru — bahan komunikasi untuk DoD |
+
+#### Endpoint
+
+| Method | Path | Hak akses | Query |
+|---|---|---|---|
+| `GET` | `/{patientId}/documents/{documentKind}/{documentId}/private-note` | `MedicalRecord : ReadPrivateNote` | `accessPurposeId` **wajib**, `accessReason` |
+
+**Sebagian besar aturannya sudah ada sejak `BE-11`.** Service jejak akses sudah menegakkan
+"catatan pribadi selalu menuntut keperluan" beserta pesannya yang khusus. `BE-15` tinggal
+memanggilnya dengan cakupan `PrivateNote` dan memasang izin terpisah. Ini hasil langsung dari
+keputusan `BE-11` meletakkan aturan itu di satu service, bukan di controller.
+
+Yang terbukti lewat uji:
+
+| Acceptance criteria | Uji |
+|---|---|
+| 1) Alasan diminta walaupun pasien punya kunjungan aktif (`AT-RM-16`) | `CatatanPribadi_TetapMenuntutAlasanWalaupunPasienSedangDirawat` |
+| 1) Dengan keperluan sah, catatan benar-benar terbuka | `CatatanPribadi_TerbukaBilaKeperluanDiisi` |
+| 2) Jejak tercatat dengan `AccessScope = PrivateNote` | `CatatanPribadi_JejakTercatatDenganCakupanPrivateNote` |
+| 2) Terhitung terpisah pada rekap tinjauan `BE-12` | `PembukaanCatatanPribadi_TerhitungTerpisahPadaRekapTinjauan` |
+| 3) Memakai izin terpisah, bukan izin baca biasa | `EndpointCatatanPribadi_MemakaiIzinTerpisah` |
+| Jenis tanpa catatan pribadi ditolak jelas, tanpa jejak | `JenisDokumenTanpaCatatanPribadi_Dijawab404TanpaJejak` |
+| "Memang kosong" dibedakan dari "disembunyikan" | `DokumenTanpaIsiCatatanPribadi_DitandaiKosongBukanDisembunyikan` |
+| Catatan pribadi pasien lain ditolak `404` | `CatatanPribadiPasienLain_Dijawab404` |
+| Pasien tanpa kunjungan berjalan tetap ditolak tanpa keperluan | `PasienTanpaKunjunganBerjalan_TetapDitolakTanpaKeperluan` |
+
+**Uji pembanding pada acceptance criteria nomor 1.** Pada pasien yang sama dan pengguna yang
+sama, detail dokumen biasa dijawab `200` tanpa keperluan akses, sedangkan catatan pribadinya
+dijawab `400`. Inilah bukti bahwa aturan `RM-DEC-022` benar-benar berbeda dari aturan isi rekam
+medis lainnya, bukan sekadar dinyatakan.
+
+**Cara membuktikan izin terpisah.** Uji memanggil controller langsung tanpa melewati lapisan hak
+akses, sehingga izinnya diperiksa pada atributnya: endpoint catatan pribadi membawa
+`ReadPrivateNote`, sedangkan endpoint detail dokumen membawa `Read`. Ini menutup pelajaran
+`BE-06` — satu endpoint hanya boleh punya satu `[AccessAction]`, jadi bila izin ini digabungkan
+ke endpoint detail, hak `ReadPrivateNote` tidak akan pernah terdaftar dan tidak dapat diberikan
+kepada siapa pun.
+
+**Yang belum selesai, dan bukan pekerjaan kode.** DoD `BE-15` menuntut dua hal: endpoint berjalan
+**dan** penulis CPPT sudah diberi tahu bahwa kolom itu ternyata dapat dibuka lewat jalur sah.
+Butir kedua belum dijalankan. Bahan siap pakainya ada pada
+`BE-15-pemberitahuan-penulis-cppt.md`, tetapi penyampaiannya adalah pekerjaan pemilik modul.
+
+### Hasil `BE-14`
+
+| Berkas | Status |
+|---|---|
+| `Areas/.../MedicalRecordManagement/Controllers/MedicalRecordController.cs` | Baru — 4 endpoint |
+| `Areas/.../MedicalRecordManagement/DTOs/MedicalRecordDtos.cs` | Baru — bentuk balasan seluruh endpoint |
+| `Areas/.../MedicalRecordManagement/Services/MedicalRecordTimelineService.cs` | Diperbarui — 3 metode baca baru |
+| `tests/.../MedicalRecordFileEndpointTests.cs` | Baru — 11 uji |
+| `contracts/api-contract.md` | Diperbarui — status endpoint dan catatan delta |
+
+**Tidak ada tabel baru, tidak ada migration, tidak ada `AddScoped` baru.** Controller ASP.NET
+tidak perlu didaftarkan, dan kedua service yang dipakainya sudah terdaftar sejak `BE-11` dan
+`BE-13`.
+
+#### Health Services / Medical Record Management / Medical Record
+
+Base URL: `api/v1/health-services/medical-record-management/medical-records`
+
+| Method | Path | Kegunaan | Hak akses | Query |
+|---|---|---|---|---|
+| `GET` | `/{patientId}/summary` | Ringkasan berkas | `MedicalRecord : Read` | `accessPurposeId`, `accessReason` |
+| `GET` | `/{patientId}/timeline` | Riwayat gabungan lintas kunjungan | `MedicalRecord : Read` | `documentKinds`, `encounterId`, `startDate`, `endDate`, `includeCancelled`, `newestFirst`, `page`, `pageSize`, `accessPurposeId`, `accessReason` |
+| `GET` | `/{patientId}/documents/{documentKind}/{documentId}` | Detail dokumen beserta addendum | `MedicalRecord : Read` | `accessPurposeId`, `accessReason` |
+| `GET` | `/filters/metadata` | Daftar pilihan penyaring dan keperluan akses | `MedicalRecord : Read` | — |
+
+Endpoint `private-note` **belum** dibuat — itu scope `BE-15`.
+
+**Urutan yang mengikat pada ketiga endpoint pembuka berkas.** Kewenangan dinilai dan jejak
+ditulis lebih dulu; baru setelah itu isi diambil. Bila penilaian menolak atau pencatatan jejak
+gagal, permintaan berhenti tanpa menyentuh isi rekam medis sama sekali. `/filters/metadata`
+**tidak** mencatat jejak karena tidak menyentuh data pasien mana pun.
+
+Yang terbukti lewat uji:
+
+| Acceptance criteria | Uji |
+|---|---|
+| 1) Setiap permintaan melewati pencatatan jejak lebih dulu | `SetiapPembukaan_MencatatJejakLebihDulu` |
+| 1) Akses ditolak, isi tidak dikembalikan | `AksesDitolak_IsiRekamMedisTidakDikembalikan` |
+| 1) Akses beralasan dilayani dan dinyatakan akan ditelaah | `AksesBeralasan_DilayaniDanPenggunaDiberiTahuAkanDitelaah` |
+| 2) Status keutuhan ikut dikembalikan | `StatusKeutuhan_IkutDikembalikanUntukJenisYangSudahTunduk` |
+| 3) Jenis yang belum tunduk ditandai jelas (`AT-RM-32`) | `JenisYangBelumTundukAturanKeutuhan_DitandaiJelas` |
+| 4) `PrivateNote` tidak ada di respons mana pun (`AT-RM-37`) | `CatatanPribadi_TidakAdaPadaResponsManaPun` |
+| Dokumen pasien lain ditolak `404` | `DokumenMilikPasienLain_Dijawab404` |
+| Pasien hasil penggabungan ditolak `409` | `PasienHasilPenggabungan_Dijawab409TanpaRiwayatSebagian` |
+| Ringkasan berkas (`AT-RM-09`) | `RingkasanBerkas_MemuatIdentitasAlergiAktifDanJumlahDokumen` |
+| Peringatan master keperluan kosong | `DaftarPilihan_MemperingatkanBilaMasterKeperluanKosong` |
+| Daftar pilihan tidak menghasilkan jejak | `DaftarPilihan_TidakMenghasilkanJejakAkses` |
+
+**Cara membuktikan `PrivateNote` tidak bocor.** Seluruh balasan diubah menjadi teks JSON lalu
+dicari isinya. Bila kolom itu bocor lewat jalur mana pun — bagian isi dokumen, judul, keterangan
+pendek, atau kolom yang tidak sengaja ikut — uji gagal. Yang tetap dikembalikan hanya penanda
+`hasPrivateNote`, karena tanpanya tidak ada yang tahu ada sesuatu yang dapat dibuka lewat jalur
+sah pada `BE-15`.
+
+**Perubahan kontrak: bentuk balasan `/timeline`.** Dari
+`ApiResponse<PagedResult<MedicalRecordTimelineItemResponse>>` menjadi
+`ApiResponse<MedicalRecordTimelineResponse>`. Bentuk semula tidak punya tempat untuk menyatakan
+sumber yang gagal dibaca, padahal acceptance criteria `BE-13` nomor 4 mewajibkannya. Selubung
+barunya memuat halaman yang sama pada field `page`, ditambah `access`, `requestedKinds`,
+`failedSources`, `isTruncated`, dan `isComplete`. Rinciannya pada `contracts/api-contract.md`
+bagian 2. **Belum disahkan pemilik API** — `api_authority` masih `OPEN`.
+
+**Keputusan letak kode.** Ringkasan berkas dan detail dokumen diletakkan di
+`MedicalRecordTimelineService`, bukan di controller, karena arsitektur bagian 5.9 mewajibkan
+controller rekam medis memakai service dan tidak menyentuh `ApplicationDbContext` langsung.
+Alasan kedua: pengetahuan tentang tiga belas tabel klinis hanya boleh tinggal di satu tempat.
+
+**Yang belum diverifikasi.** Uji memanggil controller langsung, bukan lewat HTTP, sehingga
+lapisan `[AccessPermission]`, `[Authorize]`, dan model binding **tidak** ikut terbukti. Tampilan
+Swagger juga belum dibuka, walaupun atributnya sudah dipasang.
 
 ### Hasil `BE-13`
 
@@ -193,7 +572,7 @@ tampil pada balasan endpoint.
 |---|---|
 | `Areas/HealthServices/MasterData/Models/MstMedicalRecordAccessPurpose.cs` | Baru |
 | `Areas/.../MedicalRecordManagement/Models/TrxMedicalRecordAccessLog.cs` | Baru |
-| `Repositories/Configurations/HealthService/MedicalRecordManagement/` | 2 configuration baru |
+| `Repositories/Configurations/HealthServices/MedicalRecordManagement/` | 2 configuration baru |
 | `Services/MedicalRecordAccessAuditService.cs` | Baru — penilaian kewenangan dan pencatatan jejak |
 | `Migrations/20260826081755_AddMedicalRecordAccessAuditTables.cs` | Baru |
 | `Program.cs` | Diperbarui — satu `AddScoped` |
@@ -327,8 +706,8 @@ yang dapat dihindari dengan pekerjaan yang tidak menunggu approval siapa pun.
 | **Status** | **`SELESAI`** — dikerjakan 26 Agustus 2026, seluruh acceptance criteria terbukti |
 | **Outcome** | Sistem punya tempat menyimpan keterangan keutuhan dokumen, terpisah dari isi klinisnya |
 | **Trace** | `RM-DEC-013`; ERD `keutuhan-dokumen.md`; kamus data bagian 1 sampai 3 dan 6 |
-| **Reuse** | `IdentityModel`; pola configuration `Repositories/Configurations/HealthService/`; `ApplyConfigurationsFromAssembly` pada `ApplicationDbContext.cs:612` |
-| **Scope** | `Areas/HealthServices/MedicalRecordManagement/Models/` tiga model; `Enums/` enam enum; `Repositories/Configurations/HealthService/MedicalRecordManagement/` tiga configuration; migration `AddMedicalRecordIntegrityTables` |
+| **Reuse** | `IdentityModel`; pola configuration `Repositories/Configurations/HealthServices/`; `ApplyConfigurationsFromAssembly` pada `ApplicationDbContext.cs:612` |
+| **Scope** | `Areas/HealthServices/MedicalRecordManagement/Models/` tiga model; `Enums/` enam enum; `Repositories/Configurations/HealthServices/MedicalRecordManagement/` tiga configuration; migration `AddMedicalRecordIntegrityTables` |
 | **Dependency** | `BE-00` disarankan lebih dulu |
 | **Acceptance criteria** | 1) Migration berjalan dan mundur tanpa galat. 2) Index unik `(DocumentKind, DocumentId)` menolak baris kembar. 3) Index unik `(IntegrityId, Sequence)` menolak addendum berurutan kembar. 4) Seluruh relasi memakai `DeleteBehavior.Restrict` |
 | **Verification** | `dotnet test`: `Failed: 0, Passed: 11`. Tujuh uji baru pada `ClinicalDocumentIntegritySchemaTests`. `dotnet build` lolos 0 error |
@@ -343,7 +722,7 @@ yang dapat dihindari dengan pekerjaan yang tidak menunggu approval siapa pun.
 | `Areas/HealthServices/MedicalRecordManagement/Models/TrxClinicalDocumentIntegrity.cs` | Baru |
 | `Areas/HealthServices/MedicalRecordManagement/Models/TrxClinicalNoteAddendum.cs` | Baru |
 | `Areas/HealthServices/MedicalRecordManagement/Models/TrxClinicalNoteAuthorDelegation.cs` | Baru |
-| `Repositories/Configurations/HealthService/MedicalRecordManagement/` — 3 configuration | Baru |
+| `Repositories/Configurations/HealthServices/MedicalRecordManagement/` — 3 configuration | Baru |
 | `Repositories/ApplicationDbContext.cs` | Diperbarui — 3 `DbSet` dan satu `using` |
 | `Migrations/20260826034557_AddMedicalRecordIntegrityTables.cs` | Baru |
 | `tests/.../Infrastructure/RekamMedisTestData.cs` | Baru — penyiapan pengguna, unit, pasien, kunjungan |
@@ -790,11 +1169,11 @@ dan seluruh pertimbangan pada panduan kembali berlaku penuh.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-14` |
-| **Status** | `TERTAHAN APPROVAL` — `RM-DEC-002` |
+| **Status** | **`SELESAI`** — dikerjakan 27 Agustus 2026, seluruh acceptance criteria terbukti uji. Lihat bagian 2 "Hasil `BE-14`" |
 | **Outcome** | Frontend dapat menampilkan berkas rekam medis pasien lengkap dengan ringkasan dan riwayatnya |
 | **Trace** | `RM-DEC-002`; api-contract bagian 2 |
 | **Reuse** | `BE-11`, `BE-13` |
-| **Scope** | `Controllers/MedicalRecordController.cs`; `DTOs/MedicalRecordDtos.cs`. Endpoint ringkasan, riwayat, detail dokumen, dan metadata penyaring |
+| **Scope** | `Controllers/MedicalRecordController.cs`; `DTOs/MedicalRecordDtos.cs`. Endpoint ringkasan, riwayat, detail dokumen, dan metadata penyaring. **Bertambah saat pengerjaan:** tiga metode baca pada `Services/MedicalRecordTimelineService.cs` — `GetSummaryAsync`, `GetDocumentCountsAsync`, `GetDocumentDetailAsync` — karena arsitektur bagian 5.9 melarang controller menyentuh `ApplicationDbContext` langsung |
 | **Dependency** | `BE-11`, `BE-13`. **Tidak boleh dimulai sebelum `BE-03` selesai** sesuai `RM-DEC-019` |
 | **Acceptance criteria** | 1) Setiap permintaan melewati pencatatan jejak lebih dulu. 2) Status keutuhan ikut dikembalikan untuk jenis dokumen yang sudah tunduk aturan. 3) Jenis dokumen yang belum tunduk ditandai jelas. 4) `PrivateNote` **tidak ada** pada respons mana pun di endpoint ini |
 | **Verification** | `AT-RM-09`, `AT-RM-32`, `AT-RM-37` |
@@ -806,7 +1185,7 @@ dan seluruh pertimbangan pada panduan kembali berlaku penuh.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-15` |
-| **Status** | `TERTAHAN APPROVAL` — `RM-DEC-022` |
+| **Status** | **`SELESAI` sebagian** — kode selesai 27 Agustus 2026, ketiga acceptance criteria terbukti uji. **DoD belum penuh:** pemberitahuan ke penulis CPPT belum dijalankan. Lihat bagian 2 "Hasil `BE-15`" dan `BE-15-pemberitahuan-penulis-cppt.md` |
 | **Outcome** | Catatan pribadi klinisi tidak terlihat pada pemakaian sehari-hari, tetapi tetap dapat dibuka secara sah bila benar diperlukan |
 | **Trace** | `RM-DEC-022`; api-contract bagian 2; validation matrix bagian 4 |
 | **Reuse** | `BE-11` |
@@ -822,11 +1201,11 @@ dan seluruh pertimbangan pada panduan kembali berlaku penuh.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-16` |
-| **Status** | `TERTAHAN APPROVAL` — **prioritas rendah**. Ditetapkan sebagai pengaman pada `RM-DEC-026`; perilakunya sudah pasti (`409`), dikerjakan paling akhir di milestone B3 |
+| **Status** | **`SELESAI`** — dikerjakan 27 Agustus 2026, kedua acceptance criteria terbukti uji pada seluruh pintu masuk berkas. Lihat bagian 2 "Hasil `BE-16`" |
 | **Outcome** | Pasien yang punya dua nomor rekam medis tidak ditampilkan riwayatnya secara terpotong tanpa peringatan |
 | **Trace** | `RM-CAP-007`; validation matrix bagian 4; api-contract bagian 2 kode `409` |
 | **Reuse** | `MstPatient.MergedToPatientId` yang sudah ada |
-| **Scope** | Pemeriksaan pada `MedicalRecordController` sebelum riwayat diambil |
+| **Scope** | Pemeriksaan pada `MedicalRecordController` sebelum riwayat diambil. **Letak sebenarnya:** pemeriksaan berada di `MedicalRecordAccessAuditService`, yang dipanggil setiap endpoint controller sebelum isi diambil. Diletakkan di sana agar aturannya ditulis satu kali, bukan empat kali di empat endpoint |
 | **Dependency** | `BE-14`; keputusan closure question nomor 8 pada capability map revision 2 |
 | **Acceptance criteria** | 1) Pasien dengan `MergedToPatientId` terisi dijawab `409` disertai nomor rekam medis pengganti. 2) Riwayat sebagian **tidak** ditampilkan |
 | **Verification** | `AT-RM-22` |
@@ -842,7 +1221,7 @@ dan seluruh pertimbangan pada panduan kembali berlaku penuh.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-17` |
-| **Status** | `TERTAHAN APPROVAL` — bergantung seluruh task pendahulu |
+| **Status** | **`SELESAI`** — dikerjakan 27 Agustus 2026. Keempat belas jalur gagal punya uji dan lulus; tidak ada yang ditandai dilewati. Lihat bagian 2 "Hasil `BE-17`" |
 | **Outcome** | Empat belas jalur gagal terbukti berperilaku sebagaimana dirancang, bukan hanya jalur berhasil |
 | **Trace** | Acceptance test matrix bagian 3 |
 | **Reuse** | `BE-00` |
@@ -858,7 +1237,7 @@ dan seluruh pertimbangan pada panduan kembali berlaku penuh.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-18` |
-| **Status** | `TERTAHAN APPROVAL` |
+| **Status** | **`SELESAI`** — dikerjakan 27 Agustus 2026, ketiga acceptance criteria terpenuhi dan tiga di antaranya terbukti uji. DoD lengkap: catatan rilis disetujui pemilik API pada hari yang sama (`RM-DEC-028`). Lihat bagian 2 "Hasil `BE-18`" |
 | **Outcome** | Pemakai API mengetahui perubahan perilaku yang tidak terlihat dari bentuk permintaan maupun responsnya |
 | **Trace** | api-contract bagian 8; manifest bagian dampak kompatibilitas |
 | **Reuse** | Pengaturan Swagger yang sudah ada |

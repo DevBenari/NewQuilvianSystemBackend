@@ -4,18 +4,28 @@
 |---|---|
 | Blueprint ID | `RM-BP-001` |
 | Contract version | `0.1.0` |
-| Status | `draft` |
-| Owner | API authority: `OPEN`; Product/domain: `OPEN` |
-| `approved_by` / `approved_at` | — / — |
+| Status | **`approved`** |
+| Owner | API authority: **Yoga Aji Pratama**; Product/domain: **Yoga Aji Pratama** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama / 27 Agustus 2026 (`RM-DEC-028`) |
 | Input revisions | `00-interview-decisions.md` revision `2`; `01-existing-capability-map.md` revision `1` |
 | Backend SHA | `ab37e3a2e80f0e34efe22ec0f6a8c9b90a3ae45e` |
 | Compatibility impact | **Aditif.** Seluruh endpoint baru. Tidak ada endpoint berjalan yang berubah bentuk permintaan maupun responsnya. Yang berubah adalah **perilaku** dua endpoint yang sudah ada, dijelaskan pada bagian 7 |
 
-> **PERINGATAN DASAR DESAIN.** Kontrak ini disusun di atas keputusan berstatus `draft` yang
-> belum disetujui owner mana pun. Lihat `RM-DEC-025`.
+> **KONTRAK INI SUDAH DISAHKAN.** Pengesahan dilakukan Yoga Aji Pratama selaku pemilik API pada
+> 27 Agustus 2026, dicatat pada `RM-DEC-028`. Dengan itu **gerbang paralel frontend terbuka**:
+> sepuluh task `FE-00` sampai `FE-09` tidak lagi `TERTAHAN KONTRAK`.
+>
+> **Dua delta yang ikut disahkan**, keduanya diterapkan `BE-14` dan dirinci pada bagian 2:
+> bentuk balasan `/timeline` berubah menjadi selubung `MedicalRecordTimelineResponse`, dan field
+> `access` ditambahkan pada seluruh balasan endpoint berkas rekam medis.
+>
+> Batas yang tetap berlaku, sama seperti `RM-DEC-027`: tinjauan komite medik dan pihak
+> perlindungan data belum dilakukan. Bila tinjauan itu kelak menghasilkan keputusan berbeda,
+> bagian kontrak yang bergantung padanya wajib dirombak.
 
-Seluruh endpoint pada dokumen ini berlabel **Rencana (belum tersedia)** kecuali dinyatakan
-lain. Tidak ada satu pun yang sudah dapat dipanggil.
+Status keterlaksanaan tiap endpoint tercantum pada kolom **Status** masing-masing tabel.
+Endpoint modul Rekam Medis berlabel **Tersedia** sudah dapat dipanggil; yang berlabel
+**Rencana** belum dibangun.
 
 Pembungkus respons mengikuti konvensi project: `ApiResponse<T>.Ok(data, pesan)` untuk berhasil
 dan `ApiResponse<T>.Fail(kode, pesan)` untuk gagal.
@@ -55,11 +65,11 @@ Contract version: `0.1.0` — status `draft`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `GET` | `/{patientId}/summary` | Ringkasan berkas: identitas, alergi aktif, diagnosis aktif, jumlah dokumen per jenis | `MedicalRecord : Read` | Query: `accessPurposeId`, `accessReason` | `ApiResponse<MedicalRecordSummaryResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/{patientId}/timeline` | Riwayat gabungan lintas kunjungan, urut waktu | `MedicalRecord : Read` | Query: `documentKinds`, `encounterId`, `startDate`, `endDate`, `accessPurposeId`, `accessReason`, `page`, `pageSize` | `ApiResponse<PagedResult<MedicalRecordTimelineItemResponse>>` | **Rencana (belum tersedia)** |
-| `GET` | `/{patientId}/documents/{documentKind}/{documentId}` | Detail satu dokumen beserta addendumnya | `MedicalRecord : Read` | Query: `accessPurposeId`, `accessReason` | `ApiResponse<MedicalRecordDocumentDetailResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/{patientId}/documents/{documentKind}/{documentId}/private-note` | Membuka `PrivateNote`, selalu lewat jalur akses beralasan | `MedicalRecord : ReadPrivateNote` | Query: `accessPurposeId` **wajib**, `accessReason` **wajib** | `ApiResponse<MedicalRecordPrivateNoteResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/filters/metadata` | Daftar pilihan penyaring dan keperluan akses | `MedicalRecord : Read` | — | `ApiResponse<MedicalRecordFilterMetadataResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{patientId}/summary` | Ringkasan berkas: identitas, alergi aktif, diagnosis aktif, jumlah dokumen per jenis | `MedicalRecord : Read` | Query: `accessPurposeId`, `accessReason` | `ApiResponse<MedicalRecordSummaryResponse>` | **Tersedia** — `BE-14` |
+| `GET` | `/{patientId}/timeline` | Riwayat gabungan lintas kunjungan, urut waktu | `MedicalRecord : Read` | Query: `documentKinds`, `encounterId`, `startDate`, `endDate`, `includeCancelled`, `newestFirst`, `accessPurposeId`, `accessReason`, `page`, `pageSize` | `ApiResponse<MedicalRecordTimelineResponse>` | **Tersedia** — `BE-14`. **Bentuk balasan berubah**, lihat catatan di bawah |
+| `GET` | `/{patientId}/documents/{documentKind}/{documentId}` | Detail satu dokumen beserta addendumnya | `MedicalRecord : Read` | Query: `accessPurposeId`, `accessReason` | `ApiResponse<MedicalRecordDocumentDetailResponse>` | **Tersedia** — `BE-14` |
+| `GET` | `/{patientId}/documents/{documentKind}/{documentId}/private-note` | Membuka `PrivateNote`, selalu lewat jalur akses beralasan | `MedicalRecord : ReadPrivateNote` | Query: `accessPurposeId` **wajib**, `accessReason` **wajib** | `ApiResponse<MedicalRecordPrivateNoteResponse>` | **Tersedia** — `BE-15`. Izin terpisah; keperluan akses selalu wajib |
+| `GET` | `/filters/metadata` | Daftar pilihan penyaring dan keperluan akses | `MedicalRecord : Read` | — | `ApiResponse<MedicalRecordFilterMetadataResponse>` | **Tersedia** — `BE-14`. Tidak menghasilkan jejak akses |
 
 Kode status dan artinya bagi pengguna:
 
@@ -81,6 +91,60 @@ tanpa memberi tahu pembacanya, permintaan ditolak disertai nomor rekam medis pen
 
 `503` adalah penerapan aturan "gagal mencatat jejak berarti gagal membaca". Ini pilihan yang
 menutup rapat: lebih baik pengguna mencoba lagi daripada ada pembacaan yang tidak tercatat.
+
+### Perubahan kontrak pada `BE-14`: bentuk balasan riwayat
+
+**Rancangan semula:** `ApiResponse<PagedResult<MedicalRecordTimelineItemResponse>>`.
+**Yang diterapkan:** `ApiResponse<MedicalRecordTimelineResponse>`.
+
+Alasannya satu, dan tidak dapat dihindari. Riwayat digabungkan dari tiga belas sumber, dan
+acceptance criteria `BE-13` nomor 4 mewajibkan: bila satu sumber gagal dibaca, sumber lain tetap
+tampil **dan yang gagal ditandai**. Bentuk `PagedResult` tidak punya tempat untuk menyatakan
+hal itu. Memaksakannya berarti daftar yang kurang satu jenis dokumen akan terbaca sebagai
+daftar lengkap — persis kekeliruan yang paling berbahaya pada berkas rekam medis.
+
+`MedicalRecordTimelineResponse` membungkus halaman yang sama, ditambah empat keterangan:
+
+| Field | Isi |
+|---|---|
+| `page` | `PagedResult<MedicalRecordTimelineItemResponse>` — persis bentuk semula |
+| `access` | Keterangan pembukaan: jenis akses, dan apakah akan ditelaah |
+| `requestedKinds` | Jenis dokumen yang benar-benar ditanyakan pada permintaan ini |
+| `failedSources` | Sumber yang gagal dibaca beserta alasannya. Kosong berarti lengkap |
+| `isTruncated` | Ada sumber yang datanya melampaui batas pengambilan |
+| `isComplete` | Ringkasan dua field di atas, untuk dipakai layar |
+
+**Dampak frontend:** pembacaan berubah dari `data.items` menjadi `data.page.items`. Belum ada
+kode frontend yang memanggil endpoint ini, sehingga tidak ada pemanggil lama yang rusak.
+
+**Field `access` ada pada seluruh balasan endpoint ini**, termasuk ringkasan dan detail dokumen.
+Ini disengaja: pengguna berhak tahu bahwa pembukaannya tercatat, dan bila aksesnya ditandai
+untuk ditelaah, ia berhak tahu sekarang — bukan baru saat ditanya unit rekam medis.
+
+**Perlu pengesahan pemilik API.** Sampai `api_authority` ditunjuk, perubahan ini berstatus
+diterapkan pada backend dan tercatat di sini, belum disahkan.
+
+### Catatan `BE-15`: endpoint `private-note`
+
+Endpoint ini selesai pada `BE-15` dan sengaja berbeda dari empat endpoint lain di grup yang sama.
+
+| Perbedaan | Alasan |
+|---|---|
+| Izin `MedicalRecord : ReadPrivateNote`, bukan `Read` | Seseorang dapat diberi hak membaca seluruh berkas rekam medis tanpa pernah dapat membuka catatan pribadi |
+| `accessPurposeId` **selalu** wajib, apa pun keadaan kunjungan | `RM-DEC-022`. Berbeda dari isi rekam medis lain, yang tidak menuntut alasan bila pasien sedang dirawat pengguna |
+| Jejak bercakupan `PrivateNote` | Agar pembukaannya dihitung terpisah pada rekap tinjauan |
+
+Hanya CPPT yang memiliki kolom catatan pribadi. Jenis dokumen lain dijawab `404` dengan
+keterangan tegas bahwa jenis itu **tidak memiliki** catatan pribadi — bukan dibiarkan seolah-olah
+isinya disembunyikan. Permintaan seperti itu **tidak** menghasilkan jejak akses, karena ia
+permintaan yang keliru bentuknya, bukan percobaan membuka berkas.
+
+Balasannya membedakan "dokumennya tidak memuat catatan pribadi" (`hasPrivateNote = false`) dari
+"catatannya ada". Tanpa pembedaan itu, pembaca tidak punya cara tahu mana yang benar — dan itu
+justru mendorongnya mencari lewat jalur lain.
+
+Empat endpoint lain pada grup ini **tetap tidak pernah** mengembalikan isi `PrivateNote`. Yang
+mereka bawa hanya penanda `hasPrivateNote` pada detail dokumen.
 
 ---
 

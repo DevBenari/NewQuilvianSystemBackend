@@ -413,7 +413,7 @@ Areas/HealthServices/ClinicalManagement/Controllers/
 Areas/HealthServices/RegistrationManagement/Controllers/
 └── PatientEncounterController.cs                      # Diperbarui — pemicu penguncian
 
-Repositories/Configurations/HealthService/             # nama domain tunggal — utang teknis, jangan ditiru di tempat lain
+Repositories/Configurations/HealthServices/            # bentuk jamak, setelah perapian 27 Agustus 2026
 └── MedicalRecordManagement/                           # BARU
     ├── TrxClinicalDocumentIntegrityConfiguration.cs   # Baru
     ├── TrxClinicalNoteAddendumConfiguration.cs        # Baru
@@ -428,16 +428,26 @@ Program.cs                                             # Diperbarui — 5 AddSco
 Dua hal yang wajib diperhatikan implementer:
 
 1. **File configuration tidak berada di dalam `Areas/`.** Letaknya di
-   `Repositories/Configurations/HealthService/MedicalRecordManagement/`. Pendaftarannya
-   otomatis lewat `ApplyConfigurationsFromAssembly` pada `Repositories/ApplicationDbContext.cs:612`,
+   `Repositories/Configurations/HealthServices/MedicalRecordManagement/`. Pendaftarannya
+   otomatis lewat `ApplyConfigurationsFromAssembly` pada `Repositories/ApplicationDbContext.cs`,
    jadi tidak perlu menambah baris `ApplyConfiguration` satu per satu.
 2. **Master tidak berada di folder submodul.** `MstMedicalRecordAccessPurpose` tinggal di
    `Areas/HealthServices/MasterData/Models/`, mengikuti pola `MstEmergency*` yang sudah ada.
 
-Utang teknis yang ditemui dan **tidak** dirapikan dalam pekerjaan ini: nama domain pada
-`Repositories/Configurations/HealthService/` memakai bentuk tunggal, sedangkan pola standarnya
-`HealthServices`. Mengikutinya agar konsisten dengan 68 file yang sudah ada. Perapian harus
-menjadi task tersendiri dengan persetujuan pemilik arsitektur backend, bukan diselipkan di sini.
+**Utang teknis nama folder sudah lunas — 27 Agustus 2026.** Sebelumnya folder ini bernama
+`Repositories/Configurations/HealthServices/` dengan bentuk tunggal, sedangkan pola standarnya
+`HealthServices`. Saat blueprint ini disusun, perapian sengaja ditunda agar konsisten dengan 68
+file yang sudah ada.
+
+Perapian itu akhirnya dikerjakan tim IGD, yang memindahkan seluruh isi folder tunggal ke bentuk
+jamak. Configuration modul rekam medis sempat tertinggal di folder lama sehingga terlihat seperti
+folder kembar, lalu ikut dipindahkan menyusul. Namespace kelima berkasnya kini
+`...Configurations.HealthServices.MedicalRecordManagement`, dan folder bentuk tunggal **sudah
+tidak ada lagi**.
+
+Pemindahan ini tidak mengubah perilaku apa pun: pendaftaran configuration berjalan lewat
+`ApplyConfigurationsFromAssembly`, yang memindai assembly dan tidak peduli pada nama folder
+maupun namespace.
 
 ---
 

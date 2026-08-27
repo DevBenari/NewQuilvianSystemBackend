@@ -9,7 +9,7 @@
 | `design_snapshot_at` | `2026-08-24` |
 | `backend_commit_sha` | `ab37e3a2e80f0e34efe22ec0f6a8c9b90a3ae45e` |
 | `frontend_commit_sha` | `c4e2ef2a6080f3ce328d2faad79be1893ac13e22` |
-| `owners` | Product/domain, clinical governance, security/privacy: **Yoga Aji Pratama**. API authority: `OPEN`. Frontend authority: `OPEN` |
+| `owners` | Seluruh peran dipegang **Yoga Aji Pratama**: product/domain, clinical governance, security/privacy (`RM-DEC-027`), serta API authority dan frontend authority (`RM-DEC-028`). **Tidak ada peran yang masih `OPEN`** |
 | `approved_by` | **Yoga Aji Pratama** — penanggung jawab modul |
 | `approved_at` | **26 Agustus 2026** |
 | `input_revisions` | `00-interview-decisions.md` revision `4`; `01-existing-capability-map.md` revision `2` |
@@ -32,7 +32,7 @@ Keadaan gate setelah pengesahan:
 | Product/domain owner ditunjuk | **Terpenuhi** — Yoga Aji Pratama | — |
 | Clinical governance owner ditunjuk | **Terpenuhi** — Yoga Aji Pratama | Tinjauan komite medik atas `RM-DEC-003`, `004`, `020` **belum** dilakukan; lihat `RM-DEC-027` |
 | Security/privacy owner ditunjuk | **Terpenuhi** — Yoga Aji Pratama | Tinjauan pihak perlindungan data atas `RM-DEC-017`, `021`, `022`, `024` **belum** dilakukan; lihat `RM-DEC-027` |
-| API authority menyetujui kontrak | **`OPEN`** | Seluruh pekerjaan frontend. **Tidak** memblokir backend |
+| API authority menyetujui kontrak | **Terpenuhi** 27 Agustus 2026 — Yoga Aji Pratama (`RM-DEC-028`). Kontrak `0.1.0` naik menjadi `approved`, hash dikunci | Tidak ada lagi yang tertahan. **Gerbang paralel frontend terbuka** |
 | Angka masa simpan jejak akses ditetapkan | **Terpenuhi** 24 Agustus 2026 — **25 tahun** (`RM-DEC-024`) | Tidak ada lagi yang tertahan. Tabel `TrxMedicalRecordAccessLog` dirancang terbagi per tahun berdasarkan `AccessedAt`, 25 bagian pada keadaan penuh. Dasar regulasi wajib dilampirkan owner saat pengesahan |
 | SOP rekam medis rumah sakit tersedia | **`OPEN`** | Isi awal `MstMedicalRecordAccessPurpose` |
 | Penelusuran alur penggabungan pasien | **Selesai** 24 Agustus 2026. Hasilnya: penggabungan hanya penandaan, tidak memindahkan data klinis. Status `RM-CAP-007` naik menjadi `Conflict` | Yang tersisa: keputusan closure question nomor 8 tentang perilaku layar penelusuran untuk pasien bernomor ganda |

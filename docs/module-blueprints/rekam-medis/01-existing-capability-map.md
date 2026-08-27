@@ -66,7 +66,7 @@ Status memakai tujuh nilai baku: `Ready to reuse`, `Reuse with adapter`, `Extend
 | ID | Kebutuhan | Owner | Existing evidence | Status | Gap/adapter | Risk |
 |---|---|---|---|---|---|---|
 | `RM-CAP-001` | Data klinis tersimpan per pasien | `ClinicalManagement` | `BE Areas/HealthServices/ClinicalManagement/Models/` — 13 model transaksi; 13 dari 15 controller menerima filter `patientId` | `Ready to reuse` | Tidak ada | Rendah |
-| `RM-CAP-002` | Query riwayat per pasien berjalan cepat | `ClinicalManagement` | Index gabungan `(PatientId, <tanggal>, IsDelete)` terbukti pada `BE Repositories/Configurations/HealthService/TrxPatientIntegratedProgressNoteConfiguration.cs:169-174`, dan pola sama pada `TrxPatientDiagnosisConfiguration.cs:238`, `TrxDoctorConsultationConfiguration.cs:312`, `TrxPatientVitalSignConfiguration.cs:166`, `TrxPatientClinicalDocumentConfiguration.cs:183` | `Ready to reuse` | Tidak ada | Rendah |
+| `RM-CAP-002` | Query riwayat per pasien berjalan cepat | `ClinicalManagement` | Index gabungan `(PatientId, <tanggal>, IsDelete)` terbukti pada `BE Repositories/Configurations/HealthServices/TrxPatientIntegratedProgressNoteConfiguration.cs:169-174`, dan pola sama pada `TrxPatientDiagnosisConfiguration.cs:238`, `TrxDoctorConsultationConfiguration.cs:312`, `TrxPatientVitalSignConfiguration.cs:166`, `TrxPatientClinicalDocumentConfiguration.cs:183` | `Ready to reuse` | Tidak ada | Rendah |
 | `RM-CAP-003` | Timeline CPPT lintas kunjungan lengkap dengan pemakainya | `ClinicalManagement` | API `BE Areas/HealthServices/ClinicalManagement/Controllers/PatientIntegratedProgressNoteController.cs:165` (`GET .../timeline`), dipakai `FE src/lib/services/health-services/clinical-management/patient-integrated-progress-note.service.js:38-50` dan `FE src/lib/hooks/health-services/clinical-management/use-doctor-cppt.js:229-232` yang mengirim `patientId` | `Ready to reuse` | Tidak ada | Rendah |
 | `RM-CAP-004` | Pengambilan gabungan seluruh jenis dokumen dalam satu permintaan | Rekam Medis (baru) | Belum ada. Yang ada 13 endpoint terpisah, masing-masing dengan penomoran halaman sendiri | `Reuse with adapter` | Perlu satu lapisan penggabung di atas 13 sumber yang sudah ada. Tidak perlu tabel baru | Sedang — jumlah query bisa membengkak bila tidak dibatasi |
 | `RM-CAP-005` | Pola lapisan penggabung yang sudah terbukti | `PharmacyManagement` | `BE Areas/HealthServices/PharmacyManagement/Services/PrescriptionWorkspaceService.cs` (1.201 baris) dan `Controllers/PrescriptionWorkspaceController.cs:39,61`, terdaftar di `BE Program.cs:273` | `Ready to reuse` | Dipakai sebagai contoh pola, bukan kode yang disalin | Rendah |
@@ -117,7 +117,7 @@ tersebut sudah ada hanya karena namanya tertulis.
 |---|---|---|---|---|---|---|
 | `RM-CAP-028` | Pendaftaran izin otomatis untuk controller baru | `Administrator` | `BE Attributes/AccessControllerAttribute.cs` dan `AccessActionAttribute.cs` dibaca oleh `BE Seeders/AccessMenuSeeder.cs`, yang dijalankan saat aplikasi mulai lewat `BE Program.cs:788` | `Ready to reuse` | Tidak ada. Controller rekam medis baru akan otomatis muncul di pengaturan hak akses | Rendah |
 | `RM-CAP-029` | Pola pendaftaran service | — | `BE Program.cs` memuat 104 pemanggilan `AddScoped`, termasuk `LoggerService` (`:261`), `AccessPermissionService` (`:264`), `PrescriptionWorkspaceService` (`:273`), `DoctorConsultationLifecycleService` (`:277`) | `Ready to reuse` | Pendaftaran manual, harus ditambahkan untuk service baru | Rendah |
-| `RM-CAP-030` | Pola konfigurasi EF per entity | — | `BE Repositories/Configurations/HealthService/` memuat konfigurasi terpisah per entity dengan index, keunikan, dan `DeleteBehavior.Restrict`, contohnya `TrxPatientIntegratedProgressNoteConfiguration.cs:154-220` | `Ready to reuse` | Tidak ada | Rendah |
+| `RM-CAP-030` | Pola konfigurasi EF per entity | — | `BE Repositories/Configurations/HealthServices/` memuat konfigurasi terpisah per entity dengan index, keunikan, dan `DeleteBehavior.Restrict`, contohnya `TrxPatientIntegratedProgressNoteConfiguration.cs:154-220` | `Ready to reuse` | Tidak ada | Rendah |
 | `RM-CAP-031` | Kode diagnosis ICD-10 | `MasterData` | `BE Seeders/Icd10DiagnosisSeeder.cs`; `BE .../Models/MstDiagnosis.cs:29,34` menyimpan `DiagnosisType` dan `IcdVersion` | `Ready to reuse` | Relevan untuk verifikasi koding pada rilis berikutnya, bukan rilis pertama | Rendah |
 | `RM-CAP-032` | Uji otomatis sebagai bukti perilaku | — | Backend: tidak ditemukan project test apa pun. Frontend: hanya 4 berkas di `FE tests/` (`auth-security.spec.mjs`, `route-smoke.spec.mjs`, `auth-security.test.mjs`, `base-components-regression.test.mjs`), tidak satu pun menyentuh alur klinis | `Missing` | Tidak ada jaring pengaman otomatis untuk perubahan pada aturan penguncian dan kewenangan | Tinggi — perubahan pada `RM-CAP-010` sampai `RM-CAP-013` menyentuh alur yang sedang dipakai IGD dan antrean dokter |
 
@@ -153,7 +153,7 @@ dokumen yang paling sering ditulis — adalah yang paling lemah.
 
 `BE .../Models/TrxPatientIntegratedProgressNote.cs` menyediakan `SourceModule`,
 `SourceReferenceId`, dan `SourceReferenceNumber`, dengan index gabungan di
-`BE Repositories/Configurations/HealthService/TrxPatientIntegratedProgressNoteConfiguration.cs:199-204`.
+`BE Repositories/Configurations/HealthServices/TrxPatientIntegratedProgressNoteConfiguration.cs:199-204`.
 Artinya modul Laboratorium, Radiologi, dan MCU nanti dapat menitipkan entri ke CPPT tanpa
 mengubah struktur tabel.
 
@@ -281,7 +281,7 @@ tertutup dengan hasil yang berbeda dari dugaan awal.
 | Yang ditemukan | Bukti |
 |---|---|
 | Kolom penanda dan alasan | `BE .../Models/MstPatient.cs:109` (`MergedToPatientId`), `:112` (`MergeReason`), `:132` (navigation `MergedToPatient`) |
-| Relasi dan index | `BE Repositories/Configurations/HealthService/MstPatientConfiguration.cs:205`; index pada snapshot `:63997` |
+| Relasi dan index | `BE Repositories/Configurations/HealthServices/MstPatientConfiguration.cs:205`; index pada snapshot `:63997` |
 | Aturan validasi yang cukup lengkap | `BE .../PatientController.cs:2358-2395` — menolak menggabungkan pasien ke dirinya sendiri, mewajibkan alasan, dan memastikan pasien tujuan ada serta aktif |
 | Perlindungan saat menghapus | `BE .../PatientController.cs:922-925` — pasien yang menjadi tujuan penggabungan tidak dapat dihapus |
 | Hitungan pada ringkasan | `BE .../PatientController.cs:185` — jumlah pasien yang digabung tampil di ringkasan |
@@ -464,7 +464,7 @@ karena seluruh kesimpulan audit bertumpu padanya:
 | `Models/IdentityModel.cs` | Sumber temuan `RM-CAP-017` |
 | `Models/SysAccessPolicy.cs` | Sumber temuan `RM-CAP-024` |
 | `Repositories/ApplicationDbContext.cs` | Dipakai untuk membuktikan tidak adanya tabel jejak akses dan tabel versi |
-| `Repositories/Configurations/HealthService/*` | Sumber temuan `RM-CAP-002`, `030` |
+| `Repositories/Configurations/HealthServices/*` | Sumber temuan `RM-CAP-002`, `030` |
 | `src/lib/hooks/health-services/clinical-management/use-doctor-cppt.js` | Bukti pemakai nyata `RM-CAP-003` |
 | `src/utils/menu-sidebar/menu-items.jsx` | Sumber temuan `RM-CAP-008` |
 

@@ -52,9 +52,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             _integrityService = integrityService;
         }
 
-        /// <summary>
-        /// Menampilkan status keutuhan satu dokumen klinis.
-        /// </summary>
         [HttpGet("by-document/{documentKind}/{documentId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<ClinicalDocumentIntegrityResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -80,11 +77,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 response, "Status keutuhan catatan berhasil diambil."));
         }
 
-        /// <summary>
-        /// Menandatangani sekaligus mengunci sebuah catatan klinis.
-        ///
-        /// Setelah ini, isi catatan tidak dapat diubah. Koreksi hanya lewat addendum.
-        /// </summary>
         [HttpPost("by-document/{documentKind}/{documentId:guid}/sign")]
         [ProducesResponseType(typeof(ApiResponse<ClinicalDocumentIntegrityResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -138,11 +130,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 response, "Catatan berhasil ditandatangani dan dikunci."));
         }
 
-        /// <summary>
-        /// Daftar catatan milik pengguna yang belum ia tandatangani.
-        ///
-        /// Tanpa daftar ini, catatan yang lupa ditandatangani tidak dapat ditemukan.
-        /// </summary>
         [HttpGet("my-unsigned")]
         [ProducesResponseType(typeof(ApiResponse<ResponseUnsignedDocumentPagedResult>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Clinical Document Integrity", Description = "Melihat catatan sendiri yang belum ditandatangani", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -193,9 +180,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 hasil, "Daftar catatan yang belum ditandatangani berhasil diambil."));
         }
 
-        /// <summary>
-        /// Status keutuhan seluruh dokumen pada satu kunjungan.
-        /// </summary>
         [HttpGet("by-encounter/{encounterId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<List<ClinicalDocumentIntegrityResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Clinical Document Integrity", Description = "Melihat keutuhan dokumen per kunjungan", AccessType = AccessTypes.Read, SortOrder = 1)]

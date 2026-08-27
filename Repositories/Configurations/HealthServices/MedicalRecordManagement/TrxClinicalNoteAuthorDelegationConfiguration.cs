@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 
-namespace QuilvianSystemBackend.Repositories.Configurations.HealthService.MedicalRecordManagement
+namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.MedicalRecordManagement
 {
     public class TrxClinicalNoteAuthorDelegationConfiguration
         : IEntityTypeConfiguration<TrxClinicalNoteAuthorDelegation>

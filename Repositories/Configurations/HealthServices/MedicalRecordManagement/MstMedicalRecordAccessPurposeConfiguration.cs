@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 
-namespace QuilvianSystemBackend.Repositories.Configurations.HealthService.MedicalRecordManagement
+namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.MedicalRecordManagement
 {
     public class MstMedicalRecordAccessPurposeConfiguration
         : IEntityTypeConfiguration<MstMedicalRecordAccessPurpose>

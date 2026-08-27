@@ -113,11 +113,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             // menolak: riwayat tidak lengkap akan dibaca sebagai riwayat lengkap.
             if (pasien.MergedToPatientId.HasValue && pasien.MergedToPatientId.Value != Guid.Empty)
             {
-                var pengganti = await _dbContext.Set<MstPatient>()
-                    .AsNoTracking()
-                    .Where(x => x.Id == pasien.MergedToPatientId.Value)
-                    .Select(x => x.MedicalRecordNumber)
-                    .FirstOrDefaultAsync(cancellationToken);
+                var pengganti = await CariNomorPenggantiAsync(
+                    pasien.MergedToPatientId.Value, cancellationToken);
 
                 return MedicalRecordAccessResult.Denied(
                     StatusCodes.Status409Conflict,
@@ -190,6 +187,66 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             }
 
             return MedicalRecordAccessResult.Allowed(jenisAkses, perluDitinjau, jejak.Id);
+        }
+
+        /// <summary>
+        /// Batas panjang rantai penggabungan yang ditelusuri.
+        ///
+        /// Penggabungan berantai — A digabung ke B, lalu B digabung ke C — mungkin terjadi
+        /// karena pemeriksaan saat penggabungan hanya memastikan pasien tujuan ada dan aktif,
+        /// tanpa memeriksa apakah tujuan itu kelak ikut digabungkan.
+        /// </summary>
+        private const int BatasRantaiPenggabungan = 10;
+
+        /// <summary>
+        /// Mencari nomor rekam medis pengganti yang benar-benar dapat dibuka (`RM-DEC-026`).
+        ///
+        /// KENAPA TIDAK CUKUP MENGAMBIL SATU LANGKAH. Bila pasien A digabung ke B dan B kemudian
+        /// digabung ke C, menyebut nomor B kepada pengguna berarti menyuruhnya membuka berkas
+        /// yang juga akan ditolak. Petunjuk yang menyesatkan lebih buruk daripada tidak ada
+        /// petunjuk, karena pengguna akan menyangka sistemnya rusak.
+        ///
+        /// DUA PENGAMAN. Penelusuran berhenti pada <see cref="BatasRantaiPenggabungan"/> langkah,
+        /// dan setiap pasien yang sudah dilewati dicatat. Keduanya mencegah rantai melingkar —
+        /// A ke B lalu B kembali ke A — membuat permintaan berjalan tanpa akhir. Bila salah satu
+        /// pengaman menyala, nomor terakhir yang sempat ditemukan tetap dikembalikan; itu masih
+        /// lebih berguna daripada tidak memberi nomor sama sekali.
+        /// </summary>
+        private async Task<string?> CariNomorPenggantiAsync(
+            Guid penggantiId,
+            CancellationToken cancellationToken)
+        {
+            var sudahDilewati = new HashSet<Guid>();
+            string? nomorTerakhir = null;
+            var idBerikutnya = penggantiId;
+
+            for (var langkah = 0; langkah < BatasRantaiPenggabungan; langkah++)
+            {
+                if (!sudahDilewati.Add(idBerikutnya))
+                    break;
+
+                var pengganti = await _dbContext.Set<MstPatient>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == idBerikutnya)
+                    .Select(x => new { x.MedicalRecordNumber, x.MergedToPatientId })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (pengganti == null)
+                    break;
+
+                nomorTerakhir = pengganti.MedicalRecordNumber;
+
+                // Pengganti ini tidak digabungkan ke mana pun — inilah ujung rantainya.
+                if (!pengganti.MergedToPatientId.HasValue ||
+                    pengganti.MergedToPatientId.Value == Guid.Empty)
+                {
+                    break;
+                }
+
+                idBerikutnya = pengganti.MergedToPatientId.Value;
+            }
+
+            return nomorTerakhir;
         }
 
         /// <summary>

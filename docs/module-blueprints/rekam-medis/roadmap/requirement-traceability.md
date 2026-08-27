@@ -29,7 +29,7 @@ tidak terhubung ke uji dikeluarkan sebagai celah pada bagian 4.
 | Requirement | Decision ID | Design/ERD | Contract | Backend task | Frontend task | Test/evidence | Status |
 |---|---|---|---|---|---|---|---|
 | Modul mengelola berkas, bukan menulis isi klinis | `RM-DEC-001` | `02-backend-architecture.md#3-tabel-kepemilikan-data` | — | Seluruh task | Seluruh task | Tabel kepemilikan data | Planned |
-| Rilis pertama: penelusuran, keutuhan, jejak akses | `RM-DEC-002` | `02-backend-architecture.md#2-bounded-context` | api `0.1.0` | `BE-13`, `BE-14` | `FE-01` | `AT-RM-09`, `AT-RM-31` | **Sebagian** — `BE-13` selesai 26 Agustus 2026, `AT-RM-09` dan `AT-RM-31` terbukti pada `MedicalRecordTimelineTests`. `BE-14` belum |
+| Rilis pertama: penelusuran, keutuhan, jejak akses | `RM-DEC-002` | `02-backend-architecture.md#2-bounded-context` | api `0.1.0` | `BE-13`, `BE-14` | `FE-01` | `AT-RM-09`, `AT-RM-31` | **Terpenuhi** — `BE-13` selesai 26 Agustus 2026 dan `BE-14` selesai 27 Agustus 2026. `AT-RM-09` dan `AT-RM-31` terbukti pada `MedicalRecordTimelineTests`; endpoint-nya terbukti pada `MedicalRecordFileEndpointTests`. Bentuk balasan `/timeline` berubah, menunggu pengesahan pemilik API |
 | Penguncian dua lapis | `RM-DEC-003` | `erd/keutuhan-dokumen.md` | state `0.1.0` | `BE-02`, `BE-04`, `BE-07` | `FE-03` | `AT-RM-02`, `AT-RM-03`, `AT-RM-11`, `AT-RM-18` | Planned |
 | Addendum hanya oleh penulis, atau pengganti bila berhalangan | `RM-DEC-004` | `erd/keutuhan-dokumen.md` | state `0.1.0` | `BE-06` | `FE-04` | `AT-RM-04`, `AT-RM-05`, `AT-RM-14`, `AT-RM-17`, `AT-RM-28` | Planned |
 | Akses terbuka dengan rem alasan | `RM-DEC-005` | `erd/jejak-akses.md` | permission `0.1.0` | `BE-11`, `BE-12` | `FE-02`, `FE-05` | `AT-RM-07`, `AT-RM-29` | Planned |
@@ -44,7 +44,7 @@ tidak terhubung ke uji dikeluarkan sebagai celah pada bagian 4.
 | Tiga celah ditutup pada slice pertama | `RM-DEC-019` | `02-backend-architecture.md#7` | api `0.1.0` | `BE-03` | — | `AT-RM-01`, `AT-RM-19`, `AT-RM-20`, `AT-RM-34` | Planned |
 | Definisi berhalangan | `RM-DEC-020` | `erd/keutuhan-dokumen.md` | validation `0.1.0` | `BE-05` | — | `AT-RM-14`, `AT-RM-26`, `AT-RM-27` | Planned |
 | Tanda tangan cukup identitas pengguna masuk | `RM-DEC-021` | `erd/data-dictionary.md#1` | api `0.1.0` | `BE-04` | `FE-03` | `AT-RM-02` | Planned |
-| `PrivateNote` tersembunyi, terbuka lewat akses beralasan | `RM-DEC-022` | `contracts/validation-matrix.md#4` | api `0.1.0` | `BE-15` | `FE-01`, `FE-08` | `AT-RM-16`, `AT-RM-37` | Planned |
+| `PrivateNote` tersembunyi, terbuka lewat akses beralasan | `RM-DEC-022` | `contracts/validation-matrix.md#4` | api `0.1.0` | `BE-15` | `FE-01`, `FE-08` | `AT-RM-16`, `AT-RM-37` | **Terpenuhi pada kode** — `AT-RM-37` terbukti pada `BE-14` dan `AT-RM-16` pada `BE-15`, 9 uji lulus. **Butir komunikasi DoD belum dijalankan:** penulis CPPT belum diberi tahu, lihat `roadmap/BE-15-pemberitahuan-penulis-cppt.md` |
 | Masa simpan jejak ditetapkan sebelum desain | `RM-DEC-023` | `erd/jejak-akses.md#4` | — | `BE-10` | — | — | **Tertutup** — 25 tahun, `RM-DEC-024` |
 | Desain berjalan di atas keputusan draft | `RM-DEC-025` | Seluruh artefak | — | — | — | Peringatan pada setiap artefak | Selesai |
 
@@ -56,8 +56,8 @@ Kolom terakhir menjawab: apakah temuan audit benar-benar ditutup seseorang?
 
 | Capability | Status audit | Ditutup task | Test/evidence | Keterangan |
 |---|---|---|---|---|
-| `RM-CAP-004` — pengambilan gabungan 13 sumber | `Reuse with adapter` | `BE-13`, `BE-14` | `AT-RM-09`, `AT-RM-31` — `tests/.../MedicalRecordTimelineTests.cs`, 10 uji lulus | Lapisan penggabungnya sudah ada: `MedicalRecordTimelineService`. Tanpa tabel baru, sesuai status audit. Endpoint-nya menyusul pada `BE-14` |
-| `RM-CAP-007` — penggabungan pasien duplikat | **`Conflict`** (naik dari `Unknown`, ditelusuri 24 Agustus 2026) | `BE-16` | `AT-RM-22` | Penelusuran selesai. Penggabungan ternyata hanya penandaan; riwayat **pasti** terpecah. Menunggu keputusan closure question nomor 8 |
+| `RM-CAP-004` — pengambilan gabungan 13 sumber | `Reuse with adapter` | `BE-13`, `BE-14` | `AT-RM-09`, `AT-RM-31`, `AT-RM-32`, `AT-RM-37` — `MedicalRecordTimelineTests.cs` 10 uji dan `MedicalRecordFileEndpointTests.cs` 11 uji, seluruhnya lulus | **Ditutup.** Lapisan penggabung `MedicalRecordTimelineService` beserta 4 endpoint `MedicalRecordController`. Tanpa tabel baru, sesuai status audit |
+| `RM-CAP-007` — penggabungan pasien duplikat | **`Conflict`** (naik dari `Unknown`, ditelusuri 24 Agustus 2026) | `BE-16` | `AT-RM-22` — `tests/.../MergedPatientGuardTests.cs`, 7 uji lulus | **Ditutup.** Closure question nomor 8 dijawab `RM-DEC-026`: menolak membuka, bukan menyatukan saat dibaca. Keempat pintu masuk berkas dijaga `409`. Sisa: closure question nomor 10 — berapa banyak pasien seperti ini pada data nyata |
 | `RM-CAP-033` — penggabungan tidak dapat dipakai dari antarmuka | **`Repair`** (temuan baru) | **Tidak ditutup** | — | Lihat celah `GAP-07`. Milik `PatientManagement`, bukan modul ini |
 | `RM-CAP-008` — rute dan menu frontend | `Missing` | — | `route-smoke.spec.mjs` | `FE-07` |
 | `RM-CAP-009` — model status tidak seragam | `Conflict` | `BE-01`, `BE-02` | `AT-RM-24` | Ditutup dengan status berdampingan |
@@ -75,7 +75,7 @@ Kolom terakhir menjawab: apakah temuan audit benar-benar ditutup seseorang?
 | `RM-CAP-024` — kewenangan per pasien | `Missing` | `BE-11` | `AT-RM-06`, `AT-RM-07` | — |
 | `RM-CAP-025` — bypass `SuperAdmin` | `Conflict` | `BE-11` | `AT-RM-13` | Ditutup **sebagian**, lihat `GAP-05` |
 | `RM-CAP-026` — kerahasiaan tidak ditegakkan | `Conflict` | **Tidak ditutup** | `AT-RM-42` | Sengaja, `RM-DEC-018`. Ditutup dengan keterangan jujur, bukan penegakan |
-| `RM-CAP-027` — kerahasiaan `PrivateNote` | `Unknown` | `BE-15` | `AT-RM-16` | Ditutup `RM-DEC-022` |
+| `RM-CAP-027` — kerahasiaan `PrivateNote` | `Unknown` | `BE-15` | `AT-RM-16` — `tests/.../MedicalRecordPrivateNoteTests.cs`, 9 uji lulus | **Ditutup pada kode.** Kolom ini ternyata tidak pernah rahasia; sekarang dibuka lewat satu jalur beralasan, berizin terpisah, dan tercatat. Sisa: pemberitahuan ke penulis CPPT |
 | `RM-CAP-032` — tidak ada uji otomatis | `Missing` | `BE-00` **selesai**; `BE-17`, `FE-09` menyusul | `dotnet test`: `Failed: 0, Passed: 4`, tiga kali berturut-turut | Fondasi uji backend sudah ada di `tests/`. Cakupan masih fondasi, belum menyentuh alur klinis |
 
 ---

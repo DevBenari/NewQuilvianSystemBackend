@@ -506,6 +506,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ));
         }
 
+        /// <remarks>
+        /// **Tiga hal yang perlu diketahui pemakai API sebelum memanggil endpoint ini.**
+        ///
+        /// **1. Catatan yang sudah terkunci menolak perubahan.** Bila catatan sudah
+        /// ditandatangani, atau terkunci karena kunjungannya ditutup, permintaan dijawab `400`
+        /// dengan pesan yang mengarahkan ke addendum. Pembetulan catatan terkunci dilakukan
+        /// lewat addendum, bukan dengan mengubah isinya — riwayat koreksi harus tetap terbaca.
+        ///
+        /// **2. `ProviderUserId` DIABAIKAN.** Penulis catatan ditetapkan sekali saat catatan
+        /// dibuat dan tidak dapat dipindahkan lewat permintaan ubah.
+        ///
+        /// **3. `IsReadOnlyGenerated` DIABAIKAN.** Penanda hanya-baca tidak dapat dilepas lewat
+        /// permintaan ubah.
+        ///
+        /// Dua kolom terakhir **tidak** menyebabkan permintaan ditolak bila tetap dikirim,
+        /// supaya klien lama tidak putus. Nilainya sekadar tidak berpengaruh. Perilaku ini
+        /// dinyatakan terbuka di sini karena mengabaikan kiriman klien tanpa pemberitahuan
+        /// bukan praktik yang baik.
+        ///
+        /// **Cakupan aturan keutuhan pada rilis ini.** Baru CPPT yang tunduk aturan keutuhan
+        /// rekam medis. Dua belas jenis dokumen klinis lain sudah punya nomor jenisnya, tetapi
+        /// belum ditegakkan — dokumen jenis itu masih dapat diubah tanpa pemeriksaan keutuhan.
+        /// </remarks>
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientIntegratedProgressNoteUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

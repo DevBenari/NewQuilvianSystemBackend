@@ -60,9 +60,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             _reviewService = reviewService;
         }
 
-        /// <summary>
-        /// Daftar jejak akses dengan penyaringan.
-        /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponseAccessLogPagedResult>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Medical Record Access Log", Description = "Melihat jejak akses rekam medis", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -80,11 +77,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                                 startDate, endDate, hanyaBelumDitinjau: false,
                                 pageNumber, pageSize);
 
-        /// <summary>
-        /// Antrean akses yang perlu ditinjau tetapi belum ditinjau.
-        ///
-        /// Inilah layar kerja sehari-hari unit rekam medis.
-        /// </summary>
         [HttpGet("pending-review")]
         [ProducesResponseType(typeof(ApiResponse<ResponseAccessLogPagedResult>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Medical Record Access Log", Description = "Melihat antrean akses yang perlu ditinjau", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -96,9 +88,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                                 null, null, hanyaBelumDitinjau: true,
                                 pageNumber, pageSize);
 
-        /// <summary>
-        /// Menandai satu akses sudah ditinjau.
-        /// </summary>
         [HttpPatch("{id:guid}/mark-reviewed")]
         [ProducesResponseType(typeof(ApiResponse<MedicalRecordAccessLogResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -136,9 +125,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 response, "Akses berhasil ditandai sudah ditinjau."));
         }
 
-        /// <summary>
-        /// Rekap jumlah akses per jenis dalam satu rentang waktu.
-        /// </summary>
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<MedicalRecordAccessSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Medical Record Access Log", Description = "Melihat rekap akses rekam medis", AccessType = AccessTypes.Read, SortOrder = 1)]

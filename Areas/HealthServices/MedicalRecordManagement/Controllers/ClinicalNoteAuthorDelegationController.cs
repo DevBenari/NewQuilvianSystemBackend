@@ -50,9 +50,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             _delegationService = delegationService;
         }
 
-        /// <summary>
-        /// Daftar penetapan penulis berhalangan.
-        /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponseAuthorDelegationPagedResult>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Clinical Note Author Delegation", Description = "Melihat penetapan penulis berhalangan", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -105,12 +102,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 hasil, "Daftar penetapan berhasil diambil."));
         }
 
-        /// <summary>
-        /// Menetapkan seorang penulis catatan sebagai berhalangan.
-        ///
-        /// Hanya untuk penetapan manual. Penulis yang akunnya sudah nonaktif tidak perlu
-        /// ditetapkan — jalur koreksinya sudah terbuka otomatis.
-        /// </summary>
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<AuthorDelegationResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -152,9 +143,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                     "Penetapan berhasil dibuat."));
         }
 
-        /// <summary>
-        /// Mencabut penetapan lebih awal, sebelum batas waktunya berakhir.
-        /// </summary>
         [HttpPatch("{id:guid}/revoke")]
         [ProducesResponseType(typeof(ApiResponse<AuthorDelegationResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

@@ -45,12 +45,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             _backfillService = backfillService;
         }
 
-        /// <summary>
-        /// Menelaah data lama tanpa mengubah apa pun.
-        ///
-        /// Menjawab berapa banyak catatan lama yang ada dan akan menjadi apa masing-masing.
-        /// Aman dijalankan kapan saja karena hanya membaca.
-        /// </summary>
         [HttpGet("survey")]
         [ProducesResponseType(typeof(ApiResponse<MedicalRecordBackfillSurveyResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Survey Medical Record Backfill", Description = "Menelaah catatan lama sebelum pengisian dijalankan", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -63,12 +57,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 hasil, "Penelaahan catatan lama berhasil."));
         }
 
-        /// <summary>
-        /// Menjalankan satu potongan pengisian.
-        ///
-        /// Bawaannya adalah **percobaan** — tidak ada yang disimpan. Untuk benar-benar
-        /// menyimpan, kirim <c>isDryRun=false</c> secara sadar.
-        /// </summary>
         [HttpPost("run-batch")]
         [ProducesResponseType(typeof(ApiResponse<MedicalRecordBackfillRunResponse>), StatusCodes.Status200OK)]
         [AccessAction("Update", "Run Medical Record Backfill", Description = "Menjalankan satu potongan pengisian catatan lama", AccessType = AccessTypes.Update, SortOrder = 2)]

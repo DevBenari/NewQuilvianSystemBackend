@@ -5,10 +5,11 @@ module_id: RM-BP-001
 roadmap_revision: 1
 status: DRAFT
 owners:
-  frontend_authority: OPEN
-  security_privacy: OPEN
-  product_domain: OPEN
-approved_by: []
+  frontend_authority: Yoga Aji Pratama
+  security_privacy: Yoga Aji Pratama
+  product_domain: Yoga Aji Pratama
+approved_by: [Yoga Aji Pratama]
+approved_at: 2026-08-27
 input_revisions:
   interview_decisions: 4
   capability_map: 1
@@ -18,7 +19,7 @@ artifact_hashes:
   frontend_architecture: sha256:b7087f7bd19260f2deb7646860a02ddc354dda8377f73c9219388f9e9e1669c5
   api_contract: sha256:a20372c4b3a6b05842e733206d13b7599895b127a2c638f5533b2004e626bed8
 contract_versions:
-  api: 0.1.0 (draft)
+  api: 0.1.0 (approved 2026-08-27)
 source_commits:
   backend: ab37e3a2e80f0e34efe22ec0f6a8c9b90a3ae45e
   frontend: c4e2ef2a6080f3ce328d2faad79be1893ac13e22
@@ -30,7 +31,7 @@ backend. Ia bukan sumber kebenaran kedua — bila terjadi perbedaan, yang berlak
 
 ---
 
-## 1. Gerbang paralel: seluruh task frontend tertahan
+## 1. Gerbang paralel: TERBUKA sejak 27 Agustus 2026
 
 Ini kesimpulan terpenting dokumen ini dan harus dibaca lebih dulu.
 
@@ -39,46 +40,64 @@ contract version terkait berstatus `APPROVED` dan hash-nya dikunci.**
 
 | Yang disyaratkan | Keadaan sekarang |
 |---|---|
-| `contracts/api-contract.md` berstatus `APPROVED` | **`draft`** |
-| Hash kontrak terkunci | Hash tercatat, tetapi belum dikunci karena belum disetujui |
-| Owner API menyetujui | **`OPEN`** |
+| `contracts/api-contract.md` berstatus `APPROVED` | **Terpenuhi** — `approved` sejak 27 Agustus 2026 |
+| Hash kontrak terkunci | **Terpenuhi** — dikunci bersama pengesahan |
+| Owner API menyetujui | **Terpenuhi** — Yoga Aji Pratama (`RM-DEC-028`) |
 
-**Akibatnya: sepuluh task frontend di bawah seluruhnya `TERTAHAN KONTRAK`.** Tidak satu pun
-boleh dimulai sekarang.
+**Akibatnya: sepuluh task frontend di bawah tidak lagi `TERTAHAN KONTRAK`.** Yang menahan
+sekarang tinggal dependency antar-task dan ketersediaan endpoint backend-nya.
 
 Alasan aturan ini nyata, bukan formalitas. Bila frontend dibangun di atas bentuk payload yang
 belum disetujui, dan kontraknya kemudian berubah — misalnya `AccessScope` berganti bentuk, atau
 respons riwayat berubah susunannya — seluruh service, hook, dan komponen yang sudah ditulis
-harus dibongkar. Pekerjaan menebak payload adalah pekerjaan yang paling mungkin terbuang.
+harus dibongkar.
 
-### Yang boleh dikerjakan frontend selama menunggu
+### Dua delta yang ikut disahkan, dan wajib diperhatikan frontend
 
-Tiga hal berikut **tidak** bergantung pada bentuk payload, sehingga aman dikerjakan:
+Keduanya diterapkan `BE-14` dan dirinci pada `contracts/api-contract.md` bagian 2:
 
-| Pekerjaan | Mengapa aman |
+| Delta | Dampak pada frontend |
 |---|---|
-| Menyusun brief UI untuk diajukan ke owner | Justru menutup `RM-FE-004`, `005`, `011`, `012` yang sekarang `DEV_DISCRETION` karena belum ada brief |
-| Menambahkan rute rekam medis ke `tests/e2e/route-smoke.spec.mjs` | Menguji rute dapat dicapai, bukan isinya |
-| Mempelajari pola `use-doctor-cppt.js` sebagai contoh | Membaca, bukan menulis |
+| Balasan `/timeline` dibungkus `MedicalRecordTimelineResponse` | Isi halaman dibaca dari **`data.page.items`**, bukan `data.items` |
+| Field `access` pada seluruh balasan endpoint berkas | Tersedia keterangan jenis akses dan apakah pembukaannya akan ditelaah — dipakai `FE-02` |
 
-Menyusun brief UI adalah yang paling bernilai di antara ketiganya. Empat butir `DEV_DISCRETION`
-pada arsitektur frontend muncul semata-mata karena belum ada brief yang disetujui — bukan
-karena keputusannya memang diserahkan ke developer.
+Selubung riwayat juga membawa `failedSources`, `isTruncated`, dan `isComplete`. **Ketiganya
+bukan hiasan**: acceptance criteria `FE-01` nomor 5 menuntut sumber yang gagal dimuat ditandai
+jelas, dan inilah datanya.
+
+### Keadaan backend saat gerbang dibuka
+
+Seluruh pekerjaan kode backend selesai. Yang perlu diketahui frontend:
+
+| Hal | Keadaan |
+|---|---|
+| Endpoint berkas rekam medis | **Tersedia** — lima endpoint, lihat api-contract bagian 2 |
+| Master keperluan akses (`MstMedicalRecordAccessPurpose`) | **Masih kosong** — menunggu SOP. Selama kosong, pembukaan pasien di luar rawatan **selalu** ditolak |
+| Penanda master kosong | `/filters/metadata` mengembalikan `isAccessPurposeMasterEmpty` beserta peringatannya |
+
+Butir kedua langsung menyentuh `FE-02`: layar keperluan akses akan menampilkan daftar pilihan
+kosong sampai master itu terisi. **Keadaan itu wajib dinyatakan di layar**, bukan tampil sebagai
+daftar kosong tanpa penjelasan yang membuat pengguna mengira sistemnya rusak.
 
 ---
 
 ## 2. Ringkasan status seluruh task
 
-| Milestone | Task | Status | Tertahan oleh |
-|---|---|---|---|
-| F0 | `FE-00` | `TERTAHAN KONTRAK` | API `0.1.0` masih `draft` |
-| F1 | `FE-01`, `FE-02` | `TERTAHAN KONTRAK` + `BE-14`, `BE-11` | Kontrak dan backend |
-| F2 | `FE-03`, `FE-04` | `TERTAHAN KONTRAK` + `BE-04`, `BE-06` | Kontrak dan backend |
-| F3 | `FE-05`, `FE-06` | `TERTAHAN KONTRAK` + `BE-12`, `BE-09` | Kontrak dan backend |
-| F4 | `FE-07`, `FE-08` | `TERTAHAN KONTRAK` | Kontrak |
-| F5 | `FE-09` | `TERTAHAN KONTRAK` + seluruh task pendahulu | Kontrak dan backend |
+Status per 27 Agustus 2026, setelah pengesahan `RM-DEC-028` dan selesainya seluruh kode backend.
 
-**Denominator: 10 task, seluruhnya tertahan. Tidak ada yang berstatus `SIAP`.**
+| Milestone | Task | Status | Keterangan |
+|---|---|---|---|
+| F0 | `FE-00` | **`SIAP`** | Lapisan service dan hook. **Kerjakan lebih dulu** — seluruh task lain bergantung padanya |
+| F1 | `FE-01` | **`SIAP`** setelah `FE-00` | Backend-nya sudah tersedia (`BE-14`) |
+| F1 | `FE-02` | **`SIAP`** setelah `FE-00` | Backend-nya sudah tersedia (`BE-11`). **Daftar keperluan akses masih kosong** sampai master `BE-09` terisi |
+| F2 | `FE-03`, `FE-04` | **`SIAP`** setelah `FE-00` | Backend-nya sudah tersedia (`BE-04`, `BE-06`) |
+| F3 | `FE-05` | **`SIAP`** setelah `FE-00` | Backend-nya sudah tersedia (`BE-12`) |
+| F3 | `FE-06` | **`SIAP`** setelah `FE-00` | Layar master keperluan akses. Strukturnya siap; isinya menunggu SOP |
+| F4 | `FE-07`, `FE-08` | **`SIAP`** setelah `FE-00` | — |
+| F5 | `FE-09` | **`SIAP`** setelah seluruh task pendahulu | — |
+
+**Denominator: 10 task. Nol tertahan kontrak. Yang menahan tinggal urutan dependency, dan
+`FE-00` adalah pintunya.**
 
 ---
 
@@ -89,7 +108,7 @@ karena keputusannya memang diserahkan ke developer.
 | Field | Isi |
 |---|---|
 | **Task ID** | `FE-00` |
-| **Status** | `TERTAHAN KONTRAK` |
+| **Status** | **`SIAP`** — gerbang kontrak terbuka 27 Agustus 2026 (`RM-DEC-028`). Yang menahan tinggal dependency antar-task pada baris di bawah |
 | **Outcome** | Frontend punya cara memanggil API rekam medis, dengan penanganan galat yang seragam |
 | **Trace** | API contract `0.1.0`; arsitektur frontend bagian 5 |
 | **Reuse** | Pola `src/lib/services/health-services/clinical-management/`; `InstanceAxios`; pembungkus `unwrapApiResponse` |
@@ -109,7 +128,7 @@ karena keputusannya memang diserahkan ke developer.
 | Field | Isi |
 |---|---|
 | **Task ID** | `FE-01` |
-| **Status** | `TERTAHAN KONTRAK` |
+| **Status** | **`SIAP`** — gerbang kontrak terbuka 27 Agustus 2026 (`RM-DEC-028`). Yang menahan tinggal dependency antar-task pada baris di bawah |
 | **Outcome** | Petugas dapat melihat seluruh riwayat klinis seorang pasien lintas kunjungan dalam satu tempat, tanpa membuka kunjungan satu per satu |
 | **Trace** | `RM-DEC-002`, `RM-DEC-013`, `RM-DEC-018`; `RM-FE-001`, `RM-FE-006`, `RM-FE-008`, `RM-FE-009` |
 | **Reuse** | Pola pemuatan bertahap per bulan pada `use-doctor-cppt.js:372`; komponen tabel yang sudah ada |
@@ -125,7 +144,7 @@ karena keputusannya memang diserahkan ke developer.
 | Field | Isi |
 |---|---|
 | **Task ID** | `FE-02` |
-| **Status** | `TERTAHAN KONTRAK` |
+| **Status** | **`SIAP`** — gerbang kontrak terbuka 27 Agustus 2026 (`RM-DEC-028`). Yang menahan tinggal dependency antar-task pada baris di bawah |
 | **Outcome** | Petugas yang membuka rekam medis pasien di luar rawatannya diminta keperluan lebih dulu, dan tahu bahwa aksesnya dicatat |
 | **Trace** | `RM-DEC-005`, `RM-DEC-016`; `RM-FE-003` |
 | **Reuse** | Komponen modal atau drawer yang sudah ada — bentuknya `DEV_DISCRETION` |
@@ -145,7 +164,7 @@ karena keputusannya memang diserahkan ke developer.
 | Field | Isi |
 |---|---|
 | **Task ID** | `FE-03` |
-| **Status** | `TERTAHAN KONTRAK` |
+| **Status** | **`SIAP`** — gerbang kontrak terbuka 27 Agustus 2026 (`RM-DEC-028`). Yang menahan tinggal dependency antar-task pada baris di bawah |
 | **Outcome** | Dokter dan perawat dapat menemukan catatannya sendiri yang belum ditandatangani, lalu menandatanganinya |
 | **Trace** | `RM-DEC-003`, `RM-DEC-021` |
 | **Reuse** | Pola daftar dan tabel yang sudah ada |
@@ -161,7 +180,7 @@ karena keputusannya memang diserahkan ke developer.
 | Field | Isi |
 |---|---|
 | **Task ID** | `FE-04` |
-| **Status** | `TERTAHAN KONTRAK` |
+| **Status** | **`SIAP`** — gerbang kontrak terbuka 27 Agustus 2026 (`RM-DEC-028`). Yang menahan tinggal dependency antar-task pada baris di bawah |
 | **Outcome** | Koreksi atas catatan yang sudah terkunci tampil menempel pada catatan aslinya, sehingga pembaca melihat keduanya beserta urutannya |
 | **Trace** | `RM-DEC-004`, `RM-DEC-020`; `RM-FE-002`, `RM-FE-010` |
 | **Reuse** | `FE-01` |
@@ -181,7 +200,7 @@ karena keputusannya memang diserahkan ke developer.
 | Field | Isi |
 |---|---|
 | **Task ID** | `FE-05` |
-| **Status** | `TERTAHAN KONTRAK` |
+| **Status** | **`SIAP`** — gerbang kontrak terbuka 27 Agustus 2026 (`RM-DEC-028`). Yang menahan tinggal dependency antar-task pada baris di bawah |
 | **Outcome** | Unit rekam medis dapat memeriksa akses yang perlu ditinjau, sehingga jejak akses berguna alih-alih hanya menumpuk |
 | **Trace** | `RM-DEC-005` |
 | **Reuse** | Pola daftar dengan penyaring yang sudah ada |
@@ -197,7 +216,7 @@ karena keputusannya memang diserahkan ke developer.
 | Field | Isi |
 |---|---|
 | **Task ID** | `FE-06` |
-| **Status** | `TERTAHAN KONTRAK` |
+| **Status** | **`SIAP`** — gerbang kontrak terbuka 27 Agustus 2026 (`RM-DEC-028`). Yang menahan tinggal dependency antar-task pada baris di bawah |
 | **Outcome** | Unit rekam medis dapat mengubah daftar keperluan akses sendiri, tanpa meminta perubahan kode |
 | **Trace** | Arsitektur backend bagian 9 |
 | **Reuse** | Pola layar master data pada `src/components/view/health-services/master-data/`. **Tidak perlu pola baru** |
@@ -217,7 +236,7 @@ karena keputusannya memang diserahkan ke developer.
 | Field | Isi |
 |---|---|
 | **Task ID** | `FE-07` |
-| **Status** | `TERTAHAN KONTRAK` |
+| **Status** | **`SIAP`** — gerbang kontrak terbuka 27 Agustus 2026 (`RM-DEC-028`). Yang menahan tinggal dependency antar-task pada baris di bawah |
 | **Outcome** | Petugas dapat mencapai layar rekam medis dari menu |
 | **Trace** | `RM-CAP-008`; `RM-FE-004` |
 | **Reuse** | `src/utils/menu-sidebar/menu-items.jsx` |
@@ -233,7 +252,7 @@ karena keputusannya memang diserahkan ke developer.
 | Field | Isi |
 |---|---|
 | **Task ID** | `FE-08` |
-| **Status** | `TERTAHAN KONTRAK` |
+| **Status** | **`SIAP`** — gerbang kontrak terbuka 27 Agustus 2026 (`RM-DEC-028`). Yang menahan tinggal dependency antar-task pada baris di bawah |
 | **Outcome** | Pengguna mendapat penjelasan yang dapat dipahami ketika terjadi gangguan, bukan pesan galat teknis |
 | **Trace** | Arsitektur frontend bagian 4; `RM-FE-012` |
 | **Reuse** | Pola penanganan galat yang sudah ada |
@@ -253,7 +272,7 @@ karena keputusannya memang diserahkan ke developer.
 | Field | Isi |
 |---|---|
 | **Task ID** | `FE-09` |
-| **Status** | `TERTAHAN KONTRAK` |
+| **Status** | **`SIAP`** — gerbang kontrak terbuka 27 Agustus 2026 (`RM-DEC-028`). Yang menahan tinggal dependency antar-task pada baris di bawah |
 | **Outcome** | Empat aturan antarmuka yang berasal dari keputusan keamanan dan klinis terbukti berjalan, bukan hanya dinyatakan |
 | **Trace** | `AT-RM-39` sampai `AT-RM-42` |
 | **Reuse** | `tests/e2e/` yang sudah ada |

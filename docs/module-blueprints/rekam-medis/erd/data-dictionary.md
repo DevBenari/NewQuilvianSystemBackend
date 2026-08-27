@@ -233,7 +233,7 @@ menjadi lapis kedua yang menutup celah itu.
 > **PERINGATAN.** Basis data project ini dibentuk EF Core Migrations, bukan skrip SQL manual.
 > DDL di bawah adalah **dokumentasi bentuk tabel**, bukan skrip untuk dijalankan. Menjalankannya
 > akan berbenturan dengan migration. Sumber kebenarannya adalah file configuration di
-> `Repositories/Configurations/HealthService/MedicalRecordManagement/`.
+> `Repositories/Configurations/HealthServices/MedicalRecordManagement/`.
 
 ```sql
 -- Bentuk tabel sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.

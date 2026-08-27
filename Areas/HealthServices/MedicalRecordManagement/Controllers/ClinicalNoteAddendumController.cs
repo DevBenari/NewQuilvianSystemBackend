@@ -49,9 +49,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             _accessPermissionService = accessPermissionService;
         }
 
-        /// <summary>
-        /// Daftar koreksi pada sebuah catatan, urut dari koreksi pertama.
-        /// </summary>
         [HttpGet("by-document/{documentKind}/{documentId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<List<ClinicalNoteAddendumResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Clinical Note Addendum", Description = "Melihat koreksi catatan klinis", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -83,14 +80,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 response, "Daftar koreksi catatan berhasil diambil."));
         }
 
-        /// <summary>
-        /// Memeriksa apakah pengguna berhak membuat addendum pada sebuah catatan, dan atas
-        /// dasar apa.
-        ///
-        /// Disediakan supaya layar dapat menampilkan tombol koreksi hanya kepada yang berhak,
-        /// dan menjelaskan alasannya bila tidak berhak. Tombol yang selalu gagal saat ditekan
-        /// mendorong pengguna mencari jalan lain.
-        /// </summary>
         [HttpGet("authority/{documentKind}/{documentId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<AddendumAuthorityResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Clinical Note Addendum", Description = "Memeriksa kewenangan membuat koreksi", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -110,11 +99,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 kewenangan, "Kewenangan koreksi berhasil diperiksa."));
         }
 
-        /// <summary>
-        /// Menambahkan koreksi pada catatan yang sudah terkunci.
-        ///
-        /// Isi catatan asli tidak pernah berubah; koreksi menempel di bawahnya.
-        /// </summary>
         [HttpPost("by-document/{documentKind}/{documentId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<ClinicalNoteAddendumResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -128,16 +112,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             => BuatAddendumAsync(documentKind, documentId, request,
                                  sebagaiPengganti: false);
 
-        /// <summary>
-        /// Menambahkan koreksi pada catatan milik penulis yang berhalangan.
-        ///
-        /// Dipisahkan dari endpoint biasa karena kewenangannya berbeda: hanya kepala unit dan
-        /// DPJP yang boleh, dan hanya ketika penulis aslinya benar-benar berhalangan. Pemisahan
-        /// ini juga membuat tindakannya terdaftar sebagai hak akses tersendiri, sehingga unit
-        /// rekam medis dapat memberikannya tanpa ikut memberi hak lain.
-        ///
-        /// Addendum tetap tercatat atas nama pembuatnya, BUKAN atas nama penulis asli.
-        /// </summary>
         [HttpPost("by-document/{documentKind}/{documentId:guid}/as-substitute")]
         [ProducesResponseType(typeof(ApiResponse<ClinicalNoteAddendumResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

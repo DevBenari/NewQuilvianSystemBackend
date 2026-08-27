@@ -33,8 +33,6 @@ using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
-using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
-using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services;
 using QuilvianSystemBackend.Hubs;
@@ -631,6 +629,34 @@ try
 
     builder.Services.AddSwaggerGen(options =>
     {
+        // Keterangan pada endpoint, parameter, dan DTO ikut ditampilkan di halaman Swagger.
+        //
+        // Diperlukan karena beberapa perubahan perilaku tidak terlihat dari bentuk permintaan
+        // maupun responsnya — misalnya kolom yang tetap diterima tetapi nilainya diabaikan.
+        // Tanpa ini, satu-satunya cara mengetahuinya adalah membaca source.
+        //
+        // includeControllerXmlComments SENGAJA DIBIARKAN MATI. Bila dinyalakan, Swashbuckle
+        // menambahkan satu tag tingkat dokumen untuk tiap controller, dinamai menurut nama
+        // KELAS controller. Project ini mengelompokkan endpoint memakai atribut [Tags(...)]
+        // yang isinya kalimat panjang, sehingga kedua nama itu tidak pernah bertemu: tag dari
+        // nama kelas tidak dipakai satu endpoint pun, lalu tampil di Swagger sebagai judul grup
+        // besar yang kosong isinya.
+        //
+        // Mematikannya tidak menghilangkan keterangan apa pun yang dibutuhkan. Keterangan pada
+        // endpoint, parameter, dan schema tetap terbaca — di situlah keterangan perubahan
+        // perilaku diletakkan.
+        //
+        // Diperiksa keberadaannya lebih dulu supaya aplikasi tetap berjalan bila berkas
+        // dokumentasinya tidak ikut terbawa pada suatu keluaran build.
+        var xmlDokumentasi = Path.Combine(
+            AppContext.BaseDirectory,
+            $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml");
+
+        if (File.Exists(xmlDokumentasi))
+        {
+            options.IncludeXmlComments(xmlDokumentasi, includeControllerXmlComments: false);
+        }
+
         options.SwaggerDoc("auth", new OpenApiInfo
         {
             Title = $"{appName} - Authentication",
