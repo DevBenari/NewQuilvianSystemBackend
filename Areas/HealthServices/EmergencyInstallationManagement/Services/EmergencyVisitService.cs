@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -28,10 +28,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _documentNumberService = documentNumberService;
         }
 
-        public async Task<MstEmergencySetting?> GetActiveSettingAsync(
+        public async Task<EmgSetting?> GetActiveSettingAsync(
             CancellationToken cancellationToken = default)
         {
-            return await _dbContext.Set<MstEmergencySetting>()
+            return await _dbContext.Set<EmgSetting>()
                 .AsNoTracking()
                 .Where(x => x.IsActive && !x.IsDelete)
                 .OrderByDescending(x => x.IsDefault)
@@ -94,8 +94,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 if (encounter == null)
                     return "EncounterId tidak ditemukan.";
 
-                if (encounter.EncounterType != EncounterType.Outpatient)
-                    return "Jenis kunjungan pasien IGD harus OP (EncounterType.Outpatient).";
+                var pesanJenisEncounter = PeriksaJenisEncounter(encounter.EncounterType);
+                if (pesanJenisEncounter != null)
+                    return pesanJenisEncounter;
 
                 if (encounter.ServiceUnitId != request.ServiceUnitId)
                     return "ServiceUnitId kunjungan IGD harus sama dengan ServiceUnitId pada encounter.";
@@ -128,14 +129,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (request.ArrivalModeId.HasValue &&
                 request.ArrivalModeId.Value != Guid.Empty &&
-                !await _dbContext.Set<MstEmergencyArrivalMode>()
+                !await _dbContext.Set<EmgArrivalMode>()
                     .AsNoTracking()
                     .AnyAsync(x => x.Id == request.ArrivalModeId.Value && !x.IsDelete, cancellationToken))
                 return "ArrivalModeId tidak ditemukan.";
 
             if (request.CaseTypeId.HasValue &&
                 request.CaseTypeId.Value != Guid.Empty &&
-                !await _dbContext.Set<MstEmergencyCaseType>()
+                !await _dbContext.Set<EmgCaseType>()
                     .AsNoTracking()
                     .AnyAsync(x => x.Id == request.CaseTypeId.Value && !x.IsDelete, cancellationToken))
                 return "CaseTypeId tidak ditemukan.";
@@ -147,6 +148,137 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             UpdateEmergencyVisitRequest request,
             CancellationToken cancellationToken = default)
             => ValidateRequestAsync((CreateEmergencyVisitRequest)request, cancellationToken);
+
+        /// <summary>
+        /// Jenis encounter yang diterima pendaftaran IGD. Mengembalikan pesan penolakan, atau
+        /// <c>null</c> bila jenisnya diterima.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-IGD-023</c>, requirement <c>FR-IGD-001</c>..<c>FR-IGD-004</c>, keputusan
+        /// <c>IGD-DEC-067</c>, <c>IGD-DEC-074</c>, dan <c>IGD-DEC-109</c>.
+        ///
+        /// <para>
+        /// Aturan ini dulu ditulis <b>dua kali</b> — sekali di service, sekali di controller —
+        /// dan itulah bentuk cacat yang membuat <c>BE-IGD-008</c> terlihat selesai sementara
+        /// jalur keduanya masih bocor. Kini keduanya memanggil method ini, sehingga rumusannya
+        /// tidak dapat lagi menyimpang satu sama lain.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Masa transisi.</b> <c>IGD-DEC-109</c> menetapkan <c>Outpatient</c> tetap diterima
+        /// sampai migration <c>ChangeEmergencyEncounterTypeToEmergency</c> benar-benar
+        /// diterapkan. Seluruh kunjungan IGD lama bertipe <c>Outpatient</c>; menolaknya
+        /// sekarang memutus setiap kunjungan yang sudah ada. Setelah migration itu berjalan
+        /// dan jumlah barisnya cocok, <c>Outpatient</c> dihapus dari daftar di bawah — satu
+        /// baris perubahan, satu tempat.
+        /// </para>
+        /// </remarks>
+        public static string? PeriksaJenisEncounter(EncounterType encounterType)
+        {
+            if (encounterType is EncounterType.Emergency or EncounterType.Outpatient)
+                return null;
+
+            return "Encounter yang dipilih bukan kunjungan IGD. Pilih atau buat encounter " +
+                   "dengan jenis kunjungan gawat darurat untuk pasien ini.";
+        }
+
+        /// <summary>
+        /// Memastikan kunjungan IGD yang pendaftarannya sudah tuntas punya encounter.
+        /// Mengembalikan pesan penolakan, atau <c>null</c> bila boleh dilanjutkan.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-IGD-024</c>, requirement <c>FR-IGD-065</c>..<c>FR-IGD-068</c>.
+        ///
+        /// <para>
+        /// Seluruh tabel <c>ClinicalManagement</c> bertumpu pada <c>EncounterId</c>. Kunjungan
+        /// IGD tanpa encounter karena itu tidak dapat menyimpan satu pun catatan klinis, dan
+        /// kegagalannya baru terlihat jauh di hilir sebagai galat yang tidak menyebut sebabnya.
+        /// Penjagaan ini memindahkan kegagalan itu ke depan, dengan pesan yang menyebut apa
+        /// yang harus dilakukan petugas.
+        /// </para>
+        ///
+        /// <para>
+        /// Kunjungan lama yang <c>EncounterId</c>-nya kosong <b>tidak</b> diperbaiki diam-diam.
+        /// Ia tetap terbaca apa adanya; yang ditolak hanyalah <i>menuntaskan pendaftaran</i>
+        /// tanpa encounter sejak sekarang.
+        /// </para>
+        /// </remarks>
+        public static string? PeriksaEncounterPendaftaran(
+            TrxEmergencyVisit visit,
+            EmergencyRegistrationStatus target)
+        {
+            ArgumentNullException.ThrowIfNull(visit);
+
+            if (target is not (EmergencyRegistrationStatus.Registered or EmergencyRegistrationStatus.Completed))
+                return null;
+
+            if (visit.EncounterId.HasValue && visit.EncounterId.Value != Guid.Empty)
+                return null;
+
+            return "Pendaftaran IGD belum dapat dituntaskan karena kunjungan ini belum " +
+                   "tertaut ke encounter pasien. Selesaikan pendaftaran pasien lebih dulu, " +
+                   "lalu hubungkan encounter-nya ke kunjungan IGD ini.";
+        }
+
+        /// <summary>
+        /// Status kunjungan yang berarti episode IGD-nya <b>masih berjalan</b>.
+        /// </summary>
+        /// <remarks>
+        /// <c>Completed</c> dan <c>Cancelled</c> adalah satu-satunya dua status yang menutup
+        /// episode. Seluruh sisanya — termasuk <c>Disposed</c> — berarti pasien masih menjadi
+        /// tanggung jawab IGD.
+        /// </remarks>
+        public static bool EpisodeMasihBerjalan(EmergencyVisitStatus status)
+            => status is not (EmergencyVisitStatus.Completed or EmergencyVisitStatus.Cancelled);
+
+        /// <summary>
+        /// Mencari kunjungan IGD milik pasien yang sama yang episodenya masih berjalan.
+        /// Mengembalikan <c>null</c> bila tidak ada, atau bila pasiennya belum teridentifikasi.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-IGD-025</c>, requirement <c>FR-IGD-005</c>..<c>FR-IGD-012</c>, keputusan
+        /// <c>IGD-DEC-084</c>.
+        ///
+        /// <para>
+        /// <b>Pasien tanpa identitas tidak pernah ikut tertahan</b> — <c>AT-IGD-085</c>. Selama
+        /// <c>PatientId</c> belum terisi, tidak ada dasar untuk menyatakan dua kunjungan itu
+        /// milik orang yang sama, dan menahan pendaftarannya berarti menahan pasien yang
+        /// justru paling gawat di depan pintu IGD.
+        /// </para>
+        /// </remarks>
+        public async Task<TrxEmergencyVisit?> CariEpisodeAktifAsync(
+            Guid? patientId,
+            Guid? kecualiVisitId = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (!patientId.HasValue || patientId.Value == Guid.Empty)
+                return null;
+
+            return await _dbContext.Set<TrxEmergencyVisit>()
+                .AsNoTracking()
+                .Where(x => x.PatientId == patientId.Value
+                    && !x.IsDelete
+                    && x.VisitStatus != EmergencyVisitStatus.Completed
+                    && x.VisitStatus != EmergencyVisitStatus.Cancelled)
+                .Where(x => kecualiVisitId == null || x.Id != kecualiVisitId.Value)
+                .OrderByDescending(x => x.ArrivalDateTime)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Pesan penolakan episode ganda. Wajib menyebut <b>nomor kunjungan yang sudah ada</b>
+        /// beserta cara membukanya, sesuai aturan penulisan pesan pada validation matrix.
+        /// </summary>
+        public static string PesanEpisodeGanda(TrxEmergencyVisit episodeAktif)
+        {
+            ArgumentNullException.ThrowIfNull(episodeAktif);
+
+            return $"Pasien ini masih punya kunjungan IGD yang berjalan, nomor " +
+                   $"{episodeAktif.EmergencyVisitNumber} (status {episodeAktif.VisitStatus}). " +
+                   "Buka kunjungan tersebut dari daftar kunjungan IGD dan lanjutkan di sana. " +
+                   "Bila pasien memang datang kembali sebagai peristiwa baru, isi alasannya " +
+                   "pada kolom alasan pendaftaran ganda.";
+        }
 
         public bool CanTransition(
             EmergencyRegistrationStatus current,
@@ -205,6 +337,52 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EmergencyVisitStatus.Disposed => target is EmergencyVisitStatus.Completed,
                 _ => false
             };
+        }
+
+        /// <summary>
+        /// Satu-satunya jalan yang dibenarkan untuk mengubah <see cref="TrxEmergencyVisit.VisitStatus"/>.
+        /// Memeriksa <see cref="CanTransition(EmergencyVisitStatus, EmergencyVisitStatus)"/> lebih dulu,
+        /// lalu menulis status beserta jejak auditnya sekaligus.
+        /// </summary>
+        /// <remarks>
+        /// Dibuat oleh <c>BE-IGD-018</c> untuk <c>FR-IGD-015</c>. Latarnya <c>IGD-CONF-05</c>:
+        /// status kunjungan pernah ditulis langsung dari tujuh tempat tanpa melewati pemeriksaan
+        /// transisi, sehingga kunjungan yang sudah ditutup dapat terbuka kembali.
+        ///
+        /// Pemanggil yang butuh pesan penolakan khusus — misalnya jalur triase pada
+        /// validation-matrix bagian 2 aturan 5 — cukup mengabaikan <paramref name="penolakan"/>
+        /// dan menyusun pesannya sendiri dari nilai balik <c>false</c>.
+        ///
+        /// Metode ini <b>tidak</b> memanggil <c>SaveChangesAsync</c>. Penyimpanan tetap milik
+        /// pemanggil, supaya perubahan status ikut dalam transaksi yang sama dengan perubahan
+        /// lain di jalur itu.
+        /// </remarks>
+        public bool TryApplyVisitStatus(
+            TrxEmergencyVisit visit,
+            EmergencyVisitStatus target,
+            Guid actorUserId,
+            DateTime now,
+            out string? penolakan)
+        {
+            ArgumentNullException.ThrowIfNull(visit);
+
+            if (!CanTransition(visit.VisitStatus, target))
+            {
+                penolakan = $"Status kunjungan tidak dapat berubah dari {visit.VisitStatus} ke {target}.";
+                return false;
+            }
+
+            penolakan = null;
+
+            // Transisi ke status yang sama diterima CanTransition sebagai tindakan idempoten,
+            // tetapi tidak ada yang berubah sehingga jejak audit tidak perlu ikut bergerak.
+            if (visit.VisitStatus == target)
+                return true;
+
+            visit.VisitStatus = target;
+            visit.UpdateDateTime = now;
+            visit.UpdateBy = actorUserId;
+            return true;
         }
 
         public async Task<string> GenerateVisitNumberAsync(

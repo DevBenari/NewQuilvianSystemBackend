@@ -1,5 +1,5 @@
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -71,15 +71,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public bool IsActive { get; set; } = true;
 
+        /// <summary>
+        /// Alasan tertulis ketika petugas menembus penjagaan satu pasien satu episode IGD
+        /// aktif. Kosong berarti kunjungan ini tidak pernah menembusnya.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-IGD-025</c>, keputusan <c>IGD-DEC-084</c>. Jalan keluarnya sengaja <b>tidak</b>
+        /// dibuat diam-diam: setiap penembusan menyimpan alasan, pelaku, waktu, dan kunjungan
+        /// mana yang ditembus, sehingga pemakaiannya dapat ditinjau — bukan hanya diizinkan.
+        /// </remarks>
+        [MaxLength(1000)]
+        public string? DuplicateEpisodeOverrideReason { get; set; }
+
+        /// <summary>Petugas yang menembus penjagaan episode ganda.</summary>
+        public Guid? DuplicateEpisodeOverrideByUserId { get; set; }
+
+        /// <summary>Waktu server saat penjagaan episode ganda ditembus.</summary>
+        public DateTime? DuplicateEpisodeOverrideAt { get; set; }
+
+        /// <summary>
+        /// Kunjungan IGD yang masih berjalan saat penjagaan ditembus. Menyimpannya membuat
+        /// dua episode yang sebenarnya satu peristiwa dapat ditelusuri kembali.
+        /// </summary>
+        public Guid? DuplicateEpisodeOverrideOfVisitId { get; set; }
+
         public TrxPatientEncounter? Encounter { get; set; }
 
         public MstPatient? Patient { get; set; }
 
         public MstServiceUnit? ServiceUnit { get; set; }
 
-        public MstEmergencyArrivalMode? ArrivalMode { get; set; }
+        public EmgArrivalMode? ArrivalMode { get; set; }
 
-        public MstEmergencyCaseType? CaseType { get; set; }
+        public EmgCaseType? CaseType { get; set; }
 
         public ApplicationUser? RegistrationCompletedByUser { get; set; }
 
@@ -95,8 +119,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public ICollection<TrxEmergencyDisposition> Dispositions { get; set; }
             = new List<TrxEmergencyDisposition>();
 
-        public ICollection<TrxEmergencyTransfer> Transfers { get; set; }
-            = new List<TrxEmergencyTransfer>();
+        public ICollection<EmgDeparture> Departures { get; set; }
+            = new List<EmgDeparture>();
 
         public ICollection<TrxEmergencyProcedureDetail> ProcedureDetails { get; set; }
             = new List<TrxEmergencyProcedureDetail>();

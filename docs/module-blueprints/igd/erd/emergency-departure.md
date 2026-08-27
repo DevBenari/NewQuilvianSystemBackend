@@ -59,13 +59,22 @@ erDiagram
     TrxEmergencyHandoverOrderItem {
         uuid Id PK
         uuid EmergencyDepartureId FK
-        int OrderKind "Medication/Procedure/LaboratoryOrder"
-        uuid OrderReferenceId "tanpa FK, lintas modul"
+        int OrderKind "Medication/Procedure/LaboratoryOrder/RadiologyOrder"
+        int OrderSource "Internal/External — rev6"
+        uuid OrderReferenceId "NULLABLE rev6, tanpa FK, hanya Internal"
+        string ExternalReference "nullable, 100 — wajib bila External, rev6"
+        string OrderDescription "500, WAJIB selalu — rev6"
         string OrderLabelSnapshot "250"
-        int Action "Completed/Cancelled/HandedOver"
-        string ActionReason "nullable, 1000"
+        int Action "Continue/Handover/Cancel — rev6"
+        string ActionReason "nullable, 1000 — wajib bila Cancel"
         uuid ActionByUserId FK
         datetime ActionAt
+        int AcceptanceStatus "NotRequired/Pending/Accepted/Rejected — rev6"
+        uuid AcceptedByUserId FK "nullable, rev6"
+        datetime AcceptedAt "nullable, rev6"
+        string RejectionReason "nullable, 1000 — wajib bila Rejected, rev6"
+        bool IsEffective "rev6"
+        uuid SupersedesOrderItemId FK "nullable, self — rev6"
     }
     MstServiceUnit {
         uuid Id PK
@@ -88,7 +97,17 @@ erDiagram
 | --- | --- | --- | --- |
 | `TrxEmergencyDeparture` | `Extend` | Emergency Installation | Berganti nama dari `TrxEmergencyTransfer`; delapan kolom dihapus, sembilan ditambah |
 | `TrxEmergencyDepartureEvent` | `New` | Emergency Installation | Tambah-saja; tidak pernah diperbarui di tempat |
-| `TrxEmergencyHandoverOrderItem` | `New` | Emergency Installation | Satu baris per pesanan yang belum selesai |
+| `TrxEmergencyHandoverOrderItem` | `New` | Emergency Installation | Satu baris per pesanan yang belum selesai. **Revisi 6**: bertambah asal pesanan, referensi eksternal, dan lifecycle penerimaan per pesanan |
+
+### Catatan revisi 6 atas `TrxEmergencyHandoverOrderItem`
+
+| Hal | Aturan |
+| --- | --- |
+| `OrderReferenceId` menjadi **nullable** | Pesanan yang dibuat di luar sistem tidak punya baris untuk ditunjuk — `IGD-DEC-103` |
+| `ExternalReference` + `OrderDescription` | Menggantikan peran `OrderReferenceId` untuk pesanan luar sistem, dan menjaga baris tetap dapat diaudit |
+| Constraint yang wajib ditegakkan | `OrderSource = Internal` → `OrderReferenceId` terisi; `OrderSource = External` → `ExternalReference` terisi. Salah satu **wajib** ada |
+| `SupersedesOrderItemId` menunjuk dirinya sendiri | Sikap pengganti setelah penolakan. Baris lama `IsEffective = false`, **tidak dihapus** — `IGD-DEC-102` butir (c) |
+| Unique index bersyarat | Tepat **satu** baris `IsEffective = true` per pesanan yang sama dalam satu kepergian |
 | `MstServiceUnit` | `Extend` | **Master Data** | Satu kolom baru, boleh kosong |
 
 ---

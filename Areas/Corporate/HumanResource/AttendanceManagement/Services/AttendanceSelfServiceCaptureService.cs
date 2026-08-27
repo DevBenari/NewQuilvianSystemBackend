@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceA
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Shared.HumanResource.DTOs;
 using QuilvianSystemBackend.Shared.HumanResource.Services;
+using System.Globalization;
 
 namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services
 {
@@ -103,6 +104,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             var hasLocation = locations.Count > 0;
 
+            // Sebelumnya CanCheckOut hanya bernilai (hasLocation && IsCheckedIn),
+            // sehingga CTA Absen Pulang muncul tepat satu request setelah
+            // check-in. Eligibility jadwal sekarang menjadi suku tersendiri.
+            var checkOutEligibility =
+                openPunchState.IsCheckedIn && openPunchState.LastCheckInAt.HasValue
+                    ? await ResolveCheckOutEligibilityAsync(
+                        workforceProfileId,
+                        openPunchState.LastCheckInAt.Value,
+                        nowUtc,
+                        cancellationToken)
+                    : null;
+
+            if (!string.IsNullOrWhiteSpace(checkOutEligibility?.Warning))
+            {
+                warnings.Add(checkOutEligibility!.Warning!);
+            }
+
+            // Fail-closed: tanpa hasil eligibility yang tegas, Absen Pulang
+            // tidak dibuka. Open punch saja tidak pernah cukup.
+            var hasOpenPunch = hasLocation && openPunchState.IsCheckedIn;
+            var isCheckOutEligible = checkOutEligibility?.IsEligibleNow ?? false;
+
             return AttendanceRawLogServiceResult<AttendanceSelfServiceCaptureStatusResponse>.Ok(
                 new AttendanceSelfServiceCaptureStatusResponse
                 {
@@ -113,7 +136,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     LocalNow = localNow,
                     IsCheckedIn = openPunchState.IsCheckedIn,
                     CanCheckIn = hasLocation && !openPunchState.IsCheckedIn,
-                    CanCheckOut = hasLocation && openPunchState.IsCheckedIn,
+                    CanCheckOut = hasOpenPunch && isCheckOutEligible,
+                    CheckOutAvailableAt = checkOutEligibility?.CheckOutAvailableAt,
+                    ScheduledEndAt = checkOutEligibility?.ScheduledEndAt,
                     LastCheckInAt = openPunchState.LastCheckInAt,
                     LastCheckOutAt = openPunchState.LastCheckOutAt,
                     CurrentAttendanceDailyId = currentDaily?.Id,
@@ -285,6 +310,36 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 return AttendanceRawLogServiceResult<AttendanceSelfServiceCaptureResponse>.Fail(
                     StatusCodes.Status409Conflict,
                     "Tidak ditemukan check-in aktif dalam 48 jam terakhir. Absen Pulang tidak dapat dilakukan.");
+            }
+
+            // Absen Pulang memakai helper eligibility yang sama persis dengan
+            // capture-status, sehingga frontend bukan satu-satunya penjaga dan
+            // memanggil endpoint ini langsung tidak dapat melewati aturan.
+            // Pulang sebelum jadwal ditempuh lewat workflow Izin Pulang Cepat
+            // yang membutuhkan approval manager, bukan lewat checkout langsung.
+            //
+            // Guard ini berjalan SEBELUM raw log dibuat dan sebelum processing
+            // dipanggil, jadi permintaan yang ditolak tidak meninggalkan jejak
+            // attendance apa pun.
+            if (eventType == AttendanceValueConstants.RawLogEventType.CheckOut)
+            {
+                var checkOutEligibility = openPunchState.LastCheckInAt.HasValue
+                    ? await ResolveCheckOutEligibilityAsync(
+                        workforceProfileId,
+                        openPunchState.LastCheckInAt.Value,
+                        nowUtc,
+                        cancellationToken)
+                    : null;
+
+                // LastCheckInAt selalu terisi ketika IsCheckedIn true. Bila entah
+                // bagaimana tidak, checkout ditolak alih-alih diloloskan tanpa
+                // pemeriksaan.
+                if (checkOutEligibility == null || !checkOutEligibility.IsEligibleNow)
+                {
+                    return AttendanceRawLogServiceResult<AttendanceSelfServiceCaptureResponse>.Fail(
+                        StatusCodes.Status409Conflict,
+                        BuildCheckOutNotEligibleMessage(checkOutEligibility));
+                }
             }
 
             var locationResult = await ResolveAndValidateLocationAsync(
@@ -682,6 +737,73 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             };
         }
 
+        private static string BuildCheckOutNotEligibleMessage(
+            CheckOutEligibility? eligibility)
+        {
+            if (eligibility?.CheckOutAvailableAt == null)
+            {
+                return "Absen Pulang belum dapat dilakukan karena jadwal kerja untuk attendance aktif belum dapat diselesaikan. Hubungi admin HRD untuk memastikan jadwal kerja Anda.";
+            }
+
+            var availableLocal = ConvertUtcToLocal(eligibility.CheckOutAvailableAt.Value)
+                .ToString("HH:mm", CultureInfo.InvariantCulture);
+
+            return $"Absen Pulang belum dapat dilakukan sebelum pukul {availableLocal}. Jika perlu pulang lebih awal, ajukan Izin Pulang Cepat.";
+        }
+
+        // Menjawab "employee sudah boleh Absen Pulang sekarang?" - pertanyaan
+        // yang berbeda dari "employee punya open punch?". Ambangnya memakai
+        // EarliestGraceCheckOutAt milik schedule resolver
+        // (ScheduledEndAt - EarlyCheckOutGraceMinutes, lihat
+        // AttendanceScheduleResolverService.CalculateAttendanceWindows), yaitu
+        // ambang yang sama persis dipakai AttendanceProcessingService untuk
+        // menandai EarlyLeave. Tidak ada rumus jadwal baru yang dibuat di sini.
+        //
+        // Perbandingan dilakukan pada instant absolut (UTC), bukan pada
+        // perbandingan tanggal kalender, sehingga shift overnight tetap benar:
+        // check-in 26 Aug 22:05 untuk jadwal 22:00-06:00 menghasilkan
+        // EarliestGraceCheckOutAt pada 27 Aug 06:00.
+        private async Task<CheckOutEligibility> ResolveCheckOutEligibilityAsync(
+            Guid workforceProfileId,
+            DateTime checkInAtUtc,
+            DateTime nowUtc,
+            CancellationToken cancellationToken)
+        {
+            var resolution = await ResolveWorkDateAsync(
+                workforceProfileId,
+                checkInAtUtc,
+                AttendanceValueConstants.RawLogEventType.CheckIn,
+                cancellationToken);
+
+            var schedule = resolution.IsResolved ? resolution.Schedule : null;
+
+            if (schedule?.EarliestGraceCheckOutAt == null)
+            {
+                // Fail-closed. Tanpa jadwal, ambang pulang tidak dapat dihitung,
+                // dan menebaknya berarti membuka bypass terhadap workflow Izin
+                // Pulang Cepat. Attendance yang terlanjur terbuka diselesaikan
+                // lewat correction/workflow lain, bukan dengan meloloskan
+                // checkout tanpa pemeriksaan.
+                return new CheckOutEligibility
+                {
+                    IsEligibleNow = false,
+                    Warning =
+                        "Jadwal kerja untuk attendance aktif belum dapat diselesaikan. Absen Pulang belum dapat dilakukan."
+                };
+            }
+
+            var availableAt = EnsureUtc(schedule.EarliestGraceCheckOutAt.Value);
+
+            return new CheckOutEligibility
+            {
+                IsEligibleNow = nowUtc >= availableAt,
+                CheckOutAvailableAt = availableAt,
+                ScheduledEndAt = schedule.ScheduledEndAt.HasValue
+                    ? EnsureUtc(schedule.ScheduledEndAt.Value)
+                    : null
+            };
+        }
+
         private async Task<WorkDateResolution> ResolveWorkDateAsync(
             Guid workforceProfileId,
             DateTime eventAtUtc,
@@ -698,7 +820,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 localDate.AddDays(1)
             };
 
-            var candidates = new List<(DateOnly WorkDate, double Score)>();
+            var candidates =
+                new List<(DateOnly WorkDate, double Score, AttendanceScheduleResolutionResponse Schedule)>();
 
             foreach (var candidateDate in candidateDates)
             {
@@ -745,19 +868,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 var score = Math.Abs(
                     (eventAtUtc - EnsureUtc(referenceAt)).TotalMinutes);
 
-                candidates.Add((candidateDate, score));
+                candidates.Add((candidateDate, score, schedule));
             }
 
-            var selected = candidates
-                .OrderBy(x => x.Score)
-                .FirstOrDefault();
-
-            if (selected != default)
+            if (candidates.Count > 0)
             {
+                var selected = candidates
+                    .OrderBy(x => x.Score)
+                    .First();
+
                 return new WorkDateResolution
                 {
                     WorkDate = selected.WorkDate,
-                    IsResolved = true
+                    IsResolved = true,
+                    Schedule = selected.Schedule
                 };
             }
 
@@ -908,6 +1032,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         {
             public DateOnly? WorkDate { get; set; }
             public bool IsResolved { get; set; }
+
+            // Jadwal kandidat yang dipilih ikut dibawa keluar supaya pemanggil
+            // yang membutuhkan window attendance tidak perlu memanggil resolver
+            // untuk kedua kalinya atas work date yang sama.
+            public AttendanceScheduleResolutionResponse? Schedule { get; set; }
+        }
+
+        private sealed class CheckOutEligibility
+        {
+            // Fail-closed by default: Absen Pulang hanya terbuka ketika jadwal
+            // benar-benar terselesaikan dan ambangnya sudah terlewati.
+            public bool IsEligibleNow { get; set; }
+            public DateTime? CheckOutAvailableAt { get; set; }
+            public DateTime? ScheduledEndAt { get; set; }
+            public string? Warning { get; set; }
         }
     }
 }

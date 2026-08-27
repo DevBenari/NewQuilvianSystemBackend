@@ -41,6 +41,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public DateTime? VisitCompletedAt { get; set; }
         public string? Notes { get; set; }
         public bool IsActive { get; set; }
+
+        /// <summary>
+        /// Terisi hanya bila kunjungan ini dibuat dengan menembus penjagaan satu pasien satu
+        /// episode IGD aktif. Layar wajib menandainya, bukan menyembunyikannya.
+        /// </summary>
+        public string? DuplicateEpisodeOverrideReason { get; set; }
+
+        public Guid? DuplicateEpisodeOverrideByUserId { get; set; }
+        public DateTime? DuplicateEpisodeOverrideAt { get; set; }
+        public Guid? DuplicateEpisodeOverrideOfVisitId { get; set; }
+
         public DateTime CreateDateTime { get; set; }
         public DateTime? UpdateDateTime { get; set; }
     }
@@ -101,6 +112,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public bool IsActive { get; set; } = true;
 
+        /// <summary>
+        /// Alasan menembus penjagaan satu pasien satu episode IGD aktif — <c>IGD-DEC-084</c>.
+        /// Diisi <b>hanya</b> ketika petugas sengaja mendaftarkan kunjungan kedua untuk pasien
+        /// yang episode IGD sebelumnya belum ditutup, misalnya karena pasien benar-benar datang
+        /// lagi dengan keluhan baru.
+        /// </summary>
+        [MaxLength(1000)]
+        public string? DuplicateEpisodeOverrideReason { get; set; }
     }
 
     public class UpdateEmergencyVisitRequest : CreateEmergencyVisitRequest

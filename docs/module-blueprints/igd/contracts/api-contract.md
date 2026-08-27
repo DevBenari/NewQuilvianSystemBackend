@@ -2,14 +2,14 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.3.0` |
+| `contract_version` | `0.4.0` — revisi 6. **Bukan aditif**: dua route revisi 5 diganti (`/pending-orders`, `/order-actions`). Lihat manifest 0a.2 |
 | Status | `draft` |
-| Owner | Product/Domain Owner IGD; **nama belum diisi** |
+| Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | — / — |
-| `input_revision` | `00-interview-decisions.md` 88 keputusan; `01-existing-capability-map.md` revision `3` |
-| `input_hash` | Dihitung ulang saat manifest revisi `5` disusun |
+| `input_revision` | `00-interview-decisions.md` **105 keputusan**, terakhir `IGD-DEC-105`; `01-existing-capability-map.md` revision `3` + suplemen `3.1` |
+| `input_hash` | Dihitung ulang pada manifest revisi `6`, correction pass 2026-08-26 |
 | Versi sebelumnya | `0.2.0`, `approved` 14 Agustus 2026 |
-| Commit diaudit | backend `f69e9e48` |
+| Commit diaudit | backend `300922c` (suplemen capability `3.1`); revisi 5 disusun pada `f69e9e48` |
 
 ## Dampak kompatibilitas terhadap `0.2.0`
 
@@ -105,8 +105,11 @@ Base URL: `.../emergency-departures`. Menggantikan `emergency-transfers`.
 | `GET` | `/` | Daftar kepergian dengan penyaring dua rangkaian status | `EmergencyDeparture : Read` | `200`, `403` |
 | `GET` | `/{id}` | Satu kepergian beserta kejadian dan daftar pesanannya | `EmergencyDeparture : Read` | `200`, `403`, `404` |
 | `POST` | `/` | Membuat catatan kepergian, rangkaian fisik `Prepared` | `EmergencyDeparture : Create` | `201`, `400`, `403` |
-| `GET` | `/{id}/pending-orders` | Daftar pesanan yang belum selesai pada kunjungan ini | `EmergencyDeparture : Read` | `200`, `403`, `404` |
-| `POST` | `/{id}/order-actions` | Menyimpan sikap atas pesanan yang belum selesai | `EmergencyDeparture : Update` | `200`, `400`, `403`, `404` |
+| `GET` | `/{id}/order-items` | Daftar pesanan yang belum selesai beserta sikap dan keadaan penerimaannya — **menggantikan `/pending-orders` pada revisi 6** | `EmergencyDeparture : Read` | `200`, `403`, `404` |
+| `POST` | `/{id}/order-items` | Mendaftarkan pesanan yang dibuat **di luar sistem** | `EmergencyDeparture : Update` | `201`, `400`, `403`, `404` |
+| `PATCH` | `/{id}/order-items/{itemId}/action` | Menetapkan sikap `Continue`, `Handover`, atau `Cancel` — **menggantikan `/order-actions` pada revisi 6** | `EmergencyDeparture : Update` | `200`, `400`, `403`, `404`, `409` |
+| `POST` | `/{id}/order-items/{itemId}/accept` | Unit penerima menerima **satu pesanan** | `EmergencyDeparture : Update` | `200`, `403`, `404`, `409` |
+| `POST` | `/{id}/order-items/{itemId}/reject` | Unit penerima menolak satu pesanan; alasan wajib | `EmergencyDeparture : Update` | `200`, `400`, `403`, `404`, `409` |
 | `POST` | `/{id}/submit-handover` | Mengajukan dokumen serah terima; mengisi tiga bagian otomatis | `EmergencyDeparture : Update` | `200`, `400`, `403`, `404`, `409` |
 | `POST` | `/{id}/depart` | Mencatat pasien meninggalkan IGD | `EmergencyDeparture : Update` | `200`, `400`, `403`, `404`, `409` |
 | `POST` | `/{id}/arrive` | Mencatat pasien tiba di unit tujuan; **memindahkan pemilik klinis** | `EmergencyDeparture : Update` | `200`, `400`, `403`, `404`, `409` |
@@ -140,6 +143,49 @@ alasannya.
 
 **Tidak** menahan rangkaian fisik: `POST /{id}/depart` dan `POST /{id}/arrive` tetap dapat
 dipanggil walaupun dokumen belum diajukan (`IGD-DEC-070`, `IGD-DEC-078`).
+
+### 2.3 Sikap dan penerimaan pesanan — baru pada revisi 6
+
+Ditetapkan `IGD-DEC-100`, `101`, `102`, `103`. Endpoint-nya tercantum pada tabel bagian 2.
+
+**Dua route revisi 5 digantikan.** `GET /{id}/pending-orders` dan `POST /{id}/order-actions`
+disusun sebelum penerimaan per pesanan ada, sehingga tidak punya tempat untuk `accept` dan
+`reject` per baris. Keduanya diganti keluarga `order-items` yang memperlakukan pesanan sebagai
+resource, bukan sebagai aksi lepas.
+
+| Route revisi 5 | Pengganti revisi 6 |
+| --- | --- |
+| `GET /{id}/pending-orders` | `GET /{id}/order-items` |
+| `POST /{id}/order-actions` | `PATCH /{id}/order-items/{itemId}/action` |
+
+Keduanya **belum pernah diimplementasikan** — nol berkas di source — sehingga penggantian ini
+tidak memutus pemakai mana pun.
+
+#### Empat hal yang wajib dipegang pemanggil
+
+1. **Penerimaan pesanan tidak menggeser penerimaan pasien.** `reject` pada satu pesanan
+   **tidak** mengubah `handoverStatus` maupun `physicalStatus` — `IGD-DEC-102` butir (d).
+2. **Penolakan menuntut sikap pengganti.** Setelah `reject`, pesanan itu kembali menjadi
+   tanggung jawab dokter pemesan. `PATCH …/action` berikutnya membuat **baris baru** yang
+   menunjuk baris lama; baris lama tetap terbaca sebagai tidak berlaku.
+3. **`Continue` tidak menahan penutupan kunjungan.** Ia sikap yang sah dan disengaja, bukan
+   pesanan yang terlupakan.
+4. **Sikap pesanan laboratorium berasal dari petugas, bukan dari sistem laboratorium.**
+   Response **wajib** memuat penanda itu, dan layar wajib menampilkannya — `IGD-DEC-101`.
+   Menyajikannya seolah dibaca dari `LabOrder` melanggar kontrak.
+
+#### Bentuk baris pesanan
+
+| Field | Wajib | Catatan |
+| --- | :-: | --- |
+| `orderKind` | Ya | `Medication`, `Procedure`, `LaboratoryOrder`, `RadiologyOrder` |
+| `orderSource` | Ya | `Internal` atau `External` |
+| `orderReferenceId` | Hanya `Internal` | Kosong untuk pesanan luar sistem |
+| `externalReference` | Hanya `External` | Nomor rujukan dari sistem luar |
+| `orderDescription` | **Selalu** | Uraian yang dapat diaudit |
+| `action`, `actionReason`, `actionByUserId`, `actionAt` | Ya | `actionReason` wajib untuk `Cancel` |
+| `acceptanceStatus`, `acceptedByUserId`, `acceptedAt`, `rejectionReason` | — | Diisi jalur `accept` / `reject` |
+| `isEffective`, `supersedesOrderItemId` | — | Menandai baris yang sudah digantikan |
 
 ---
 

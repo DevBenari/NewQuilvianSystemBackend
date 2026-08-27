@@ -186,3 +186,37 @@ skenario lama tetap berlaku dan tidak diulang di sini kecuali perilakunya beruba
 Kewajiban `RWI-DEC-051` berlaku: setiap task yang menyentuh modul milik pihak lain **wajib**
 membawa test regresi untuk jalur lama yang disentuhnya, dan test itu menjadi syarat selesainya
 task. Ini menyangkut `AT-IGD-081`, `AT-IGD-135`, dan `AT-IGD-149`.
+
+---
+
+## Revisi 6 — sikap dan penerimaan pesanan
+
+Empat belas skenario baru, `AT-IGD-152` sampai `AT-IGD-165`. Seluruhnya lahir dari
+`IGD-DEC-100`, `101`, `102`, dan `103`.
+
+| ID | Skenario | Hasil | Yang dibuktikan | Keputusan |
+| --- | --- | --- | --- | --- |
+| `AT-IGD-152` | Pesanan yang spesimennya sudah diambil ditetapkan `Continue`, lalu kunjungan ditutup | Berhasil | Kunjungan **boleh** ditutup; pesanan tetap berjalan sampai hasil final | `IGD-DEC-100` (a) |
+| `AT-IGD-153` | Pesanan yang belum dimulai dibatalkan tanpa alasan | Gagal `400` | "Alasan pembatalan pesanan wajib diisi." | `IGD-DEC-100` (c) |
+| `AT-IGD-154` | Kunjungan IGD ditutup sementara ada pesanan tanpa sikap | Gagal `400` | Menyebut **jumlah** pesanan yang belum ditentukan | `IGD-DEC-078` |
+| `AT-IGD-155` | Kunjungan ditutup, ada pesanan berstatus `Continue` saja | Berhasil | `Continue` **bukan** pesanan tanpa sikap dan tidak menahan penutupan | `IGD-DEC-100` (a) |
+| `AT-IGD-156` | Kunjungan IGD selesai; sistem memeriksa apakah ada pesanan yang dibatalkan otomatis | Berhasil | **Nol** pembatalan otomatis | `IGD-DEC-100` (d) |
+| `AT-IGD-157` | Pasien dipindahkan; unit penerima menerima pasien tetapi **menolak** satu pesanan | Berhasil | Perpindahan pasien **tetap sah**; `physicalStatus` dan `handoverStatus` tidak bergeser | `IGD-DEC-102` (a), (d) |
+| `AT-IGD-158` | Pesanan ditolak tanpa alasan | Gagal `400` | "Alasan penolakan pesanan wajib diisi." | `IGD-DEC-102` |
+| `AT-IGD-159` | Kunjungan ditutup sementara ada pesanan `Rejected` yang belum diberi sikap pengganti | Gagal `409` | Menyebut pesanan mana | `IGD-DEC-102` (c) |
+| `AT-IGD-160` | Pesanan yang ditolak diberi sikap pengganti `Handover` ke unit lain | Berhasil | Baris **baru** menunjuk baris lama; baris lama **tetap terbaca**, ditandai tidak berlaku | `IGD-DEC-102` (c) |
+| `AT-IGD-161` | Pesanan radiologi yang dibuat di luar sistem didaftarkan tanpa `externalReference` | Gagal `400` | "Pesanan di luar sistem wajib menyertakan nomor rujukan dan uraiannya." | `IGD-DEC-103` |
+| `AT-IGD-162` | Pesanan `External` didaftarkan lengkap, lalu ditetapkan sikapnya | Berhasil | `orderReferenceId` **kosong**, `externalReference` dan `orderDescription` terisi dan terbaca | `IGD-DEC-103` |
+| `AT-IGD-163` | Sikap pesanan laboratorium ditetapkan petugas | Berhasil | Response dan layar **wajib** menyatakan sikap berasal dari petugas, **bukan** dari `LabOrder` | `IGD-DEC-101` |
+| `AT-IGD-164` | Sikap ditetapkan tanpa pelaku atau waktu | Gagal `400` | Pelaku, waktu, dan alasan wajib tersimpan pada setiap penetapan | `IGD-DEC-101` |
+| `AT-IGD-165` | `accept` dipanggil dua kali pada pesanan yang sama | Gagal `409` | `Accepted` bersifat final pada barisnya | State §6a.2 |
+
+### Yang **tidak** dapat diuji otomatis
+
+| Yang tidak diuji | Sebab |
+| --- | --- |
+| Apakah spesimen benar-benar sudah diambil | `LabOrder` tidak punya kolom status. `AT-IGD-152` menguji **pencatatan sikapnya**, bukan kebenaran keadaan di laboratorium — itu di luar jangkauan sistem sampai pemilik `LaboratoryManagement` melengkapinya |
+| Apakah unit penerima benar-benar melanjutkan pesanan | Berada di luar batas modul IGD |
+
+Dua baris ini dicatat supaya `AT-IGD-152` **tidak** dibaca sebagai bukti bahwa sistem tahu
+keadaan laboratorium. Ia hanya membuktikan sikapnya tercatat beserta pelakunya.

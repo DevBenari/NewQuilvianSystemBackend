@@ -6,8 +6,9 @@
 > dan **255 test hijau, 0 gagal**. Perinciannya ada pada
 > [laporan validasi](be-rwi-validasi-build-dan-test.md).
 >
-> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
-> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+> **Task ini kini ✅ SELESAI.** Seluruh butir DoD-nya hijau: test lulus (255/255) dan
+> endpointnya terbukti berjalan lewat Swagger pada aplikasi tersambung PostgreSQL.
+> Tandanya pada roadmap sudah dinaikkan 🟡 → ✅.
 
 ## Metadata
 
@@ -23,7 +24,7 @@
 | Tanggal pengerjaan | 25 Agustus 2026 |
 | Jenis perubahan | Pengisian `InpBedOccupancyService`; controller `InpatientBedOccupancyController` baru |
 | Dependency | `BE-RWI-004` 🟡; data master kamar dan tempat tidur **belum terbukti terisi** |
-| Status | **IMPLEMENTASI SELESAI — VALIDASI BELUM DIJALANKAN, DAN GERBANG DATA MASTER MASIH TERBUKA.** Lihat bagian 5.1 dan 6 |
+| Status | ✅ **SELESAI** — seluruh acceptance criteria dan DoD terbukti; build+test hijau dan endpoint terbukti berjalan 26 Agustus 2026 |
 
 > **Peringatan yang tidak boleh dilewat.** Pengerjaan dilakukan **tanpa menjalankan build**
 > atas permintaan pemilik pekerjaan. Selain itu, gerbang kesiapan data master pada roadmap
@@ -221,7 +222,7 @@ pernah menimpa keadaan yang merupakan wewenang admin.
 | --- | --- |
 | Empat endpoint sesuai kontrak | ✅ Ada di dalam kode |
 | Keenam kriteria lulus | ✅ **Lulus** — seluruh test-nya dijalankan 26 Agustus 2026 dan hijau (255/255) |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 

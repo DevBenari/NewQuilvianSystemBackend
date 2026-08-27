@@ -1,6 +1,6 @@
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -94,7 +94,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public TrxEmergencyVisit? EmergencyVisit { get; set; }
 
-        public MstEmergencyTriageLevel? TriageLevel { get; set; }
+        public EmgTriageLevel? TriageLevel { get; set; }
 
         public TrxPatientVitalSign? PatientVitalSign { get; set; }
 
@@ -107,7 +107,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public ICollection<TrxEmergencyTriage> Retriages { get; set; }
             = new List<TrxEmergencyTriage>();
 
-        public ICollection<TrxEmergencyTriageDetail> Details { get; set; }
-            = new List<TrxEmergencyTriageDetail>();
+        public ICollection<EmgTriageDetail> Details { get; set; }
+            = new List<EmgTriageDetail>();
     }
 }

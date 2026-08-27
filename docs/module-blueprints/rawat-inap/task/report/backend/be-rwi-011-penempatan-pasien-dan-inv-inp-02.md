@@ -240,7 +240,7 @@ tempat tidur.
 | Endpoint sesuai kontrak | ✅ Ada di dalam kode |
 | Ketujuh kriteria lulus | ❌ **Belum.** Kriteria 2 baru terbukti sebagian |
 | Test tabrakan lulus | ❌ **Belum dijalankan** |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 | Gerbang catatan klinis ditutup | ❌ **Masih terbuka** |
 
 ---

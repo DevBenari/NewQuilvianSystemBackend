@@ -212,7 +212,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
     public class UpdateBedRequest : CreateBedRequest
     {
-        public bool IsActive { get; set; } = true;
+        /// <summary>
+        /// Dikosongkan berarti status aktif dibiarkan apa adanya.
+        /// Sebelumnya bertipe bool dengan bawaan true, sehingga consumer yang tidak
+        /// mengirim field ini diam-diam mengaktifkan kembali bed yang sudah dinonaktifkan.
+        /// </summary>
+        public bool? IsActive { get; set; }
     }
 
     public class UpdateBedStatusRequest

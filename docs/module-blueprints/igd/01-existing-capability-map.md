@@ -164,7 +164,7 @@ Seluruh bukti berformat `repository — path:baris (simbol), commit`. Commit bac
 | ID | Capability | Owner | Klasifikasi | Bukti | Catatan |
 |---|---|---|---|---|---|
 | `IGD-CAP-33` | Keputusan tindak lanjut | Emergency Installation Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyDisposition.cs`; `Services/EmergencyDispositionService.cs` | Draft, Confirmed, Executed, Cancelled |
-| `IGD-CAP-34` | Penanda jenis tindak lanjut yang menutup kunjungan | Master Data | `Repair` | Kolom ada: `NewQuilvianSystemBackend — Areas/HealthServices/MasterData/Models/MstEmergencyDispositionType.cs (ClosesEmergencyVisit)`. Tidak pernah dibaca untuk memutuskan: hanya muncul pada `Controllers/EmergencyDispositionController.cs:481` sebagai isi balasan | Ketujuh jenis diisi `true` oleh seeder |
+| `IGD-CAP-34` | Penanda jenis tindak lanjut yang menutup kunjungan | Master Data | `Repair` | Kolom ada: `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/MasterData/Models/MstEmergencyDispositionType.cs (ClosesEmergencyVisit)`. Tidak pernah dibaca untuk memutuskan: hanya muncul pada `Controllers/EmergencyDispositionController.cs:481` sebagai isi balasan | Ketujuh jenis diisi `true` oleh seeder |
 | `IGD-CAP-35` | Gerbang penutupan kunjungan | Emergency Installation Management | `Ready to reuse` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyDispositionService.cs (ValidateVisitClosureAsync)` | Menolak observasi aktif dan perpindahan belum tuntas. Belum memeriksa pesanan |
 | `IGD-CAP-36` | Catatan kepergian pasien dari IGD | Emergency Installation Management | `Extend` | `NewQuilvianSystemBackend — Areas/HealthServices/EmergencyInstallationManagement/Models/TrxEmergencyTransfer.cs` | Enam status tidak cukup memisahkan jalur fisik dan dokumen; `DepartedAt` dan `ArrivedAt` tidak pernah diisi endpoint mana pun |
 | `IGD-CAP-37` | Kolom tempat tidur dan ruangan pada kepergian | Emergency Installation Management | `Repair` | `NewQuilvianSystemBackend — Repositories/Configurations/HealthServices/EmergencyInstallationManagement/TrxEmergencyTransferConfiguration.cs:29-32` memberi index pada `FromRoomId`, `ToRoomId`, `FromBedId`, `ToBedId` tanpa satu pun `HasOne` | Tanpa foreign key dan tanpa navigation. `IGD-DEC-069` mencabutnya |
@@ -334,3 +334,102 @@ Map ini menjadi tidak sahih bila salah satu terjadi:
 
 Pemeriksaan kesahihan cukup dengan membandingkan SHA dan menjalankan pemindaian dampak
 terbatas pada berkas yang berubah, bukan mengulang seluruh audit.
+
+---
+
+# Suplemen revision 3.1 — audit terarah `EmergencyTransfer` pada `300922c`
+
+Ditambahkan 26 Agustus 2026 atas permintaan Product/Domain Owner, sebagai **correction pass**
+revisi 6. Bukan pengganti revision `3` yang tetap berlaku untuk area lain, dan **tetap stale**
+untuk area yang tidak diaudit di sini.
+
+Alasan audit: `IGD-DEC-091` memutuskan penggantian nama `TrxEmergencyTransfer` menjadi
+`TrxEmergencyDeparture`. Bukti yang mendasarinya hanya menghitung pemanggil **frontend** dan
+berkas backend yang menyebut namanya. Itu **tidak cukup** — penggantian nama menyentuh model,
+controller, DTO, service, `DbContext`, migration, dan kemungkinan consumer di modul lain.
+
+## S3.1.1 Footprint sebenarnya
+
+| Berkas | Baris | Peran |
+| --- | ---: | --- |
+| `Controllers/EmergencyTransferController.cs` | 536 | 6 endpoint |
+| `DTOs/EmergencyTransferDtos.cs` | 122 | Request dan response |
+| `Services/EmergencyTransferService.cs` | 97 | Validasi dan `CanTransition` |
+| `Models/TrxEmergencyTransfer.cs` | 81 | 22 kolom skalar, 7 navigasi |
+| `Enums/EmergencyTransferStatus.cs` | 12 | 6 nilai |
+| `Repositories/Configurations/…/TrxEmergencyTransferConfiguration.cs` | 70 | Pemetaan EF |
+| **Total** | **918** | |
+
+Ditambah tiga titik singgung:
+
+| Tempat | Isi |
+| --- | --- |
+| `Repositories/ApplicationDbContext.cs:673` | `DbSet<TrxEmergencyTransfer> TrxEmergencyTransfers` |
+| `Program.cs:321` | `builder.Services.AddScoped<EmergencyTransferService>()` |
+| `Migrations/20260804071642_initializeEmergencyInstallationManagement.cs` | Migration yang membuat tabelnya |
+
+## S3.1.2 Enam endpoint yang berganti route
+
+| Method | Path | Nasib pada revisi 6 |
+| --- | --- | --- |
+| `GET` | `/` | Berganti route; penyaring bertambah dua rangkaian status |
+| `GET` | `/{id}` | Berganti route; response memuat kejadian dan daftar pesanan |
+| `POST` | `/` | Berganti route; empat field tempat tidur dan ruangan **dihapus** |
+| `PUT` | `/{id}` | Berganti route |
+| `PATCH` | `/{id}/transfer-status` | **Dihapus.** Digantikan aksi bernama `depart`, `arrive`, `accept-handover`, `reject-handover` |
+| `DELETE` | `/{id}` | Berganti route |
+
+## S3.1.3 Consumer di luar IGD — **nol**, dan satu positif palsu
+
+Penelusuran `EmergencyTransfer` di seluruh `Areas/` menemukan dua berkas `BillingManagement`:
+
+| Berkas | Isi | Terdampak? |
+| --- | --- | :-: |
+| `Billing/Models/BilFinalizationRecord.cs:32` | `public const string EmergencyTransfer = "EMERGENCY_TRANSFER";` | **Tidak** |
+| `Billing/Services/BillingFinalizationService.cs:290` | Memvalidasi `DepartureReason` bernilai `EMERGENCY_TRANSFER` | **Tidak** |
+
+Keduanya **string konstanta**, bukan rujukan ke tabel maupun enum IGD. Penggantian nama tabel
+tidak memutus satu pun.
+
+> **Tabrakan kosakata yang perlu diketahui.** Billing sudah memakai kata *departure* untuk hal
+> yang berbeda: `DepartureReason` di sana berarti **alasan pasien pergi dengan tagihan belum
+> lunas** — `DEATH`, `EMERGENCY_TRANSFER`, `DAMA`. Setelah `IGD-DEC-091`, IGD memakai
+> *departure* untuk **catatan kepergian pasien dari IGD**. Dua konsep berbeda dengan satu kata.
+> Tidak memblokir, tetapi wajib disebut pada dokumen agar tidak tertukar saat billing IGD
+> dirancang.
+
+## S3.1.4 Dua consumer **di dalam** IGD yang wajib ikut berubah
+
+| Tempat | Isi | Akibat |
+| --- | --- | --- |
+| `Models/TrxEmergencyVisit.cs:98` | `ICollection<TrxEmergencyTransfer> Transfers` | Nama properti navigasi ikut berganti; setiap pembaca `visit.Transfers` terdampak |
+| `Services/EmergencyDispositionService.cs:124–130` | Gerbang penutupan kunjungan membaca `TransferStatus != Completed && != Rejected` | **Paling berisiko.** Gerbang ini menentukan boleh-tidaknya kunjungan ditutup, dan bertumpu pada enum yang akan dipecah menjadi dua |
+
+## S3.1.5 Enam nilai enum lama yang wajib dipetakan
+
+`EmergencyTransferStatus`: `Requested`=1, `Accepted`=2, `InTransit`=3, `Completed`=4,
+`Rejected`=5, `Cancelled`=6.
+
+Rencana pemetaan ada di `02-backend-architecture.md` bagian 6.1. Yang **belum** dijawab
+rencana itu: gerbang penutupan `EmergencyDispositionService` memakai `Completed` dan `Rejected`
+sebagai penanda "sudah tuntas", sedangkan model baru menaruh ketuntasan fisik pada
+`EmergencyPhysicalStatus` dan ketuntasan dokumen pada `EmergencyHandoverStatus`. **Arti
+"tuntas" karena itu berubah**, dan validation bagian 6 aturan 3 perlu dibaca ulang terhadap
+kenyataan ini. Dicatat sebagai `IGD-OQ-082`.
+
+## S3.1.6 Empat kolom yang dihapus
+
+`FromRoomId`, `ToRoomId`, `FromBedId`, `ToBedId` — seluruh urusan tempat tidur pindah ke Rawat
+Inap lewat `IGD-DEC-069`.
+
+**Jumlah baris yang nilainya tidak kosong belum diketahui.** Menghapus kolom yang masih berisi
+data berarti kehilangan riwayat penempatan. Hanya dapat dijawab kueri ke basis data bersama,
+dan otorisasinya belum ada. Dicatat sebagai `IGD-UNK-08`.
+
+## S3.1.7 Yang audit ini **tidak** cakup
+
+Audit ini **terarah** pada `EmergencyTransfer` saja. Bagian lain capability map revision `3`
+tetap dihitung pada `f69e9e48` dan **tetap stale** terhadap `300922c` — termasuk
+`ClinicalManagement`, `PharmacyManagement`, dan seluruh area yang tersentuh merge
+"Hamzah, Ikbal, Yasmina". `/qv-trace` penuh tetap dibutuhkan sebelum gelombang yang menyentuh
+area-area itu.
