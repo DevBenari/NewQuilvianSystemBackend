@@ -27,13 +27,13 @@ public class EmergencyClosureHandoverTests
 {
     private static readonly Guid Pelaku = Guid.NewGuid();
 
-    private static async Task<TrxEmergencyDeparture> SimpanKepergianAsync(
+    private static async Task<EmgDeparture> SimpanKepergianAsync(
         ApplicationDbContext context,
         Guid emergencyVisitId,
         EmergencyPhysicalStatus physicalStatus,
         EmergencyHandoverStatus handoverStatus)
     {
-        var departure = new TrxEmergencyDeparture
+        var departure = new EmgDeparture
         {
             Id = Guid.NewGuid(),
             EmergencyVisitId = emergencyVisitId,
@@ -45,7 +45,7 @@ public class EmergencyClosureHandoverTests
             IsDelete = false,
         };
 
-        context.Set<TrxEmergencyDeparture>().Add(departure);
+        context.Set<EmgDeparture>().Add(departure);
         await context.SaveChangesAsync();
         return departure;
     }

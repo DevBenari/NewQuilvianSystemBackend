@@ -42,8 +42,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             public static Hasil<T> Gagal(int statusCode, string penolakan) => new(default, statusCode, penolakan);
         }
 
-        public IQueryable<TrxEmergencyDeparture> Query()
-            => _dbContext.Set<TrxEmergencyDeparture>()
+        public IQueryable<EmgDeparture> Query()
+            => _dbContext.Set<EmgDeparture>()
                 .AsNoTracking()
                 .Include(x => x.FromServiceUnit)
                 .Include(x => x.ToServiceUnit)
@@ -51,31 +51,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 .Include(x => x.OrderItems).ThenInclude(x => x.ToServiceUnit)
                 .Where(x => !x.IsDelete);
 
-        public Task<TrxEmergencyDeparture?> FindAsync(Guid id, CancellationToken cancellationToken = default)
+        public Task<EmgDeparture?> FindAsync(Guid id, CancellationToken cancellationToken = default)
             => Query().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
-        public async Task<Hasil<TrxEmergencyDeparture>> CreateAsync(
+        public async Task<Hasil<EmgDeparture>> CreateAsync(
             CreateEmergencyDepartureRequest request,
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
             var penolakan = await ValidateRequestAsync(request, cancellationToken);
             if (penolakan != null)
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status400BadRequest, penolakan);
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status400BadRequest, penolakan);
 
             foreach (var item in request.OrderItems)
             {
                 penolakan = ValidateOrderItem(item);
                 if (penolakan != null)
-                    return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status400BadRequest, penolakan);
+                    return Hasil<EmgDeparture>.Gagal(StatusCodes.Status400BadRequest, penolakan);
             }
 
             var now = DateTime.UtcNow;
             var occurredAt = request.RequestedAt == default ? now : request.RequestedAt;
             if (occurredAt > now)
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status400BadRequest, "Waktu kejadian tidak boleh berada di masa depan.");
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status400BadRequest, "Waktu kejadian tidak boleh berada di masa depan.");
 
-            var entity = new TrxEmergencyDeparture
+            var entity = new EmgDeparture
             {
                 Id = Guid.NewGuid(),
                 EmergencyVisitId = request.EmergencyVisitId,
@@ -111,53 +111,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             foreach (var input in request.OrderItems)
                 entity.OrderItems.Add(BuatOrderItem(entity.Id, input, actorUserId, now));
 
-            _dbContext.Set<TrxEmergencyDeparture>().Add(entity);
+            _dbContext.Set<EmgDeparture>().Add(entity);
             try
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
             catch (DbUpdateException)
             {
-                return Hasil<TrxEmergencyDeparture>.Gagal(
+                return Hasil<EmgDeparture>.Gagal(
                     StatusCodes.Status409Conflict,
                     "Kepergian gagal disimpan karena nomor dokumen atau data terkait sudah digunakan.");
             }
 
-            return Hasil<TrxEmergencyDeparture>.Ok((await FindAsync(entity.Id, cancellationToken))!);
+            return Hasil<EmgDeparture>.Ok((await FindAsync(entity.Id, cancellationToken))!);
         }
 
-        public async Task<Hasil<TrxEmergencyDeparture>> DepartAsync(
+        public async Task<Hasil<EmgDeparture>> DepartAsync(
             Guid id, DepartEmergencyDepartureRequest request, Guid actorUserId,
             CancellationToken cancellationToken = default)
             => await UbahFisikAsync(id, EmergencyPhysicalStatus.Departed,
                 EmergencyDepartureEventType.Departed, request.OccurredAt, request.Reason,
                 request.DowntimeReference, actorUserId, null, cancellationToken);
 
-        public async Task<Hasil<TrxEmergencyDeparture>> ArriveAsync(
+        public async Task<Hasil<EmgDeparture>> ArriveAsync(
             Guid id, ArriveEmergencyDepartureRequest request, Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyDeparture>()
+            var entity = await _dbContext.Set<EmgDeparture>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status404NotFound, "Data kepergian pasien IGD tidak ditemukan.");
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status404NotFound, "Data kepergian pasien IGD tidak ditemukan.");
 
             var authority = await _unitAuthorityService.PeriksaAsync(
                 actorUserId, entity.ToServiceUnitId, DateTime.UtcNow, "mencatat kedatangan pasien", cancellationToken);
             if (!authority.Berwenang)
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status403Forbidden, authority.Penolakan!);
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status403Forbidden, authority.Penolakan!);
 
             return await UbahFisikAsync(id, EmergencyPhysicalStatus.Arrived,
                 EmergencyDepartureEventType.Arrived, request.OccurredAt, null,
                 request.DowntimeReference, actorUserId, request.ReceivingNurseUserId, cancellationToken);
         }
 
-        public async Task<Hasil<TrxEmergencyDeparture>> CancelAsync(
+        public async Task<Hasil<EmgDeparture>> CancelAsync(
             Guid id, CancelEmergencyDepartureRequest request, Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(request.CancellationReason))
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status400BadRequest, "Alasan pembatalan kepergian wajib diisi.");
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status400BadRequest, "Alasan pembatalan kepergian wajib diisi.");
 
             var result = await UbahFisikAsync(id, EmergencyPhysicalStatus.Cancelled,
                 EmergencyDepartureEventType.Cancelled, request.OccurredAt,
@@ -166,22 +166,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return result;
         }
 
-        public async Task<Hasil<TrxEmergencyDeparture>> SubmitHandoverAsync(
+        public async Task<Hasil<EmgDeparture>> SubmitHandoverAsync(
             Guid id, Guid actorUserId, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyDeparture>()
+            var entity = await _dbContext.Set<EmgDeparture>()
                 .Include(x => x.EmergencyVisit)
                 .Include(x => x.OrderItems)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status404NotFound, "Data kepergian pasien IGD tidak ditemukan.");
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status404NotFound, "Data kepergian pasien IGD tidak ditemukan.");
 
             await BentukPesananInternalAsync(entity, actorUserId, cancellationToken);
             var tanpaSikap = entity.OrderItems.Count(x => !x.IsDelete && x.IsEffective && !Enum.IsDefined(x.Action));
             if (tanpaSikap > 0)
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
-                return Hasil<TrxEmergencyDeparture>.Gagal(
+                return Hasil<EmgDeparture>.Gagal(
                     StatusCodes.Status400BadRequest,
                     $"Masih ada {tanpaSikap} pesanan yang belum ditentukan sikapnya.");
             }
@@ -190,24 +190,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EmergencyDepartureEventType.HandoverSubmitted, null, actorUserId, DateTime.UtcNow, cancellationToken);
         }
 
-        public async Task<Hasil<TrxEmergencyDeparture>> UpdateHandoverAsync(
+        public async Task<Hasil<EmgDeparture>> UpdateHandoverAsync(
             Guid id, UpdateEmergencyHandoverStatusRequest request, Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyDeparture>()
+            var entity = await _dbContext.Set<EmgDeparture>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status404NotFound, "Data kepergian pasien IGD tidak ditemukan.");
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status404NotFound, "Data kepergian pasien IGD tidak ditemukan.");
 
             if (request.HandoverStatus is not (EmergencyHandoverStatus.Accepted or EmergencyHandoverStatus.Rejected))
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status400BadRequest, "Aksi ini hanya menerima status Accepted atau Rejected.");
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status400BadRequest, "Aksi ini hanya menerima status Accepted atau Rejected.");
             if (request.HandoverStatus == EmergencyHandoverStatus.Rejected && string.IsNullOrWhiteSpace(request.RejectionReason))
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status400BadRequest, "Alasan penolakan serah terima wajib diisi.");
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status400BadRequest, "Alasan penolakan serah terima wajib diisi.");
 
             var authority = await _unitAuthorityService.PeriksaAsync(
                 actorUserId, entity.ToServiceUnitId, DateTime.UtcNow, "meninjau serah terima", cancellationToken);
             if (!authority.Berwenang)
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status403Forbidden, authority.Penolakan!);
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status403Forbidden, authority.Penolakan!);
 
             var eventType = request.HandoverStatus == EmergencyHandoverStatus.Accepted
                 ? EmergencyDepartureEventType.HandoverAccepted
@@ -216,52 +216,52 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 request.RejectionReason, actorUserId, request.OccurredAt ?? DateTime.UtcNow, cancellationToken);
         }
 
-        public async Task<Hasil<TrxEmergencyHandoverOrderItem>> AddExternalOrderAsync(
+        public async Task<Hasil<EmgHandoverOrderItem>> AddExternalOrderAsync(
             Guid id, EmergencyHandoverOrderItemInput input, Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
             input.OrderSource = EmergencyOrderSource.External;
             var penolakan = ValidateOrderItem(input);
             if (penolakan != null)
-                return Hasil<TrxEmergencyHandoverOrderItem>.Gagal(StatusCodes.Status400BadRequest, penolakan);
-            var entity = await _dbContext.Set<TrxEmergencyDeparture>()
+                return Hasil<EmgHandoverOrderItem>.Gagal(StatusCodes.Status400BadRequest, penolakan);
+            var entity = await _dbContext.Set<EmgDeparture>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
-                return Hasil<TrxEmergencyHandoverOrderItem>.Gagal(StatusCodes.Status404NotFound, "Data kepergian pasien IGD tidak ditemukan.");
+                return Hasil<EmgHandoverOrderItem>.Gagal(StatusCodes.Status404NotFound, "Data kepergian pasien IGD tidak ditemukan.");
             var authority = await PeriksaUnitAsalAsync(entity, actorUserId, "mendaftarkan pesanan luar sistem", cancellationToken);
             if (!authority.Berwenang)
-                return Hasil<TrxEmergencyHandoverOrderItem>.Gagal(StatusCodes.Status403Forbidden, authority.Penolakan!);
+                return Hasil<EmgHandoverOrderItem>.Gagal(StatusCodes.Status403Forbidden, authority.Penolakan!);
             var item = BuatOrderItem(id, input, actorUserId, DateTime.UtcNow);
             _dbContext.Add(item);
             await _dbContext.SaveChangesAsync(cancellationToken);
-            return Hasil<TrxEmergencyHandoverOrderItem>.Ok(item);
+            return Hasil<EmgHandoverOrderItem>.Ok(item);
         }
 
-        public async Task<Hasil<TrxEmergencyHandoverOrderItem>> SetOrderActionAsync(
+        public async Task<Hasil<EmgHandoverOrderItem>> SetOrderActionAsync(
             Guid departureId, Guid itemId, EmergencyHandoverOrderItemInput input,
             Guid actorUserId, CancellationToken cancellationToken = default)
         {
             var penolakan = ValidateOrderItem(input);
             if (penolakan != null)
-                return Hasil<TrxEmergencyHandoverOrderItem>.Gagal(StatusCodes.Status400BadRequest, penolakan);
-            var departure = await _dbContext.Set<TrxEmergencyDeparture>()
+                return Hasil<EmgHandoverOrderItem>.Gagal(StatusCodes.Status400BadRequest, penolakan);
+            var departure = await _dbContext.Set<EmgDeparture>()
                 .FirstOrDefaultAsync(x => x.Id == departureId && !x.IsDelete, cancellationToken);
-            var current = await _dbContext.Set<TrxEmergencyHandoverOrderItem>()
+            var current = await _dbContext.Set<EmgHandoverOrderItem>()
                 .FirstOrDefaultAsync(x => x.Id == itemId && x.EmergencyDepartureId == departureId && !x.IsDelete, cancellationToken);
             if (departure == null || current == null)
-                return Hasil<TrxEmergencyHandoverOrderItem>.Gagal(StatusCodes.Status404NotFound, "Pesanan kepergian tidak ditemukan.");
+                return Hasil<EmgHandoverOrderItem>.Gagal(StatusCodes.Status404NotFound, "Pesanan kepergian tidak ditemukan.");
             var authority = await PeriksaUnitAsalAsync(departure, actorUserId, "menentukan sikap pesanan", cancellationToken);
             if (!authority.Berwenang)
-                return Hasil<TrxEmergencyHandoverOrderItem>.Gagal(StatusCodes.Status403Forbidden, authority.Penolakan!);
+                return Hasil<EmgHandoverOrderItem>.Gagal(StatusCodes.Status403Forbidden, authority.Penolakan!);
 
             if (Enum.IsDefined(current.Action) && current.AcceptanceStatus != EmergencyOrderAcceptanceStatus.Rejected)
-                return Hasil<TrxEmergencyHandoverOrderItem>.Gagal(StatusCodes.Status409Conflict, "Sikap atas pesanan ini sudah tercatat. Perubahannya dicatat sebagai koreksi.");
+                return Hasil<EmgHandoverOrderItem>.Gagal(StatusCodes.Status409Conflict, "Sikap atas pesanan ini sudah tercatat. Perubahannya dicatat sebagai koreksi.");
 
             if (!Enum.IsDefined(current.Action))
             {
                 TerapkanAction(current, input, actorUserId, DateTime.UtcNow);
                 await _dbContext.SaveChangesAsync(cancellationToken);
-                return Hasil<TrxEmergencyHandoverOrderItem>.Ok(current);
+                return Hasil<EmgHandoverOrderItem>.Ok(current);
             }
 
             current.IsEffective = false;
@@ -276,27 +276,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var replacement = BuatOrderItem(departureId, input, actorUserId, DateTime.UtcNow);
             _dbContext.Add(replacement);
             await _dbContext.SaveChangesAsync(cancellationToken);
-            return Hasil<TrxEmergencyHandoverOrderItem>.Ok(replacement);
+            return Hasil<EmgHandoverOrderItem>.Ok(replacement);
         }
 
-        public async Task<Hasil<TrxEmergencyHandoverOrderItem>> SetOrderAcceptanceAsync(
+        public async Task<Hasil<EmgHandoverOrderItem>> SetOrderAcceptanceAsync(
             Guid departureId, Guid itemId, EmergencyOrderAcceptanceStatus target,
             string? rejectionReason, Guid actorUserId, CancellationToken cancellationToken = default)
         {
-            var departure = await _dbContext.Set<TrxEmergencyDeparture>()
+            var departure = await _dbContext.Set<EmgDeparture>()
                 .FirstOrDefaultAsync(x => x.Id == departureId && !x.IsDelete, cancellationToken);
-            var item = await _dbContext.Set<TrxEmergencyHandoverOrderItem>()
+            var item = await _dbContext.Set<EmgHandoverOrderItem>()
                 .FirstOrDefaultAsync(x => x.Id == itemId && x.EmergencyDepartureId == departureId && !x.IsDelete && x.IsEffective, cancellationToken);
             if (departure == null || item == null)
-                return Hasil<TrxEmergencyHandoverOrderItem>.Gagal(StatusCodes.Status404NotFound, "Pesanan kepergian tidak ditemukan.");
+                return Hasil<EmgHandoverOrderItem>.Gagal(StatusCodes.Status404NotFound, "Pesanan kepergian tidak ditemukan.");
             if (item.AcceptanceStatus != EmergencyOrderAcceptanceStatus.Pending || target is not (EmergencyOrderAcceptanceStatus.Accepted or EmergencyOrderAcceptanceStatus.Rejected))
-                return Hasil<TrxEmergencyHandoverOrderItem>.Gagal(StatusCodes.Status409Conflict, "Status penerimaan pesanan tidak dapat diubah dari keadaan saat ini.");
+                return Hasil<EmgHandoverOrderItem>.Gagal(StatusCodes.Status409Conflict, "Status penerimaan pesanan tidak dapat diubah dari keadaan saat ini.");
             if (target == EmergencyOrderAcceptanceStatus.Rejected && string.IsNullOrWhiteSpace(rejectionReason))
-                return Hasil<TrxEmergencyHandoverOrderItem>.Gagal(StatusCodes.Status400BadRequest, "Alasan penolakan pesanan wajib diisi.");
+                return Hasil<EmgHandoverOrderItem>.Gagal(StatusCodes.Status400BadRequest, "Alasan penolakan pesanan wajib diisi.");
             var authority = await _unitAuthorityService.PeriksaAsync(
                 actorUserId, departure.ToServiceUnitId, DateTime.UtcNow, "menerima atau menolak pesanan", cancellationToken);
             if (!authority.Berwenang)
-                return Hasil<TrxEmergencyHandoverOrderItem>.Gagal(StatusCodes.Status403Forbidden, authority.Penolakan!);
+                return Hasil<EmgHandoverOrderItem>.Gagal(StatusCodes.Status403Forbidden, authority.Penolakan!);
             item.AcceptanceStatus = target;
             item.AcceptedByUserId = actorUserId;
             item.AcceptedAt = DateTime.UtcNow;
@@ -304,7 +304,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             item.UpdateDateTime = DateTime.UtcNow;
             item.UpdateBy = actorUserId;
             await _dbContext.SaveChangesAsync(cancellationToken);
-            return Hasil<TrxEmergencyHandoverOrderItem>.Ok(item);
+            return Hasil<EmgHandoverOrderItem>.Ok(item);
         }
 
         public async Task<string?> ValidateRequestAsync(
@@ -549,7 +549,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             Guid emergencyVisitId,
             CancellationToken cancellationToken = default)
         {
-            var pesananDitolak = await _dbContext.Set<TrxEmergencyHandoverOrderItem>()
+            var pesananDitolak = await _dbContext.Set<EmgHandoverOrderItem>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete
                     && x.IsEffective
@@ -569,18 +569,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                    $"penggantinya: {daftar}{sisa}.";
         }
 
-        public async Task<Hasil<TrxEmergencyDepartureEvent>> AmendEventAsync(
+        public async Task<Hasil<EmgDepartureEvent>> AmendEventAsync(
             Guid departureId, Guid eventId, AmendDepartureEventRequest request,
             Guid actorUserId, CancellationToken cancellationToken = default)
         {
             if (request.OccurredAt > DateTime.UtcNow)
-                return Hasil<TrxEmergencyDepartureEvent>.Gagal(StatusCodes.Status400BadRequest, "Waktu kejadian tidak boleh berada di masa depan.");
+                return Hasil<EmgDepartureEvent>.Gagal(StatusCodes.Status400BadRequest, "Waktu kejadian tidak boleh berada di masa depan.");
             if (string.IsNullOrWhiteSpace(request.Reason))
-                return Hasil<TrxEmergencyDepartureEvent>.Gagal(StatusCodes.Status400BadRequest, "Alasan koreksi wajib diisi.");
-            var current = await _dbContext.Set<TrxEmergencyDepartureEvent>()
+                return Hasil<EmgDepartureEvent>.Gagal(StatusCodes.Status400BadRequest, "Alasan koreksi wajib diisi.");
+            var current = await _dbContext.Set<EmgDepartureEvent>()
                 .FirstOrDefaultAsync(x => x.Id == eventId && x.EmergencyDepartureId == departureId && x.IsEffective && !x.IsDelete, cancellationToken);
             if (current == null)
-                return Hasil<TrxEmergencyDepartureEvent>.Gagal(StatusCodes.Status404NotFound, "Kejadian kepergian tidak ditemukan atau sudah dikoreksi.");
+                return Hasil<EmgDepartureEvent>.Gagal(StatusCodes.Status404NotFound, "Kejadian kepergian tidak ditemukan atau sudah dikoreksi.");
             current.IsEffective = false;
             current.UpdateDateTime = DateTime.UtcNow;
             current.UpdateBy = actorUserId;
@@ -588,21 +588,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 request.OccurredAt, actorUserId, request.Reason, request.DowntimeReference, current.Id);
             _dbContext.Add(replacement);
             await _dbContext.SaveChangesAsync(cancellationToken);
-            return Hasil<TrxEmergencyDepartureEvent>.Ok(replacement);
+            return Hasil<EmgDepartureEvent>.Ok(replacement);
         }
 
-        public async Task<Hasil<TrxEmergencyDepartureEvent>> ReverseEventAsync(
+        public async Task<Hasil<EmgDepartureEvent>> ReverseEventAsync(
             Guid departureId, Guid eventId, ReverseDepartureEventRequest request,
             Guid actorUserId, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(request.Reason))
-                return Hasil<TrxEmergencyDepartureEvent>.Gagal(StatusCodes.Status400BadRequest, "Alasan pembalikan wajib diisi.");
+                return Hasil<EmgDepartureEvent>.Gagal(StatusCodes.Status400BadRequest, "Alasan pembalikan wajib diisi.");
             if (request.ApprovedByUserId == Guid.Empty || request.ApprovedByUserId == actorUserId)
-                return Hasil<TrxEmergencyDepartureEvent>.Gagal(StatusCodes.Status400BadRequest, "Pembalikan wajib disetujui orang kedua yang berbeda dari pencatat.");
-            var current = await _dbContext.Set<TrxEmergencyDepartureEvent>()
+                return Hasil<EmgDepartureEvent>.Gagal(StatusCodes.Status400BadRequest, "Pembalikan wajib disetujui orang kedua yang berbeda dari pencatat.");
+            var current = await _dbContext.Set<EmgDepartureEvent>()
                 .FirstOrDefaultAsync(x => x.Id == eventId && x.EmergencyDepartureId == departureId && x.IsEffective && !x.IsDelete, cancellationToken);
             if (current == null)
-                return Hasil<TrxEmergencyDepartureEvent>.Gagal(StatusCodes.Status404NotFound, "Kejadian kepergian tidak ditemukan atau sudah dibalik.");
+                return Hasil<EmgDepartureEvent>.Gagal(StatusCodes.Status404NotFound, "Kejadian kepergian tidak ditemukan atau sudah dibalik.");
             current.IsEffective = false;
             current.UpdateDateTime = DateTime.UtcNow;
             current.UpdateBy = actorUserId;
@@ -610,27 +610,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 DateTime.UtcNow, actorUserId, request.Reason, null, current.Id, request.ApprovedByUserId);
             _dbContext.Add(reversal);
             await _dbContext.SaveChangesAsync(cancellationToken);
-            return Hasil<TrxEmergencyDepartureEvent>.Ok(reversal);
+            return Hasil<EmgDepartureEvent>.Ok(reversal);
         }
 
-        private async Task<Hasil<TrxEmergencyDeparture>> UbahFisikAsync(
+        private async Task<Hasil<EmgDeparture>> UbahFisikAsync(
             Guid id, EmergencyPhysicalStatus target, EmergencyDepartureEventType eventType,
             DateTime? occurredAt, string? reason, string? downtimeReference, Guid actorUserId,
             Guid? receivingNurseUserId, CancellationToken cancellationToken,
             EmergencyHandoverStatus? handoverTarget = null)
         {
-            var entity = await _dbContext.Set<TrxEmergencyDeparture>()
+            var entity = await _dbContext.Set<EmgDeparture>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status404NotFound, "Data kepergian pasien IGD tidak ditemukan.");
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status404NotFound, "Data kepergian pasien IGD tidak ditemukan.");
             if (!CanTransition(entity.PhysicalStatus, target))
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status409Conflict, $"Status fisik tidak dapat berubah dari {entity.PhysicalStatus} ke {target}.");
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status409Conflict, $"Status fisik tidak dapat berubah dari {entity.PhysicalStatus} ke {target}.");
             if (handoverTarget.HasValue && !CanTransition(entity.HandoverStatus, handoverTarget.Value))
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status409Conflict, $"Status serah terima tidak dapat berubah dari {entity.HandoverStatus} ke {handoverTarget.Value}.");
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status409Conflict, $"Status serah terima tidak dapat berubah dari {entity.HandoverStatus} ke {handoverTarget.Value}.");
             var now = DateTime.UtcNow;
             var actual = occurredAt ?? now;
             if (actual > now)
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status400BadRequest, "Waktu kejadian tidak boleh berada di masa depan.");
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status400BadRequest, "Waktu kejadian tidak boleh berada di masa depan.");
             entity.PhysicalStatus = target;
             if (target == EmergencyPhysicalStatus.Departed) entity.DepartedAt = actual;
             if (target == EmergencyPhysicalStatus.Arrived)
@@ -647,32 +647,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             entity.UpdateBy = actorUserId;
             _dbContext.Add(BuatKejadian(id, eventType, actual, actorUserId, reason, downtimeReference));
             await _dbContext.SaveChangesAsync(cancellationToken);
-            return Hasil<TrxEmergencyDeparture>.Ok((await FindAsync(id, cancellationToken))!);
+            return Hasil<EmgDeparture>.Ok((await FindAsync(id, cancellationToken))!);
         }
 
-        private async Task<Hasil<TrxEmergencyDeparture>> UbahHandoverAsync(
-            TrxEmergencyDeparture entity, EmergencyHandoverStatus target,
+        private async Task<Hasil<EmgDeparture>> UbahHandoverAsync(
+            EmgDeparture entity, EmergencyHandoverStatus target,
             EmergencyDepartureEventType eventType, string? reason, Guid actorUserId,
             DateTime occurredAt, CancellationToken cancellationToken)
         {
             if (!CanTransition(entity.HandoverStatus, target))
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status409Conflict, $"Status serah terima tidak dapat berubah dari {entity.HandoverStatus} ke {target}.");
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status409Conflict, $"Status serah terima tidak dapat berubah dari {entity.HandoverStatus} ke {target}.");
             if (occurredAt > DateTime.UtcNow)
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status400BadRequest, "Waktu kejadian tidak boleh berada di masa depan.");
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status400BadRequest, "Waktu kejadian tidak boleh berada di masa depan.");
             var combination = ValidateKombinasi(entity.PhysicalStatus, target);
             if (combination != null)
-                return Hasil<TrxEmergencyDeparture>.Gagal(StatusCodes.Status409Conflict, combination);
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status409Conflict, combination);
             entity.HandoverStatus = target;
             entity.HandoverRejectionReason = target == EmergencyHandoverStatus.Rejected ? Rapikan(reason) : null;
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = actorUserId;
             _dbContext.Add(BuatKejadian(entity.Id, eventType, occurredAt, actorUserId, reason));
             await _dbContext.SaveChangesAsync(cancellationToken);
-            return Hasil<TrxEmergencyDeparture>.Ok((await FindAsync(entity.Id, cancellationToken))!);
+            return Hasil<EmgDeparture>.Ok((await FindAsync(entity.Id, cancellationToken))!);
         }
 
         private async Task BentukPesananInternalAsync(
-            TrxEmergencyDeparture departure, Guid actorUserId,
+            EmgDeparture departure, Guid actorUserId,
             CancellationToken cancellationToken)
         {
             var encounterId = departure.EmergencyVisit?.EncounterId;
@@ -714,7 +714,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         }
 
         private async Task<EmergencyUnitAuthorityService.Hasil> PeriksaUnitAsalAsync(
-            TrxEmergencyDeparture departure, Guid actorUserId, string action,
+            EmgDeparture departure, Guid actorUserId, string action,
             CancellationToken cancellationToken)
         {
             if (!departure.FromServiceUnitId.HasValue || departure.FromServiceUnitId == Guid.Empty)
@@ -723,7 +723,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 departure.FromServiceUnitId.Value, DateTime.UtcNow, action, cancellationToken);
         }
 
-        private static TrxEmergencyDepartureEvent BuatKejadian(
+        private static EmgDepartureEvent BuatKejadian(
             Guid departureId, EmergencyDepartureEventType type, DateTime occurredAt,
             Guid actorUserId, string? reason = null, string? downtimeReference = null,
             Guid? supersedesEventId = null, Guid? approvedByUserId = null)
@@ -738,11 +738,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 IsDelete = false, IsCancel = false
             };
 
-        private static TrxEmergencyHandoverOrderItem BuatOrderItem(
+        private static EmgHandoverOrderItem BuatOrderItem(
             Guid departureId, EmergencyHandoverOrderItemInput input,
             Guid actorUserId, DateTime now)
         {
-            var item = new TrxEmergencyHandoverOrderItem
+            var item = new EmgHandoverOrderItem
             {
                 Id = Guid.NewGuid(), EmergencyDepartureId = departureId,
                 OrderKind = input.OrderKind, OrderSource = input.OrderSource,
@@ -757,7 +757,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return item;
         }
 
-        private static TrxEmergencyHandoverOrderItem BuatPesananBelumBersikap(
+        private static EmgHandoverOrderItem BuatPesananBelumBersikap(
             Guid departureId, EmergencyOrderKind kind, Guid referenceId,
             string description, Guid actorUserId, DateTime now)
             => new()
@@ -772,7 +772,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             };
 
         private static void TerapkanAction(
-            TrxEmergencyHandoverOrderItem item, EmergencyHandoverOrderItemInput input,
+            EmgHandoverOrderItem item, EmergencyHandoverOrderItemInput input,
             Guid actorUserId, DateTime now)
         {
             item.Action = input.Action;
@@ -787,7 +787,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             item.RejectionReason = null;
         }
 
-        public static EmergencyDepartureResponse ToResponse(TrxEmergencyDeparture x)
+        public static EmergencyDepartureResponse ToResponse(EmgDeparture x)
             => new()
             {
                 Id = x.Id, EmergencyVisitId = x.EmergencyVisitId,
@@ -810,14 +810,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 OrderItems = x.OrderItems.OrderBy(i => i.ActionAt).Select(ToResponse).ToList()
             };
 
-        public static EmergencyDepartureEventResponse ToResponse(TrxEmergencyDepartureEvent x)
+        public static EmergencyDepartureEventResponse ToResponse(EmgDepartureEvent x)
             => new() { Id = x.Id, EmergencyDepartureId = x.EmergencyDepartureId,
                 EventType = x.EventType, OccurredAt = x.OccurredAt, RecordedAt = x.RecordedAt,
                 RecordedByUserId = x.RecordedByUserId, Reason = x.Reason,
                 DowntimeReference = x.DowntimeReference, IsEffective = x.IsEffective,
                 SupersedesEventId = x.SupersedesEventId, ApprovedByUserId = x.ApprovedByUserId };
 
-        public static EmergencyHandoverOrderItemResponse ToResponse(TrxEmergencyHandoverOrderItem x)
+        public static EmergencyHandoverOrderItemResponse ToResponse(EmgHandoverOrderItem x)
             => new() { Id = x.Id, EmergencyDepartureId = x.EmergencyDepartureId,
                 OrderKind = x.OrderKind, OrderSource = x.OrderSource,
                 OrderReferenceId = x.OrderReferenceId, ExternalReference = x.ExternalReference,

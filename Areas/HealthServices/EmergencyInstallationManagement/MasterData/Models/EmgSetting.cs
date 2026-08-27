@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
@@ -6,8 +6,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models
 {
-    [Table("MstEmergencySetting", Schema = "public")]
-    public class MstEmergencySetting : IdentityModel
+    [Table("EmgSetting", Schema = "public")]
+    public class EmgSetting : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 

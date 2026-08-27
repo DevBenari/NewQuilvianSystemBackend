@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
@@ -72,7 +72,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             DateTime now,
             CancellationToken cancellationToken = default)
         {
-            var query = _dbContext.Set<MstEmergencySetting>()
+            var query = _dbContext.Set<EmgSetting>()
                 .Where(x => x.IsDefault && !x.IsDelete);
 
             if (exceptId.HasValue)

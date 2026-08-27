@@ -63,16 +63,16 @@ public class EmergencyTriageVisitStatusTests
         return visit;
     }
 
-    private static async Task<MstEmergencyTriageLevel> SimpanLevelAsync(ApplicationDbContext context)
+    private static async Task<EmgTriageLevel> SimpanLevelAsync(ApplicationDbContext context)
     {
-        var level = new MstEmergencyTriageLevel
+        var level = new EmgTriageLevel
         {
             Id = Guid.NewGuid(),
             IsActive = true,
             IsDelete = false,
         };
 
-        context.Set<MstEmergencyTriageLevel>().Add(level);
+        context.Set<EmgTriageLevel>().Add(level);
         await context.SaveChangesAsync();
         return level;
     }

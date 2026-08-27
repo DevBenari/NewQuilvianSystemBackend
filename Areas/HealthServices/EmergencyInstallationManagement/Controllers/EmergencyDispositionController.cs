@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -431,7 +431,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (!await _dbContext.Set<TrxEmergencyVisit>().AsNoTracking().AnyAsync(x => x.Id == request.EmergencyVisitId && !x.IsDelete, cancellationToken))
                 return "EmergencyVisitId tidak ditemukan.";
 
-            if (!await _dbContext.Set<MstEmergencyDispositionType>().AsNoTracking().AnyAsync(x => x.Id == request.DispositionTypeId && !x.IsDelete, cancellationToken))
+            if (!await _dbContext.Set<EmgDispositionType>().AsNoTracking().AnyAsync(x => x.Id == request.DispositionTypeId && !x.IsDelete, cancellationToken))
                 return "DispositionTypeId tidak ditemukan.";
 
             if (request.DestinationServiceUnitId.HasValue && request.DestinationServiceUnitId.Value != Guid.Empty &&

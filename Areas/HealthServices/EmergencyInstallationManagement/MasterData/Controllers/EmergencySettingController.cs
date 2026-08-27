@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
@@ -64,7 +64,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         )
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
-            IQueryable<MstEmergencySetting> query = _dbContext.Set<MstEmergencySetting>().AsNoTracking().Where(x => !x.IsDelete);
+            IQueryable<EmgSetting> query = _dbContext.Set<EmgSetting>().AsNoTracking().Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -120,7 +120,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencySetting", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<MstEmergencySetting>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgSetting>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data pengaturan IGD tidak ditemukan."));
 
@@ -133,7 +133,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencySetting", "Read")]
         public async Task<IActionResult> GetOptions(CancellationToken cancellationToken = default)
         {
-            var entities = await _dbContext.Set<MstEmergencySetting>().AsNoTracking()
+            var entities = await _dbContext.Set<EmgSetting>().AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive)
                 .OrderBy(x => x.Name)
                 .ToListAsync(cancellationToken);
@@ -162,7 +162,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validationMessage));
 
             var normalizedCode = NormalizeText(request.Code) ?? string.Empty;
-            if (await _dbContext.Set<MstEmergencySetting>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.Code.ToLower() == normalizedCode.ToLower(), cancellationToken))
+            if (await _dbContext.Set<EmgSetting>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.Code.ToLower() == normalizedCode.ToLower(), cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Kode sudah digunakan."));
 
             var now = DateTime.UtcNow;
@@ -179,7 +179,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     cancellationToken: cancellationToken);
             }
 
-            var entity = new MstEmergencySetting
+            var entity = new EmgSetting
             {
                 Id = Guid.NewGuid(),
                 Code = NormalizeText(request.Code) ?? string.Empty,
@@ -204,7 +204,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 IsCancel = false
             };
 
-            _dbContext.Set<MstEmergencySetting>().Add(entity);
+            _dbContext.Set<EmgSetting>().Add(entity);
             try
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -235,7 +235,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencySetting", "Update")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmergencySettingRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<MstEmergencySetting>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgSetting>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data pengaturan IGD tidak ditemukan."));
 
@@ -244,7 +244,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validationMessage));
 
             var normalizedCode = NormalizeText(request.Code) ?? string.Empty;
-            if (await _dbContext.Set<MstEmergencySetting>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.Code.ToLower() == normalizedCode.ToLower() && x.Id != id, cancellationToken))
+            if (await _dbContext.Set<EmgSetting>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.Code.ToLower() == normalizedCode.ToLower() && x.Id != id, cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Kode sudah digunakan."));
 
             var now = DateTime.UtcNow;
@@ -307,7 +307,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencySetting", "Delete")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<MstEmergencySetting>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgSetting>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data pengaturan IGD tidak ditemukan."));
 
@@ -364,7 +364,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private Task<string?> ValidateRequestAsync(UpdateEmergencySettingRequest request, CancellationToken cancellationToken)
             => ValidateRequestAsync((CreateEmergencySettingRequest)request, cancellationToken);
 
-        private static EmergencySettingResponse ToResponse(MstEmergencySetting x)
+        private static EmergencySettingResponse ToResponse(EmgSetting x)
         {
             return new EmergencySettingResponse
             {
@@ -399,9 +399,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         private static string? NormalizeText(string? value)
             => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-        private static string GenerateDocumentNumber(string prefix, DateTime now)
-            => $"{prefix}-{now:yyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
 
         private Guid GetCurrentUserId()
         {

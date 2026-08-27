@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
@@ -6,8 +6,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models
 {
-    [Table("MstEmergencyTriageLevel", Schema = "public")]
-    public class MstEmergencyTriageLevel : IdentityModel
+    [Table("EmgTriageLevel", Schema = "public")]
+    public class EmgTriageLevel : IdentityModel
     {
         /// <summary>
         /// Nilai <see cref="Level"/> yang menandai kategori di luar skala antrean, yaitu
@@ -60,8 +60,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public bool IsActive { get; set; } = true;
 
-        public ICollection<MstEmergencyTriageIndicator> Indicators { get; set; }
-            = new List<MstEmergencyTriageIndicator>();
+        public ICollection<EmgTriageIndicator> Indicators { get; set; }
+            = new List<EmgTriageIndicator>();
 
         public ICollection<TrxEmergencyTriage> Triages { get; set; }
             = new List<TrxEmergencyTriage>();

@@ -1,12 +1,12 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models
 {
-    [Table("MstEmergencyTriageIndicator", Schema = "public")]
-    public class MstEmergencyTriageIndicator : IdentityModel
+    [Table("EmgTriageIndicator", Schema = "public")]
+    public class EmgTriageIndicator : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -31,7 +31,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public bool IsActive { get; set; } = true;
 
-        public MstEmergencyTriageLevel? TriageLevel { get; set; }
+        public EmgTriageLevel? TriageLevel { get; set; }
 
         public ICollection<TrxEmergencyTriageDetail> TriageDetails { get; set; }
             = new List<TrxEmergencyTriageDetail>();

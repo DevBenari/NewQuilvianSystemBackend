@@ -28,8 +28,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     /// berpura-pura tahu: klinisi yang menetapkan, dan pelaku serta waktunya disimpan.
     /// </para>
     /// </remarks>
-    [Table("TrxEmergencyHandoverOrderItem", Schema = "public")]
-    public class TrxEmergencyHandoverOrderItem : IdentityModel
+    [Table("EmgHandoverOrderItem", Schema = "public")]
+    public class EmgHandoverOrderItem : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -104,10 +104,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public bool IsActive { get; set; } = true;
 
-        public TrxEmergencyDeparture? EmergencyDeparture { get; set; }
+        public EmgDeparture? EmergencyDeparture { get; set; }
 
         public MstServiceUnit? ToServiceUnit { get; set; }
 
-        public TrxEmergencyHandoverOrderItem? SupersedesOrderItem { get; set; }
+        public EmgHandoverOrderItem? SupersedesOrderItem { get; set; }
     }
 }

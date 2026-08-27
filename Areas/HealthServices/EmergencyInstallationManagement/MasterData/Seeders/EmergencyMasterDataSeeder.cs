@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
@@ -14,7 +14,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     /// </summary>
     public static class EmergencyMasterDataSeeder
     {
-        private const int OutOfQueueScaleLevel = MstEmergencyTriageLevel.OutOfQueueScaleLevel;
+        private const int OutOfQueueScaleLevel = EmgTriageLevel.OutOfQueueScaleLevel;
 
         public static async Task<EmergencyMasterDataSeedResult> SeedAsync(
             ApplicationDbContext db,
@@ -98,7 +98,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             // seeder menyisipkan level 1 sampai 5 sekali lagi dan menabrak index
             // (TriageSystem, Level). SaveChanges gagal, dan karena pemanggilnya tidak
             // menangkap exception, aplikasi berhenti sebelum sempat melayani permintaan.
-            var existingRows = await db.Set<MstEmergencyTriageLevel>()
+            var existingRows = await db.Set<EmgTriageLevel>()
                 .Select(x => new { x.Code, x.TriageSystem, x.Level })
                 .ToListAsync(ct);
 
@@ -123,7 +123,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     continue;
                 }
 
-                db.Set<MstEmergencyTriageLevel>().Add(new MstEmergencyTriageLevel
+                db.Set<EmgTriageLevel>().Add(new EmgTriageLevel
                 {
                     Id = Guid.NewGuid(),
                     TriageSystem = EmergencyTriageSystem.ATS,
@@ -175,7 +175,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new IndicatorGroupDefinition("E", "Exposure", "Penilaian paparan dan pemeriksaan menyeluruh", 50)
             };
 
-            var levels = await db.Set<MstEmergencyTriageLevel>()
+            var levels = await db.Set<EmgTriageLevel>()
                 .Where(x => !x.IsDelete)
                 .Select(x => new { x.Id, x.Code })
                 .ToListAsync(ct);
@@ -187,7 +187,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return;
             }
 
-            var existingCodes = await db.Set<MstEmergencyTriageIndicator>()
+            var existingCodes = await db.Set<EmgTriageIndicator>()
                 .Where(x => !x.IsDelete)
                 .Select(x => x.Code)
                 .ToListAsync(ct);
@@ -217,7 +217,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     if (existing.Contains(code))
                         continue;
 
-                    db.Set<MstEmergencyTriageIndicator>().Add(new MstEmergencyTriageIndicator
+                    db.Set<EmgTriageIndicator>().Add(new EmgTriageIndicator
                     {
                         Id = Guid.NewGuid(),
                         TriageLevelId = level.Id,
@@ -258,7 +258,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new ArrivalModeDefinition("REFERRAL", "Rujukan fasilitas kesehatan lain", false, true, 50)
             };
 
-            var existingCodes = await db.Set<MstEmergencyArrivalMode>()
+            var existingCodes = await db.Set<EmgArrivalMode>()
                 .Where(x => !x.IsDelete)
                 .Select(x => x.Code)
                 .ToListAsync(ct);
@@ -278,7 +278,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 if (existing.Contains(d.Code))
                     continue;
 
-                db.Set<MstEmergencyArrivalMode>().Add(new MstEmergencyArrivalMode
+                db.Set<EmgArrivalMode>().Add(new EmgArrivalMode
                 {
                     Id = Guid.NewGuid(),
                     Code = d.Code,
@@ -320,7 +320,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new CaseTypeDefinition("BENCANA", "Bencana", 80)
             };
 
-            var existingCodes = await db.Set<MstEmergencyCaseType>()
+            var existingCodes = await db.Set<EmgCaseType>()
                 .Where(x => !x.IsDelete)
                 .Select(x => x.Code)
                 .ToListAsync(ct);
@@ -340,7 +340,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 if (existing.Contains(d.Code))
                     continue;
 
-                db.Set<MstEmergencyCaseType>().Add(new MstEmergencyCaseType
+                db.Set<EmgCaseType>().Add(new EmgCaseType
                 {
                     Id = Guid.NewGuid(),
                     Code = d.Code,
@@ -379,7 +379,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new DispositionTypeDefinition("APS", "Pulang atas permintaan sendiri", false, false, 70)
             };
 
-            var existingCodes = await db.Set<MstEmergencyDispositionType>()
+            var existingCodes = await db.Set<EmgDispositionType>()
                 .Where(x => !x.IsDelete)
                 .Select(x => x.Code)
                 .ToListAsync(ct);
@@ -399,7 +399,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 if (existing.Contains(d.Code))
                     continue;
 
-                db.Set<MstEmergencyDispositionType>().Add(new MstEmergencyDispositionType
+                db.Set<EmgDispositionType>().Add(new EmgDispositionType
                 {
                     Id = Guid.NewGuid(),
                     Code = d.Code,
@@ -436,7 +436,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             EmergencyMasterDataSeedResult result,
             CancellationToken ct)
         {
-            var alreadyExists = await db.Set<MstEmergencySetting>()
+            var alreadyExists = await db.Set<EmgSetting>()
                 .AnyAsync(x => !x.IsDelete, ct);
 
             if (alreadyExists)
@@ -461,7 +461,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return;
             }
 
-            db.Set<MstEmergencySetting>().Add(new MstEmergencySetting
+            db.Set<EmgSetting>().Add(new EmgSetting
             {
                 Id = Guid.NewGuid(),
                 Code = "DEFAULT",

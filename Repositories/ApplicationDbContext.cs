@@ -661,12 +661,12 @@ namespace QuilvianSystemBackend.Repositories
         #region HEALTH SERVICE - Emergency Installation Management
 
         #region master
-        public DbSet<MstEmergencyTriageLevel> MstEmergencyTriageLevels { get; set; }
-        public DbSet<MstEmergencyTriageIndicator> MstEmergencyTriageIndicators { get; set; }
-        public DbSet<MstEmergencyArrivalMode> MstEmergencyArrivalModes { get; set; }
-        public DbSet<MstEmergencyCaseType> MstEmergencyCaseTypes { get; set; }
-        public DbSet<MstEmergencyDispositionType> MstEmergencyDispositionTypes { get; set; }
-        public DbSet<MstEmergencySetting> MstEmergencySettings { get; set; }
+        public DbSet<EmgTriageLevel> EmgTriageLevels { get; set; }
+        public DbSet<EmgTriageIndicator> EmgTriageIndicators { get; set; }
+        public DbSet<EmgArrivalMode> EmgArrivalModes { get; set; }
+        public DbSet<EmgCaseType> EmgCaseTypes { get; set; }
+        public DbSet<EmgDispositionType> EmgDispositionTypes { get; set; }
+        public DbSet<EmgSetting> EmgSettings { get; set; }
         #endregion
 
         #region transaction
@@ -678,9 +678,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxEmergencyObservationDetail> TrxEmergencyObservationDetails { get; set; }
         public DbSet<TrxEmergencyProcedureDetail> TrxEmergencyProcedureDetails { get; set; }
         public DbSet<TrxEmergencyDisposition> TrxEmergencyDispositions { get; set; }
-        public DbSet<TrxEmergencyDeparture> TrxEmergencyDepartures { get; set; }
-        public DbSet<TrxEmergencyDepartureEvent> TrxEmergencyDepartureEvents { get; set; }
-        public DbSet<TrxEmergencyHandoverOrderItem> TrxEmergencyHandoverOrderItems { get; set; }
+        public DbSet<EmgDeparture> EmgDepartures { get; set; }
+        public DbSet<EmgDepartureEvent> EmgDepartureEvents { get; set; }
+        public DbSet<EmgHandoverOrderItem> EmgHandoverOrderItems { get; set; }
         #endregion
 
         #endregion

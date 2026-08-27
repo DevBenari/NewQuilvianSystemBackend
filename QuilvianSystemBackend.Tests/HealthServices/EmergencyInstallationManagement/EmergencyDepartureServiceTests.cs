@@ -43,7 +43,7 @@ public class EmergencyDepartureServiceTests
     public async Task Depart_MenambahKejadianDanMemperbaruiStatusDalamSatuSave()
     {
         var (db, service) = World();
-        var departure = new TrxEmergencyDeparture
+        var departure = new EmgDeparture
         {
             Id = Guid.NewGuid(), EmergencyVisitId = Guid.NewGuid(), DepartureNumber = "DEP-1",
             ToServiceUnitId = Guid.NewGuid(), RequestedByUserId = Guid.NewGuid(),
@@ -60,7 +60,7 @@ public class EmergencyDepartureServiceTests
 
         Assert.True(result.Berhasil);
         Assert.Equal(EmergencyPhysicalStatus.Departed, departure.PhysicalStatus);
-        var recorded = await db.Set<TrxEmergencyDepartureEvent>().SingleAsync();
+        var recorded = await db.Set<EmgDepartureEvent>().SingleAsync();
         Assert.Equal(EmergencyDepartureEventType.Departed, recorded.EventType);
         Assert.Equal(occurredAt, recorded.OccurredAt);
         Assert.True(recorded.IsEffective);
@@ -71,7 +71,7 @@ public class EmergencyDepartureServiceTests
     {
         var (db, service) = World();
         var departureId = Guid.NewGuid();
-        var oldEvent = new TrxEmergencyDepartureEvent
+        var oldEvent = new EmgDepartureEvent
         {
             Id = Guid.NewGuid(), EmergencyDepartureId = departureId,
             EventType = EmergencyDepartureEventType.Departed,
@@ -88,7 +88,7 @@ public class EmergencyDepartureServiceTests
             }, Guid.NewGuid());
 
         Assert.True(result.Berhasil);
-        Assert.Equal(2, await db.Set<TrxEmergencyDepartureEvent>().CountAsync());
+        Assert.Equal(2, await db.Set<EmgDepartureEvent>().CountAsync());
         Assert.False(oldEvent.IsEffective);
         Assert.Equal(oldEvent.Id, result.Data!.SupersedesEventId);
     }

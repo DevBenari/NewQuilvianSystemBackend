@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -42,6 +42,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public TrxEmergencyTriage? EmergencyTriage { get; set; }
 
-        public MstEmergencyTriageIndicator? TriageIndicator { get; set; }
+        public EmgTriageIndicator? TriageIndicator { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
@@ -101,9 +101,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public MstServiceUnit? ServiceUnit { get; set; }
 
-        public MstEmergencyArrivalMode? ArrivalMode { get; set; }
+        public EmgArrivalMode? ArrivalMode { get; set; }
 
-        public MstEmergencyCaseType? CaseType { get; set; }
+        public EmgCaseType? CaseType { get; set; }
 
         public ApplicationUser? RegistrationCompletedByUser { get; set; }
 
@@ -119,8 +119,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public ICollection<TrxEmergencyDisposition> Dispositions { get; set; }
             = new List<TrxEmergencyDisposition>();
 
-        public ICollection<TrxEmergencyDeparture> Departures { get; set; }
-            = new List<TrxEmergencyDeparture>();
+        public ICollection<EmgDeparture> Departures { get; set; }
+            = new List<EmgDeparture>();
 
         public ICollection<TrxEmergencyProcedureDetail> ProcedureDetails { get; set; }
             = new List<TrxEmergencyProcedureDetail>();

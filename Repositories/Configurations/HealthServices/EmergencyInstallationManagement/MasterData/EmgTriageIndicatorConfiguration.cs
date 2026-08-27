@@ -1,14 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.EmergencyInstallationManagement.MasterData
 {
-    public class MstEmergencyTriageIndicatorConfiguration : IEntityTypeConfiguration<MstEmergencyTriageIndicator>
+    public class EmgTriageIndicatorConfiguration : IEntityTypeConfiguration<EmgTriageIndicator>
     {
-        public void Configure(EntityTypeBuilder<MstEmergencyTriageIndicator> builder)
+        public void Configure(EntityTypeBuilder<EmgTriageIndicator> builder)
         {
-            builder.ToTable("MstEmergencyTriageIndicator", "public");
+            builder.ToTable("EmgTriageIndicator", "public");
 
             builder.HasKey(x => x.Id);
 

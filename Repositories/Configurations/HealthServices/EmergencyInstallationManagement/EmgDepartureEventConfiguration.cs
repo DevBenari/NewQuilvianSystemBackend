@@ -4,11 +4,11 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.EmergencyInstallationManagement
 {
-    public class TrxEmergencyDepartureEventConfiguration : IEntityTypeConfiguration<TrxEmergencyDepartureEvent>
+    public class EmgDepartureEventConfiguration : IEntityTypeConfiguration<EmgDepartureEvent>
     {
-        public void Configure(EntityTypeBuilder<TrxEmergencyDepartureEvent> builder)
+        public void Configure(EntityTypeBuilder<EmgDepartureEvent> builder)
         {
-            builder.ToTable("TrxEmergencyDepartureEvent", "public");
+            builder.ToTable("EmgDepartureEvent", "public");
             builder.HasKey(x => x.Id);
             builder.Property(x => x.EventType).HasConversion<int>();
             builder.HasIndex(x => new { x.EmergencyDepartureId, x.OccurredAt });

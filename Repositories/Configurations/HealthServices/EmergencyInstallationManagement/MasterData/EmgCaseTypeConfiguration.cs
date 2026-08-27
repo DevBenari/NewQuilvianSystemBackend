@@ -1,14 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.EmergencyInstallationManagement.MasterData
 {
-    public class MstEmergencyDispositionTypeConfiguration : IEntityTypeConfiguration<MstEmergencyDispositionType>
+    public class EmgCaseTypeConfiguration : IEntityTypeConfiguration<EmgCaseType>
     {
-        public void Configure(EntityTypeBuilder<MstEmergencyDispositionType> builder)
+        public void Configure(EntityTypeBuilder<EmgCaseType> builder)
         {
-            builder.ToTable("MstEmergencyDispositionType", "public");
+            builder.ToTable("EmgCaseType", "public");
 
             builder.HasKey(x => x.Id);
 
@@ -24,12 +24,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Emerg
 
             builder.HasIndex(x => x.Code).IsUnique();
             builder.HasIndex(x => new { x.IsActive, x.Sequence });
-            builder.HasIndex(x => new
-            {
-                x.RequiresDestinationServiceUnit,
-                x.RequiresReferralFacility,
-                x.ClosesEmergencyVisit
-            });
         }
     }
 }

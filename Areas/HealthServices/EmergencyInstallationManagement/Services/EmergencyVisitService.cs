@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
@@ -28,10 +28,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _documentNumberService = documentNumberService;
         }
 
-        public async Task<MstEmergencySetting?> GetActiveSettingAsync(
+        public async Task<EmgSetting?> GetActiveSettingAsync(
             CancellationToken cancellationToken = default)
         {
-            return await _dbContext.Set<MstEmergencySetting>()
+            return await _dbContext.Set<EmgSetting>()
                 .AsNoTracking()
                 .Where(x => x.IsActive && !x.IsDelete)
                 .OrderByDescending(x => x.IsDefault)
@@ -129,14 +129,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (request.ArrivalModeId.HasValue &&
                 request.ArrivalModeId.Value != Guid.Empty &&
-                !await _dbContext.Set<MstEmergencyArrivalMode>()
+                !await _dbContext.Set<EmgArrivalMode>()
                     .AsNoTracking()
                     .AnyAsync(x => x.Id == request.ArrivalModeId.Value && !x.IsDelete, cancellationToken))
                 return "ArrivalModeId tidak ditemukan.";
 
             if (request.CaseTypeId.HasValue &&
                 request.CaseTypeId.Value != Guid.Empty &&
-                !await _dbContext.Set<MstEmergencyCaseType>()
+                !await _dbContext.Set<EmgCaseType>()
                     .AsNoTracking()
                     .AnyAsync(x => x.Id == request.CaseTypeId.Value && !x.IsDelete, cancellationToken))
                 return "CaseTypeId tidak ditemukan.";

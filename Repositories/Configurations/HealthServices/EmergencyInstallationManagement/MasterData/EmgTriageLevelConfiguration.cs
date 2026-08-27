@@ -1,14 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.EmergencyInstallationManagement.MasterData
 {
-    public class MstEmergencyTriageLevelConfiguration : IEntityTypeConfiguration<MstEmergencyTriageLevel>
+    public class EmgTriageLevelConfiguration : IEntityTypeConfiguration<EmgTriageLevel>
     {
-        public void Configure(EntityTypeBuilder<MstEmergencyTriageLevel> builder)
+        public void Configure(EntityTypeBuilder<EmgTriageLevel> builder)
         {
-            builder.ToTable("MstEmergencyTriageLevel", "public");
+            builder.ToTable("EmgTriageLevel", "public");
 
             builder.HasKey(x => x.Id);
 
@@ -32,11 +32,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Emerg
             // 0 disediakan untuk kategori Hitam yang berada di luar skala antrean, sehingga
             // kelima nilai skala antrean (1-5) tetap utuh untuk L1 sampai L5.
             builder.HasCheckConstraint(
-                "CK_MstEmergencyTriageLevel_Level",
+                "CK_EmgTriageLevel_Level",
                 "\"Level\" >= 0 AND \"Level\" <= 5");
 
             builder.HasCheckConstraint(
-                "CK_MstEmergencyTriageLevel_MaxWaitingMinutes",
+                "CK_EmgTriageLevel_MaxWaitingMinutes",
                 "\"MaxWaitingMinutes\" >= 0");
 
             builder.HasIndex(x => x.Code).IsUnique();

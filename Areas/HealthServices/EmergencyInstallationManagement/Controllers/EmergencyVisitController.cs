@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
@@ -516,7 +516,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             // petugas yang menutup wajib tahu bahwa ia meninggalkan berkas yang belum tuntas di
             // unit tujuan. Menahan penutupan dan membiarkannya diam-diam sama-sama salah; yang
             // benar adalah menutup sambil menyebutkannya.
-            var dokumenMenggantung = await _dbContext.Set<TrxEmergencyDeparture>()
+            var dokumenMenggantung = await _dbContext.Set<EmgDeparture>()
                 .AsNoTracking()
                 .Where(x => x.EmergencyVisitId == entity.Id
                     && !x.IsDelete
@@ -582,7 +582,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 (!request.EncounterId.HasValue || request.EncounterId.Value == Guid.Empty))
                 return "EncounterId wajib tersedia ketika registrasi IGD sudah terdaftar atau selesai.";
 
-            var emergencySetting = await _dbContext.Set<MstEmergencySetting>()
+            var emergencySetting = await _dbContext.Set<EmgSetting>()
                 .AsNoTracking()
                 .Where(x => x.IsActive && !x.IsDelete)
                 .OrderByDescending(x => x.IsDefault)
@@ -625,11 +625,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return "ServiceUnitId tidak ditemukan.";
 
             if (request.ArrivalModeId.HasValue && request.ArrivalModeId.Value != Guid.Empty &&
-                !await _dbContext.Set<MstEmergencyArrivalMode>().AsNoTracking().AnyAsync(x => x.Id == request.ArrivalModeId.Value && !x.IsDelete, cancellationToken))
+                !await _dbContext.Set<EmgArrivalMode>().AsNoTracking().AnyAsync(x => x.Id == request.ArrivalModeId.Value && !x.IsDelete, cancellationToken))
                 return "ArrivalModeId tidak ditemukan.";
 
             if (request.CaseTypeId.HasValue && request.CaseTypeId.Value != Guid.Empty &&
-                !await _dbContext.Set<MstEmergencyCaseType>().AsNoTracking().AnyAsync(x => x.Id == request.CaseTypeId.Value && !x.IsDelete, cancellationToken))
+                !await _dbContext.Set<EmgCaseType>().AsNoTracking().AnyAsync(x => x.Id == request.CaseTypeId.Value && !x.IsDelete, cancellationToken))
                 return "CaseTypeId tidak ditemukan.";
 
             return null;

@@ -1,12 +1,12 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models
 {
-    [Table("MstEmergencyArrivalMode", Schema = "public")]
-    public class MstEmergencyArrivalMode : IdentityModel
+    [Table("EmgArrivalMode", Schema = "public")]
+    public class EmgArrivalMode : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 

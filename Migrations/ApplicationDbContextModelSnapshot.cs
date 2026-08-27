@@ -61566,7 +61566,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxLabTransitionHistory", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models.MstEmergencyArrivalMode", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgArrivalMode", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -61637,10 +61637,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("IsAmbulance", "IsReferral");
 
-                    b.ToTable("MstEmergencyArrivalMode", "public");
+                    b.ToTable("EmgArrivalMode", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyCaseType", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgCaseType", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -61703,10 +61703,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("IsActive", "Sequence");
 
-                    b.ToTable("MstEmergencyCaseType", "public");
+                    b.ToTable("EmgCaseType", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyDispositionType", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgDispositionType", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -61780,10 +61780,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("RequiresDestinationServiceUnit", "RequiresReferralFacility", "ClosesEmergencyVisit");
 
-                    b.ToTable("MstEmergencyDispositionType", "public");
+                    b.ToTable("EmgDispositionType", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencySetting", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgSetting", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -61885,15 +61885,15 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("IsActive", "IsDefault");
 
-                    b.ToTable("MstEmergencySetting", "public", t =>
+                    b.ToTable("EmgSetting", "public", t =>
                         {
-                            t.HasCheckConstraint("CK_MstEmergencySetting_ImmediateCareLevelThreshold", "\"ImmediateCareLevelThreshold\" >= 1 AND \"ImmediateCareLevelThreshold\" <= 5");
+                            t.HasCheckConstraint("CK_EmgSetting_ImmediateCareLevelThreshold", "\"ImmediateCareLevelThreshold\" >= 1 AND \"ImmediateCareLevelThreshold\" <= 5");
 
-                            t.HasCheckConstraint("CK_MstEmergencySetting_RequireRegistrationLevel", "\"RequireRegistrationBeforeTreatmentFromLevel\" >= 1 AND \"RequireRegistrationBeforeTreatmentFromLevel\" <= 5");
+                            t.HasCheckConstraint("CK_EmgSetting_RequireRegistrationLevel", "\"RequireRegistrationBeforeTreatmentFromLevel\" >= 1 AND \"RequireRegistrationBeforeTreatmentFromLevel\" <= 5");
                         });
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyTriageIndicator", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgTriageIndicator", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -61966,10 +61966,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("TriageLevelId", "Sequence")
                         .IsUnique();
 
-                    b.ToTable("MstEmergencyTriageIndicator", "public");
+                    b.ToTable("EmgTriageIndicator", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyTriageLevel", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgTriageLevel", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -62056,11 +62056,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("TriageSystem", "Level")
                         .IsUnique();
 
-                    b.ToTable("MstEmergencyTriageLevel", "public", t =>
+                    b.ToTable("EmgTriageLevel", "public", t =>
                         {
-                            t.HasCheckConstraint("CK_MstEmergencyTriageLevel_Level", "\"Level\" >= 0 AND \"Level\" <= 5");
+                            t.HasCheckConstraint("CK_EmgTriageLevel_Level", "\"Level\" >= 0 AND \"Level\" <= 5");
 
-                            t.HasCheckConstraint("CK_MstEmergencyTriageLevel_MaxWaitingMinutes", "\"MaxWaitingMinutes\" >= 0");
+                            t.HasCheckConstraint("CK_EmgTriageLevel_MaxWaitingMinutes", "\"MaxWaitingMinutes\" >= 0");
                         });
                 });
 
@@ -89591,7 +89591,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("DestinationServiceUnitId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyDispositionType", "DispositionType")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgDispositionType", "DispositionType")
                         .WithMany("EmergencyDispositions")
                         .HasForeignKey("DispositionTypeId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -89814,7 +89814,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("ReviewedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyTriageLevel", "TriageLevel")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgTriageLevel", "TriageLevel")
                         .WithMany("Triages")
                         .HasForeignKey("TriageLevelId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -89841,7 +89841,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyTriageIndicator", "TriageIndicator")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgTriageIndicator", "TriageIndicator")
                         .WithMany("TriageDetails")
                         .HasForeignKey("TriageIndicatorId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -89853,12 +89853,12 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.TrxEmergencyVisit", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyArrivalMode", "ArrivalMode")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgArrivalMode", "ArrivalMode")
                         .WithMany("EmergencyVisits")
                         .HasForeignKey("ArrivalModeId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyCaseType", "CaseType")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgCaseType", "CaseType")
                         .WithMany("EmergencyVisits")
                         .HasForeignKey("CaseTypeId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -90317,7 +90317,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("LabSpecimen");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models.MstEmergencySetting", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgSetting", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "DefaultEmergencyServiceUnit")
                         .WithMany()
@@ -90328,9 +90328,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("DefaultEmergencyServiceUnit");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyTriageIndicator", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgTriageIndicator", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyTriageLevel", "TriageLevel")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgTriageLevel", "TriageLevel")
                         .WithMany("Indicators")
                         .HasForeignKey("TriageLevelId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -93218,27 +93218,27 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("StatusHistories");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyArrivalMode", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgArrivalMode", b =>
                 {
                     b.Navigation("EmergencyVisits");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyCaseType", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgCaseType", b =>
                 {
                     b.Navigation("EmergencyVisits");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyDispositionType", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgDispositionType", b =>
                 {
                     b.Navigation("EmergencyDispositions");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyTriageIndicator", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgTriageIndicator", b =>
                 {
                     b.Navigation("TriageDetails");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.MstEmergencyTriageLevel", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models.EmgTriageLevel", b =>
                 {
                     b.Navigation("Indicators");
 

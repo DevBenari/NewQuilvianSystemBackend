@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
@@ -59,7 +59,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         )
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
-            IQueryable<MstEmergencyTriageLevel> query = _dbContext.Set<MstEmergencyTriageLevel>().AsNoTracking().Where(x => !x.IsDelete);
+            IQueryable<EmgTriageLevel> query = _dbContext.Set<EmgTriageLevel>().AsNoTracking().Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -114,7 +114,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriageLevel", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<MstEmergencyTriageLevel>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgTriageLevel>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data master level triage IGD tidak ditemukan."));
 
@@ -127,7 +127,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriageLevel", "Read")]
         public async Task<IActionResult> GetOptions(CancellationToken cancellationToken = default)
         {
-            var entities = await _dbContext.Set<MstEmergencyTriageLevel>().AsNoTracking()
+            var entities = await _dbContext.Set<EmgTriageLevel>().AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive)
                 .OrderBy(x => x.Sequence)
                 .ToListAsync(cancellationToken);
@@ -160,16 +160,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validationMessage));
 
             var normalizedCode = NormalizeText(request.Code) ?? string.Empty;
-            if (await _dbContext.Set<MstEmergencyTriageLevel>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.Code.ToLower() == normalizedCode.ToLower(), cancellationToken))
+            if (await _dbContext.Set<EmgTriageLevel>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.Code.ToLower() == normalizedCode.ToLower(), cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Kode sudah digunakan."));
 
-            if (await _dbContext.Set<MstEmergencyTriageLevel>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.TriageSystem == request.TriageSystem && x.Level == request.Level, cancellationToken))
+            if (await _dbContext.Set<EmgTriageLevel>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.TriageSystem == request.TriageSystem && x.Level == request.Level, cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Level pada sistem triage tersebut sudah tersedia."));
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            var entity = new MstEmergencyTriageLevel
+            var entity = new EmgTriageLevel
             {
                 Id = Guid.NewGuid(),
                 TriageSystem = request.TriageSystem,
@@ -189,7 +189,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 IsCancel = false
             };
 
-            _dbContext.Set<MstEmergencyTriageLevel>().Add(entity);
+            _dbContext.Set<EmgTriageLevel>().Add(entity);
             try
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -218,7 +218,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriageLevel", "Update")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmergencyTriageLevelRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<MstEmergencyTriageLevel>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgTriageLevel>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data master level triage IGD tidak ditemukan."));
 
@@ -227,10 +227,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validationMessage));
 
             var normalizedCode = NormalizeText(request.Code) ?? string.Empty;
-            if (await _dbContext.Set<MstEmergencyTriageLevel>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.Code.ToLower() == normalizedCode.ToLower() && x.Id != id, cancellationToken))
+            if (await _dbContext.Set<EmgTriageLevel>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.Code.ToLower() == normalizedCode.ToLower() && x.Id != id, cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Kode sudah digunakan."));
 
-            if (await _dbContext.Set<MstEmergencyTriageLevel>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.TriageSystem == request.TriageSystem && x.Level == request.Level && x.Id != id, cancellationToken))
+            if (await _dbContext.Set<EmgTriageLevel>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.TriageSystem == request.TriageSystem && x.Level == request.Level && x.Id != id, cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Level pada sistem triage tersebut sudah tersedia."));
 
             var now = DateTime.UtcNow;
@@ -275,7 +275,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriageLevel", "Delete")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<MstEmergencyTriageLevel>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgTriageLevel>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data master level triage IGD tidak ditemukan."));
 
@@ -322,7 +322,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private Task<string?> ValidateRequestAsync(UpdateEmergencyTriageLevelRequest request, CancellationToken cancellationToken)
             => ValidateRequestAsync((CreateEmergencyTriageLevelRequest)request, cancellationToken);
 
-        private static EmergencyTriageLevelResponse ToResponse(MstEmergencyTriageLevel x)
+        private static EmergencyTriageLevelResponse ToResponse(EmgTriageLevel x)
         {
             return new EmergencyTriageLevelResponse
             {
@@ -352,9 +352,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         private static string? NormalizeText(string? value)
             => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-        private static string GenerateDocumentNumber(string prefix, DateTime now)
-            => $"{prefix}-{now:yyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
 
         private Guid GetCurrentUserId()
         {

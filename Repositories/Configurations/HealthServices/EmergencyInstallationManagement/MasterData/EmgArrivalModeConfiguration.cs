@@ -1,14 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.EmergencyInstallationManagement.MasterData
 {
-    public class MstEmergencyArrivalModeConfiguration : IEntityTypeConfiguration<MstEmergencyArrivalMode>
+    public class EmgArrivalModeConfiguration : IEntityTypeConfiguration<EmgArrivalMode>
     {
-        public void Configure(EntityTypeBuilder<MstEmergencyArrivalMode> builder)
+        public void Configure(EntityTypeBuilder<EmgArrivalMode> builder)
         {
-            builder.ToTable("MstEmergencyArrivalMode", "public");
+            builder.ToTable("EmgArrivalMode", "public");
 
             builder.HasKey(x => x.Id);
 

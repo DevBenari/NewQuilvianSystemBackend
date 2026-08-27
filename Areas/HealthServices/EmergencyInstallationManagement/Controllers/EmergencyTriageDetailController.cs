@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
@@ -272,7 +272,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return "EmergencyTriageId tidak ditemukan.";
 
             if (request.TriageIndicatorId.HasValue && request.TriageIndicatorId.Value != Guid.Empty &&
-                !await _dbContext.Set<MstEmergencyTriageIndicator>().AsNoTracking().AnyAsync(x => x.Id == request.TriageIndicatorId.Value && !x.IsDelete, cancellationToken))
+                !await _dbContext.Set<EmgTriageIndicator>().AsNoTracking().AnyAsync(x => x.Id == request.TriageIndicatorId.Value && !x.IsDelete, cancellationToken))
                 return "TriageIndicatorId tidak ditemukan.";
 
             return null;

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
@@ -58,7 +58,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         )
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
-            IQueryable<MstEmergencyTriageIndicator> query = _dbContext.Set<MstEmergencyTriageIndicator>().AsNoTracking().Where(x => !x.IsDelete);
+            IQueryable<EmgTriageIndicator> query = _dbContext.Set<EmgTriageIndicator>().AsNoTracking().Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -111,7 +111,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriageIndicator", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<MstEmergencyTriageIndicator>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgTriageIndicator>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data master indikator triage IGD tidak ditemukan."));
 
@@ -124,7 +124,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriageIndicator", "Read")]
         public async Task<IActionResult> GetOptions(CancellationToken cancellationToken = default)
         {
-            var entities = await _dbContext.Set<MstEmergencyTriageIndicator>().AsNoTracking()
+            var entities = await _dbContext.Set<EmgTriageIndicator>().AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive)
                 .OrderBy(x => x.Sequence)
                 .ToListAsync(cancellationToken);
@@ -153,16 +153,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validationMessage));
 
             var normalizedCode = NormalizeText(request.Code) ?? string.Empty;
-            if (await _dbContext.Set<MstEmergencyTriageIndicator>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.Code.ToLower() == normalizedCode.ToLower(), cancellationToken))
+            if (await _dbContext.Set<EmgTriageIndicator>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.Code.ToLower() == normalizedCode.ToLower(), cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Kode sudah digunakan."));
 
-            if (await _dbContext.Set<MstEmergencyTriageIndicator>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.TriageLevelId == request.TriageLevelId && x.Code.ToLower() == normalizedCode.ToLower(), cancellationToken))
+            if (await _dbContext.Set<EmgTriageIndicator>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.TriageLevelId == request.TriageLevelId && x.Code.ToLower() == normalizedCode.ToLower(), cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Kode indikator pada level triage tersebut sudah digunakan."));
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            var entity = new MstEmergencyTriageIndicator
+            var entity = new EmgTriageIndicator
             {
                 Id = Guid.NewGuid(),
                 TriageLevelId = request.TriageLevelId,
@@ -178,7 +178,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 IsCancel = false
             };
 
-            _dbContext.Set<MstEmergencyTriageIndicator>().Add(entity);
+            _dbContext.Set<EmgTriageIndicator>().Add(entity);
             try
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -207,7 +207,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriageIndicator", "Update")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmergencyTriageIndicatorRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<MstEmergencyTriageIndicator>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgTriageIndicator>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data master indikator triage IGD tidak ditemukan."));
 
@@ -216,10 +216,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validationMessage));
 
             var normalizedCode = NormalizeText(request.Code) ?? string.Empty;
-            if (await _dbContext.Set<MstEmergencyTriageIndicator>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.Code.ToLower() == normalizedCode.ToLower() && x.Id != id, cancellationToken))
+            if (await _dbContext.Set<EmgTriageIndicator>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.Code.ToLower() == normalizedCode.ToLower() && x.Id != id, cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Kode sudah digunakan."));
 
-            if (await _dbContext.Set<MstEmergencyTriageIndicator>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.TriageLevelId == request.TriageLevelId && x.Code.ToLower() == normalizedCode.ToLower() && x.Id != id, cancellationToken))
+            if (await _dbContext.Set<EmgTriageIndicator>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.TriageLevelId == request.TriageLevelId && x.Code.ToLower() == normalizedCode.ToLower() && x.Id != id, cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Kode indikator pada level triage tersebut sudah digunakan."));
 
             var now = DateTime.UtcNow;
@@ -260,7 +260,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriageIndicator", "Delete")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<MstEmergencyTriageIndicator>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgTriageIndicator>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data master indikator triage IGD tidak ditemukan."));
 
@@ -293,7 +293,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (string.IsNullOrWhiteSpace(request.Name))
                 return "Name wajib diisi.";
 
-            if (!await _dbContext.Set<MstEmergencyTriageLevel>().AsNoTracking().AnyAsync(x => x.Id == request.TriageLevelId && !x.IsDelete, cancellationToken))
+            if (!await _dbContext.Set<EmgTriageLevel>().AsNoTracking().AnyAsync(x => x.Id == request.TriageLevelId && !x.IsDelete, cancellationToken))
                 return "TriageLevelId tidak ditemukan.";
 
             return null;
@@ -302,7 +302,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private Task<string?> ValidateRequestAsync(UpdateEmergencyTriageIndicatorRequest request, CancellationToken cancellationToken)
             => ValidateRequestAsync((CreateEmergencyTriageIndicatorRequest)request, cancellationToken);
 
-        private static EmergencyTriageIndicatorResponse ToResponse(MstEmergencyTriageIndicator x)
+        private static EmergencyTriageIndicatorResponse ToResponse(EmgTriageIndicator x)
         {
             return new EmergencyTriageIndicatorResponse
             {
@@ -328,9 +328,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         private static string? NormalizeText(string? value)
             => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-        private static string GenerateDocumentNumber(string prefix, DateTime now)
-            => $"{prefix}-{now:yyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
 
         private Guid GetCurrentUserId()
         {

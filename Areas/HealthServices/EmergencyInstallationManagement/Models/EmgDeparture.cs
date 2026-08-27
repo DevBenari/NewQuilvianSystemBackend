@@ -29,12 +29,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     ///
     /// <para>
     /// Kedua kolom status adalah <b>turunan</b> dari kejadian terakhir yang berlaku pada
-    /// <see cref="TrxEmergencyDepartureEvent"/>, bukan sumber kebenaran tandingan. Setiap
+    /// <see cref="EmgDepartureEvent"/>, bukan sumber kebenaran tandingan. Setiap
     /// penulisan kejadian memperbarui kolom status dalam transaksi yang sama.
     /// </para>
     /// </remarks>
-    [Table("TrxEmergencyDeparture", Schema = "public")]
-    public class TrxEmergencyDeparture : IdentityModel
+    [Table("EmgDeparture", Schema = "public")]
+    public class EmgDeparture : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -141,10 +141,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public MstServiceUnit? ToServiceUnit { get; set; }
 
-        public ICollection<TrxEmergencyDepartureEvent> Events { get; set; }
-            = new List<TrxEmergencyDepartureEvent>();
+        public ICollection<EmgDepartureEvent> Events { get; set; }
+            = new List<EmgDepartureEvent>();
 
-        public ICollection<TrxEmergencyHandoverOrderItem> OrderItems { get; set; }
-            = new List<TrxEmergencyHandoverOrderItem>();
+        public ICollection<EmgHandoverOrderItem> OrderItems { get; set; }
+            = new List<EmgHandoverOrderItem>();
     }
 }

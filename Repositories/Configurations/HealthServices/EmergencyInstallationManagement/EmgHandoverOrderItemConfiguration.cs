@@ -4,11 +4,11 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.EmergencyInstallationManagement
 {
-    public class TrxEmergencyHandoverOrderItemConfiguration : IEntityTypeConfiguration<TrxEmergencyHandoverOrderItem>
+    public class EmgHandoverOrderItemConfiguration : IEntityTypeConfiguration<EmgHandoverOrderItem>
     {
-        public void Configure(EntityTypeBuilder<TrxEmergencyHandoverOrderItem> builder)
+        public void Configure(EntityTypeBuilder<EmgHandoverOrderItem> builder)
         {
-            builder.ToTable("TrxEmergencyHandoverOrderItem", "public", table =>
+            builder.ToTable("EmgHandoverOrderItem", "public", table =>
             {
                 table.HasCheckConstraint("CK_EmergencyOrderItem_Reference", "(\"OrderSource\" = 1 AND \"OrderReferenceId\" IS NOT NULL AND \"ExternalReference\" IS NULL) OR (\"OrderSource\" = 2 AND \"OrderReferenceId\" IS NULL AND \"ExternalReference\" IS NOT NULL)");
             });

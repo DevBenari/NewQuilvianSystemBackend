@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
@@ -53,7 +53,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (!visitExists)
                 return "EmergencyVisitId tidak ditemukan atau kunjungan sudah ditutup.";
 
-            var level = await _dbContext.Set<MstEmergencyTriageLevel>()
+            var level = await _dbContext.Set<EmgTriageLevel>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     x => x.Id == request.TriageLevelId && !x.IsDelete && x.IsActive,
@@ -96,11 +96,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             CancellationToken cancellationToken = default)
             => ValidateRequestAsync((CreateEmergencyTriageRequest)request, cancellationToken);
 
-        public async Task<MstEmergencyTriageLevel> GetTriageLevelAsync(
+        public async Task<EmgTriageLevel> GetTriageLevelAsync(
             Guid triageLevelId,
             CancellationToken cancellationToken = default)
         {
-            return await _dbContext.Set<MstEmergencyTriageLevel>()
+            return await _dbContext.Set<EmgTriageLevel>()
                 .AsNoTracking()
                 .FirstAsync(
                     x => x.Id == triageLevelId && !x.IsDelete && x.IsActive,
@@ -155,7 +155,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (request.TriageLevelId == Guid.Empty)
                 return RetriageOutcome.BadRequest("TriageLevelId wajib diisi.");
 
-            var level = await _dbContext.Set<MstEmergencyTriageLevel>()
+            var level = await _dbContext.Set<EmgTriageLevel>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     x => x.Id == request.TriageLevelId && !x.IsDelete && x.IsActive,

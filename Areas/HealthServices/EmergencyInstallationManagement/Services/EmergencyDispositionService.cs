@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
@@ -48,7 +48,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (visit.VisitStatus is EmergencyVisitStatus.Disposed or EmergencyVisitStatus.Cancelled)
                 return "Kunjungan IGD sudah ditutup dan tidak dapat menerima disposition baru.";
 
-            var dispositionType = await _dbContext.Set<MstEmergencyDispositionType>()
+            var dispositionType = await _dbContext.Set<EmgDispositionType>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     x => x.Id == request.DispositionTypeId && !x.IsDelete && x.IsActive,
@@ -73,7 +73,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (request.DispositionStatus == EmergencyDispositionStatus.Executed)
             {
-                var setting = await _dbContext.Set<MstEmergencySetting>()
+                var setting = await _dbContext.Set<EmgSetting>()
                     .AsNoTracking()
                     .Where(x => x.IsActive && !x.IsDelete)
                     .OrderByDescending(x => x.IsDefault)
@@ -120,7 +120,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             // IGD-DEC-106: hanya keadaan fisik pasien yang menahan penutupan. Dokumen
             // serah-terima yang belum final tetap tersimpan dan dapat ditindaklanjuti.
-            var adaKepergianBelumTuntas = await _dbContext.Set<TrxEmergencyDeparture>()
+            var adaKepergianBelumTuntas = await _dbContext.Set<EmgDeparture>()
                 .AsNoTracking()
                 .AnyAsync(
                     x => x.EmergencyVisitId == visit.Id
@@ -132,7 +132,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (adaKepergianBelumTuntas)
                 return "Masih ada proses kepergian pasien yang belum selesai.";
 
-            var pesananBelumTuntas = await _dbContext.Set<TrxEmergencyHandoverOrderItem>()
+            var pesananBelumTuntas = await _dbContext.Set<EmgHandoverOrderItem>()
                 .AsNoTracking()
                 .AnyAsync(x => !x.IsDelete
                     && x.IsEffective

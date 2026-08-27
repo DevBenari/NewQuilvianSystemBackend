@@ -218,7 +218,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         }
 
         private async Task<IActionResult> ExecuteDeparture(Guid id, string action,
-            Func<CancellationToken, Task<EmergencyDepartureService.Hasil<TrxEmergencyDeparture>>> operation,
+            Func<CancellationToken, Task<EmergencyDepartureService.Hasil<EmgDeparture>>> operation,
             CancellationToken cancellationToken)
         {
             var result = await operation(cancellationToken);

@@ -29,8 +29,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     /// siapa pun sesudahnya.
     /// </para>
     /// </remarks>
-    [Table("TrxEmergencyDepartureEvent", Schema = "public")]
-    public class TrxEmergencyDepartureEvent : IdentityModel
+    [Table("EmgDepartureEvent", Schema = "public")]
+    public class EmgDepartureEvent : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -81,8 +81,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public bool IsActive { get; set; } = true;
 
-        public TrxEmergencyDeparture? EmergencyDeparture { get; set; }
+        public EmgDeparture? EmergencyDeparture { get; set; }
 
-        public TrxEmergencyDepartureEvent? SupersedesEvent { get; set; }
+        public EmgDepartureEvent? SupersedesEvent { get; set; }
     }
 }

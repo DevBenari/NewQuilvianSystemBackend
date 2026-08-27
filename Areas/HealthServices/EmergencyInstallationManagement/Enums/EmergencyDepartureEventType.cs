@@ -1,11 +1,11 @@
 ﻿namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums
 {
     /// <summary>
-    /// Jenis kejadian pada <c>TrxEmergencyDepartureEvent</c> yang bersifat tambah-saja.
+    /// Jenis kejadian pada <c>EmgDepartureEvent</c> yang bersifat tambah-saja.
     /// </summary>
     /// <remarks>
     /// <c>BE-IGD-033</c>, keputusan <c>IGD-DEC-090</c>. Kolom status pada
-    /// <c>TrxEmergencyDeparture</c> adalah <b>turunan</b> dari kejadian terakhir yang
+    /// <c>EmgDeparture</c> adalah <b>turunan</b> dari kejadian terakhir yang
     /// berlaku, bukan sumber kebenaran tandingan.
     /// </remarks>
     public enum EmergencyDepartureEventType

@@ -1,14 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.EmergencyInstallationManagement.MasterData
 {
-    public class MstEmergencySettingConfiguration : IEntityTypeConfiguration<MstEmergencySetting>
+    public class EmgSettingConfiguration : IEntityTypeConfiguration<EmgSetting>
     {
-        public void Configure(EntityTypeBuilder<MstEmergencySetting> builder)
+        public void Configure(EntityTypeBuilder<EmgSetting> builder)
         {
-            builder.ToTable("MstEmergencySetting", "public");
+            builder.ToTable("EmgSetting", "public");
 
             builder.HasKey(x => x.Id);
 
@@ -33,11 +33,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Emerg
             builder.Property(x => x.Notes).HasMaxLength(1000);
 
             builder.HasCheckConstraint(
-                "CK_MstEmergencySetting_ImmediateCareLevelThreshold",
+                "CK_EmgSetting_ImmediateCareLevelThreshold",
                 "\"ImmediateCareLevelThreshold\" >= 1 AND \"ImmediateCareLevelThreshold\" <= 5");
 
             builder.HasCheckConstraint(
-                "CK_MstEmergencySetting_RequireRegistrationLevel",
+                "CK_EmgSetting_RequireRegistrationLevel",
                 "\"RequireRegistrationBeforeTreatmentFromLevel\" >= 1 AND \"RequireRegistrationBeforeTreatmentFromLevel\" <= 5");
 
             builder.HasIndex(x => x.Code).IsUnique();
