@@ -97,7 +97,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public async Task<AttendanceProcessingSummaryResponse> GetSummaryAsync(
             CancellationToken cancellationToken = default)
         {
-            var runs = _dbContext.Set<TrxAttendanceProcessingRun>()
+            var runs = _dbContext.Set<HrdAttendanceProcessingRun>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
@@ -116,7 +116,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 TotalSuccess = await runs.SumAsync(x => (int?)x.SuccessCount, cancellationToken) ?? 0,
                 TotalFailed = await runs.SumAsync(x => (int?)x.FailedCount, cancellationToken) ?? 0,
                 TotalSkipped = await runs.SumAsync(x => (int?)x.SkippedCount, cancellationToken) ?? 0,
-                ProcessedToday = await _dbContext.Set<TrxAttendanceDaily>()
+                ProcessedToday = await _dbContext.Set<HrdAttendanceDaily>()
                     .AsNoTracking()
                     .CountAsync(x =>
                         !x.IsDelete &&
@@ -124,7 +124,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                         x.ProcessedAt < tomorrow &&
                         x.ProcessingStatus == AttendanceValueConstants.AttendanceProcessingStatus.Processed,
                         cancellationToken),
-                ErrorToday = await _dbContext.Set<TrxAttendanceDaily>()
+                ErrorToday = await _dbContext.Set<HrdAttendanceDaily>()
                     .AsNoTracking()
                     .CountAsync(x =>
                         !x.IsDelete &&
@@ -202,7 +202,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid id,
             CancellationToken cancellationToken = default)
         {
-            return await _dbContext.Set<TrxAttendanceProcessingRun>()
+            return await _dbContext.Set<HrdAttendanceProcessingRun>()
                 .AsNoTracking()
                 .Where(x => x.Id == id && !x.IsDelete)
                 .Select(x => new AttendanceProcessingRunDetailResponse
@@ -483,7 +483,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var existing = await _dbContext.Set<TrxAttendanceDaily>()
+            var existing = await _dbContext.Set<HrdAttendanceDaily>()
                 .AsNoTracking()
                 .Where(x => x.Id == attendanceDailyId && !x.IsDelete)
                 .Select(x => new
@@ -547,6 +547,28 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 DetachProcessingItemEntries();
                 return result;
             }
+            catch (DbUpdateConcurrencyException exception)
+            {
+                var concurrencyConflict = DescribeConcurrencyConflict(exception);
+                await transaction.RollbackAsync(cancellationToken);
+                DetachChangedEntries();
+
+                return new AttendanceProcessingItemResponse
+                {
+                    WorkforceProfileId = workforce.WorkforceProfileId,
+                    WorkforceProfileCode = workforce.ProfileCode,
+                    WorkforceDisplayName = workforce.DisplayName,
+                    WorkDate = workDate,
+                    Success = false,
+                    IsSkipped = false,
+                    AttendanceStatus = AttendanceValueConstants.AttendanceStatus.Unprocessed,
+                    ProcessingStatus = AttendanceValueConstants.AttendanceProcessingStatus.Error,
+                    ScheduleSource = AttendanceValueConstants.ScheduleSource.Unresolved,
+                    Message = LimitMessage(concurrencyConflict, 1000),
+                    PayrollInputStatus = AttendanceValueConstants.PayrollInputStatus.Blocked,
+                    IsPayrollEligible = false
+                };
+            }
             catch (Exception exception)
             {
                 await transaction.RollbackAsync(cancellationToken);
@@ -577,9 +599,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid actorUserId,
             CancellationToken cancellationToken)
         {
-            var existingDaily = await _dbContext.Set<TrxAttendanceDaily>()
-                .Include(x => x.Segments.Where(y => !y.IsDelete))
-                .Include(x => x.Exceptions.Where(y => !y.IsDelete && y.IsAutoDetected))
+            IQueryable<HrdAttendanceDaily> existingDailyQuery = _dbContext.Set<HrdAttendanceDaily>()
+                .Include(x => x.Exceptions.Where(y => !y.IsDelete && y.IsAutoDetected));
+
+            if (!forceReprocess)
+            {
+                existingDailyQuery = existingDailyQuery
+                    .Include(x => x.Segments.Where(y => !y.IsDelete));
+            }
+
+            var existingDaily = await existingDailyQuery
                 .FirstOrDefaultAsync(x =>
                     x.WorkforceProfileId == workforce.WorkforceProfileId &&
                     x.AttendanceDate == workDate &&
@@ -624,7 +653,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             if (existingDaily != null && forceReprocess)
             {
-                var previouslyLinked = await _dbContext.Set<TrxAttendanceRawLog>()
+                var previouslyLinked = await _dbContext.Set<HrdAttendanceRawLog>()
                     .Where(x =>
                         x.ProcessedAttendanceDailyId == existingDaily.Id &&
                         !x.IsDelete)
@@ -641,7 +670,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 }
             }
 
-            var rawLogs = await _dbContext.Set<TrxAttendanceRawLog>()
+            var rawLogs = await _dbContext.Set<HrdAttendanceRawLog>()
                 .Include(x => x.AttendanceLocation)
                 .Where(x =>
                     x.WorkforceProfileId == workforce.WorkforceProfileId &&
@@ -661,7 +690,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             var isCreated = existingDaily == null;
             if (isCreated)
             {
-                _dbContext.Set<TrxAttendanceDaily>().Add(daily);
+                _dbContext.Set<HrdAttendanceDaily>().Add(daily);
             }
 
             daily.UserId = workforce.UserId;
@@ -696,10 +725,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             daily.UpdateDateTime = DateTime.UtcNow;
             daily.UpdateBy = actorUserId;
 
-            RemoveProcessorSegments(daily, actorUserId);
-            // Simpan soft-delete segment lama lebih dahulu agar unique filtered index
-            // AttendanceDailyId + SegmentOrder tidak bentrok dengan segment hasil hitung ulang.
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await SoftDeleteProcessorSegmentsAsync(daily.Id, actorUserId, cancellationToken);
 
             var punchResult = BuildPunchResult(rawLogs, schedule, policy);
             ApplyPunchResult(daily, punchResult, schedule, policy);
@@ -768,12 +794,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             };
         }
 
-        private static TrxAttendanceDaily CreateDaily(
+        private static HrdAttendanceDaily CreateDaily(
             WorkforceRuntime workforce,
             DateOnly workDate,
             Guid actorUserId)
         {
-            return new TrxAttendanceDaily
+            return new HrdAttendanceDaily
             {
                 Id = Guid.NewGuid(),
                 UserId = workforce.UserId,
@@ -795,7 +821,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static AttendanceProcessingItemResponse MapSkipped(
-            TrxAttendanceDaily daily,
+            HrdAttendanceDaily daily,
             WorkforceRuntime workforce,
             string message)
         {
@@ -829,7 +855,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static PunchResult BuildPunchResult(
-            List<TrxAttendanceRawLog> rawLogs,
+            List<HrdAttendanceRawLog> rawLogs,
             AttendanceScheduleResolutionResponse schedule,
             PolicyRuntime policy)
         {
@@ -882,7 +908,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             };
         }
 
-        private static List<BreakPair> BuildBreakPairs(List<TrxAttendanceRawLog> rawLogs)
+        private static List<BreakPair> BuildBreakPairs(List<HrdAttendanceRawLog> rawLogs)
         {
             var events = rawLogs
                 .Where(x =>
@@ -892,7 +918,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 .ToList();
 
             var pairs = new List<BreakPair>();
-            TrxAttendanceRawLog? open = null;
+            HrdAttendanceRawLog? open = null;
             foreach (var current in events)
             {
                 if (string.Equals(current.EventType, AttendanceValueConstants.RawLogEventType.BreakStart, StringComparison.OrdinalIgnoreCase))
@@ -917,7 +943,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static void ApplyPunchResult(
-            TrxAttendanceDaily daily,
+            HrdAttendanceDaily daily,
             PunchResult punch,
             AttendanceScheduleResolutionResponse schedule,
             PolicyRuntime policy)
@@ -1015,8 +1041,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static List<ExceptionDraft> BuildExceptions(
-            TrxAttendanceDaily daily,
-            List<TrxAttendanceRawLog> rawLogs,
+            HrdAttendanceDaily daily,
+            List<HrdAttendanceRawLog> rawLogs,
             AttendanceScheduleResolutionResponse schedule,
             PolicyRuntime policy,
             PunchResult punch)
@@ -1192,8 +1218,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return result;
         }
 
-        private static void SynchronizeExceptions(
-            TrxAttendanceDaily daily,
+        private void SynchronizeExceptions(
+            HrdAttendanceDaily daily,
             List<ExceptionDraft> desired,
             Guid actorUserId)
         {
@@ -1225,7 +1251,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
             foreach (var draft in desired.Where(x => !handledCodes.Contains(x.ExceptionCode)))
             {
-                var entity = new TrxAttendanceException
+                var entity = new HrdAttendanceException
                 {
                     Id = Guid.NewGuid(),
                     AttendanceDailyId = daily.Id,
@@ -1241,12 +1267,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 };
 
                 ApplyExceptionDraft(entity, draft, actorUserId, now);
-                daily.Exceptions.Add(entity);
+                AddNewException(daily, entity);
             }
         }
 
+        private void AddNewException(
+            HrdAttendanceDaily daily,
+            HrdAttendanceException exceptionEntity)
+        {
+            daily.Exceptions.Add(exceptionEntity);
+
+            // Exception hasil auto-detection yang baru harus menjadi INSERT.
+            // Pada reprocess, parent Daily sudah existing/tracked sehingga entity
+            // baru dengan GUID non-empty dapat salah diperlakukan sebagai Modified.
+            _dbContext.Entry(exceptionEntity).State = EntityState.Added;
+        }
+
         private static void ApplyExceptionDraft(
-            TrxAttendanceException entity,
+            HrdAttendanceException entity,
             ExceptionDraft draft,
             Guid actorUserId,
             DateTime now)
@@ -1269,32 +1307,48 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             entity.UpdateBy = actorUserId;
         }
 
-        private static void RemoveProcessorSegments(TrxAttendanceDaily daily, Guid actorUserId)
+        private async Task SoftDeleteProcessorSegmentsAsync(
+            Guid attendanceDailyId,
+            Guid actorUserId,
+            CancellationToken cancellationToken)
         {
             var now = DateTime.UtcNow;
-            foreach (var segment in daily.Segments.Where(x =>
-                         !x.IsDelete &&
-                         !x.IsCorrected &&
-                         (x.SegmentSource == AttendanceValueConstants.AttendanceSegmentSource.Processor ||
-                          x.SegmentSource == AttendanceValueConstants.AttendanceSegmentSource.Roster)))
-            {
-                segment.IsDelete = true;
-                segment.IsActive = false;
-                segment.DeleteDateTime = now;
-                segment.DeleteBy = actorUserId;
-                segment.UpdateDateTime = now;
-                segment.UpdateBy = actorUserId;
-            }
+            await _dbContext.Set<HrdAttendanceDailySegment>()
+                .Where(x =>
+                    x.AttendanceDailyId == attendanceDailyId &&
+                    !x.IsDelete &&
+                    !x.IsCorrected &&
+                    (x.SegmentSource == AttendanceValueConstants.AttendanceSegmentSource.Processor ||
+                     x.SegmentSource == AttendanceValueConstants.AttendanceSegmentSource.Roster))
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.IsDelete, true)
+                    .SetProperty(x => x.IsActive, false)
+                    .SetProperty(x => x.DeleteDateTime, (DateTime?)now)
+                    .SetProperty(x => x.DeleteBy, actorUserId)
+                    .SetProperty(x => x.UpdateDateTime, (DateTime?)now)
+                    .SetProperty(x => x.UpdateBy, actorUserId), cancellationToken);
         }
 
-        private static void CreateSegments(
-            TrxAttendanceDaily daily,
+        private void AddNewSegment(
+            HrdAttendanceDaily daily,
+            HrdAttendanceDailySegment segment)
+        {
+            daily.Segments.Add(segment);
+
+            // Semua segment hasil processor/roster pada proses ini adalah row baru.
+            // Paksa state Added agar EF menghasilkan INSERT, bukan UPDATE terhadap
+            // GUID baru yang belum pernah ada di database.
+            _dbContext.Entry(segment).State = EntityState.Added;
+        }
+
+        private void CreateSegments(
+            HrdAttendanceDaily daily,
             AttendanceScheduleResolutionResponse schedule,
             PunchResult punch,
             Guid actorUserId)
         {
             var order = 1;
-            var workSegment = new TrxAttendanceDailySegment
+            var workSegment = new HrdAttendanceDailySegment
             {
                 Id = Guid.NewGuid(),
                 AttendanceDailyId = daily.Id,
@@ -1324,11 +1378,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 IsDelete = false,
                 IsCancel = false
             };
-            daily.Segments.Add(workSegment);
+            AddNewSegment(daily, workSegment);
 
             foreach (var pair in punch.BreakPairs)
             {
-                daily.Segments.Add(new TrxAttendanceDailySegment
+                var breakSegment = new HrdAttendanceDailySegment
                 {
                     Id = Guid.NewGuid(),
                     AttendanceDailyId = daily.Id,
@@ -1349,7 +1403,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     CreateBy = actorUserId,
                     IsDelete = false,
                     IsCancel = false
-                });
+                };
+
+                AddNewSegment(daily, breakSegment);
             }
 
             foreach (var assignment in schedule.AdditionalAssignments.OrderBy(x => x.ScheduledStartAt))
@@ -1360,7 +1416,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     continue;
                 }
 
-                daily.Segments.Add(new TrxAttendanceDailySegment
+                var additionalSegment = new HrdAttendanceDailySegment
                 {
                     Id = Guid.NewGuid(),
                     AttendanceDailyId = daily.Id,
@@ -1379,7 +1435,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     CreateBy = actorUserId,
                     IsDelete = false,
                     IsCancel = false
-                });
+                };
+
+                AddNewSegment(daily, additionalSegment);
             }
         }
 
@@ -1586,7 +1644,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return result;
         }
 
-        private async Task<TrxAttendanceProcessingRun> CreateRunAsync(
+        private async Task<HrdAttendanceProcessingRun> CreateRunAsync(
             string mode,
             string triggerSource,
             DateOnly startDate,
@@ -1603,7 +1661,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             CancellationToken cancellationToken)
         {
             var now = DateTime.UtcNow;
-            var run = new TrxAttendanceProcessingRun
+            var run = new HrdAttendanceProcessingRun
             {
                 Id = Guid.NewGuid(),
                 RunNumber = $"ATT-{now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
@@ -1630,13 +1688,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 IsCancel = false
             };
 
-            _dbContext.Set<TrxAttendanceProcessingRun>().Add(run);
+            _dbContext.Set<HrdAttendanceProcessingRun>().Add(run);
             await _dbContext.SaveChangesAsync(cancellationToken);
             return run;
         }
 
         private async Task CompleteRunAsync(
-            TrxAttendanceProcessingRun run,
+            HrdAttendanceProcessingRun run,
             IEnumerable<AttendanceProcessingItemResponse> items,
             CancellationToken cancellationToken)
         {
@@ -1656,10 +1714,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        private IQueryable<TrxAttendanceProcessingRun> BuildRunQuery(
+        private IQueryable<HrdAttendanceProcessingRun> BuildRunQuery(
             AttendanceProcessingRunQueryRequest request)
         {
-            var query = _dbContext.Set<TrxAttendanceProcessingRun>()
+            var query = _dbContext.Set<HrdAttendanceProcessingRun>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
@@ -1695,8 +1753,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return query;
         }
 
-        private static IOrderedQueryable<TrxAttendanceProcessingRun> ApplyRunSorting(
-            IQueryable<TrxAttendanceProcessingRun> query,
+        private static IOrderedQueryable<HrdAttendanceProcessingRun> ApplyRunSorting(
+            IQueryable<HrdAttendanceProcessingRun> query,
             string? sortBy,
             string? sortDirection)
         {
@@ -1711,7 +1769,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             };
         }
 
-        private async Task<TrxAttendanceProcessingRun?> FindExistingRunByCorrelationAsync(
+        private async Task<HrdAttendanceProcessingRun?> FindExistingRunByCorrelationAsync(
             string? correlationId,
             CancellationToken cancellationToken)
         {
@@ -1719,13 +1777,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             if (normalized == null)
                 return null;
 
-            return await _dbContext.Set<TrxAttendanceProcessingRun>()
+            return await _dbContext.Set<HrdAttendanceProcessingRun>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.CorrelationId == normalized && !x.IsDelete, cancellationToken);
         }
 
         private static AttendanceProcessingExecutionResponse MapExecutionResponse(
-            TrxAttendanceProcessingRun run,
+            HrdAttendanceProcessingRun run,
             List<AttendanceProcessingItemResponse> items)
         {
             return new AttendanceProcessingExecutionResponse
@@ -1875,12 +1933,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         private static string LimitMessage(string value, int length) =>
             value.Length <= length ? value : value[..length];
 
+        private static string DescribeConcurrencyConflict(DbUpdateConcurrencyException exception)
+        {
+            var entries = exception.Entries
+                .Select(entry => $"{entry.Metadata.ClrType.Name} ({entry.State}, Id={entry.Property("Id").CurrentValue})")
+                .ToList();
+
+            return entries.Count == 0
+                ? exception.GetBaseException().Message
+                : $"Attendance concurrency conflict: {string.Join("; ", entries)}.";
+        }
+
         private void DetachChangedEntries()
         {
             var entries = _dbContext.ChangeTracker.Entries().ToList();
             foreach (var entry in entries)
             {
-                if (entry.Entity is TrxAttendanceProcessingRun)
+                if (entry.Entity is HrdAttendanceProcessingRun)
                     continue;
                 entry.State = EntityState.Detached;
             }
@@ -1891,13 +1960,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             var entries = _dbContext.ChangeTracker.Entries().ToList();
             foreach (var entry in entries)
             {
-                if (entry.Entity is TrxAttendanceProcessingRun)
+                if (entry.Entity is HrdAttendanceProcessingRun)
                     continue;
 
-                if (entry.Entity is TrxAttendanceDaily ||
-                    entry.Entity is TrxAttendanceDailySegment ||
-                    entry.Entity is TrxAttendanceException ||
-                    entry.Entity is TrxAttendanceRawLog ||
+                if (entry.Entity is HrdAttendanceDaily ||
+                    entry.Entity is HrdAttendanceDailySegment ||
+                    entry.Entity is HrdAttendanceException ||
+                    entry.Entity is HrdAttendanceRawLog ||
                     entry.Entity is MstWorkforceProfile ||
                     entry.Entity is WfpOrganizationAssignment ||
                     entry.Entity is MstAttendancePolicy)
@@ -1946,8 +2015,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private sealed class PunchResult
         {
-            public TrxAttendanceRawLog? FirstCheckIn { get; set; }
-            public TrxAttendanceRawLog? LastCheckOut { get; set; }
+            public HrdAttendanceRawLog? FirstCheckIn { get; set; }
+            public HrdAttendanceRawLog? LastCheckOut { get; set; }
             public DateTime? EffectiveStartAt { get; set; }
             public DateTime? EffectiveEndAt { get; set; }
             public List<BreakPair> BreakPairs { get; set; } = new();
@@ -1959,8 +2028,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         private sealed class BreakPair
         {
-            public TrxAttendanceRawLog Start { get; set; } = null!;
-            public TrxAttendanceRawLog End { get; set; } = null!;
+            public HrdAttendanceRawLog Start { get; set; } = null!;
+            public HrdAttendanceRawLog End { get; set; } = null!;
             public int Minutes { get; set; }
         }
 

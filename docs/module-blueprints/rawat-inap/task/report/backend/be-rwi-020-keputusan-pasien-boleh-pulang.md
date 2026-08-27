@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-020`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -135,8 +144,8 @@ sesi koreksi (`BE-RWI-030`).
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | Pemanggilan endpoint terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 7.2 Test yang ditulis
@@ -146,11 +155,11 @@ salah satunya `[Theory]` dengan tiga kasus.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Hanya DPJP aktif; peran lain dan dokter lain ditolak 403 | `Kriteria1_HanyaDpjpAktifYangDapatMemutuskan` | Ditulis, **belum dijalankan** |
+| 1. Hanya DPJP aktif; peran lain dan dokter lain ditolak 403 | `Kriteria1_HanyaDpjpAktifYangDapatMemutuskan` | ✅ **Lulus** 26 Agu 2026 |
 | 2. Cara pulang dikenali sesuai `RWI-RULE-011` | `Kriteria2_CaraPulangYangBerlakuPadaRevisiIniDikenali` (3 kasus) dan `Kriteria2_CaraPulangKosongDitolak400DanYangBelumTersediaDitolak422` | Ditulis; **hanya tiga dari lima** — bagian 5.1 |
-| 3. Episode menjadi `DischargePending` dan tempat tidur tetap terisi | `Kriteria3Dan4Dan5_TempatTidurTetapTerisiPasienTetapDiCensusDanSatuBarisRiwayatLahir` | Ditulis, **belum dijalankan** |
-| 4. Pasien masih muncul pada census | Test yang sama | Ditulis, **belum dijalankan** |
-| 5. Keputusan menulis satu baris riwayat status | Test yang sama | Ditulis, **belum dijalankan** |
+| 3. Episode menjadi `DischargePending` dan tempat tidur tetap terisi | `Kriteria3Dan4Dan5_TempatTidurTetapTerisiPasienTetapDiCensusDanSatuBarisRiwayatLahir` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Pasien masih muncul pada census | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
+| 5. Keputusan menulis satu baris riwayat status | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
 
 Verifikasi yang diminta roadmap — "test yang membuktikan `MstBed.BedStatus` tidak berubah pada
 langkah ini" — dijawab test kriteria 3.

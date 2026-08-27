@@ -6,7 +6,12 @@ public sealed class ApplyDiscountRequest
 {
     public Guid DiscountPolicyId { get; set; }
     public Guid? InvoiceItemId { get; set; }
-    [Range(typeof(decimal), "0.01", "9999999999999999.99")]
+    [Range(
+        typeof(decimal),
+        "0.01",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
     public decimal? RequestedAmount { get; set; }
     public Guid ExpectedRowVersion { get; set; }
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;

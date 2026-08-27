@@ -303,7 +303,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             }
 
             var now = DateTime.UtcNow;
-            var entity = new TrxAttendanceRawLog
+            var entity = new HrdAttendanceRawLog
             {
                 Id = Guid.NewGuid(),
                 UserId = resolved.UserId,
@@ -338,7 +338,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 IsCancel = false
             };
 
-            _dbContext.Set<TrxAttendanceRawLog>().Add(entity);
+            _dbContext.Set<HrdAttendanceRawLog>().Add(entity);
 
             try
             {
@@ -447,7 +447,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             Guid id,
             Guid actorUserId)
         {
-            var entity = await _dbContext.Set<TrxAttendanceRawLog>()
+            var entity = await _dbContext.Set<HrdAttendanceRawLog>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
@@ -516,15 +516,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     : "Pencocokan ulang selesai, tetapi identitas workforce masih belum ditemukan.");
         }
 
-        private IQueryable<TrxAttendanceRawLog> BuildBaseQuery()
+        private IQueryable<HrdAttendanceRawLog> BuildBaseQuery()
         {
-            return _dbContext.Set<TrxAttendanceRawLog>()
+            return _dbContext.Set<HrdAttendanceRawLog>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
         }
 
-        private static IQueryable<TrxAttendanceRawLog> ApplyFilter(
-            IQueryable<TrxAttendanceRawLog> query,
+        private static IQueryable<HrdAttendanceRawLog> ApplyFilter(
+            IQueryable<HrdAttendanceRawLog> query,
             AttendanceRawLogQueryRequest request)
         {
             var range = ResolveDateRange(request.StartDate, request.EndDate, request.CustomPeriod);
@@ -604,8 +604,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             return query;
         }
 
-        private static IOrderedQueryable<TrxAttendanceRawLog> ApplySorting(
-            IQueryable<TrxAttendanceRawLog> query,
+        private static IOrderedQueryable<HrdAttendanceRawLog> ApplySorting(
+            IQueryable<HrdAttendanceRawLog> query,
             string? sortBy,
             string? sortDirection)
         {
@@ -1268,12 +1268,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 "Device user key berhasil dicocokkan.");
         }
 
-        private async Task<TrxAttendanceRawLog?> FindDuplicateAsync(
+        private async Task<HrdAttendanceRawLog?> FindDuplicateAsync(
             Guid? attendanceDeviceId,
             string? externalLogId,
             string eventHash)
         {
-            var query = _dbContext.Set<TrxAttendanceRawLog>()
+            var query = _dbContext.Set<HrdAttendanceRawLog>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete);
 
@@ -1293,7 +1293,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         private static AttendanceRawLogCreateResponse BuildDuplicateResponse(
-            TrxAttendanceRawLog existing)
+            HrdAttendanceRawLog existing)
         {
             return new AttendanceRawLogCreateResponse
             {

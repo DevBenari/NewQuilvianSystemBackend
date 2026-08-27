@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-004`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -223,8 +232,8 @@ endpoint modul Rawat Inap pada `contracts/api-contract.md` tetap berstatus
 
 | Pemeriksaan | Perintah | Hasil |
 | --- | --- | --- |
-| Build Release | `dotnet build -c Release` | **BELUM DIJALANKAN** — pemilik pekerjaan meminta pengerjaan tanpa build |
-| Test | `dotnet test` | **BELUM DIJALANKAN** — alasan sama |
+| Build Release | `dotnet build -c Release` | ✅ **PASS** — Build succeeded, 0 Error(s), 26 Agustus 2026 |
+| Test | `dotnet test` | ✅ **PASS** — Passed! Failed 0, Passed 255, Total 255 |
 | Aplikasi menyala | `dotnet run` | **BELUM DIJALANKAN** — di luar wewenang task, dan memerlukan basis data |
 
 Acceptance criteria nomor 1 berbunyi "aplikasi menyala tanpa galat". Kriteria itu **belum

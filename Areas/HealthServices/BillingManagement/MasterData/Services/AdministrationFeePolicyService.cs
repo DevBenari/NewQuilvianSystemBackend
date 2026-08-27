@@ -148,6 +148,18 @@ public sealed class AdministrationFeePolicyService
         return DateOnly.FromDateTime(local.DateTime);
     }
 
+    // Rentang UTC [Start, EndExclusive) yang mencakup satu businessDate penuh di zona bisnis
+    // (Asia/Jakarta). Dipakai sebagai pre-filter SQL pada kolom relasional (mis. CalculatedAt)
+    // sebelum pencarian yang lebih presisi lewat GetBusinessDate di memori - lihat
+    // BillingCalculationService.CalculateAdministrationFeeAsync untuk kenapa ini dibutuhkan.
+    public static (DateTimeOffset Start, DateTimeOffset EndExclusive) GetBusinessDateUtcRange(DateOnly businessDate)
+    {
+        var zone = ResolveBusinessTimeZone();
+        var localStart = DateTime.SpecifyKind(businessDate.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
+        var utcStart = TimeZoneInfo.ConvertTimeToUtc(localStart, zone);
+        return (new DateTimeOffset(utcStart, TimeSpan.Zero), new DateTimeOffset(utcStart.AddDays(1), TimeSpan.Zero));
+    }
+
     private async Task<MstAdministrationFeePolicy> FindAsync(Guid id, CancellationToken cancellationToken) =>
         await _dbContext.MstAdministrationFeePolicies.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
         ?? throw new KeyNotFoundException("Policy biaya administrasi tidak ditemukan.");

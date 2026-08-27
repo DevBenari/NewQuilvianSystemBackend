@@ -48,7 +48,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
         public bool IsActive { get; set; } = true;
 
         public TrxPayrollRunEmployee? PayrollRunEmployee { get; set; }
-        public TrxAttendanceDaily? AttendanceDaily { get; set; }
+        public HrdAttendanceDaily? AttendanceDaily { get; set; }
         public ApplicationUser? ImportedByUser { get; set; }
     }
 }

@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-015`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -128,8 +137,8 @@ kalimat `MismatchMessage`. Kalimat yang dipakai ditulis apa adanya di sini untuk
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | `UAT-31` dan `UAT-33` terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 7.2 Test yang ditulis
@@ -138,13 +147,13 @@ kalimat `MismatchMessage`. Kalimat yang dipakai ditulis apa adanya di sini untuk
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Butuh isolasi ke tempat tidur biasa ditolak 422 dengan pesan yang menyebut kebutuhannya | `Kriteria1Dan2_DuaPenolakanBerkodeSamaDenganArtiBerlawanan` | Ditulis, **belum dijalankan** |
-| 2. Tidak butuh isolasi ke tempat tidur isolasi ditolak 422 dengan pesan berbeda | Test yang sama | Ditulis, **belum dijalankan** |
-| 3. Butuh isolasi ke tempat tidur isolasi berhasil | `Kriteria3_PasienButuhIsolasiKeTempatTidurIsolasiBerhasil` | Ditulis, **belum dijalankan** |
-| 4. Menyalakan kebutuhan isolasi saat di tempat tidur biasa **diterima**, dan muncul pada daftar pantau | `Kriteria4Dan5_PencatatanKlinisTidakDitahanDanDaftarPantauMengikutiPembetulannya` | Ditulis, **belum dijalankan** |
-| 5. Setelah dipindahkan ke tempat tidur isolasi, hilang dari daftar pantau | Test yang sama | Ditulis, **belum dijalankan** |
-| 6. Kebalikannya juga bekerja | `Kriteria6_MematikanKebutuhanIsolasiSaatDiTempatTidurIsolasiMemunculkanDaftarPantau` | Ditulis, **belum dijalankan** |
-| 7. Daftar pantau kosong mengembalikan daftar kosong, bukan galat | `Kriteria7_DaftarPantauYangKosongMengembalikanDaftarKosongBukanGalat` | Ditulis, **belum dijalankan** |
+| 1. Butuh isolasi ke tempat tidur biasa ditolak 422 dengan pesan yang menyebut kebutuhannya | `Kriteria1Dan2_DuaPenolakanBerkodeSamaDenganArtiBerlawanan` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Tidak butuh isolasi ke tempat tidur isolasi ditolak 422 dengan pesan berbeda | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
+| 3. Butuh isolasi ke tempat tidur isolasi berhasil | `Kriteria3_PasienButuhIsolasiKeTempatTidurIsolasiBerhasil` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Menyalakan kebutuhan isolasi saat di tempat tidur biasa **diterima**, dan muncul pada daftar pantau | `Kriteria4Dan5_PencatatanKlinisTidakDitahanDanDaftarPantauMengikutiPembetulannya` | ✅ **Lulus** 26 Agu 2026 |
+| 5. Setelah dipindahkan ke tempat tidur isolasi, hilang dari daftar pantau | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
+| 6. Kebalikannya juga bekerja | `Kriteria6_MematikanKebutuhanIsolasiSaatDiTempatTidurIsolasiMemunculkanDaftarPantau` | ✅ **Lulus** 26 Agu 2026 |
+| 7. Daftar pantau kosong mengembalikan daftar kosong, bukan galat | `Kriteria7_DaftarPantauYangKosongMengembalikanDaftarKosongBukanGalat` | ✅ **Lulus** 26 Agu 2026 |
 
 Kriteria 1 dan 2 diuji dalam satu test yang **membandingkan kedua kalimatnya** dan memastikan
 keduanya berbeda — bukan hanya memeriksa kode 422 dua kali.
@@ -176,7 +185,7 @@ keduanya berbeda — bukan hanya memeriksa kode 422 dua kali.
 | Butir DoD | Keadaannya |
 | --- | --- |
 | Dua aturan dan satu daftar pantau aktif | ✅ Ada di dalam kode |
-| Ketujuh kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
+| Ketujuh kriteria lulus | ✅ **Lulus** — seluruh test-nya dijalankan 26 Agustus 2026 dan hijau (255/255) |
 | Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
 
 ---

@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-017`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -117,8 +126,8 @@ periodenya nol detik dan tidak berarti apa-apa.
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | Test unique index parsial DPJP aktif terhadap PostgreSQL | **NOT RUN** |
 | `UAT-07` terhadap aplikasi berjalan | **NOT RUN** |
 
@@ -128,10 +137,10 @@ Di dalam `QuilvianSystemBackend.Tests/InPatientManagement/InpDoctorAndNurseAssig
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Riwayat berperiode masih menjawab siapa berwenang pada 22 September | `Kriteria1_RiwayatBerperiodeMasihDapatMenjawabSiapaBerwenangPadaTanggalLampau` | Ditulis, **belum dijalankan** |
-| 2. Satu episode aktif punya tepat satu DPJP aktif | `Kriteria2_SatuEpisodeAktifPunyaTepatSatuDpjpAktif` | Ditulis, **belum dijalankan** |
-| 3. Pengalihan tanpa alasan ditolak 400 | `Kriteria3_PengalihanTanpaAlasanDitolak400` | Ditulis, **belum dijalankan** |
-| 4. Pengalihan hanya oleh kepala ruangan atau supervisor | `Kriteria4_PengalihanHanyaOlehKepalaRuanganAtauSupervisor` | Ditulis, **belum dijalankan** |
+| 1. Riwayat berperiode masih menjawab siapa berwenang pada 22 September | `Kriteria1_RiwayatBerperiodeMasihDapatMenjawabSiapaBerwenangPadaTanggalLampau` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Satu episode aktif punya tepat satu DPJP aktif | `Kriteria2_SatuEpisodeAktifPunyaTepatSatuDpjpAktif` | ✅ **Lulus** 26 Agu 2026 |
+| 3. Pengalihan tanpa alasan ditolak 400 | `Kriteria3_PengalihanTanpaAlasanDitolak400` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Pengalihan hanya oleh kepala ruangan atau supervisor | `Kriteria4_PengalihanHanyaOlehKepalaRuanganAtauSupervisor` | ✅ **Lulus** 26 Agu 2026 |
 | Unique index parsial DPJP aktif | **Tidak dapat diuji InMemory** | Tertunda |
 
 Satu test tambahan menjaga: mengalihkan kepada DPJP yang sama ditolak.

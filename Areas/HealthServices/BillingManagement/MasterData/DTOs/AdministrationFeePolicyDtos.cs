@@ -30,7 +30,11 @@ public class CreateAdministrationFeePolicyRequest
     [Required, MaxLength(30)] public string Code { get; set; } = string.Empty;
     [Required, MaxLength(100)] public string Name { get; set; } = string.Empty;
     [Required, MaxLength(30)] public string ServiceType { get; set; } = string.Empty;
-    [Range(typeof(decimal), "0", "9999999999999999.99")] public decimal Amount { get; set; }
+    
+    [Range(typeof(decimal), "0", "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)] 
+    public decimal Amount { get; set; }
     public bool Coverable { get; set; }
     public DateTimeOffset EffectiveFrom { get; set; }
     public DateTimeOffset? EffectiveTo { get; set; }

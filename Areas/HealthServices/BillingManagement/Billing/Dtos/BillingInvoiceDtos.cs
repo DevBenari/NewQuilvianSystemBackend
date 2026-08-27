@@ -22,9 +22,27 @@ public sealed class UpsertChargeRequest
     public DateTimeOffset OccurredAt { get; set; }
     public Guid CategoryId { get; set; }
     [Required, MaxLength(250)] public string DescriptionSnapshot { get; set; } = string.Empty;
-    [Range(typeof(decimal), "0.0001", "99999999999999.9999")] public decimal Quantity { get; set; }
-    [Range(typeof(decimal), "0", "9999999999999999.99")] public decimal UnitPrice { get; set; }
-    [Range(typeof(decimal), "0", "9999999999999999.99")] public decimal DoctorShare { get; set; }
+    [Range(
+        typeof(decimal),
+        "0.0001",
+        "99999999999999.9999",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
+    public decimal Quantity { get; set; }
+    [Range(
+        typeof(decimal),
+        "0",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
+    public decimal UnitPrice { get; set; }
+    [Range(
+        typeof(decimal),
+        "0",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
+    public decimal DoctorShare { get; set; }
     [Required, MaxLength(30)] public string ContractVersion { get; set; } = string.Empty;
     public Guid CorrelationId { get; set; }
     public Guid CausationId { get; set; }

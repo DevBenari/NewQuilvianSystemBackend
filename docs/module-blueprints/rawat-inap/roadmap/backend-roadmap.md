@@ -63,7 +63,7 @@ task_count: 33
 | Tanda | Artinya |
 | :---: | --- |
 | ✅ | Selesai. Acceptance criteria dan DoD **terbukti**, buktinya ada pada laporan task |
-| 🟡 | Kode sudah ditulis dan test sudah disiapkan, tetapi **validasinya belum dijalankan**. Task ini **belum selesai** dan tidak boleh dihitung sebagai selesai |
+| 🟡 | Kode sudah ditulis dan test sudah disiapkan. Sejak 26 Agustus 2026 build dan test-nya **sudah dijalankan dan hijau**, tetapi acceptance criteria dan DoD-nya **belum terbukti penuh**. Task ini **belum selesai** dan tidak boleh dihitung sebagai selesai |
 | ⛔ | Terblokir. Prasyaratnya belum terpenuhi, dan task **tidak boleh dimulai** |
 | tanpa tanda | Belum dikerjakan |
 
@@ -76,10 +76,72 @@ task_count: 33
 > dijalankan. Perintah yang perlu dijalankan tercantum pada masing-masing laporan task.
 >
 > **Sejak 25 Agustus 2026, seluruh source MVP modul ini sudah ditulis.** Yang tersisa hanyalah
-> `BE-RWI-006` yang terblokir, `BE-RWI-032` yang menempel padanya, dan `BE-RWI-033`. Karena
-> tidak satu pun dari 28 task itu tervalidasi, **jumlah kode yang belum pernah dikompilasi
-> adalah risiko terbesar modul ini hari ini** — lebih besar daripada gerbang mana pun pada
-> bagian 5.
+> `BE-RWI-006` yang terblokir, `BE-RWI-032` yang menempel padanya, dan `BE-RWI-033`.
+>
+> **DITUTUP 26 Agustus 2026.** Kedua perintah itu akhirnya dijalankan. Bukti:
+> [laporan validasi](../task/report/backend/be-rwi-validasi-build-dan-test.md).
+>
+> | Sapuan | Hasil |
+> | --- | --- |
+> | `dotnet build` pertama | Aplikasi **0 error**; project test **6 error** — `TagsAttribute` tanpa `using Microsoft.AspNetCore.Http` pada tiga berkas contract test, dan dua enum `Inp*` tanpa `using` pada `InpatientEpisodeTestWorld` |
+> | `dotnet test` pertama | Failed 2, Passed 253, Total 255 |
+> | Sesudah perbaikan | **Build succeeded, 0 error**; **Passed! Failed 0, Passed 255, Total 255** |
+>
+> **Seluruh source aplikasi dari 28 task itu ternyata mengompilasi bersih** — keenam error
+> berada di project test, dan seluruhnya berupa `using` yang hilang. Kedua test yang gagal juga
+> keliru pada sisi test, bukan pada service: keduanya menghitung tiga baris riwayat status
+> padahal perjalanan `Draft → Admitted → DischargePending → Closed` menghasilkan empat, dan
+> `state-transition-matrix.md` `0.4.0` baris 39 membenarkan service. Tidak ada satu baris pun
+> source aplikasi yang diubah.
+>
+> **Risiko "kode belum pernah dikompilasi" karena itu sudah tidak berlaku.**
+>
+> **Pemeriksaan lanjutan 26 Agustus 2026.** Build diulang, dan ternyata **build kedua gagal**
+> dengan `MSB3030`: `QuilvianSystemBackend.csproj` hanya menghapus `Compile` untuk folder
+> `QuilvianSystemBackend.Tests\**`, tanpa `Content`, `None`, dan `EmbeddedResource` — padahal
+> setiap folder lain pada `ItemGroup` yang sama dihapus keempat-empatnya. Akibatnya project
+> aplikasi menyalin keluaran project test ke dalam dirinya sendiri, satu tingkat lebih dalam
+> setiap build. Ketiga baris yang hilang sudah ditambahkan; build kini terbukti **berulang**
+> — tiga kali berturut-turut hijau, dan `Release` ikut hijau.
+>
+> Sesudah build dan test hijau, seluruh laporan task diperiksa ulang terhadap acceptance
+> criteria dan DoD-nya. Hasilnya:
+>
+> | Keadaan | Task |
+> | --- | --- |
+> | ✅ **Naik menjadi selesai** — seluruh kriteria dan ketiga butir DoD terbukti | `BE-RWI-013`, `BE-RWI-031` |
+> | 🟡 Tertahan **hanya** oleh kolom status `api-contract.md` yang masih `Rencana` — wewenang `BE-RWI-033` | `BE-RWI-010`, `BE-RWI-015`, `BE-RWI-019`, `BE-RWI-022` s.d. `BE-RWI-026`, `BE-RWI-028`, `BE-RWI-030` |
+> | 🟡 Tertahan kriteria yang belum dapat dibuktikan tanpa aplikasi berjalan, PostgreSQL, atau keputusan yang belum turun | `BE-RWI-002`, `BE-RWI-004`, `BE-RWI-005`, `BE-RWI-007` s.d. `BE-RWI-009`, `BE-RWI-011`, `BE-RWI-012`, `BE-RWI-014`, `BE-RWI-016` s.d. `BE-RWI-018`, `BE-RWI-020`, `BE-RWI-021`, `BE-RWI-027`, `BE-RWI-029` |
+>
+> **Sepuluh task pada baris kedua sudah tuntas secara teknis.** Yang menahannya satu-satunya
+> adalah butir DoD "api contract diperbarui", dan aturannya tertulis pada laporan task itu
+> sendiri:
+>
+> > Status "Rencana (belum tersedia)" hanya boleh dicabut setelah **endpointnya terbukti
+> > berjalan**.
+>
+> **Belum satu pun endpoint modul ini pernah dipanggil sungguhan.** Ke-255 test membuktikan
+> logika, aturan bisnis, dan bentuk atribut lewat reflection — tetapi tidak satu pun
+> menyalakan Kestrel, merutekan permintaan HTTP, atau menyentuh PostgreSQL. Karena itu
+> ke-51 endpoint pada `api-contract.md` masih berstatus `Rencana`, dan butir DoD ketiga pada
+> sepuluh task itu tetap merah.
+>
+> **Rantai penahannya, dari akar:**
+>
+> ```
+> Docker Desktop mati
+>   └── PostgreSQL sekali pakai tidak dapat dinyalakan
+>          └── aplikasi tidak dapat menyala (Npgsql; connection string
+>              yang ada menunjuk basis data tim bersama, bukan lokal)
+>                 └── endpoint tidak dapat dibuktikan berjalan
+>                        └── status api contract tidak boleh dicabut
+>                               └── butir DoD ketiga merah → task tetap 🟡
+> ```
+>
+> Satu hal di puncak rantai itu — **menyalakan Docker Desktop** — melepas sepuluh task ini
+> sekaligus, dan bersamanya gerbang unique index parsial yang menahan `BE-RWI-011`, `012`,
+> `017`, dan `021`. `FE-RWI-001` **tidak** menahan kesepuluhnya; ia hanya menahan `BE-RWI-006`
+> dan `BE-RWI-032`.
 
 > **Tiga gerbang yang menyertai `BE-RWI-009` s.d. `BE-RWI-022`.** Ketiganya tercatat pada
 > bagian 5 dan pada laporan task masing-masing, dan ketiganya menahan penandaan selesai:
@@ -151,13 +213,13 @@ Fakta ketiga yang paling mudah terlewat, jadi contohnya ditulis di sini:
 | --- | --- | --- | --- |
 | **S0 — Modul benar-benar berdiri** | Tabel ada, master terisi, service terdaftar, endpoint master dapat dipanggil | `MVP-0` | ✅ `BE-RWI-001`; 🟡 `BE-RWI-002`; ✅ `BE-RWI-003`; 🟡 `BE-RWI-004`; 🟡 `BE-RWI-005`; ⛔ `BE-RWI-006` |
 | **S1 — Petugas dapat membuka admisi dan memesan tempat tidur** | Episode `Draft` lahir bernomor, pemesanan mengunci 2 jam dan gugur sendiri | `MVP-1` | 🟡 `BE-RWI-007`; 🟡 `BE-RWI-008`; 🟡 `BE-RWI-009`; 🟡 `BE-RWI-010` |
-| **S2 — Pasien punya lokasi, dan penempatan yang tidak layak ditolak** | Tempat tidur ganda mustahil; jenis kelamin dan isolasi menolak | `MVP-1` | 🟡 `BE-RWI-011` s.d. `BE-RWI-015` |
+| **S2 — Pasien punya lokasi, dan penempatan yang tidak layak ditolak** | Tempat tidur ganda mustahil; jenis kelamin dan isolasi menolak | `MVP-1` | 🟡 `BE-RWI-011`, `BE-RWI-012`, `BE-RWI-014`, `BE-RWI-015`; ✅ `BE-RWI-013` |
 | **S3 — Sistem dapat menjawab siapa dirawat di mana** | Census dan lama dirawat | `MVP-1` | 🟡 `BE-RWI-016` |
 | **S4 — Penanggung jawab dan perpindahan** | Riwayat DPJP berperiode, perpindahan utuh | `MVP-2` | 🟡 `BE-RWI-017` s.d. `BE-RWI-019` |
 | **S5 — Pasien dapat dinyatakan boleh pulang** | Keputusan pulang, resume, tanda tangan, versi resume | `MVP-3` | 🟡 `BE-RWI-020` s.d. `BE-RWI-022` |
 | **S6 — Episode dapat ditutup dan tempat tidur kembali kosong** | Lima syarat penutupan, jalan keluar supervisor, kepergian fisik | `MVP-3` | 🟡 `BE-RWI-023` s.d. `BE-RWI-027` |
 | **S7 — Riwayat, daftar pantau, dan koreksi** | Riwayat status tidak dapat dihapus; empat daftar pantau; sesi koreksi | `MVP-4` | 🟡 `BE-RWI-028` s.d. `BE-RWI-030` |
-| **S8 — Bayi baru lahir** | Boks bayi sebagai tempat tidur, hubungan bayi dan ibu | `MVP-4` | 🟡 `BE-RWI-031` |
+| **S8 — Bayi baru lahir** | Boks bayi sebagai tempat tidur, hubungan bayi dan ibu | `MVP-4` | ✅ `BE-RWI-031` |
 | **S9 — Kesiapan sebelum sign-off** | Test regresi modul tetangga, bukti penerimaan lengkap | — | `BE-RWI-032`, `BE-RWI-033` |
 
 ### Urutan dependency
@@ -174,7 +236,7 @@ BE-RWI-001 (dua tabel master)  ✅ SELESAI
                  │        └── BE-RWI-010 (pemesanan + available-beds + bed-board)  🟡
                  │               └── BE-RWI-011 (penempatan + INV-INP-02)  🟡
                  │                      ├── BE-RWI-012 (INV-INP-10)  🟡
-                 │                      ├── BE-RWI-013 (jenis kelamin + boks bayi)  🟡   EPIC RI-34 A
+                 │                      ├── BE-RWI-013 (jenis kelamin + boks bayi)  ✅   EPIC RI-34 A
                  │                      ├── BE-RWI-014 (atribut isolasi + GUARD-INP-04)  🟡 EPIC RI-34 B
                  │                      │      └── BE-RWI-015 (aturan 7-8 + daftar pantau)  🟡
                  │                      └── BE-RWI-016 (census + lama dirawat)  🟡
@@ -191,7 +253,7 @@ BE-RWI-001 (dua tabel master)  ✅ SELESAI
                  │                                                         └── BE-RWI-028 (riwayat status)  🟡
                  │                                                         └── BE-RWI-029 (4 daftar pantau + selisih)  🟡
                  │                                                         └── BE-RWI-030 (sesi koreksi)  🟡
-                 │                                                         └── BE-RWI-031 (boks bayi + ibu)  🟡
+                 │                                                         └── BE-RWI-031 (boks bayi + ibu)  ✅
                  └── BE-RWI-006 (BedController tolak Reserved/Occupied)  ⛔ TERBLOKIR, butuh FE-RWI-001 lebih dulu
 
 BE-RWI-032 (test regresi modul tetangga) — menempel pada BE-RWI-006, wajib selesai bersamanya
@@ -421,7 +483,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-013` — Kamar tidak pernah menjadi campur laki-laki dan perempuan
+### ✅ `BE-RWI-013` — Kamar tidak pernah menjadi campur laki-laki dan perempuan
 
 | Field | Isi |
 | --- | --- |
@@ -727,7 +789,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
-### 🟡 `BE-RWI-031` — Bayi baru lahir punya episode sendiri di boks kamar ibunya
+### ✅ `BE-RWI-031` — Bayi baru lahir punya episode sendiri di boks kamar ibunya
 
 | Field | Isi |
 | --- | --- |
