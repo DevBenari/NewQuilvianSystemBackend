@@ -60,6 +60,102 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
             _reviewService = reviewService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<MedicalRecordAccessLogFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Medical Record Access Log", Description = "Melihat daftar pilihan penyaring jejak akses", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("MedicalRecordAccessLog", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var hasil = new MedicalRecordAccessLogFilterMetadataResponse
+            {
+                AccessTypes = Enum.GetValues<MedicalRecordAccessType>()
+                    .Select(x => new MedicalRecordEnumOptionResponse
+                    {
+                        Value = (int)x,
+                        Name = x.ToString(),
+                        Label = x == MedicalRecordAccessType.RoutineCare
+                            ? "Akses Rawatan"
+                            : "Akses Beralasan"
+                    })
+                    .ToList(),
+                AccessScopes = Enum.GetValues<MedicalRecordAccessScope>()
+                    .Select(x => new MedicalRecordEnumOptionResponse
+                    {
+                        Value = (int)x,
+                        Name = x.ToString(),
+                        Label = NamaCakupan(x)
+                    })
+                    .ToList(),
+                SortOptions =
+                [
+                    new() { Value = "accessedAt", Label = "Waktu akses" },
+                    new() { Value = "accessType", Label = "Jenis akses" },
+                    new() { Value = "accessScope", Label = "Bagian yang dibuka" },
+                    new() { Value = "reviewedAt", Label = "Waktu ditinjau" }
+                ],
+                SortDirections = ["asc", "desc"],
+                PageSizeOptions = [10, 25, 50, 100],
+                QueryParameters =
+                [
+                    new()
+                    {
+                        Name = "patientId",
+                        Type = "guid",
+                        Description = "Menyaring jejak untuk satu pasien tertentu."
+                    },
+                    new()
+                    {
+                        Name = "userId",
+                        Type = "guid",
+                        Description = "Menyaring jejak untuk satu pengguna tertentu."
+                    },
+                    new()
+                    {
+                        Name = "accessType",
+                        Type = "enum",
+                        Description = "Akses rawatan atau akses beralasan.",
+                        Example = "2"
+                    },
+                    new()
+                    {
+                        Name = "isFlaggedForReview",
+                        Type = "boolean",
+                        Description = "Menyaring akses yang ditandai perlu ditinjau.",
+                        Example = "true"
+                    },
+                    new()
+                    {
+                        Name = "startDate",
+                        Type = "date",
+                        Description = "Batas awal rentang waktu akses."
+                    },
+                    new()
+                    {
+                        Name = "endDate",
+                        Type = "date",
+                        Description = "Batas akhir rentang waktu akses."
+                    },
+                    new()
+                    {
+                        Name = "pageNumber",
+                        Type = "integer",
+                        Description = "Halaman, dimulai dari 1.",
+                        Example = "1"
+                    },
+                    new()
+                    {
+                        Name = "pageSize",
+                        Type = "integer",
+                        Description = "Jumlah baris per halaman. Bawaan 25, paling besar 100.",
+                        Example = "25"
+                    }
+                ]
+            };
+
+            return Ok(ApiResponse<MedicalRecordAccessLogFilterMetadataResponse>.Ok(
+                hasil, "Metadata filter jejak akses berhasil diambil."));
+        }
+
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponseAccessLogPagedResult>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Medical Record Access Log", Description = "Melihat jejak akses rekam medis", AccessType = AccessTypes.Read, SortOrder = 1)]
