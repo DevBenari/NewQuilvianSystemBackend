@@ -20,8 +20,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         [Required]
         public Guid EncounterId { get; set; }
 
-        [Required]
-        public Guid QueueId { get; set; }
+        /// <summary>
+        /// Antrean asal pengkajian. <b>Boleh kosong</b> sejak <c>BE-IGD-026</c>.
+        /// </summary>
+        /// <remarks>
+        /// Pasien IGD tidak pernah masuk antrean poli — kegawatan yang menentukan urutan
+        /// penanganan, bukan nomor antrean. Selama kolom ini wajib terisi, pengkajian pasien
+        /// IGD tidak dapat disimpan sama sekali (<c>IGD-DEC-068</c>, <c>FR-IGD-060</c>).
+        ///
+        /// <para>
+        /// <b>Jalur rawat jalan tidak berubah.</b> Setiap pengkajian yang berasal dari antrean
+        /// tetap mengisi kolom ini, dan seluruh baris lama tetap terisi — melepas kewajiban
+        /// terisi tidak mengubah satu nilai pun.
+        /// </para>
+        ///
+        /// <para>
+        /// Tabel ini milik <c>ClinicalManagement</c> yang pemiliknya belum ditunjuk; perubahan
+        /// dikerjakan IGD atas wewenang <c>IGD-DEC-107</c>.
+        /// </para>
+        /// </remarks>
+        public Guid? QueueId { get; set; }
 
         [Required]
         public Guid PatientId { get; set; }

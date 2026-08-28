@@ -243,6 +243,7 @@ BE-RWI-001 (dua tabel master)  ✅ SELESAI
 
 BE-RWI-032 (test regresi modul tetangga) — menempel pada BE-RWI-006, wajib selesai bersamanya
 BE-RWI-033 (bukti penerimaan) — paling akhir
+BE-RWI-034 (perbaikan hak akses + endpoint baca kelayakan keuangan) — berdiri sendiri, tidak menunggu apa pun
 ```
 
 **Yang boleh paralel.** Setelah `BE-RWI-004` selesai, empat jalur berikut tidak saling bergantung
@@ -823,6 +824,41 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 
 ---
 
+### `BE-RWI-034` — Sembilan endpoint yang hak aksesnya tidak dapat diberikan kepada siapa pun
+
+| Field | Isi |
+| --- | --- |
+| **Outcome** | Setiap endpoint modul yang dijaga `[AccessPermission]` benar-benar dapat diberikan kepada peran lewat layar Role Access. Hari ini sembilan di antaranya **tidak dapat**, sehingga selalu dijawab 403 untuk siapa pun kecuali SuperAdmin. Sekalian membuka `GET .../financial-clearance` supaya penandaan kelayakan keuangan dapat dibaca ulang |
+| **Trace** | `contracts/permission-audit-matrix.md` bagian 2 dan 3; `Seeders/AccessMenuSeeder.cs`; `Services/Security/AccessPermissionService.cs`; `Filters/AccessPermissionFilter.cs`; ditemukan saat preflight `FE-RWI-013` |
+| **Reuse** | Mesin hak akses yang sudah ada. Task ini **menyelaraskan metadata**, bukan membangun mekanisme baru |
+| **Scope** | Atribut `[AccessAction]` dan/atau `[AccessPermission]` pada `InpatientDischargeController`, `InpatientEpisodeController`, dan `InpatientBedOccupancyController`; satu aksi `GET` baru pada `InpatientDischargeController`; pemutakhiran `permission-audit-matrix.md` dan `api-contract.md`; test kontrak controller |
+| **Dependency** | `BE-RWI-024` untuk endpoint bacanya. Perbaikan hak aksesnya **tidak** bergantung pada apa pun dan dapat dikerjakan lebih dulu |
+| **Acceptance criteria** | 1. Untuk kesembilan endpoint, pasangan yang diperiksa `AccessPermissionFilter` benar-benar ada sebagai baris `SysControllerAccess` + `SysActionAccess` yang dihasilkan `AccessMenuSeeder`. 2. Pemeriksaannya dilakukan **tanpa** SuperAdmin, karena SuperAdmin memulangkan `true` sebelum baris mana pun dibaca. 3. `GET /discharges/{episodeId}/financial-clearance` tersedia, memulangkan `FinancialClearanceResponse` beserta riwayatnya, dan hak aksesnya dapat diberikan kepada peran kasir tanpa ikut memberi akses baca isi resume pulang. 4. `permission-audit-matrix.md` bagian 2 dan 3 memuat butir hak akses yang benar-benar dapat diberikan, bukan nama resource yang tidak dikenal mesin. 5. Test kontrak gagal bila ada endpoint modul yang memeriksa pasangan hak akses yang tidak pernah didaftarkan |
+| **Verification** | Test yang membandingkan seluruh pasangan `[AccessPermission]` di modul terhadap pasangan yang benar-benar didaftarkan `AccessMenuSeeder`; pemeriksaan terhadap database tim untuk memastikan baris `SysControllerAccess` yang diharapkan memang terbentuk |
+| **Risk/blocker** | **Sembilan endpoint ini termasuk yang paling penting di modul:** tanda tangan resume, penandaan kelayakan keuangan, penutupan episode, jalan keluar supervisor, pencatatan kepergian pasien, perpindahan pasien, penetapan kebutuhan isolasi, dan kedua endpoint sesi koreksi. Selama belum diperbaiki, `FE-RWI-009` s.d. `FE-RWI-015` terlihat selesai di layar tetapi **tidak dapat dipakai satu pun petugas sungguhan**. Bukti "terbukti berjalan" pada laporan `BE-RWI-020` s.d. `BE-RWI-027` diambil lewat Swagger sebagai SuperAdmin, dan `AccessPermissionService` memulangkan `true` untuk SuperAdmin sebelum satu baris hak akses pun dibaca — itulah sebabnya lolos. Owner: Backend/API bersama pemilik keamanan |
+| **DoD** | Kelima kriteria lulus; kesembilan endpoint terbukti dapat diberikan kepada peran non-SuperAdmin; api contract dan permission matrix mutakhir; laporan menyebut cara pembuktiannya tanpa SuperAdmin |
+| **Status** | 🔴 **Belum dikerjakan.** Ditemukan 27 Agustus 2026 saat preflight backend untuk `GET .../financial-clearance`; implementasi endpoint itu ditahan karena menambah endpoint baca di sebelah endpoint tulis yang sama-sama tidak dapat dipanggil tidak menolong siapa pun |
+
+#### Kesembilan endpoint beserta buktinya
+
+`AccessMenuSeeder` mendaftarkan `ControllerName` dari `[AccessController]` dan `ActionName` dari argumen pertama `[AccessAction]`. `AccessPermissionFilter` memeriksa pasangan dari `[AccessPermission]`. Ketika keduanya berbeda, barisnya tidak pernah ditemukan dan `HasAccessAsync` memulangkan `false`.
+
+| Endpoint | Diperiksa filter | Didaftarkan seeder |
+| --- | --- | --- |
+| `PATCH /discharges/{episodeId}/summary/sign` | `InpatientDischarge : Sign` | Hanya `Read` dan `Update` di bawah `InpatientDischarge` |
+| `POST /discharges/{episodeId}/financial-clearance` | `InpatientFinancialClearance : Update` | Tidak ada controller mana pun yang mendaftarkan nama `InpatientFinancialClearance` |
+| `POST /discharges/{episodeId}/close` | `InpatientEpisode : Close` | `InpatientEpisode` hanya punya `Read`, `Create`, dan `Update` |
+| `POST /discharges/{episodeId}/close-with-override` | `InpatientEpisode : CloseOverride` | Sama |
+| `POST /discharges/{episodeId}/record-departure` | `InpatientDischarge : RecordDeparture` | Hanya `Read` dan `Update` |
+| `PATCH /episodes/{id}/isolation-requirement` | `InpatientEpisode : SetIsolation` | Hanya `Read`, `Create`, dan `Update` |
+| `POST /episodes/{id}/correction-sessions` | `InpatientEpisode : Reopen` | Sama |
+| `PATCH /episodes/{id}/correction-sessions/{sessionId}/close` | `InpatientEpisode : Reopen` | Sama |
+| `POST /bed-occupancies/placements/transfer` | `InpatientBedOccupancy : Transfer` | Hanya `Read`, `Create`, dan `Update` |
+
+**Dua arah perbaikan yang mungkin, dan pilihannya adalah keputusan keamanan.** Menyamakan `[AccessPermission]` dengan nama yang sudah didaftarkan membuat butirnya kasar — `Sign`, `Close`, dan `Transfer` melebur menjadi `Update`, sehingga siapa pun yang boleh mengubah ikut boleh menandatangani resume. Menambahkan `[AccessAction]` bernama sendiri untuk tiap butir mempertahankan kehalusannya, tetapi menambah butir baru pada layar Role Access dan mengharuskan admin memberikannya. Butir yang halus adalah yang dimaksud `permission-audit-matrix.md`, dan arah itu yang disarankan — tetapi pemilik keamanan yang memutuskan.
+
+---
+
 ## 5. Gerbang yang masih terbuka
 
 | Gerbang | Keadaannya | Menahan |
@@ -838,6 +874,7 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | ~~Sesi koreksi belum dapat dibuka lewat endpoint~~ | **DITUTUP 2026-08-25** oleh `BE-RWI-030`. Jalur amandemen resume kini dapat dijalankan sepenuhnya lewat endpoint | — |
 | Cara pulang belum dapat dikoreksi lewat sesi koreksi | Dibuka `BE-RWI-030` 25 Agustus 2026. State matrix bagian 6.1 mengizinkannya, tetapi tidak ada endpoint yang menyediakannya | Kesalahan cara pulang pada episode tertutup tidak dapat dibetulkan |
 | **Penanggung jawab pembaca laporan selisih tempat tidur** | Dibuka `BE-RWI-029` 25 Agustus 2026. Laporan selisih adalah satu-satunya pengawas atas satu-satunya arah tulis lintas modul, dan ia hanya berguna bila ada yang membacanya berkala | Risiko penyimpangan `MstBed.BedStatus` tidak tertutup oleh kode mana pun |
+| **Sembilan endpoint yang hak aksesnya tidak dapat diberikan** | Dibuka `BE-RWI-034` 27 Agustus 2026. `[AccessAction]` dan `[AccessPermission]` menyebut nama yang berbeda, sehingga `AccessPermissionFilter` tidak pernah menemukan barisnya dan menjawab 403 untuk siapa pun kecuali SuperAdmin | Tanda tangan resume, kelayakan keuangan, penutupan episode, jalan keluar supervisor, kepergian pasien, perpindahan pasien, kebutuhan isolasi, dan sesi koreksi tidak dapat dipakai petugas sungguhan. `FE-RWI-009` s.d. `FE-RWI-015` ikut tertahan |
 | `RWI-RULE-021` batas waktu klinis | Menunggu pemilik klinis | Tidak menahan MVP; menahan pemakaian untuk pasien sungguhan |
 | `RWI-RULE-025` persetujuan umum | `DEC-INP-003`, menunggu pemilik hukum | Sama |
 | Masa simpan riwayat | `RWI-OQ-035`, sudah dijawab `RWI-DEC-060`, menunggu pemilik hukum | Sama |

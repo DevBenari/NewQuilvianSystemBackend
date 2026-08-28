@@ -3,7 +3,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -37,19 +37,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (!Enum.IsDefined(typeof(EmergencyTriageStatus), request.TriageStatus))
                 return "Nilai TriageStatus tidak valid.";
 
-            var visitExists = await _dbContext.Set<TrxEmergencyVisit>()
+            var visitExists = await _dbContext.Set<EmgVisit>()
                 .AsNoTracking()
                 .AnyAsync(
+                    // Completed ditambahkan BE-IGD-019. Sebelumnya hanya Disposed dan Cancelled
+                    // yang dianggap tertutup, sehingga triase masih dapat dibuat pada kunjungan
+                    // yang sudah benar-benar selesai — AT-IGD-088.
                     x => x.Id == request.EmergencyVisitId &&
                          !x.IsDelete &&
                          x.VisitStatus != EmergencyVisitStatus.Disposed &&
+                         x.VisitStatus != EmergencyVisitStatus.Completed &&
                          x.VisitStatus != EmergencyVisitStatus.Cancelled,
                     cancellationToken);
 
             if (!visitExists)
                 return "EmergencyVisitId tidak ditemukan atau kunjungan sudah ditutup.";
 
-            var level = await _dbContext.Set<MstEmergencyTriageLevel>()
+            var level = await _dbContext.Set<EmgTriageLevel>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     x => x.Id == request.TriageLevelId && !x.IsDelete && x.IsActive,
@@ -71,7 +75,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (request.PreviousTriageId.HasValue && request.PreviousTriageId.Value != Guid.Empty)
             {
-                var previous = await _dbContext.Set<TrxEmergencyTriage>()
+                var previous = await _dbContext.Set<EmgTriage>()
                     .AsNoTracking()
                     .FirstOrDefaultAsync(
                         x => x.Id == request.PreviousTriageId.Value && !x.IsDelete,
@@ -92,11 +96,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             CancellationToken cancellationToken = default)
             => ValidateRequestAsync((CreateEmergencyTriageRequest)request, cancellationToken);
 
-        public async Task<MstEmergencyTriageLevel> GetTriageLevelAsync(
+        public async Task<EmgTriageLevel> GetTriageLevelAsync(
             Guid triageLevelId,
             CancellationToken cancellationToken = default)
         {
-            return await _dbContext.Set<MstEmergencyTriageLevel>()
+            return await _dbContext.Set<EmgTriageLevel>()
                 .AsNoTracking()
                 .FirstAsync(
                     x => x.Id == triageLevelId && !x.IsDelete && x.IsActive,
@@ -115,7 +119,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var previous = await _dbContext.Set<TrxEmergencyTriage>()
+            var previous = await _dbContext.Set<EmgTriage>()
                 .FirstOrDefaultAsync(x => x.Id == triageId && !x.IsDelete, cancellationToken);
 
             if (previous == null)
@@ -132,21 +136,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (!CanTransition(previous.TriageStatus, EmergencyTriageStatus.Superseded))
                 return RetriageOutcome.Conflict("Hanya penilaian yang sudah selesai yang dapat dinilai ulang.");
 
-            var visit = await _dbContext.Set<TrxEmergencyVisit>()
+            var visit = await _dbContext.Set<EmgVisit>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == previous.EmergencyVisitId && !x.IsDelete, cancellationToken);
 
             if (visit == null)
                 return RetriageOutcome.Conflict("Kunjungan IGD milik penilaian ini tidak ditemukan.");
 
+            // Completed ditambahkan BE-IGD-020. Ini kembaran cacat yang ditutup BE-IGD-019 pada
+            // ValidateRequestAsync: sebelumnya hanya Disposed dan Cancelled yang dianggap
+            // tertutup, sehingga kunjungan yang sudah benar-benar selesai masih dapat dinilai
+            // ulang — AT-IGD-088.
             if (visit.VisitStatus == EmergencyVisitStatus.Disposed ||
+                visit.VisitStatus == EmergencyVisitStatus.Completed ||
                 visit.VisitStatus == EmergencyVisitStatus.Cancelled)
                 return RetriageOutcome.Conflict("Kunjungan IGD sudah ditutup, sehingga tidak dapat dinilai ulang.");
 
             if (request.TriageLevelId == Guid.Empty)
                 return RetriageOutcome.BadRequest("TriageLevelId wajib diisi.");
 
-            var level = await _dbContext.Set<MstEmergencyTriageLevel>()
+            var level = await _dbContext.Set<EmgTriageLevel>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     x => x.Id == request.TriageLevelId && !x.IsDelete && x.IsActive,
@@ -164,7 +173,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var now = DateTime.UtcNow;
 
-            var nextSequence = (await _dbContext.Set<TrxEmergencyTriage>()
+            var nextSequence = (await _dbContext.Set<EmgTriage>()
                 .Where(x => x.EmergencyVisitId == previous.EmergencyVisitId && !x.IsDelete)
                 .Select(x => (int?)x.Sequence)
                 .MaxAsync(cancellationToken) ?? 0) + 1;
@@ -173,7 +182,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 ? request.StartedAt.Value
                 : now;
 
-            var retriage = new TrxEmergencyTriage
+            var retriage = new EmgTriage
             {
                 Id = Guid.NewGuid(),
                 EmergencyVisitId = previous.EmergencyVisitId,
@@ -216,7 +225,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             previous.UpdateDateTime = now;
             previous.UpdateBy = actorUserId;
 
-            _dbContext.Set<TrxEmergencyTriage>().Add(retriage);
+            _dbContext.Set<EmgTriage>().Add(retriage);
 
             try
             {
@@ -253,13 +262,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             // "Belum ditangani" dibaca dari TreatmentStartedAt, bukan disimpulkan dari status
             // kunjungan. Kolom itu diisi sekali dengan ??= saat penanganan dimulai, sehingga
             // merupakan penanda yang paling langsung dan tidak pernah tertimpa.
-            var kunjunganBelumDitangani = _dbContext.Set<TrxEmergencyVisit>()
+            var kunjunganBelumDitangani = _dbContext.Set<EmgVisit>()
                 .Where(v => !v.IsDelete
                     && v.TreatmentStartedAt == null
                     && v.VisitStatus != EmergencyVisitStatus.Cancelled)
                 .Select(v => v.Id);
 
-            var kandidat = await _dbContext.Set<TrxEmergencyTriage>()
+            var kandidat = await _dbContext.Set<EmgTriage>()
                 .Where(x => !x.IsDelete
                     && !x.IsSlaBreached
                     // Target yang belum dikonfigurasi menghasilkan ResponseDueAt kosong
@@ -307,8 +316,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var now = DateTime.UtcNow;
 
             var query =
-                from triage in _dbContext.Set<TrxEmergencyTriage>().AsNoTracking()
-                join visit in _dbContext.Set<TrxEmergencyVisit>().AsNoTracking()
+                from triage in _dbContext.Set<EmgTriage>().AsNoTracking()
+                join visit in _dbContext.Set<EmgVisit>().AsNoTracking()
                     on triage.EmergencyVisitId equals visit.Id
                 where !triage.IsDelete
                     && triage.IsSlaBreached
@@ -442,8 +451,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private RetriageOutcome(
             int statusCode,
             string message,
-            TrxEmergencyTriage? retriage,
-            TrxEmergencyTriage? previous)
+            EmgTriage? retriage,
+            EmgTriage? previous)
         {
             StatusCode = statusCode;
             Message = message;
@@ -455,13 +464,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public string Message { get; }
 
-        public TrxEmergencyTriage? Retriage { get; }
+        public EmgTriage? Retriage { get; }
 
-        public TrxEmergencyTriage? Previous { get; }
+        public EmgTriage? Previous { get; }
 
         public bool IsSuccess => Retriage != null;
 
-        public static RetriageOutcome Success(TrxEmergencyTriage retriage, TrxEmergencyTriage previous)
+        public static RetriageOutcome Success(EmgTriage retriage, EmgTriage previous)
             => new(200, "Penilaian ulang triage IGD berhasil dibuat.", retriage, previous);
 
         public static RetriageOutcome NotFound(string message)

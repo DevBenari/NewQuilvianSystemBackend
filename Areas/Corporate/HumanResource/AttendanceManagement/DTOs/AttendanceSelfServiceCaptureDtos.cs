@@ -47,7 +47,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public DateTime LocalNow { get; set; }
         public bool IsCheckedIn { get; set; }
         public bool CanCheckIn { get; set; }
+        // Open punch dan izin pulang adalah dua konsep berbeda. IsCheckedIn
+        // menjawab "employee sedang bekerja", CanCheckOut menjawab "employee
+        // sudah boleh Absen Pulang sekarang". Employee yang perlu pulang
+        // sebelum jadwal menempuh workflow Izin Pulang Cepat, bukan checkout
+        // langsung, jadi ESS tidak menyediakan jalur early checkout sama sekali.
         public bool CanCheckOut { get; set; }
+
+        // EarliestGraceCheckOutAt milik schedule resolver, yaitu
+        // ScheduledEndAt - EarlyCheckOutGraceMinutes. Null ketika jadwal untuk
+        // open punch tidak dapat diselesaikan - pada kondisi itu CanCheckOut
+        // juga false (fail-closed) dan alasannya disampaikan lewat Warnings.
+        public DateTime? CheckOutAvailableAt { get; set; }
+        public DateTime? ScheduledEndAt { get; set; }
+
         public DateTime? LastCheckInAt { get; set; }
         public DateTime? LastCheckOutAt { get; set; }
         public Guid? CurrentAttendanceDailyId { get; set; }

@@ -3438,3 +3438,482 @@ laporan-laporan `BE-IGD-*` sebelumnya yang menyimpulkan `AT-IGD-*` tidak dapat d
 Akibatnya, butir 1 Definition of Done (`04-prd-to-mvp.md` bagian 6) — *"seluruh functional
 requirement gelombangnya punya test yang lulus"* — **dapat dipenuhi** untuk `EPIC IGD-03`,
 dan roadmap revision `2` menuntutnya sebagai bukti, bukan mengecualikannya.
+
+---
+
+## Eksekusi gelombang `MVP-0` 2026-08-26
+
+### Decision log
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-094` | Approval | Roadmap backend revision `2` dinaikkan dari `DRAFT` menjadi `ACTIVE`, dan eksekusi gelombang `MVP-0` diizinkan dimulai. Kontrak yang dipakai tetap terbatas pada yang sudah di-`approved` `IGD-DEC-093`; approval ini **tidak** memperluas kontrak apa pun | Rizki Gunawan | **`approved`** | **Rizki Gunawan / 2026-08-26** | Instruksi pengguna 26 Agustus 2026 untuk melanjutkan modul IGD |
+
+### Dua butir gate yang dibereskan approval ini
+
+| Butir gate | Sebelum | Sesudah |
+| --- | --- | --- |
+| Task berstatus approved/ready | `status: DRAFT`, `approved_by: []` | `status: ACTIVE`, disetujui Rizki Gunawan |
+| `source_commit` tidak stale | Tertulis `f69e9e48`, HEAD nyatanya `300922c` | Metadata diperbarui ke `300922c`; commit penyusunan disimpan sebagai `backend_at_authoring` |
+
+### Pemeriksaan ulang bukti terhadap `300922c`
+
+Merge `300922c` "Hamzah, Ikbal, Yasmina" mendarat setelah roadmap disusun, sehingga bukti
+`EPIC IGD-03` diperiksa ulang sebelum implementasi dimulai. Dicatat sebagai `IGD-EV-095`.
+
+| Yang diperiksa | Hasil |
+| --- | --- |
+| Sembilan titik tulis `visit.VisitStatus` di lima controller IGD | **Identik**, nomor baris tidak bergeser |
+| Modul lain yang menulis `EmergencyVisitStatus` | **Nol.** Enum ini tidak dipakai satu pun berkas di luar `EmergencyInstallationManagement` |
+| Modul lain yang menyentuh `TrxEmergencyVisit` | Hanya `MstEmergencyArrivalMode` dan `MstEmergencyCaseType`, keduanya sebagai properti navigasi — bukan penulisan status |
+
+Kesimpulan: merge **tidak** menyentuh kepemilikan status kunjungan IGD, dan bukti pada
+roadmap tetap sahih.
+
+### Satu ketidakcocokan kontrak yang dicatat, bukan diputuskan
+
+Diagonal tabel `state-transition-matrix.md` bagian 1 tergambar `—` untuk seluruh status,
+tetapi bagian 1.2 hanya menyebut `Completed` → `Completed` yang ditolak. Kode menerima
+transisi ke status yang sama sebagai tindakan idempoten, dan `BE-IGD-018` mengikuti kode
+sambil menguncinya dengan test beserta alasannya.
+
+Menolak seluruh diagonal adalah **perubahan kontrak**, bukan perbaikan kode, dan akan
+mengubah perilaku setiap jalur yang menulis status berulang. Menunggu keputusan
+Product/Domain Owner bila memang dikehendaki. **Tidak memblokir apa pun.**
+
+---
+
+## Scope Pass 2026-08-26 — penunjang medis, pemakaian alat, billing IGD
+
+Tiga area yang diminta Rizki Gunawan sebagai lanjutan perjalanan pasien IGD. Sebelum pass ini
+ketiganya **tidak punya satu pun** epic, functional requirement, kontrak, maupun keputusan.
+
+### Bukti source yang dikumpulkan lebih dulu
+
+Diperiksa pada `300922c`. Pertanyaan yang dapat dijawab source tidak ditanyakan kepada pengguna.
+
+| Kode | Yang diperiksa | Hasil |
+| --- | --- | --- |
+| `IGD-EV-096` | Kemampuan `LaboratoryManagement` | **4 berkas**: controller, DTO, model, service. `LabOrder` hanya memuat `EncounterId` dan `ProcedureId`. **Nol status, nol hasil, nol spesimen.** Empat endpoint: daftar, detail, buat, batal |
+| `IGD-EV-097` | Kemampuan radiologi | **Nol berkas.** `csproj` memuat `<Folder Include="Areas\HealthServices\RadiologyManagement\" />` yang isinya kosong |
+| `IGD-EV-098` | Kemampuan pemakaian alat | **Nol berkas.** Folder `DeviceManagement` **tidak ada**, meski `csproj` mengecualikannya lewat `Compile Remove`. Tidak ada master alat di `MasterData`. Satu-satunya jejak "alat" adalah `TrxNosocomialInfection` yang mencatat infeksi **terkait** alat, bukan pemakaiannya |
+| `IGD-EV-099` | Seam integrasi billing | **`POST /api/v1/health-services/billing-management/folios/internal/milestones/recognize`**. `RecognizeBillingMilestoneRequest` memuat `IdempotencyKey`, `MilestoneFactId`, `MilestoneFactVersion`, `EncounterId`, `SourceContext`, `SourceAggregateId`, `SourceItemId`. **Nol modul di luar `BillingManagement` yang memanggilnya** |
+| `IGD-EV-100` | Entitas `MilestoneFact` | **Tidak ada tabelnya.** Ia identitas milik modul sumber, bukan milik billing |
+| `IGD-EV-101` | Mekanisme review keuangan | **Sudah ada.** `BillingChargeCalculationStatus` memuat `PendingFinancialReview = 3`; `BilChargeLine` memuat `MilestoneFactVersion` dan `ReviewReasonCode` |
+
+`IGD-EV-101` menentukan: mekanisme yang dipilih pengguna pada `IGD-DEC-098` **bukan hal baru
+yang harus dibangun.** Billing sudah tahu cara menandai baris untuk ditinjau keuangan.
+
+### Decision log pass berjalan
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-095` | Decision | **Penunjang medis: IGD hanya memesan dan membaca.** IGD menerbitkan pesanan laboratorium dan radiologi, lalu menampilkan hasil yang sudah jadi. Seluruh alur di dalam penunjang — penerimaan spesimen, pengerjaan, verifikasi hasil oleh dokter penanggung jawab — **bukan lingkup IGD** dan menjadi modul tersendiri beserta pemiliknya sendiri | Product/Domain Owner IGD, dengan pemilik `LaboratoryManagement` dan modul radiologi sebagai approver akhir | `draft` — pilihan pengguna jelas; kedua pemilik **belum ditunjuk** | — | Jawaban pengguna 26 Agustus 2026, pilihan A; `IGD-EV-096`, `IGD-EV-097` |
+| `IGD-DEC-096` | Decision | **Pemakaian alat dicatat untuk pengendalian infeksi, keselamatan pasien, dan rekam jejak klinis** — bukan untuk ditagihkan, dan bukan untuk manajemen ketersediaan aset. Yang dicatat adalah alat invasif yang terpasang beserta waktu pasang dan lepas, menyambung ke `TrxNosocomialInfection` yang sudah ada. Tarif, satuan waktu tagihan, nomor seri, peminjaman, dan sterilisasi **berada di luar lingkup** | Product/Domain Owner IGD, dengan tim PPI dan Nursing authority sebagai approver akhir | `draft` — pilihan pengguna jelas; tim PPI belum mengesahkan daftar alat | — | Jawaban pengguna 26 Agustus 2026, pilihan B ditambah keterangan pengguna "keselamatan pasien dan rekam jejak klinis"; `IGD-EV-098` |
+| `IGD-DEC-097` | Decision | **Empat kelompok kejadian IGD yang layak tagih**: jasa kunjungan IGD, tindakan medis, observasi dan resusitasi, serta obat dan bahan habis pakai. Pemakaian alat **tidak** termasuk, sesuai `IGD-DEC-096` | Product/Domain Owner IGD, dengan **Finance owner sebagai approver akhir** | `draft` — **arah kerja, belum disahkan.** Finance owner belum ditunjuk | — | Jawaban pengguna 26 Agustus 2026, keempat pilihan; `IGD-EV-099` |
+| `IGD-DEC-098` | Decision | **Koreksi klinis menerbitkan versi fakta baru.** Billing menandai baris yang terdampak untuk ditinjau Finance; penyesuaian atau pembalikan dibuat **hanya bila berdampak finansial**. Histori lama tetap utuh — koreksi tidak pernah menimpa. Mekanismenya memakai `MilestoneFactVersion` dan `PendingFinancialReview` yang **sudah ada** di billing, bukan mekanisme baru | Product/Domain Owner IGD, dengan Finance owner sebagai approver akhir | `draft` — pilihan pengguna jelas; ambang "berdampak finansial" belum ditetapkan | — | Jawaban pengguna 26 Agustus 2026, jawaban bebas; `IGD-EV-101`; sejalan dengan `IGD-DEC-065`, `IGD-DEC-066`, `IGD-DEC-090` |
+
+### Yang menjadi jelas karena pass ini
+
+| Sebelumnya | Sekarang |
+| --- | --- |
+| "Penunjang medis" tidak berbatas | IGD memesan dan membaca; sisanya milik modul lain — `IGD-DEC-095` |
+| "Pemakaian alat" bisa berarti tiga sistem berbeda | Satu tujuan saja: klinis dan pengendalian infeksi — `IGD-DEC-096` |
+| Tidak diketahui apa yang ditagih dari IGD | Empat kelompok, dan pemakaian alat **bukan** salah satunya — `IGD-DEC-097` |
+| Tabrakan antara koreksi tambah-saja dan tagihan berbasis waktu | Terselesaikan lewat versi fakta dan review keuangan — `IGD-DEC-098` |
+
+### Pertanyaan terbuka yang lahir dari pass ini
+
+| ID | Jenis | Isi | Owner | Status |
+| --- | --- | --- | --- | --- |
+| `IGD-OQ-072` | Open Question | `IGD-DEC-095` menetapkan IGD memesan lab dan radiologi. Tetapi radiologi **nol berkas** — tidak ada tabel pesanan sama sekali. Apakah pemesanan radiologi masuk lingkup pekerjaan sekarang, sehingga IGD ikut membuat tabel pesanannya; atau ditunda sampai modul radiologi ada? | Product/Domain Owner IGD + pemilik radiologi | `draft` — **memblokir** perencanaan penunjang medis |
+| `IGD-OQ-073` | Open Question | Pasien IGD pergi sebelum hasil penunjang keluar. Pesanannya dibatalkan, diteruskan ke unit tujuan, atau dibiarkan menggantung atas nama pasien? Ini menentukan `BE-IGD-035` yang cakupan "pesanan"-nya belum dapat dipastikan | Product/Domain Owner IGD + Clinical Governance | `draft` — **memblokir** `EPIC IGD-07` |
+| `IGD-OQ-074` | Open Question | `IGD-DEC-098` menyebut penyesuaian dibuat "bila berdampak finansial". **Siapa yang menetapkan ambangnya**, dan berapa? Tanpa ambang, setiap koreksi menit-menitan ikut masuk antrean review Finance dan menenggelamkan yang benar-benar penting | Finance owner — **belum ditunjuk** | `draft` — tidak memblokir desain; memblokir penyalaan di produksi |
+| `IGD-OQ-075` | Open Question | `IGD-DEC-096` menuntut daftar alat invasif yang dicatat. Daftar itu **belum disahkan tim PPI**, sama seperti daftar jenis infeksi nosokomial yang sudah menggantung sejak `BE-IGD-015` | Tim PPI — belum ditunjuk | `draft` — tidak memblokir desain; memblokir pengisian master |
+
+### Yang **tidak** dikerjakan pass ini
+
+| Yang tidak dikerjakan | Alasan |
+| --- | --- |
+| Menandai keputusan `approved` | Approval adalah tindakan manusia. `IGD-DEC-095`…`098` seluruhnya `draft` |
+| Menyusun ERD, kontrak, atau arsitektur ketiga area | Keluaran `/qv-design`, bukan `/qv-grill` |
+| Task dan roadmap | Keluaran `/qv-plan`. Roadmap revision `3` sengaja **tidak** memuat ketiga area ini |
+| Source code | Di luar wewenang tahap wawancara |
+| Menggali aktor, permission, dan kewenangan UI ketiga area | Pass ini menutup **batas lingkup** lebih dulu. Ketiganya menunggu pass berikutnya, setelah `IGD-OQ-072` dan `IGD-OQ-073` terjawab — keduanya mengubah bentuk pertanyaannya |
+
+### Penutupan `IGD-OQ-072` dan `IGD-OQ-073` — 26 Agustus 2026
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-072` | Open Question | Pemesanan radiologi masuk lingkup sekarang atau ditunda | Product/Domain Owner IGD + pemilik radiologi | `superseded` oleh `IGD-DEC-099` | — | `IGD-EV-097` |
+| `IGD-DEC-099` | Decision | **Pemesanan radiologi adalah kebutuhan klinis IGD, tetapi implementasinya ditunda** sampai pemilik `RadiologyManagement` ditunjuk. Modul Radiologi menjadi **pemilik order, pemeriksaan, dan hasil**; IGD hanya membuat permintaan serta membaca status dan hasil — sejalan dengan `IGD-DEC-095`. **Selama modul belum tersedia, pemesanan radiologi dilakukan di luar sistem dan dicatat pada serah terima.** IGD **tidak** membuat tabel pesanan radiologi tandingan | Product/Domain Owner IGD, dengan pemilik `RadiologyManagement` sebagai approver akhir | `draft` — pilihan pengguna jelas; pemilik `RadiologyManagement` **belum ditunjuk** | — | Jawaban pengguna 26 Agustus 2026; `IGD-EV-097`; sejajar dengan `IGD-DEC-087` yang memperlakukan `LabOrder` dengan pola sama |
+| `IGD-OQ-073` | Open Question | Sikap atas pesanan yang belum selesai ketika pasien meninggalkan IGD | Product/Domain Owner IGD + Clinical Governance | `superseded` oleh `IGD-DEC-100` | — | — |
+| `IGD-DEC-100` | Decision | Ketika pasien meninggalkan IGD, **setiap pesanan yang belum selesai wajib ditetapkan sikapnya**: `Continue`, `Handover`, atau `Cancel`. **(a)** Pesanan yang pemeriksaannya sudah dilakukan atau spesimennya sudah diambil **tetap diproses sampai hasil final** — `Continue`. **(b)** Pada perpindahan internal, pesanan diserahkan kepada unit penerima dengan **penerimaan yang eksplisit** — `Handover`. **(c)** Pesanan yang belum dimulai dapat dibatalkan oleh **klinisi berwenang dengan alasan** — `Cancel`. **(d) Tidak ada pembatalan otomatis** hanya karena kunjungan IGD selesai | Product/Domain Owner IGD, dengan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna jelas; approval Clinical Governance belum tercatat | — | Jawaban pengguna 26 Agustus 2026; menutup cakupan `EPIC IGD-07` dan `BE-IGD-035` |
+
+### Dua akibat pada rancangan revisi 5 yang **wajib diperbaiki**
+
+`IGD-DEC-100` bertabrakan dengan bentuk teknis yang sudah tertulis. Dicatat di sini, bukan
+diperbaiki diam-diam — perbaikannya pekerjaan `/qv-design`.
+
+**① `EmergencyOrderAction` salah nilainya.** `02-backend-architecture.md` bagian 3.4
+menetapkan `Completed`=1, `Cancelled`=2, `HandedOver`=3.
+
+| Nilai dirancang | Nilai yang dituntut `IGD-DEC-100` | Selisih artinya |
+| --- | --- | --- |
+| `Completed` | **`Continue`** | `Completed` berarti pesanan sudah tuntas. `Continue` berarti pesanan **masih berjalan** dan akan diproses sampai hasil final meski pasien sudah pergi. Dua hal yang berbeda |
+| `Cancelled` | `Cancel` | Sama artinya |
+| `HandedOver` | `Handover` | Sama artinya, tetapi kini **menuntut penerimaan eksplisit** dari unit penerima — yang belum ada pada rancangan |
+
+Pesanan yang benar-benar sudah selesai **tidak muncul** pada daftar sikap sama sekali, karena
+daftar itu hanya memuat pesanan yang belum selesai. Karena itu `Completed` bukan sekadar salah
+nama — ia nilai yang tidak diperlukan, dan ketiadaan `Continue` membuat aturan (a) tidak dapat
+dicatat.
+
+**② `EmergencyOrderKind` belum memuat radiologi.** Nilainya kini `Medication`=1, `Procedure`=2,
+`LaboratoryOrder`=3. `IGD-DEC-099` menetapkan radiologi sebagai kebutuhan klinis yang ditunda,
+dan selama ditunda pesanannya dicatat pada serah terima. Rancangan perlu menyediakan nilai
+untuk itu — beserta cara mencatat pesanan yang **dibuat di luar sistem**, yang tidak punya
+`OrderReferenceId` untuk ditunjuk.
+
+### Pertanyaan terbuka baru
+
+| ID | Jenis | Isi | Owner | Status |
+| --- | --- | --- | --- | --- |
+| `IGD-OQ-076` | Open Question | `IGD-DEC-100` butir (a) membedakan pesanan yang spesimennya **sudah** diambil dari yang **belum dimulai**. Tetapi `LabOrder` **tidak punya kolom status sama sekali** (`IGD-EV-096`), sehingga sistem **tidak dapat mengetahui** yang mana. `IGD-DEC-087` sudah menyatakan bagian penunjang pada daftar sikap "belum dapat ditegakkan". Apakah sikap pesanan laboratorium ditetapkan **manual oleh klinisi** yang memang tahu keadaannya, sampai `LabOrder` dilengkapi? | Product/Domain Owner IGD + Clinical Governance + pemilik `LaboratoryManagement` | `draft` — **memblokir** `BE-IGD-035` |
+| `IGD-OQ-077` | Open Question | `IGD-DEC-100` butir (b) menuntut **penerimaan eksplisit** dari unit penerima atas pesanan yang diserahkan. Di mana penerimaan itu dicatat — menumpang `EmergencyHandoverStatus` pada `TrxEmergencyDeparture`, atau kolom tersendiri per pesanan? Dan **apa yang terjadi bila unit penerima menolak** satu pesanan tetapi menerima pasiennya? | Product/Domain Owner IGD + Nursing authority | `draft` — **memblokir** `BE-IGD-035` |
+| `IGD-OQ-078` | Open Question | `IGD-DEC-099` menetapkan pesanan radiologi dicatat pada serah terima selama modulnya belum ada. Pesanan itu **tidak punya baris di basis data** untuk ditunjuk. Apakah dicatat sebagai teks bebas pada serah terima, atau sebagai baris pesanan berjenis "di luar sistem" yang menunggu dikaitkan kelak? | Product/Domain Owner IGD | `draft` — tidak memblokir; mengubah bentuk `TrxEmergencyHandoverOrderItem` |
+
+### Keadaan `EPIC IGD-07` setelah pass ini
+
+| Sebelumnya | Sekarang |
+| --- | --- |
+| Cakupan "pesanan" tidak dapat dipastikan sebelum penunjang medis punya blueprint | **Cakupannya jelas**: obat, tindakan, laboratorium, dan radiologi di luar sistem |
+| Sikap atas pesanan belum diputuskan | **Tiga sikap ditetapkan** beserta aturan kapan masing-masing berlaku |
+| — | Muncul tiga pertanyaan baru yang memblokir `BE-IGD-035`: `IGD-OQ-076`, `IGD-OQ-077` |
+
+`BE-IGD-035` pada roadmap revision `3` karena itu **tetap terblokir**, tetapi penyebabnya
+berpindah: bukan lagi "cakupan pesanan tidak diketahui", melainkan dua pertanyaan bentuk
+teknis yang jauh lebih sempit dan lebih murah dijawab.
+
+### Penutupan `IGD-OQ-076`, `077`, `078` — 26 Agustus 2026
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-076` | Open Question | Sikap pesanan laboratorium, sementara `LabOrder` tidak punya kolom status | Product/Domain Owner IGD + Clinical Governance + pemilik `LaboratoryManagement` | `superseded` oleh `IGD-DEC-101` | — | `IGD-EV-096` |
+| `IGD-DEC-101` | Decision | **Sikap pesanan laboratorium ditetapkan manual oleh klinisi**, untuk sementara. Klinisi menentukan `Continue`, `Handover`, atau `Cancel` berdasarkan **keadaan nyata**, dan setiap penetapan menyimpan **pelaku, waktu, dan alasan**. Sistem **dilarang mengklaim** bahwa status itu berasal dari `LabOrder` — pada dokumen maupun pada layar. Otomatisasi baru dikerjakan **setelah** pemilik Laboratorium melengkapi lifecycle pesanan | Product/Domain Owner IGD, dengan Clinical Governance dan pemilik `LaboratoryManagement` sebagai approver akhir | `draft` — pilihan pengguna jelas; pemilik `LaboratoryManagement` belum ditunjuk | — | Jawaban pengguna 26 Agustus 2026; menegakkan `IGD-DEC-087` yang sudah menyatakan bagian penunjang "belum dapat ditegakkan" |
+| `IGD-OQ-077` | Open Question | Di mana penerimaan eksplisit atas pesanan yang diserahkan dicatat | Product/Domain Owner IGD + Nursing authority | `superseded` oleh `IGD-DEC-102` | — | — |
+| `IGD-DEC-102` | Decision | **Penerimaan dicatat per pesanan, bukan menumpang `EmergencyHandoverStatus`.** Penerimaan pasien, dokumen serah terima, dan setiap pesanan adalah **tiga fakta yang terpisah**. Akibatnya: **(a)** bila pasien diterima tetapi satu pesanan ditolak, **perpindahan pasien tetap sah**; **(b)** pesanan yang ditolak kembali menjadi tanggung jawab dokter pemesan atau klinisi pengganti; **(c)** sebelum penutupan, pesanan itu **wajib** diberi sikap pengganti — `Continue`, dialihkan ke penerima lain, atau `Cancel`; **(d) penolakan pesanan tidak membatalkan penerimaan pasien** | Product/Domain Owner IGD, dengan Nursing authority sebagai approver akhir | `draft` — pilihan pengguna jelas | — | Jawaban pengguna 26 Agustus 2026; memperluas `IGD-DEC-100` |
+| `IGD-OQ-078` | Open Question | Cara mencatat pesanan radiologi yang dibuat di luar sistem | Product/Domain Owner IGD | `superseded` oleh `IGD-DEC-103` | — | `IGD-EV-097` |
+| `IGD-DEC-103` | Decision | Pesanan yang dibuat di luar sistem dicatat sebagai **baris pesanan eksternal yang terstruktur**, bukan teks bebas semata. `OrderReferenceId` **boleh kosong** untuk pesanan luar sistem, tetapi baris itu **wajib** memuat identitas atau referensi eksternal beserta deskripsi yang **dapat diaudit** | Product/Domain Owner IGD | `draft` — pilihan pengguna jelas | — | Jawaban pengguna 26 Agustus 2026; melengkapi `IGD-DEC-099` |
+
+### Pertanyaan terbuka baru dari implementasi `BE-IGD-019`
+
+| ID | Jenis | Isi | Owner | Status |
+| --- | --- | --- | --- | --- |
+| `IGD-OQ-079` | Open Question | `contracts/validation-matrix.md` bagian 2 **aturan 5** berbunyi *"Perubahan status kunjungan akibat triase wajib transisi yang sah"* dengan kode `409`. Dibaca harfiah, penilaian ulang pasien `InTreatment` **ditolak**. Tetapi `AT-IGD-086` menuntut *"Berhasil, status kunjungan tetap `InTreatment`"*, dan skenario UAT `04-prd-to-mvp.md` EPIC IGD-03 menegaskan hal yang sama. `BE-IGD-019` mengikuti `AT-IGD-086`: penolakan penjaga pada kunjungan yang **masih terbuka** diabaikan, penilaian tetap tersimpan, status tidak berubah. `409` hanya untuk kunjungan yang **sudah tertutup** — aturan 4. Apakah penafsiran ini benar, atau aturan 5 memang dimaksudkan menolak? | Product/Domain Owner IGD + Clinical Governance | `draft` — **tidak memblokir**; `BE-IGD-019` sudah berjalan sesuai `AT-IGD-086`. Memblokir bila aturan 5 ternyata dimaksudkan menolak, karena berarti `AT-IGD-086` dan UAT-nya harus ditinjau ulang |
+
+Bila aturan 5 memang dimaksudkan menolak, akibatnya **perawat tidak dapat menilai ulang pasien
+yang sedang ditangani** — yang tampaknya bukan yang dikehendaki, mengingat `IGD-DEC-083`
+justru menegaskan pengkajian ulang tidak pernah memblokir tindakan klinis.
+
+### Akibat pada rancangan yang wajib dikerjakan `/qv-design`
+
+Daftar koreksi bertambah dari dua menjadi empat.
+
+| # | Koreksi | Sumber |
+| ---: | --- | --- |
+| 1 | `EmergencyOrderAction` menjadi `Continue`, `Cancel`, `Handover` | `IGD-DEC-100` |
+| 2 | `EmergencyOrderKind` menambah radiologi | `IGD-DEC-099` |
+| 3 | Referensi pesanan **internal versus eksternal** — `OrderReferenceId` boleh kosong, disertai identitas eksternal dan deskripsi yang dapat diaudit | `IGD-DEC-103` |
+| 4 | **Lifecycle penerimaan per pesanan** — terpisah dari `EmergencyHandoverStatus`, beserta jalur sikap pengganti ketika sebuah pesanan ditolak | `IGD-DEC-102` |
+
+Ditambah pencatatan pelaku, waktu, dan alasan pada setiap penetapan sikap — `IGD-DEC-101`.
+
+### Penutupan `IGD-OQ-079` — 26 Agustus 2026
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-079` | Open Question | Apakah validation-matrix §2 aturan 5 menolak penilaian ulang, atau tidak | Product/Domain Owner IGD + Clinical Governance | `superseded` oleh `IGD-DEC-104` | — | Laporan `BE-IGD-019` bagian 4 |
+| `IGD-DEC-104` | Decision | **Penilaian ulang pasien yang kunjungan IGD-nya masih aktif wajib tetap dapat disimpan tanpa memundurkan `VisitStatus`.** Aturannya per status: **(a)** `WaitingForTriage` → triase selesai → menjadi `Triaged` **melalui `CanTransition`**; **(b)** `Triaged`, `InTreatment`, `UnderObservation`, `AwaitingDisposition` → penilaian atau retriase **disimpan**, `VisitStatus` **tetap**, dan sistem **tidak mencoba** mengubahnya kembali menjadi `Triaged`; **(c)** `Disposed`, `Completed`, `Cancelled` → penyelesaian triase ditolak **`409`**; **(d)** `Arrived` **tidak boleh** langsung menjadi `Triaged` dengan melewati transisi yang diwajibkan — bila perubahan status benar-benar diminta dan `CanTransition` menolak, hasilnya tetap **`409`**. Dengan demikian **aturan 5 berarti: setiap perubahan status yang benar-benar dilakukan akibat triase wajib melewati `CanTransition`. Penilaian ulang yang tidak mengubah status bukan transisi ilegal** | Product/Domain Owner IGD, dengan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna jelas; approval Clinical Governance belum tercatat | — | Jawaban pengguna 26 Agustus 2026, menutup `IGD-OQ-079` |
+
+### Rumusan yang **ditolak** secara sengaja
+
+Implementasi awal `BE-IGD-019` memakai rumusan *"setiap penolakan penjaga pada kunjungan yang
+masih terbuka diabaikan"*. **Rumusan itu ditolak Product/Domain Owner karena terlalu luas**,
+dan `IGD-DEC-104` menggantinya.
+
+Perbedaannya nyata, bukan soal kata:
+
+| Keadaan | Rumusan lama yang ditolak | `IGD-DEC-104` |
+| --- | --- | --- |
+| `WaitingForTriage` → `Triaged` | Berubah | Berubah — sama |
+| `InTreatment` dinilai ulang | Diabaikan, tersimpan | Sistem **tidak mencoba**; tersimpan — hasil sama, alasannya berbeda |
+| **`Arrived` → `Triaged`** | **Diabaikan, tersimpan, status tetap `Arrived`** | **`409`** |
+
+`Arrived` adalah tempat kedua rumusan itu berbeda hasilnya. `Arrived` **belum** melewati
+triase, sehingga penyelesaian triase memang **meminta** perubahan status — dan permintaan yang
+melompati `WaitingForTriage` adalah transisi ilegal yang wajib ditolak. Rumusan lama
+menyembunyikannya menjadi keberhasilan diam-diam.
+
+Yang membedakan karena itu **bukan** terbuka lawan tertutup, melainkan **sudah lawan belum
+melewati tahap triase**.
+
+### Arti aturan 5 yang kini terkunci
+
+> Setiap perubahan status yang **benar-benar dilakukan** akibat triase wajib melewati
+> `CanTransition`. Penilaian ulang yang **tidak mengubah status** bukan transisi ilegal.
+
+Semantik `AT-IGD-086`, skenario UAT "Ny. Sari sedang ditangani" pada `04-prd-to-mvp.md`, dan
+`IGD-DEC-083` **dipertahankan seluruhnya**. Tidak ada acceptance test maupun skenario UAT yang
+perlu ditinjau ulang.
+
+### Akibat pada `BE-IGD-019` yang sudah selesai
+
+`BE-IGD-019` **diperbaiki pada hari yang sama**, sebelum di-commit:
+
+| Perubahan | Isi |
+| --- | --- |
+| Helper baru `KunjunganSudahMelewatiTriase` | Memisahkan empat status yang sudah melewati triase dari `Arrived` dan `WaitingForTriage` |
+| Kedua jalur | Penjaga **hanya dipanggil** bila kunjungan belum melewati triase; penolakannya kini menghasilkan `409`, bukan diabaikan |
+| Jalur create | Pemeriksaan kunjungan **dipindahkan ke sebelum penyimpanan**, sehingga `409` tidak pernah meninggalkan baris triase yang terlanjur tersimpan. Perubahan status kini ikut dalam `SaveChangesAsync` yang sama dengan triasenya |
+| Test | Naik dari **18 menjadi 27**, termasuk `Arrived_TidakBolehMelompatKeTriaged` dan `BelumMelewatiTriase_HasilnyaDitentukanCanTransition` yang menguji `Arrived` dan `WaitingForTriage` berdampingan — dua keadaan yang rumusan lama samakan |
+
+Suite penuh `704 → 713`, dua yang gagal tetap dua milik `InPatientManagement`. Nol regresi.
+
+### Pemesanan laboratorium memakai `LaboratoryManagement` apa adanya — 26 Agustus 2026
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-105` | Decision | **IGD memakai `LaboratoryManagement` yang sudah ada apa adanya** untuk pemesanan laboratorium, dan **tidak** membuat tabel pesanan tandingan. Kekurangan `LabOrder` dicatat terbuka pada blueprint sebagai daftar yang dapat diserahkan kepada pemiliknya kelak, **bukan** ditambal diam-diam oleh IGD. Menegaskan kembali `IGD-DEC-087` dan `IGD-DEC-095` | Product/Domain Owner IGD | `draft` — pilihan pengguna jelas | — | Instruksi pengguna 26 Agustus 2026; `IGD-EV-096`, `IGD-EV-106` |
+
+### `IGD-EV-106` — siapa yang membuat `LaboratoryManagement`
+
+Ditelusuri dari riwayat git pada 26 Agustus 2026.
+
+| Hal | Bukti |
+| --- | --- |
+| Commit | `1a8a9ce` — *"feat: add laboratory order foundation"* |
+| Pembuat | **`andryzainhome <andryzain01@gmail.com>`** |
+| Tanggal | 15 Agustus 2026 |
+| Isi | `LabOrderController`, `LabOrderDtos`, `LabOrder`, `LabOrderService`, migration `20260815103436_initializeLabOrder`, registrasi DI, konfigurasi EF |
+| Sesudahnya | **Tidak pernah disentuh lagi.** Commit terakhir Andry 16 Agustus 2026 |
+
+**Membuat bukan berarti memiliki.** Tidak ada dokumen yang menetapkan Andry sebagai pemilik
+`LaboratoryManagement`, dan commit di sekitarnya bersifat perkakas dan tata kelola — QBE
+checker, CI conformance, governance branch workflow. Nama commit-nya sendiri menyebut
+*"foundation"*, yang konsisten dengan isinya: kerangka yang menunggu dilanjutkan.
+
+**Langkah termurah sebelum penunjukan formal: menanyakan Andry** apakah `1a8a9ce` memang
+fondasi yang mereka niatkan lanjutkan, atau scaffolding yang sengaja ditinggalkan untuk diambil
+orang lain. Jawabannya menentukan apakah ini soal koordinasi atau kekosongan kepemilikan.
+
+### Daftar kekurangan `LabOrder` — untuk diserahkan kepada pemiliknya
+
+`LabOrder` hanya memuat `Id`, `EncounterId`, `ProcedureId`, dan field warisan `IdentityModel`.
+Empat endpoint: daftar, detail, buat, batal.
+
+| # | Yang tidak ada | Akibat bagi IGD |
+| ---: | --- | --- |
+| 1 | **Status pesanan** | IGD tidak dapat mengetahui pesanan sudah dikerjakan atau belum. Inilah sebab `IGD-DEC-101` menetapkan sikap pesanan ditetapkan **manual** klinisi |
+| 2 | **Hasil pemeriksaan** | Layar IGD menampilkan pesanan tanpa hasil. Dokter tetap membaca hasil di luar sistem |
+| 3 | **Jenis dan waktu pengambilan spesimen** | Aturan `IGD-DEC-100` butir (a) — "spesimen sudah diambil" — tidak dapat ditegakkan sistem |
+| 4 | **Dokter pemesan** | Pesanan tidak dapat ditelusuri ke siapa yang memintanya; `IGD-DEC-102` butir (b) mengembalikan pesanan yang ditolak kepada dokter pemesan, dan datanya tidak ada |
+| 5 | **Prioritas (cito / rutin)** | Pesanan gawat darurat tidak dapat dibedakan dari pesanan biasa di antrean laboratorium |
+| 6 | **Penanda nilai kritis** | Tidak ada jalur pemberitahuan nilai kritis kembali ke IGD |
+| 7 | **Waktu terima dan waktu verifikasi** | Tidak ada dasar menghitung waktu tunggu penunjang, yang merupakan indikator mutu IGD |
+| 8 | **Verifikasi dokter penanggung jawab lab** | Tanpa ini, apa pun yang tersimpan sebagai "hasil" tidak punya rantai pertanggungjawaban klinis |
+
+Butir 1 sampai 4 **langsung memengaruhi IGD**. Butir 5 sampai 8 memengaruhi mutu dan
+keselamatan, tetapi berada sepenuhnya di dalam wilayah laboratorium.
+
+**Nol di antaranya dikerjakan IGD.** Daftar ini ada supaya ketika pemilik `LaboratoryManagement`
+ditunjuk, pekerjaannya sudah terurai — bukan supaya IGD mengerjakannya diam-diam.
+
+### Yang IGD **boleh** kerjakan tanpa menunggu siapa pun
+
+| Boleh | Sebab |
+| --- | --- |
+| Memesan lewat `LabOrder` apa adanya | `IGD-DEC-087`, `IGD-DEC-105` |
+| Mencatat **permintaan** penunjang sebagai fakta IGD pada `TrxEmergencyHandoverOrderItem` | Tabel milik IGD; `IGD-DEC-103` |
+| Menetapkan sikap pesanan secara manual beserta pelaku, waktu, dan alasan | `IGD-DEC-101` |
+| Menyatakan di layar bahwa sikap itu **ditetapkan petugas**, bukan dibaca dari sistem lab | `IGD-DEC-101`, validation §5 aturan 5 |
+
+### Pertanyaan terbuka baru
+
+| ID | Jenis | Isi | Owner | Status |
+| --- | --- | --- | --- | --- |
+| `IGD-OQ-080` | Open Question | Pemantau pelampauan SLA (`EmergencyTriageService` baris 263 dan 322) menyaring dengan `TreatmentStartedAt == null` dan `VisitStatus != Cancelled`. Kunjungan yang ditutup `Completed` **tanpa penanganan pernah dimulai** — pasien mendaftar, ditriase, lalu pergi — akan **terus muncul pada daftar pantau** meski kunjungannya sudah tidak berjalan. Apakah daftar pantau perlu ikut mengecualikan kunjungan tertutup? | Product/Domain Owner IGD + Nursing authority | `draft` — tidak memblokir. Diatur `IGD-DEC-083`, bukan aturan triase |
+| `IGD-OQ-081` | Open Question | Apakah `andryzainhome` bersedia atau ditugaskan menjadi pemilik `LaboratoryManagement`, mengingat merekalah yang membuat fondasinya? Bila tidak, siapa? | Organisasi | `draft` — **memblokir** pelengkapan `LabOrder`, **tidak** memblokir pemesanan IGD |
+
+---
+
+## Correction pass revisi 6 — 26 Agustus 2026
+
+Dijalankan atas instruksi Product/Domain Owner. **Bukan** perancangan area baru, dan **tidak**
+menaikkan status approval apa pun. Enam butir dikoreksi; dua pertanyaan baru lahir dari
+auditnya.
+
+### Yang dikoreksi
+
+| # | Butir | Hasil |
+| ---: | --- | --- |
+| 1 | Audit terarah `EmergencyTransfer` pada `300922c` | Suplemen capability map `3.1`. **918 baris, 6 berkas, 6 endpoint**, ditambah `DbSet`, registrasi DI, dan migration |
+| 2 | Klaim "nol bagian lama diubah" | **Dicabut.** Revisi 6 **bukan** murni aditif — manifest 0a.2 |
+| 3 | Penyelarasan metadata | Manifest, tiga roadmap, lima kontrak, traceability |
+| 4 | Pembentukan baris pesanan internal | `02-backend-architecture.md` §11.1 |
+| 5 | Unique constraint | `02-backend-architecture.md` §11.2 — dua index parsial, bukan satu |
+| 6 | Kewenangan `accept`/`reject` | `contracts/permission-audit-matrix.md` §3.1 |
+
+### Dua temuan yang mengubah gambaran
+
+**① `IGD-DEC-091` menilai terlalu rendah luas perubahannya.** Bukti yang mendasarinya hanya
+menghitung **satu** pemanggil frontend. Audit menemukan **918 baris pada 6 berkas**, ditambah
+`DbSet<TrxEmergencyTransfer>`, `Program.cs:321`, migration `20260804071642`, properti navigasi
+`TrxEmergencyVisit.Transfers`, dan **gerbang penutupan kunjungan** pada
+`EmergencyDispositionService`. Keputusannya tetap benar; **ukurannya** yang salah dicatat.
+
+**② `BillingManagement` menyebut `EmergencyTransfer`, tetapi itu positif palsu.** Keduanya
+string konstanta `"EMERGENCY_TRANSFER"` sebagai nilai `DepartureReason`, bukan rujukan ke tabel
+maupun enum IGD. **Nol consumer nyata di luar IGD.**
+
+### Decision log pass berjalan
+
+| ID | Jenis | Isi | Owner | Status |
+| --- | --- | --- | --- | --- |
+| `IGD-OQ-082` | Open Question | Gerbang penutupan kunjungan pada `EmergencyDispositionService:124–130` membaca `TransferStatus != Completed && != Rejected` sebagai penanda "sudah tuntas". Model baru memecah ketuntasan menjadi **fisik** (`EmergencyPhysicalStatus`) dan **dokumen** (`EmergencyHandoverStatus`), sehingga **arti "tuntas" berubah**. Validation §6 aturan 3 kini berbunyi "fisiknya belum `Arrived` atau `Cancelled`" — yang **mengabaikan dokumen**. Apakah kunjungan boleh ditutup ketika pasien sudah tiba tetapi dokumen serah terimanya masih `Pending`? | Product/Domain Owner IGD + Nursing authority | `closed` oleh **`IGD-DEC-106`** 26 Agt — **tidak lagi memblokir** `BE-IGD-032` |
+| `IGD-UNK-08` | Unknown | Berapa baris `TrxEmergencyTransfer` yang `FromRoomId`, `ToRoomId`, `FromBedId`, atau `ToBedId`-nya tidak kosong? Menghapus keempat kolom itu (`IGD-DEC-069`) berarti kehilangan riwayat penempatan bila masih berisi | — | Hanya dapat dijawab kueri ke basis data bersama; otorisasi belum ada |
+
+`IGD-OQ-082` **sudah ditutup `IGD-DEC-106`** (26 Agustus 2026). Ketika ditulis, ia memblokir `BE-IGD-032`, bukan `BE-IGD-035`. Ia menyentuh gerbang yang
+menentukan boleh-tidaknya kunjungan ditutup — bagian paling berisiko dari seluruh `MVP-4`.
+
+### Satu tabrakan kosakata yang dicatat
+
+`BillingManagement` sudah memakai kata *departure*: `DepartureReason` di sana berarti **alasan
+pasien pergi dengan tagihan belum lunas** (`DEATH`, `EMERGENCY_TRANSFER`, `DAMA`). Setelah
+`IGD-DEC-091`, IGD memakai *departure* untuk **catatan kepergian pasien dari IGD**. Dua konsep
+berbeda dengan satu kata. Tidak memblokir, tetapi wajib disebut saat billing IGD dirancang.
+
+### Yang **tidak** dikerjakan pass ini
+
+| Yang tidak dikerjakan | Alasan |
+| --- | --- |
+| Menaikkan status approval apa pun | Revisi 6 tetap `draft`. `IGD-DEC-093` **tidak diperluas** |
+| Merancang penunjang medis, pemakaian alat, billing IGD | **Ditahan atas instruksi owner** sampai correction pass tuntas |
+| `BE-IGD-035` | Ditahan atas instruksi yang sama |
+| `/qv-trace` penuh | Audit ini **terarah** pada `EmergencyTransfer`. Bagian lain capability map tetap stale terhadap `300922c` |
+
+---
+
+## Jawaban `IGD-OQ-082` dan wewenang lanjutan — 27 Agustus 2026
+
+> **Koreksi tanggal.** Bagian ini sempat tertulis 26 Agustus 2026. Keputusannya diambil
+> **27 Agustus 2026**; correction pass revisi 6 di atasnya yang 26 Agustus. Diperbaiki pada
+> hari yang sama, sebelum di-commit.
+
+Instruksi Product/Domain Owner: *"jawab dulu `IGD-OQ-082`, lalu kerjakan sampai tuntas modul
+IGD ini; jika ada yang menyenggol tabel atau modul lain, perbaiki saja bila belum ada
+pemilik/pemegang modul tersebut."*
+
+### `IGD-DEC-106` — gerbang penutupan kunjungan membaca **fisik saja**
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-106` | Decision | **Kunjungan IGD boleh ditutup ketika pasien sudah tiba (`PhysicalStatus` = `Arrived`) meskipun dokumen serah terimanya masih `Pending`, `Submitted`, atau `Rejected`.** Gerbang penutupan membaca **`PhysicalStatus` saja**: menahan hanya bila ada kepergian yang fisiknya belum `Arrived` dan belum `Cancelled`. Validation §6 aturan 3 **tetap seperti tertulis** — dipastikan benar, bukan diubah. Empat syarat mengikat: **(a)** keadaan dokumen yang belum final **wajib tersimpan sebagai fakta** pada kunjungan saat penutupan, bukan diabaikan; **(b)** rantai dokumen **tetap terbuka dan dapat ditindaklanjuti setelah kunjungan ditutup** — unit penerima masih dapat menerima atau menolak; **(c)** dokumen yang belum final **wajib muncul pada daftar pantau**; **(d)** balasan penutupan **wajib menyebutkan** dokumen mana yang masih menggantung, sehingga penutupan tidak pernah diam-diam. **Tidak** ada alasan tertulis yang diwajibkan — dokumen `Pending` adalah keadaan sah menurut §4 aturan 8, dan memaksa alasan atas keadaan sah mengajarkan petugas mengetik alasan asal-asalan | Product/Domain Owner IGD + Nursing authority | `approved` oleh Product/Domain Owner; Nursing authority **belum ditunjuk** — lihat `IGD-DEC-107` | **Rizki Gunawan / 2026-08-27** | Instruksi pengguna 27 Agustus 2026; `IGD-EV-107` |
+
+### Empat alasan, diurutkan dari yang paling menentukan
+
+**① Menahan kunjungan berarti menahan pasien yang datang lagi besok.** `BE-IGD-025` menegakkan
+satu pasien satu episode IGD aktif (`IGD-DEC-084`): pendaftaran ditolak selama kunjungan
+sebelumnya belum `Completed`. Bila dokumen serah terima yang belum ditandatangani unit tujuan
+menahan penutupan, maka **tanda tangan yang terlupa di bangsal menutup pintu IGD bagi pasien
+yang sama saat ia kembali**. Kerugiannya jatuh pada pasien, akibat kelalaian administratif di
+unit lain. Ini alasan yang paling menentukan, dan ia berdiri sendiri.
+
+**② Yang dapat menuntaskan dokumen bukan IGD.** Menerima atau menolak serah terima adalah
+wewenang **unit tujuan** — validation §4 aturan 6, `IGD-DEC-086`. Menjadikan penutupan
+kunjungan IGD sandera tindakan unit lain memberi IGD kewajiban yang tidak dapat ia tunaikan.
+
+**③ Keadaan itu sudah dinyatakan sah.** `IGD-DEC-070` lewat validation §4 aturan 8 menyatakan
+fisik `Arrived` dengan dokumen `Pending` **diterima, bukan penyimpangan**. Gerbang yang menahan
+penutupan atas keadaan itu akan bertentangan dengan aturan yang menyebutnya sah.
+
+**④ `IGD-DEC-090` sengaja memisahkan tiga rangkaian.** Fisik pasien, dokumen serah terima, dan
+tiap pesanan adalah tiga fakta yang tidak saling menahan. Membiarkan dokumen menahan penutupan
+menyatukan kembali apa yang sengaja dipisah.
+
+### Mengapa dokumen **tidak** menahan, sedangkan pesanan **menahan**
+
+Validation §5 aturan 12 menahan penutupan bila ada pesanan yang **ditolak dan belum diberi
+sikap pengganti**. Terlihat tidak konsisten dengan keputusan ini. Bedanya nyata:
+
+| | Pesanan tanpa sikap | Dokumen serah terima belum final |
+| --- | --- | --- |
+| Sifat | **Pekerjaan klinis yang belum diputuskan** — akan dikerjakan atau tidak | **Catatan atas sesuatu yang sudah terjadi** — pasien sudah di unit tujuan |
+| Bila dibiarkan | Ada pemeriksaan menggantung yang tidak seorang pun bertanggung jawab meneruskannya | Ada berkas yang belum ditandatangani; pelayanan pasien tidak terpengaruh |
+| Siapa yang dapat menuntaskan | **Klinisi IGD** — pihak yang sedang menutup | **Unit tujuan** — pihak lain |
+
+Menahan penutupan atas hal yang **dapat diselesaikan penutup** itu masuk akal. Menahan atas
+hal yang **hanya dapat diselesaikan orang lain** tidak.
+
+### Yang berubah pada kode karena keputusan ini
+
+| Hal | Sebelum | Sesudah |
+| --- | --- | --- |
+| Gerbang | `TransferStatus != Completed && != Rejected` menahan | `PhysicalStatus != Arrived && != Cancelled` menahan |
+| Arti `Rejected` | Status **tunggal**, dan penolakan dianggap tuntas | Status **dokumen**. Tidak lagi ikut menentukan gerbang |
+| Arti `Cancelled` | Ikut menahan — komentar kode menyebut validation bagian 3 | **Tidak lagi menahan.** Kepergian yang dibatalkan memang tuntas |
+| Setelah penutupan | — | Dokumen tetap dapat diterima/ditolak; kunjungan tercatat ditutup dengan dokumen menggantung |
+
+Perubahan `Cancelled` adalah **perubahan perilaku nyata**, bukan penggantian nama. Komentar
+pada `EmergencyDispositionService` yang menyebut "Cancelled termasuk belum tuntas" menjadi
+usang dan wajib ikut diperbaiki, bukan ditinggalkan.
+
+### `IGD-EV-107` — bukti yang mendasari
+
+| Bukti | Isi |
+| --- | --- |
+| `EmergencyDispositionService.ValidateVisitClosureAsync` baris 124–130 | Gerbang lama, membaca satu kolom `TransferStatus` |
+| validation §4 aturan 8 | Fisik `Arrived` + dokumen `Pending` **diterima** — `IGD-DEC-070` |
+| validation §4.1 | `depart`, `arrive`, dan tindakan klinis **tidak pernah** ditahan dokumen |
+| validation §6 aturan 3 | "belum `Arrived` atau `Cancelled`" — sudah berbunyi fisik saja |
+| validation §5 aturan 12 | Pesanan ditolak **menahan**; dasar pembedaan di atas |
+| `BE-IGD-025` / `IGD-DEC-084` | Satu pasien satu episode aktif — dasar alasan ① |
+
+---
+
+### `IGD-DEC-107` — modul tanpa pemilik boleh disentuh IGD
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-107` | Decision | **Ketika pekerjaan IGD menyentuh tabel atau modul lain yang pemiliknya belum ditunjuk, IGD boleh mengerjakan perubahannya sendiri** — tidak menunggu penunjukan. Berlaku untuk `ClinicalManagement`, `PharmacyManagement`, `LaboratoryManagement`, `RadiologyManagement`, Master Data, Registration Management, dan wewenang Security/Privacy. Tiga batas mengikat: **(a)** perubahan **wajib sekecil mungkin** untuk membuka jalur IGD — bukan merancang ulang modul orang lain; **(b)** setiap perubahan pada tabel milik modul lain **wajib tercatat** pada laporan task beserta alasannya, sehingga pemilik yang kelak ditunjuk dapat meninjaunya; **(c)** jalur modul lain yang sudah berjalan **wajib dibuktikan tidak berubah** lewat test regresi. Butir 10 Definition of Done kini terpenuhi lewat keputusan ini, dengan Product/Domain Owner IGD sebagai pemberi wewenang sementara sampai pemilik sebenarnya ditunjuk | Product/Domain Owner IGD | `approved` — **wewenang sementara**, wajib ditinjau ulang begitu pemilik ditunjuk | **Rizki Gunawan / 2026-08-27** | Instruksi pengguna 27 Agustus 2026 |
+
+`IGD-DEC-105` **tetap berlaku dan tidak dicabut.** IGD tetap **tidak** membuat tabel pesanan
+laboratorium tandingan, dan tetap **tidak** melengkapi lifecycle `LabOrder`. Sebabnya bukan
+kepemilikan, melainkan **ketiadaan kebutuhan yang tercatat**: delapan kekurangan `LabOrder`
+adalah pekerjaan modul laboratorium yang requirement-nya belum pernah digali. `IGD-DEC-107`
+memberi wewenang menyentuh, bukan wewenang mengarang kebutuhan bisnis modul lain.
+
+Batas yang sama berlaku untuk tiga area R3.5 — penunjang medis, pemakaian alat, billing IGD.
+Ketiganya **tidak** dikerjakan pada gelombang ini karena tidak punya epic, requirement, maupun
+keputusan. Yang menahannya bukan kepemilikan.
+
+### `IGD-DEC-108` — approval kontrak untuk gelombang `MVP-1` sampai `MVP-6`
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-108` | Decision | Irisan kontrak yang dibutuhkan `MVP-1`…`MVP-6` dinaikkan menjadi `approved`: **state** bagian 2, 3, 4, 6, 6a; **validation** bagian 1, 1.1, 3, 4, 4.1, 5, 5.1, 6, 7; **API** bagian 1.1, 2, dan bagian pengkajian; **permission/audit** bagian 3.1; **integration** bagian yang menyangkut encounter IGD. Approver yang belum ditunjuk — Registration API owner, pemilik integrasi, pemilik `ClinicalManagement`, Security/Privacy owner — **digantikan Product/Domain Owner IGD** menurut `IGD-DEC-107` | Product/Domain Owner IGD | `approved` — wewenang sementara | **Rizki Gunawan / 2026-08-27** | Instruksi pengguna 27 Agustus 2026 |
+
+`IGD-DEC-093` **tidak dicabut**; `IGD-DEC-108` memperluasnya. Pola "setujui irisan sekecil
+mungkin" ditinggalkan **atas permintaan owner** karena seluruh gelombang dijalankan sekaligus.
+
+### `IGD-DEC-109` — `EncounterType` masa transisi
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-109` | Decision | Menutup pertanyaan yang menahan `BE-IGD-023`. Pendaftaran IGD **menerima `EncounterType.Emergency` maupun `Outpatient`** selama masa transisi, dan **menulis `Emergency`** untuk encounter baru. `Outpatient` **tidak** ditolak sampai migration langkah 4 (`ChangeEmergencyEncounterTypeToEmergency`) benar-benar diterapkan pada basis data. Sebabnya bukan preferensi: seluruh kunjungan IGD lama bertipe `Outpatient`, dan basis data pengembangan dipakai bersama satu tim sehingga migration-nya belum boleh dijalankan. Menolak `Outpatient` sekarang memutus setiap kunjungan yang sudah ada. Penolakan dinyalakan sebagai **satu baris perubahan** setelah migration langkah 4 diterapkan dan jumlah barisnya cocok | Product/Domain Owner IGD; Registration API owner belum ditunjuk (`IGD-DEC-107`) | `approved` | **Rizki Gunawan / 2026-08-27** | Instruksi pengguna 27 Agustus 2026 |
+
+### `IGD-OQ-082` ditutup
+
+| ID | Status baru |
+| --- | --- |
+| `IGD-OQ-082` | `closed` oleh `IGD-DEC-106`. **Tidak lagi memblokir `BE-IGD-032`** |
