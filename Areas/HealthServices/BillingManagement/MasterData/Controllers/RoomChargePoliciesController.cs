@@ -48,6 +48,23 @@ public sealed class RoomChargePoliciesController : ControllerBase
     public Task<IActionResult> Deactivate(Guid id, [FromBody] DeactivatePolicyRequest request, CancellationToken cancellationToken) =>
         ExecuteAsync(() => _service.DeactivateAsync(id, request, CurrentUserId(), cancellationToken));
 
+    [HttpPost("{id:guid}/activate")]
+    [AccessAction("Update", "Activate Room Charge Policy", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission("RoomChargePolicy", "Update")]
+    public Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _service.ActivateAsync(id, CurrentUserId(), cancellationToken));
+
+    [HttpDelete("{id:guid}")]
+    [AccessAction("Delete", "Delete Room Charge Policy", AccessType = AccessTypes.Delete, SortOrder = 6)]
+    [AccessPermission("RoomChargePolicy", "Delete")]
+    [ProducesResponseType(typeof(ApiResponse<RoomChargePolicyDeleteResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        try { return Ok(ApiResponse<RoomChargePolicyDeleteResponse>.Ok(await _service.DeleteAsync(id, CurrentUserId(), cancellationToken), "Room charge policy berhasil dihapus.")); }
+        catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
+        catch (RoomChargePolicyValidationException exception) { return UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message)); }
+    }
+
     private async Task<IActionResult> ExecuteAsync(Func<Task<RoomChargePolicyResponse>> command)
     {
         try { return Ok(ApiResponse<RoomChargePolicyResponse>.Ok(await command(), "Room charge policy berhasil diproses.")); }

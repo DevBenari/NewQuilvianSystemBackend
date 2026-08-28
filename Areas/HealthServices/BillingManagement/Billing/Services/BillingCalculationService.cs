@@ -5,6 +5,8 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Model
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
@@ -103,6 +105,9 @@ public sealed class BillingCalculationService
                 }
                 : await CalculateAdministrationFeeAsync(
                     invoice, encounter, effectiveAt, cancellationToken);
+            var roomCharge = invoice.ServiceType == AdministrationFeeServiceTypes.Ranap
+                ? await CalculateRoomChargeAsync(invoice, calculatedAt, cancellationToken)
+                : new RoomChargeCalculationResponse();
             var approvedDiscounts = invoice.DiscountApplications
                 .Where(x => !x.IsDelete && x.ApprovalStatus == BillingDiscountApprovalStatuses.Approved)
                 .OrderBy(x => x.CreateDateTime)
@@ -116,11 +121,12 @@ public sealed class BillingCalculationService
             var itemDiscount = itemResult.Items.Sum(x => x.ItemDiscount);
             var taxAmount = itemResult.Taxes.Sum(x => x.TaxAmount);
             var roundingAmount = 0m;
-            var eligibleAmount = grossAmount + administrationFee.AppliedAmount - itemDiscount + taxAmount + roundingAmount;
+            var eligibleAmount = grossAmount + administrationFee.AppliedAmount + roomCharge.AppliedAmount
+                - itemDiscount + taxAmount + roundingAmount;
             if (eligibleAmount < 0)
                 throw new BillingCalculationValidationException("Nilai akhir invoice tidak boleh negatif.");
 
-            var components = BuildCoverageComponents(activeItems, itemResult, administrationFee);
+            var components = BuildCoverageComponents(activeItems, itemResult, administrationFee, roomCharge);
             var coverage = await _coverageAdapter.ResolveAsync(
                 new BillingCoverageContext(invoice.Id, invoice.EncounterId, calculatedAt, eligibleAmount, components),
                 cancellationToken);
@@ -130,7 +136,8 @@ public sealed class BillingCalculationService
             var patientPromos = ApplyPatientPromos(
                 approvedDiscounts.Where(x => x.DiscountType == DiscountPolicyValues.PromoTotal),
                 Math.Max(0, coverageResult.PatientAmount - administrationFee.AppliedAmount),
-                itemResult.Items.Where(x => discountableItemIds.Contains(x.InvoiceItemId)).Sum(x => x.NetAmount));
+                itemResult.Items.Where(x => discountableItemIds.Contains(x.InvoiceItemId)).Sum(x => x.NetAmount)
+                    + roomCharge.AppliedAmount);
             coverageResult.PatientAmount = Money(coverageResult.PatientAmount - patientPromos.TotalAmount);
             var totalDiscount = itemDiscount + patientPromos.TotalAmount;
             var appliedDiscounts = itemResult.Discounts.Concat(patientPromos.Discounts).ToList();
@@ -147,6 +154,7 @@ public sealed class BillingCalculationService
             {
                 ContractVersion = BillingCalculationContract.Version,
                 AdministrationFee = administrationFee,
+                RoomCharge = roomCharge,
                 Items = itemResult.Items,
                 Discounts = appliedDiscounts,
                 Taxes = itemResult.Taxes,
@@ -159,6 +167,7 @@ public sealed class BillingCalculationService
                 VersionNo = invoice.CurrentCalculationVersion + 1,
                 GrossAmount = grossAmount,
                 AdministrationFeeAmount = administrationFee.AppliedAmount,
+                RoomChargeAmount = roomCharge.AppliedAmount,
                 ItemDiscount = itemDiscount,
                 TotalDiscount = totalDiscount,
                 TaxAmount = taxAmount,
@@ -233,6 +242,7 @@ public sealed class BillingCalculationService
         VersionNo = version.VersionNo,
         GrossAmount = version.GrossAmount,
         AdministrationFeeAmount = version.AdministrationFeeAmount,
+        RoomChargeAmount = version.RoomChargeAmount,
         ItemDiscount = version.ItemDiscount,
         TotalDiscount = version.TotalDiscount,
         TaxAmount = version.TaxAmount,
@@ -323,6 +333,199 @@ public sealed class BillingCalculationService
             ReplacesEarlierFee = replacesEarlierFee
         };
     }
+
+    // BKC-DEC-043: InpBedPlacement adalah source of truth occupancy. Dihitung ulang penuh setiap
+    // recalculate (bukan BilInvoiceItem, tidak lewat IBillingChargeSourceAdapter - lihat
+    // RoomChargeCalculationResponse). Segment yang masih berjalan (EndDateTime null) dihitung
+    // sampai `calculatedAt` sehingga invoice OPEN menunjukkan estimasi live selama pasien masih
+    // dirawat.
+    private async Task<RoomChargeCalculationResponse> CalculateRoomChargeAsync(
+        BilInvoice invoice,
+        DateTimeOffset calculatedAt,
+        CancellationToken cancellationToken)
+    {
+        var episode = await _dbContext.Set<InpEpisode>().AsNoTracking()
+            .FirstOrDefaultAsync(x => x.EncounterId == invoice.EncounterId && !x.IsDelete, cancellationToken);
+        if (episode is null)
+            return new RoomChargeCalculationResponse();
+
+        var placements = await _dbContext.Set<InpBedPlacement>().AsNoTracking()
+            .Where(x => x.EpisodeId == episode.Id && !x.IsDelete)
+            .OrderBy(x => x.SequenceNumber)
+            .ToListAsync(cancellationToken);
+        if (placements.Count == 0)
+            return new RoomChargeCalculationResponse();
+
+        var policies = await _dbContext.Set<MstRoomChargePolicy>().AsNoTracking()
+            .Where(x => !x.IsDelete && x.IsActive)
+            .ToListAsync(cancellationToken);
+        var tariffs = await _dbContext.Set<MstTariff>().AsNoTracking()
+            .Where(x => !x.IsDelete && x.IsActive && x.IsRoomCharge)
+            .ToListAsync(cancellationToken);
+
+        var nowUtc = calculatedAt.UtcDateTime;
+        var segments = new List<RoomChargeSegmentResponse>();
+        Guid? reportedPolicyId = null;
+        string? reportedPolicyCode = null;
+
+        foreach (var placement in placements)
+        {
+            var segmentEndUtc = placement.EndDateTime ?? nowUtc;
+            var occupiedMinutes = segmentEndUtc > placement.StartDateTime
+                ? (int)Math.Floor((segmentEndUtc - placement.StartDateTime).TotalMinutes)
+                : 0;
+
+            var policy = ResolveRoomChargePolicy(policies, placement.StartDateTime);
+            if (policy is null || occupiedMinutes == 0)
+            {
+                segments.Add(EmptyRoomChargeSegment(placement, occupiedMinutes, policy is null));
+                continue;
+            }
+
+            reportedPolicyId ??= policy.Id;
+            reportedPolicyCode ??= policy.Code;
+
+            // Total unit SELALU dihitung sekali atas seluruh masa tinggal segment - MinimumMinutes
+            // adalah batas bawah masa tinggal, bukan konsep per-periode, sehingga tidak boleh
+            // diterapkan berulang per periode (akan menghitung ganda minimum-nya).
+            var units = RoomChargePolicyService.CalculateChargeUnits(
+                occupiedMinutes, policy.MinimumMinutes, policy.PeriodMinutes, policy.RemainderRounding);
+
+            if (policy.TariffMoment == RoomChargePolicyValues.OccupancyStart)
+            {
+                var tariff = ResolveRoomTariff(
+                    tariffs, placement.ServiceUnitId, placement.PatientClassId, placement.StartDateTime);
+                segments.Add(PricedRoomChargeSegment(placement, occupiedMinutes, units, tariff));
+                continue;
+            }
+
+            // PERIOD_START ("tarif awal periode", BKC-DEC-043): jumlah unit tetap seperti di atas;
+            // hanya tarif per unit yang di-resolve ulang pada awal setiap periode, sehingga
+            // perubahan tarif di tengah rawat inap hanya berlaku untuk unit setelahnya - periode
+            // yang sudah lewat tetap memakai tarif saat periode itu dimulai.
+            var wholeUnits = (int)Math.Floor(units);
+            var fractionalUnit = units - wholeUnits;
+            var cursor = placement.StartDateTime;
+            var missingTariff = false;
+            var totalAmount = 0m;
+            Guid? representativeTariffId = null;
+            string? representativeTariffCode = null;
+            var representativeUnitPrice = 0m;
+
+            for (var i = 0; i < wholeUnits; i++)
+            {
+                var tariff = ResolveRoomTariff(tariffs, placement.ServiceUnitId, placement.PatientClassId, cursor);
+                missingTariff |= tariff is null;
+                var price = tariff?.NormalPrice ?? 0m;
+                totalAmount += price;
+                if (representativeTariffId is null)
+                {
+                    representativeTariffId = tariff?.Id;
+                    representativeTariffCode = tariff?.TariffCode;
+                    representativeUnitPrice = price;
+                }
+                cursor = cursor.AddMinutes(policy.PeriodMinutes);
+            }
+
+            if (fractionalUnit > 0)
+            {
+                var tariff = ResolveRoomTariff(tariffs, placement.ServiceUnitId, placement.PatientClassId, cursor);
+                missingTariff |= tariff is null;
+                var price = tariff?.NormalPrice ?? 0m;
+                totalAmount += price * fractionalUnit;
+                if (representativeTariffId is null)
+                {
+                    representativeTariffId = tariff?.Id;
+                    representativeTariffCode = tariff?.TariffCode;
+                    representativeUnitPrice = price;
+                }
+            }
+
+            segments.Add(new RoomChargeSegmentResponse
+            {
+                PlacementId = placement.Id,
+                RoomId = placement.RoomId,
+                ServiceUnitId = placement.ServiceUnitId,
+                PatientClassId = placement.PatientClassId,
+                StartDateTime = placement.StartDateTime,
+                EndDateTime = placement.EndDateTime,
+                IsOngoing = placement.EndDateTime == null,
+                OccupiedMinutes = occupiedMinutes,
+                ChargeUnits = units,
+                TariffId = representativeTariffId,
+                TariffCode = representativeTariffCode,
+                UnitPrice = representativeUnitPrice,
+                SegmentAmount = Money(totalAmount),
+                MissingTariff = missingTariff
+            });
+        }
+
+        return new RoomChargeCalculationResponse
+        {
+            PolicyId = reportedPolicyId,
+            PolicyCode = reportedPolicyCode,
+            AppliedAmount = Money(segments.Sum(x => x.SegmentAmount)),
+            LeaveRuleEnforced = false,
+            Segments = segments
+        };
+    }
+
+    private static MstRoomChargePolicy? ResolveRoomChargePolicy(
+        IReadOnlyList<MstRoomChargePolicy> policies, DateTime momentUtc)
+    {
+        var momentOffset = new DateTimeOffset(momentUtc, TimeSpan.Zero);
+        var matches = policies
+            .Where(x => x.EffectiveFrom <= momentOffset && (x.EffectiveTo == null || momentOffset < x.EffectiveTo))
+            .ToList();
+        if (matches.Count > 1)
+            throw new BillingCalculationConflictException(
+                "Lebih dari satu room charge policy aktif pada waktu yang sama.");
+        return matches.SingleOrDefault();
+    }
+
+    private static MstTariff? ResolveRoomTariff(
+        IReadOnlyList<MstTariff> tariffs, Guid serviceUnitId, Guid patientClassId, DateTime momentUtc) =>
+        tariffs
+            .Where(x => x.ServiceUnitId == serviceUnitId
+                && (x.PatientClassId == null || x.PatientClassId == patientClassId)
+                && (x.EffectiveStartDate == null || momentUtc >= x.EffectiveStartDate)
+                && (x.EffectiveEndDate == null || momentUtc < x.EffectiveEndDate))
+            .OrderByDescending(x => x.PatientClassId == patientClassId)
+            .ThenByDescending(x => x.EffectiveStartDate)
+            .FirstOrDefault();
+
+    private static RoomChargeSegmentResponse EmptyRoomChargeSegment(
+        InpBedPlacement placement, int occupiedMinutes, bool missingPolicy) => new()
+    {
+        PlacementId = placement.Id,
+        RoomId = placement.RoomId,
+        ServiceUnitId = placement.ServiceUnitId,
+        PatientClassId = placement.PatientClassId,
+        StartDateTime = placement.StartDateTime,
+        EndDateTime = placement.EndDateTime,
+        IsOngoing = placement.EndDateTime == null,
+        OccupiedMinutes = occupiedMinutes,
+        MissingTariff = missingPolicy
+    };
+
+    private static RoomChargeSegmentResponse PricedRoomChargeSegment(
+        InpBedPlacement placement, int occupiedMinutes, decimal units, MstTariff? tariff) => new()
+    {
+        PlacementId = placement.Id,
+        RoomId = placement.RoomId,
+        ServiceUnitId = placement.ServiceUnitId,
+        PatientClassId = placement.PatientClassId,
+        StartDateTime = placement.StartDateTime,
+        EndDateTime = placement.EndDateTime,
+        IsOngoing = placement.EndDateTime == null,
+        OccupiedMinutes = occupiedMinutes,
+        ChargeUnits = units,
+        TariffId = tariff?.Id,
+        TariffCode = tariff?.TariffCode,
+        UnitPrice = tariff?.NormalPrice ?? 0m,
+        SegmentAmount = Money(units * (tariff?.NormalPrice ?? 0m)),
+        MissingTariff = tariff is null
+    };
 
     private async Task<ItemTaxResult> CalculateItemsAndTaxesAsync(
         IReadOnlyList<BilInvoiceItem> activeItems,
@@ -461,7 +664,8 @@ public sealed class BillingCalculationService
     private static IReadOnlyList<BillingCoverageComponent> BuildCoverageComponents(
         IReadOnlyList<BilInvoiceItem> activeItems,
         ItemTaxResult itemResult,
-        AdministrationFeeCalculationResponse administrationFee)
+        AdministrationFeeCalculationResponse administrationFee,
+        RoomChargeCalculationResponse roomCharge)
     {
         var taxByItem = itemResult.Taxes.ToDictionary(x => x.InvoiceItemId);
         var resultByItem = itemResult.Items.ToDictionary(x => x.InvoiceItemId);
@@ -502,6 +706,20 @@ public sealed class BillingCalculationService
                 1,
                 administrationFee.AppliedAmount,
                 administrationFee.Coverable));
+        }
+
+        if (roomCharge.AppliedAmount > 0)
+        {
+            // Room charge diperlakukan coverable/discountable seperti item biasa (bukan seperti
+            // admin fee yang sengaja non-discountable) - lihat RoomChargeCalculationResponse.
+            components.Add(new BillingCoverageComponent(
+                roomCharge.PolicyId ?? Guid.Empty,
+                "ROOM_CHARGE",
+                "ServiceCategory",
+                null,
+                1,
+                roomCharge.AppliedAmount,
+                true));
         }
 
         return components;

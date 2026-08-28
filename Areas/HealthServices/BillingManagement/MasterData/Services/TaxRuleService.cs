@@ -91,6 +91,52 @@ public sealed class TaxRuleService
         return Map(entity);
     }
 
+    // Mengaktifkan kembali tax rule yang sebelumnya dinonaktifkan tanpa perlu membuat versi baru.
+    // Tidak mensyaratkan alasan (berbeda dari DeactivateAsync).
+    public async Task<TaxRuleResponse> ActivateAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        if (entity.IsActive) return Map(entity);
+
+        var overlaps = await _dbContext.MstTaxRules.AnyAsync(x => !x.IsDelete && x.IsActive && x.Id != entity.Id
+            && x.TaxableCategory == entity.TaxableCategory
+            && x.EffectiveFrom < (entity.EffectiveTo ?? DateTimeOffset.MaxValue)
+            && (x.EffectiveTo == null || entity.EffectiveFrom < x.EffectiveTo), cancellationToken);
+        if (overlaps)
+            throw new TaxRuleConflictException("Tidak dapat mengaktifkan; ada tax rule lain yang masih aktif dan bertumpang tindih untuk taxable category yang sama.");
+
+        entity.IsActive = true;
+        entity.UpdateDateTime = DateTime.UtcNow;
+        entity.UpdateBy = actorUserId;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await AuditAsync("TaxRule.Activate", entity, actorUserId, null);
+        return Map(entity);
+    }
+
+    // Soft delete - baris tidak pernah dihapus fisik agar riwayat TaxCalculationResponse yang
+    // sudah menyimpan snapshot TaxRuleId tetap dapat ditelusuri. Hanya tax rule nonaktif yang
+    // boleh dihapus.
+    public async Task<TaxRuleDeleteResponse> DeleteAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        if (entity.IsActive)
+            throw new TaxRuleValidationException("Tax rule yang masih aktif tidak dapat dihapus; nonaktifkan terlebih dahulu.");
+
+        entity.IsDelete = true;
+        entity.DeleteDateTime = DateTime.UtcNow;
+        entity.DeleteBy = actorUserId;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await AuditAsync("TaxRule.Delete", entity, actorUserId, null);
+
+        return new TaxRuleDeleteResponse
+        {
+            Id = entity.Id,
+            Code = entity.Code,
+            Name = entity.Name,
+            IsDelete = entity.IsDelete
+        };
+    }
+
     public static decimal CalculateTax(decimal grossAmount, decimal itemDiscount, decimal rate, string roundingMode, int decimalPlaces = 2)
     {
         if (grossAmount < 0 || itemDiscount < 0 || itemDiscount > grossAmount)

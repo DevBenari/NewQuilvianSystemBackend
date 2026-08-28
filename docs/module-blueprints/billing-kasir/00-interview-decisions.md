@@ -451,3 +451,164 @@ untuk memperbarui kontrak terdampak sebelum `plan-module-delivery`.
 
 Delivery planning dan implementation tetap berhenti sampai amendment approved, blueprint target
 disetujui, dan task/write authority diberikan secara terpisah.
+
+## Amendment 27 Agustus 2026 — Layar Menu Pembayaran Kasir
+
+Sesi wawancara `/grill-me` mode **Amendment pass** (blueprint `BIL-CASH-001` sudah `approved`
+revision `0.4`). Backend SHA yang tercatat pada `blueprint-manifest.md` (`c99f0a51...`) sudah
+berbeda dari `HEAD` saat sesi ini (`e047e39`) — map berpotensi sebagian basi, tapi wawancara tetap
+dijalankan karena tidak ada perubahan struktural yang diketahui pada domain terkait keputusan di
+bawah ini.
+
+### Batas scope pass ini
+
+**Di dalam scope**: layar "Menu Pembayaran" kasir — ringkasan tagihan (tindakan/resep/kamar),
+"Tambah Biaya Lain-lain", Promo/Voucher, Diskon Dokter, Catatan, Ringkasan Pembayaran (Subtotal
+Mandiri/Asuransi/Pajak/Harus Dibayar + status Lunas), modal "Pilih Metode Pembayaran"
+(Tunai/QRIS/Transfer Bank/Metode Lainnya + Nomor Referensi), split payment lintas metode, dan
+tombol Proses Pembayaran. Dikonfirmasi pengguna agar tetap memperhatikan konfigurasi/master data
+billing yang belum lengkap, mengacu pada referensi legacy `KasirQuilvian1/` (`BeKasir`,
+`FE kasir app`, `FE kasir view` — implementasi kasir versi sebelumnya, dipakai sebagai bukti
+perilaku as-is, bukan kontrak yang otomatis mengikat).
+
+**Di luar scope — untuk pass/modul lain**:
+
+- Layar worklist Kasir IGD/Rawat Jalan/Rawat Inap (daftar antrian kasir) — entry point ke Menu
+  Pembayaran, tapi punya keputusan UI/filter sendiri; belum digali di pass ini.
+- Riwayat Pembayaran (layar riwayat terpisah) — belum digali.
+- Shift Kasir — sudah diputuskan `BKC-DEC-038`, sudah dibangun; tidak dibuka ulang.
+- Master Diskon (CRUD kebijakan diskon) — sudah ada (`MstDiscountPolicy` + layanan terkait);
+  pass ini hanya menyangkut cara Menu Pembayaran MEMAKAI kebijakan yang sudah ada, bukan
+  aturan pembuatan kebijakannya.
+- Invoice & Billing (layar daftar invoice back-office) — sudah ada dari pekerjaan FE
+  sebelumnya (`FE-BKC-003`–`010`).
+- Layar console approval Diskon Dokter/Diskon Direksi (antrian approval terpisah) — aturan
+  approval-nya sudah diputuskan (lihat `BKC-DEC-046`), tapi UI antrian approval itu sendiri
+  adalah slice terpisah dari Menu Pembayaran.
+- **Petty Cash** — tidak disebut di dokumen blueprint billing-kasir manapun sebelum pass ini.
+  Pengguna menyatakan ini bagian dari billing-kasir dan perlu digali pada sesi `/grill-me`
+  lanjutan; dicatat sebagai antrian, bukan diputuskan di sini.
+
+### Keputusan baru
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-045` | Decision | Diskon Dokter dan Promo/Voucher pada Menu Pembayaran memakai mekanisme `MstDiscountPolicy` + `BilDiscountApplication` yang sudah ada (endpoint `POST .../billing/invoices/{id}/discounts` dan `POST .../discounts/{discountId}/approve`); kode voucher pada Menu Pembayaran adalah pencarian/filter terhadap `MstDiscountPolicy.Code` yang sudah ada, bukan mekanisme redemption baru. Tidak ada field atau endpoint backend baru yang diperlukan untuk keperluan ini. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026; dikonfirmasi dari source `MstDiscountPolicy.cs` (field `Code`, `RequiresApproval`, `ApproverRole` sudah ada, tidak ada field redemption/single-use) |
+| `BKC-DEC-046` | Decision | Selama ada Diskon Dokter berstatus menunggu approval (`RequiresApproval = true`, belum disetujui/ditolak) pada invoice yang sedang dibayar, tombol Proses Pembayaran WAJIB dinonaktifkan/diblokir sampai approval selesai (disetujui atau ditolak). Kasir tidak dapat memproses pembayaran dengan diskon yang masih menggantung. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026 |
+| `BKC-DEC-047` | Decision | "Tambah Biaya Lain-lain" mengizinkan kasir mengisi nama item/layanan dan harga secara BEBAS (tidak dibatasi katalog/master tarif resmi). Sebagai kompensasi kontrol, setiap baris biaya bebas WAJIB tercatat pada audit log (identitas kasir, waktu, nominal, kategori, keterangan) melalui `LoggerService.AuditAsync`, tanpa gerbang approval tambahan sebelum bisa dibayarkan. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026 |
+| `BKC-DEC-048` | Decision | Field "Catatan (Opsional)" pada Menu Pembayaran bersifat internal — hanya terlihat oleh kasir/petugas billing pada layar dan riwayat internal, dan TIDAK PERNAH dicetak pada struk/Dokumen Kasir yang diserahkan ke pasien. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026 |
+| `BKC-DEC-049` | Decision | Kasir BOLEH secara sengaja memasukkan nominal pembayaran lebih kecil dari "Harus Dibayar" dan menekan Proses Pembayaran, menghasilkan status Pembayaran Sebagian (`BillingSettlementStatuses.PartiallySettled`) yang sudah ada di source. Ini bukan status yang hanya muncul dari kegagalan sistem/split payment — melainkan pilihan sah kasir untuk kasus pasien yang hanya mampu membayar sebagian saat itu; sisanya tetap tercatat sebagai outstanding invoice. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026; dikonfirmasi `BilSettlement.Status` sudah memiliki nilai `PARTIALLY_SETTLED` di source |
+| `BKC-DEC-050` | Decision | Saat split payment sebagian gagal: tender yang sudah `SUCCEEDED` TETAP dipertahankan dan tidak di-rollback otomatis; tender yang gagal dicatat `FAILED`, dan outstanding invoice dihitung hanya dari sisa yang belum berhasil. Kasir hanya boleh memilih metode pembayaran lain untuk SISA yang belum berhasil itu — bukan mengulang seluruh nominal. Khusus tender berstatus `PENDING` (belum pasti berhasil/gagal, mis. menunggu callback provider): kasir DILARANG memproses pembayaran ulang untuk porsi itu sampai proses reconciliation memastikan status akhirnya (`SUCCEEDED` atau `FAILED`) — mencegah pasien tertagih dua kali untuk porsi yang sama. Invoice baru dianggap Lunas setelah seluruh porsi tanggung jawab pasien (`patient responsibility`) bernilai nol. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026 (detail); konsisten dengan `BillingTenderStatuses` yang sudah ada di source (`CREATED`, `PENDING`, `SUCCEEDED`, `FAILED`, `EXPIRED`, `REVERSED` — satu status independen per tender) |
+| `BKC-DEC-051` | `DEV_DISCRETION` | "Metode Lainnya" pada modal Pilih Metode Pembayaran adalah pengelompokan TAMPILAN saja atas `MstPaymentMethod` yang tidak masuk kategori Tunai/QRIS/Transfer Bank. Perilaku tiap metode di dalamnya (butuh approval, butuh nomor referensi, dst.) tetap mengikuti flag per-metode yang sudah ada (`IsNeedApproval`, `IsNeedReferenceNumber`, dll.) — TIDAK ADA aturan tambahan berdasarkan nama grup. | Product/Domain Owner (delegasi ke dev discretion) | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026 |
+
+### Amendment lanjutan 27 Agustus 2026 — Dokumen Kasir (Kwitansi)
+
+Implementasi Menu Pembayaran (`BKC-DEC-045`–`051`) memunculkan kebutuhan "Dokumen Kasir" yang
+awalnya dibangun sebagai placeholder non-aktif. Pengguna meminta digali sekarang juga dalam pass
+yang sama.
+
+**Batas scope tambahan**: "Dokumen Kasir" pada referensi mencakup enam dokumen — SPT, Claim
+Letter, LML, LMA, Resep Obat, dan Bukti Pembayaran (Kwitansi) — yang semuanya diambil dari
+transaksi pelayanan kesehatan. Hanya **Kwitansi** yang menjadi tanggung jawab billing-kasir untuk
+dibangun sekarang; lima dokumen lain (SPT, Claim Letter, LML, LMA, Resep Obat) adalah milik
+modul klinis/farmasi/asuransi masing-masing dan HANYA ditautkan (tab) dari Menu Pembayaran, bukan
+dibangun ulang logikanya di sini.
+
+**Di luar scope — untuk modul lain**: pembuatan/pengisian konten SPT, Claim Letter, LML, LMA, dan
+Resep Obat (perlu `/grill-me` tersendiri per modul pemilik, bila belum ada) — hanya SHELL tab
+placeholder yang dibangun di Menu Pembayaran untuk kelimanya.
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-052` | Decision | Dari enam dokumen pada "Dokumen Kasir", hanya Kwitansi (Bukti Pembayaran) yang menjadi tanggung jawab billing-kasir. SPT, Claim Letter, LML, LMA, dan Resep Obat adalah dokumen milik modul lain (klinis/farmasi/asuransi) — Menu Pembayaran hanya menyediakan tab/tautan ke dokumen itu (placeholder sampai modul pemiliknya membangunnya), tidak menduplikasi logikanya. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026 |
+| `BKC-DEC-053` | Decision | Dokumen Kwitansi dirender sebagai PDF di sisi frontend (bukan endpoint backend penghasil dokumen) dari data invoice/settlement/patient yang sudah dimuat Menu Pembayaran. Backend HANYA bertanggung jawab atas alokasi nomor Kwitansi (lihat `BKC-DEC-054`), bukan atas pembuatan dokumennya. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026 |
+| `BKC-DEC-054` | Decision | ~~Kwitansi WAJIB memiliki nomor dokumen resmi yang tersimpan di database, dialokasikan memakai mekanisme penomoran berurutan bereset harian yang SUDAH ADA (`BillingNumberSeriesService`/`BilNumberSeries`, prefix baru `KWS`) — bukan tabel sequence baru terpisah. Nomor dialokasikan HANYA SEKALI per invoice (saat Kwitansi pertama kali diminta) dan disimpan pada invoice; permintaan berikutnya (reprint) untuk invoice yang sama mengembalikan nomor yang sama.~~ **`superseded` oleh `BKC-DEC-057`** — granularitas per-invoice ternyata tidak konsisten dengan bukti legacy (`KasirQuilvian1`) yang baru ditemukan lewat `/trace-existing-capabilities` 27 Agustus 2026, dan sudah dikoreksi. | Product/Domain Owner | `superseded` | Jawaban eksplisit sesi wawancara 27 Agustus 2026 (termasuk contoh kode acuan pengguna); direkomendasikan salah alih-alih diperiksa dulu terhadap pola legacy — lihat `BKC-DEC-057` |
+| `BKC-DEC-055` | Decision | Kwitansi boleh dicetak/dikirim kapan pun setelah ada pembayaran (penuh atau sebagian) — badge status pada dokumen menyesuaikan (LUNAS/PAID IN FULL vs status sebagian), bukan hanya setelah outstanding invoice bernilai nol. Konsisten dengan `BKC-DEC-049` yang sudah mengizinkan pembayaran sebagian sebagai pilihan sah kasir. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026 |
+| `BKC-DEC-056` | Decision | Tombol WhatsApp/Email pada Dokumen Kasir TIDAK mengirim file terlampir secara otomatis dalam satu klik (Web Share API untuk file tidak didukung merata di browser desktop kasir). Perilakunya: unduh PDF Kwitansi terlebih dahulu, lalu tombol WhatsApp/Email membuka aplikasi (wa.me/mailto) dengan teks pesan siap pakai; kasir melampirkan file yang sudah terunduh secara manual. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026 |
+
+### Acceptance criteria bisnis (lanjutan, no. 22 dst. — Dokumen Kasir)
+
+22. ~~Nomor Kwitansi yang sama selalu dikembalikan untuk invoice yang sama pada permintaan
+    berulang (reprint); tidak pernah ada dua nomor Kwitansi berbeda untuk satu invoice yang
+    sama.~~ **Diganti (`BKC-DEC-057`)**: setiap tender yang berhasil ditambahkan pada suatu
+    settlement mendapat SATU nomor Kwitansi sendiri, dialokasikan sekali saat tender dibuat;
+    reprint pada tender yang sama selalu mengembalikan nomor yang sama, tidak pernah
+    mengonsumsi nomor baru. Satu invoice dengan banyak tender (split payment) sah memiliki
+    banyak nomor Kwitansi berbeda — satu per tender.
+23. Kwitansi dapat dihasilkan untuk tender dengan status apa pun (`SUCCEEDED`, `PENDING`,
+    `FAILED`); badge status pada dokumen mencerminkan status tender sesungguhnya, bukan selalu
+    "LUNAS"/"DITERIMA".
+24. Field Catatan (internal, `BKC-DEC-048`) tidak pernah muncul pada konten PDF Kwitansi.
+25. Tab SPT/Claim Letter/LML/LMA/Resep Obat pada Dokumen Kasir tampil sebagai placeholder yang
+    jujur (bukan konten kosong yang terlihat seperti bug) sampai modul pemiliknya membangun
+    kontennya. Struk Pasien BUKAN bagian dari placeholder ini (lihat `BKC-DEC-058`) — tab itu
+    fungsional dan dibangun billing-kasir sendiri.
+26. Struk Pasien menampilkan rincian tagihan (obat/tindakan/racikan/biaya admin) yang identik
+    dengan tabel Tagihan Pasien pada Menu Pembayaran — tidak ada sumber data baru, tidak ada
+    field finansial yang tidak konsisten antara kedua tampilan itu.
+
+### Acceptance criteria bisnis (lanjutan, no. 17 dst.)
+
+17. Menu Pembayaran menolak submit (tombol nonaktif) selama ada Diskon Dokter berstatus
+    pending approval pada invoice yang sama; begitu disetujui/ditolak, tombol aktif kembali.
+18. Setiap baris "Biaya Lain-lain" yang tersimpan menghasilkan satu entri audit log yang
+    memuat identitas kasir, waktu, kategori, nama item, dan nominal — tanpa entri audit
+    berarti baris itu tidak sah dianggap tersimpan.
+19. Nilai field Catatan tidak pernah muncul pada payload/template pencetakan Dokumen Kasir;
+    field ini hanya boleh dikembalikan pada endpoint yang diakses kasir/petugas billing.
+20. Proses Pembayaran dengan nominal kurang dari Harus Dibayar berhasil tersimpan sebagai
+    Pembayaran Sebagian dan invoice tetap menampilkan sisa outstanding yang benar — bukan
+    ditolak sebagai error validasi.
+21. Voucher/kode promo yang dicari pada Menu Pembayaran mengembalikan `MstDiscountPolicy`
+    yang sudah ada (tidak membuat entitas/redemption baru); pencarian kode yang tidak
+    ditemukan menghasilkan pesan "tidak ditemukan", bukan crash atau silent-fail.
+22. Tender `SUCCEEDED` dalam satu split payment tidak pernah berubah status akibat kegagalan
+    tender lain pada settlement yang sama; outstanding invoice selalu dihitung dari sisa
+    `patient responsibility` yang belum tertutup tender `SUCCEEDED`, bukan dari total nominal
+    semula.
+23. Selama ada tender berstatus `PENDING` pada suatu settlement, sistem menolak upaya membuat
+    tender baru untuk porsi nominal yang sama sampai tender `PENDING` itu berubah menjadi
+    `SUCCEEDED`, `FAILED`, atau `EXPIRED` — mencegah pasien tertagih dua kali untuk porsi
+    yang sama.
+
+### Open question / belum diputuskan
+
+Tidak ada open question tersisa dari pass ini. Kedua butir yang sebelumnya terbuka
+(perilaku split payment sebagian gagal, dan kontrol "Metode Lainnya") sudah dijawab eksplisit
+dan tercatat sebagai `BKC-DEC-050` dan `BKC-DEC-051`.
+
+### Amendment lanjutan 27 Agustus 2026 (lanjutan) — Koreksi hasil `/trace-existing-capabilities`
+
+`/trace-existing-capabilities` yang dijalankan setelah pass Kwitansi menemukan dua conflict antara
+implementasi yang baru dibangun dan bukti legacy `KasirQuilvian1` (dicatat di
+`01-existing-capability-map.md` bagian 15.2.B dan 15.2.C). Pass ini menutup kedua conflict
+tersebut. Satu temuan ketiga (integrasi `ClinicalMilestoneFactProducer` milik blueprint
+`rawat-jalan` dengan `BillingChargeSourceAdapter` milik billing-kasir, bagian 15.2.A) TIDAK
+ditutup di sini — lintas modul, di luar scope pass ini, tetap terbuka sebagai open question lintas
+modul.
+
+| ID | Tipe | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-057` | Decision | Nomor Kwitansi digenerate PER TENDER (per pembayaran/angsuran), bukan per invoice — setiap kali kasir berhasil menambahkan tender baru pada suatu settlement, satu nomor Kwitansi baru otomatis dialokasikan dan disimpan pada tender itu (bukan diminta terpisah lewat endpoint "get or allocate"). Reprint pada tender yang sama mengembalikan nomor yang sama (tender adalah unit immutable setelah dibuat, sehingga tidak ada risiko re-generate). Satu invoice dengan banyak tender (split payment) menghasilkan banyak Kwitansi berbeda, satu per tender — bukan satu Kwitansi mewakili seluruh invoice. Mekanisme alokasi (`BillingNumberSeriesService`, prefix `KWS`, reset harian) TETAP dipakai, hanya titik pemanggilannya berpindah dari `BillingInvoiceService`/endpoint terpisah ke `BillingSettlementService.AddTenderAsync`. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026: "NoKwitansi akan digenerate setiap user melakukan pembayaran" — dipilih sebagai opsi yang konsisten dengan bukti legacy `MainKasirController.cs` ("kwitansi unik per baris"); menggantikan `BKC-DEC-054` |
+| `BKC-DEC-058` | Decision | Struk Pasien (rincian tagihan tercetak — obat/tindakan/racikan/biaya admin) MASUK scope billing-kasir untuk dibangun sekarang, bukan placeholder tab milik modul lain. Berbeda dari lima dokumen lain (SPT, Claim Letter, LML, LMA, Resep Obat) yang TETAP di luar scope dan tetap placeholder, karena Struk Pasien datanya sudah tersedia penuh di tabel Tagihan Pasien pada Menu Pembayaran (`BilInvoiceItem` yang sudah dimuat) — tidak memerlukan data dari modul lain. `Dokumen Pasien` (tab kedelapan pada referensi UI) TIDAK dibahas eksplisit pada pertanyaan ini dan tetap placeholder sampai ditanyakan terpisah. | Product/Domain Owner | `draft` | Jawaban eksplisit sesi wawancara 27 Agustus 2026, menutup conflict 15.2.C pada `01-existing-capability-map.md`; memperluas (bukan mengganti) `BKC-DEC-052` |
+
+### Open question lintas modul — TIDAK diputuskan pada pass ini
+
+Integrasi `ClinicalMilestoneFactProducer`/`TrxClinicalMilestoneFact` (blueprint `rawat-jalan`,
+`RJ-BIL-BE-002`) dengan `BillingChargeSourceAdapter` milik billing-kasir (`PROCEDURE`,
+`LABORATORY`, `RADIOLOGY`, `PHARMACY`, `CONSUMABLE`) — keduanya sudah dibangun tetapi tidak saling
+memanggil, sehingga jalur "order pelayanan -> billing item" untuk kelima domain itu masih belum
+terbukti end-to-end. Ini keputusan lintas modul (siapa memanggil siapa) yang perlu melibatkan
+pemilik `rawat-jalan`, bukan keputusan sepihak `billing-kasir`. Lihat `01-existing-capability-map.md`
+bagian 15.2.A untuk detail bukti.
+
+### Langkah berikutnya
+
+Keputusan `BKC-DEC-045`–`051` masih berstatus `draft` — belum ada pernyataan approval eksplisit
+dari Product/Domain Owner untuk amendment ini (berbeda dengan `BKC-DEC-031`–`044` yang sudah
+`approved`). Sebelum desain final: (1) dapatkan approval eksplisit untuk ketujuh keputusan ini,
+(2) jalankan `/trace-existing-capabilities` untuk memetakan `KasirQuilvian1/` (BeKasir,
+FE kasir app/view) terhadap kapabilitas backend/frontend saat ini secara rinci — pass ini baru
+memverifikasi beberapa fakta source (`MstPaymentMethod`, `MstDiscountPolicy`, `BilTender`,
+`BilSettlement`) secara ad-hoc, belum melakukan audit menyeluruh gaya `01-existing-capability-map.md`
+khusus untuk Menu Pembayaran.

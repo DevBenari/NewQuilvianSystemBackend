@@ -7,6 +7,8 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Servi
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -212,6 +214,127 @@ public sealed class BillingCalculationServiceTests
             invoice.Id, Request(invoice.RowVersion, "Final tidak boleh berubah"), Guid.NewGuid(), CancellationToken.None));
     }
 
+    // BE-BKC-018 (BKC-DEC-043): Room charge dihitung ulang penuh setiap recalculate langsung dari
+    // InpBedPlacement (occupancy timeline), bukan BilInvoiceItem - lihat CalculateRoomChargeAsync.
+    [Fact]
+    public async Task RoomChargeAppliesCeilingRoundingForClosedSegmentAtOccupancyStartTariff()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var patientId = Guid.NewGuid();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, patientId, "RANAP", at);
+        var serviceUnitId = Guid.NewGuid();
+        var patientClassId = Guid.NewGuid();
+        var placementStart = at.UtcDateTime.AddDays(-2);
+        // 26 jam = 1560 menit -> ceiling(1560/1440) = 2 unit.
+        var placementEnd = placementStart.AddHours(26);
+        db.MstRoomChargePolicies.Add(RoomChargePolicy(
+            "RCP-CEIL", 1440, 1440, RoomChargePolicyValues.CeilingPeriod, RoomChargePolicyValues.OccupancyStart, at));
+        db.Set<MstTariff>().Add(RoomTariff("TRF-ROOM-CEIL", serviceUnitId, patientClassId, 300_000m));
+        await SeedInpatientOccupancyAsync(
+            db, invoice.EncounterId, patientId, serviceUnitId, patientClassId, placementStart, placementEnd);
+        await db.SaveChangesAsync();
+        var service = CreateService(db, SelfPayCoverageAdapter.Instance);
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Room charge segment tertutup"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(600_000m, result.RoomChargeAmount);
+        var segment = Assert.Single(result.Breakdown.RoomCharge.Segments);
+        Assert.Equal(2, segment.ChargeUnits);
+        Assert.False(segment.IsOngoing);
+        Assert.False(segment.MissingTariff);
+    }
+
+    // BKC-DEC-043 "tarif awal periode": perubahan tarif di tengah rawat inap hanya berlaku untuk
+    // periode SETELAH perubahan - periode yang sudah lewat tetap memakai tarif saat periode itu
+    // mulai, sehingga histori tidak pernah ditimpa retroaktif.
+    [Fact]
+    public async Task RoomChargeWithPeriodStartTariffMomentOnlyAppliesNewRateToLaterPeriods()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var patientId = Guid.NewGuid();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, patientId, "RANAP", at);
+        var serviceUnitId = Guid.NewGuid();
+        var patientClassId = Guid.NewGuid();
+        var placementStart = at.UtcDateTime.AddDays(-3);
+        // 3 hari penuh (4320 menit), whole-periods, tidak ada sisa - unit = 3 tepat.
+        var placementEnd = placementStart.AddMinutes(3 * 1440);
+        var rateChangeAt = placementStart.AddMinutes(1440);
+        db.MstRoomChargePolicies.Add(RoomChargePolicy(
+            "RCP-PERIOD", 1440, 1440, RoomChargePolicyValues.WholePeriods, RoomChargePolicyValues.PeriodStart, at));
+        db.Set<MstTariff>().AddRange(
+            RoomTariff("TRF-ROOM-OLD", serviceUnitId, patientClassId, 200_000m, effectiveEnd: rateChangeAt),
+            RoomTariff("TRF-ROOM-NEW", serviceUnitId, patientClassId, 250_000m, effectiveStart: rateChangeAt));
+        await SeedInpatientOccupancyAsync(
+            db, invoice.EncounterId, patientId, serviceUnitId, patientClassId, placementStart, placementEnd);
+        await db.SaveChangesAsync();
+        var service = CreateService(db, SelfPayCoverageAdapter.Instance);
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Room charge tarif berubah di tengah"), Guid.NewGuid(), CancellationToken.None);
+
+        // Periode 1 tetap tarif lama (200.000); periode 2 dan 3 tarif baru (250.000 x 2).
+        Assert.Equal(700_000m, result.RoomChargeAmount);
+    }
+
+    [Fact]
+    public async Task RoomChargeChargesOngoingSegmentLiveUpToCalculationTime()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var patientId = Guid.NewGuid();
+        var at = DateTimeOffset.UtcNow;
+        var invoice = await SeedInvoiceAsync(db, patientId, "RANAP", at);
+        var serviceUnitId = Guid.NewGuid();
+        var patientClassId = Guid.NewGuid();
+        var placementStart = at.UtcDateTime.AddDays(-2);
+        db.MstRoomChargePolicies.Add(RoomChargePolicy(
+            "RCP-LIVE", 1440, 1440, RoomChargePolicyValues.CeilingPeriod, RoomChargePolicyValues.OccupancyStart, at));
+        db.Set<MstTariff>().Add(RoomTariff("TRF-ROOM-LIVE", serviceUnitId, patientClassId, 300_000m));
+        // EndDateTime null - pasien masih dirawat; dihitung sampai sekarang.
+        await SeedInpatientOccupancyAsync(
+            db, invoice.EncounterId, patientId, serviceUnitId, patientClassId, placementStart, null);
+        await db.SaveChangesAsync();
+        var service = CreateService(db, SelfPayCoverageAdapter.Instance);
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Room charge segment berjalan"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.True(result.RoomChargeAmount > 0);
+        var segment = Assert.Single(result.Breakdown.RoomCharge.Segments);
+        Assert.True(segment.IsOngoing);
+        Assert.Null(segment.EndDateTime);
+    }
+
+    [Fact]
+    public async Task RoomChargeFlagsMissingTariffInsteadOfFailingRecalculation()
+    {
+        await using var db = IsolatedBillingDbContextFactory.Create();
+        var patientId = Guid.NewGuid();
+        var at = new DateTimeOffset(2026, 8, 21, 2, 0, 0, TimeSpan.Zero);
+        var invoice = await SeedInvoiceAsync(db, patientId, "RANAP", at);
+        var serviceUnitId = Guid.NewGuid();
+        var patientClassId = Guid.NewGuid();
+        var placementStart = at.UtcDateTime.AddDays(-2);
+        var placementEnd = placementStart.AddHours(26);
+        db.MstRoomChargePolicies.Add(RoomChargePolicy(
+            "RCP-MISSING", 1440, 1440, RoomChargePolicyValues.CeilingPeriod, RoomChargePolicyValues.OccupancyStart, at));
+        // Sengaja tidak menambahkan MstTariff sama sekali - BKC-BLK-DATA-001 (seed belum diserahkan).
+        await SeedInpatientOccupancyAsync(
+            db, invoice.EncounterId, patientId, serviceUnitId, patientClassId, placementStart, placementEnd);
+        await db.SaveChangesAsync();
+        var service = CreateService(db, SelfPayCoverageAdapter.Instance);
+
+        var result = await service.RecalculateAsync(
+            invoice.Id, Request(invoice.RowVersion, "Room charge tanpa tarif"), Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Equal(0, result.RoomChargeAmount);
+        var segment = Assert.Single(result.Breakdown.RoomCharge.Segments);
+        Assert.True(segment.MissingTariff);
+        Assert.Equal(2, segment.ChargeUnits);
+    }
+
     [Fact]
     public void CalculationVersionHasUniqueInvoiceVersionIndex()
     {
@@ -328,6 +451,83 @@ public sealed class BillingCalculationServiceTests
         Discountable = false,
         EffectiveFrom = at.AddDays(-1),
         EffectiveTo = at.AddDays(1),
+        IsActive = true
+    };
+
+    private static async Task SeedInpatientOccupancyAsync(
+        Repositories.ApplicationDbContext db,
+        Guid encounterId,
+        Guid patientId,
+        Guid serviceUnitId,
+        Guid patientClassId,
+        DateTime startDateTime,
+        DateTime? endDateTime)
+    {
+        var episode = new InpEpisode
+        {
+            EpisodeNumber = $"EP-{Guid.NewGuid():N}",
+            EncounterId = encounterId,
+            PatientId = patientId,
+            ServiceUnitId = serviceUnitId,
+            PatientClassId = patientClassId,
+            EpisodeStatus = InpEpisodeStatus.Admitted,
+            IsActive = true
+        };
+        db.Set<InpEpisode>().Add(episode);
+        db.Set<InpBedPlacement>().Add(new InpBedPlacement
+        {
+            EpisodeId = episode.Id,
+            BedId = Guid.NewGuid(),
+            RoomId = Guid.NewGuid(),
+            ServiceUnitId = serviceUnitId,
+            PatientClassId = patientClassId,
+            SequenceNumber = 1,
+            StartDateTime = startDateTime,
+            EndDateTime = endDateTime,
+            EndReason = endDateTime.HasValue ? InpBedPlacementEndReason.Transfer : null,
+            PlacedByUserId = Guid.NewGuid(),
+            IsActive = true
+        });
+        await Task.CompletedTask;
+    }
+
+    private static MstRoomChargePolicy RoomChargePolicy(
+        string code,
+        int minimumMinutes,
+        int periodMinutes,
+        string remainderRounding,
+        string tariffMoment,
+        DateTimeOffset at) => new()
+    {
+        Code = code,
+        Name = code,
+        MinimumMinutes = minimumMinutes,
+        PeriodMinutes = periodMinutes,
+        RemainderRounding = remainderRounding,
+        TariffMoment = tariffMoment,
+        LeaveRule = RoomChargePolicyValues.IncludeLeave,
+        EffectiveFrom = at.AddYears(-1),
+        EffectiveTo = at.AddYears(1),
+        IsActive = true
+    };
+
+    private static MstTariff RoomTariff(
+        string code,
+        Guid serviceUnitId,
+        Guid patientClassId,
+        decimal price,
+        DateTime? effectiveStart = null,
+        DateTime? effectiveEnd = null) => new()
+    {
+        TariffCode = code,
+        TariffName = code,
+        TariffCategoryId = Guid.NewGuid(),
+        ServiceUnitId = serviceUnitId,
+        PatientClassId = patientClassId,
+        IsRoomCharge = true,
+        NormalPrice = price,
+        EffectiveStartDate = effectiveStart,
+        EffectiveEndDate = effectiveEnd,
         IsActive = true
     };
 

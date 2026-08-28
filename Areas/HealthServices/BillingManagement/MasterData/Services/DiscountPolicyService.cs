@@ -148,6 +148,63 @@ public sealed class DiscountPolicyService
         return Map(entity);
     }
 
+    // Mengaktifkan kembali policy yang sebelumnya dinonaktifkan tanpa perlu membuat versi baru.
+    // Tidak mensyaratkan alasan (berbeda dari DeactivateAsync).
+    public async Task<DiscountPolicyResponse> ActivateAsync(
+        Guid id,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        if (entity.IsActive)
+            return Map(entity);
+
+        var overlaps = await _dbContext.MstDiscountPolicies.AnyAsync(
+            x => !x.IsDelete && x.IsActive && x.Id != entity.Id
+                && x.DiscountType == entity.DiscountType && x.TargetComponent == entity.TargetComponent
+                && x.EffectiveFrom < (entity.EffectiveTo ?? DateTimeOffset.MaxValue)
+                && (x.EffectiveTo == null || entity.EffectiveFrom < x.EffectiveTo),
+            cancellationToken);
+        if (overlaps)
+            throw new DiscountPolicyConflictException(
+                "Tidak dapat mengaktifkan; ada policy lain yang masih aktif dan bertumpang tindih untuk jenis dan target yang sama.");
+
+        entity.IsActive = true;
+        entity.UpdateDateTime = DateTime.UtcNow;
+        entity.UpdateBy = actorUserId;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await AuditAsync("DiscountPolicy.Activate", entity, actorUserId, null);
+        return Map(entity);
+    }
+
+    // Soft delete - baris tidak pernah dihapus fisik agar riwayat BilDiscountApplication yang
+    // sudah menyimpan snapshot policy tetap dapat ditelusuri. Hanya policy nonaktif yang boleh
+    // dihapus - mencegah penghapusan diam-diam atas policy yang masih hidup.
+    public async Task<DiscountPolicyDeleteResponse> DeleteAsync(
+        Guid id,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        if (entity.IsActive)
+            throw new DiscountPolicyValidationException(
+                "Policy yang masih aktif tidak dapat dihapus; nonaktifkan terlebih dahulu.");
+
+        entity.IsDelete = true;
+        entity.DeleteDateTime = DateTime.UtcNow;
+        entity.DeleteBy = actorUserId;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await AuditAsync("DiscountPolicy.Delete", entity, actorUserId, null);
+
+        return new DiscountPolicyDeleteResponse
+        {
+            Id = entity.Id,
+            Code = entity.Code,
+            Name = entity.Name,
+            IsDelete = entity.IsDelete
+        };
+    }
+
     private async Task<MstDiscountPolicy> FindAsync(Guid id, CancellationToken cancellationToken) =>
         await _dbContext.MstDiscountPolicies.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
         ?? throw new KeyNotFoundException("Policy diskon tidak ditemukan.");

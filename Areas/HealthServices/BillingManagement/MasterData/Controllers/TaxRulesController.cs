@@ -48,6 +48,23 @@ public sealed class TaxRulesController : ControllerBase
     public Task<IActionResult> Deactivate(Guid id, [FromBody] DeactivatePolicyRequest request, CancellationToken cancellationToken) =>
         ExecuteAsync(() => _service.DeactivateAsync(id, request, CurrentUserId(), cancellationToken));
 
+    [HttpPost("{id:guid}/activate")]
+    [AccessAction("Update", "Activate Tax Rule", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission("TaxRule", "Update")]
+    public Task<IActionResult> Activate(Guid id, CancellationToken cancellationToken) =>
+        ExecuteAsync(() => _service.ActivateAsync(id, CurrentUserId(), cancellationToken));
+
+    [HttpDelete("{id:guid}")]
+    [AccessAction("Delete", "Delete Tax Rule", AccessType = AccessTypes.Delete, SortOrder = 6)]
+    [AccessPermission("TaxRule", "Delete")]
+    [ProducesResponseType(typeof(ApiResponse<TaxRuleDeleteResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        try { return Ok(ApiResponse<TaxRuleDeleteResponse>.Ok(await _service.DeleteAsync(id, CurrentUserId(), cancellationToken), "Tax rule berhasil dihapus.")); }
+        catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
+        catch (TaxRuleValidationException exception) { return UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message)); }
+    }
+
     private async Task<IActionResult> ExecuteAsync(Func<Task<TaxRuleResponse>> command)
     {
         try { return Ok(ApiResponse<TaxRuleResponse>.Ok(await command(), "Tax rule berhasil diproses.")); }

@@ -89,6 +89,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         public bool IsAvailableForBilling { get; set; }
         public bool IsAvailableForRefund { get; set; }
 
+        public string? BankName { get; set; }
+        public string? BankAccountNumber { get; set; }
+        public string? BankAccountName { get; set; }
+
         public decimal AdminFeeAmount { get; set; }
         public decimal AdminFeePercent { get; set; }
     }
