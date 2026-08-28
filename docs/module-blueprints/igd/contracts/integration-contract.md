@@ -4,7 +4,7 @@
 | --- | --- |
 | `contract_version` | `0.3.0` |
 | Status | `draft` |
-| Owner | Product/Domain Owner IGD; nama belum diisi |
+| Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | — / — |
 | Versi sebelumnya | `0.2.0` |
 

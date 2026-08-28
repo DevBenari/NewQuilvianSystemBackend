@@ -2,6 +2,7 @@
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 {
@@ -40,6 +41,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public bool IsDoctorRequired { get; set; } = false;
 
         public bool IsScreeningRequired { get; set; } = false;
+
+        public Guid? OrganizationUnitId { get; set; }
+
+        public MstOrganizationUnit? OrganizationUnit { get; set; }
 
         public int SortOrder { get; set; } = 0;
 

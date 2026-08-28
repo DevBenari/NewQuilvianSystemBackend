@@ -11,7 +11,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid EncounterId { get; set; }
         public string EncounterNumber { get; set; } = string.Empty;
 
-        public Guid QueueId { get; set; }
+        /// <summary>
+        /// Antrean asal konsultasi. <c>null</c> untuk konsultasi pasien IGD (<c>BE-IGD-028</c>).
+        /// </summary>
+        public Guid? QueueId { get; set; }
         public string QueueCode { get; set; } = string.Empty;
 
         public Guid? AssessmentId { get; set; }
@@ -159,8 +162,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [Required]
         public Guid EncounterId { get; set; }
 
-        [Required]
-        public Guid QueueId { get; set; }
+        /// <summary>
+        /// Antrean asal konsultasi. <b>Boleh kosong</b> sejak <c>BE-IGD-028</c>: pasien IGD
+        /// tidak berantre, sehingga konsultasinya dibentuk dari encounter.
+        /// </summary>
+        /// <remarks>
+        /// Bila kolom ini kosong, <see cref="DoctorId"/> wajib diisi — antreanlah yang biasanya
+        /// menentukan dokter pemeriksa, dan tanpa antrean tidak ada yang menentukannya.
+        /// </remarks>
+        public Guid? QueueId { get; set; }
+
+        /// <summary>
+        /// Dokter pemeriksa untuk konsultasi <b>tanpa antrean</b>. Diabaikan bila
+        /// <see cref="QueueId"/> terisi — di jalur berantre dokter tetap diambil dari antrean.
+        /// </summary>
+        public Guid? DoctorId { get; set; }
 
         public Guid? AssessmentId { get; set; }
 
@@ -387,7 +403,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string ConsultationNumber { get; set; } = string.Empty;
 
         public Guid EncounterId { get; set; }
-        public Guid QueueId { get; set; }
+        /// <summary>
+        /// Antrean asal konsultasi. <c>null</c> untuk konsultasi pasien IGD (<c>BE-IGD-028</c>).
+        /// </summary>
+        public Guid? QueueId { get; set; }
         public Guid? AssessmentId { get; set; }
 
         public DoctorConsultationStatus ConsultationStatus { get; set; }

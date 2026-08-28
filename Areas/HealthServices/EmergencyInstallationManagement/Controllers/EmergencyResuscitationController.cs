@@ -36,15 +36,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly EmergencyResuscitationService _emergencyResuscitationService;
+        private readonly EmergencyVisitService _emergencyVisitService;
 
         public EmergencyResuscitationController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            EmergencyResuscitationService emergencyService)
+            EmergencyResuscitationService emergencyService,
+            EmergencyVisitService emergencyVisitService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _emergencyResuscitationService = emergencyService;
+            _emergencyVisitService = emergencyVisitService;
         }
 
         [HttpGet]
@@ -66,7 +69,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         )
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
-            IQueryable<TrxEmergencyResuscitation> query = _dbContext.Set<TrxEmergencyResuscitation>().AsNoTracking().Where(x => !x.IsDelete);
+            IQueryable<EmgResuscitation> query = _dbContext.Set<EmgResuscitation>().AsNoTracking().Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -131,7 +134,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyResuscitation", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyResuscitation>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgResuscitation>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data resusitasi IGD tidak ditemukan."));
 
@@ -151,13 +154,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validationMessage));
 
             var normalizedNumber = NormalizeText(request.ResuscitationNumber);
-            if (!string.IsNullOrWhiteSpace(normalizedNumber) && await _dbContext.Set<TrxEmergencyResuscitation>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.ResuscitationNumber == normalizedNumber, cancellationToken))
+            if (!string.IsNullOrWhiteSpace(normalizedNumber) && await _dbContext.Set<EmgResuscitation>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.ResuscitationNumber == normalizedNumber, cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "ResuscitationNumber sudah digunakan."));
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            var entity = new TrxEmergencyResuscitation
+            var entity = new EmgResuscitation
             {
                 Id = Guid.NewGuid(),
                 EmergencyVisitId = request.EmergencyVisitId,
@@ -186,7 +189,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 IsCancel = false
             };
 
-            _dbContext.Set<TrxEmergencyResuscitation>().Add(entity);
+            _dbContext.Set<EmgResuscitation>().Add(entity);
             try
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -215,7 +218,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyResuscitation", "Update")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmergencyResuscitationRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyResuscitation>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgResuscitation>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data resusitasi IGD tidak ditemukan."));
 
@@ -224,7 +227,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validationMessage));
 
             var normalizedNumber = NormalizeText(request.ResuscitationNumber);
-            if (!string.IsNullOrWhiteSpace(normalizedNumber) && await _dbContext.Set<TrxEmergencyResuscitation>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.ResuscitationNumber == normalizedNumber && x.Id != id, cancellationToken))
+            if (!string.IsNullOrWhiteSpace(normalizedNumber) && await _dbContext.Set<EmgResuscitation>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.ResuscitationNumber == normalizedNumber && x.Id != id, cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "ResuscitationNumber sudah digunakan."));
 
             var now = DateTime.UtcNow;
@@ -273,11 +276,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [ProducesResponseType(typeof(ApiResponse<EmergencyResuscitationResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Update", "Update Emergency Resuscitation ResuscitationStatus", Description = "Mengubah status resusitasi IGD", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("EmergencyResuscitation", "Update")]
         public async Task<IActionResult> UpdateResuscitationStatus(Guid id, [FromBody] UpdateEmergencyResuscitationResuscitationStatusRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyResuscitation>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgResuscitation>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data resusitasi IGD tidak ditemukan."));
 
@@ -286,17 +290,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
-            entity.ResuscitationStatus = request.ResuscitationStatus;
-            if (request.ResuscitationStatus != EmergencyResuscitationStatus.InProgress && request.ResuscitationStatus != EmergencyResuscitationStatus.Planned)
-                entity.CompletedAt ??= now;
+
+            // BE-IGD-021 — titik tulis VisitStatus keempat. Diperiksa sebelum entity diubah,
+            // supaya penolakan 409 tidak meninggalkan resusitasi yang terlanjur berjalan.
             if (request.ResuscitationStatus == EmergencyResuscitationStatus.InProgress)
             {
-                var visit = await _dbContext.Set<TrxEmergencyVisit>().FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
-                visit.VisitStatus = EmergencyVisitStatus.InTreatment;
+                var visit = await _dbContext.Set<EmgVisit>().FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
+
+                if (!_emergencyVisitService.TryApplyVisitStatus(
+                        visit, EmergencyVisitStatus.InTreatment, actorUserId, now, out var penolakanStatusKunjungan))
+                {
+                    return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, penolakanStatusKunjungan!));
+                }
+
+                // TreatmentStartedAt tetap diisi meski status kunjungan sudah InTreatment,
+                // karena resusitasi dapat menjadi tindakan pertama yang benar-benar dimulai.
+                // Karena itu jejak perubahan kunjungan ikut disentuh di luar penjaga.
                 visit.TreatmentStartedAt ??= now;
                 visit.UpdateDateTime = now;
                 visit.UpdateBy = actorUserId;
             }
+
+            entity.ResuscitationStatus = request.ResuscitationStatus;
+            if (request.ResuscitationStatus != EmergencyResuscitationStatus.InProgress && request.ResuscitationStatus != EmergencyResuscitationStatus.Planned)
+                entity.CompletedAt ??= now;
             if (!string.IsNullOrWhiteSpace(request.Notes) && entity.GetType().GetProperty("Notes") != null)
             {
                 entity.GetType().GetProperty("Notes")?.SetValue(entity, NormalizeText(request.Notes));
@@ -323,7 +340,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyResuscitation", "Delete")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyResuscitation>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgResuscitation>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data resusitasi IGD tidak ditemukan."));
 
@@ -353,7 +370,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (!Enum.IsDefined(typeof(EmergencyResuscitationStatus), request.ResuscitationStatus))
                 return "Nilai ResuscitationStatus tidak valid.";
 
-            if (!await _dbContext.Set<TrxEmergencyVisit>().AsNoTracking().AnyAsync(x => x.Id == request.EmergencyVisitId && !x.IsDelete, cancellationToken))
+            if (!await _dbContext.Set<EmgVisit>().AsNoTracking().AnyAsync(x => x.Id == request.EmergencyVisitId && !x.IsDelete, cancellationToken))
                 return "EmergencyVisitId tidak ditemukan.";
 
             return null;
@@ -377,7 +394,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             };
         }
 
-        private static EmergencyResuscitationResponse ToResponse(TrxEmergencyResuscitation x)
+        private static EmergencyResuscitationResponse ToResponse(EmgResuscitation x)
         {
             return new EmergencyResuscitationResponse
             {

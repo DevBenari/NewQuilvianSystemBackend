@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Models;
@@ -59,7 +59,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         )
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
-            IQueryable<TrxEmergencyTriageDetail> query = _dbContext.Set<TrxEmergencyTriageDetail>().AsNoTracking().Where(x => !x.IsDelete);
+            IQueryable<EmgTriageDetail> query = _dbContext.Set<EmgTriageDetail>().AsNoTracking().Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -114,7 +114,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriageDetail", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyTriageDetail>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgTriageDetail>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data detail triage IGD tidak ditemukan."));
 
@@ -136,7 +136,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            var entity = new TrxEmergencyTriageDetail
+            var entity = new EmgTriageDetail
             {
                 Id = Guid.NewGuid(),
                 EmergencyTriageId = request.EmergencyTriageId,
@@ -156,7 +156,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 IsCancel = false
             };
 
-            _dbContext.Set<TrxEmergencyTriageDetail>().Add(entity);
+            _dbContext.Set<EmgTriageDetail>().Add(entity);
             try
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -185,7 +185,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriageDetail", "Update")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmergencyTriageDetailRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyTriageDetail>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgTriageDetail>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data detail triage IGD tidak ditemukan."));
 
@@ -235,7 +235,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriageDetail", "Delete")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyTriageDetail>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgTriageDetail>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data detail triage IGD tidak ditemukan."));
 
@@ -268,11 +268,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (string.IsNullOrWhiteSpace(request.IndicatorNameSnapshot))
                 return "IndicatorNameSnapshot wajib diisi.";
 
-            if (!await _dbContext.Set<TrxEmergencyTriage>().AsNoTracking().AnyAsync(x => x.Id == request.EmergencyTriageId && !x.IsDelete, cancellationToken))
+            if (!await _dbContext.Set<EmgTriage>().AsNoTracking().AnyAsync(x => x.Id == request.EmergencyTriageId && !x.IsDelete, cancellationToken))
                 return "EmergencyTriageId tidak ditemukan.";
 
             if (request.TriageIndicatorId.HasValue && request.TriageIndicatorId.Value != Guid.Empty &&
-                !await _dbContext.Set<MstEmergencyTriageIndicator>().AsNoTracking().AnyAsync(x => x.Id == request.TriageIndicatorId.Value && !x.IsDelete, cancellationToken))
+                !await _dbContext.Set<EmgTriageIndicator>().AsNoTracking().AnyAsync(x => x.Id == request.TriageIndicatorId.Value && !x.IsDelete, cancellationToken))
                 return "TriageIndicatorId tidak ditemukan.";
 
             return null;
@@ -281,7 +281,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private Task<string?> ValidateRequestAsync(UpdateEmergencyTriageDetailRequest request, CancellationToken cancellationToken)
             => ValidateRequestAsync((CreateEmergencyTriageDetailRequest)request, cancellationToken);
 
-        private static EmergencyTriageDetailResponse ToResponse(TrxEmergencyTriageDetail x)
+        private static EmergencyTriageDetailResponse ToResponse(EmgTriageDetail x)
         {
             return new EmergencyTriageDetailResponse
             {

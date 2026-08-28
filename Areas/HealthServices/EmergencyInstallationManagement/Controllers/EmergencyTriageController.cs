@@ -6,7 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Models;
@@ -37,16 +37,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly EmergencyTriageService _emergencyTriageService;
+        private readonly EmergencyVisitService _emergencyVisitService;
 
         public EmergencyTriageController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            EmergencyTriageService emergencyService)
+            EmergencyTriageService emergencyService,
+            EmergencyVisitService emergencyVisitService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _emergencyTriageService = emergencyService;
+            _emergencyVisitService = emergencyVisitService;
         }
+
+        /// <summary>
+        /// Status kunjungan yang berarti pasien sudah tidak ditangani IGD lagi.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-IGD-019</c>, aturan 4 pada validation-matrix bagian 2. Menyelesaikan triase
+        /// pada kunjungan berstatus salah satu dari ini akan membuka kembali kunjungan yang
+        /// sudah ditutup, dan karena itu ditolak.
+        /// </remarks>
+        private static bool KunjunganSudahDitutup(EmergencyVisitStatus status)
+            => status is EmergencyVisitStatus.Disposed
+                or EmergencyVisitStatus.Completed
+                or EmergencyVisitStatus.Cancelled;
+
+        /// <summary>
+        /// Status kunjungan yang sudah melewati tahap triase.
+        /// </summary>
+        /// <remarks>
+        /// <c>IGD-DEC-104</c>. Pada status ini, menyelesaikan penilaian **bukan** permintaan
+        /// perubahan status: pasien sudah lewat triase, dan penilaian ulang tidak boleh
+        /// memundurkannya. Sistem karena itu **sengaja tidak mencoba** mengubah status, dan
+        /// ketiadaan perubahan itu bukan transisi ilegal.
+        ///
+        /// <para>
+        /// Bedakan dari <c>Arrived</c> dan <c>WaitingForTriage</c>, yang **belum** melewati
+        /// triase. Pada keduanya penyelesaian triase memang meminta perubahan status, sehingga
+        /// permintaan yang ditolak <c>CanTransition</c> menghasilkan <c>409</c> — misalnya
+        /// <c>Arrived</c> yang mencoba melompati <c>WaitingForTriage</c>.
+        /// </para>
+        /// </remarks>
+        private static bool KunjunganSudahMelewatiTriase(EmergencyVisitStatus status)
+            => status is EmergencyVisitStatus.Triaged
+                or EmergencyVisitStatus.InTreatment
+                or EmergencyVisitStatus.UnderObservation
+                or EmergencyVisitStatus.AwaitingDisposition;
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyTriageResponse>>), StatusCodes.Status200OK)]
@@ -72,7 +110,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
             // Level dimuat karena balasan kini membawa nama dan warnanya, bukan hanya id.
-            IQueryable<TrxEmergencyTriage> query = _dbContext.Set<TrxEmergencyTriage>()
+            IQueryable<EmgTriage> query = _dbContext.Set<EmgTriage>()
                 .AsNoTracking()
                 .Include(x => x.TriageLevel)
                 .Where(x => !x.IsDelete);
@@ -152,7 +190,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriage", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyTriage>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgTriage>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data triage IGD tidak ditemukan."));
 
@@ -178,12 +216,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var nextSequence = request.Sequence > 0
                 ? request.Sequence
-                : (await _dbContext.Set<TrxEmergencyTriage>()
+                : (await _dbContext.Set<EmgTriage>()
                     .Where(x => x.EmergencyVisitId == request.EmergencyVisitId && !x.IsDelete)
                     .Select(x => (int?)x.Sequence)
                     .MaxAsync(cancellationToken) ?? 0) + 1;
 
-            var entity = new TrxEmergencyTriage
+            var entity = new EmgTriage
             {
                 Id = Guid.NewGuid(),
                 EmergencyVisitId = request.EmergencyVisitId,
@@ -228,7 +266,58 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 ? entity.StartedAt.AddMinutes(triageLevel.MaxWaitingMinutes.Value)
                 : null;
 
-            _dbContext.Set<TrxEmergencyTriage>().Add(entity);
+            // Kunjungan diurus SEBELUM triase disimpan. Penolakan 409 karena itu tidak pernah
+            // meninggalkan baris triase yang terlanjur tersimpan, dan perubahan status ikut
+            // dalam SaveChangesAsync yang sama dengan triasenya.
+            EmgVisit? visit = null;
+            if (entity.TriageStatus == EmergencyTriageStatus.Completed)
+            {
+                visit = await _dbContext.Set<EmgVisit>()
+                    .FirstOrDefaultAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
+
+                if (visit == null)
+                    return NotFound(ApiResponse<object>.Fail(
+                        StatusCodes.Status404NotFound,
+                        "Kunjungan IGD milik penilaian ini tidak ditemukan."));
+
+                if (KunjunganSudahDitutup(visit.VisitStatus))
+                    return Conflict(ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Kunjungan IGD sudah ditutup, penilaian tidak dapat diselesaikan."));
+
+                // Waktu selesai diisi di sini juga, bukan hanya pada jalur ubah status.
+                // Penilaian yang dibuat langsung dalam keadaan selesai tetap harus punya
+                // waktu selesai, supaya perhitungan lama penanganan tidak kehilangan datanya.
+                entity.CompletedAt ??= now;
+
+                // IGD-DEC-104 — tiga perlakuan yang berbeda, bukan satu.
+                //
+                // Kunjungan yang SUDAH melewati triase: penilaian tersimpan, status dibiarkan.
+                // Sistem sengaja tidak mencoba mengubahnya, sehingga tidak ada transisi yang
+                // ditolak — AT-IGD-086 dan skenario UAT "Ny. Sari sedang ditangani".
+                //
+                // Kunjungan yang BELUM melewati triase: penyelesaian triase memang meminta
+                // perubahan status, dan permintaan yang ditolak CanTransition adalah 409 —
+                // misalnya Arrived yang mencoba melompati WaitingForTriage.
+                if (!KunjunganSudahMelewatiTriase(visit.VisitStatus)
+                    && !_emergencyVisitService.TryApplyVisitStatus(
+                        visit,
+                        EmergencyVisitStatus.Triaged,
+                        actorUserId,
+                        now,
+                        out var penolakanStatus))
+                {
+                    return Conflict(ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        penolakanStatus!));
+                }
+
+                visit.IsImmediateCareAllowed = entity.ImmediateCareAllowed;
+                visit.UpdateDateTime = now;
+                visit.UpdateBy = actorUserId;
+            }
+
+            _dbContext.Set<EmgTriage>().Add(entity);
             try
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -236,22 +325,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             catch (DbUpdateException)
             {
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Data triage IGD gagal disimpan karena melanggar relasi atau data unik."));
-            }
-
-            if (entity.TriageStatus == EmergencyTriageStatus.Completed)
-            {
-                // Waktu selesai diisi di sini juga, bukan hanya pada jalur ubah status.
-                // Penilaian yang dibuat langsung dalam keadaan selesai tetap harus punya
-                // waktu selesai, supaya perhitungan lama penanganan tidak kehilangan datanya.
-                entity.CompletedAt ??= now;
-
-                var visit = await _dbContext.Set<TrxEmergencyVisit>()
-                    .FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
-                visit.VisitStatus = EmergencyVisitStatus.Triaged;
-                visit.IsImmediateCareAllowed = entity.ImmediateCareAllowed;
-                visit.UpdateDateTime = now;
-                visit.UpdateBy = actorUserId;
-                await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
             await _loggerService.InfoAsync(
@@ -273,7 +346,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriage", "Update")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmergencyTriageRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyTriage>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgTriage>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data triage IGD tidak ditemukan."));
 
@@ -335,11 +408,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [ProducesResponseType(typeof(ApiResponse<EmergencyTriageResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Update", "Update Emergency Triage TriageStatus", Description = "Mengubah status triage IGD", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("EmergencyTriage", "Update")]
         public async Task<IActionResult> UpdateTriageStatus(Guid id, [FromBody] UpdateEmergencyTriageTriageStatusRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyTriage>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgTriage>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data triage IGD tidak ditemukan."));
 
@@ -348,12 +422,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
-            entity.TriageStatus = request.TriageStatus;
+
+            // Kunjungan diperiksa SEBELUM entity disentuh, supaya penolakan tidak
+            // meninggalkan perubahan yang menggantung pada change tracker.
+            EmgVisit? visit = null;
             if (request.TriageStatus == EmergencyTriageStatus.Completed)
             {
+                visit = await _dbContext.Set<EmgVisit>()
+                    .FirstOrDefaultAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
+
+                if (visit == null)
+                    return NotFound(ApiResponse<object>.Fail(
+                        StatusCodes.Status404NotFound,
+                        "Kunjungan IGD milik penilaian ini tidak ditemukan."));
+
+                // Aturan 4 validation-matrix bagian 2. Sebelum BE-IGD-019 jalur ini tidak
+                // memeriksa kunjungan sama sekali, sehingga penilaian lama yang diselesaikan
+                // pada kunjungan yang sudah ditutup membuka kembali kunjungan itu.
+                if (KunjunganSudahDitutup(visit.VisitStatus))
+                    return Conflict(ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Kunjungan IGD sudah ditutup, penilaian tidak dapat diselesaikan."));
+            }
+
+            if (visit != null)
+            {
+                // IGD-DEC-104, sama seperti jalur create. Perubahan status hanya dicoba bila
+                // kunjungan memang belum melewati triase; penolakannya adalah 409.
+                if (!KunjunganSudahMelewatiTriase(visit.VisitStatus)
+                    && !_emergencyVisitService.TryApplyVisitStatus(
+                        visit,
+                        EmergencyVisitStatus.Triaged,
+                        actorUserId,
+                        now,
+                        out var penolakanStatus))
+                {
+                    return Conflict(ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        penolakanStatus!));
+                }
+            }
+
+            entity.TriageStatus = request.TriageStatus;
+            if (visit != null)
+            {
                 entity.CompletedAt ??= now;
-                var visit = await _dbContext.Set<TrxEmergencyVisit>().FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
-                visit.VisitStatus = EmergencyVisitStatus.Triaged;
                 visit.IsImmediateCareAllowed = entity.ImmediateCareAllowed;
                 visit.UpdateDateTime = now;
                 visit.UpdateBy = actorUserId;
@@ -462,7 +575,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriage", "Delete")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyTriage>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgTriage>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data triage IGD tidak ditemukan."));
 
@@ -505,10 +618,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (!Enum.IsDefined(typeof(EmergencyTriageStatus), request.TriageStatus))
                 return "Nilai TriageStatus tidak valid.";
 
-            if (!await _dbContext.Set<TrxEmergencyVisit>().AsNoTracking().AnyAsync(x => x.Id == request.EmergencyVisitId && !x.IsDelete, cancellationToken))
+            if (!await _dbContext.Set<EmgVisit>().AsNoTracking().AnyAsync(x => x.Id == request.EmergencyVisitId && !x.IsDelete, cancellationToken))
                 return "EmergencyVisitId tidak ditemukan.";
 
-            if (!await _dbContext.Set<MstEmergencyTriageLevel>().AsNoTracking().AnyAsync(x => x.Id == request.TriageLevelId && !x.IsDelete, cancellationToken))
+            if (!await _dbContext.Set<EmgTriageLevel>().AsNoTracking().AnyAsync(x => x.Id == request.TriageLevelId && !x.IsDelete, cancellationToken))
                 return "TriageLevelId tidak ditemukan.";
 
             if (request.PatientVitalSignId.HasValue && request.PatientVitalSignId.Value != Guid.Empty &&
@@ -516,7 +629,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return "PatientVitalSignId tidak ditemukan.";
 
             if (request.PreviousTriageId.HasValue && request.PreviousTriageId.Value != Guid.Empty &&
-                !await _dbContext.Set<TrxEmergencyTriage>().AsNoTracking().AnyAsync(x => x.Id == request.PreviousTriageId.Value && !x.IsDelete, cancellationToken))
+                !await _dbContext.Set<EmgTriage>().AsNoTracking().AnyAsync(x => x.Id == request.PreviousTriageId.Value && !x.IsDelete, cancellationToken))
                 return "PreviousTriageId tidak ditemukan.";
 
             return null;
@@ -540,7 +653,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             };
         }
 
-        private static EmergencyTriageResponse ToResponse(TrxEmergencyTriage x)
+        private static EmergencyTriageResponse ToResponse(EmgTriage x)
         {
             return new EmergencyTriageResponse
             {
