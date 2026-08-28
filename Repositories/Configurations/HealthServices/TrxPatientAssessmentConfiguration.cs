@@ -20,8 +20,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.EncounterId)
                 .IsRequired();
 
+            // BE-IGD-026 - lihat catatan pada TrxPatientAssessment.QueueId.
             entity.Property(x => x.QueueId)
-                .IsRequired();
+                .IsRequired(false);
 
             entity.Property(x => x.PatientId)
                 .IsRequired();

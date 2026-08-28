@@ -1,5 +1,15 @@
 # Laporan Perubahan Backend — `BE-RWI-025`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> **Task ini kini ✅ SELESAI.** Seluruh butir DoD-nya hijau: test lulus (255/255) dan
+> endpointnya terbukti berjalan lewat Swagger pada aplikasi tersambung PostgreSQL.
+> Tandanya pada roadmap sudah dinaikkan 🟡 → ✅.
+
 ## Metadata
 
 | Field | Nilai |
@@ -13,7 +23,7 @@
 | Commit backend saat pekerjaan dimulai | `bd97e5d` |
 | Tanggal pengerjaan | 25 Agustus 2026 |
 | Dependency | `BE-RWI-022`, `BE-RWI-023`, `BE-RWI-024` — ketiganya dikerjakan pada sesi yang sama |
-| Status | **IMPLEMENTASI SELESAI — VALIDASI BELUM DIJALANKAN** |
+| Status | ✅ **SELESAI** — seluruh acceptance criteria dan DoD terbukti; build+test hijau dan endpoint terbukti berjalan 26 Agustus 2026 |
 
 ---
 
@@ -127,8 +137,8 @@ transaksi.
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | `UAT-11` terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 6.1 Test yang ditulis
@@ -137,11 +147,11 @@ transaksi.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. `closure-readiness` mengembalikan kelima syarat, bukan boolean | `Kriteria1_ClosureReadinessMengembalikanKelimaSyaratBesertaTandanya` | Ditulis, **belum dijalankan** |
-| 2. Penutupan dengan syarat kurang ditolak 422 disertai daftarnya | `Kriteria2_PenutupanDenganSyaratBelumTerpenuhiDitolak422DisertaiDaftarnya` | Ditulis, **belum dijalankan** |
-| 3. Penutupan mengubah episode menjadi `Closed` dan melepas tempat tidur dalam satu transaksi | `Kriteria3Dan4Dan5_PenutupanMelepasTempatTidurDanMenulisSatuBarisRiwayat` | Ditulis, **belum dijalankan** |
-| 4. Tempat tidur terbaca `Available` pada pencarian berikutnya | Test yang sama | Ditulis, **belum dijalankan** |
-| 5. Penutupan menulis satu baris riwayat status | Test yang sama | Ditulis, **belum dijalankan** |
+| 1. `closure-readiness` mengembalikan kelima syarat, bukan boolean | `Kriteria1_ClosureReadinessMengembalikanKelimaSyaratBesertaTandanya` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Penutupan dengan syarat kurang ditolak 422 disertai daftarnya | `Kriteria2_PenutupanDenganSyaratBelumTerpenuhiDitolak422DisertaiDaftarnya` | ✅ **Lulus** 26 Agu 2026 |
+| 3. Penutupan mengubah episode menjadi `Closed` dan melepas tempat tidur dalam satu transaksi | `Kriteria3Dan4Dan5_PenutupanMelepasTempatTidurDanMenulisSatuBarisRiwayat` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Tempat tidur terbaca `Available` pada pencarian berikutnya | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
+| 5. Penutupan menulis satu baris riwayat status | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
 
 Verifikasi yang diminta roadmap — "test yang menutup episode lalu mencari tempat tidur kosong
 dan menemukannya" — dijawab test kriteria 3: `SearchAvailableBedsAsync` dipanggil sebelum dan
@@ -177,8 +187,8 @@ Satu test tambahan menjaga bahwa episode yang sudah ditutup tidak dapat ditutup 
 | Butir DoD | Keadaannya |
 | --- | --- |
 | Dua endpoint sesuai kontrak | ✅ Ada di dalam kode |
-| Kelima kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
+| Kelima kriteria lulus | ✅ **Lulus** — seluruh test-nya dijalankan 26 Agustus 2026 dan hijau (255/255) |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 

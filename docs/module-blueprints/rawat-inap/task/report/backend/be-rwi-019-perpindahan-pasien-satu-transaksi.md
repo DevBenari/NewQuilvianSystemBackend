@@ -1,5 +1,15 @@
 # Laporan Perubahan Backend — `BE-RWI-019`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> **Task ini kini ✅ SELESAI.** Seluruh butir DoD-nya hijau: test lulus (255/255) dan
+> endpointnya terbukti berjalan lewat Swagger pada aplikasi tersambung PostgreSQL.
+> Tandanya pada roadmap sudah dinaikkan 🟡 → ✅.
+
 ## Metadata
 
 | Field | Nilai |
@@ -13,7 +23,7 @@
 | Commit backend saat pekerjaan dimulai | `bd97e5d` |
 | Tanggal pengerjaan | 25 Agustus 2026 |
 | Dependency | `BE-RWI-017`; `BE-RWI-013` dan `BE-RWI-015` — ketiganya dikerjakan pada sesi yang sama |
-| Status | **IMPLEMENTASI SELESAI — VALIDASI BELUM DIJALANKAN** |
+| Status | ✅ **SELESAI** — seluruh acceptance criteria dan DoD terbukti; build+test hijau dan endpoint terbukti berjalan 26 Agustus 2026 |
 
 ---
 
@@ -141,8 +151,8 @@ keduanya sama, sebutkan.
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | `UAT-08`, `UAT-09`, dan `UAT-29` lewat jalur perpindahan terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 7.2 Test yang ditulis
@@ -151,12 +161,12 @@ keduanya sama, sebutkan.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Dua baris penempatan; yang lama punya waktu berakhir dan alasan `Transfer` | `Kriteria1_PerpindahanMenghasilkanDuaBarisPenempatanDanYangLamaDitutupDenganAlasanTransfer` | Ditulis, **belum dijalankan** |
-| 2. Bila pembukaan penempatan baru gagal, penempatan lama tidak jadi ditutup | `Kriteria2_BilaPembukaanPenempatanBaruGagalPasienTetapDiTempatSemula` — memaksa kegagalan di tengah transaksi | Ditulis, **belum dijalankan** |
-| 3. Kelas yang ditagihkan mengikuti kamar tujuan | `Kriteria3_KelasYangDitagihkanMengikutiKamarTujuan` | Ditulis, **belum dijalankan** |
-| 4. Dokter yang bukan DPJP aktif ditolak 403, tanpa kolom keterangan yang dapat melewatinya | `Kriteria4_DokterYangBukanDpjpAktifDitolak403SementaraKepalaRuanganTetapBoleh` | Ditulis, **belum dijalankan** |
-| 5. Perpindahan tanpa alasan medis ditolak 400 | `Kriteria5_PerpindahanTanpaAlasanMedisDitolak400` | Ditulis, **belum dijalankan** |
-| 6. Penolakan jenis kelamin lewat perpindahan **sama persis** dengan lewat penempatan | `Kriteria6_PenolakanJenisKelaminLewatPerpindahanSamaPersisDenganLewatPenempatan` | Ditulis, **belum dijalankan** |
+| 1. Dua baris penempatan; yang lama punya waktu berakhir dan alasan `Transfer` | `Kriteria1_PerpindahanMenghasilkanDuaBarisPenempatanDanYangLamaDitutupDenganAlasanTransfer` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Bila pembukaan penempatan baru gagal, penempatan lama tidak jadi ditutup | `Kriteria2_BilaPembukaanPenempatanBaruGagalPasienTetapDiTempatSemula` — memaksa kegagalan di tengah transaksi | ✅ **Lulus** 26 Agu 2026 |
+| 3. Kelas yang ditagihkan mengikuti kamar tujuan | `Kriteria3_KelasYangDitagihkanMengikutiKamarTujuan` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Dokter yang bukan DPJP aktif ditolak 403, tanpa kolom keterangan yang dapat melewatinya | `Kriteria4_DokterYangBukanDpjpAktifDitolak403SementaraKepalaRuanganTetapBoleh` | ✅ **Lulus** 26 Agu 2026 |
+| 5. Perpindahan tanpa alasan medis ditolak 400 | `Kriteria5_PerpindahanTanpaAlasanMedisDitolak400` | ✅ **Lulus** 26 Agu 2026 |
+| 6. Penolakan jenis kelamin lewat perpindahan **sama persis** dengan lewat penempatan | `Kriteria6_PenolakanJenisKelaminLewatPerpindahanSamaPersisDenganLewatPenempatan` | ✅ **Lulus** 26 Agu 2026 |
 
 Dua test tambahan menjaga: perpindahan ke tempat tidur yang sama ditolak 400, dan pasien yang
 sudah diputuskan pulang tidak dapat dipindahkan.
@@ -188,9 +198,9 @@ sudah diputuskan pulang tidak dapat dipindahkan.
 | Butir DoD | Keadaannya |
 | --- | --- |
 | Endpoint sesuai kontrak | ✅ Ada di dalam kode |
-| Keenam kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
+| Keenam kriteria lulus | ✅ **Lulus** — seluruh test-nya dijalankan 26 Agustus 2026 dan hijau (255/255) |
 | Terbukti hanya ada **satu** daftar aturan di seluruh source | ✅ `TransferAsync` dan `PlacePatientAsync` memanggil method yang sama; ada test yang membandingkan hasil keduanya |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 

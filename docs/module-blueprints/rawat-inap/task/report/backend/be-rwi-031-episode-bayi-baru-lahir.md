@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-031`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> **Task ini kini ✅ SELESAI.** Seluruh acceptance criteria-nya punya test yang lulus, dan
+> ketiga butir DoD-nya hijau. Tandanya pada roadmap sudah dinaikkan 🟡 → ✅.
+
 ## Metadata
 
 | Field | Nilai |
@@ -13,7 +22,7 @@
 | Commit backend saat pekerjaan dimulai | `bd97e5d` |
 | Tanggal pengerjaan | 25 Agustus 2026 |
 | Dependency | `BE-RWI-029` — dikerjakan pada sesi yang sama |
-| Status | **IMPLEMENTASI SELESAI — VALIDASI BELUM DIJALANKAN** |
+| Status | ✅ **SELESAI** — seluruh acceptance criteria dan DoD terbukti; build dan test dijalankan 26 Agustus 2026 dan hijau (255/255) |
 
 ---
 
@@ -141,8 +150,8 @@ itu tanpa endpoint tambahan.
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | `UAT-22` dan `UAT-28` terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 7.1 Test yang ditulis
@@ -151,11 +160,11 @@ Di dalam `InpCorrectionAndNewbornTests.cs`.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Bayi mendapat episode dan kunjungan sendiri di boks bertanda `IsForNewborn` | `Kriteria1Dan2_BayiPunyaEpisodeSendiriDanCensusMenampilkanDuaBaris` | Ditulis, **belum dijalankan** |
-| 2. Census menampilkan dua baris: ibu dan bayinya | Test yang sama | Ditulis, **belum dijalankan** |
-| 3. Menutup episode ibu tidak menutup episode bayi dan tidak melepas boksnya | `Kriteria3_MenutupEpisodeIbuTidakMenutupEpisodeBayiDanTidakMelepasBoksnya` | Ditulis, **belum dijalankan** |
-| 4. Sistem dapat menjawab bayi siapa yang ada di boks kamar tertentu | `Kriteria4_SistemDapatMenjawabBayiSiapaYangAdaDiBoksKamarTertentu` | Ditulis, **belum dijalankan** |
-| 5. `MotherEpisodeId` boleh kosong dan tidak boleh milik pasien yang sama | `Kriteria5_RujukanEpisodeIbuBolehKosongTetapiTidakBolehMilikPasienYangSama`, `Kriteria5_EpisodeTidakDapatMenunjukDirinyaSendiriSebagaiEpisodeIbu` | Ditulis, **belum dijalankan** |
+| 1. Bayi mendapat episode dan kunjungan sendiri di boks bertanda `IsForNewborn` | `Kriteria1Dan2_BayiPunyaEpisodeSendiriDanCensusMenampilkanDuaBaris` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Census menampilkan dua baris: ibu dan bayinya | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
+| 3. Menutup episode ibu tidak menutup episode bayi dan tidak melepas boksnya | `Kriteria3_MenutupEpisodeIbuTidakMenutupEpisodeBayiDanTidakMelepasBoksnya` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Sistem dapat menjawab bayi siapa yang ada di boks kamar tertentu | `Kriteria4_SistemDapatMenjawabBayiSiapaYangAdaDiBoksKamarTertentu` | ✅ **Lulus** 26 Agu 2026 |
+| 5. `MotherEpisodeId` boleh kosong dan tidak boleh milik pasien yang sama | `Kriteria5_RujukanEpisodeIbuBolehKosongTetapiTidakBolehMilikPasienYangSama`, `Kriteria5_EpisodeTidakDapatMenunjukDirinyaSendiriSebagaiEpisodeIbu` | ✅ **Lulus** 26 Agu 2026 |
 
 Test kriteria 1 juga memeriksa bahwa `EncounterId` bayi **berbeda** dari milik ibunya — bukti
 bahwa bayi tidak menumpang kunjungan ibunya.
@@ -190,8 +199,8 @@ sama, dan membuktikan ditolak.
 
 | Butir DoD | Keadaannya |
 | --- | --- |
-| Kelima kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
-| Census terbukti menampilkan dua baris | ❌ **Belum dijalankan** — test-nya sudah ditulis |
+| Kelima kriteria lulus | ✅ **Lulus** — seluruh test-nya dijalankan 26 Agustus 2026 dan hijau (255/255) |
+| Census terbukti menampilkan dua baris | ✅ **Lulus** — test-nya dijalankan 26 Agustus 2026 dan hijau |
 | Api contract tidak berubah | ✅ Tidak ada endpoint baru; penambahan kolomnya aditif dan dicatat pada bagian 4.1 |
 
 ---

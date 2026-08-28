@@ -28,7 +28,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Models;
@@ -46,7 +46,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.M
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 
@@ -288,20 +288,20 @@ namespace QuilvianSystemBackend.Repositories
         #endregion CORPORATE - HUMAN RESOURCE - LIFECYCLE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - ATTENDANCE MANAGEMENT
-        public DbSet<TrxAttendance> TrxAttendances { get; set; }
-        public DbSet<TrxAttendanceRawLog> TrxAttendanceRawLogs { get; set; }
-        public DbSet<TrxAttendanceProcessingRun> TrxAttendanceProcessingRuns { get; set; }
-        public DbSet<TrxAttendancePeriod> TrxAttendancePeriods { get; set; }
-        public DbSet<TrxAttendanceSchedulerJob> TrxAttendanceSchedulerJobs { get; set; }
-        public DbSet<TrxAttendanceDaily> TrxAttendanceDailies { get; set; }
-        public DbSet<TrxAttendanceDailySegment> TrxAttendanceDailySegments { get; set; }
-        public DbSet<TrxAttendanceException> TrxAttendanceExceptions { get; set; }
-        public DbSet<TrxAttendanceCorrectionRequest> TrxAttendanceCorrectionRequests { get; set; }
-        public DbSet<TrxAttendanceCorrectionDetail> TrxAttendanceCorrectionDetails { get; set; }
-        public DbSet<TrxAttendanceCorrectionApproval> TrxAttendanceCorrectionApprovals { get; set; }
-        public DbSet<TrxMissingAttendance> TrxMissingAttendances { get; set; }
-        public DbSet<TrxBusinessTripAttendance> TrxBusinessTripAttendances { get; set; }
-        public DbSet<TrxRemoteAttendance> TrxRemoteAttendances { get; set; }
+        public DbSet<HrdAttendance> HrdAttendances { get; set; }
+        public DbSet<HrdAttendanceRawLog> HrdAttendanceRawLogs { get; set; }
+        public DbSet<HrdAttendanceProcessingRun> HrdAttendanceProcessingRuns { get; set; }
+        public DbSet<HrdAttendancePeriod> HrdAttendancePeriods { get; set; }
+        public DbSet<HrdAttendanceSchedulerJob> HrdAttendanceSchedulerJobs { get; set; }
+        public DbSet<HrdAttendanceDaily> HrdAttendanceDailies { get; set; }
+        public DbSet<HrdAttendanceDailySegment> HrdAttendanceDailySegments { get; set; }
+        public DbSet<HrdAttendanceException> HrdAttendanceExceptions { get; set; }
+        public DbSet<HrdAttendanceCorrectionRequest> HrdAttendanceCorrectionRequests { get; set; }
+        public DbSet<HrdAttendanceCorrectionDetail> HrdAttendanceCorrectionDetails { get; set; }
+        public DbSet<HrdAttendanceCorrectionApproval> HrdAttendanceCorrectionApprovals { get; set; }
+        public DbSet<HrdMissingAttendance> HrdMissingAttendances { get; set; }
+        public DbSet<HrdBusinessTripAttendance> HrdBusinessTripAttendances { get; set; }
+        public DbSet<HrdRemoteAttendance> HrdRemoteAttendances { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - ATTENDANCE MANAGEMENT
 
         #region CORPORATE - HUMAN RESOURCE - SCHEDULING MANAGEMENT
@@ -666,24 +666,26 @@ namespace QuilvianSystemBackend.Repositories
         #region HEALTH SERVICE - Emergency Installation Management
 
         #region master
-        public DbSet<MstEmergencyTriageLevel> MstEmergencyTriageLevels { get; set; }
-        public DbSet<MstEmergencyTriageIndicator> MstEmergencyTriageIndicators { get; set; }
-        public DbSet<MstEmergencyArrivalMode> MstEmergencyArrivalModes { get; set; }
-        public DbSet<MstEmergencyCaseType> MstEmergencyCaseTypes { get; set; }
-        public DbSet<MstEmergencyDispositionType> MstEmergencyDispositionTypes { get; set; }
-        public DbSet<MstEmergencySetting> MstEmergencySettings { get; set; }
+        public DbSet<EmgTriageLevel> EmgTriageLevels { get; set; }
+        public DbSet<EmgTriageIndicator> EmgTriageIndicators { get; set; }
+        public DbSet<EmgArrivalMode> EmgArrivalModes { get; set; }
+        public DbSet<EmgCaseType> EmgCaseTypes { get; set; }
+        public DbSet<EmgDispositionType> EmgDispositionTypes { get; set; }
+        public DbSet<EmgSetting> EmgSettings { get; set; }
         #endregion
 
         #region transaction
         public DbSet<TrxEmergencyVisit> TrxEmergencyVisits { get; set; }
         public DbSet<TrxEmergencyTriage> TrxEmergencyTriages { get; set; }
-        public DbSet<TrxEmergencyTriageDetail> TrxEmergencyTriageDetails { get; set; }
+        public DbSet<EmgTriageDetail> EmgTriageDetails { get; set; }
         public DbSet<TrxEmergencyResuscitation> TrxEmergencyResuscitations { get; set; }
         public DbSet<TrxEmergencyObservation> TrxEmergencyObservations { get; set; }
         public DbSet<TrxEmergencyObservationDetail> TrxEmergencyObservationDetails { get; set; }
         public DbSet<TrxEmergencyProcedureDetail> TrxEmergencyProcedureDetails { get; set; }
         public DbSet<TrxEmergencyDisposition> TrxEmergencyDispositions { get; set; }
-        public DbSet<TrxEmergencyTransfer> TrxEmergencyTransfers { get; set; }
+        public DbSet<EmgDeparture> EmgDepartures { get; set; }
+        public DbSet<EmgDepartureEvent> EmgDepartureEvents { get; set; }
+        public DbSet<EmgHandoverOrderItem> EmgHandoverOrderItems { get; set; }
         #endregion
 
         #endregion

@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Repositories;
 
@@ -48,7 +48,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (visit.VisitStatus is EmergencyVisitStatus.Disposed or EmergencyVisitStatus.Cancelled)
                 return "Kunjungan IGD sudah ditutup dan tidak dapat menerima disposition baru.";
 
-            var dispositionType = await _dbContext.Set<MstEmergencyDispositionType>()
+            var dispositionType = await _dbContext.Set<EmgDispositionType>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     x => x.Id == request.DispositionTypeId && !x.IsDelete && x.IsActive,
@@ -73,7 +73,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (request.DispositionStatus == EmergencyDispositionStatus.Executed)
             {
-                var setting = await _dbContext.Set<MstEmergencySetting>()
+                var setting = await _dbContext.Set<EmgSetting>()
                     .AsNoTracking()
                     .Where(x => x.IsActive && !x.IsDelete)
                     .OrderByDescending(x => x.IsDefault)
@@ -118,20 +118,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (adaObservasiAktif)
                 return "Masih ada observasi yang belum diselesaikan.";
 
-            // Transfer dianggap tuntas hanya bila sudah Completed atau Rejected. Cancelled
-            // termasuk belum tuntas menurut validation matrix bagian 3, jadi tidak ikut
-            // dikecualikan di sini.
-            var adaTransferBelumTuntas = await _dbContext.Set<TrxEmergencyTransfer>()
+            // IGD-DEC-106: hanya keadaan fisik pasien yang menahan penutupan. Dokumen
+            // serah-terima yang belum final tetap tersimpan dan dapat ditindaklanjuti.
+            var adaKepergianBelumTuntas = await _dbContext.Set<EmgDeparture>()
                 .AsNoTracking()
                 .AnyAsync(
                     x => x.EmergencyVisitId == visit.Id
                         && !x.IsDelete
-                        && x.TransferStatus != EmergencyTransferStatus.Completed
-                        && x.TransferStatus != EmergencyTransferStatus.Rejected,
+                        && x.PhysicalStatus != EmergencyPhysicalStatus.Arrived
+                        && x.PhysicalStatus != EmergencyPhysicalStatus.Cancelled,
                     cancellationToken);
 
-            if (adaTransferBelumTuntas)
-                return "Masih ada proses perpindahan yang belum selesai.";
+            if (adaKepergianBelumTuntas)
+                return "Masih ada proses kepergian pasien yang belum selesai.";
+
+            var pesananBelumTuntas = await _dbContext.Set<EmgHandoverOrderItem>()
+                .AsNoTracking()
+                .AnyAsync(x => !x.IsDelete
+                    && x.IsEffective
+                    && x.AcceptanceStatus == EmergencyOrderAcceptanceStatus.Rejected
+                    && x.EmergencyDeparture != null
+                    && x.EmergencyDeparture.EmergencyVisitId == visit.Id,
+                    cancellationToken);
+
+            if (pesananBelumTuntas)
+                return "Masih ada pesanan yang belum ditentukan sikapnya.";
 
             return null;
         }

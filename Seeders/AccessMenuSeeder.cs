@@ -25,6 +25,17 @@ namespace QuilvianSystemBackend.Seeders
                 .OfType<ControllerActionDescriptor>()
                 .ToList();
 
+            var modules = await dbContext.SysApplicationModules.ToListAsync();
+            var controllers = await dbContext.SysControllerAccesses.ToListAsync();
+            var actions = await dbContext.SysActionAccesses.ToListAsync();
+            var modulesByCode = modules.ToDictionary(x => x.ModuleCode, StringComparer.Ordinal);
+            var controllersByModuleAndName = controllers.ToDictionary(
+                x => BuildControllerKey(x.ModuleId, x.ControllerName),
+                StringComparer.Ordinal);
+            var actionsByControllerAndName = actions.ToDictionary(
+                x => BuildActionKey(x.ControllerAccessId, x.ActionName),
+                StringComparer.Ordinal);
+
             foreach (var controllerAction in controllerActions)
             {
                 var controllerAttribute = controllerAction
@@ -45,20 +56,19 @@ namespace QuilvianSystemBackend.Seeders
                     continue;
                 }
 
-                var module = await EnsureModuleAsync(
-                    dbContext,
-                    controllerAttribute
-                );
+                var module = EnsureModule(dbContext, modulesByCode, controllerAttribute);
 
-                var controller = await EnsureControllerAsync(
+                var controller = EnsureController(
                     dbContext,
+                    controllersByModuleAndName,
                     module.Id,
                     controllerAction,
                     controllerAttribute
                 );
 
-                await EnsureActionAsync(
+                EnsureAction(
                     dbContext,
+                    actionsByControllerAndName,
                     controller.Id,
                     controllerAction,
                     controllerAttribute,
@@ -66,18 +76,21 @@ namespace QuilvianSystemBackend.Seeders
                 );
             }
 
+            await dbContext.SaveChangesAsync();
+
             await NormalizeEmployeeSelfServiceLegacyEntriesAsync(dbContext);
+            await NormalizeEmergencyMasterDataModuleMoveAsync(dbContext);
             await NormalizeSystemOnlyVisibilityAsync(dbContext);
 
             await dbContext.SaveChangesAsync();
         }
 
-        private static async Task<SysApplicationModule> EnsureModuleAsync(
+        private static SysApplicationModule EnsureModule(
             ApplicationDbContext dbContext,
+            IDictionary<string, SysApplicationModule> modulesByCode,
             AccessControllerAttribute attribute)
         {
-            var module = await dbContext.SysApplicationModules
-                .FirstOrDefaultAsync(x => x.ModuleCode == attribute.ModuleCode);
+            modulesByCode.TryGetValue(attribute.ModuleCode, out var module);
 
             if (module != null)
             {
@@ -106,14 +119,14 @@ namespace QuilvianSystemBackend.Seeders
             };
 
             dbContext.SysApplicationModules.Add(module);
-
-            await dbContext.SaveChangesAsync();
+            modulesByCode.Add(module.ModuleCode, module);
 
             return module;
         }
 
-        private static async Task<SysControllerAccess> EnsureControllerAsync(
+        private static SysControllerAccess EnsureController(
             ApplicationDbContext dbContext,
+            IDictionary<string, SysControllerAccess> controllersByModuleAndName,
             Guid moduleId,
             ControllerActionDescriptor controllerAction,
             AccessControllerAttribute attribute)
@@ -130,10 +143,9 @@ namespace QuilvianSystemBackend.Seeders
                 !isSystemOnly &&
                 attribute.VisibleInRoleAccess;
 
-            var controller = await dbContext.SysControllerAccesses
-                .FirstOrDefaultAsync(x =>
-                    x.ModuleId == moduleId &&
-                    x.ControllerName == controllerName);
+            controllersByModuleAndName.TryGetValue(
+                BuildControllerKey(moduleId, controllerName),
+                out var controller);
 
             if (controller != null)
             {
@@ -167,14 +179,16 @@ namespace QuilvianSystemBackend.Seeders
             };
 
             dbContext.SysControllerAccesses.Add(controller);
-
-            await dbContext.SaveChangesAsync();
+            controllersByModuleAndName.Add(
+                BuildControllerKey(controller.ModuleId, controller.ControllerName),
+                controller);
 
             return controller;
         }
 
-        private static async Task EnsureActionAsync(
+        private static void EnsureAction(
             ApplicationDbContext dbContext,
+            IDictionary<string, SysActionAccess> actionsByControllerAndName,
             Guid controllerAccessId,
             ControllerActionDescriptor controllerAction,
             AccessControllerAttribute controllerAttribute,
@@ -192,10 +206,9 @@ namespace QuilvianSystemBackend.Seeders
                 controllerAttribute.VisibleInRoleAccess &&
                 attribute.VisibleInRoleAccess;
 
-            var action = await dbContext.SysActionAccesses
-                .FirstOrDefaultAsync(x =>
-                    x.ControllerAccessId == controllerAccessId &&
-                    x.ActionName == attribute.ActionName);
+            actionsByControllerAndName.TryGetValue(
+                BuildActionKey(controllerAccessId, attribute.ActionName),
+                out var action);
 
             if (action != null)
             {
@@ -233,9 +246,16 @@ namespace QuilvianSystemBackend.Seeders
             };
 
             dbContext.SysActionAccesses.Add(action);
-
-            await dbContext.SaveChangesAsync();
+            actionsByControllerAndName.Add(
+                BuildActionKey(action.ControllerAccessId, action.ActionName),
+                action);
         }
+
+        private static string BuildControllerKey(Guid moduleId, string controllerName) =>
+            $"{moduleId:N}:{controllerName}";
+
+        private static string BuildActionKey(Guid controllerAccessId, string actionName) =>
+            $"{controllerAccessId:N}:{actionName}";
 
 
         private static async Task NormalizeEmployeeSelfServiceLegacyEntriesAsync(
@@ -305,6 +325,73 @@ namespace QuilvianSystemBackend.Seeders
                     .ToListAsync();
 
                 foreach (var action in staleActions)
+                {
+                    action.VisibleInRoleAccess = false;
+                    action.IsActive = false;
+                    action.IsDelete = true;
+                    action.UpdateDateTime = now;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Menutup pendaftaran lama enam controller master IGD yang berpindah modul.
+        /// </summary>
+        /// <remarks>
+        /// Master IGD sebelumnya terdaftar pada modul <c>HEALTH_SERVICE_MASTER_DATA</c> dan
+        /// kini pindah ke <c>HEALTH_SERVICE_EMERGENCY_INSTALLATION_MANAGEMENT</c>.
+        /// <para>
+        /// <see cref="EnsureControllerAsync"/> mencari controller berdasarkan pasangan
+        /// modul dan nama, sehingga perpindahan modul membuatnya membuat baris baru alih-alih
+        /// memindahkan yang lama. Tanpa penutupan ini, layar Manajemen Role akan menampilkan
+        /// keenam master dua kali: satu di bawah Master Data, satu di bawah IGD, dan petugas
+        /// tidak punya cara membedakan mana yang menegakkan izin.
+        /// </para>
+        /// <para>
+        /// Baris lama <b>ditutup</b>, bukan dihapus, mengikuti cara
+        /// <see cref="NormalizeEmployeeSelfServiceLegacyEntriesAsync"/> menangani perpindahan
+        /// serupa. Nol kebijakan pada <c>SysAccessPolicy</c> menunjuk keenamnya saat
+        /// perpindahan dikerjakan, sehingga tidak ada izin yang hangus.
+        /// </para>
+        /// </remarks>
+        private static async Task NormalizeEmergencyMasterDataModuleMoveAsync(
+            ApplicationDbContext dbContext)
+        {
+            var now = DateTime.UtcNow;
+
+            var movedControllerNames = new[]
+            {
+                "EmergencyTriageLevel",
+                "EmergencyTriageIndicator",
+                "EmergencyArrivalMode",
+                "EmergencyCaseType",
+                "EmergencyDispositionType",
+                "EmergencySetting"
+            };
+
+            var legacyControllers = await (
+                from controller in dbContext.SysControllerAccesses
+                join module in dbContext.SysApplicationModules
+                    on controller.ModuleId equals module.Id
+                where
+                    module.ModuleCode == "HEALTH_SERVICE_MASTER_DATA" &&
+                    movedControllerNames.Contains(controller.ControllerName) &&
+                    !controller.IsDelete
+                select controller)
+                .ToListAsync();
+
+            foreach (var controller in legacyControllers)
+            {
+                controller.VisibleInRoleAccess = false;
+                controller.IsActive = false;
+                controller.IsDelete = true;
+                controller.UpdateDateTime = now;
+
+                var actions = await dbContext.SysActionAccesses
+                    .Where(x => x.ControllerAccessId == controller.Id)
+                    .ToListAsync();
+
+                foreach (var action in actions)
                 {
                     action.VisibleInRoleAccess = false;
                     action.IsActive = false;

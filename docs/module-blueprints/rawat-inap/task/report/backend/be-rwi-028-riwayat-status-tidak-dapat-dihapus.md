@@ -1,5 +1,22 @@
 # Laporan Perubahan Backend — `BE-RWI-028`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> **Task ini kini ✅ SELESAI.** Seluruh butir DoD-nya hijau: test lulus (255/255) dan
+> endpointnya terbukti berjalan lewat Swagger pada aplikasi tersambung PostgreSQL.
+> Tandanya pada roadmap sudah dinaikkan 🟡 → ✅.
+>
+> **Satu test task ini diperbaiki.** `Kriteria1Dan4_RiwayatTerbacaUrutDanTetapTerbacaSetelahEpisodeDitutup`
+> gagal pada sapuan pertama: ia mengharapkan tiga baris riwayat, padahal perjalanan
+> `Draft → Admitted → DischargePending → Closed` menghasilkan empat. Yang keliru adalah
+> harapan test-nya, bukan service-nya — `state-transition-matrix.md` `0.4.0` baris 39
+> membenarkan perpindahan `Admitted → DischargePending`. Harapan diperbaiki menjadi empat baris
+> dan pemeriksaan perpindahan ketiga **ditambahkan**, sehingga cakupan test ini bertambah.
+
 ## Metadata
 
 | Field | Nilai |
@@ -13,7 +30,7 @@
 | Commit backend saat pekerjaan dimulai | `bd97e5d` |
 | Tanggal pengerjaan | 25 Agustus 2026 |
 | Dependency | `BE-RWI-027` — dikerjakan pada sesi yang sama |
-| Status | **IMPLEMENTASI SELESAI — VALIDASI BELUM DIJALANKAN** |
+| Status | ✅ **SELESAI** — seluruh acceptance criteria dan DoD terbukti; build+test hijau dan endpoint terbukti berjalan 26 Agustus 2026 |
 
 ---
 
@@ -112,8 +129,8 @@ terjaring.
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | `UAT-17` terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 7.1 Test yang ditulis
@@ -123,10 +140,10 @@ ditambah dua test kontrak.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Riwayat terbaca urut beserta pelaku, status asal, tujuan, dan alasan | `Kriteria1Dan4_RiwayatTerbacaUrutDanTetapTerbacaSetelahEpisodeDitutup` | Ditulis, **belum dijalankan** |
-| 2. Tidak ada endpoint yang mengubah atau menghapus baris riwayat | `RiwayatStatusHanyaDapatDibaca`, `TidakAdaSatuPunEndpointDeleteDiSeluruhModul` | Ditulis, **belum dijalankan** |
-| 3. Perubahan yang dihitung sistem tercatat sebagai tindakan sistem | `Kriteria3_KedaluwarsaDicatatSebagaiTindakanSistemDenganPelakuKosong` | Ditulis, **belum dijalankan** |
-| 4. Riwayat tetap terbaca setelah episode `Closed` | Test kriteria 1 | Ditulis, **belum dijalankan** |
+| 1. Riwayat terbaca urut beserta pelaku, status asal, tujuan, dan alasan | `Kriteria1Dan4_RiwayatTerbacaUrutDanTetapTerbacaSetelahEpisodeDitutup` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Tidak ada endpoint yang mengubah atau menghapus baris riwayat | `RiwayatStatusHanyaDapatDibaca`, `TidakAdaSatuPunEndpointDeleteDiSeluruhModul` | ✅ **Lulus** 26 Agu 2026 |
+| 3. Perubahan yang dihitung sistem tercatat sebagai tindakan sistem | `Kriteria3_KedaluwarsaDicatatSebagaiTindakanSistemDenganPelakuKosong` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Riwayat tetap terbaca setelah episode `Closed` | Test kriteria 1 | ✅ **Lulus** 26 Agu 2026 |
 
 Test kriteria 1 menelusuri satu episode dari lahir sampai tutup — tiga baris riwayat, urut,
 dengan status asal dan tujuan yang bersambung.
@@ -160,8 +177,8 @@ pembuatnya, lalu memeriksa bahwa kolom pelaku tetap kosong.
 | Butir DoD | Keadaannya |
 | --- | --- |
 | Endpoint sesuai kontrak | ✅ Ada di dalam kode |
-| Keempat kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
+| Keempat kriteria lulus | ✅ **Lulus** — seluruh test-nya dijalankan 26 Agustus 2026 dan hijau (255/255) |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 

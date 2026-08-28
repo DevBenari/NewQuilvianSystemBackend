@@ -1159,11 +1159,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .Where(x =>
                     !x.IsDelete &&
                     x.ConsultationStatus != DoctorConsultationStatus.Cancelled &&
-                    queueIds.Contains(x.QueueId))
+                    // BE-IGD-028 - TrxDoctorConsultation.QueueId kini boleh kosong untuk
+                    // konsultasi IGD. Layar antrean dokter hanya mengurus pasien berantre,
+                    // sehingga baris tanpa antrean memang tidak pernah cocok di sini.
+                    x.QueueId != null &&
+                    queueIds.Contains(x.QueueId.Value))
                 .Select(x => new DoctorConsultationQueueSnapshot
                 {
                     Id = x.Id,
-                    QueueId = x.QueueId,
+                    QueueId = x.QueueId!.Value,
                     ConsultationNumber = x.ConsultationNumber,
                     ConsultationStatus = x.ConsultationStatus,
                     IsActive = x.IsActive,

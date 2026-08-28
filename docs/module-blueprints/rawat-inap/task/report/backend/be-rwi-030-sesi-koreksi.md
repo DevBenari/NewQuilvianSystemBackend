@@ -1,5 +1,22 @@
 # Laporan Perubahan Backend — `BE-RWI-030`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> **Task ini kini ✅ SELESAI.** Seluruh butir DoD-nya hijau: test lulus (255/255) dan
+> endpointnya terbukti berjalan lewat Swagger pada aplikasi tersambung PostgreSQL.
+> Tandanya pada roadmap sudah dinaikkan 🟡 → ✅.
+>
+> **Satu test task ini diperbaiki.** `Kriteria2Dan3_StatusTetapClosedTempatTidurTidakKembaliDanLamaDirawatTidakBertambah`
+> gagal pada sapuan pertama karena memakai angka tetap tiga sebagai jumlah baris riwayat,
+> padahal jumlah yang benar empat. Yang dibuktikan test ini — sesi koreksi tidak menambah baris
+> riwayat — tidak berubah; nilai awalnya kini **ditangkap sebelum sesi dibuka** lalu
+> dibandingkan sesudahnya, mengikuti pola `sebelumSesi`/`bedSebelum`/`censusSebelum` yang sudah
+> dipakai test itu sendiri. Tidak ada perubahan pada service.
+
 ## Metadata
 
 | Field | Nilai |
@@ -13,7 +30,7 @@
 | Commit backend saat pekerjaan dimulai | `bd97e5d` |
 | Tanggal pengerjaan | 25 Agustus 2026 |
 | Dependency | `BE-RWI-028` — dikerjakan pada sesi yang sama |
-| Status | **IMPLEMENTASI SELESAI — VALIDASI BELUM DIJALANKAN** |
+| Status | ✅ **SELESAI** — seluruh acceptance criteria dan DoD terbukti; build+test hijau dan endpoint terbukti berjalan 26 Agustus 2026 |
 
 ---
 
@@ -131,8 +148,8 @@ untuk keduanya, tetapi tidak menyatakannya sebagai penolakan tersendiri.
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | Test unique index parsial sesi terbuka terhadap PostgreSQL | **NOT RUN** |
 | `UAT-14` dan `UAT-15` terhadap aplikasi berjalan | **NOT RUN** |
 
@@ -142,12 +159,12 @@ untuk keduanya, tetapi tidak menyatakannya sebagai penolakan tersendiri.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Hanya supervisor yang dapat membuka sesi | `Kriteria1_HanyaSupervisorYangDapatMembukaSesiKoreksi` | Ditulis, **belum dijalankan** |
-| 2. Status episode tetap `Closed` sepanjang sesi | `Kriteria2Dan3_StatusTetapClosedTempatTidurTidakKembaliDanLamaDirawatTidakBertambah` | Ditulis, **belum dijalankan** |
-| 3. Tempat tidur tidak dikembalikan dan hari rawat tidak bertambah | Test yang sama | Ditulis, **belum dijalankan** |
-| 4. Satu episode punya paling banyak satu sesi terbuka | `Kriteria4_SatuEpisodePunyaPalingBanyakSatuSesiTerbuka` | Ditulis, **belum dijalankan** |
-| 5. Menutup sesi menyimpan daftar perubahannya | `Kriteria5_MenutupSesiMenyimpanDaftarPerubahannya` | Ditulis, **belum dijalankan** |
-| 6. Koreksi resume tertandatangani menyimpan versi lamanya | `Kriteria6_KoreksiResumeDiDalamSesiMenyimpanVersiLamanya` | Ditulis, **belum dijalankan** |
+| 1. Hanya supervisor yang dapat membuka sesi | `Kriteria1_HanyaSupervisorYangDapatMembukaSesiKoreksi` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Status episode tetap `Closed` sepanjang sesi | `Kriteria2Dan3_StatusTetapClosedTempatTidurTidakKembaliDanLamaDirawatTidakBertambah` | ✅ **Lulus** 26 Agu 2026 |
+| 3. Tempat tidur tidak dikembalikan dan hari rawat tidak bertambah | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
+| 4. Satu episode punya paling banyak satu sesi terbuka | `Kriteria4_SatuEpisodePunyaPalingBanyakSatuSesiTerbuka` | ✅ **Lulus** 26 Agu 2026 |
+| 5. Menutup sesi menyimpan daftar perubahannya | `Kriteria5_MenutupSesiMenyimpanDaftarPerubahannya` | ✅ **Lulus** 26 Agu 2026 |
+| 6. Koreksi resume tertandatangani menyimpan versi lamanya | `Kriteria6_KoreksiResumeDiDalamSesiMenyimpanVersiLamanya` | ✅ **Lulus** 26 Agu 2026 |
 
 Kriteria 3 diuji persis seperti diminta roadmap: keadaan diperiksa **sebelum dan sesudah** sesi
 dibuka — status episode, salinan status tempat tidur, jumlah penempatan aktif, isi census, dan
@@ -186,8 +203,8 @@ Satu test tambahan menjaga bahwa sesi koreksi hanya untuk episode yang sudah dit
 | Butir DoD | Keadaannya |
 | --- | --- |
 | Dua endpoint sesuai kontrak | ✅ Ada di dalam kode |
-| Keenam kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
+| Keenam kriteria lulus | ✅ **Lulus** — seluruh test-nya dijalankan 26 Agustus 2026 dan hijau (255/255) |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 

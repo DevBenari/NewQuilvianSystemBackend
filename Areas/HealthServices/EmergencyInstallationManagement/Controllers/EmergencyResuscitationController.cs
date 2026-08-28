@@ -36,15 +36,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly EmergencyResuscitationService _emergencyResuscitationService;
+        private readonly EmergencyVisitService _emergencyVisitService;
 
         public EmergencyResuscitationController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            EmergencyResuscitationService emergencyService)
+            EmergencyResuscitationService emergencyService,
+            EmergencyVisitService emergencyVisitService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _emergencyResuscitationService = emergencyService;
+            _emergencyVisitService = emergencyVisitService;
         }
 
         [HttpGet]
@@ -273,6 +276,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [ProducesResponseType(typeof(ApiResponse<EmergencyResuscitationResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Update", "Update Emergency Resuscitation ResuscitationStatus", Description = "Mengubah status resusitasi IGD", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("EmergencyResuscitation", "Update")]
         public async Task<IActionResult> UpdateResuscitationStatus(Guid id, [FromBody] UpdateEmergencyResuscitationResuscitationStatusRequest request, CancellationToken cancellationToken = default)
@@ -286,17 +290,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
-            entity.ResuscitationStatus = request.ResuscitationStatus;
-            if (request.ResuscitationStatus != EmergencyResuscitationStatus.InProgress && request.ResuscitationStatus != EmergencyResuscitationStatus.Planned)
-                entity.CompletedAt ??= now;
+
+            // BE-IGD-021 — titik tulis VisitStatus keempat. Diperiksa sebelum entity diubah,
+            // supaya penolakan 409 tidak meninggalkan resusitasi yang terlanjur berjalan.
             if (request.ResuscitationStatus == EmergencyResuscitationStatus.InProgress)
             {
                 var visit = await _dbContext.Set<TrxEmergencyVisit>().FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
-                visit.VisitStatus = EmergencyVisitStatus.InTreatment;
+
+                if (!_emergencyVisitService.TryApplyVisitStatus(
+                        visit, EmergencyVisitStatus.InTreatment, actorUserId, now, out var penolakanStatusKunjungan))
+                {
+                    return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, penolakanStatusKunjungan!));
+                }
+
+                // TreatmentStartedAt tetap diisi meski status kunjungan sudah InTreatment,
+                // karena resusitasi dapat menjadi tindakan pertama yang benar-benar dimulai.
+                // Karena itu jejak perubahan kunjungan ikut disentuh di luar penjaga.
                 visit.TreatmentStartedAt ??= now;
                 visit.UpdateDateTime = now;
                 visit.UpdateBy = actorUserId;
             }
+
+            entity.ResuscitationStatus = request.ResuscitationStatus;
+            if (request.ResuscitationStatus != EmergencyResuscitationStatus.InProgress && request.ResuscitationStatus != EmergencyResuscitationStatus.Planned)
+                entity.CompletedAt ??= now;
             if (!string.IsNullOrWhiteSpace(request.Notes) && entity.GetType().GetProperty("Notes") != null)
             {
                 entity.GetType().GetProperty("Notes")?.SetValue(entity, NormalizeText(request.Notes));

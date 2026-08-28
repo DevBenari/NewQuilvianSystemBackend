@@ -1,5 +1,15 @@
 # Laporan Perubahan Backend — `BE-RWI-024`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> **Task ini kini ✅ SELESAI.** Seluruh butir DoD-nya hijau: test lulus (255/255) dan
+> endpointnya terbukti berjalan lewat Swagger pada aplikasi tersambung PostgreSQL.
+> Tandanya pada roadmap sudah dinaikkan 🟡 → ✅.
+
 ## Metadata
 
 | Field | Nilai |
@@ -13,7 +23,7 @@
 | Commit backend saat pekerjaan dimulai | `bd97e5d` |
 | Tanggal pengerjaan | 25 Agustus 2026 |
 | Dependency | `BE-RWI-005` 🟡 |
-| Status | **IMPLEMENTASI SELESAI — VALIDASI BELUM DIJALANKAN** |
+| Status | ✅ **SELESAI** — seluruh acceptance criteria dan DoD terbukti; build+test hijau dan endpoint terbukti berjalan 26 Agustus 2026 |
 
 ---
 
@@ -107,8 +117,8 @@ walaupun butir hak aksesnya keliru diberikan kepada peran lain lewat layar Role 
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | Pemanggilan endpoint terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 6.1 Test yang ditulis
@@ -117,11 +127,11 @@ Di dalam `InpClearanceAndFinancialTests.cs`.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Tiga nilai dikenali | `Kriteria1Dan3_TigaNilaiDikenaliDanSetiapPenandaanTersimpanBesertaPelakunya` | Ditulis, **belum dijalankan** |
-| 2. Penandaan tanpa catatan ditolak 400 | `Kriteria2_PenandaanTanpaCatatanDitolak400` | Ditulis, **belum dijalankan** |
-| 3. Pelaku dan waktu tersimpan | Test kriteria 1 | Ditulis, **belum dijalankan** |
-| 4. Hanya kasir atau billing yang dapat menandai | `Kriteria4_HanyaPeranKasirAtauBillingYangDapatMenandai` | Ditulis, **belum dijalankan** |
-| 5. Hanya `Cleared` yang membuka penutupan | `Kriteria5_HanyaClearedYangMembukaPenutupan` | Ditulis, **belum dijalankan** |
+| 1. Tiga nilai dikenali | `Kriteria1Dan3_TigaNilaiDikenaliDanSetiapPenandaanTersimpanBesertaPelakunya` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Penandaan tanpa catatan ditolak 400 | `Kriteria2_PenandaanTanpaCatatanDitolak400` | ✅ **Lulus** 26 Agu 2026 |
+| 3. Pelaku dan waktu tersimpan | Test kriteria 1 | ✅ **Lulus** 26 Agu 2026 |
+| 4. Hanya kasir atau billing yang dapat menandai | `Kriteria4_HanyaPeranKasirAtauBillingYangDapatMenandai` | ✅ **Lulus** 26 Agu 2026 |
+| 5. Hanya `Cleared` yang membuka penutupan | `Kriteria5_HanyaClearedYangMembukaPenutupan` | ✅ **Lulus** 26 Agu 2026 |
 
 Test kriteria 1 juga memeriksa `IsManualMarking` bernilai benar pada **setiap** baris — itulah
 bukti bahwa `RWI-RISK-003` benar-benar terekam pada data, bukan hanya tertulis pada laporan.
@@ -156,9 +166,9 @@ mengembalikan 403.
 | Butir DoD | Keadaannya |
 | --- | --- |
 | Endpoint sesuai kontrak | ✅ Ada di dalam kode |
-| Kelima kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
+| Kelima kriteria lulus | ✅ **Lulus** — seluruh test-nya dijalankan 26 Agustus 2026 dan hijau (255/255) |
 | Laporan menyebut `RWI-RISK-003` secara eksplisit | ✅ Bagian 1, ditulis di depan |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 

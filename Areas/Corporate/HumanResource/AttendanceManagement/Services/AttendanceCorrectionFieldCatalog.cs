@@ -48,7 +48,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         }
 
         public static string? GetValue(
-            TrxAttendanceDaily daily,
+            HrdAttendanceDaily daily,
             string fieldName)
         {
             return fieldName switch

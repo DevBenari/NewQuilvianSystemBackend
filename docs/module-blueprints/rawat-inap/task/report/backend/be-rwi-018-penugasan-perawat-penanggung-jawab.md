@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-018`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -113,8 +122,8 @@ Sama seperti pengalihan DPJP: butir hak aksesnya `InpatientEpisode : Update`, da
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | Pemanggilan kedua endpoint terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 6.2 Test yang ditulis
@@ -123,11 +132,11 @@ Di dalam `QuilvianSystemBackend.Tests/InPatientManagement/InpDoctorAndNurseAssig
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Penugasan menutup penugasan sebelumnya dan membuka yang baru | `Kriteria1Dan4_PenugasanMenutupPenugasanSebelumnyaDanRiwayatnyaTerbacaUrut` | Ditulis, **belum dijalankan** |
-| 2. Episode boleh berjalan tanpa perawat; tidak ada tindakan yang tertahan | `Kriteria2_PenempatanPerpindahanDanKeputusanPulangSemuanyaBerhasilTanpaPerawat` | Ditulis, **belum dijalankan** |
+| 1. Penugasan menutup penugasan sebelumnya dan membuka yang baru | `Kriteria1Dan4_PenugasanMenutupPenugasanSebelumnyaDanRiwayatnyaTerbacaUrut` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Episode boleh berjalan tanpa perawat; tidak ada tindakan yang tertahan | `Kriteria2_PenempatanPerpindahanDanKeputusanPulangSemuanyaBerhasilTanpaPerawat` | ✅ **Lulus** 26 Agu 2026 |
 | 3. Episode tanpa perawat muncul pada daftar pantau | `Kriteria3_EpisodeTanpaPerawatMunculPadaDaftarPantauLaluHilangSetelahDitugaskan` — **tingkat service** | Ditulis; endpoint menunggu `BE-RWI-029` |
-| 4. Riwayat perawat terbaca urut | Test kriteria 1 | Ditulis, **belum dijalankan** |
-| 5. Penugasan hanya oleh kepala ruangan atau supervisor | `Kriteria5_PenugasanPerawatHanyaOlehKepalaRuanganAtauSupervisor` | Ditulis, **belum dijalankan** |
+| 4. Riwayat perawat terbaca urut | Test kriteria 1 | ✅ **Lulus** 26 Agu 2026 |
+| 5. Penugasan hanya oleh kepala ruangan atau supervisor | `Kriteria5_PenugasanPerawatHanyaOlehKepalaRuanganAtauSupervisor` | ✅ **Lulus** 26 Agu 2026 |
 
 Kriteria 2 diuji persis seperti diminta roadmap: penempatan, perpindahan, **dan** keputusan
 pulang ketiganya dijalankan pada episode yang tidak punya perawat, dan ketiganya berhasil.
@@ -160,7 +169,7 @@ pulang ketiganya dijalankan pada episode yang tidak punya perawat, dan ketiganya
 | --- | --- |
 | Dua endpoint sesuai kontrak | ✅ Ada di dalam kode |
 | Kelima kriteria lulus | ❌ **Belum.** Kriteria 3 baru terbukti di tingkat service |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 

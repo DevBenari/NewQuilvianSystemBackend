@@ -1,5 +1,14 @@
 # Laporan Perubahan Backend — `BE-RWI-014`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> Yang **belum** berubah: acceptance criteria dan DoD task ini tetap belum terbukti penuh —
+> build hijau bukan tanda selesai — sehingga tandanya pada roadmap tetap 🟡.
+
 ## Metadata
 
 | Field | Nilai |
@@ -140,8 +149,8 @@ butir `SetIsolation`, dan itu dijaga test kontrak.
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | `UAT-32` terhadap aplikasi berjalan | **NOT RUN** |
 
 ### 6.2 Test yang ditulis
@@ -150,11 +159,11 @@ butir `SetIsolation`, dan itu dijaga test kontrak.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Petugas admisi selagi `Draft` → `AdmissionRecord`, dokter kosong | `Kriteria1_PetugasAdmisiMenyalakanSelagiDraftMenghasilkanCatatanAwal` | Ditulis, **belum dijalankan** |
-| 2. DPJP aktif setelah `Admitted` → `ClinicalDecision`, dokter terisi | `Kriteria2_DpjpAktifMengubahSetelahAdmittedMenghasilkanKeputusanKlinis` | Ditulis, **belum dijalankan** |
-| 3. Dokter yang bukan DPJP aktif ditolak 403 | `Kriteria3Dan4_SetelahAdmittedHanyaDpjpAktifYangBoleh` | Ditulis, **belum dijalankan** |
-| 4. Petugas admisi setelah `Admitted` ditolak 403 | Test yang sama | Ditulis, **belum dijalankan** |
-| 5. Menyalakan tanpa keterangan ditolak 400 | `Kriteria5_MenyalakanTanpaKeteranganDitolak400` | Ditulis, **belum dijalankan** |
+| 1. Petugas admisi selagi `Draft` → `AdmissionRecord`, dokter kosong | `Kriteria1_PetugasAdmisiMenyalakanSelagiDraftMenghasilkanCatatanAwal` | ✅ **Lulus** 26 Agu 2026 |
+| 2. DPJP aktif setelah `Admitted` → `ClinicalDecision`, dokter terisi | `Kriteria2_DpjpAktifMengubahSetelahAdmittedMenghasilkanKeputusanKlinis` | ✅ **Lulus** 26 Agu 2026 |
+| 3. Dokter yang bukan DPJP aktif ditolak 403 | `Kriteria3Dan4_SetelahAdmittedHanyaDpjpAktifYangBoleh` | ✅ **Lulus** 26 Agu 2026 |
+| 4. Petugas admisi setelah `Admitted` ditolak 403 | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
+| 5. Menyalakan tanpa keterangan ditolak 400 | `Kriteria5_MenyalakanTanpaKeteranganDitolak400` | ✅ **Lulus** 26 Agu 2026 |
 | 6. Peran di luar admisi dan dokter ditolak mesin hak akses | **Tidak dapat diuji tanpa aplikasi berjalan** — bagian 5.2 | Tertunda |
 
 Kriteria 3 dan 4 sengaja **berpasangan dalam satu test**, sesuai permintaan roadmap, supaya
@@ -194,7 +203,7 @@ yang sudah dibatalkan tidak dapat diubah kebutuhan isolasinya.
 | Endpoint dan penjaga aktif | ✅ Ada di dalam kode |
 | Keenam kriteria lulus | ❌ **Belum.** Kriteria 6 belum dapat diuji |
 | Permission matrix dan kenyataan cocok | ✅ Butir `InpatientEpisode : SetIsolation` dipakai apa adanya |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 

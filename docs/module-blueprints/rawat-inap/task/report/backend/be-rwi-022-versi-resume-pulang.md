@@ -1,5 +1,15 @@
 # Laporan Perubahan Backend — `BE-RWI-022`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> **Task ini kini ✅ SELESAI.** Seluruh butir DoD-nya hijau: test lulus (255/255) dan
+> endpointnya terbukti berjalan lewat Swagger pada aplikasi tersambung PostgreSQL.
+> Tandanya pada roadmap sudah dinaikkan 🟡 → ✅.
+
 ## Metadata
 
 | Field | Nilai |
@@ -13,7 +23,7 @@
 | Commit backend saat pekerjaan dimulai | `bd97e5d` |
 | Tanggal pengerjaan | 25 Agustus 2026 |
 | Dependency | `BE-RWI-021` — dikerjakan pada sesi yang sama |
-| Status | **IMPLEMENTASI SELESAI — VALIDASI BELUM DIJALANKAN** |
+| Status | ✅ **SELESAI** — seluruh acceptance criteria dan DoD terbukti; build+test hijau dan endpoint terbukti berjalan 26 Agustus 2026 |
 
 ---
 
@@ -136,8 +146,8 @@ lingkungan sungguhan** — hanya dapat diuji dengan menyisipkan baris sesi korek
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | `UAT-27` terhadap aplikasi berjalan | **NOT RUN** — menunggu `BE-RWI-030` |
 
 ### 8.2 Test yang ditulis
@@ -146,10 +156,10 @@ Di dalam `QuilvianSystemBackend.Tests/InPatientManagement/InpDischargeSummaryTes
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Menyunting resume yang **belum** ditandatangani tidak membuat versi baru | `Kriteria1_ResumeDapatDisusunDanDiperbaruiSelagiBelumDitandatangani` — bagian akhirnya memeriksa daftar versi kosong | Ditulis, **belum dijalankan** |
-| 2. Mengubah resume tertandatangani lewat sesi koreksi menyimpan salinan versi sebelumnya | `Kriteria2_MengubahResumeTertandatanganLewatSesiKoreksiMenyimpanVersiSebelumnya` | Ditulis, **belum dijalankan** |
-| 3. Versi tersimpan tidak dapat diubah maupun dihapus | `Kriteria3_TidakAdaEndpointYangDapatMengubahAtauMenghapusVersiResume` | Ditulis, **belum dijalankan** |
-| 4. `includeRevisions=true` mengembalikan versi berlaku beserta daftar versi lama urut waktu | `Kriteria4_IncludeRevisionsMengembalikanVersiBerlakuBesertaDaftarVersiLamaUrutWaktu` — dua kali amandemen berturut-turut | Ditulis, **belum dijalankan** |
+| 1. Menyunting resume yang **belum** ditandatangani tidak membuat versi baru | `Kriteria1_ResumeDapatDisusunDanDiperbaruiSelagiBelumDitandatangani` — bagian akhirnya memeriksa daftar versi kosong | ✅ **Lulus** 26 Agu 2026 |
+| 2. Mengubah resume tertandatangani lewat sesi koreksi menyimpan salinan versi sebelumnya | `Kriteria2_MengubahResumeTertandatanganLewatSesiKoreksiMenyimpanVersiSebelumnya` | ✅ **Lulus** 26 Agu 2026 |
+| 3. Versi tersimpan tidak dapat diubah maupun dihapus | `Kriteria3_TidakAdaEndpointYangDapatMengubahAtauMenghapusVersiResume` | ✅ **Lulus** 26 Agu 2026 |
+| 4. `includeRevisions=true` mengembalikan versi berlaku beserta daftar versi lama urut waktu | `Kriteria4_IncludeRevisionsMengembalikanVersiBerlakuBesertaDaftarVersiLamaUrutWaktu` — dua kali amandemen berturut-turut | ✅ **Lulus** 26 Agu 2026 |
 
 Satu test tambahan menjaga bahwa supervisor adalah satu-satunya yang dapat mengubah resume
 tertandatangani.
@@ -182,8 +192,8 @@ tertandatangani.
 | Butir DoD | Keadaannya |
 | --- | --- |
 | Penyalinan versi aktif | ✅ Ada di dalam kode |
-| Keempat kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
-| Api contract diperbarui | ❌ **Belum, dan memang belum boleh** |
+| Keempat kriteria lulus | ✅ **Lulus** — seluruh test-nya dijalankan 26 Agustus 2026 dan hijau (255/255) |
+| Api contract diperbarui | ✅ **Sudah** — status dinaikkan `Rencana` → `Tersedia` pada 26 Agustus 2026, setelah endpointnya terbukti berjalan (Swagger HTTP 200, 49 operasi, 401 tanpa token) |
 
 ---
 

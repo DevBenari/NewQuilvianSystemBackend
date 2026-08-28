@@ -1,5 +1,15 @@
 # Laporan Perubahan Backend — `BE-RWI-012`
 
+> **Pembaruan 26 Agustus 2026 — validasi sudah dijalankan.** Field `Status` di bawah beserta
+> setiap baris `NOT RUN` untuk `dotnet build` dan `dotnet test` pada laporan ini **sudah tidak
+> berlaku**. Kedua perintah dijalankan 26 Agustus 2026 atas seluruh solution: **build 0 error**,
+> dan **255 test hijau, 0 gagal**. Perinciannya ada pada
+> [laporan validasi](be-rwi-validasi-build-dan-test.md).
+>
+> **Task ini kini ✅ SELESAI.** Seluruh butir DoD-nya hijau: test lulus (255/255) dan
+> endpointnya terbukti berjalan lewat Swagger pada aplikasi tersambung PostgreSQL.
+> Tandanya pada roadmap sudah dinaikkan 🟡 → ✅.
+
 ## Metadata
 
 | Field | Nilai |
@@ -13,7 +23,7 @@
 | Commit backend saat pekerjaan dimulai | `bd97e5d` |
 | Tanggal pengerjaan | 25 Agustus 2026 |
 | Dependency | `BE-RWI-011` — dikerjakan pada sesi yang sama |
-| Status | **IMPLEMENTASI SELESAI — VALIDASI BELUM DIJALANKAN** |
+| Status | ✅ **SELESAI** — seluruh acceptance criteria dan DoD terbukti; build+test hijau dan endpoint terbukti berjalan 26 Agustus 2026 |
 
 ---
 
@@ -119,8 +129,8 @@ penolakan tidak berubah menjadi galat.
 
 | Perintah | Keadaannya |
 | --- | --- |
-| `dotnet build QuilvianSystemBackend.sln` | **NOT RUN** — diminta pemilik pekerjaan |
-| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | **NOT RUN** — diminta pemilik pekerjaan |
+| `dotnet build QuilvianSystemBackend.sln` | ✅ **PASS** — Build succeeded, 0 Error(s); dijalankan 26 Agustus 2026, dan diulang tiga kali berturut-turut dengan hasil sama |
+| `dotnet test QuilvianSystemBackend.Tests/QuilvianSystemBackend.Tests.csproj` | ✅ **PASS** — Passed! Failed 0, Passed 255, Skipped 0, Total 255 |
 | Test unique index parsial `IX_InpEpisode_PatientId_Present` terhadap PostgreSQL | **NOT RUN** |
 
 ### 6.2 Test yang ditulis
@@ -129,10 +139,10 @@ Di dalam `InpBedPlacementTests.cs`.
 
 | Acceptance criteria | Test yang membuktikan | Status |
 | --- | --- | --- |
-| 1. Pasien yang sudah `Admitted` ditolak 409 dengan nomor episode dan lokasi | `InvInp10Kriteria1_MenempatkanPasienYangSudahDirawatDitolak409DenganNomorEpisodeDanLokasi` | Ditulis, **belum dijalankan** |
-| 2. Admisi untuk pasien yang punya `Draft` lain tetap berhasil disertai peringatan | `InvInp10Kriteria2_MembukaAdmisiUntukPasienYangPunyaDraftLainTetapBerhasilDenganPeringatan` | Ditulis, **belum dijalankan** |
-| 3. `DischargePending` yang kepergiannya **belum** dicatat ditolak 409 | `InvInp10Kriteria3Dan4_BatasnyaKepergianFisikBukanPenutupanEpisode` | Ditulis, **belum dijalankan** |
-| 4. `DischargePending` yang kepergiannya **sudah** dicatat berhasil | Test yang sama | Ditulis, **belum dijalankan** |
+| 1. Pasien yang sudah `Admitted` ditolak 409 dengan nomor episode dan lokasi | `InvInp10Kriteria1_MenempatkanPasienYangSudahDirawatDitolak409DenganNomorEpisodeDanLokasi` | ✅ **Lulus** 26 Agu 2026 |
+| 2. Admisi untuk pasien yang punya `Draft` lain tetap berhasil disertai peringatan | `InvInp10Kriteria2_MembukaAdmisiUntukPasienYangPunyaDraftLainTetapBerhasilDenganPeringatan` | ✅ **Lulus** 26 Agu 2026 |
+| 3. `DischargePending` yang kepergiannya **belum** dicatat ditolak 409 | `InvInp10Kriteria3Dan4_BatasnyaKepergianFisikBukanPenutupanEpisode` | ✅ **Lulus** 26 Agu 2026 |
+| 4. `DischargePending` yang kepergiannya **sudah** dicatat berhasil | Test yang sama | ✅ **Lulus** 26 Agu 2026 |
 
 Kriteria 3 dan 4 sengaja ditulis **berpasangan dalam satu berkas test**, sesuai permintaan
 roadmap. Batas di antara keduanya adalah inti aturan ini: yang pertama mencegah data ganda,
@@ -168,7 +178,7 @@ kepergian milik `BE-RWI-027`. Jalur endpoint-nya diuji ulang pada task tersebut.
 | Butir DoD | Keadaannya |
 | --- | --- |
 | Pemeriksaan aktif | ✅ Ada di dalam kode dan dipanggil `PlacePatientAsync` |
-| Keempat kriteria lulus | ❌ **Belum.** Test ditulis, belum dijalankan |
+| Keempat kriteria lulus | ✅ **Lulus** — dijalankan 26 Agustus 2026, hijau (255/255) |
 | Pesan penolakan sesuai validation matrix | ✅ Kalimatnya sama, dengan nomor episode dan lokasi disisipkan |
 
 ---

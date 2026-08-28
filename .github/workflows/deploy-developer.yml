@@ -1,9 +1,9 @@
-name: Deploy Quilvian Developer
+name: Backend DEV - Build and Deploy
 
 on:
   push:
     branches:
-      - master
+      - QuilvianDevDeploy
   workflow_dispatch:
 
 permissions:
@@ -11,7 +11,7 @@ permissions:
   packages: write
 
 concurrency:
-  group: quilvian-developer-deploy
+  group: quilvian-dev-deploy
   cancel-in-progress: true
 
 env:
