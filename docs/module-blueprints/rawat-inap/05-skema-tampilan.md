@@ -3,13 +3,14 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.3` |
+| Revision | `0.4` |
 | Status | `draft` — menunggu persetujuan pemilik |
 | Cakupan revision ini | **Seluruh 19 layar fungsional `FE-INP-01` s.d. `FE-INP-19`** |
 | Masukan otoritatif | `00-interview-decisions.md` revision `7`; `03-frontend-architecture.md` revision `0.4`; kontrak `0.4.0` |
-| Keluaran hilir | `roadmap/frontend-roadmap.md` revision `4` draft disinkronkan setelah skema ini |
+| Keluaran hilir | `roadmap/frontend-roadmap.md` revision `5` draft disinkronkan setelah skema ini |
 | Baseline desain | Frontend `dec4fdeff07c3c96ad9f07f41f184c54cf771371`; backend `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
-| Impact scan terkini | Frontend `12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360`; backend `f102020611fc3d605fdef1949a3af23da93e4215`; 28 Agustus 2026, baca-saja |
+| Impact scan kontrak | Frontend `12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360`; backend `f102020611fc3d605fdef1949a3af23da93e4215`; 28 Agustus 2026, baca-saja |
+| Refresh bukti enam layar | Frontend tetap `12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360`; backend teramati `b71a6a3d12190c4db60fe3433f10b6eb92131629`; enam screenshot runtime dari pemilik, 28 Agustus 2026; audit source terbatas pada layar terkait dan master seeder |
 | Brief UI terkini | Instruksi pemilik 28 Agustus 2026: master/configuration Rawat Inap ditempatkan pada `Pelayanan Kesehatan → Master Data`; masih menunggu approval revision ini |
 | Batas tulis | Hanya dokumen blueprint |
 
@@ -942,9 +943,13 @@ Route: `/health-services/inpatient-management/bed-board`
 409 memuat ulang papan dan mempertahankan konteks; 422 menampilkan semua alasan. Tempat tidur
 tidak layak dapat tampil nonaktif dengan alasan, tetapi layar tidak membuat ulang aturan server.
 
-**Keadaan source:** papan baca sudah ada. Standalone masih `selectable={false}`, belum memuat ulang
-saat fokus, belum mempunyai retry, konfirmasi masuk, pembatalan reservation, atau countdown yang
-dapat dibaca ulang. Target aksi dimiliki `FE-RWI-030`; data reservation tertahan `RWI-UI-GAP-003`.
+**Keadaan source — `REPAIR`:** papan baca sudah ada, tetapi standalone dipanggil dengan
+`selectable={false}` sehingga tidak merender aksi apa pun. Ia juga belum memuat ulang saat fokus,
+belum mempunyai retry, konfirmasi masuk, pembatalan reservation, atau countdown yang dapat dibaca
+ulang. Screenshot runtime pemilik menegaskan layar berhenti sebagai daftar pasif. Target aksi tetap
+dimiliki `FE-RWI-026/030`; perbaikan susunan, state kosong, dan integrasi seluruh aksi ke layar final
+dimiliki `FE-RWI-036`. Data reservation tertahan `RWI-UI-GAP-003` dan bukti runtime data master
+tertahan `RWI-UI-GAP-007`.
 
 ---
 
@@ -984,8 +989,11 @@ berupa teks atau ikon berlabel aksesibel tanpa mengungkap keterangannya.
 rawat” wajib menyatakan hitungan tanggal, bukan durasi 24 jam (`RWI-FE-001`). Keempat keadaan daftar
 bagian 4 berlaku.
 
-**Keadaan source:** hampir sesuai target, tetapi penyaring masih membaca resource master dan belum
-memakai `GET /census/filters/metadata`.
+**Keadaan source — `REPAIR`:** tombol **Detail Episode** sudah ada, tetapi hanya muncul ketika tabel
+memiliki baris. Screenshot runtime pemilik memperlihatkan halaman kosong tanpa jalan lanjut yang
+berguna; penyaring juga masih membaca resource master dan belum memakai
+`GET /census/filters/metadata`. `FE-RWI-037` memperbaiki presentasi, empty-state action, dan
+keterlihatan aksi baris; metadata tetap dimiliki `FE-RWI-033`.
 
 ---
 
@@ -1212,8 +1220,10 @@ Route: `/health-services/inpatient-management/monitoring`
 
 **Buka Detail**, **Buka Penutupan**, atau **Buka Perpindahan** menautkan ke pemilik aksi; daftar
 sendiri tidak menulis data. Lama keterlambatan tampil bila konsep keterlambatan berlaku. Daftar
-ketidakcocokan isolasi memakai nada netral, bukan menyalahkan petugas. Source empat-tab yang ada
-direkomendasikan **reuse**.
+ketidakcocokan isolasi memakai nada netral, bukan menyalahkan petugas. Source memang memiliki tautan
+per baris, tetapi screenshot runtime kosong membuat seluruh layar tidak memberi jalan kerja yang
+terlihat. Statusnya dinaikkan menjadi **`REPAIR`**: `FE-RWI-038` menyusun ulang tab, state kosong,
+aksi tindak lanjut, dan hierarki visual tanpa menambah endpoint tulis.
 
 ---
 
@@ -1241,7 +1251,11 @@ Route: `/health-services/inpatient-management/bed-drift`
 | Tabel selisih | Bed, lokasi, status salinan, status dari penempatan, konteks waktu | endpoint bed drift | admin/supervisor yang berhak | Kosong adalah keadaan positif; gagal + **Coba Lagi** |
 | Navigasi | Buka Papan Tempat Tidur | route `FE-INP-02` | pembaca papan | Tidak ada tombol “perbaiki” karena endpoint rekonsiliasi tidak dikontrak |
 
-Source saat ini sesuai pola ini dan direkomendasikan **reuse**. Unauthorized ditolak sebelum request.
+Source memiliki tautan **Papan Tempat Tidur**, tetapi bukti runtime menunjukkan hierarki visual dan
+keadaan kosong membuat fungsi diagnostiknya tidak terbaca sebagai tindakan yang dapat dilanjutkan.
+Statusnya **`REPAIR`** melalui `FE-RWI-039`. Layar ini tetap **read-only**: task hanya memperjelas
+selisih serta navigasi ke papan dengan konteks filter; ia tidak boleh mengarang tombol “Perbaiki”
+karena endpoint rekonsiliasi tidak dikontrak. Unauthorized ditolak sebelum request.
 
 ---
 
@@ -1317,7 +1331,12 @@ pada tahap pemindahan menu agar deep link dan tautan internal tidak putus.
 
 **Simpan Pengaturan** aktif bila form valid dan berubah. Satuan selalu tampil di dekat input, tidak
 hanya pada placeholder. Source memakai `HealthServicesMasterDataEditorView` dan `BaseEditorForm`;
-direkomendasikan **reuse dengan adapter**. Sidebar harus mengikuti permission, bukan hanya route gate.
+namun screenshot runtime hanya menampilkan peringatan dan **Muat ulang** karena `settingId` tidak
+tersedia. Source sengaja menyembunyikan submit pada keadaan itu; frontend tidak dapat membuat baris
+`DEFAULT` karena kontrak tidak mempunyai `POST`. Status layar **`REPAIR` dengan dependency**:
+`FE-RWI-041` memperbaiki shell/keadaan kosong dan form, sedangkan pengisian master data tetap
+tanggung jawab `RWI-DEC-063`/`BE-RWI-002` serta dicatat `RWI-UI-GAP-007`. Sidebar harus mengikuti
+permission, bukan hanya route gate.
 
 ---
 
@@ -1354,8 +1373,12 @@ pemindahan menu agar deep link dan tautan internal tidak putus.
 
 **Tambah**, **Detail**, **Ubah**, **Aktifkan/Nonaktifkan**, dan **Hapus** mengikuti permission
 masing-masing. Perubahan tidak ditampilkan seolah mengubah checklist episode lama bila kontrak tidak
-menjanjikannya. Source direkomendasikan **reuse dengan adapter** untuk menambah retry list dan menu
-permission-aware.
+menjanjikannya. Source memuat handler seluruh aksi dan tombol **Tambah**, tetapi screenshot runtime
+menampilkan daftar kosong dan pemilik melaporkan aksi belum dapat dipakai. Fakta source dan runtime
+karena itu belum boleh dianggap “selesai”; statusnya **`REPAIR`** dan dimiliki `FE-RWI-040` untuk
+memastikan aksi empty state maupun aksi baris benar-benar terlihat, permission-aware, dan dapat
+ditelusuri. Ketersediaan tiga butir awal tetap bagian `RWI-UI-GAP-007`, bukan alasan membuat data
+tiruan di frontend.
 
 ---
 
@@ -1561,9 +1584,10 @@ Skema bagian 3 dan 5–23 adalah **target draft**, bukan klaim bahwa source suda
 
 | Klasifikasi | Layar | Dampak |
 | --- | --- | --- |
-| Reuse | `FE-INP-04`, `05`, `07`, `09`, `10`, `14`, `15` | Struktur dan state utama sudah sesuai; perubahan hanya delta yang disebut per bagian |
-| Extend | `FE-INP-01`, `02`, `06`, `08`, `16` | Dasar layar ada, tetapi kontrak atau aksi target belum lengkap |
-| Reuse dengan adapter | `FE-INP-11`, `12`, `13` | Komponen ada; perlu adapter kontrak, permission-aware navigation, atau state tambahan |
+| Reuse | `FE-INP-04`, `05`, `07`, `14`, `15` | Struktur dan state utama sudah sesuai; perubahan hanya delta yang disebut per bagian |
+| Extend | `FE-INP-06`, `08`, `16` | Dasar layar ada, tetapi kontrak atau aksi target belum lengkap |
+| Reuse dengan adapter | `FE-INP-11` | Komponen ada; perlu adapter kontrak atau state tambahan |
+| Repair | `FE-INP-01`, `02`, `09`, `10`, `12`, `13` | Enam layar sudah ada, tetapi bukti runtime pemilik menunjukkan tampilan tidak layak dipakai atau tidak menyediakan jalan kerja yang efektif. Logic/API yang benar boleh direuse; layout, empty/error state, dan surface aksi wajib diperbaiki oleh `FE-RWI-036` s.d. `041` |
 | Conflict/replace | `FE-INP-03` | Source masih form tunggal dan langsung menempatkan pasien; bertentangan dengan alur reservasi target |
 | Missing | `FE-INP-17`, `18` | Belum ada route/view/hook/action |
 | Replace placeholder | `FE-INP-19` | Route ada, hanya berisi kalimat penantian |
@@ -1575,9 +1599,28 @@ dari `FE-INP-16` → Detail Episode `Closed` → Sesi Koreksi. Yang tetap belum 
 Menu atau tampilan yang salah **tidak dibuang sekaligus**. Klasifikasi di atas menentukan nasibnya:
 reuse tetap dipertahankan, extend diperbaiki melalui task pemilik, adapter mempertahankan komponen
 dan menyesuaikan kontrak/navigation, conflict/placeholder diganti setelah target tersedia, dan
-missing dibuat melalui task yang sudah ada. Khusus dua master/configuration, halaman tetap dipakai;
-yang berubah pada `FE-RWI-033` hanya induk navigasi dan label `FE-INP-13`. Form admisi tunggal baru
-dibongkar oleh `FE-RWI-034`, bukan oleh perubahan menu ini.
+missing dibuat melalui task yang sudah ada. Status **repair** berarti label “task lama selesai” tidak
+menjadikan tampilan sekarang final: logic yang benar dipertahankan, tetapi hasil layar wajib
+diselaraskan melalui task delta baru. Khusus dua master/configuration, `FE-RWI-033` memindahkan induk
+navigasi dan label `FE-INP-13`, sedangkan `FE-RWI-040/041` memperbaiki layarnya. Form admisi tunggal
+baru dibongkar oleh `FE-RWI-034`, bukan oleh perubahan menu ini.
+
+### 24.1 Bukti runtime enam layar dari pemilik
+
+Enam screenshot yang diberikan pemilik pada 28 Agustus 2026 merupakan bukti keadaan runtime. Karena
+gambar tidak berada sebagai file repository, buktinya dicatat sebagai **user-provided runtime
+evidence**, bukan sebagai bukti source atau hasil test agent. Seluruh fakta source frontend pada
+tabel di bawah dibaca dari repository `QuilvianSystemFrontendDev` SHA
+`12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360`.
+
+| Layar | Yang terlihat pada runtime | Fakta source baca-saja | Kesimpulan delivery |
+| --- | --- | --- | --- |
+| `FE-INP-02` Papan Tempat Tidur | Ringkasan nol, daftar pasif, tidak ada aksi pada bed | `inpatient-bed-board-view.jsx:31` mengirim `selectable={false}`; tombol pilih hanya dirender bila selectable | `REPAIR`; `FE-RWI-036`, dengan aksi domain tetap berasal dari `FE-RWI-026/030` |
+| `FE-INP-01` Census | Tabel kosong dan tidak ada jalan kerja selain filter | Source memiliki **Detail Episode** pada baris (`inpatient-census-view.jsx:131–140`), tetapi tidak ada baris runtime | `REPAIR`; tambah empty-state action dan pastikan aksi baris terbaca lewat `FE-RWI-037` |
+| `FE-INP-09` Daftar Pantau | Tab dan tabel kosong; tindak lanjut tidak tampak | Source memiliki link Detail/Penutupan/Perpindahan pada baris; seluruhnya hilang dari pengalaman pengguna saat data kosong | `REPAIR`; `FE-RWI-038`; daftar tetap tidak menulis data |
+| `FE-INP-10` Selisih Tempat Tidur | Laporan kosong; tombol ke papan tidak terbaca sebagai tindakan utama | Source memiliki link **Papan Tempat Tidur** (`inpatient-bed-drift-view.jsx:175–182`) | `REPAIR`; `FE-RWI-039`; tetap read-only dan tidak membuat aksi rekonsiliasi palsu |
+| `FE-INP-13` Butir Administrasi | Daftar kosong; aksi baris tidak mungkin dipakai | Source memiliki **Tambah Butir** dan handler CRUD (`inpatient-clearance-item-view.jsx:138–180`, `232–240`) | `REPAIR`; `FE-RWI-040`; efektivitas runtime dan permission harus dibuktikan saat task dijalankan |
+| `FE-INP-12` Pengaturan Rawat Inap | Hanya peringatan belum tersedia dan **Muat ulang** | Source menyembunyikan form ketika 404 dan hanya menampilkan submit bila `settingId` ada (`inpatient-setting-view.jsx:29–76`) | `REPAIR` + dependency data; `FE-RWI-041`; frontend tidak boleh mengarang `POST` atau nilai master |
 
 ---
 
@@ -1593,9 +1636,11 @@ Skema tidak menyelesaikan gap kontrak dengan menggambar UI seolah datanya ada.
 | `RWI-UI-GAP-004` | Tidak ada GET financial clearance/riwayat; peran kasir juga belum terbukti memiliki baca discharge yang dipakai layar | `FE-INP-08`; `FE-RWI-013`, `035` | Kontrak baca keadaan + riwayat dan matriks permission kasir/billing |
 | `RWI-UI-GAP-005` | Tidak ada GET sesi koreksi; refresh tidak dapat memulihkan sesi terbuka | `FE-INP-11`; `FE-RWI-018`, `035` | Kontrak baca sesi atau keputusan eksplisit bahwa sesi tidak perlu dipulihkan |
 | `RWI-UI-GAP-006` | Endpoint pasien/identitas/kontak/penjamin/encounter yang dirujuk tanpa `/admin` dijaga policy kiosk; hak petugas admisi belum terbukti | `FE-INP-03`; `FE-RWI-023`–`025`, `035` | Pilih route operasional yang nyata (`/admin` atau non-admin) dan kunci permission-nya |
+| `RWI-UI-GAP-007` | Runtime yang ditunjukkan pemilik belum memiliki master Rawat Inap yang layak: pengaturan `DEFAULT` tidak ditemukan, butir administrasi kosong, papan menunjukkan nol bed, dan tidak ada data episode untuk membuktikan aksi berbasis baris | `FE-INP-01`, `02`, `09`, `10`, `12`, `13`; `FE-RWI-036`–`041`, `035` | Admin Master Data/Tim Master Data menjalankan dan membuktikan pengisian `BE-RWI-002` pada environment target. Frontend tetap memperbaiki empty/error state, tetapi tidak boleh menanam data tiruan atau menambah `POST /inpatient-settings` |
 
-`RWI-UI-GAP-003` sudah terbukti oleh laporan `FE-RWI-020`. Lima gap lain berasal dari impact scan
-dan perlu dipindahkan ke kontrak/task pemilik sebelum task terkait dinyatakan siap.
+`RWI-UI-GAP-003` sudah terbukti oleh laporan `FE-RWI-020`. Gap `007` terbukti oleh screenshot runtime
+pemilik dan konsisten dengan source pengaturan yang berhenti pada 404. Lima gap lain berasal dari
+impact scan dan perlu dipindahkan ke kontrak/task pemilik sebelum task terkait dinyatakan siap.
 
 ---
 
@@ -1639,7 +1684,13 @@ mengubah source.
 | `FE-RWI-032` | `FE-INP-16` → `FE-INP-03`, bagian 6 dan 3 | Pemulihan; tertahan gap 003 |
 | `FE-RWI-033` | bagian 23 serta delta menu/filter pada bagian terkait | Keterjangkauan seluruh layar; memindahkan dua menu master/configuration tanpa menduplikasi atau mengubah route |
 | `FE-RWI-034` | bagian 3 dan 24 | Bongkar form legacy setelah target berdiri |
-| `FE-RWI-035` | seluruh bagian 3–25 | Verifikasi akhir; tidak menutup gap kontrak dengan mock tersembunyi |
+| `FE-RWI-036` | `FE-INP-02`, bagian 7 dan 24.1 | Repair tampilan/state papan serta integrasi aksi hasil `FE-RWI-026/030` |
+| `FE-RWI-037` | `FE-INP-01`, bagian 8 dan 24.1 | Repair Census, empty-state action, dan keterlihatan Detail Episode |
+| `FE-RWI-038` | `FE-INP-09`, bagian 14 dan 24.1 | Repair Daftar Pantau dan jalan tindak lanjut tanpa menambah write endpoint |
+| `FE-RWI-039` | `FE-INP-10`, bagian 15 dan 24.1 | Repair laporan selisih; tetap read-only, navigasi ke papan dibuat jelas |
+| `FE-RWI-040` | `FE-INP-13`, bagian 18 dan 24.1 | Repair Butir Administrasi dan pembuktian seluruh aksi CRUD/permission |
+| `FE-RWI-041` | `FE-INP-12`, bagian 17 dan 24.1 | Repair Pengaturan; form bergantung pada baris master `DEFAULT` |
+| `FE-RWI-035` | seluruh bagian 3–25 | Verifikasi akhir setelah `FE-RWI-036`–`041`; tidak menutup gap kontrak/data dengan mock tersembunyi |
 
 ---
 
@@ -1671,6 +1722,6 @@ mengikat setelah pemilik menyetujui revision ini.
 | 7–10 | `FE-INP-01`, `02`, `04`, `05`; arsitektur frontend 2A, 3, 4.3A, 5.2 |
 | 11–22 | arsitektur frontend 2, 2A, 2C, 3; permission matrix `0.4.0`; aturan bisnis masing-masing |
 | 23 | `IA-INP-01` s.d. `IA-INP-05`; `02-backend-architecture.md` bagian 4.12–4.13 dan 5.1; permission matrix bagian master data; sembilan submenu source terkini; brief UI pemilik 28 Agustus 2026 untuk target tujuh operasional + dua master data |
-| 24 | impact scan frontend `12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360` |
-| 25 | source/contract impact scan 28 Agustus 2026; `FE-RWI-020.md` untuk gap reservation |
-| 26 | `roadmap/frontend-roadmap.md` revision `4` draft dan `roadmap/requirement-traceability.md` |
+| 24 | impact scan frontend `12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360`; enam screenshot runtime pemilik 28 Agustus 2026; spot-check backend master pada `b71a6a3d12190c4db60fe3433f10b6eb92131629` |
+| 25 | source/contract impact scan 28 Agustus 2026; `FE-RWI-020.md` untuk gap reservation; bukti runtime pemilik untuk gap data master 007 |
+| 26 | `roadmap/frontend-roadmap.md` revision `5` draft dan `roadmap/requirement-traceability.md` |

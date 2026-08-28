@@ -4,7 +4,7 @@
 
 ```yaml
 module_id: rawat-inap
-roadmap_revision: 4
+roadmap_revision: 5
 status: DRAFT
 approval_gate: UI_SCHEMA_APPROVAL_REQUIRED
 approved_by: []
@@ -16,7 +16,7 @@ input_revisions:
   00-interview-decisions.md: 7
   01-existing-capability-map.md: 1.2
   03-frontend-architecture.md: 0.4
-  05-skema-tampilan.md: "0.3 (draft)"
+  05-skema-tampilan.md: "0.4 (draft)"
   04-prd-to-mvp.md: 0.4.0
   testing/acceptance-test-matrix.md: 0.4.0
 input_hashes:
@@ -41,25 +41,26 @@ counts:
   acceptance_criteria: 149
   uat_scenario: 33
   backend_task: 34
-  frontend_task: 35
+  frontend_task: 41
   frontend_task_done: 18
-  frontend_task_open: 17
+  frontend_task_open: 23
   api_endpoint_baru: 49
   api_endpoint_perubahan_perilaku: 1
 source_commits:
   backend_planning_snapshot: "5afb54bd75281648010e50ef14f43ca1f80d8efd"
   frontend_planning_snapshot: "dec4fdeff07c3c96ad9f07f41f184c54cf771371"
-  backend_current_observed: "f102020611fc3d605fdef1949a3af23da93e4215"
+  backend_current_observed: "b71a6a3d12190c4db60fe3433f10b6eb92131629"
   frontend_current_observed: "12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360"
-source_evidence_status: SCOPED_IMPACT_REVIEW_RECORDED_WITH_CONTRACT_GAPS
+source_evidence_status: SCOPED_RUNTIME_UI_REVIEW_RECORDED_WITH_CONTRACT_AND_MASTER_DATA_GAPS
 manifest_input_status: CURRENT
-supersedes: "roadmap_revision 3 APPROVED — 2026-08-27"
+supersedes: "roadmap_revision 4 DRAFT; roadmap_revision 3 APPROVED — 2026-08-27"
 ```
 
-**Batas kesegaran.** Peta requirement, keputusan, layar, dan task diselaraskan dengan skema `0.3`
-serta roadmap revision `4`. Impact review baca-saja terhadap SHA terkini sudah dilakukan, tetapi
-hasilnya menemukan `RWI-UI-GAP-001` s.d. `006`; karena itu dokumen ini tidak boleh dibaca sebagai
-klaim kesiapan implementasi.
+**Batas kesegaran.** Peta requirement, keputusan, layar, dan task diselaraskan dengan skema `0.4`
+serta roadmap revision `5`. Impact review kontrak lama tetap berbasis backend `f1020206…`; refresh
+terbatas pada enam layar dan master seeder memakai backend `b71a6a3d…`, frontend `12562f17…`, serta
+enam screenshot runtime pemilik. Hasilnya menambah `RWI-UI-GAP-007`; dokumen ini tidak boleh dibaca
+sebagai klaim kesiapan implementasi.
 
 ---
 
@@ -74,7 +75,7 @@ Arah bacanya dua:
 ```text
 EPIC → FR → task → acceptance criteria → skenario test        (bagian 1 dan 2)
 task → EPIC                                                    (bagian 3, arah balik)
-decision / IA / flow → skema `FE-INP` → task revision 4 → endpoint → bukti (bagian 1A dan 1B)
+decision / IA / flow → skema `FE-INP` → task revision 5 → endpoint → bukti (bagian 1A dan 1B)
 ```
 
 Baris yang berbunyi "menyusul" **tidak diperbolehkan** di dokumen ini. Bila sesuatu belum dapat
@@ -87,19 +88,19 @@ ditelusuri, tulis alasannya dan Decision ID yang menahannya.
 | Epic | Isinya | Gelombang | Task backend | Task frontend |
 | --- | --- | --- | --- | --- |
 | `EPIC RI-21` | Fondasi episode dan data master | `MVP-0` | `BE-RWI-001`, `BE-RWI-002`, `BE-RWI-003`, `BE-RWI-004`, `BE-RWI-007`, `BE-RWI-008` | `FE-RWI-002`, `FE-RWI-006`, `FE-RWI-022` s.d. `FE-RWI-025`, `FE-RWI-027`, `FE-RWI-031`, `FE-RWI-032` |
-| `EPIC RI-22` | Pencarian dan pemesanan tempat tidur | `MVP-1` | `BE-RWI-010` | `FE-RWI-005`, `FE-RWI-026`, `FE-RWI-032` |
-| `EPIC RI-23` | Penempatan pasien dan pengaktifan episode | `MVP-1` | `BE-RWI-011`, `BE-RWI-012` | `FE-RWI-007`, `FE-RWI-030` |
-| `EPIC RI-24` | Census dan lama dirawat | `MVP-1` | `BE-RWI-016` | `FE-RWI-008` |
+| `EPIC RI-22` | Pencarian dan pemesanan tempat tidur | `MVP-1` | `BE-RWI-010` | `FE-RWI-005`, `FE-RWI-026`, `FE-RWI-032`, `FE-RWI-036` |
+| `EPIC RI-23` | Penempatan pasien dan pengaktifan episode | `MVP-1` | `BE-RWI-011`, `BE-RWI-012` | `FE-RWI-007`, `FE-RWI-030`, `FE-RWI-036` |
+| `EPIC RI-24` | Census dan lama dirawat | `MVP-1` | `BE-RWI-016` | `FE-RWI-008`, `FE-RWI-037` |
 | `EPIC RI-25` | Penanggung jawab episode | `MVP-2` | `BE-RWI-017`, `BE-RWI-018` | `FE-RWI-011` |
 | `EPIC RI-26` | Perpindahan pasien dan pindah kelas | `MVP-2` | `BE-RWI-019` | `FE-RWI-010` |
 | `EPIC RI-27` | Keputusan pulang dan resume | `MVP-3` | `BE-RWI-020`, `BE-RWI-021`, `BE-RWI-022` | `FE-RWI-012` |
 | `EPIC RI-28` | Daftar periksa, kelayakan keuangan, dan penutupan | `MVP-3` | `BE-RWI-023`, `BE-RWI-024`, `BE-RWI-025`, `BE-RWI-026`, `BE-RWI-027` | `FE-RWI-013`, `FE-RWI-014`, `FE-RWI-015` |
-| `EPIC RI-29` | Riwayat status dan daftar pantau | `MVP-4` | `BE-RWI-028`, `BE-RWI-029` | `FE-RWI-016`, `FE-RWI-017` |
+| `EPIC RI-29` | Riwayat status dan daftar pantau | `MVP-4` | `BE-RWI-028`, `BE-RWI-029` | `FE-RWI-016`, `FE-RWI-017`, `FE-RWI-038`, `FE-RWI-039` |
 | `EPIC RI-30` | Sesi koreksi episode | `MVP-4` | `BE-RWI-030` | `FE-RWI-018` |
-| `EPIC RI-31` | Pengaturan yang dapat diubah admin | `MVP-0` | `BE-RWI-005` | `FE-RWI-003`, `FE-RWI-004` |
+| `EPIC RI-31` | Pengaturan yang dapat diubah admin | `MVP-0` | `BE-RWI-005` | `FE-RWI-003`, `FE-RWI-004`, `FE-RWI-040`, `FE-RWI-041` |
 | `EPIC RI-32` | Perbaikan tempat tidur dan pembatasan wewenang status | `MVP-0` | `BE-RWI-006`, `BE-RWI-032` | `FE-RWI-001` |
 | `EPIC RI-33` | Bayi baru lahir dan boks bayi | `MVP-4` | `BE-RWI-031` | `FE-RWI-022` untuk memilih episode ibu; census dan penempatan tetap dipakai sesudah episode terbentuk |
-| `EPIC RI-34` | Kelayakan penempatan menurut jenis kelamin dan isolasi | `MVP-1` | `BE-RWI-013`, `BE-RWI-014`, `BE-RWI-015` | `FE-RWI-006`, `FE-RWI-007`, `FE-RWI-009`, `FE-RWI-016`, `FE-RWI-025`, `FE-RWI-026`, `FE-RWI-030` |
+| `EPIC RI-34` | Kelayakan penempatan menurut jenis kelamin dan isolasi | `MVP-1` | `BE-RWI-013`, `BE-RWI-014`, `BE-RWI-015` | `FE-RWI-006`, `FE-RWI-007`, `FE-RWI-009`, `FE-RWI-016`, `FE-RWI-025`, `FE-RWI-026`, `FE-RWI-030`, `FE-RWI-036`, `FE-RWI-038` |
 
 **Empat belas epic, nol tanpa task.**
 
@@ -109,7 +110,7 @@ pada bagian 1A dan arah balik pada bagian 3; tidak ada task tanpa dasar tertulis
 
 ---
 
-## 1A. Jejak task frontend revision `4`
+## 1A. Jejak task frontend revision `5`
 
 Acceptance criteria, dependency, risiko, dan Definition of Done lengkap tetap berada di
 [`frontend-roadmap.md`](frontend-roadmap.md). Tabel ini mengunci hubungan task dengan requirement,
@@ -133,11 +134,17 @@ keputusan, layar, dan kontraknya.
 | `FE-RWI-032` | Episode `Draft` yang ditinggal dapat dilanjutkan | `RWI-DEC-076`, `IA-INP-02` | `FE-INP-16` → `03`; skema §6 → §3 | `GET /episodes/{id}` + baca pemesanan | **Terblokir `RWI-UI-GAP-003`** |
 | `FE-RWI-033` | Seluruh 19 layar dan endpoint mempunyai jalan masuk/pemilik; hierarki menjadi tujuh operasional + dua master/configuration tanpa duplikasi | `RWI-DEC-078`, `IA-INP-01` s.d. `05`; brief UI pemilik 28 Agustus 2026 | skema §2, §23 | Termasuk `GET /census/filters/metadata`; route `FE-INP-12/13` dipertahankan | Belum dikerjakan |
 | `FE-RWI-034` | Formulir admisi tunggal dibongkar agar satu jalur | `RWI-DEC-079`; satu kemampuan satu tempat | skema §3, §24 | Tidak menambah endpoint | Belum dikerjakan |
-| `FE-RWI-035` | Alur utama dan pembatasan peran terbukti ujung ke ujung | `RWI-DEC-051`, `075` s.d. `079`, `GUARD-INP-01` s.d. `04` | seluruh 19 layar; skema §3–25 | Seluruh endpoint flow | Paling akhir; gap 001–006 harus ditutup/dinyatakan |
+| `FE-RWI-036` | Papan Tempat Tidur tidak lagi pasif dan mengintegrasikan aksi reservation/placement | Bukti runtime pemilik; `RWI-DEC-076`; `FR-RI-105` s.d. `112` | `FE-INP-02`; skema §7, §24.1 | Board, available beds, cancel reservation, placement | `BLOCKED`: approval; gap 003/007 |
+| `FE-RWI-037` | Census mempunyai Detail Episode dan empty-state action yang berguna | Bukti runtime pemilik; `FR-RI-113` s.d. `115`; `IA-INP-01` | `FE-INP-01`; skema §8, §24.1 | Census, filter metadata, route detail | `BLOCKED`: approval; gap 007 untuk bukti runtime |
+| `FE-RWI-038` | Empat daftar pantau menunjukkan tujuan tindak lanjut | Bukti runtime pemilik; `FR-RI-135` s.d. `138`, `161` | `FE-INP-09`; skema §14, §24.1 | Empat GET monitoring; tidak ada write | `BLOCKED`: approval; gap 007 untuk bukti runtime |
+| `FE-RWI-039` | Selisih Bed terbaca sebagai laporan read-only dengan navigasi kontekstual | Bukti runtime pemilik; `FR-RI-135` s.d. `138` | `FE-INP-10`; skema §15, §24.1 | GET bed drift; route Papan | `BLOCKED`: approval; gap 007 untuk bukti runtime |
+| `FE-RWI-040` | Admin dapat mengelola Butir Administrasi dari keadaan kosong maupun berisi | Bukti runtime pemilik; `FR-RI-142` s.d. `144` | `FE-INP-13`; skema §18, §24.1 | GET/POST/PUT/PATCH/DELETE clearance item | `BLOCKED`: approval; validasi data awal gap 007 |
+| `FE-RWI-041` | Pengaturan mempunyai shell/form operasional tanpa mengarang create/default | Bukti runtime pemilik; `FR-RI-142` s.d. `144`; `RWI-DEC-063` | `FE-INP-12`; skema §17, §24.1 | GET/PUT setting; tidak ada POST | `BLOCKED`: approval dan gap 007 |
+| `FE-RWI-035` | Alur utama, enam repair, dan pembatasan peran terbukti ujung ke ujung | `RWI-DEC-051`, `075` s.d. `079`, `GUARD-INP-01` s.d. `04` | seluruh 19 layar; skema §3–25 | Seluruh endpoint flow | Paling akhir; gap 001–007 harus ditutup/dinyatakan |
 
-**Hitungan revision `4`:** 18 task selesai tetap dipertahankan, `FE-RWI-019` dibuka ulang, dan
-16 task baru `FE-RWI-020` s.d. `FE-RWI-035` ditambahkan. Totalnya 35 task: 18 selesai dan 17
-terbuka.
+**Hitungan revision `5`:** 18 task selesai tetap dipertahankan, `FE-RWI-019` dibuka ulang, 16 task
+`FE-RWI-020` s.d. `FE-RWI-035` tetap ada, dan enam task repair `FE-RWI-036` s.d. `041` ditambahkan.
+Totalnya 41 task: 18 selesai dan 23 terbuka/blocked.
 
 **Jejak koreksi navigasi.** `FE-INP-12` Pengaturan Rawat Inap dan `FE-INP-13` Butir Administrasi
 adalah master/configuration spesifik Rawat Inap. Keduanya di-re-parent oleh `FE-RWI-033` ke
@@ -178,6 +185,7 @@ tetap gap pada skema bagian 25.
 | `RWI-UI-GAP-004` | delta `FE-RWI-013`, `035` | task baca financial-clearance + permission kasir; belum ada ID task |
 | `RWI-UI-GAP-005` | delta `FE-RWI-018`, `035` | keputusan/task baca sesi koreksi; belum ada ID task |
 | `RWI-UI-GAP-006` | `FE-RWI-023`–`025`, `035` | keputusan route + permission lintas modul; belum ada ID task |
+| `RWI-UI-GAP-007` | `FE-RWI-036`–`041`, `035` | Admin Master Data/Tim Master Data membuktikan seeder `BE-RWI-002` sudah diterapkan pada environment target; frontend tetap mengerjakan empty/error state tanpa data tiruan |
 
 ---
 
@@ -336,25 +344,25 @@ Kolom **AC** merujuk `00-interview-decisions.md` revision `7`. Kolom **Test** me
 
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
-| `FR-RI-105` s.d. `FR-RI-108` | Pencarian dan pemesanan tempat tidur, satu pemesanan aktif, serta kedaluwarsa saat dibaca | `BE-RWI-010` ✅, `FE-RWI-026` | `RWI-AC-001` s.d. `RWI-AC-003` | Bagian 1; `UAT-03`, `UAT-04` — backend hijau 26 Agustus 2026; alur memesan, membatalkan, dan memesan ulang dibuktikan oleh `FE-RWI-026` |
+| `FR-RI-105` s.d. `FR-RI-108` | Pencarian dan pemesanan tempat tidur, satu pemesanan aktif, serta kedaluwarsa saat dibaca | `BE-RWI-010` ✅, `FE-RWI-026`, `FE-RWI-036` | `RWI-AC-001` s.d. `RWI-AC-003` | Bagian 1; `UAT-03`, `UAT-04` — backend hijau 26 Agustus 2026; alur memesan/membatalkan dimiliki `FE-RWI-026`, lalu surface aksi papan diperbaiki `FE-RWI-036` |
 
 ### `EPIC RI-23` — Penempatan pasien
 
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
-| `FR-RI-109` | Pencegahan tempat tidur ganda | `BE-RWI-011` 🟡, `FE-RWI-030` | `RWI-AC-059` | Bagian 2 skenario tabrakan; `UAT-02`, `UAT-04` — backend hijau 26 Agustus 2026; e2e dua sesi menjadi bukti `FE-RWI-030` |
-| `FR-RI-110` | Penempatan dan salinan status dalam satu transaksi | `BE-RWI-011` 🟡, `FE-RWI-030` | `RWI-AC-062` | Bagian 2 — backend hijau 26 Agustus 2026; status `Admitted` dan census sesudah konfirmasi dibuktikan `FE-RWI-030` |
-| `FR-RI-111` | Pemesanan gugur tidak menghalangi penempatan | `BE-RWI-011` 🟡, `FE-RWI-030` | `RWI-AC-002` | Bagian 1 — backend hijau 26 Agustus 2026; jalur konfirmasi masuk dibuktikan `FE-RWI-030` |
-| `FR-RI-112` | Penolakan tidak menghapus isian admisi | `BE-RWI-011` 🟡, `FE-RWI-007`, `FE-RWI-030` | `RWI-AC-010` | Bagian 2 — backend hijau 26 Agustus 2026; keadaan yang berubah dan pemuatan ulang papan dibuktikan `FE-RWI-030` |
+| `FR-RI-109` | Pencegahan tempat tidur ganda | `BE-RWI-011` 🟡, `FE-RWI-030`, `FE-RWI-036` | `RWI-AC-059` | Bagian 2 skenario tabrakan; `UAT-02`, `UAT-04` — aksi domain dimiliki `FE-RWI-030`, surface papan diperbaiki `FE-RWI-036` |
+| `FR-RI-110` | Penempatan dan salinan status dalam satu transaksi | `BE-RWI-011` 🟡, `FE-RWI-030`, `FE-RWI-036` | `RWI-AC-062` | Bagian 2 — status `Admitted` dan census sesudah konfirmasi dibuktikan `FE-RWI-030/036` |
+| `FR-RI-111` | Pemesanan gugur tidak menghalangi penempatan | `BE-RWI-011` 🟡, `FE-RWI-030`, `FE-RWI-036` | `RWI-AC-002` | Bagian 1 — jalur konfirmasi masuk dimiliki `FE-RWI-030`, layar final papan `FE-RWI-036` |
+| `FR-RI-112` | Penolakan tidak menghapus isian admisi | `BE-RWI-011` 🟡, `FE-RWI-007`, `FE-RWI-030`, `FE-RWI-036` | `RWI-AC-010` | Bagian 2 — penolakan server dan pemuatan ulang harus terlihat pada papan hasil repair |
 | `FR-RI-148` | Satu pasien satu episode | `BE-RWI-012` ✅ | `RWI-AC-116`, `RWI-AC-117` | Bagian 1; `UAT-26` — kode ditulis 25 Agustus 2026; **build dan test hijau 26 Agustus 2026** |
 
 ### `EPIC RI-24` — Census dan lama dirawat
 
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
-| `FR-RI-113` | Census hanya `Admitted` dan `DischargePending` | `BE-RWI-016` ✅ | — | Bagian 5; `UAT-06` — kode ditulis 25 Agustus 2026; **build dan test hijau 26 Agustus 2026** |
-| `FR-RI-114` | Lama dirawat dari selisih tanggal, minimum 1 hari | `BE-RWI-016` ✅ | — | Bagian 5 unit test; `UAT-05` — kode ditulis 25 Agustus 2026; **build dan test hijau 26 Agustus 2026** |
-| `FR-RI-115` | Bertambah pada pergantian tanggal | `BE-RWI-016` ✅ | — | Bagian 5 unit test — kode ditulis 25 Agustus 2026; **build dan test hijau 26 Agustus 2026** |
+| `FR-RI-113` | Census hanya `Admitted` dan `DischargePending` | `BE-RWI-016` ✅, `FE-RWI-037` | — | Bagian 5; `UAT-06`; presentasi/aksi census diperbaiki `FE-RWI-037` |
+| `FR-RI-114` | Lama dirawat dari selisih tanggal, minimum 1 hari | `BE-RWI-016` ✅, `FE-RWI-037` | — | Bagian 5 unit test; `UAT-05`; nilai ditampilkan layar repair tanpa dihitung ulang di browser |
+| `FR-RI-115` | Bertambah pada pergantian tanggal | `BE-RWI-016` ✅, `FE-RWI-037` | — | Bagian 5 unit test; UI membaca ulang hasil server |
 
 ### `EPIC RI-25` — Penanggung jawab episode
 
@@ -394,7 +402,7 @@ Kolom **AC** merujuk `00-interview-decisions.md` revision `7`. Kolom **Test** me
 
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
-| `FR-RI-135` s.d. `FR-RI-138` | Riwayat status, tiga daftar pantau, laporan selisih | `BE-RWI-028` ✅, `BE-RWI-029` ✅, `FE-RWI-016` ✅, `FE-RWI-017` ✅ | `RWI-AC-063` | Bagian 10; `UAT-17`, `UAT-21` — kode ditulis 25 Agustus 2026; **build dan test hijau 26 Agustus 2026**. Keempat daftar pantau berdiri pada satu halaman bertab dan tidak menahan tindakan apa pun — e2e membuktikan nol permintaan selain `GET` dari halaman itu, lalu alur perpindahan pada detail episode berjalan penuh sesudahnya ([laporan](../task/report/frontend/FE-RWI-016.md)). Laporan selisih menyebut **kedua** nilai yang berselisih pada setiap baris dan menutup halamannya bagi peran selain supervisor dan `SuperAdmin`; **penyempitan itu hanya berlaku di layar**, karena server menjaga kelima endpoint daftar pantau dengan butir `InpatientMonitoring : Read` yang sama ([laporan](../task/report/frontend/FE-RWI-017.md)) |
+| `FR-RI-135` s.d. `FR-RI-138` | Riwayat status, tiga daftar pantau, laporan selisih | `BE-RWI-028` ✅, `BE-RWI-029` ✅, `FE-RWI-016` ✅, `FE-RWI-017` ✅, `FE-RWI-038`, `FE-RWI-039` | `RWI-AC-063` | Bagian 10; `UAT-17`, `UAT-21`. Bukti historis logic tetap dipertahankan; bukti runtime baru mengharuskan repair presentasi/tindak lanjut oleh `FE-RWI-038/039` tanpa menambah request tulis |
 
 ### `EPIC RI-30` — Sesi koreksi
 
@@ -406,7 +414,7 @@ Kolom **AC** merujuk `00-interview-decisions.md` revision `7`. Kolom **Test** me
 
 | FR | Isinya | Task | AC | Test |
 | --- | --- | --- | --- | --- |
-| `FR-RI-142` s.d. `FR-RI-144` | Pengaturan dan butir administrasi dapat diubah admin | `BE-RWI-005`, `FE-RWI-003`, `FE-RWI-004` | `RWI-AC-003`, `RWI-AC-105` s.d. `RWI-AC-107` | Bagian 11; `UAT-18`, `UAT-19` |
+| `FR-RI-142` s.d. `FR-RI-144` | Pengaturan dan butir administrasi dapat diubah admin | `BE-RWI-005`, `FE-RWI-003`, `FE-RWI-004`, `FE-RWI-040`, `FE-RWI-041` | `RWI-AC-003`, `RWI-AC-105` s.d. `RWI-AC-107` | Bagian 11; `UAT-18`, `UAT-19`; repair runtime dimiliki `FE-RWI-040/041`, dengan data `DEFAULT` tetap dependency gap 007 |
 
 ### `EPIC RI-32` — Perbaikan tempat tidur dan pembatasan wewenang status
 
