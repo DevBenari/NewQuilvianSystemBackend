@@ -4,7 +4,7 @@ Aturan ini menjaga implementasi EF Core dan PostgreSQL yang sudah ada. `AGENTS.m
 
 ## Keselarasan dengan QBE canonical
 
-Baca `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` beserta registry-nya sebelum mengerjakan persistence. Terapkan QBE-ENT-001, QBE-CFG-001, QBE-NAM-001–003, QBE-DB-001–002, QBE-CODE-004, dan QBE-MOD-002. Implementasi rujukan tidak menggantikan kontrak canonical.
+Baca `agents/rules/engineering/BACKEND_ENGINEERING_CONTRACT.md` beserta registry-nya sebelum mengerjakan persistence. Terapkan QBE-ENT-001, QBE-CFG-001, QBE-NAM-001–004, QBE-DB-001–002, QBE-CODE-004, dan QBE-MOD-002–003. Implementasi rujukan tidak menggantikan kontrak canonical.
 
 ## Disiplin model dan context
 

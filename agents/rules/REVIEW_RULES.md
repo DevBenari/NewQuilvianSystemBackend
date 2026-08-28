@@ -2,7 +2,7 @@
 
 Sebelum menyatakan selesai, lakukan dan catat review yang sepadan dengan bobot task-nya.
 
-- **Kesesuaian QBE:** tentukan ID QBE yang berlaku dari `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`, verifikasi kepatuhannya, dan catat setiap pengecualian terbatas yang sudah disetujui.
+- **Kesesuaian QBE:** tentukan ID QBE yang berlaku dari `agents/rules/engineering/BACKEND_ENGINEERING_CONTRACT.md`, verifikasi kepatuhannya, dan catat setiap pengecualian terbatas yang sudah disetujui.
 
 - **Review diff:** periksa setiap berkas yang berubah dan pastikan diff-nya hanya mengimplementasikan perilaku yang diminta.
 - **Review scope:** pastikan tidak ada perubahan source, dependency, konfigurasi, workflow, migration, atau keluaran hasil generate yang tidak berkaitan.

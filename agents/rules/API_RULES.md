@@ -4,7 +4,7 @@ Aturan ini menjaga konvensi backend yang sudah ada. `AGENTS.md` tetap menjadi pe
 
 ## Keselarasan dengan QBE canonical
 
-Baca `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` sebelum mengerjakan API. Terapkan QBE-SVC-001, QBE-API-001, QBE-PERM-001, QBE-LOG-001, QBE-DTO-001, QBE-VAL-001, dan aturan QBE-CODE yang berlaku. Implementasi rujukan hanya menggambarkan perilaku yang sudah ada; ia tidak menimpa kontrak canonical.
+Baca `agents/rules/engineering/BACKEND_ENGINEERING_CONTRACT.md` sebelum mengerjakan API. Terapkan QBE-SVC-001, QBE-API-001, QBE-PERM-001, QBE-LOG-001, QBE-DTO-001, QBE-VAL-001, dan aturan QBE-CODE yang berlaku. Implementasi rujukan hanya menggambarkan perilaku yang sudah ada; ia tidak menimpa kontrak canonical.
 
 ## Wewenang dan cakupan kontrak
 

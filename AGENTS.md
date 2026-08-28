@@ -8,7 +8,7 @@ Aturan utamanya adalah:
 
 > Ikuti kode yang sudah ada. Jangan menciptakan arsitektur baru.
 
-Untuk `NEW CODE`, pola source/referensi existing hanya merupakan bukti dan TIDAK BOLEH mengesampingkan Backend Engineering Contract canonical. Urutan wewenangnya adalah: (1) wewenang task/tulis eksplisit dan aturan keselamatan repository; (2) `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`; (3) `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; (4) panduan operasional `agents/rules/` yang berlaku; (5) pola source/referensi existing. Pola legacy `Trx*`, controller yang mengakses DbContext secara langsung, Count/Max/Last+1, atau persisted `SortOrder` generik yang sebanding tidak memberi wewenang untuk menggunakan pola tersebut dalam `NEW CODE`. Terapkan legacy ratchet existing tanpa penulisan ulang massal.
+Untuk `NEW CODE`, pola source/referensi existing hanya merupakan bukti dan TIDAK BOLEH mengesampingkan Backend Engineering Contract canonical. Urutan wewenangnya adalah: (1) wewenang task/tulis eksplisit dan aturan keselamatan repository; (2) `agents/rules/engineering/BACKEND_ENGINEERING_CONTRACT.md`; (3) `agents/rules/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; (4) panduan operasional `agents/rules/` yang berlaku; (5) pola source/referensi existing. Pola legacy `Trx*`, controller yang mengakses DbContext secara langsung, Count/Max/Last+1, atau persisted `SortOrder` generik yang sebanding tidak memberi wewenang untuk menggunakan pola tersebut dalam `NEW CODE`. Terapkan legacy ratchet existing tanpa penulisan ulang massal.
 
 Sebelum implementasi, periksa controller, DTO, model, service, penggunaan akses data, validasi, aturan otorisasi, workflow, konfigurasi EF, migration, dan endpoint terdekat yang sebanding sesuai kebutuhan.
 
@@ -17,7 +17,7 @@ Sebelum implementasi, periksa controller, DTO, model, service, penggunaan akses 
 `AGENTS.md` tetap menjadi konstitusi repository yang otoritatif. Lapisan operasionalnya tinggal di dalam repository ini pada folder `agents/rules/`. Baca dokumen berikut hanya ketika kondisinya berlaku:
 
 - Setiap task implementasi: `agents/rules/TASK_RULES.md`
-- Setiap implementasi aplikasi backend: `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`
+- Setiap implementasi aplikasi backend: `agents/rules/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `agents/rules/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`
 - Klasifikasi dan pemilihan model: `agents/rules/TASK_CLASSIFICATION.md`
 - Task lintas repository: `agents/rules/CROSS_REPO_RULES.md`
 - Sebelum penyelesaian: `agents/rules/REVIEW_RULES.md`
@@ -31,7 +31,7 @@ Dokumen-dokumen tersebut melengkapi, bukan menggantikan, aturan keselamatan, ars
 
 ## Pemeriksaan Awal Kontrak Rekayasa Backend
 
-Sebelum mengubah source aplikasi backend, tentukan Area, Module, owner/prefix registry, applicability (`NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATION`), serta QBE rule ID yang berlaku dari kontrak canonical. Module/entity operasional baru tanpa entri registry yang disetujui berstatus `BLOCKED` berdasarkan `QBE-MOD-002`; jangan menyimpulkan prefix dari foldernya. Ikuti legacy ratchet: jangan melakukan refactor massal terhadap legacy yang tidak disentuh.
+Sebelum mengubah source aplikasi backend, tentukan Area, Module, owner/prefix registry, applicability (`NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATION`), serta QBE rule ID yang berlaku dari kontrak canonical. Module/entity operasional baru tanpa entri registry yang disetujui berstatus `BLOCKED` berdasarkan `QBE-MOD-002`; jangan menyimpulkan prefix dari foldernya. Folder Area/Module/Submodule baru — atau yang sudah ada namun belum terdaftar — yang akan memuat model persisted wajib didaftarkan lebih dulu di `agents/rules/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` beserta prefixnya sebelum file model pertama dibuat (`QBE-MOD-003`, `QBE-NAM-004`). Ikuti legacy ratchet: jangan melakukan refactor massal terhadap legacy yang tidak disentuh.
 
 ## Bahasa dan Komunikasi
 
@@ -44,7 +44,7 @@ Sebelum mengubah source aplikasi backend, tentukan Area, Module, owner/prefix re
 ## Identitas Repository dan Alur Kerja Branch
 
 - Repository: `NewQuilvianSystemBackend`
-- Branch development aktif ditentukan per module atau work item oleh pemegang modul yang tercatat dalam `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, atau melalui instruksi task/blueprint yang secara eksplisit telah disetujui oleh pemegang tersebut.
+- Branch development aktif ditentukan per module atau work item oleh pemegang modul yang tercatat dalam `agents/rules/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, atau melalui instruksi task/blueprint yang secara eksplisit telah disetujui oleh pemegang tersebut.
 - Upstream yang diharapkan: `origin/<active-development-branch>`.
 - Repository referensi frontend: `QuilvianSystemFrontendDev` (temukan dari konteks workspace yang diberi wewenang; laporkan dependency yang hilang alih-alih menebak path).
 

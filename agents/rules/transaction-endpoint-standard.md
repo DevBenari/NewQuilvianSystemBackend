@@ -3,10 +3,10 @@
 | Field | Nilai |
 | --- | --- |
 | Status | Baseline wajib untuk capability transaksi |
-| Sumber asal | Diturunkan dari source, bukan dari PDF. Tidak ada dokumen standar transaksi di `docs/update-skilss/`, `agents/rules/`, maupun `docs/engineering/` |
+| Sumber asal | Diturunkan dari source, bukan dari PDF. Tidak ada dokumen standar transaksi di `docs/update-skilss/`, `agents/rules/`, maupun `agents/rules/engineering/` |
 | Diverifikasi terhadap | Seluruh folder `Controllers/` non-`MasterData` pada `Areas/` |
 | Pendamping | [master-data-endpoint-standard.md](master-data-endpoint-standard.md) |
-| Presedensi | `AGENTS.md` > `docs/engineering/` > `agents/rules/` > dokumen ini. Bila source repository berbeda, source yang berlaku dan selisihnya dilaporkan |
+| Presedensi | `AGENTS.md` > `agents/rules/engineering/` > `agents/rules/` > dokumen ini. Bila source repository berbeda, source yang berlaku dan selisihnya dilaporkan |
 
 Master data menjawab "data apa yang tersedia". Transaksi menjawab "apa yang sedang terjadi pada
 satu kejadian nyata". Keduanya butuh bentuk endpoint yang berbeda, dan mencampurnya adalah

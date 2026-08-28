@@ -7,7 +7,7 @@ Dokumen ini menetapkan siklus kerja yang berulang untuk pekerjaan implementasi. 
 `CLASSIFY → INSPECT → PLAN → IMPLEMENT → VALIDATE → REVIEW → REPORT`
 
 1. **CLASSIFY** — klasifikasikan task memakai `TASK_CLASSIFICATION.md`; pastikan task mode, target tulis, branch, dan scope-nya.
-   Untuk pekerjaan aplikasi backend, lakukan preflight QBE terhadap `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` beserta registry-nya: Area, Module, owner/prefix, kelas ratchet, dan ID aturan yang berlaku.
+   Untuk pekerjaan aplikasi backend, lakukan preflight QBE terhadap `agents/rules/engineering/BACKEND_ENGINEERING_CONTRACT.md` beserta registry-nya: Area, Module, owner/prefix, kelas ratchet, dan ID aturan yang berlaku.
 2. **INSPECT** — periksa implementasi pembanding terdekat beserta seluruh kontrak, authorization, workflow, persistence, dan aturan yang terdampak langsung sebagaimana diwajibkan `AGENTS.md`.
 3. **PLAN** — susun rencana implementasi yang singkat dan terbatas sebelum mulai menulis.
 4. **IMPLEMENT** — kerjakan hanya perubahan yang diberi wewenang, mengikuti arsitektur yang ada dan pola terdekat.

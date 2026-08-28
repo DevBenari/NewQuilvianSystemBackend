@@ -5,7 +5,7 @@
 | Status | Mengikat untuk setiap endpoint backend yang dibuat atau disentuh |
 | Layar pemilik | Pengaturan → Manajemen Role → **Akses Role** |
 | Diverifikasi terhadap | `Attributes/`, `Filters/AccessPermissionFilter.cs`, `Services/Security/AccessPermissionService.cs`, `Seeders/AccessMenuSeeder.cs`, `Areas/Administrator/Setting/Controllers/RoleAccessController.cs` |
-| Presedensi | `AGENTS.md` > `docs/engineering/` > `agents/rules/` > dokumen ini |
+| Presedensi | `AGENTS.md` > `agents/rules/engineering/` > `agents/rules/` > dokumen ini |
 
 Dua aturan pokok, dan sisanya hanya penjelasan cara memenuhinya:
 

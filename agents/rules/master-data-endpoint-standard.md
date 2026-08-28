@@ -5,7 +5,7 @@
 | Status | Baseline wajib untuk setiap capability master data |
 | Sumber asal | `NewQuilvianSystemBackend/docs/update-skilss/Standar-Endpoint-Master-Data.pdf` |
 | Diverifikasi terhadap | 34 controller pada `Areas/HealthServices/MasterData/Controllers/` |
-| Presedensi | `AGENTS.md` > `docs/engineering/` > `agents/rules/` > dokumen ini. Bila source repository berbeda, source yang berlaku dan selisihnya dilaporkan |
+| Presedensi | `AGENTS.md` > `agents/rules/engineering/` > `agents/rules/` > dokumen ini. Bila source repository berbeda, source yang berlaku dan selisihnya dilaporkan |
 
 Dokumen ini mengunci **bentuk permukaan endpoint** untuk master data. Ia tidak mengubah gate
 approval, batas kewenangan tulis, maupun pemisahan wewenang migration/database pada `SKILL.md`.
@@ -307,7 +307,7 @@ Endpoint tambahan tunduk pada aturan yang sama dengan baseline:
 
 `ServiceUnitController` adalah rujukan otoritatif untuk **bentuk kontrak endpoint**, bukan
 untuk arsitektur di dalamnya. Untuk `NEW CODE`, aturan QBE pada
-`docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` mengalahkan pola legacy yang bertentangan:
+`agents/rules/engineering/BACKEND_ENGINEERING_CONTRACT.md` mengalahkan pola legacy yang bertentangan:
 
 | Pola yang terlihat di rujukan | Aturan yang berlaku untuk kode baru |
 | --- | --- |
