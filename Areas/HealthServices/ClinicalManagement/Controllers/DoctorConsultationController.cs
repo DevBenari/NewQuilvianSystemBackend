@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
@@ -252,12 +254,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            var queue = await _dbContext.Set<TrxQueue>()
-                .Include(x => x.Encounter)
-                .FirstAsync(x =>
-                    x.Id == request.QueueId &&
-                    x.EncounterId == request.EncounterId &&
-                    !x.IsDelete);
+            // Pasien poli membawa baris antrean; pasien IGD tidak. BE-IGD-028, FR-IGD-062.
+            var queue = request.QueueId.HasValue
+                ? await _dbContext.Set<TrxQueue>()
+                    .Include(x => x.Encounter)
+                    .FirstAsync(x =>
+                        x.Id == request.QueueId.Value &&
+                        x.EncounterId == request.EncounterId &&
+                        !x.IsDelete)
+                : null;
+
+            var encounter = queue?.Encounter ?? await _dbContext.Set<TrxPatientEncounter>()
+                .FirstAsync(x => x.Id == request.EncounterId && !x.IsDelete);
 
             var assessment = await ResolveAssessmentAsync(request.EncounterId, request.AssessmentId);
 
@@ -269,13 +277,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             {
                 Id = Guid.NewGuid(),
                 ConsultationNumber = await GenerateConsultationNumberAsync(now),
-                EncounterId = queue.EncounterId,
-                QueueId = queue.Id,
+                EncounterId = encounter.Id,
+                QueueId = queue?.Id,
                 AssessmentId = assessment?.Id,
-                PatientId = queue.PatientId,
-                DoctorId = queue.DoctorId ?? Guid.Empty,
-                ServiceUnitId = queue.ServiceUnitId,
-                ClinicId = queue.ClinicId,
+                PatientId = queue?.PatientId ?? encounter.PatientId,
+                // Tanpa antrean, dokter pemeriksa datang dari permintaan — validasi sudah
+                // memastikan salah satunya terisi, sehingga Guid.Empty tidak pernah tersimpan.
+                DoctorId = queue?.DoctorId ?? request.DoctorId ?? encounter.DoctorId ?? Guid.Empty,
+                ServiceUnitId = queue?.ServiceUnitId ?? encounter.ServiceUnitId,
+                ClinicId = queue?.ClinicId ?? encounter.ClinicId,
                 ConsultationDateTime = now,
                 ConsultationStatus = request.CompleteImmediately
                     ? DoctorConsultationStatus.Completed
@@ -784,10 +794,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(
             CreateDoctorConsultationRequest request)
         {
+            if (!request.QueueId.HasValue || request.QueueId.Value == Guid.Empty)
+                return await ValidateCreateWithoutQueueAsync(request);
+
             var queue = await _dbContext.Set<TrxQueue>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x =>
-                    x.Id == request.QueueId &&
+                    x.Id == request.QueueId.Value &&
                     x.EncounterId == request.EncounterId &&
                     !x.IsDelete);
 
@@ -818,6 +831,80 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (request.AssessmentId.HasValue && request.AssessmentId.Value != Guid.Empty)
             {
                 var assessmentExists = await _dbContext.Set<TrxPatientAssessment>()
+                    .AnyAsync(x =>
+                        x.Id == request.AssessmentId.Value &&
+                        x.EncounterId == request.EncounterId &&
+                        x.AssessmentStatus == PatientAssessmentStatus.Completed &&
+                        !x.IsDelete);
+
+                if (!assessmentExists)
+                    return (false, "Assessment pasien tidak valid atau belum completed.");
+            }
+
+            return (true, null);
+        }
+
+        /// <summary>
+        /// Penjagaan pembuatan konsultasi <b>tanpa antrean</b>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-IGD-028</c>, requirement <c>FR-IGD-062</c>. Bentuknya sengaja sama persis
+        /// dengan <c>ValidateCreateWithoutQueueAsync</c> pada pengkajian: hanya encounter yang
+        /// punya kunjungan IGD yang boleh melewati antrean, dengan alasan yang sama.
+        ///
+        /// <para>
+        /// Satu syarat tambahan yang tidak ada di pengkajian: <b>dokter pemeriksa wajib
+        /// disebut</b>. Di jalur berantre, antreanlah yang menentukan dokter — dan
+        /// <c>TrxDoctorConsultation.DoctorId</c> wajib terisi. Tanpa antrean tidak ada yang
+        /// menentukannya, sehingga permintaan wajib menyebutkannya sendiri; membiarkannya
+        /// <c>Guid.Empty</c> akan menyimpan konsultasi tanpa dokter yang bertanggung jawab.
+        /// </para>
+        /// </remarks>
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateWithoutQueueAsync(
+            CreateDoctorConsultationRequest request)
+        {
+            var encounter = await _dbContext.Set<TrxPatientEncounter>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == request.EncounterId && !x.IsDelete);
+
+            if (encounter == null)
+                return (false, "Encounter tidak ditemukan.");
+
+            var isEmergencyEncounter = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .AnyAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete);
+
+            if (!isEmergencyEncounter)
+            {
+                return (false, "Konsultasi tanpa antrean hanya untuk pasien IGD. " +
+                               "Untuk pasien poli, buat konsultasi dari baris antreannya.");
+            }
+
+            var doctorId = request.DoctorId ?? encounter.DoctorId;
+
+            if (!doctorId.HasValue || doctorId.Value == Guid.Empty)
+                return (false, "Dokter pemeriksa wajib diisi untuk konsultasi tanpa antrean.");
+
+            var doctorExists = await _dbContext.Set<MstDoctor>()
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == doctorId.Value && !x.IsDelete);
+
+            if (!doctorExists)
+                return (false, "Dokter pemeriksa tidak ditemukan.");
+
+            var consultationExists = await _dbContext.Set<TrxDoctorConsultation>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.EncounterId == request.EncounterId &&
+                    !x.IsDelete);
+
+            if (consultationExists)
+                return (false, "Konsultasi dokter untuk encounter ini sudah ada.");
+
+            if (request.AssessmentId.HasValue && request.AssessmentId.Value != Guid.Empty)
+            {
+                var assessmentExists = await _dbContext.Set<TrxPatientAssessment>()
+                    .AsNoTracking()
                     .AnyAsync(x =>
                         x.Id == request.AssessmentId.Value &&
                         x.EncounterId == request.EncounterId &&

@@ -29,7 +29,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.PerformanceManagement.
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.RecruitmentManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Models;
@@ -47,7 +47,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.M
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 
@@ -661,24 +661,26 @@ namespace QuilvianSystemBackend.Repositories
         #region HEALTH SERVICE - Emergency Installation Management
 
         #region master
-        public DbSet<MstEmergencyTriageLevel> MstEmergencyTriageLevels { get; set; }
-        public DbSet<MstEmergencyTriageIndicator> MstEmergencyTriageIndicators { get; set; }
-        public DbSet<MstEmergencyArrivalMode> MstEmergencyArrivalModes { get; set; }
-        public DbSet<MstEmergencyCaseType> MstEmergencyCaseTypes { get; set; }
-        public DbSet<MstEmergencyDispositionType> MstEmergencyDispositionTypes { get; set; }
-        public DbSet<MstEmergencySetting> MstEmergencySettings { get; set; }
+        public DbSet<EmgTriageLevel> EmgTriageLevels { get; set; }
+        public DbSet<EmgTriageIndicator> EmgTriageIndicators { get; set; }
+        public DbSet<EmgArrivalMode> EmgArrivalModes { get; set; }
+        public DbSet<EmgCaseType> EmgCaseTypes { get; set; }
+        public DbSet<EmgDispositionType> EmgDispositionTypes { get; set; }
+        public DbSet<EmgSetting> EmgSettings { get; set; }
         #endregion
 
         #region transaction
-        public DbSet<TrxEmergencyVisit> TrxEmergencyVisits { get; set; }
-        public DbSet<TrxEmergencyTriage> TrxEmergencyTriages { get; set; }
-        public DbSet<TrxEmergencyTriageDetail> TrxEmergencyTriageDetails { get; set; }
-        public DbSet<TrxEmergencyResuscitation> TrxEmergencyResuscitations { get; set; }
-        public DbSet<TrxEmergencyObservation> TrxEmergencyObservations { get; set; }
-        public DbSet<TrxEmergencyObservationDetail> TrxEmergencyObservationDetails { get; set; }
-        public DbSet<TrxEmergencyProcedureDetail> TrxEmergencyProcedureDetails { get; set; }
-        public DbSet<TrxEmergencyDisposition> TrxEmergencyDispositions { get; set; }
-        public DbSet<TrxEmergencyTransfer> TrxEmergencyTransfers { get; set; }
+        public DbSet<EmgVisit> EmgVisits { get; set; }
+        public DbSet<EmgTriage> EmgTriages { get; set; }
+        public DbSet<EmgTriageDetail> EmgTriageDetails { get; set; }
+        public DbSet<EmgResuscitation> EmgResuscitations { get; set; }
+        public DbSet<EmgObservation> EmgObservations { get; set; }
+        public DbSet<EmgObservationDetail> EmgObservationDetails { get; set; }
+        public DbSet<EmgProcedureDetail> EmgProcedureDetails { get; set; }
+        public DbSet<EmgDisposition> EmgDispositions { get; set; }
+        public DbSet<EmgDeparture> EmgDepartures { get; set; }
+        public DbSet<EmgDepartureEvent> EmgDepartureEvents { get; set; }
+        public DbSet<EmgHandoverOrderItem> EmgHandoverOrderItems { get; set; }
         #endregion
 
         #endregion

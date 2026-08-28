@@ -62,7 +62,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         )
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
-            IQueryable<TrxEmergencyObservationDetail> query = _dbContext.Set<TrxEmergencyObservationDetail>().AsNoTracking().Where(x => !x.IsDelete);
+            IQueryable<EmgObservationDetail> query = _dbContext.Set<EmgObservationDetail>().AsNoTracking().Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -125,7 +125,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyObservationDetail", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyObservationDetail>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgObservationDetail>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data detail observasi IGD tidak ditemukan."));
 
@@ -147,7 +147,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            var entity = new TrxEmergencyObservationDetail
+            var entity = new EmgObservationDetail
             {
                 Id = Guid.NewGuid(),
                 EmergencyObservationId = request.EmergencyObservationId,
@@ -171,7 +171,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 IsCancel = false
             };
 
-            _dbContext.Set<TrxEmergencyObservationDetail>().Add(entity);
+            _dbContext.Set<EmgObservationDetail>().Add(entity);
             try
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -200,7 +200,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyObservationDetail", "Update")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmergencyObservationDetailRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyObservationDetail>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgObservationDetail>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data detail observasi IGD tidak ditemukan."));
 
@@ -254,7 +254,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyObservationDetail", "Delete")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyObservationDetail>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgObservationDetail>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data detail observasi IGD tidak ditemukan."));
 
@@ -281,7 +281,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (request.EmergencyObservationId == Guid.Empty)
                 return "EmergencyObservationId wajib diisi.";
 
-            if (!await _dbContext.Set<TrxEmergencyObservation>().AsNoTracking().AnyAsync(x => x.Id == request.EmergencyObservationId && !x.IsDelete, cancellationToken))
+            if (!await _dbContext.Set<EmgObservation>().AsNoTracking().AnyAsync(x => x.Id == request.EmergencyObservationId && !x.IsDelete, cancellationToken))
                 return "EmergencyObservationId tidak ditemukan.";
 
             if (request.PatientVitalSignId.HasValue && request.PatientVitalSignId.Value != Guid.Empty &&
@@ -298,7 +298,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private Task<string?> ValidateRequestAsync(UpdateEmergencyObservationDetailRequest request, CancellationToken cancellationToken)
             => ValidateRequestAsync((CreateEmergencyObservationDetailRequest)request, cancellationToken);
 
-        private static EmergencyObservationDetailResponse ToResponse(TrxEmergencyObservationDetail x)
+        private static EmergencyObservationDetailResponse ToResponse(EmgObservationDetail x)
         {
             return new EmergencyObservationDetailResponse
             {

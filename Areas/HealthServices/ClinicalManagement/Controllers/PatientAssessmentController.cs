@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
@@ -262,9 +263,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            var queue = await _dbContext.Set<TrxQueue>()
-                .Include(x => x.Encounter)
-                .FirstAsync(x => x.Id == request.QueueId && x.EncounterId == request.EncounterId && !x.IsDelete);
+            // Dua asal data yang setara. Pasien poli membawa baris antrean; pasien IGD tidak
+            // pernah punya satu pun, sehingga identitas klinisnya diambil dari encounter.
+            // BE-IGD-027, FR-IGD-061.
+            var queue = request.QueueId.HasValue
+                ? await _dbContext.Set<TrxQueue>()
+                    .Include(x => x.Encounter)
+                    .FirstAsync(x =>
+                        x.Id == request.QueueId.Value &&
+                        x.EncounterId == request.EncounterId &&
+                        !x.IsDelete)
+                : null;
+
+            var encounter = queue?.Encounter ?? await _dbContext.Set<TrxPatientEncounter>()
+                .FirstAsync(x => x.Id == request.EncounterId && !x.IsDelete);
 
             var calculated = CalculateAssessmentValues(request);
 
@@ -274,12 +286,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             {
                 Id = Guid.NewGuid(),
                 AssessmentNumber = await GenerateAssessmentNumberAsync(now),
-                EncounterId = queue.EncounterId,
-                QueueId = queue.Id,
-                PatientId = queue.PatientId,
-                ServiceUnitId = queue.ServiceUnitId,
-                ClinicId = queue.ClinicId,
-                DoctorId = queue.DoctorId,
+                EncounterId = encounter.Id,
+                QueueId = queue?.Id,
+                PatientId = queue?.PatientId ?? encounter.PatientId,
+                ServiceUnitId = queue?.ServiceUnitId ?? encounter.ServiceUnitId,
+                ClinicId = queue?.ClinicId ?? encounter.ClinicId,
+                DoctorId = queue?.DoctorId ?? encounter.DoctorId,
                 AssessmentDateTime = now,
                 AssessmentStatus = request.CompleteImmediately
                     ? PatientAssessmentStatus.Completed
@@ -632,10 +644,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(
             CreatePatientAssessmentRequest request)
         {
+            if (!request.QueueId.HasValue || request.QueueId.Value == Guid.Empty)
+                return await ValidateCreateWithoutQueueAsync(request);
+
             var queue = await _dbContext.Set<TrxQueue>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x =>
-                    x.Id == request.QueueId &&
+                    x.Id == request.QueueId.Value &&
                     x.EncounterId == request.EncounterId &&
                     !x.IsDelete);
 
@@ -686,6 +701,62 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 if (editableAssessmentExists)
                     return (false, "Draft assessment untuk encounter ini sudah ada. Lanjutkan draft tersebut, bukan membuat baru.");
             }
+
+            return (true, null);
+        }
+
+        /// <summary>
+        /// Penjagaan pembuatan pengkajian <b>tanpa antrean</b>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-IGD-027</c>, requirement <c>FR-IGD-061</c>, keputusan <c>IGD-DEC-068</c>.
+        ///
+        /// <para>
+        /// Jalur ini sengaja <b>tidak</b> dibuka untuk sembarang encounter. Melepas kewajiban
+        /// antrean tanpa syarat berarti pengkajian rawat jalan dapat dibuat melewati screening
+        /// — penjagaan yang justru menjadi alasan kolom antrean ada. Karena itu jalur tanpa
+        /// antrean hanya terbuka bagi encounter yang punya kunjungan IGD.
+        /// </para>
+        ///
+        /// <para>
+        /// Syaratnya diperiksa lewat kunjungan IGD, <b>bukan</b> lewat
+        /// <c>EncounterType.Emergency</c>. Sebabnya <c>IGD-DEC-109</c>: seluruh kunjungan IGD
+        /// lama bertipe <c>Outpatient</c> dan migration penggantinya belum diterapkan, sehingga
+        /// menyaring dengan jenis encounter akan menutup pengkajian bagi pasien IGD yang sudah
+        /// terdaftar hari ini.
+        /// </para>
+        /// </remarks>
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateWithoutQueueAsync(
+            CreatePatientAssessmentRequest request)
+        {
+            var encounterExists = await _dbContext.Set<TrxPatientEncounter>()
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == request.EncounterId && !x.IsDelete);
+
+            if (!encounterExists)
+                return (false, "Encounter tidak ditemukan.");
+
+            var isEmergencyEncounter = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .AnyAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete);
+
+            if (!isEmergencyEncounter)
+            {
+                return (false, "Pengkajian tanpa antrean hanya untuk pasien IGD. " +
+                               "Untuk pasien poli, buat pengkajian dari baris antreannya.");
+            }
+
+            var editableAssessmentExists = await _dbContext.Set<TrxPatientAssessment>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.EncounterId == request.EncounterId &&
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    (x.AssessmentStatus == PatientAssessmentStatus.Draft ||
+                     x.AssessmentStatus == PatientAssessmentStatus.InProgress));
+
+            if (editableAssessmentExists)
+                return (false, "Draft assessment untuk encounter ini sudah ada. Lanjutkan draft tersebut, bukan membuat baru.");
 
             return (true, null);
         }
@@ -1076,6 +1147,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 FallRiskStatus = x.FallRiskStatus,
                 NutritionRiskStatus = x.NutritionRiskStatus,
                 FunctionalStatus = x.FunctionalStatus,
+
+                NurseNote = x.NurseNote,
 
                 StartedAt = x.StartedAt,
                 CompletedAt = x.CompletedAt,
