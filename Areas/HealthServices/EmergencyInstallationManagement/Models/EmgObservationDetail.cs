@@ -5,8 +5,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models
 {
-    [Table("TrxEmergencyObservationDetail", Schema = "public")]
-    public class TrxEmergencyObservationDetail : IdentityModel
+    [Table("EmgObservationDetail", Schema = "public")]
+    public class EmgObservationDetail : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -45,7 +45,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public bool IsActive { get; set; } = true;
 
-        public TrxEmergencyObservation? EmergencyObservation { get; set; }
+        public EmgObservation? EmergencyObservation { get; set; }
 
         public TrxPatientVitalSign? PatientVitalSign { get; set; }
 

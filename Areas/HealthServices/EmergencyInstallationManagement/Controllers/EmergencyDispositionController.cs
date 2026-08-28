@@ -73,7 +73,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         )
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
-            IQueryable<TrxEmergencyDisposition> query = _dbContext.Set<TrxEmergencyDisposition>()
+            IQueryable<EmgDisposition> query = _dbContext.Set<EmgDisposition>()
                 .AsNoTracking()
                 .Include(x => x.DispositionType)
                 .Include(x => x.DestinationServiceUnit)
@@ -149,7 +149,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyDisposition", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyDisposition>()
+            var entity = await _dbContext.Set<EmgDisposition>()
                 .AsNoTracking()
                 .Include(x => x.DispositionType)
                 .Include(x => x.DestinationServiceUnit)
@@ -176,7 +176,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            var entity = new TrxEmergencyDisposition
+            var entity = new EmgDisposition
             {
                 Id = Guid.NewGuid(),
                 EmergencyVisitId = request.EmergencyVisitId,
@@ -207,7 +207,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 IsCancel = false
             };
 
-            _dbContext.Set<TrxEmergencyDisposition>().Add(entity);
+            _dbContext.Set<EmgDisposition>().Add(entity);
             try
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -238,7 +238,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyDisposition", "Update")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmergencyDispositionRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyDisposition>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgDisposition>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data tindak lanjut IGD tidak ditemukan."));
 
@@ -306,7 +306,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyDisposition", "Update")]
         public async Task<IActionResult> UpdateDispositionStatus(Guid id, [FromBody] UpdateEmergencyDispositionDispositionStatusRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyDisposition>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgDisposition>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data tindak lanjut IGD tidak ditemukan."));
 
@@ -332,7 +332,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             // yang terlanjur berstatus Executed sementara kunjungannya tidak ikut pindah.
             if (request.DispositionStatus == EmergencyDispositionStatus.Executed)
             {
-                var visit = await _dbContext.Set<TrxEmergencyVisit>().FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
+                var visit = await _dbContext.Set<EmgVisit>().FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
 
                 if (!_emergencyVisitService.TryApplyVisitStatus(
                         visit, EmergencyVisitStatus.Disposed, actorUserId, now, out var penolakanStatusKunjungan))
@@ -385,7 +385,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyDisposition", "Delete")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyDisposition>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgDisposition>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data tindak lanjut IGD tidak ditemukan."));
 
@@ -428,7 +428,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (request.IsPatientDeceased && !request.DeathDateTime.HasValue)
                 return "DeathDateTime wajib diisi ketika pasien dinyatakan meninggal.";
 
-            if (!await _dbContext.Set<TrxEmergencyVisit>().AsNoTracking().AnyAsync(x => x.Id == request.EmergencyVisitId && !x.IsDelete, cancellationToken))
+            if (!await _dbContext.Set<EmgVisit>().AsNoTracking().AnyAsync(x => x.Id == request.EmergencyVisitId && !x.IsDelete, cancellationToken))
                 return "EmergencyVisitId tidak ditemukan.";
 
             if (!await _dbContext.Set<EmgDispositionType>().AsNoTracking().AnyAsync(x => x.Id == request.DispositionTypeId && !x.IsDelete, cancellationToken))
@@ -465,7 +465,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// dari data yang baru saja dikirimnya sendiri.
         /// </summary>
         private async Task LoadDispositionNamesAsync(
-            TrxEmergencyDisposition entity,
+            EmgDisposition entity,
             CancellationToken cancellationToken)
         {
             var entry = _dbContext.Entry(entity);
@@ -482,7 +482,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 await entry.Reference(x => x.DecidedByDoctor).LoadAsync(cancellationToken);
         }
 
-        private static EmergencyDispositionResponse ToResponse(TrxEmergencyDisposition x)
+        private static EmergencyDispositionResponse ToResponse(EmgDisposition x)
         {
             return new EmergencyDispositionResponse
             {

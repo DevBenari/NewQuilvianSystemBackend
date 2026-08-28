@@ -135,7 +135,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public bool IsActive { get; set; } = true;
 
-        public TrxEmergencyVisit? EmergencyVisit { get; set; }
+        public EmgVisit? EmergencyVisit { get; set; }
 
         public MstServiceUnit? FromServiceUnit { get; set; }
 

@@ -118,12 +118,12 @@ public class EmergencyVisitStatusTransitionTests
             new EmergencyDocumentNumberService());
     }
 
-    private static TrxEmergencyVisit BuatKunjungan(
+    private static EmgVisit BuatKunjungan(
         EmergencyVisitStatus status,
         DateTime? updateDateTime = null,
         Guid? updateBy = null)
     {
-        return new TrxEmergencyVisit
+        return new EmgVisit
         {
             Id = Guid.NewGuid(),
             VisitStatus = status,

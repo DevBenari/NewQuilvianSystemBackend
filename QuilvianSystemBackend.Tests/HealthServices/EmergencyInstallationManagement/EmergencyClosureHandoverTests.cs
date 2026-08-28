@@ -75,7 +75,7 @@ public class EmergencyClosureHandoverTests
 
         Assert.Equal(200, KodeStatus(hasil));
 
-        var tersimpan = await context.Set<TrxEmergencyVisit>().FindAsync(visit.Id);
+        var tersimpan = await context.Set<EmgVisit>().FindAsync(visit.Id);
         Assert.Equal(EmergencyVisitStatus.Completed, tersimpan!.VisitStatus);
     }
 
