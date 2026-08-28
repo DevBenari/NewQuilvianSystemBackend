@@ -53,6 +53,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
 
         public MstProcedure? Procedure { get; set; }
 
-        public ICollection<LabSpecimen> Specimens { get; set; } = new List<LabSpecimen>();
+        public ICollection<TrxLabSpecimen> Specimens { get; set; } = new List<TrxLabSpecimen>();
     }
 }

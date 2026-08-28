@@ -1,7 +1,7 @@
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Enums;
 using QuilvianSystemBackend.Models;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models
+namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Models
 {
     /// <summary>
     /// Catatan satu revisi fakta klinis yang diserahkan ke Billing.
@@ -11,7 +11,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
     /// <see cref="MilestoneFactId"/> yang sama, sehingga riwayat penyerahan tetap utuh dan
     /// dapat diaudit.
     /// </summary>
-    public class BilClinicalMilestoneFact : IdentityModel
+    public class TrxClinicalMilestoneFact : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 

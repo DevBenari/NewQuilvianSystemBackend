@@ -241,7 +241,7 @@ kontrak yang sudah dikunci.
 |---|---|
 | `BillingSourceContract` | Perlu satu entri baru `Laboratory` dengan `LaboratoryCharge`. Hari ini `Laboratory` **sengaja ditolak**, dan penolakan itu punya test sendiri di `ClinicalMilestoneFactProducerTests` |
 | `ClinicalMilestoneFactProducer` | **Tidak perlu diubah.** Producer sudah generik terhadap `SourceContext` |
-| `BilClinicalMilestoneFact` | **Tidak perlu diubah.** `SourceItemId` sudah tersedia untuk identitas sampel |
+| `TrxClinicalMilestoneFact` | **Tidak perlu diubah.** `SourceItemId` sudah tersedia untuk identitas sampel |
 | `BillingFolioService` | **Tidak perlu diubah** |
 | Pembatalan setelah `Accepted` (`D-15`) | Sudah tertangani. Jalur "fakta versi baru lalu folio `ReviewRequired`, tagihan asli utuh" yang dibangun `BE-002` berlaku sama |
 | Test yang harus disesuaikan | Test yang menegaskan `Laboratory` **ditolak** akan berubah maknanya menjadi `Laboratory` **diterima** |
@@ -254,7 +254,7 @@ sisi Laboratorium, ringan di sisi Billing.
 | Perubahan | Alasan |
 |---|---|
 | Tambah kolom status, waktu, pelaku, alasan, dan `Version` pada `LabOrder` | `D-01`, `D-11` |
-| Tabel baru `LabSpecimen` | `D-02`, `D-04`, `D-05`, `D-09` |
+| Tabel baru `TrxLabSpecimen` | `D-02`, `D-04`, `D-05`, `D-09` |
 | Tabel baru riwayat perpindahan status | `D-11` |
 | Master data alasan penolakan | `D-08`, tergantung jawaban `RJ-BIL-OQ-009` |
 | Pengisian data lama | Sesuai `I-01`, menunggu persetujuan |

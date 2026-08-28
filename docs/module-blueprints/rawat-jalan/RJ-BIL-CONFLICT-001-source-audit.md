@@ -4,11 +4,8 @@
 |---|---|
 | Blocker | `RJ-BIL-CONFLICT-001` |
 | Jenis pekerjaan | Source audit, **read-only** |
-| Tanggal audit awal | `2026-08-24` |
-| Terakhir diverifikasi ulang | `2026-08-24`, setelah `RJ-BIL-BE-002` dan `RJ-BIL-BE-003` |
-| Revisi dokumen | `2` |
-| Backend commit audit awal | `36456ead5d8d116e5631aef859df3d55b0ec7e81` cabang `sukmagp` |
-| Backend commit verifikasi ulang | `6b25e6049e60e055593968abe463262b59842527` cabang `sukmagp` |
+| Tanggal | `2026-08-24` |
+| Backend commit | `36456ead5d8d116e5631aef859df3d55b0ec7e81` cabang `sukmagp` |
 | Frontend commit | `29422c83eaf6fd231cbb72f2ba04e306367934e1` cabang `QuilvianDevV2` |
 | Source aplikasi diubah | `TIDAK` |
 | Migration dijalankan | `TIDAK` |
@@ -69,7 +66,7 @@ pernyataan "sistem belum mendukung patient responsibility" menjadi tidak akurat.
 | Migration | `Migrations/20260602173235_changeEncounterPatientEntity.cs` | index | Baris `2099-2108`: index atas `EncounterId, CoveragePriority, IsDelete` dan `EncounterId, IsPrimary, IsActive, IsDelete` | `FACT` — model lama mendukung banyak guarantor berprioritas |
 | Migration | `Migrations/20260712123508_initializePrescriptionComponent.cs` | drop | `44` `DropColumn` pada `TrxPatientEncounterGuarantor`, plus drop index `CoveragePriority` dan `IsPrimary` | `FACT` — multi-payer dibongkar |
 | Enum yatim | `.../Enums/PatientEncounterGuarantorRole.cs` | seluruh isi | `Primary`, `Secondary`, `Tertiary`, `ExcessPayer`, `CoPaymentPayer`, `Backup`; dipakai `0` file selain definisinya | `FACT` — sisa desain yang dihapus |
-| Perhitungan | `Areas/HealthServices/ClinicalManagement/Services/InsuranceCoverageService.cs` | `InsuranceCoverageResult` | Baris `755-764`: `CoveragePercent`, `CoveredAmount`, `PatientPayAmount`, `CoPaymentAmount` | `FACT` — split dua pihak dihitung |
+| Perhitungan | `Areas/HealthServices/ClinicalManagement/Services/InsuranceCoverageService.cs` | `InsuranceCoverageResult` | Baris `760-767`: `CoveragePercent`, `CoveredAmount`, `PatientPayAmount`, `CoPaymentAmount` | `FACT` — split dua pihak dihitung |
 | Persistence | `Areas/HealthServices/ClinicalManagement/Models/TrxPatientProcedure.cs` | kolom | Baris `140-144`: `CoveragePercent`, `CoveredAmount`, `PatientPayAmount` | `FACT` — split dua pihak dipersist di lapisan klinis |
 | Persistence | `Areas/HealthServices/PharmacyManagement/Models/TrxPrescription.cs` | kolom | Baris `131-133`: `CoveredAmount`, `PatientPayAmount` | `FACT` — pola sama di farmasi |
 | Billing | `Areas/HealthServices/BillingManagement/Operational/Models/*.cs` | seluruh entity | Pencarian `Payer|Insurance|Guarantor|PaymentSource|Coverage` menghasilkan nol hasil | `FACT` — Billing tidak menyimpan payer sama sekali |
@@ -312,11 +309,11 @@ CoveredAmount dan PatientPayAmount dihitung InsuranceCoverageService lalu dipers
 klinis dan farmasi, bukan pada entity Billing.
 
 Evidence:
-Areas/HealthServices/ClinicalManagement/Services/InsuranceCoverageService.cs:755-764
+Areas/HealthServices/ClinicalManagement/Services/InsuranceCoverageService.cs:760-767
 Areas/HealthServices/ClinicalManagement/Models/TrxPatientProcedure.cs:140-144
 Areas/HealthServices/PharmacyManagement/Models/TrxPrescription.cs:131-133
 Areas/HealthServices/PharmacyManagement/Models/TrxPrescriptionCompound.cs:96-98
-Areas/HealthServices/ClinicalManagement/Controllers/PatientProcedureController.cs:539-541 (pembuatan) dan :789-791 (perubahan)
+Areas/HealthServices/ClinicalManagement/Controllers/PatientProcedureController.cs:784-785
 
 Current behavior:
 Pembagian dua pihak sudah nyata dan tersimpan, tetapi dimiliki modul klinis.
@@ -584,9 +581,8 @@ C membatasi cakupan modul secara signifikan.
 | `RJ-BIL-BE-005` | `BLOCKED` | Cakupannya adalah allocation multi-payer dan patient responsibility. Bentuk allocation bergantung pada `RJ-BIL-OQ-001`, `OQ-002`, dan `OQ-005` |
 | `RJ-BIL-BE-006` | Terdampak tidak langsung | Financial action dan approval bekerja di atas hasil allocation |
 | `RJ-BIL-BE-008` | Terdampak tidak langsung | Claim dan settlement per payer bergantung pada `OQ-007` |
-| `RJ-BIL-BE-002` | Tidak terdampak — **selesai** | Blocker-nya `RJ-BIL-CONFLICT-006`, yang sudah `CLOSED`. Konflik ini tidak pernah menahannya |
-| `RJ-BIL-BE-003` | Tidak terdampak — **selesai** | Prediksi audit awal terbukti. Lab menghasilkan fakta klinis dan tidak menyentuh alokasi finansial sama sekali |
-| `RJ-BIL-BE-004` | Tidak terdampak | Menghasilkan fakta klinis, bukan alokasi finansial |
+| `RJ-BIL-BE-002` | Tidak terdampak | Blocker-nya `RJ-BIL-CONFLICT-006`, bukan konflik ini |
+| `RJ-BIL-BE-003`, `RJ-BIL-BE-004` | Tidak terdampak | Keduanya menghasilkan fact klinis, bukan alokasi finansial |
 
 Status backlog tidak diubah oleh dokumen ini.
 
@@ -596,7 +592,7 @@ Status backlog tidak diubah oleh dokumen ini.
 
 ```text
 RJ-BIL-CONFLICT-001 STATUS:
-CONFIRMED — diverifikasi ulang pada commit 6b25e604, seluruh temuan bertahan
+CONFIRMED
 
 Source confidence:
 HIGH
@@ -605,7 +601,7 @@ Code change required now:
 NO
 
 Domain decision required:
-YES — RJ-BIL-OQ-001 s.d. OQ-007 belum dijawab
+YES
 
 BE-005 readiness:
 BLOCKED
@@ -636,83 +632,3 @@ Perlu dicatat pula bahwa `RJ-BIL-CONFLICT-001-F` beririsan dengan `RJ-BIL-CONFLI
 adalah gejala dari sebab yang sama, yaitu angka finansial yang dimiliki dan ditulis oleh modul
 klinis. Menyelesaikan keduanya secara terpisah berisiko menghasilkan dua solusi yang tidak
 sejalan.
-
-**Pembaruan revisi `2`.** Verifikasi ulang setelah `RJ-BIL-BE-002` dan `RJ-BIL-BE-003` tidak
-menggugurkan satu pun temuan, tetapi menambah satu fakta yang mempersempit masalah:
-`RJ-BIL-CONFLICT-001-F` **tidak meluas**. Modul Laboratorium yang baru dibangun sengaja tidak
-memiliki kolom tanggungan pasien, dan penyerahan fakta klinis ke Billing sengaja tidak mengirim
-angka pembagian penjamin. Pola yang benar sudah berjalan; yang tersisa adalah membersihkan tiga
-tabel warisan, dan itu menunggu `RJ-BIL-OQ-005`. Rinciannya pada bagian `14`.
-
----
-
-## 14. Verifikasi Ulang Setelah `RJ-BIL-BE-002` dan `RJ-BIL-BE-003`
-
-Audit awal dibuat pada commit `36456ead`. Sejak itu dua task selesai dan dua merge tim masuk,
-sehingga seluruh bukti diperiksa ulang pada commit `6b25e604`.
-
-### 14.1 Hasil pemeriksaan ulang
-
-| Konflik | Status semula | Status sekarang | Catatan |
-|---|---|---|---|
-| `RJ-BIL-CONFLICT-001-A` | `CONFIRMED` | `CONFIRMED` | Unique index `EncounterId` masih ada, baris `156-157` |
-| `RJ-BIL-CONFLICT-001-B` | `CONFIRMED` | `CONFIRMED` | `EncounterPaymentType` masih hanya `Cash` dan `Insurance` |
-| `RJ-BIL-CONFLICT-001-C` | `CONFIRMED` | `CONFIRMED` | Pencarian `Payer|Insurance|Guarantor|PaymentSource|Coverage` pada entity Billing Operational tetap nol hasil |
-| `RJ-BIL-CONFLICT-001-D` | `CONFIRMED` | `CONFIRMED` | Migration `20260712123508` tidak dibatalkan |
-| `RJ-BIL-CONFLICT-001-E` | `CONFIRMED` | `CONFIRMED` | `PatientEncounterGuarantorRole` masih dipakai `0` file selain definisinya |
-| `RJ-BIL-CONFLICT-001-F` | `CONFIRMED` | `CONFIRMED — tidak meluas` | Lihat bagian `14.2` |
-
-Tidak ada satu pun fakta audit awal yang gugur. Yang berubah hanya nomor baris pada tiga bukti,
-dan sudah dikoreksi pada bagian `2` dan `7`.
-
-### 14.2 Temuan baru yang membatasi `RJ-BIL-CONFLICT-001-F`
-
-Konflik `F` menyatakan angka tanggungan pasien dimiliki modul klinis, bukan Billing. Kekhawatiran
-wajar berikutnya adalah pola itu menyebar ke setiap modul penunjang baru.
-
-**Itu tidak terjadi.** `RJ-BIL-BE-003` membangun modul Laboratorium tanpa satu pun kolom
-tanggungan.
-
-| Modul | Menyimpan `CoveredAmount` / `PatientPayAmount`? | Bukti |
-|---|---|---|
-| Tindakan klinis | **Ya** | `TrxPatientProcedure.cs:140-144` |
-| Resep | **Ya** | `TrxPrescription.cs:131-133` |
-| Racikan resep | **Ya** | `TrxPrescriptionCompound.cs:96-98` |
-| **Laboratorium** | **Tidak** | `LabSpecimen.cs` — pencarian `covered|patientpay|copayment|coverage` nol hasil |
-
-Laboratorium hanya menyimpan `UnitPriceSnapshot`, yaitu tarif rujukan tanpa pembagian penjamin.
-Pembagiannya diserahkan kepada Billing.
-
-Lebih jauh, penyerahan fakta klinis yang dibangun `RJ-BIL-BE-002` **sengaja tidak mengirim**
-`CoveredAmount` maupun `PatientPayAmount` ke Billing. Pencarian kedua nama itu pada
-`Areas/HealthServices/ClinicalBillingIntegration/` dan `Areas/HealthServices/LaboratoryManagement/`
-menghasilkan nol hasil.
-
-Artinya batas yang benar sudah ditegakkan pada jalur baru, sementara jalur lama belum dibersihkan.
-
-### 14.3 Mengapa temuan ini penting bagi pemilik keputusan
-
-Sebelum verifikasi ulang, `RJ-BIL-CONFLICT-001-F` terbaca sebagai masalah yang membesar seiring
-waktu. Sekarang terbukti sebaliknya: masalahnya **terkurung pada tiga tabel warisan**, dan pola
-penggantinya sudah berjalan di produksi kode pada dua modul.
-
-Dampaknya terhadap pertanyaan terbuka:
-
-| Pertanyaan | Perubahan setelah verifikasi ulang |
-|---|---|
-| `RJ-BIL-OQ-005` — allocation berlaku pada level apa | Menjadi lebih mudah dijawab. Pola "modul klinis mengirim tarif rujukan, Billing menentukan pembagian" sudah terbukti berjalan pada Laboratorium dan tidak perlu dirancang dari nol |
-| `RJ-BIL-OQ-003` — apakah pasien otomatis penanggung sisa | Tidak berubah. Tetap memerlukan keputusan |
-| `RJ-BIL-OQ-001`, `OQ-002`, `OQ-004` | Tidak berubah. Tetap memblokir `RJ-BIL-BE-005` |
-
-### 14.4 Yang masih tidak dapat diperbaiki tanpa keputusan pemilik
-
-| Hal | Mengapa code tidak dapat memutuskannya |
-|---|---|
-| Melonggarkan unique index `EncounterId` | Menentukan apakah satu kunjungan boleh punya lebih dari satu penjamin adalah kebijakan rumah sakit, bukan kesimpulan teknis |
-| Memindahkan `CoveredAmount` dan `PatientPayAmount` dari tiga tabel warisan ke Billing | Memerlukan `RJ-BIL-OQ-005`. Memindahkannya lebih dulu berisiko harus dibongkar ulang bila bentuk allocation ternyata berbeda |
-| Menghapus empat enum yatim | Enum itu adalah satu-satunya jejak desain multi-payer yang dihapus. Menghapusnya menutup bukti sebelum `T-01` dijawab |
-| Membangun entity allocation di Billing | Cakupan `RJ-BIL-BE-005`, dan bentuknya ditentukan `OQ-001`, `OQ-002`, `OQ-005` |
-
-Keempatnya bukan pekerjaan yang tertunda karena kurang waktu. Keempatnya tertunda karena
-jawabannya memang belum ada, dan menebaknya akan menghasilkan angka tagihan yang salah bagi
-pasien nyata.
