@@ -74,8 +74,8 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             Type[] modelLaboratorium =
             {
                 typeof(LabOrder),
-                typeof(TrxLabSpecimen),
-                typeof(TrxLabTransitionHistory),
+                typeof(LabSpecimen),
+                typeof(LabTransitionHistory),
                 typeof(MstLabRejectionReason)
             };
 

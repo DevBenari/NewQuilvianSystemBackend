@@ -9,7 +9,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.D
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Enums;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 
@@ -120,7 +120,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.
                         cancellationToken);
                 }
 
-                var fact = new TrxClinicalMilestoneFact
+                var fact = new BilClinicalMilestoneFact
                 {
                     Id = Guid.NewGuid(),
                     SourceContext = normalized.SourceContext,
@@ -155,7 +155,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.
 
                 try
                 {
-                    _dbContext.Set<TrxClinicalMilestoneFact>().Add(fact);
+                    _dbContext.Set<BilClinicalMilestoneFact>().Add(fact);
                     await _dbContext.SaveChangesAsync(cancellationToken);
                 }
                 catch (Exception exception) when (IsUniqueViolation(exception))
@@ -224,7 +224,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.
         {
             public ClinicalFactEmissionResult? ShortCircuit { get; init; }
 
-            public TrxClinicalMilestoneFact? RedispatchExisting { get; init; }
+            public BilClinicalMilestoneFact? RedispatchExisting { get; init; }
 
             public bool SuppressDispatch { get; init; }
         }
@@ -234,7 +234,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.
         /// Seluruh kebijakan pembatalan author (CASE A, CASE B, CASE C) diputuskan di sini.
         /// </summary>
         private static EmissionDecision DecideNextStep(
-            TrxClinicalMilestoneFact? latest,
+            BilClinicalMilestoneFact? latest,
             ClinicalMilestoneKind milestoneKind,
             string fingerprint)
         {
@@ -305,7 +305,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.
         }
 
         private async Task<ClinicalFactEmissionResult> DispatchAsync(
-            TrxClinicalMilestoneFact fact,
+            BilClinicalMilestoneFact fact,
             ClinicalMilestoneFactRequest normalized,
             Guid actorUserId,
             ClinicalFactEmissionKind successKind,
@@ -389,7 +389,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.
         {
             // Dibaca ulang karena BillingFolioService dapat membersihkan change tracker ketika
             // menangani konflik concurrency.
-            var fact = await _dbContext.Set<TrxClinicalMilestoneFact>()
+            var fact = await _dbContext.Set<BilClinicalMilestoneFact>()
                 .FirstOrDefaultAsync(x => x.Id == clinicalMilestoneFactId, cancellationToken);
 
             if (fact == null)
@@ -494,11 +494,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.
                 fact.BillingOutcomeMessage);
         }
 
-        private async Task<TrxClinicalMilestoneFact?> FindLatestFactAsync(
+        private async Task<BilClinicalMilestoneFact?> FindLatestFactAsync(
             ClinicalMilestoneFactRequest request,
             CancellationToken cancellationToken)
         {
-            return await _dbContext.Set<TrxClinicalMilestoneFact>()
+            return await _dbContext.Set<BilClinicalMilestoneFact>()
                 .AsNoTracking()
                 .Where(x => x.SourceContext == request.SourceContext &&
                             x.SourceAggregateId == request.SourceAggregateId &&

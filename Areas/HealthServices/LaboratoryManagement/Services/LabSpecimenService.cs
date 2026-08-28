@@ -113,7 +113,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            var nextSequence = await _dbContext.TrxLabSpecimens
+            var nextSequence = await _dbContext.LabSpecimens
                 .Where(x => x.LabOrderId == order.Id && !x.IsDelete)
                 .Select(x => (int?)x.SpecimenSequence)
                 .MaxAsync(cancellationToken) ?? 0;
@@ -430,7 +430,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 actorUserId,
                 now);
 
-            var nextSequence = await _dbContext.TrxLabSpecimens
+            var nextSequence = await _dbContext.LabSpecimens
                 .Where(x => x.LabOrderId == order.Id && !x.IsDelete)
                 .Select(x => (int?)x.SpecimenSequence)
                 .MaxAsync(cancellationToken) ?? 0;
@@ -604,7 +604,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             Guid labOrderId,
             CancellationToken cancellationToken = default)
         {
-            return await _dbContext.TrxLabSpecimens
+            return await _dbContext.LabSpecimens
                 .AsNoTracking()
                 .Where(x => x.LabOrderId == labOrderId && !x.IsDelete)
                 .OrderBy(x => x.SpecimenSequence)
@@ -636,7 +636,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             Guid labOrderId,
             CancellationToken cancellationToken = default)
         {
-            return await _dbContext.TrxLabTransitionHistories
+            return await _dbContext.LabTransitionHistories
                 .AsNoTracking()
                 .Where(x => x.LabOrderId == labOrderId)
                 .OrderBy(x => x.OccurredAt)
@@ -684,18 +684,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// pesanannya sendiri dibatalkan. Mengembalikan sampel yang sebelumnya sudah dinyatakan
         /// layak agar pemanggil dapat menerbitkan fakta pembatalannya setelah penyimpanan.
         /// </summary>
-        internal async Task<List<TrxLabSpecimen>> CancelAllForOrderInMemoryAsync(
+        internal async Task<List<LabSpecimen>> CancelAllForOrderInMemoryAsync(
             LabOrder order,
             string? reason,
             Guid actorUserId,
             DateTime now,
             CancellationToken cancellationToken)
         {
-            var specimens = await _dbContext.TrxLabSpecimens
+            var specimens = await _dbContext.LabSpecimens
                 .Where(x => x.LabOrderId == order.Id && !x.IsDelete)
                 .ToListAsync(cancellationToken);
 
-            var previouslyAccepted = new List<TrxLabSpecimen>();
+            var previouslyAccepted = new List<LabSpecimen>();
 
             foreach (var specimen in specimens)
             {
@@ -712,7 +712,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         internal async Task<ClinicalFactEmissionResult> EmitClinicalCancellationAsync(
-            TrxLabSpecimen specimen,
+            LabSpecimen specimen,
             LabOrder order,
             Guid actorUserId,
             CancellationToken cancellationToken)
@@ -730,7 +730,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         private async Task<ClinicalFactEmissionResult> EmitChargeEligibilityAsync(
-            TrxLabSpecimen specimen,
+            LabSpecimen specimen,
             LabOrder order,
             Guid actorUserId,
             CancellationToken cancellationToken)
@@ -755,7 +755,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// penjamin sengaja tidak disertakan karena kepemilikannya ada pada Billing.
         /// </summary>
         private static ClinicalMilestoneFactRequest BuildFactRequest(
-            TrxLabSpecimen specimen,
+            LabSpecimen specimen,
             LabOrder order,
             DateTime occurredAt,
             bool includeTariffSnapshot)
@@ -792,7 +792,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             };
         }
 
-        private async Task<TrxLabSpecimen> CreateSpecimenAsync(
+        private async Task<LabSpecimen> CreateSpecimenAsync(
             LabOrder order,
             MstProcedure procedure,
             MstTariff? tariff,
@@ -805,7 +805,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             DateTime now,
             CancellationToken cancellationToken)
         {
-            var specimen = new TrxLabSpecimen
+            var specimen = new LabSpecimen
             {
                 Id = Guid.NewGuid(),
                 LabOrderId = order.Id,
@@ -828,7 +828,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 CreateBy = actorUserId
             };
 
-            _dbContext.TrxLabSpecimens.Add(specimen);
+            _dbContext.LabSpecimens.Add(specimen);
 
             AppendHistory(
                 order,
@@ -925,7 +925,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
         private void CancelSpecimenInMemory(
             LabOrder order,
-            TrxLabSpecimen specimen,
+            LabSpecimen specimen,
             string? reason,
             Guid actorUserId,
             DateTime now)
@@ -960,7 +960,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// </summary>
         internal void AppendHistory(
             LabOrder order,
-            TrxLabSpecimen? specimen,
+            LabSpecimen? specimen,
             LabTransitionScope scope,
             string action,
             string? fromStatus,
@@ -970,7 +970,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             Guid actorUserId,
             DateTime occurredAt)
         {
-            _dbContext.TrxLabTransitionHistories.Add(new TrxLabTransitionHistory
+            _dbContext.LabTransitionHistories.Add(new LabTransitionHistory
             {
                 Id = Guid.NewGuid(),
                 LabOrderId = order.Id,
@@ -1001,9 +1001,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             return order;
         }
 
-        private async Task<TrxLabSpecimen> LoadSpecimenAsync(Guid specimenId, CancellationToken cancellationToken)
+        private async Task<LabSpecimen> LoadSpecimenAsync(Guid specimenId, CancellationToken cancellationToken)
         {
-            var specimen = await _dbContext.TrxLabSpecimens
+            var specimen = await _dbContext.LabSpecimens
                 .Include(x => x.LabOrder)
                 .FirstOrDefaultAsync(x => x.Id == specimenId && !x.IsDelete, cancellationToken);
 
@@ -1061,13 +1061,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         private static string GenerateSpecimenBarcode() =>
             $"LSP-{Guid.NewGuid():N}".ToUpperInvariant();
 
+        /// <summary>
+        /// Mengambil identitas petugas dari klaim pengguna, dan menolak bekerja bila identitas
+        /// itu tidak dapat ditentukan.
+        ///
+        /// Penolakan ini penting dan bukan kehati-hatian berlebihan. Sebelumnya method ini
+        /// mengembalikan <c>Guid.Empty</c> secara diam-diam ketika klaim hilang atau rusak.
+        /// Akibatnya sampel tetap berhasil dinyatakan layak — <c>DecidedByUserId</c> terisi
+        /// <c>Guid.Empty</c>, riwayat transisi mencatat pelaku kosong — sementara penyerahan
+        /// fakta ke Billing ditolak sebagai <c>CLIN_FACT_ACTOR_INVALID</c>. Hasil akhirnya:
+        /// pemeriksaan dikerjakan, tagihannya tidak pernah terbentuk, dan tidak ada satu pun
+        /// pesan galat yang sampai ke petugas.
+        ///
+        /// Cacat ini ditemukan pada RJ-BIL-BE-007 ketika test RJ-BIL-BE-003 dijalankan untuk
+        /// pertama kalinya terhadap database sungguhan.
+        /// </summary>
         private Guid GetCurrentUserId()
         {
             var user = _httpContextAccessor.HttpContext?.User;
             var value = user?.FindFirstValue(ClaimTypes.NameIdentifier) ??
                         user?.FindFirstValue("user_id");
 
-            return Guid.TryParse(value, out var userId) ? userId : Guid.Empty;
+            if (!Guid.TryParse(value, out var userId) || userId == Guid.Empty)
+            {
+                throw new InvalidOperationException(
+                    "Identitas petugas tidak dapat ditentukan dari sesi yang sedang berjalan. " +
+                    "Tindakan laboratorium tidak dijalankan, karena tindakan tanpa pelaku yang " +
+                    "diketahui tidak dapat dipertanggungjawabkan dan tagihannya akan ditolak " +
+                    "Billing tanpa sepengetahuan petugas.");
+            }
+
+            return userId;
         }
     }
 
@@ -1076,7 +1100,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
     /// tindakan tersebut memang menerbitkan fakta.
     /// </summary>
     public sealed record LabSpecimenActionResult(
-        TrxLabSpecimen Specimen,
+        LabSpecimen Specimen,
         ClinicalFactEmissionResult? Handoff);
 
     /// <summary>

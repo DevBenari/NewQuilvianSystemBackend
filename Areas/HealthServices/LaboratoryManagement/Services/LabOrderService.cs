@@ -458,13 +458,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             }
         }
 
+        /// <summary>
+        /// Menolak bekerja bila identitas petugas tidak dapat ditentukan, dengan alasan yang
+        /// sama seperti pada <c>LabSpecimenService</c>: pesanan laboratorium tanpa pelaku yang
+        /// diketahui tidak dapat dipertanggungjawabkan, dan pembatalannya menerbitkan fakta
+        /// koreksi ke Billing yang akan ditolak tanpa sepengetahuan petugas.
+        /// </summary>
         private Guid GetCurrentUserId()
         {
             var user = _httpContextAccessor.HttpContext?.User;
             var value = user?.FindFirstValue(ClaimTypes.NameIdentifier) ??
                         user?.FindFirstValue("user_id");
 
-            return Guid.TryParse(value, out var userId) ? userId : Guid.Empty;
+            if (!Guid.TryParse(value, out var userId) || userId == Guid.Empty)
+            {
+                throw new InvalidOperationException(
+                    "Identitas petugas tidak dapat ditentukan dari sesi yang sedang berjalan. " +
+                    "Tindakan laboratorium tidak dijalankan.");
+            }
+
+            return userId;
         }
 
         private static LabOrderDetailResponse MapDetailResponse(LabOrder entity, MstProcedure? procedure)

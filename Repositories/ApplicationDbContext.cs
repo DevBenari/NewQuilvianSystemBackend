@@ -7,7 +7,6 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Mo
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -574,7 +573,13 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilChargeLine> BilChargeLines { get; set; }
         public DbSet<BilChargeComponent> BilChargeComponents { get; set; }
         public DbSet<BilProcessingEffect> BilProcessingEffects { get; set; }
-        public DbSet<TrxClinicalMilestoneFact> TrxClinicalMilestoneFacts { get; set; }
+        public DbSet<BilClinicalMilestoneFact> BilClinicalMilestoneFacts { get; set; }
+        public DbSet<BilReconciliationCase> BilReconciliationCases { get; set; }
+        public DbSet<MstBillingReconciliationPolicy> MstBillingReconciliationPolicies { get; set; }
+        public DbSet<BilFinancialActionRequest> BilFinancialActionRequests { get; set; }
+        public DbSet<BilFinancialApproval> BilFinancialApprovals { get; set; }
+        public DbSet<BilFolioClosureHistory> BilFolioClosureHistories { get; set; }
+        public DbSet<MstBillingApprovalPolicy> MstBillingApprovalPolicies { get; set; }
         public DbSet<MstProcedure> MstProcedures { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
@@ -651,9 +656,9 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<LabOrder> LabOrders { get; set; }
 
-        public DbSet<TrxLabSpecimen> TrxLabSpecimens { get; set; }
+        public DbSet<LabSpecimen> LabSpecimens { get; set; }
 
-        public DbSet<TrxLabTransitionHistory> TrxLabTransitionHistories { get; set; }
+        public DbSet<LabTransitionHistory> LabTransitionHistories { get; set; }
 
         public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }
 

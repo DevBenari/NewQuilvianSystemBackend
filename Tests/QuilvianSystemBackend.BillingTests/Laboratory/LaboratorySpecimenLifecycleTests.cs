@@ -91,7 +91,7 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             await specimenService.CollectAsync(planned.Specimen.Id, new CollectLabSpecimenRequest());
             await specimenService.ReceiveAsync(planned.Specimen.Id, new ReceiveLabSpecimenRequest());
 
-            var jumlahFakta = await context.TrxClinicalMilestoneFacts
+            var jumlahFakta = await context.BilClinicalMilestoneFacts
                 .CountAsync(x => x.EncounterId == seed.EncounterId);
 
             var jumlahFolio = await context.BilFolios
@@ -178,7 +178,7 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             Assert.DoesNotContain(spUrin.Id, idKomponenTertagih);
 
             // Nilai rujukan yang diserahkan ke Billing berjumlah Rp350.000, bukan Rp450.000.
-            var totalRujukan = await context.TrxLabSpecimens
+            var totalRujukan = await context.LabSpecimens
                 .Where(x => x.LabOrderId == order.Id && x.SpecimenStatus == LabSpecimenStatus.Accepted)
                 .SumAsync(x => x.UnitPriceSnapshot ?? 0m);
 
@@ -206,7 +206,7 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             Assert.Null(hasil.Handoff);
             Assert.Equal(LabSpecimenStatus.Rejected, hasil.Specimen.SpecimenStatus);
 
-            var adaFakta = await context.TrxClinicalMilestoneFacts
+            var adaFakta = await context.BilClinicalMilestoneFacts
                 .AnyAsync(x => x.SourceItemId == specimen.Id);
 
             Assert.False(adaFakta);
@@ -307,7 +307,7 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
                 asli.Id,
                 new RequestLabRecollectionRequest { Cause = LabRecollectionCause.InternalHospitalError });
 
-            var sampelAsli = await context.TrxLabSpecimens.AsNoTracking()
+            var sampelAsli = await context.LabSpecimens.AsNoTracking()
                 .FirstAsync(x => x.Id == asli.Id);
 
             // Sampel yang ditolak tidak dihapus dan alasan penolakannya tidak ditimpa.
@@ -321,7 +321,7 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             Assert.Equal(LabSpecimenStatus.Planned, pengganti.Specimen.SpecimenStatus);
 
             // Riwayat penolakan tetap terbaca setelah pengambilan ulang.
-            var riwayat = await context.TrxLabTransitionHistories.AsNoTracking()
+            var riwayat = await context.LabTransitionHistories.AsNoTracking()
                 .Where(x => x.LabSpecimenId == asli.Id)
                 .Select(x => x.Action)
                 .ToListAsync();
@@ -476,7 +476,7 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
             Assert.Single(hasil.BillingHandoffs);
             Assert.Equal(2, hasil.BillingHandoffs[0].MilestoneFactVersion);
 
-            var statusSampel = await context.TrxLabSpecimens.AsNoTracking()
+            var statusSampel = await context.LabSpecimens.AsNoTracking()
                 .Where(x => x.LabOrderId == order.Id)
                 .Select(x => x.SpecimenStatus)
                 .ToListAsync();
@@ -504,24 +504,48 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
 
             var specimen = await SampaiDiterimaAsync(specimenService, order.Id);
 
-            // Dua context terpisah mewakili dua petugas yang memuat baris yang sama lalu
-            // menyimpannya bersamaan.
+            // Dua context terpisah mewakili dua petugas yang membuka sampel yang sama.
             await using var contextA = _fixture.CreateContext();
             await using var contextB = _fixture.CreateContext();
 
             var layananA = CreateSpecimenService(contextA);
             var layananB = CreateSpecimenService(contextB);
 
+            // Petugas kedua membuka layarnya lebih dulu, sehingga context-nya sudah memegang
+            // baris berversi lama. Tanpa langkah ini konflik versi tidak pernah terbentuk:
+            // service memuat ulang sampel di dalam pemanggilannya, sehingga petugas kedua akan
+            // membaca keadaan terbaru dan yang menolak adalah penjaga status, bukan penjaga
+            // versi. Yang hendak dibuktikan test ini justru penjaga versinya.
+            var terbukaDiLayarPetugasKedua = await contextB.LabSpecimens
+                .FirstOrDefaultAsync(x => x.Id == specimen.Id);
+
+            Assert.NotNull(terbukaDiLayarPetugasKedua);
+            var versiSaatDibuka = terbukaDiLayarPetugasKedua!.Version;
+
+            // Petugas pertama menyimpan lebih dulu dan menaikkan versi baris.
             await layananA.AcceptAsync(specimen.Id, new AcceptLabSpecimenRequest());
 
-            // Petugas kedua memegang versi lama, sehingga penyimpanannya harus ditolak.
+            // Petugas kedua menyimpan sambil memegang versi lama, sehingga harus ditolak.
             var galat = await Assert.ThrowsAsync<LabConcurrencyException>(() =>
-                layananB.RejectAsync(specimen.Id, new RejectLabSpecimenRequest
-                {
-                    ReasonCode = "LABELING_ISSUE"
-                }));
+                layananB.AcceptAsync(specimen.Id, new AcceptLabSpecimenRequest()));
 
             Assert.Contains("diubah oleh petugas lain", galat.Message);
+
+            // Bagian terpenting: keputusan ganda tidak boleh menghasilkan tagihan ganda.
+            await using var verify = _fixture.CreateContext();
+
+            var barisTagihan = await verify.BilChargeLines
+                .Where(x => x.SourceContext == "Laboratory" && x.SourceItemId == specimen.Id)
+                .ToListAsync();
+
+            Assert.Single(barisTagihan);
+
+            var tersimpan = await verify.LabSpecimens.FirstAsync(x => x.Id == specimen.Id);
+
+            Assert.Equal(LabSpecimenStatus.Accepted, tersimpan.SpecimenStatus);
+            Assert.True(
+                tersimpan.Version > versiSaatDibuka,
+                "Versi baris seharusnya naik setelah petugas pertama menyimpan.");
         }
 
         // =====================================================================
@@ -612,10 +636,22 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
         // Pembantu
         // =====================================================================
 
+        /// <summary>
+        /// Identitas petugas yang dipakai seluruh service pada test ini.
+        ///
+        /// Nilainya diambil dari encounter yang baru saja dibuat, sehingga merupakan pengguna
+        /// yang benar-benar ada di database. Tanpa ini, service mengambil identitas dari klaim
+        /// pada HTTP context yang kosong, mendapat <c>Guid.Empty</c>, dan seluruh penyerahan
+        /// fakta ke Billing ditolak sebagai <c>CLIN_FACT_ACTOR_INVALID</c> sebelum satu pun
+        /// perilaku domain sempat diuji.
+        /// </summary>
+        private Guid _actorUserId = Guid.NewGuid();
+
         private async Task<EncounterSeed> NewEncounterAsync()
         {
             var seed = await _fixture.SeedEncounterAsync();
             _seeds.Add(seed);
+            _actorUserId = seed.ActorUserId;
             return seed;
         }
 
@@ -626,16 +662,16 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
                     context,
                     new BillingFolioService(context),
                     BillingTestDatabaseFixture.CreateLoggerService()),
-                new HttpContextAccessor(),
+                BillingTestDatabaseFixture.CreateHttpContextAccessor(_actorUserId),
                 BillingTestDatabaseFixture.CreateLoggerService());
 
-        private static LabOrderService CreateOrderService(
+        private LabOrderService CreateOrderService(
             ApplicationDbContext context,
             LabSpecimenService specimenService) =>
             new(
                 context,
                 specimenService,
-                new HttpContextAccessor(),
+                BillingTestDatabaseFixture.CreateHttpContextAccessor(_actorUserId),
                 BillingTestDatabaseFixture.CreateLoggerService());
 
         private async Task<MstProcedure> SeedLabProcedureAsync(
@@ -714,7 +750,7 @@ namespace QuilvianSystemBackend.BillingTests.Laboratory
         /// Membawa satu sampel baru sampai berstatus Received, yaitu tepat satu langkah
         /// sebelum milestone kelayakan tagih.
         /// </summary>
-        private static async Task<TrxLabSpecimen> SampaiDiterimaAsync(
+        private static async Task<LabSpecimen> SampaiDiterimaAsync(
             LabSpecimenService service,
             Guid labOrderId,
             Guid? procedureId = null)

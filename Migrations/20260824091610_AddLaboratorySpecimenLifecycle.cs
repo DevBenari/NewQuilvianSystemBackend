@@ -104,7 +104,7 @@ namespace QuilvianSystemBackend.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "TrxLabSpecimen",
+                name: "LabSpecimen",
                 schema: "public",
                 columns: table => new
                 {
@@ -149,39 +149,39 @@ namespace QuilvianSystemBackend.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TrxLabSpecimen", x => x.Id);
+                    table.PrimaryKey("PK_LabSpecimen", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TrxLabSpecimen_LabOrder_LabOrderId",
+                        name: "FK_LabSpecimen_LabOrder_LabOrderId",
                         column: x => x.LabOrderId,
                         principalSchema: "public",
                         principalTable: "LabOrder",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TrxLabSpecimen_MstLabRejectionReason_RejectionReasonId",
+                        name: "FK_LabSpecimen_MstLabRejectionReason_RejectionReasonId",
                         column: x => x.RejectionReasonId,
                         principalSchema: "public",
                         principalTable: "MstLabRejectionReason",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TrxLabSpecimen_MstProcedure_ProcedureId",
+                        name: "FK_LabSpecimen_MstProcedure_ProcedureId",
                         column: x => x.ProcedureId,
                         principalSchema: "public",
                         principalTable: "MstProcedure",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TrxLabSpecimen_TrxLabSpecimen_SupersededSpecimenId",
+                        name: "FK_LabSpecimen_LabSpecimen_SupersededSpecimenId",
                         column: x => x.SupersededSpecimenId,
                         principalSchema: "public",
-                        principalTable: "TrxLabSpecimen",
+                        principalTable: "LabSpecimen",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "TrxLabTransitionHistory",
+                name: "LabTransitionHistory",
                 schema: "public",
                 columns: table => new
                 {
@@ -211,23 +211,23 @@ namespace QuilvianSystemBackend.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TrxLabTransitionHistory", x => x.Id);
+                    table.PrimaryKey("PK_LabTransitionHistory", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TrxLabTransitionHistory_LabOrder_LabOrderId",
+                        name: "FK_LabTransitionHistory_LabOrder_LabOrderId",
                         column: x => x.LabOrderId,
                         principalSchema: "public",
                         principalTable: "LabOrder",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TrxLabTransitionHistory_TrxLabSpecimen_LabSpecimenId",
+                        name: "FK_LabTransitionHistory_LabSpecimen_LabSpecimenId",
                         column: x => x.LabSpecimenId,
                         principalSchema: "public",
-                        principalTable: "TrxLabSpecimen",
+                        principalTable: "LabSpecimen",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_TrxLabTransitionHistory_TrxPatientEncounter_EncounterId",
+                        name: "FK_LabTransitionHistory_TrxPatientEncounter_EncounterId",
                         column: x => x.EncounterId,
                         principalSchema: "public",
                         principalTable: "TrxPatientEncounter",
@@ -250,58 +250,58 @@ namespace QuilvianSystemBackend.Migrations
                 filter: "\"IsDelete\" = false");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TrxLabSpecimen_LabOrderId_SpecimenSequence",
+                name: "IX_LabSpecimen_LabOrderId_SpecimenSequence",
                 schema: "public",
-                table: "TrxLabSpecimen",
+                table: "LabSpecimen",
                 columns: new[] { "LabOrderId", "SpecimenSequence" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_TrxLabSpecimen_ProcedureId",
+                name: "IX_LabSpecimen_ProcedureId",
                 schema: "public",
-                table: "TrxLabSpecimen",
+                table: "LabSpecimen",
                 column: "ProcedureId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TrxLabSpecimen_RejectionReasonId",
+                name: "IX_LabSpecimen_RejectionReasonId",
                 schema: "public",
-                table: "TrxLabSpecimen",
+                table: "LabSpecimen",
                 column: "RejectionReasonId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TrxLabSpecimen_SpecimenBarcode",
+                name: "IX_LabSpecimen_SpecimenBarcode",
                 schema: "public",
-                table: "TrxLabSpecimen",
+                table: "LabSpecimen",
                 column: "SpecimenBarcode",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_TrxLabSpecimen_SpecimenStatus",
+                name: "IX_LabSpecimen_SpecimenStatus",
                 schema: "public",
-                table: "TrxLabSpecimen",
+                table: "LabSpecimen",
                 column: "SpecimenStatus");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TrxLabSpecimen_SupersededSpecimenId",
+                name: "IX_LabSpecimen_SupersededSpecimenId",
                 schema: "public",
-                table: "TrxLabSpecimen",
+                table: "LabSpecimen",
                 column: "SupersededSpecimenId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TrxLabTransitionHistory_EncounterId",
+                name: "IX_LabTransitionHistory_EncounterId",
                 schema: "public",
-                table: "TrxLabTransitionHistory",
+                table: "LabTransitionHistory",
                 column: "EncounterId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TrxLabTransitionHistory_LabOrderId_OccurredAt",
+                name: "IX_LabTransitionHistory_LabOrderId_OccurredAt",
                 schema: "public",
-                table: "TrxLabTransitionHistory",
+                table: "LabTransitionHistory",
                 columns: new[] { "LabOrderId", "OccurredAt" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_TrxLabTransitionHistory_LabSpecimenId",
+                name: "IX_LabTransitionHistory_LabSpecimenId",
                 schema: "public",
-                table: "TrxLabTransitionHistory",
+                table: "LabTransitionHistory",
                 column: "LabSpecimenId");
 
             SeedRejectionReasons(migrationBuilder);
@@ -363,11 +363,11 @@ namespace QuilvianSystemBackend.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "TrxLabTransitionHistory",
+                name: "LabTransitionHistory",
                 schema: "public");
 
             migrationBuilder.DropTable(
-                name: "TrxLabSpecimen",
+                name: "LabSpecimen",
                 schema: "public");
 
             migrationBuilder.DropTable(

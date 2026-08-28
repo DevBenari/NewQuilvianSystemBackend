@@ -48,13 +48,13 @@ memutuskan apakah tagihan itu dikoreksi, dikurangi, atau dibatalkan.
 
 | Keputusan | Isi | Pelaksanaan |
 |---|---|---|
-| `RJ-BIL-OQ-008` | Kelayakan tagih dinilai per sampel/komponen pemeriksaan | Tarif komponen melekat pada `TrxLabSpecimen.ProcedureId`; fakta diterbitkan per sampel dengan `SourceItemId = Specimen.Id` |
+| `RJ-BIL-OQ-008` | Kelayakan tagih dinilai per sampel/komponen pemeriksaan | Tarif komponen melekat pada `LabSpecimen.ProcedureId`; fakta diterbitkan per sampel dengan `SourceItemId = Specimen.Id` |
 | `RJ-BIL-OQ-008` | `Requested`, `Collected`, `Received` bukan pemicu tagihan | Hanya `AcceptAsync` yang memanggil `EmitChargeEligibilityAsync`; tiga langkah lainnya tidak menerbitkan apa pun |
 | `RJ-BIL-OQ-008` | `Rejected` menghasilkan nol tagihan | `RejectAsync` mengembalikan `Handoff = null` tanpa menyentuh Billing |
 | `RJ-BIL-OQ-008` | Kesalahan internal tidak menambah tanggungan pasien | Pengambilan ulang menghasilkan sampel baru; sampel lama ditolak dan tidak pernah menagih, sehingga totalnya tetap satu tagihan |
 | `RJ-BIL-OQ-009` | Katalog alasan yang dapat dikonfigurasi, bukan enum permanen | Master data `MstLabRejectionReason` berisi `10` kode baseline; penambahan alasan tidak memerlukan perubahan program |
 | `RJ-BIL-OQ-009` | `OTHER` mewajibkan catatan | Kolom `RequiresNote` bernilai benar untuk `OTHER`; ditegakkan `RejectAsync` |
-| `RJ-BIL-OQ-009` | Riwayat penolakan tidak boleh ditimpa | `TrxLabTransitionHistory` hanya ditambah; tidak ada satu pun jalur update terhadapnya |
+| `RJ-BIL-OQ-009` | Riwayat penolakan tidak boleh ditimpa | `LabTransitionHistory` hanya ditambah; tidak ada satu pun jalur update terhadapnya |
 | `RJ-BIL-OQ-010` | Barcode `LSP-<32 hex>`, dibuat server, tanpa PHI | `GenerateSpecimenBarcode()` tidak menerima satu pun parameter, sehingga secara struktural tidak dapat menyisipkan identitas pasien |
 | `RJ-BIL-OQ-010` | Unik, tidak berubah, bukan kredensial | Unique index pada `SpecimenBarcode`; tidak dipakai di jalur otorisasi mana pun |
 | `RJ-BIL-OQ-010` | Pengambilan ulang memakai identitas dan barcode baru | `SupersededSpecimenId` menyimpan tautan ke sampel yang ditolak |
@@ -171,8 +171,8 @@ pembayaran, menyetujui penjamin, mem-void, mengembalikan dana, atau membalik tra
 | Berkas | Isi |
 |---|---|
 | `Areas/HealthServices/LaboratoryManagement/Enums/LaboratoryEnums.cs` | `LabOrderStatus`, `LabSpecimenStatus`, `LabRecollectionCause`, `LabTransitionScope` |
-| `…/Models/TrxLabSpecimen.cs` | Sampel sekaligus komponen pemeriksaan |
-| `…/Models/TrxLabTransitionHistory.cs` | Riwayat perpindahan status yang hanya bertambah |
+| `…/Models/LabSpecimen.cs` | Sampel sekaligus komponen pemeriksaan |
+| `…/Models/LabTransitionHistory.cs` | Riwayat perpindahan status yang hanya bertambah |
 | `…/Models/MstLabRejectionReason.cs` | Katalog alasan penolakan |
 | `…/Configurations/LaboratoryManagementConfigurations.cs` | Konfigurasi tiga entity baru |
 | `…/DTOs/LabSpecimenDtos.cs` | Request dan response alur sampel |
@@ -208,7 +208,7 @@ Arsitektur `RJ-BIL-BE-002` menahan beban `BE-003` tanpa perombakan:
 | Komponen | Perubahan |
 |---|---|
 | `ClinicalMilestoneFactProducer` | Tidak ada. Producer sudah generik terhadap `SourceContext` |
-| `TrxClinicalMilestoneFact` | Tidak ada. `SourceItemId` sudah tersedia untuk identitas sampel |
+| `BilClinicalMilestoneFact` | Tidak ada. `SourceItemId` sudah tersedia untuk identitas sampel |
 | `BillingFolioService` | Tidak ada |
 | `BillingSourceContract` | Satu entri baru |
 
@@ -218,7 +218,7 @@ Arsitektur `RJ-BIL-BE-002` menahan beban `BE-003` tanpa perombakan:
 |---|---|
 | `SourceContext` | `Laboratory` |
 | `SourceAggregateId` | `LabOrder.Id` |
-| `SourceItemId` | `TrxLabSpecimen.Id` |
+| `SourceItemId` | `LabSpecimen.Id` |
 | `EffectType` | `LaboratoryCharge` |
 
 Karena identitas tagihan di Billing tidak menyertakan nomor versi, revisi selalu jatuh ke tagihan
@@ -250,7 +250,7 @@ bersifat idempotent — persis kegagalan yang menghabiskan tiga percobaan perbai
 | Perubahan | Rincian |
 |---|---|
 | `LabOrder` bertambah kolom | `OrderStatus`, `StatusBeforeHold`, `RequestedAt`, `RequestedByUserId`, `CompletedAt`, `Version` |
-| Tabel baru | `TrxLabSpecimen`, `TrxLabTransitionHistory`, `MstLabRejectionReason` |
+| Tabel baru | `LabSpecimen`, `LabTransitionHistory`, `MstLabRejectionReason` |
 | Index | Unik pada `SpecimenBarcode`; unik parsial pada `ReasonCode`; index pencarian pada status, pesanan, encounter |
 | Foreign key | Seluruhnya `Restrict`, termasuk rantai `SupersededSpecimenId` |
 | Pengisian data | `10` alasan penolakan baseline dengan Id tetap |
@@ -291,10 +291,10 @@ riwayat akan hilang bersama tabelnya; data `LabOrder` yang sudah ada sebelum mig
 | Perlindungan mass-assignment | `PASS` | DTO tidak memuat status, barcode, versi, tarif, maupun kolom audit |
 | Tidak ada status finansial dari client | `PASS` | Client tidak dapat mengirim nilai finansial apa pun |
 | Keamanan transaksi | `PASS` | Perubahan status dan riwayatnya tersimpan dalam satu `SaveChanges` |
-| Perlindungan konkurensi | `PASS` | `Version` sebagai token konkurensi pada `LabOrder` dan `TrxLabSpecimen`; balasan `409` |
+| Perlindungan konkurensi | `PASS` | `Version` sebagai token konkurensi pada `LabOrder` dan `LabSpecimen`; balasan `409` |
 | Perlindungan pengulangan | `PASS` | `Accept` ulang menghasilkan `Replayed`, bukan revisi baru |
 | Idempotensi | `PASS` | Kunci idempotency diturunkan dari identitas, bukan waktu panggilan |
-| Jejak audit | `PASS` | `TrxLabTransitionHistory` mencatat pelaku, waktu, status asal dan tujuan, aksi, serta alasan |
+| Jejak audit | `PASS` | `LabTransitionHistory` mencatat pelaku, waktu, status asal dan tujuan, aksi, serta alasan |
 | Penanganan exception | `PASS` | Controller hanya mengembalikan pesan yang memang disusun untuk pengguna |
 | Tidak membocorkan stack trace | `PASS` | Pesan exception asli connection string sengaja tidak diteruskan |
 | Tidak ada kredensial ter-hardcode | `PASS` | Fixture tidak lagi membaca file konfigurasi; pemindaian rahasia bersih |
@@ -438,3 +438,33 @@ tersentuh task ini.
 | 2 | Keputusan `RJ-BIL-BE-002-BLOCKER-001` | Kebijakan farmasi |
 | 3 | `RJ-BIL-BE-004` Radiology | Greenfield penuh; area `RadiologyManagement` belum ada. Memerlukan owner Radiology dan Clinical Governance untuk SOP keselamatan |
 | 4 | `RJ-BIL-BE-005` | `BLOCKED` sampai `RJ-BIL-OQ-001`, `OQ-002`, `OQ-005` dijawab |
+
+---
+
+## 16. Remediasi penamaan QBE per `2026-08-26`
+
+Task ini semula dikerjakan tanpa pernah melewati `AGENTS.md` dan `docs/engineering/`. Setelah
+kontrak engineering yang sebenarnya dibaca, tiga entity terbukti melanggar `QBE-NAM-001`,
+`QBE-NAM-002`, dan `QBE-MOD-002`, lalu diperbaiki:
+
+| Sebelum | Sesudah |
+| --- | --- |
+| `TrxLabSpecimen` | `LabSpecimen` |
+| `TrxLabTransitionHistory` | `LabTransitionHistory` |
+| `TrxClinicalMilestoneFact` | `BilClinicalMilestoneFact`, berpindah ke `BillingManagement/Operational/` |
+
+Seluruh nama pada dokumen ini sudah disesuaikan. Migration Lab
+`20260824091610_AddLaboratorySpecimenLifecycle` disunting di tempat karena belum pernah
+diterapkan ke database mana pun, sehingga perbaikan tidak berbiaya data. Kedua perbaikan tangan
+pada bagian `8` — `defaultValue: 2` beserta backfill, dan seeding dengan GUID tetap — tetap utuh.
+
+Setelah remediasi: build `0 Error(s)`, `21` test murni lulus tanpa perubahan jumlah, gerbang
+fail-closed database test terbukti masih menutup pada `18` test, dan migration percobaan
+membuktikan model sudah cocok dengan snapshot pada seluruh objek yang disentuh.
+
+**`QBE-MOD-002` tetap `OPEN`.** `LaboratoryManagement / Lab` masih berstatus `PLANNED` pada
+registry. Penamaan sudah patuh, kepemilikan modul belum. Baris change log registry dengan otoritas
+bernama menunggu keputusan pemilik.
+
+Laporan lengkap:
+[task/report/backend/be-rj-bil-003-remediasi-penamaan-qbe.md](task/report/backend/be-rj-bil-003-remediasi-penamaan-qbe.md).
