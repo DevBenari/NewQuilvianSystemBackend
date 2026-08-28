@@ -8,22 +8,24 @@ Aturan utamanya adalah:
 
 > Ikuti kode yang sudah ada. Jangan menciptakan arsitektur baru.
 
-Untuk `NEW CODE`, pola source/referensi existing hanya merupakan bukti dan TIDAK BOLEH mengesampingkan Backend Engineering Contract canonical. Urutan wewenangnya adalah: (1) wewenang task/tulis eksplisit dan aturan keselamatan repository; (2) `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`; (3) `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; (4) panduan operasional `.codex` yang berlaku; (5) pola source/referensi existing. Pola legacy `Trx*`, controller yang mengakses DbContext secara langsung, Count/Max/Last+1, atau persisted `SortOrder` generik yang sebanding tidak memberi wewenang untuk menggunakan pola tersebut dalam `NEW CODE`. Terapkan legacy ratchet existing tanpa penulisan ulang massal.
+Untuk `NEW CODE`, pola source/referensi existing hanya merupakan bukti dan TIDAK BOLEH mengesampingkan Backend Engineering Contract canonical. Urutan wewenangnya adalah: (1) wewenang task/tulis eksplisit dan aturan keselamatan repository; (2) `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`; (3) `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; (4) panduan operasional `agents/rules/` yang berlaku; (5) pola source/referensi existing. Pola legacy `Trx*`, controller yang mengakses DbContext secara langsung, Count/Max/Last+1, atau persisted `SortOrder` generik yang sebanding tidak memberi wewenang untuk menggunakan pola tersebut dalam `NEW CODE`. Terapkan legacy ratchet existing tanpa penulisan ulang massal.
 
 Sebelum implementasi, periksa controller, DTO, model, service, penggunaan akses data, validasi, aturan otorisasi, workflow, konfigurasi EF, migration, dan endpoint terdekat yang sebanding sesuai kebutuhan.
 
-## Lapisan Operasional Tata Kelola Codex
+## Lapisan Operasional Tata Kelola
 
-`AGENTS.md` tetap menjadi konstitusi repository yang otoritatif. Baca dokumen berikut hanya ketika kondisinya berlaku:
+`AGENTS.md` tetap menjadi konstitusi repository yang otoritatif. Lapisan operasionalnya tinggal di dalam repository ini pada folder `agents/rules/`. Baca dokumen berikut hanya ketika kondisinya berlaku:
 
-- Setiap task implementasi: `.codex/TASK_RULES.md`
+- Setiap task implementasi: `agents/rules/TASK_RULES.md`
 - Setiap implementasi aplikasi backend: `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`
-- Klasifikasi dan pemilihan model: `.codex/TASK_CLASSIFICATION.md`
-- Task lintas repository: `.codex/CROSS_REPO_RULES.md`
-- Sebelum penyelesaian: `.codex/REVIEW_RULES.md`
-- Handoff/laporan lokal: `.codex/REPORT_TEMPLATE.md`
-- Pekerjaan API/controller/DTO/contract: `.codex/API_RULES.md`
-- Pekerjaan entity/EF/database/migration: `.codex/DATABASE_RULES.md`
+- Klasifikasi dan pemilihan model: `agents/rules/TASK_CLASSIFICATION.md`
+- Task lintas repository: `agents/rules/CROSS_REPO_RULES.md`
+- Sebelum penyelesaian: `agents/rules/REVIEW_RULES.md`
+- Handoff/laporan lokal: `agents/rules/REPORT_TEMPLATE.md`
+- Pekerjaan API/controller/DTO/contract: `agents/rules/API_RULES.md`
+- Pekerjaan entity/EF/database/migration: `agents/rules/DATABASE_RULES.md`
+
+Folder `agents/rules/` berlaku untuk agent mana pun yang mengerjakan repository ini; tidak ada lokasi aturan khusus per vendor.
 
 Dokumen-dokumen tersebut melengkapi, bukan menggantikan, aturan keselamatan, arsitektur, branch, keamanan, validasi, database, dan cakupan tulis khusus repository dalam file ini. Pertanyaan read-only sederhana tidak memerlukan pemuatan seluruh lapisan operasional.
 
@@ -44,7 +46,6 @@ Sebelum mengubah source aplikasi backend, tentukan Area, Module, owner/prefix re
 - Repository: `NewQuilvianSystemBackend`
 - Branch development aktif ditentukan per module atau work item oleh pemegang modul yang tercatat dalam `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, atau melalui instruksi task/blueprint yang secara eksplisit telah disetujui oleh pemegang tersebut.
 - Upstream yang diharapkan: `origin/<active-development-branch>`.
-- `AgentCodexBackend` bukan branch wajib untuk seluruh repository dan tidak boleh mengesampingkan branch yang ditetapkan pemegang modul.
 - Repository referensi frontend: `QuilvianSystemFrontendDev` (temukan dari konteks workspace yang diberi wewenang; laporkan dependency yang hilang alih-alih menebak path).
 
 Sebelum implementasi aplikasi backend, verifikasi branch dan upstream backend saat ini menggunakan command Git read-only, wewenang task/tulis, keadaan Git yang bersih atau dapat dipulihkan, serta kesesuaiannya dengan branch yang ditetapkan pemegang modul atau task/blueprint yang disetujui. Jika penetapan branch yang otoritatif tidak tersedia, berhenti dan minta penetapannya. Jika branch atau upstream saat ini berbeda dari penetapan tersebut, ketidaksesuaian itu adalah blocker. Jangan menciptakan nama branch atau mengganti branch secara otomatis.
@@ -180,7 +181,7 @@ Jangan menjalankan hosted service, scheduler, atau aplikasi backend kecuali task
 
 ## Keselamatan Rahasia dan Konfigurasi
 
-Jangan pernah mengekspos atau menempatkan password, API key, connection string, token, private key, SMTP credential, user-secret value, maupun konfigurasi sensitif lainnya dalam laporan, source comment, respons Codex, atau Git commit.
+Jangan pernah mengekspos atau menempatkan password, API key, connection string, token, private key, SMTP credential, user-secret value, maupun konfigurasi sensitif lainnya dalam laporan, source comment, respons agent, atau Git commit.
 
 Ketika pemeriksaan konfigurasi diperlukan, laporkan struktur dan nama key saja. Jangan mencetak nilai secret dari `appsettings*`, user secrets, environment variable, konfigurasi deployment, atau material data-protection.
 
@@ -241,7 +242,7 @@ Laporkan temuan di luar cakupan tanpa mengubahnya.
 
 ## Keselamatan Git
 
-Codex tidak boleh otomatis melakukan commit, push, pull, merge, rebase, switch branch, reset, force checkout, stash, atau cherry-pick. Jangan melakukan stage file, membuat pull request, atau deployment kecuali task secara eksplisit meminta operasi terpisah tersebut.
+Agent tidak boleh otomatis melakukan commit, push, pull, merge, rebase, switch branch, reset, force checkout, stash, atau cherry-pick. Jangan melakukan stage file, membuat pull request, atau deployment kecuali task secara eksplisit meminta operasi terpisah tersebut.
 
 Selalu periksa `git status --short` pada akhir implementasi dan bedakan perubahan yang dibuat task saat ini dari perubahan pengguna yang sudah ada sebelumnya. Jangan pernah membuang atau menimpa pekerjaan yang tidak terkait.
 
@@ -255,7 +256,7 @@ Sebelum menjalankan test, periksa apakah project test yang relevan tersedia. Jan
 
 Untuk task implementasi:
 
-1. Ikuti referensi governance kondisional di atas, dimulai dari `.codex/TASK_RULES.md`.
+1. Ikuti referensi governance kondisional di atas, dimulai dari `agents/rules/TASK_RULES.md`.
 2. Jaga task tetap terbatas dan terapkan seluruh aturan khusus repository dalam file ini.
 3. Laporkan file yang berubah, validasi aktual, keadaan migration, risiko, dan `git status --short`.
 

@@ -1,6 +1,13 @@
-# Template Laporan Task Codex
+# Template Laporan Task Claude
 
-Pakai struktur ini untuk laporan task tracked di `docs/module-blueprints/<module-slug>/task/report/<backend|frontend>/<TASK-ID>.md`. Catat bukti saja; jangan menuliskan nilai rahasia.
+Pakai struktur ini untuk laporan task tracked di `docs/module-blueprints/<module-slug>/task/report/backend/<TASK-ID>.md`. Catat bukti saja; jangan menuliskan nilai rahasia.
+
+> **Jangan tertukar dengan laporan task modul.** Template ini mengatur handoff sesi yang
+> **tidak** terlacak Git. Laporan task yang terlacak — yang ditunjuk roadmap dan
+> `requirement-traceability.md` — punya jalur dan bentuknya sendiri di
+> [rules/rule-output/lokasi-laporan-task.md](../rule-output/lokasi-laporan-task.md):
+> `docs/module-blueprints/<module-slug>/task/report/backend/` atau `.../frontend/`. Keduanya
+> berlaku bersamaan dan tidak saling menggantikan.
 
 Nama field dan nilai statusnya sengaja dipertahankan dalam bahasa Inggris karena keduanya adalah kunci kontrak laporan yang dibaca lintas repository. Keterangan setiap field ada pada tabel di bawah.
 
@@ -41,7 +48,7 @@ Nama field dan nilai statusnya sengaja dipertahankan dalam bahasa Inggris karena
 | `TASK TYPE` | Jenis pekerjaan yang dikerjakan |
 | `COMPLEXITY` | Hasil klasifikasi: `LIGHT`, `MEDIUM`, `HEAVY`, atau `EPIC` |
 | `CLASSIFICATION SCORE` | Total skor dari model penilaian di `TASK_CLASSIFICATION.md` |
-| `MODEL` | Model yang dipakai mengerjakan task |
+| `MODEL` | Model Claude yang dipakai mengerjakan task, misalnya `Claude Sonnet 5` atau `Claude Opus 5` |
 | `TASK MODE` | Mode task yang berlaku, misalnya `AUDIT` atau `MODULE BLUEPRINT` |
 | `WRITE TARGET` | Repository dan jalur yang boleh ditulis |
 | `FILES INSPECTED` | Berkas yang diperiksa |

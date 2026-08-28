@@ -1,4 +1,4 @@
-# Aturan Task Codex
+# Aturan Task Claude
 
 Dokumen ini menetapkan siklus kerja yang berulang untuk pekerjaan implementasi. `AGENTS.md` tetap menjadi konstitusi repository yang berwenang; pengaman khusus repository selalu didahulukan.
 
@@ -13,7 +13,7 @@ Dokumen ini menetapkan siklus kerja yang berulang untuk pekerjaan implementasi. 
 4. **IMPLEMENT** — kerjakan hanya perubahan yang diberi wewenang, mengikuti arsitektur yang ada dan pola terdekat.
 5. **VALIDATE** — validasi dengan perintah yang sepadan dengan perubahannya dan dengan kebutuhan repository; catat hasil perintah yang sebenarnya.
 6. **REVIEW** — review diff dan kriteria penyelesaian memakai `REVIEW_RULES.md`.
-7. **REPORT** — tulis laporan task tracked memakai `REPORT_TEMPLATE.md` ke `docs/module-blueprints/<module-slug>/task/report/backend/<TASK-ID>.md` untuk task backend atau `task/report/frontend/<TASK-ID>.md` untuk task frontend.
+7. **REPORT** — tulis laporan task tracked memakai `REPORT_TEMPLATE.md` ke `docs/module-blueprints/<module-slug>/task/report/backend/<TASK-ID>.md` pada repository backend yang memuat blueprint.
 
 ## Efisiensi konteks
 

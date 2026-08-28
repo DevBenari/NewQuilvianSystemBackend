@@ -49,5 +49,6 @@ Task EPIC tidak pernah langsung dikerjakan: `STOP → DECOMPOSE → klasifikasik
 
 ## Panduan model
 
-- **GPT-5.6 Terra** adalah model bawaan.
-- **GPT-5.6 Sol** hanya untuk eskalasi pada task HEAVY yang benar-benar sulit, setelah task tersebut dibatasi scope-nya.
+- **Claude Sonnet 5** adalah model bawaan.
+- **Claude Opus 5** hanya untuk eskalasi pada task HEAVY yang benar-benar sulit, setelah task tersebut dibatasi scope-nya.
+- Naikkan kedalaman penalaran lebih dulu sebelum menaikkan model. Eskalasi model adalah langkah terakhir, bukan langkah pertama.
