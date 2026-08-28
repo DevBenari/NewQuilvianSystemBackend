@@ -11,7 +11,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid EncounterId { get; set; }
         public string EncounterNumber { get; set; } = string.Empty;
 
-        public Guid QueueId { get; set; }
+        /// <summary>
+        /// Antrean asal pengkajian. <c>null</c> untuk pengkajian pasien IGD, yang memang tidak
+        /// pernah berantre (<c>BE-IGD-026</c>).
+        /// </summary>
+        public Guid? QueueId { get; set; }
         public string QueueCode { get; set; } = string.Empty;
 
         public Guid PatientId { get; set; }
@@ -83,6 +87,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public NutritionRiskStatus NutritionRiskStatus { get; set; }
         public FunctionalStatus FunctionalStatus { get; set; }
 
+        /// <summary>
+        /// Catatan perawat, sengaja ikut pada respons <b>daftar</b> dan bukan hanya detail.
+        /// </summary>
+        /// <remarks>
+        /// Riwayat Assesmen Awal pada layar pengkajian IGD menampilkan kolom ini langsung
+        /// dari hasil daftar, tanpa membuka detail satu per satu. Selama properti ini hanya
+        /// ada di <see cref="PatientAssessmentDetailResponse"/>, kolom tersebut selalu kosong
+        /// meskipun datanya tersimpan utuh di basis data.
+        /// </remarks>
+        public string? NurseNote { get; set; }
+
         public DateTime? StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
 
@@ -124,7 +139,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? FunctionalNote { get; set; }
         public string? PsychosocialNote { get; set; }
         public string? EducationNote { get; set; }
-        public string? NurseNote { get; set; }
 
         public Guid? CompletedByUserId { get; set; }
         public string? CompletedByUserName { get; set; }
@@ -140,8 +154,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [Required]
         public Guid EncounterId { get; set; }
 
-        [Required]
-        public Guid QueueId { get; set; }
+        /// <summary>
+        /// Antrean asal pengkajian. <b>Boleh kosong</b> sejak <c>BE-IGD-027</c>: pasien IGD
+        /// tidak punya baris antrean, sehingga pengkajiannya dibentuk dari encounter.
+        /// </summary>
+        /// <remarks>
+        /// Jalur rawat jalan <b>tidak berubah</b> — bila kolom ini terisi, seluruh penjagaan
+        /// antrean yang lama tetap berlaku persis seperti sebelumnya. Jalur tanpa antrean
+        /// hanya terbuka untuk encounter yang punya kunjungan IGD.
+        /// </remarks>
+        public Guid? QueueId { get; set; }
 
         [MaxLength(500)]
         public string? ChiefComplaint { get; set; }
@@ -406,7 +428,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid Id { get; set; }
         public string AssessmentNumber { get; set; } = string.Empty;
         public Guid EncounterId { get; set; }
-        public Guid QueueId { get; set; }
+        /// <summary>
+        /// Antrean asal pengkajian. <c>null</c> untuk pengkajian pasien IGD, yang memang tidak
+        /// pernah berantre (<c>BE-IGD-026</c>).
+        /// </summary>
+        public Guid? QueueId { get; set; }
         public PatientAssessmentStatus AssessmentStatus { get; set; }
         public DateTime AssessmentDateTime { get; set; }
         public DateTime? CompletedAt { get; set; }
@@ -430,7 +456,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid Id { get; set; }
         public string AssessmentNumber { get; set; } = string.Empty;
         public Guid EncounterId { get; set; }
-        public Guid QueueId { get; set; }
+        /// <summary>
+        /// Antrean asal pengkajian. <c>null</c> untuk pengkajian pasien IGD, yang memang tidak
+        /// pernah berantre (<c>BE-IGD-026</c>).
+        /// </summary>
+        public Guid? QueueId { get; set; }
         public PatientAssessmentStatus AssessmentStatus { get; set; }
         public DateTime? CompletedAt { get; set; }
         public Guid? CompletedByUserId { get; set; }

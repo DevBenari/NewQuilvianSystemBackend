@@ -144,11 +144,12 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Reuse** | Endpoint `PATCH /beds/{id}/status` yang **sudah ada** di backend. **Tidak ada perubahan backend sama sekali** |
 | **Scope** | `src/lib/state/slice/health-services/master-data/master-data-bed-slice.jsx` baris 315–322 dan 334–341 |
 | **Dependency** | — |
-| **Wewenang UI** | Tidak ada. Ini perbaikan pemanggilan, bukan perubahan tampilan |
+| **Wewenang UI** | Semula "tidak ada, ini perbaikan pemanggilan". **Diperluas 26 Agustus 2026** oleh pemilik pekerjaan setelah terbukti tombolnya memang belum pernah ada di layar, sehingga perbaikan pemanggilan saja tidak dapat memenuhi Outcome |
 | **Acceptance criteria** | 1. Tombol aktifkan memanggil `PATCH /beds/{id}/status`, bukan `/activate`. 2. Tombol nonaktifkan memanggil endpoint yang sama, bukan `/deactivate`. 3. Keduanya berhasil dan status di layar berubah tanpa muat ulang halaman. 4. Tidak ada lagi permintaan yang mengembalikan 404 dari layar ini |
 | **Verification** | Unit test atau e2e pada slice tempat tidur — **wajib**, karena hari ini tidak ada satu pun test yang menyentuh layar bed. Periksa jaringan dan pastikan tidak ada 404 |
 | **Risk/blocker** | Ini prasyarat lintas repository. `BE-RWI-006` **tidak boleh** rilis sebelum task ini rilis. Koordinasikan urutannya, jangan asumsikan. Owner: Frontend bersama Backend/API |
 | **DoD** | Dua pemanggilan diperbaiki; keempat kriteria lulus; test baru ada dan lulus; laporan menyatakan tidak ada perubahan backend |
+| **Status** | ✅ **Selesai, menunggu rilis.** Keempat kriteria lulus dengan bukti: e2e di browser sungguhan mencatat satu PATCH ke `/{id}/status` berisi `{"isActive":false}`, label tombol dan baris status berubah tanpa muat ulang halaman, dan nol respons 404. `lint:errors`, `test:unit` 19/19, dan `build` lulus. Dua celah yang semula tidak tercatat ikut ditutup: tombolnya memang belum pernah ada di layar, dan form Perbarui diam-diam mengaktifkan ulang tempat tidur nonaktif. Perubahan **masih lokal, belum di-commit** ([laporan](../task/report/frontend/FE-RWI-001.md)) |
 
 ---
 
@@ -166,6 +167,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | Uji jelajah route yang sudah ada untuk membuktikan tidak ada yang rusak; pemeriksaan kode untuk kriteria 1 dan 4 |
 | **Risk/blocker** | Kriteria 4 penting: ruang kerja antrean dokter berputar pada `queueId`, sedangkan pasien rawat inap **tidak punya antrean**. Menyalinnya akan membawa masalah yang sama yang membuat `DEC-INP-001` terhenti. Owner: Frontend |
 | **DoD** | Kerangka berdiri; keempat kriteria lulus; route lama terbukti utuh |
+| **Status** | ✅ **Selesai, sudah di-commit** (`75d174db2`). Tujuh base URL kontrak berdiri di atas satu pembungkus `ApiResponse`, state terdaftar di store, route `/health-services/inpatient-management` terbaca pada keluaran `npm run build`, dan menu Rawat Inap muncul. Empat test fondasi lulus ([laporan](../task/report/frontend/FE-RWI-002.md)) |
 
 ---
 
@@ -183,6 +185,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e satu jalur berhasil dan satu jalur gagal; pemeriksaan visibilitas menu per peran |
 | **Risk/blocker** | Kriteria 4 berlaku untuk **seluruh** layar pada roadmap ini dan disebut di sini pertama kali. Layar yang mengosongkan formulir setiap kali server menolak akan membuat petugas mengetik ulang berkali-kali. Owner: Frontend |
 | **DoD** | Layar selesai; keempat kriteria lulus; test e2e ada |
+| **Status** | 🟡 **Layar selesai, tiga dari empat kriteria lulus.** Kriteria 1, 3, dan 4 terbukti lewat e2e di browser sungguhan; kriteria 4 diuji balik dengan mutasi. Kriteria 2 baru separuh: penolakan server sudah memunculkan layar Akses Ditolak, tetapi **menu tidak dapat disembunyikan per peran** karena `filter-menu-items-by-role.jsx` tidak menyaring apa pun dan frontend tidak punya data hak akses per butir. `lint:errors` dan `build` lulus ([laporan](../task/report/frontend/FE-RWI-003.md)) |
 
 ---
 
@@ -200,6 +203,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e enam kemampuan; test kode kembar |
 | **Risk/blocker** | Butir `DISCHARGE-MED` bawaan bertanda **tidak wajib** karena modul Farmasi di luar scope. Layar tidak boleh menyarankan bahwa penandaannya otomatis. Owner: Frontend bersama Product/Domain |
 | **DoD** | Layar selesai; keempat kriteria lulus; test e2e ada |
+| **Status** | 🟡 **Layar selesai, tiga dari empat kriteria lulus.** Keenam kemampuan dijalankan berurutan di browser sungguhan dan dicocokkan dengan permintaan yang benar-benar terkirim ke keenam endpoint kontrak; penanda **Wajib**/**Tidak wajib** terbaca sebagai kata pada daftar; kode kembar ditolak 409 dengan kalimat server apa adanya tanpa menghapus isian. Kriteria 4 mewarisi kekurangan `FE-RWI-003`: menu belum dapat disembunyikan per peran. `lint:errors` dan `build` lulus ([laporan](../task/report/frontend/FE-RWI-004.md)) |
 
 ---
 
@@ -217,6 +221,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e satu jalur normal; pemeriksaan kode untuk kriteria 1 |
 | **Risk/blocker** | Kriteria 1 adalah aturan keras. Aturan Kelayakan Penempatan yang bercabang dua — satu di server, satu di layar — akan berselisih dalam hitungan minggu, dan yang di layar akan kalah benar. Owner: Frontend |
 | **DoD** | Layar selesai; kelima kriteria lulus; terbukti tidak ada logika penyaringan kedua di frontend |
+| **Status** | 🟡 **Layar selesai, kelima kriteria lulus.** Papan berkelompok per unit layanan dan kamar; tempat tidur yang tidak dapat dipakai tetap tampil sebagai baris redup beserta alasan tertulis; hanya yang diloloskan `/available-beds` yang dapat dipilih. Ketiadaan aturan kelayakan kedua dibuktikan test kode: `isForMale`, `requiresIsolation`, dan kata gender tidak muncul sama sekali pada layar. Tersisa satu hal di luar kendali task: gerbang kesiapan data master `RWI-DEC-063` masih terbuka, sehingga papan belum diuji dengan data nyata ([laporan](../task/report/frontend/FE-RWI-005.md)) |
 
 ---
 
@@ -234,6 +239,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e satu jalur berhasil dan tiga jalur gagal; test pengiriman ganda |
 | **Risk/blocker** | Kriteria 3 adalah alasan kenapa penetapan isolasi diletakkan di layar admisi, bukan hanya di detail episode: menyetelnya setelah tempat tidur dipilih berarti pilihannya sudah telanjur salah. Owner: Frontend |
 | **DoD** | Layar selesai; kelima kriteria lulus; test e2e ada |
+| **Status** | ✅ **Selesai.** Kelima kriteria lulus lewat enam e2e di browser sungguhan: admisi tanpa DPJP ditolak dengan pesan yang menyebut DPJP, kebutuhan isolasi tanpa keterangan membuat tombol simpan mati, menyetel isolasi langsung menyaring ulang tempat tidur pada layar yang sama, dua klik beruntun saat balasan ditunda tetap menghasilkan satu episode, dan isian bertahan saat server menolak ([laporan](../task/report/frontend/FE-RWI-006.md)) |
 
 ---
 
@@ -251,6 +257,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e dua petugas merebut tempat tidur yang sama; e2e penolakan jenis kelamin; e2e dua arah penolakan isolasi |
 | **Risk/blocker** | Kriteria 4 mudah terlewat karena kedua pesan berkode 422 dan panjangnya mirip, padahal artinya berlawanan. Salah satu berarti "pasien ini butuh isolasi", satunya "tempat tidur ini untuk pasien lain". Owner: Frontend |
 | **DoD** | Kelima kriteria lulus; ketiga skenario e2e ada dan lulus |
+| **Status** | ✅ **Selesai.** Ketiga skenario e2e ada dan lulus: perebutan tempat tidur (409), penolakan berlapis termasuk pencampuran kamar (422), dan kedua arah pesan isolasi. Arah pesan isolasi diturunkan dari **kode** `ISOLATION_REQUIRED` dan `ISOLATION_BED_RESERVED`, bukan dari kalimatnya, sehingga tidak mungkin tertukar walau kalimat server diperbaiki ([laporan](../task/report/frontend/FE-RWI-007.md)) |
 
 ---
 
@@ -268,6 +275,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e penyaring; **pemeriksaan payload** untuk kriteria 2 — bukan hanya memeriksa yang tampil di layar |
 | **Risk/blocker** | Kriteria 2 diperiksa pada **payload**, bukan pada tampilan. Data sensitif yang terkirim ke browser lalu disembunyikan CSS tetap bocor. Owner: Frontend bersama Security/Privacy — pemilik privasi belum ditunjuk, jadi aturan tertulis yang berlaku |
 | **DoD** | Layar selesai; kelima kriteria lulus; pemeriksaan payload terlampir |
+| **Status** | ✅ **Selesai.** Kelima kriteria lulus lewat tiga e2e di browser sungguhan beserta delapan test unit. Kriteria 2 dibuktikan pada **payload**: e2e menangkap body jawaban `GET /census` yang sampai ke browser dan memastikan tidak satu pun dari sembilan kolom klinis ada di sana, ditambah lapis kedua berupa daftar kolom yang diizinkan yang menjatuhkan kolom di luar `CensusItemResponse` sebelum data masuk pohon React ([laporan](../task/report/frontend/FE-RWI-008.md)) |
 
 ---
 
@@ -285,6 +293,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e visibilitas tombol untuk empat kombinasi: admisi+`Draft`, admisi+`Admitted`, DPJP aktif, dokter lain |
 | **Risk/blocker** | Ini **satu-satunya** tombol pada modul yang kewenangannya berpindah mengikuti status episode. Mesin hak akses menjawab `SetIsolation` dengan "boleh" untuk petugas admisi **dan** dokter mana pun; yang membedakan dijaga service lewat `GUARD-INP-04`. Layar yang hanya membaca hak akses akan menampilkan tombol yang pasti ditolak server. Owner: Frontend |
 | **DoD** | Layar selesai; kelima kriteria lulus; keempat kombinasi e2e lulus |
+| **Status** | ✅ **Selesai.** Keempat kombinasi e2e lulus — admisi+`Draft`, admisi+`Admitted`, DPJP aktif, dan dokter lain — dan kedua keterangan yang berlawanan arah diperiksa tidak tertukar. Lokasi terkini terbukti dibaca dari riwayat penempatan: server tiruan sengaja mengisi kolom `currentLocation` episode dengan nilai berbeda, dan nilai itu tidak muncul sama sekali di layar ([laporan](../task/report/frontend/FE-RWI-009.md)) |
 
 ---
 
@@ -302,6 +311,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e tombol nonaktif bagi dokter bukan DPJP — membuktikan `GUARD-INP-01` terlihat di layar; e2e penolakan pencampuran lewat jalur perpindahan |
 | **Risk/blocker** | Kriteria 3 mengulang pelajaran `FE-RWI-005`: dua daftar tempat tidur yang berbeda akan berselisih, dan jalur perpindahan justru yang paling sering dipakai petugas terburu-buru. Owner: Frontend |
 | **DoD** | Layar selesai; kelima kriteria lulus; kedua skenario e2e lulus |
+| **Status** | ✅ **Selesai.** Kedua skenario e2e lulus: tombol pindah nonaktif bagi dokter yang bukan DPJP — lengkap dengan tombol pilih tempat tidur yang tidak dirender sehingga tidak ada jalan memutar — dan penolakan pencampuran kamar lewat jalur perpindahan yang menampilkan kalimat server apa adanya. Daftar tempat tidur tujuan memakai hook dan komponen papan yang sama persis dengan layar penempatan ([laporan](../task/report/frontend/FE-RWI-010.md)) |
 
 ---
 
@@ -319,6 +329,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e per peran; e2e episode tanpa perawat yang membuktikan tidak ada tindakan tertahan |
 | **Risk/blocker** | Kriteria 4 mudah dikerjakan terbalik menjadi peringatan yang memblokir. `RWI-DEC-032` memilih **tidak menahan**, karena penugasan perawat sering menyusul beberapa menit setelah pasien tiba. Owner: Frontend |
 | **DoD** | Layar selesai; keempat kriteria lulus; test e2e ada |
+| **Status** | ✅ **Selesai.** Keempat kriteria lulus. E2E per peran membuktikan kedua aksi **tidak dirender** bagi perawat, bukan dirender lalu dinonaktifkan; e2e episode tanpa perawat membuktikan tidak satu pun tindakan tertahan, sesuai `RWI-DEC-032`. Nama peran kepala ruangan tetap **asumsi** yang disalin dari `InpatientActorClaims` dan dicatat sebagai risiko terbuka ([laporan](../task/report/frontend/FE-RWI-011.md)) |
 
 ---
 
@@ -336,6 +347,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e per peran; e2e koreksi resume yang membuktikan versi lama tetap terbaca |
 | **Risk/blocker** | Kriteria 2: cara pulang yang punya nilai bawaan akan tersimpan salah pada pasien yang petugasnya terburu-buru, dan dua di antaranya — meninggal dan kabur — aturan klinisnya bahkan **belum disahkan** pemilik klinis. Owner: Frontend bersama Product/Domain |
 | **DoD** | Layar selesai; kelima kriteria lulus; test e2e ada |
+| **Status** | 🟡 **Selesai, satu kriteria tertahan di luar frontend.** Empat kriteria lulus penuh. Kedua aksi **tidak dirender** bagi lima peran lain — termasuk supervisor dan kepala ruangan — bukan dirender lalu dinonaktifkan; resume tertandatangani terkunci bahkan bagi DPJP aktif sendiri; dua versi resume yang dikirim terbalik terbaca urut beserta nama penandatangan tiap versi; dan penjaga payload census diperluas sehingga kini mencakup ketujuh kolom isi resume, bukan enam. **Kriteria 2 baru terpenuhi sebagian:** bagian "dipilih sadar" lulus — tidak ada nilai bawaan dan permintaan tanpa pilihan ditolak sebelum dialog konfirmasi tampil — sedangkan bagian "lima cara pulang" tertahan `RWI-OQ-039` dan `RWI-DEC-059` yang berstatus `draft`, butir yang **sudah** dicatat `BE-RWI-020`. Layar menyebut kedua cara pulang yang belum tersedia beserta jalan keluar supervisornya, bukan menyembunyikannya. Perubahan **masih lokal, belum di-commit** ([laporan](../task/report/frontend/FE-RWI-012.md)) |
 
 ---
 
@@ -353,6 +365,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e per peran; e2e penandaan tanpa catatan |
 | **Risk/blocker** | Penandaan ini **manual** dan bukan cerminan tagihan sebenarnya — `RWI-RISK-003`. Layar tidak boleh memberi kesan angkanya berasal dari sistem billing. Owner: Frontend bersama Product/Domain |
 | **DoD** | Layar selesai; keempat kriteria lulus; test e2e ada |
+| **Status** | 🟡 **Selesai, satu kriteria tertahan kontrak.** Kriteria 1, 2, dan 4 lulus. Aksi penandaan **tidak dirender** bagi petugas admisi, perawat, kepala ruangan, dan DPJP; penandaan tanpa catatan ditolak dengan nol permintaan terkirim; ketiga nilai punya penjelasan bebas istilah teknis di layar. Peringatan `RWI-RISK-003` dirender tanpa syarat dan tidak hilang bahkan ketika nilainya sudah lunas. **Kriteria 3 baru terpenuhi sebagian:** kontrak `0.4.0` tidak menyediakan `GET .../financial-clearance` — method service-nya **sudah ada** di `InpDischargeService.Closure.cs:222` tetapi tidak pernah dipasang sebagai aksi controller — sehingga riwayat penandaan baru terbaca setelah ada penandaan baru dikirim dari layar itu. Layar menyatakan batasan itu apa adanya, bukan menampilkan daftar kosong yang terbaca seolah belum pernah ditandai. Satu delta lain dicatat: matriks perpindahan bagian 4 hanya mengenal dua tindakan, sehingga `Pending` terbaca tetapi tidak dapat ditandai. Perubahan **masih lokal, belum di-commit** ([laporan](../task/report/frontend/FE-RWI-013.md)) |
 
 ---
 
@@ -370,6 +383,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e penolakan yang menampilkan daftar syarat; e2e yang membuktikan tombol override **tidak ada** sebelum penolakan; e2e per peran |
 | **Risk/blocker** | Kriteria 2 adalah aturan keras, bukan preferensi tata letak. Jalan keluar yang selalu terlihat akan menjadi jalur normal dalam hitungan minggu, dan kelima syarat kehilangan arti. Owner: Frontend bersama Product/Domain |
 | **DoD** | Layar selesai; kelima kriteria lulus; ketiga skenario e2e lulus |
+| **Status** | ✅ **Selesai, kelima kriteria lulus.** Kelima syarat dirender sejak layar dibuka — bukan hanya ketika penutupan ditolak — masing-masing beserta tanda "Sudah" atau "Belum" sebagai teks, kalimat penolakan server apa adanya, dan keterangan siapa yang dapat memenuhinya. Jalan keluar supervisor **tidak dirender sama sekali** sampai penutupan biasa ditolak karena kelayakan keuangan, dan hanya bagi supervisor: e2e membuktikan supervisor tidak melihatnya walau syarat keuangan sudah terbaca "Belum" sejak layar dibuka, sedangkan petugas admisi, perawat, dan kepala ruangan tetap tidak melihatnya bahkan sesudah penolakan. Butir administrasi dapat ditandai dari layar ini, dan syarat ketiga ikut dibaca ulang sesudahnya. **Satu cacat perilaku ditemukan lewat verifikasi manual dan diperbaiki:** footer aplikasi yang berposisi `fixed` menelan penekanan tombol tutup, dan lint/test/build semuanya hijau saat itu. **Dua delta hak akses dicatat:** penandaan butir administrasi memakai `InpatientDischarge : Update` yang sama persis dengan penyusunan resume sehingga server tidak dapat menolak DPJP, dan tidak ada daftar nama peran "petugas admisi" di backend sehingga tombol tutup biasa tidak dapat disembunyikan dari perawat. Perubahan **masih lokal, belum di-commit** ([laporan](../task/report/frontend/FE-RWI-014.md)) |
 
 ---
 
@@ -387,6 +401,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e per peran; e2e yang memeriksa papan ketersediaan dan census setelah pencatatan |
 | **Risk/blocker** | Kriteria 4 melawan intuisi: pasien hilang dari census tetapi episodenya masih hidup. Layar harus membuat keadaan itu terbaca, bukan membuat petugas mengira episodenya sudah selesai. Owner: Frontend |
 | **DoD** | Layar selesai; kelima kriteria lulus; test e2e ada |
+| **Status** | 🟡 **Selesai, satu kriteria tertahan task berikutnya.** Kriteria 1, 2, 3, dan 5 lulus penuh. Aksinya **tidak dirender** bagi DPJP maupun dokter lain — permission matrix bagian 3 menuliskan dokter tanpa `RecordDeparture` — sedangkan petugas admisi, perawat, kepala ruangan, dan supervisor melihatnya. Konfirmasinya menyebut bahwa tindakan tidak dapat dibatalkan, dan detail episode dibaca ulang sebelum dialognya tampil. Sesudah pencatatan, status episode **tetap** Menunggu pulang sementara tempat tidurnya terbaca kosong pada papan ketersediaan. Episode `Admitted` ditolak di layar dengan kalimat urutan yang disalin apa adanya dari service, dan nol permintaan terkirim. **Kriteria 4 baru terpenuhi sebagian:** keterbacaannya lulus — layar menyatakan pasien hilang dari census, episodenya tetap pada daftar pantau penutupan tertunda, dan masih wajib ditutup — tetapi daftar pantau itu sendiri adalah `FE-RWI-016`, yang **kini sudah dikerjakan**: daftar penutupan tertunda ada, dan barisnya membedakan tempat tidur yang masih ditahan dari yang sudah bebas karena kepergiannya tercatat ([laporan `FE-RWI-016`](../task/report/frontend/FE-RWI-016.md)). Kriteria 4 karena itu **siap dinaikkan penuh** oleh pemilik pekerjaan. Aksinya sengaja diletakkan pada detail episode, bukan pada layar penutupan, karena perawat pelaksana tidak punya `InpatientDischarge : Read`. Perubahan **masih lokal, belum di-commit** ([laporan](../task/report/frontend/FE-RWI-015.md)) |
 
 ---
 
@@ -404,6 +419,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e keempat daftar; e2e keadaan kosong |
 | **Risk/blocker** | Kriteria 3 adalah pembeda daftar keempat dari tiga lainnya. Menyeragamkan nadanya menjadi "keterlambatan" akan membuat perawat merasa dituduh atas perubahan kondisi pasien yang bukan salahnya. Owner: Frontend bersama Clinical governance |
 | **DoD** | Layar selesai; kelima kriteria lulus; test e2e ada |
+| **Status** | ✅ **Selesai, kelima kriteria lulus.** Keempat daftar berdiri pada satu halaman bertab `/inpatient-management/monitoring`, dan kunci tiap tab sama persis dengan potongan path endpointnya. Lama keterlambatan terbaca pada ketiga daftar pertama: daftar penutupan tertunda memakai `PendingHours` **dari server** beserta ambangnya, sedangkan dua daftar lain diturunkan dari waktu yang dikirim server karena DTO-nya memang tidak punya kolom lama — delta itu dicatat, bukan ditutupi. Daftar penempatan tidak sesuai **tidak punya kolom keterlambatan sama sekali**, membawa tindakan berikutnya "Pindahkan Pasien" pada tiap baris, dan menyangkal nada tuduhan dengan kalimat yang dikunci test. Keempat daftar kosong menampilkan kalimat yang berbeda dan menjelaskan kenapa kosong. Kriteria 5 dibuktikan dua arah: **nol** permintaan selain `GET` dari halaman ini, dan alur perpindahan pada detail episode terbukti berjalan penuh sesudah keempat daftar dibuka. **Satu delta dicatat:** kolom pelaku penutupan menembus gerbang sengaja **tidak ditampilkan** sampai sumbernya diputuskan — `BE-RWI-029` bagian 6.1. Perubahan **masih lokal, belum di-commit** ([laporan](../task/report/frontend/FE-RWI-016.md)) |
 
 ---
 
@@ -421,6 +437,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e dengan selisih yang dibuat sengaja; e2e keadaan kosong |
 | **Risk/blocker** | Laporan ini adalah satu-satunya pengawas atas satu-satunya arah tulis lintas modul. Bila tidak pernah dibuka siapa pun, ia tidak berguna. Ini soal proses, bukan kode — pastikan ada peran yang bertugas membacanya. Owner: Frontend bersama Product/Domain |
 | **DoD** | Layar selesai; keempat kriteria lulus; test e2e ada |
+| **Status** | ✅ **Selesai, keempat kriteria lulus — satu dengan batas bukti yang dinyatakan.** Layar `/inpatient-management/bed-drift` menampilkan dua selisih berarah berlawanan yang dibuat sengaja, dan setiap baris menyebut **kedua** nilainya beserta sumber selisihnya. Nilai status diterjemahkan dari **angkanya**, sehingga nama enum `Available` dan `Occupied` terbukti tidak pernah sampai ke layar. Daftar kosong menampilkan keadaan kosong, bukan galat. **Kriteria 3 lulus di layar tetapi tidak dapat ditegakkan server:** `GET /monitoring/bed-drift` dijaga `InpatientMonitoring : Read` — butir yang sama persis dengan keempat daftar pantau lain, dan permission matrix bagian 3 memberikannya juga kepada petugas admisi serta kepala ruangan. Layar menutup halaman bagi keempat peran itu dan **tidak mengirim permintaan sama sekali**, tetapi batas sesungguhnya perlu butir hak akses tersendiri. "Admin" dipetakan ke `SuperAdmin`, karena peran Admin master data justru tidak punya `InpatientMonitoring : Read`. Perubahan **masih lokal, belum di-commit** ([laporan](../task/report/frontend/FE-RWI-017.md)) |
 
 ---
 
@@ -438,6 +455,7 @@ FE-RWI-019 (e2e kesiapan) — paling akhir
 | **Verification** | e2e per peran; e2e koreksi resume |
 | **Risk/blocker** | Kriteria 2 penting supaya supervisor tidak mengira episode terbuka kembali dan tempat tidurnya kembali. Sesi koreksi **tidak** mengembalikan tempat tidur dan **tidak** menambah hari rawat. Owner: Frontend |
 | **DoD** | Layar selesai; kelima kriteria lulus; test e2e ada |
+| **Status** | ✅ **Selesai, kelima kriteria lulus — satu dengan batas bukti yang dinyatakan.** Layar `/episodes/{id}/correction` berdiri, dan seluruh aksinya **tidak dirender** bagi peran selain supervisor — termasuk bagi DPJP aktif episode itu, dan termasuk tautan masuknya pada detail episode. Kriteria 2 dibuktikan dari data, bukan dari kalimat: detail episode **dibaca ulang dari server** sesudah sesi dibuka, dan statusnya terbaca tetap Sudah ditutup. Menutup sesi tanpa daftar perubahan ditolak di layar dengan kalimat servernya dan **nol** permintaan terkirim. Koreksi resume tertandatangani memunculkan peringatan versi lama, dialog konfirmasinya mengulanginya, dan sesudah tersimpan versi lamanya terbaca beserta nama penandatangan lamanya. **Kriteria 5 punya batas bukti:** kontrak `0.4.0` tidak menyediakan `GET .../correction-sessions`, sehingga sesi terbuka milik supervisor lain tidak dapat dibaca layar — penjaganya tetap server, dan layar menyatakan batas itu apa adanya. **Satu cacat perilaku ditemukan lewat verifikasi manual dan diperbaiki:** footer `fixed` menelan penekanan tombol pada dua kasus uji, pengulangan cacat yang sama dengan `FE-RWI-014`. Perubahan **masih lokal, belum di-commit** ([laporan](../task/report/frontend/FE-RWI-018.md)) |
 
 ---
 
