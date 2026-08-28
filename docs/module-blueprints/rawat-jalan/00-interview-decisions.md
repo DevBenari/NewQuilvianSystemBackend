@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `RJ-BIL-BP-001` |
-| Revision | `10` |
-| Status | `draft` |
+| Revision | `13` |
+| Status | `draft` untuk butir yang belum diberi approval formal; `RJ-BIL-GATE-DEC-001` s.d. `009` sudah `OWNER_APPROVED` lewat Approval Amendment `2026-08-20` di bagian akhir |
 | Interview mode | `Closure pass` |
 | Final accountable owner | Direksi Rumah Sakit atau pejabat eksekutif dengan delegasi formal; assignment belum dilampirkan |
 | Backend SHA | `9b26be382ce1c7f3be8555bd2d98fc0aab3d39fc` |

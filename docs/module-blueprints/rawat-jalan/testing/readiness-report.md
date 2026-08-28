@@ -19,18 +19,23 @@
 | Tanggal | `2026-08-24` |
 | **Verdict** | **`NOT_READY`** |
 
-> **Catatan penyeliaan `2026-08-27`.** Laporan ini adalah potret audit per `2026-08-24` dan
-> **tidak** ditulis ulang. Verdict `NOT_READY` **tetap berlaku**. Dua fakta pendukungnya sudah
-> berubah, dan dicatat di sini agar tidak menyesatkan pembaca:
+> **Catatan penyeliaan, dimutakhirkan `2026-08-28`.** Laporan ini adalah potret audit per
+> `2026-08-24` dan **tidak** ditulis ulang. Verdict `NOT_READY` **tetap berlaku**. Beberapa fakta
+> pendukungnya sudah berubah, dan dicatat di sini agar tidak menyesatkan pembaca:
 >
-> | Pernyataan dalam laporan ini | Keadaan per `2026-08-27` |
+> | Pernyataan dalam laporan ini | Keadaan per `2026-08-28` |
 > |---|---|
 > | `3` tabel Lab masih `(Pending)` — blocker `B-01` | Sudah diterapkan. `dotnet ef migrations list --no-build` melaporkan `0` migration `(Pending)`, di bawah otorisasi `RJ-BIL-DEC-009` |
-> | `37` test berhenti dengan `BLOCKED_BY_TEST_DB_CONFIGURATION` | Sudah dijalankan. Suite terakhir: `111` lulus, `0` gagal |
+> | `37` test berhenti dengan `BLOCKED_BY_TEST_DB_CONFIGURATION` | Sudah dijalankan. Suite terakhir: **`157` lulus, `0` gagal** |
+> | `3` dari `9` task backend selesai | **`5` dari `9`** — `RJ-BIL-BE-007` selesai `2026-08-27`, dan `RJ-BIL-BE-006` menyusul pada hari yang sama lewat `RJ-BIL-DEC-011` dan `RJ-BIL-DEC-012` |
+> | Maker-checker dan penutupan folio belum diuji | Sudah diuji lewat `46` test `RJ-BIL-BE-006`; penolakan self-approval dan gerbang penutupan terbukti |
 >
-> `RJ-BIL-BE-007` juga selesai sejak laporan ini ditulis, sehingga `4` dari `9` task backend
-> selesai, bukan `3`. Verdict baru hanya boleh diterbitkan oleh audit `verify-module-readiness`
-> yang dijalankan ulang — bukan oleh catatan ini.
+> **Yang tidak berubah, dan itulah sebabnya verdict tetap `NOT_READY`:** sign-off Finance,
+> Security/Privacy, Lab, dan Clinical Governance masih `OPEN`; `RJ-BIL-BE-004`, `005`, `008`, dan
+> `009` masih terblokir; seluruh task frontend belum dimulai; dan working tree belum di-commit.
+>
+> Verdict baru hanya boleh diterbitkan oleh audit `verify-module-readiness` yang dijalankan
+> ulang — **bukan** oleh catatan ini.
 
 ---
 

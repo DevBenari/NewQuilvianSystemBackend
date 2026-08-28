@@ -8,8 +8,10 @@ module_name: Dokter / Rawat Jalan Billing
 module_slug: rawat-jalan
 module_prefix: RJ-BIL
 repository: V2QuilvianSystemFrontendDev
-blueprint_revision: 11
 roadmap_revision: 1
+input_revisions:
+  blueprint-manifest.md: 18
+  00-interview-decisions.md: 13
 status: APPROVED_FOR_EXECUTION
 approval_gate: OWNER_APPROVED
 scope: Core internal/manual
@@ -58,8 +60,8 @@ progress: "0 dari 7 task frontend dimulai per 2026-08-27"
 | Hal | Keadaannya |
 | --- | --- |
 | Task frontend selesai | **0 dari 7.** Belum satu pun dimulai |
-| Task yang backend-nya sudah siap | **3** — `RJ-BIL-FE-001`, `RJ-BIL-FE-002` (bagian Lab), `RJ-BIL-FE-005` |
-| Task yang backend-nya masih terblokir | **4** — `RJ-BIL-FE-003`, `RJ-BIL-FE-004`, `RJ-BIL-FE-006`, `RJ-BIL-FE-007` |
+| Task yang backend-nya sudah siap | **4** — `RJ-BIL-FE-001`, `RJ-BIL-FE-002` (bagian Lab), `RJ-BIL-FE-004`, `RJ-BIL-FE-005` |
+| Task yang backend-nya masih terblokir | **3** — `RJ-BIL-FE-003`, `RJ-BIL-FE-006`, `RJ-BIL-FE-007` |
 | Wewenang tulis frontend | `NOT_GRANTED` untuk seluruh task |
 
 Keadaan frontend hari ini, dari capability map pada commit `ab4bd83`:
@@ -129,7 +131,7 @@ kontrak" **belum** cukup; yang dihitung adalah endpoint pasangannya benar-benar 
 | `RJ-BIL-FE-001` | `RJ-BIL-BE-001` | ✅ **Selesai** — boleh dikerjakan begitu wewenang tulis diberikan |
 | `RJ-BIL-FE-002` | `RJ-BIL-BE-002`, `BE-003`, `BE-004` | ✅ Resep, tindakan, dan Lab selesai; ⛔ **Radiologi terblokir**. Bagian Radiologi menyusul |
 | `RJ-BIL-FE-003` | `RJ-BIL-BE-005` | ⛔ **Terblokir** — menunggu keputusan `RJ-BIL-CONFLICT-001` |
-| `RJ-BIL-FE-004` | `RJ-BIL-BE-006` | ⛔ **Terblokir** — `BUILDER_EXECUTION` masih `NOT_AUTHORIZED` |
+| `RJ-BIL-FE-004` | `RJ-BIL-BE-006` | ✅ **Selesai `2026-08-27`** — boleh dikerjakan begitu wewenang tulis diberikan |
 | `RJ-BIL-FE-005` | `RJ-BIL-BE-007` | ✅ **Selesai** — boleh dikerjakan begitu wewenang tulis diberikan |
 | `RJ-BIL-FE-006` | `RJ-BIL-BE-008` | ⛔ **Terblokir** — menunggu `RJ-BIL-BE-005` |
 | `RJ-BIL-FE-007` | `RJ-BIL-FE-001` s.d. `FE-006` | ⛔ Paling akhir |
@@ -144,7 +146,7 @@ kontrak" **belum** cukup; yang dihitung adalah endpoint pasangannya benar-benar 
 | **F1 — Batas klinis dan finansial terlihat di layar** | Pesanan obat tidak pernah tampil sebagai lunas; sumber dan versi statusnya terbaca | `RJ-BIL-FE-002` |
 | **F2 — Kegagalan dan pemulihan terlihat** | Timeout tidak memancing kirim ulang membabi buta; komponen yang gagal tidak tampil sebagai nol | `RJ-BIL-FE-005` |
 | **F3 — Pembagian penanggung terlihat** | Total alokasi ditambah tanggungan pasien selalu sama dengan tagihan bersih; versi lama tetap dapat dilihat | ⛔ `RJ-BIL-FE-003` |
-| **F4 — Tindakan finansial dan persetujuannya** | Permintaan yang menunggu persetujuan tidak mengubah angka; self-approval tampil sebagai galat | ⛔ `RJ-BIL-FE-004` |
+| **F4 — Tindakan finansial dan persetujuannya** | Permintaan yang menunggu persetujuan tidak mengubah angka; self-approval tampil sebagai galat | `RJ-BIL-FE-004` |
 | **F5 — Klaim manual per penanggung** | Klaim disetujui tetap `PaymentPending`; adapter eksternal tidak punya tombol aktivasi | ⛔ `RJ-BIL-FE-006` |
 | **F6 — Kesiapan sebelum sign-off** | Setiap acceptance criteria UI kritis punya bukti test atau pemilik gap-nya | ⛔ `RJ-BIL-FE-007` |
 
@@ -153,7 +155,7 @@ kontrak" **belum** cukup; yang dihitung adalah endpoint pasangannya benar-benar 
 ```text
 RJ-BIL-FE-001 (consumer folio + milestone, read-only)   ← butuh RJ-BIL-BE-001  ✅ siap
    ├── RJ-BIL-FE-002 (batas klinis vs finansial)        ← butuh BE-002/003 ✅ siap; BE-004 ⛔ menyusul
-   │      ├── RJ-BIL-FE-004 (financial action + approval)  ← butuh BE-006  ⛔
+   │      ├── RJ-BIL-FE-004 (financial action + approval)  ← butuh BE-006  ✅ siap
    │      ├── RJ-BIL-FE-005 (reconciliation + outage)      ← butuh BE-007  ✅ siap
    │      └── RJ-BIL-FE-006 (klaim/settlement manual)      ← butuh BE-008  ⛔
    └── RJ-BIL-FE-003 (allocation + patient responsibility) ← butuh BE-005  ⛔
@@ -227,17 +229,17 @@ ringkasannya.
 
 ---
 
-### ⛔ `RJ-BIL-FE-004` — Tindakan finansial diajukan, bukan langsung dijalankan
+### `RJ-BIL-FE-004` — Tindakan finansial diajukan, bukan langsung dijalankan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **TERBLOKIR — belum dikerjakan.** Backend pasangannya `RJ-BIL-BE-006` terblokir; `BUILDER_EXECUTION` masih `NOT_AUTHORIZED` dan matriks nominal approval `RJ-BIL-OQ-004` belum ditetapkan |
+| **Status** | **Belum dikerjakan.** Backend pasangannya `RJ-BIL-BE-006` sudah ✅ selesai `2026-08-27`; yang belum ada adalah wewenang tulis frontend. **Matriks nominal approval `RJ-BIL-OQ-004` belum ditetapkan**, sehingga tindakan yang bergantung ambang akan berbalas `BlockedByPolicyConfiguration` — layar wajib menampilkannya sebagai keadaan yang sah, bukan sebagai galat sistem |
 | **Outcome** | Menyediakan form financial action dan status approval, sehingga pembatalan, koreksi, dan pengembalian uang selalu terlihat sebagai **permintaan** — bukan sebagai perubahan yang sudah terjadi |
 | **Trace** | `RJ-BIL-GATE-DEC-006`; `RJ-BIL-CAP-014`, `RJ-BIL-CAP-015` |
 | **Kontrak** | Permission/State `RJ-BIL-PERM-001@1.0.0`, `RJ-BIL-STATE-001@1.0.0` |
 | **Reuse** | Pola permission dan aksi yang sudah ada |
 | **Scope** | Pengiriman alasan dan nominal; status menunggu persetujuan; keputusan checker; galat self-approval; rujukan audit |
-| **Dependency** | `RJ-BIL-FE-002`; `RJ-BIL-BE-006`; Workflow dan Security owner |
+| **Dependency** | `RJ-BIL-FE-002`; `RJ-BIL-BE-006`. Owner Workflow tidak lagi termasuk sejak `RJ-BIL-DEC-011`; Security owner tetap untuk sign-off production |
 | **Wewenang UI** | Detail tampilan `DEV_DISCRETION`; aturan peran pada arsitektur bagian 4 **tidak** `DEV_DISCRETION` |
 | **Acceptance criteria** | 1. Permintaan yang menunggu persetujuan **tidak** mengubah canonical charge. 2. Self-approval tampil sebagai galat. 3. Kirim ulang tidak menghasilkan permintaan kembar |
 | **Verifikasi** | Form/API/accessibility/security test |
@@ -314,7 +316,7 @@ ringkasannya.
 | **`IMPLEMENTATION_AUTHORITY` frontend** | `NOT_GRANTED`; `BUILDER_EXECUTION` `NOT_AUTHORIZED` | **Seluruh task**, termasuk ketiga task yang backend-nya sudah siap |
 | **Frontend authority / UI visual authority** | Belum ditunjuk | Route final, menu, sidebar, modal/drawer, warna status, dan pustaka komponen tetap `DEV_DISCRETION` |
 | Endpoint `RJ-BIL-BE-005` tersedia | ⛔ Terblokir `RJ-BIL-CONFLICT-001` | `RJ-BIL-FE-003` |
-| Endpoint `RJ-BIL-BE-006` tersedia | ⛔ Terblokir; `BUILDER_EXECUTION` `NOT_AUTHORIZED` | `RJ-BIL-FE-004` |
+| ~~Endpoint `RJ-BIL-BE-006` tersedia~~ | **DITUTUP `2026-08-27`.** `RJ-BIL-BE-006` selesai; `46` test lulus dan migration-nya diterapkan | — |
 | Endpoint `RJ-BIL-BE-008` tersedia | ⛔ Terblokir menunggu `RJ-BIL-BE-005` | `RJ-BIL-FE-006` |
 | Endpoint Radiologi `RJ-BIL-BE-004` tersedia | ⛔ Terblokir; owner `RadiologyManagement` belum ditunjuk | Bagian Radiologi pada `RJ-BIL-FE-002` — bagian Lab tidak tertahan |
 | Security/Privacy owner | `OPEN` | **Tidak menahan.** Aturan privasi yang sudah tertulis tetap berlaku dan tetap diuji |

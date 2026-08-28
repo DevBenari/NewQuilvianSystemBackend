@@ -7,8 +7,10 @@ blueprint_id: RJ-BIL-BP-001
 module_name: Dokter / Rawat Jalan Billing
 module_slug: rawat-jalan
 module_prefix: RJ-BIL
-blueprint_revision: 13
 roadmap_revision: 1
+input_revisions:
+  blueprint-manifest.md: 18
+  00-interview-decisions.md: 13
 status: APPROVED_FOR_EXECUTION
 approval_gate: OWNER_APPROVED
 scope: Core internal/manual
@@ -21,7 +23,6 @@ owners:
 approved_by:
   - "User-provided approval authority — RJ-BIL-BE-001 s.d. RJ-BIL-BE-009 pada 2026-08-21"
 approved_at: "2026-08-21"
-decision_revision: 13
 domain_architecture:
   revision: 1
   readiness: "DOMAIN_ARCHITECTURE_PARTIAL — core internal/manual siap independen"
@@ -55,8 +56,9 @@ last_status_update: "2026-08-27 — RJ-BIL-DEC-011 dan RJ-BIL-DEC-012 diambil, R
 > bawah memberi izin menerapkan migration, memutasi database, melakukan deployment, commit,
 > maupun publish.
 >
-> **Roadmap revision tidak dinaikkan.** Pembaruan `2026-08-27` hanya menyentuh status eksekusi —
-> tidak menyentuh cakupan, acceptance criteria, maupun dependency task mana pun.
+> **Roadmap revision tidak dinaikkan.** Pembaruan `2026-08-27` dan `2026-08-28` hanya menyentuh
+> status eksekusi dan bentuk penyajian — tidak menyentuh cakupan, acceptance criteria, maupun
+> dependency task mana pun.
 
 **Arti tanda status pada dokumen ini.**
 
@@ -70,21 +72,21 @@ last_status_update: "2026-08-27 — RJ-BIL-DEC-011 dan RJ-BIL-DEC-012 diambil, R
 > sementara governance sign-off-nya masih `OPEN`. Baris **Governance** pada tiap task di bagian 4
 > menjaga perbedaan itu tetap terbaca. ✅ **tidak pernah** berarti boleh deploy.
 
-**Keadaan hari ini, 27 Agustus 2026.**
+**Keadaan per 28 Agustus 2026**, diverifikasi ulang terhadap source dan database pada tanggal itu.
 
 | Hal | Keadaannya |
 | --- | --- |
-| Task selesai | **4 dari 9** — `RJ-BIL-BE-001`, `002`, `003`, `007` |
-| Task terblokir | **5 dari 9** — `RJ-BIL-BE-004`, `005`, `006`, `008`, `009` |
+| Task selesai | **5 dari 9** — `RJ-BIL-BE-001`, `002`, `003`, `006`, `007` |
+| Task terblokir | **4 dari 9** — `RJ-BIL-BE-004`, `005`, `008`, `009` |
 | Task bertanda 🟡 | **Tidak ada.** Seluruh code yang ada sudah pernah di-build; buktinya pada bagian 5 |
-| Test backend | `111` lulus, `0` gagal |
+| Test backend | `157` lulus, `0` gagal |
 | Migration `(Pending)` | `0` |
-| Governance sign-off | `RJ-BIL-BE-003` dan `RJ-BIL-BE-007` masih `OPEN` |
+| Governance sign-off | `RJ-BIL-BE-003`, `RJ-BIL-BE-006`, dan `RJ-BIL-BE-007` masih `OPEN` |
 
 > **Yang menahan modul ini hari ini bukan kode, melainkan keputusan dan penunjukan owner.**
-> Kelima task yang terblokir tidak satu pun terhenti karena kesulitan teknis. Tiga menunggu
-> jawaban pemilik, satu menunggu penunjukan owner Radiologi, dan satu menunggu pendahulunya.
-> Menambah tenaga programmer tidak memindahkan satu pun dari kelimanya.
+> Keempat task yang terblokir tidak satu pun terhenti karena kesulitan teknis. Satu menunggu
+> jawaban pemilik atas `RJ-BIL-CONFLICT-001`, satu menunggu penunjukan owner Radiologi, dan dua
+> menunggu pendahulunya. Menambah tenaga programmer tidak memindahkan satu pun dari keempatnya.
 
 ---
 
@@ -473,7 +475,7 @@ beserta bukti verifikasi ada pada
 
 | Blocker | Keadaannya | Menahan |
 | --- | --- | --- |
-| `RJ-BIL-CONFLICT-001` | Audit read-only `2026-08-24` menyimpulkan `CONFIRMED` dengan source confidence `HIGH`, **tanpa memerlukan perubahan code saat ini**. Yang belum ada adalah jawaban `RJ-BIL-OQ-001`, `OQ-002`, dan `OQ-005` | `RJ-BIL-BE-005` tidak dapat dirancang. `BE-006` dan `BE-008` terdampak tidak langsung karena keduanya bekerja di atas hasil allocation |
+| `RJ-BIL-CONFLICT-001` | Audit read-only `2026-08-24` menyimpulkan `CONFIRMED` dengan source confidence `HIGH`, **tanpa memerlukan perubahan code saat ini**. Yang belum ada adalah jawaban `RJ-BIL-OQ-001`, `OQ-002`, dan `OQ-005` | `RJ-BIL-BE-005` tidak dapat dirancang. `BE-008` terdampak tidak langsung karena ia bekerja di atas hasil allocation. `BE-006` **tidak lagi** terdampak — ia selesai `2026-08-27` tanpa menunggu allocation |
 | `RJ-BIL-BE-002-BLOCKER-001` | Satu blocker kebijakan: pintu masuk telaah farmasi setelah kewenangan finansial klinis dihapus | **Tidak menahan apa pun** — bukan acceptance criteria `RJ-BIL-BE-002`, bukan pula task berikutnya |
 | `RJ-BIL-NOTICE-001` | `MstRegister` tidak memiliki migration di mana pun, sehingga database yang benar-benar baru tidak akan memilikinya | Bukan milik blueprint ini; sudah dilaporkan kepada pemilik modulnya |
 
