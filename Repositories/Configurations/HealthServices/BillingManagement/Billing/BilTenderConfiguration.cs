@@ -23,6 +23,7 @@ public sealed class BilTenderConfiguration : IEntityTypeConfiguration<BilTender>
         entity.Property(x => x.ProviderReference).HasMaxLength(150);
         entity.Property(x => x.ProviderStatusCode).HasMaxLength(50);
         entity.Property(x => x.CashierReferenceNote).HasMaxLength(150);
+        entity.Property(x => x.KwitansiNumber).HasMaxLength(50);
         entity.Property(x => x.PayloadHash).HasMaxLength(64).IsRequired();
         entity.Property(x => x.LastProviderEventId).HasMaxLength(100);
         entity.Property(x => x.LastProviderPayloadHash).HasMaxLength(64);
@@ -40,6 +41,8 @@ public sealed class BilTenderConfiguration : IEntityTypeConfiguration<BilTender>
         entity.HasIndex(x => x.CorrelationId).IsUnique();
         entity.HasIndex(x => x.ProviderReference).IsUnique()
             .HasFilter("\"ProviderReference\" IS NOT NULL");
+        entity.HasIndex(x => x.KwitansiNumber).IsUnique()
+            .HasFilter("\"KwitansiNumber\" IS NOT NULL");
         entity.HasIndex(x => new { x.SettlementId, x.Status });
         entity.HasIndex(x => x.CashierShiftId);
         entity.HasOne<MstPaymentMethod>().WithMany().HasForeignKey(x => x.PaymentMethodId)

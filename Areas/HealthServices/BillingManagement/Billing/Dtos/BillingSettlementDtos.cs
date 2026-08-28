@@ -68,6 +68,7 @@ public sealed class TenderResponse
     public decimal Amount { get; set; }
     public string Status { get; set; } = BillingTenderStatuses.Created;
     public string? CashierReferenceNote { get; set; }
+    public string? KwitansiNumber { get; set; }
     public string? ProviderReferenceMasked { get; set; }
     public string? ProviderStatusCode { get; set; }
     public DateTimeOffset AttemptedAt { get; set; }

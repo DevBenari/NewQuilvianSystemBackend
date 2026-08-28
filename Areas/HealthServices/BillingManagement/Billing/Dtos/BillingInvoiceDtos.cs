@@ -76,13 +76,6 @@ public sealed class InvoiceDetailResponse : InvoiceSummaryResponse
     public InvoicePatientSummaryResponse? Patient { get; set; }
 }
 
-public sealed class KwitansiNumberResponse
-{
-    public Guid InvoiceId { get; set; }
-    public string KwitansiNumber { get; set; } = string.Empty;
-    public bool IsNewlyAllocated { get; set; }
-}
-
 public sealed class InvoicePatientSummaryResponse
 {
     public Guid PatientId { get; set; }

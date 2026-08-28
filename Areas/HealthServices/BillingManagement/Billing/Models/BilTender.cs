@@ -21,6 +21,13 @@ public sealed class BilTender : IdentityModel
     // murni catatan kasir untuk ditelusuri manual selama provider pembayaran belum terintegrasi
     // (BKC-BLK-PROV-001).
     [MaxLength(150)] public string? CashierReferenceNote { get; set; }
+    // Nomor Kwitansi dialokasikan SEKALI saat tender ini dibuat (BKC-DEC-057) - satu nomor per
+    // pembayaran/tender, BUKAN satu per invoice. Reprint tender yang sama selalu mengembalikan
+    // nomor ini apa adanya karena tender tidak pernah dibuat ulang untuk permintaan yang sama
+    // (idempotency key). Split payment dengan beberapa tender menghasilkan beberapa nomor
+    // Kwitansi berbeda - konsisten dengan pola legacy KasirQuilvian1 (MainKasirDetail.NoKwitansi,
+    // satu nomor per baris pembayaran).
+    [MaxLength(50)] public string? KwitansiNumber { get; set; }
     public Guid IdempotencyKey { get; set; }
     [Required, MaxLength(64)] public string PayloadHash { get; set; } = string.Empty;
     public Guid CorrelationId { get; set; }

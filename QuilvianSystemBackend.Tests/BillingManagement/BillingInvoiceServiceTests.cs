@@ -375,47 +375,6 @@ public sealed class BillingInvoiceServiceTests
         AssertPermission(nameof(BillingInvoicesController.FromSource), "Create");
         AssertPermission(nameof(BillingInvoicesController.Recalculate), "Update");
         AssertPermission(nameof(BillingInvoicesController.VoidItem), "Update");
-        AssertPermission(nameof(BillingInvoicesController.GetOrAllocateKwitansiNumber), "Update");
-    }
-
-    // BKC-DEC-054: nomor Kwitansi dialokasikan sekali per invoice; reprint mengembalikan nomor
-    // yang sama tanpa mengonsumsi nomor urut baru.
-    [Fact]
-    public async Task KwitansiNumber_AllocatedOnceAndReusedOnReprint()
-    {
-        await using var db = IsolatedBillingDbContextFactory.Create();
-        var (encounterId, categoryId) = await SeedAsync(db);
-        var service = CreateService(db);
-        var created = await service.UpsertChargeAsync(
-            Request(encounterId, categoryId, "PROC-KWS-1"), Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
-
-        var first = await service.GetOrAllocateKwitansiNumberAsync(created.Id, Guid.NewGuid(), CancellationToken.None);
-        var reprint = await service.GetOrAllocateKwitansiNumberAsync(created.Id, Guid.NewGuid(), CancellationToken.None);
-
-        Assert.True(first.IsNewlyAllocated);
-        Assert.False(reprint.IsNewlyAllocated);
-        Assert.Equal(first.KwitansiNumber, reprint.KwitansiNumber);
-        Assert.StartsWith("KWS-", first.KwitansiNumber);
-    }
-
-    [Fact]
-    public async Task KwitansiNumber_DifferentInvoicesGetDifferentSequentialNumbers()
-    {
-        await using var db = IsolatedBillingDbContextFactory.Create();
-        var (encounterIdA, categoryId) = await SeedAsync(db);
-        var encounterIdB = Guid.NewGuid();
-        db.TrxPatientEncounters.Add(Encounter(encounterIdB, "ENC-2"));
-        await db.SaveChangesAsync();
-        var service = CreateService(db);
-        var invoiceA = await service.UpsertChargeAsync(
-            Request(encounterIdA, categoryId, "PROC-KWS-A"), Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
-        var invoiceB = await service.UpsertChargeAsync(
-            Request(encounterIdB, categoryId, "PROC-KWS-B"), Guid.NewGuid(), Guid.NewGuid(), CancellationToken.None);
-
-        var kwitansiA = await service.GetOrAllocateKwitansiNumberAsync(invoiceA.Id, Guid.NewGuid(), CancellationToken.None);
-        var kwitansiB = await service.GetOrAllocateKwitansiNumberAsync(invoiceB.Id, Guid.NewGuid(), CancellationToken.None);
-
-        Assert.NotEqual(kwitansiA.KwitansiNumber, kwitansiB.KwitansiNumber);
     }
 
     private static async Task<(Guid EncounterId, Guid CategoryId)> SeedAsync(Repositories.ApplicationDbContext db)

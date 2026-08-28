@@ -103,10 +103,11 @@ public sealed class BillingNumberSeriesService
             instant,
             cancellationToken);
 
-    // BKC-DEC-054: nomor Kwitansi memakai mekanisme sequence generik yang sama dengan Invoice
+    // BKC-DEC-057: nomor Kwitansi memakai mekanisme sequence generik yang sama dengan Invoice
     // Number/Cashier Shift Number (BilNumberSeries, reset harian) - bukan tabel sequence terpisah.
-    // Caller (BillingInvoiceService) bertanggung jawab memanggil ini HANYA SEKALI per invoice
-    // (saat BilInvoice.KwitansiNumber masih null) supaya reprint tidak mengonsumsi nomor baru.
+    // Caller (BillingSettlementService.AddTenderAsync) memanggil ini SEKALI setiap tender baru
+    // dibuat - satu nomor Kwitansi per tender/pembayaran, bukan per invoice. Reprint tender yang
+    // sama tidak pernah memanggil ini lagi karena nomor sudah tersimpan di BilTender.KwitansiNumber.
     public Task<string> AllocateKwitansiNumberAsync(
         Guid actorUserId,
         DateTimeOffset instant,
@@ -117,7 +118,7 @@ public sealed class BillingNumberSeriesService
             _kwitansiOptions.ResetPolicy,
             _kwitansiOptions.SequenceDigits,
             "kwitansi",
-            message => new BillingInvoiceValidationException(message),
+            message => new BillingSettlementValidationException(message),
             actorUserId,
             instant,
             cancellationToken);

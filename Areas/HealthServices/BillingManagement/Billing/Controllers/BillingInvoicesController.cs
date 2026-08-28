@@ -152,27 +152,6 @@ public sealed class BillingInvoicesController : ControllerBase
         }
     }
 
-    [HttpPost("{id:guid}/kwitansi")]
-    [AccessAction("Update", "Get or Allocate Kwitansi Number", AccessType = AccessTypes.Update, SortOrder = 7)]
-    [AccessPermission("BillingInvoice", "Update")]
-    [ProducesResponseType(typeof(ApiResponse<KwitansiNumberResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetOrAllocateKwitansiNumber(Guid id, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var result = await _service.GetOrAllocateKwitansiNumberAsync(id, CurrentUserId(), cancellationToken);
-            return Ok(ApiResponse<KwitansiNumberResponse>.Ok(result, "Nomor Kwitansi berhasil diambil."));
-        }
-        catch (KeyNotFoundException exception)
-        {
-            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
-        }
-        catch (BillingInvoiceConflictException exception)
-        {
-            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
-        }
-    }
-
     [HttpPost("{id:guid}/discounts")]
     [AccessAction("Create", "Apply Billing Discount", AccessType = AccessTypes.Create, SortOrder = 5)]
     [AccessPermission("BillingDiscount", "Create")]
