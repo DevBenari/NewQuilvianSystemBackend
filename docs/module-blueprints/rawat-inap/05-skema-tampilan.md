@@ -11,6 +11,7 @@
 | Baseline desain | Frontend `dec4fdeff07c3c96ad9f07f41f184c54cf771371`; backend `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
 | Impact scan kontrak | Frontend `12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360`; backend `f102020611fc3d605fdef1949a3af23da93e4215`; 28 Agustus 2026, baca-saja |
 | Refresh bukti enam layar | Frontend tetap `12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360`; backend teramati `b71a6a3d12190c4db60fe3433f10b6eb92131629`; enam screenshot runtime dari pemilik, 28 Agustus 2026; audit source terbatas pada layar terkait dan master seeder |
+| Pemeriksaan drift setelah refresh | HEAD frontend `efb389ea69da080309632ca2af387a39bd637819`; HEAD backend `f5fdbaf629fe4581b6fa063a2593d950e38e9fe1`; pemeriksaan rentang setelah snapshot bukti tidak menemukan perubahan source aplikasi, hanya aturan engineering, tooling, dan dokumen blueprint. Temuan capability tetap berlaku pada scope yang sama |
 | Brief UI terkini | Instruksi pemilik 28 Agustus 2026: master/configuration Rawat Inap ditempatkan pada `Pelayanan Kesehatan → Master Data`; masih menunggu approval revision ini |
 | Batas tulis | Hanya dokumen blueprint |
 
@@ -166,7 +167,7 @@ Tampil **sebelum** penanda langkah muncul, sama seperti pendaftaran IGD.
   │   Belum pernah terdaftar     │  │   Sudah punya No. RM         │
   │                              │  │                              │
   │   ✓ Scan KTP mengisi form    │  │   ✓ Cari No. RM atau NIK     │
-  │   ✓ Sembilan langkah         │  │   ✓ Delapan langkah          │
+  │   ✓ Sembilan langkah         │  │   ✓ Jumlah menunggu putusan  │
   │                              │  │                              │
   │        Klik untuk memilih    │  │        Klik untuk memilih    │
   └──────────────────────────────┘  └──────────────────────────────┘
@@ -481,7 +482,7 @@ Langkah paling berat akibatnya: di sinilah **titik tulis 1** terjadi.
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
-| Kembali | kedua | selalu | Kembali ke langkah Dokter dalam keadaan terkunci |
+| Kembali | kedua | selalu | Kembali ke langkah Dokter dalam mode koreksi pascatitik tulis 1: unit, kelas, dan catatan dapat diubah melalui `PUT`; DPJP dan penjamin tetap terkunci |
 | Lanjut ke Pemesanan | utama | Satu tempat tidur yang **dapat dipilih** terpilih | Maju ke Booking Bed |
 
 **Lima aturan yang mengikat:**
@@ -511,7 +512,7 @@ Dua keadaan: sebelum dipesan, dan sesudah dipesan.
   │  Ruang Melati 101 · Kelas 1 · Ruang Melati                       │
   │                                                                  │
   │  Masa pemesanan mengikuti pengaturan server. Selama aktif, bed   │
-  │  dapat dipesan pasien lain.                                      │
+  │  tidak dapat dipesan pasien lain.                                │
   └──────────────────────────────────────────────────────────────────┘
 
                      [ Kembali ]   [ Pesan Tempat Tidur ]
@@ -561,7 +562,7 @@ Dua keadaan: sebelum dipesan, dan sesudah dipesan.
 
   ┌── Pasien ───────────────────┐ ┌── Penjamin ─────────────────────┐
   │ Sari Dewi                   │ │ Asuransi — BPJS Kesehatan       │
-  │ RM 00123456 · Perempuan     │ │ No. 000123456789                │
+  │ RM 00123456 · Perempuan     │ │ No. ****6789                    │
   │ 12-04-1988 (38 th)          │ │ Kelas Perawatan  Kelas 1        │
   └─────────────────────────────┘ └─────────────────────────────────┘
   ┌── Perawatan ────────────────┐ ┌── Tempat Tidur ─────────────────┐

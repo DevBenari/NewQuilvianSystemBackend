@@ -20,13 +20,13 @@ input_revisions:
   04-prd-to-mvp.md: 0.4.0
   testing/acceptance-test-matrix.md: 0.4.0
 input_hashes:
-  blueprint-manifest.md: "938e09dd8bccb4cb0055264a9cf5d21851367f68740c7b1f0fad33cfbcb3c9f8"
+  blueprint-manifest.md: "aa32d66c60b3ceffcf9d1a51fd35cdd0aa04ce3d7a98b1f13d6b9aa72af19581"
   00-interview-decisions.md: "895eed948a2138b7988d9444bf6cc598b9609fe453fb3769b5a7d27c0145db07"
   03-frontend-architecture.md: "5856882920a21ce0ebe8c5543faab03cf22e017ffa969642f3a85393a9675006"
-  05-skema-tampilan.md: "41ee8f006569d7e9f138ae95032fee4697f9ab31154f2522e4bf0ad96d671660"
+  05-skema-tampilan.md: "de9aed86aa0251f7569d9ef51b822ea79c018b8e5393a9a1bbae39e267ca47ff"
   04-prd-to-mvp.md: "58b1f281d15d2c5e00ca296762cc1d2968a287363481df68da1ae3e8d0a8f51a"
   contracts/api-contract.md: "78d6c380ec1e7ad89c197df23736c484af73a83c4b85e74418d1924272ee3119"
-  roadmap/frontend-roadmap.md: "0c67777be2fba2a5d7a2bffa70d3d8d8ee62edeb3a92c9184932705b841ea7c4"
+  roadmap/frontend-roadmap.md: "b742a3fde038349af703d52bef47c0df2baef683e4e75549afabafa9b1820b17"
 contract_versions:
   - "API 0.4.0"
   - "State transition 0.4.0"
@@ -49,9 +49,9 @@ counts:
 source_commits:
   backend_planning_snapshot: "5afb54bd75281648010e50ef14f43ca1f80d8efd"
   frontend_planning_snapshot: "dec4fdeff07c3c96ad9f07f41f184c54cf771371"
-  backend_current_observed: "b71a6a3d12190c4db60fe3433f10b6eb92131629"
-  frontend_current_observed: "12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360"
-source_evidence_status: SCOPED_RUNTIME_UI_REVIEW_RECORDED_WITH_CONTRACT_AND_MASTER_DATA_GAPS
+  backend_current_observed: "f5fdbaf629fe4581b6fa063a2593d950e38e9fe1"
+  frontend_current_observed: "efb389ea69da080309632ca2af387a39bd637819"
+source_evidence_status: "SCOPED_RUNTIME_UI_REVIEW_RECORDED_WITH_CONTRACT_AND_MASTER_DATA_GAPS; POST_SCAN_DIFF_NO_APP_SOURCE_CHANGE"
 manifest_input_status: CURRENT
 supersedes: "roadmap_revision 4 DRAFT; roadmap_revision 3 APPROVED — 2026-08-27"
 ```
@@ -59,8 +59,9 @@ supersedes: "roadmap_revision 4 DRAFT; roadmap_revision 3 APPROVED — 2026-08-2
 **Batas kesegaran.** Peta requirement, keputusan, layar, dan task diselaraskan dengan skema `0.4`
 serta roadmap revision `5`. Impact review kontrak lama tetap berbasis backend `f1020206…`; refresh
 terbatas pada enam layar dan master seeder memakai backend `b71a6a3d…`, frontend `12562f17…`, serta
-enam screenshot runtime pemilik. Hasilnya menambah `RWI-UI-GAP-007`; dokumen ini tidak boleh dibaca
-sebagai klaim kesiapan implementasi.
+enam screenshot runtime pemilik. Pemeriksaan rentang menuju backend `f5fdbaf…` dan frontend
+`efb389e…` tidak menemukan perubahan source aplikasi, sehingga tujuh gap tetap berlaku pada scope
+yang sama. Dokumen ini tidak boleh dibaca sebagai klaim kesiapan implementasi.
 
 ---
 
@@ -616,20 +617,20 @@ Sebelas butir, **seluruhnya beralasan tertulis**. Tidak ada satu pun yang berbun
 | Invariant dan penjaga | 10 | 10 | **0** |
 | Decision yang mengikat implementasi | 37 | 37 | **0** |
 | Task backend | 34 | 34 | **0** |
-| Task frontend | 35 | 35 | **0** |
-| Gap kontrak/UI hasil impact scan | 6 | 6 terdokumentasi | **6 belum punya penutupan lengkap** |
+| Task frontend | 41 | 41 | **0** |
+| Gap kontrak/UI/data hasil impact scan | 7 | 7 terdokumentasi | **7 belum punya penutupan lengkap** |
 
 ### Yang **belum** dapat diperiksa sekarang
 
 | Butir | Kenapa belum | Kapan dapat diperiksa |
 | --- | --- | --- |
-| 149 acceptance criteria → berkas test yang benar-benar ada | Bukti historis backend 26 Agustus tetap berlaku pada snapshotnya. Acceptance frontend revision `4` belum dikerjakan dan enam gap kontrak tidak boleh ditutup dengan mock tersembunyi | `BE-RWI-033`, `FE-RWI-035`, `RWI-UI-GAP-001` s.d. `006` |
+| 149 acceptance criteria → berkas test yang benar-benar ada | Bukti historis backend 26 Agustus tetap berlaku pada snapshotnya. Acceptance frontend revision `5` belum dikerjakan dan tujuh gap kontrak/UI/data tidak boleh ditutup dengan mock atau data tiruan tersembunyi | `BE-RWI-033`, `FE-RWI-035`, `RWI-UI-GAP-001` s.d. `007` |
 | 49 endpoint baru → status tersedia pada api contract | **Sudah ditutup 26 Agustus 2026.** Dokumen Swagger memuat 49 operasi HTTP `inpatient`, cocok dengan 49 baris kontrak. Sembilan operasi yang tadinya tidak punya layar kini memiliki pemilik pada bagian 1B. `BE-RWI-034` merencanakan satu endpoint baca tambahan; kontraknya baru boleh dihitung bertambah setelah task itu disetujui dan selesai | `BE-RWI-033`, `BE-RWI-034` |
-| Cakupan e2e frontend | Delapan belas task revision `2` mempunyai bukti masing-masing, tetapi revision `3/4` menambah empat layar dan alur admisi baru. Cakupan lama tidak cukup untuk 19 layar dan alur dua jalur | `FE-RWI-035` |
+| Cakupan e2e frontend | Delapan belas task revision `2` mempunyai bukti masing-masing, tetapi revision `3/5` menambah empat layar, alur admisi baru, dan enam task repair. Cakupan lama tidak cukup untuk 19 layar dan alur dua jalur | `FE-RWI-035` |
 
-Seluruh gap lama mempunyai trace, tetapi enam gap hasil impact scan **belum seluruhnya mempunyai
-task penutup**. Penutupan ujung ke ujung menunggu task owner untuk gap 001–006, seluruh task
-frontend revision `4`, dan data master yang layak. Tidak ada gap yang disamarkan sebagai
+Seluruh gap lama mempunyai trace, tetapi tujuh gap hasil impact scan **belum seluruhnya mempunyai
+task penutup**. Penutupan ujung ke ujung menunggu task owner untuk gap 001–007, seluruh task
+frontend revision `5`, dan data master yang layak. Tidak ada gap yang disamarkan sebagai
 `DEV_DISCRETION`.
 
 ---
@@ -639,14 +640,14 @@ frontend revision `4`, dan data master yang layak. Tidak ada gap yang disamarkan
 | Gerbang | Keadaannya |
 | --- | --- |
 | Approval blueprint revision 3 | **Tertutup** 27 Agustus 2026; dipertahankan sebagai riwayat approval |
-| Approval skema/roadmap revision 4 | **Terbuka.** `05-skema-tampilan.md` `0.3` dan roadmap revision `4` tetap `DRAFT` sampai pemilik menyetujuinya |
-| `RWI-UI-GAP-001` s.d. `006` | **Terbuka.** Dampak dan owner yang dibutuhkan ada pada bagian 1B.1; `RWI-UI-GAP-003` memblokir `FE-RWI-032` |
+| Approval skema/roadmap revision 5 | **Terbuka.** `05-skema-tampilan.md` `0.4` dan roadmap revision `5` tetap `DRAFT` sampai pemilik menyetujuinya |
+| `RWI-UI-GAP-001` s.d. `007` | **Terbuka.** Dampak dan owner yang dibutuhkan ada pada bagian 1B.1; `RWI-UI-GAP-003` memblokir `FE-RWI-032`, sedangkan `RWI-UI-GAP-007` menahan pembuktian runtime enam task repair |
 | Kesiapan data master beserta penanda yang benar | `RWI-DEC-063`, target 22 Agustus 2026. Menahan `BE-RWI-010` ke atas, **tidak** menahan `BE-RWI-001` s.d. `BE-RWI-004` |
 | `FE-RWI-001` sebelum `BE-RWI-006` | Lintas repository, wajib diurutkan. **Diperiksa ulang 26 Agustus 2026 dan hampir tertutup** — `FE-RWI-001` selesai dan terbukti, tetapi perubahannya belum di-commit. `BE-RWI-006` tetap ⛔ sampai perubahan frontend itu rilis |
 | `BE-RWI-034` sebelum `FE-RWI-035` | Sembilan operasi belum dapat diberi kepada peran non-SuperAdmin. Menahan bukti otorisasi runtime dan alur penutupan ujung ke ujung |
 | `RWI-OQ-045` | Tidak menahan. `FE-RWI-030` mengikuti permission `0.4.0`: konfirmasi masuk hanya bagi petugas admisi dan supervisor |
 | `RWI-OQ-046` | Tidak menahan. Alur baru selalu membuat kunjungan lebih dulu dan mengirim `EncounterId`; jalur backend yang menanam `Cash` tidak dipakai layar |
-| Kesegaran source | Impact review terbatas terhadap backend `f1020206…` dan frontend `12562f17…` sudah direkam. Hasilnya bukan “siap”, melainkan enam gap kontrak/UI, koreksi as-built `FE-INP-11`, serta delta dari sembilan submenu as-is menjadi tujuh operasional + dua master/configuration |
+| Kesegaran source | Impact review terbatas terhadap backend `f1020206…` dan frontend `12562f17…` sudah direkam, lalu pemeriksaan drift menuju backend `f5fdbaf…` dan frontend `efb389e…` memastikan tidak ada perubahan source aplikasi. Hasilnya bukan “siap”, melainkan tujuh gap kontrak/UI/data, koreksi as-built `FE-INP-11`, serta delta dari sembilan submenu as-is menjadi tujuh operasional + dua master/configuration |
 | ~~Registry lifecycle `PLANNED`~~ | **DICABUT 24 Agustus 2026** oleh `RWI-DEC-068`. Modul naik `PLANNED` → `ACTIVE` |
 | Tidak ada connection string lokal | Baru — ditemukan saat `BE-RWI-001`. Menahan **cara aman** menjalankan migration, bukan penulisan kodenya |
 

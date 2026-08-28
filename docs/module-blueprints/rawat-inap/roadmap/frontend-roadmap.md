@@ -30,9 +30,11 @@ source_commits:
   frontend: "dec4fdeff07c3c96ad9f07f41f184c54cf771371"
 current_impact_scan:
   scanned_at: "2026-08-28"
-  backend: "b71a6a3d12190c4db60fe3433f10b6eb92131629"
-  frontend: "12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360"
-  result: "SCOPED_RUNTIME_UI_REVIEW_RECORDED — enam layar + master seeder; gap kontrak lain tetap berbasis scan sebelumnya"
+  evidence_backend: "b71a6a3d12190c4db60fe3433f10b6eb92131629"
+  evidence_frontend: "12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360"
+  backend: "f5fdbaf629fe4581b6fa063a2593d950e38e9fe1"
+  frontend: "efb389ea69da080309632ca2af387a39bd637819"
+  result: "SCOPED_RUNTIME_UI_REVIEW_RECORDED — enam layar + master seeder; pemeriksaan rentang menuju HEAD tidak menemukan perubahan source aplikasi; tujuh gap tetap berlaku"
 task_count: 41
 task_count_done: 18
 task_count_open: 23
@@ -54,7 +56,7 @@ sebagai riwayat, tetapi tidak dipakai seolah telah menyetujui brief UI baru.
 | Seluruh 19 layar kini punya skema target, peta klik, state, privacy, permission, dan keputusan reuse/new | Setiap task terbuka menunjuk `FE-INP` serta bagian skema yang dimilikinya |
 | Source terkini dipindai baca-saja | `FE-INP-11` kini terjangkau; menu aktual sembilan; admisi legacy, beranda placeholder, dan layar `FE-INP-17/18` tetap menjadi delta |
 | Hierarki menu dikoreksi sesuai brief UI pemilik 28 Agustus | Target menjadi tujuh menu operasional di `Rawat Inap` serta `FE-INP-12/13` tepat satu kali di `Pelayanan Kesehatan → Master Data`; pemindahan dimiliki `FE-RWI-033` dan tidak membuka ulang task layar yang selesai |
-| Enam gap kontrak `RWI-UI-GAP-001` s.d. `006` dicatat | Task terkait tidak boleh menyamarkan gap dengan state browser, endpoint kiosk, atau mock tersembunyi |
+| Tujuh gap kontrak/UI/data `RWI-UI-GAP-001` s.d. `007` dicatat | Task terkait tidak boleh menyamarkan gap dengan state browser, endpoint kiosk, data tiruan, atau mock tersembunyi |
 | Scope dan acceptance task tidak ditambah diam-diam | Task selesai tidak dibuka ulang; enam delta diberi ID baru dan seluruh perubahan material menunggu approval revision ini |
 
 ### 0.1 Riwayat revision 3 dari revision 2
@@ -272,7 +274,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Scope** | Route admisi, kerangka langkah, penanda langkah, langkah **Tipe Pasien**, pemulihan langkah dari URL |
 | **Dependency** | — |
 | **Wewenang UI** | Nama dan label langkah `RWI-FE-003`; bentuk penanda langkah `RWI-FE-004`. **Batasnya:** urutan dan isi langkah mengikat |
-| **Acceptance criteria** | 1. Dua jalur masuk tersedia dan terpisah. 2. Kesembilan langkah jalur pasien baru dan kedelapan langkah jalur pasien lama tampil pada penanda langkah dengan urutan sesuai 3A.2 dan 3A.3. 3. Langkah yang sedang berjalan dan yang sudah lewat **terbeda**. 4. Memuat ulang halaman di tengah alur **memulihkan** langkah yang sedang dikerjakan dari URL, bukan mengembalikannya ke langkah 1. 5. Jenis pasien **bayi baru lahir** menampilkan pilihan episode ibu; jenis lain tidak |
+| **Acceptance criteria** | 1. Dua jalur masuk tersedia dan terpisah. 2. Kesembilan langkah jalur pasien baru dan seluruh langkah bernama jalur pasien lama tampil berurutan sesuai 3A.2 dan 3A.3; jumlah resmi jalur pasien lama baru mengikat setelah `RWI-UI-GAP-001` ditutup Product/UI owner. 3. Langkah yang sedang berjalan dan yang sudah lewat **terbeda**. 4. Memuat ulang halaman di tengah alur **memulihkan** langkah yang sedang dikerjakan dari URL, bukan mengembalikannya ke langkah 1. 5. Jenis pasien **bayi baru lahir** menampilkan pilihan episode ibu; jenis lain tidak |
 | **Verification** | E2E: memilih jalur pasien baru, maju satu langkah, memuat ulang halaman, dan langkahnya tetap |
 | **Risk/blocker** | Menyimpan langkah hanya di state React membuat kriteria 4 gagal dan membuat alur bertahap `RWI-DEC-076` berbahaya. Owner: Frontend |
 | **Gerbang skema** | `RWI-UI-GAP-001`: kontrak menyebut delapan langkah pasien lama, tetapi urutan bernama menghasilkan sembilan. Acceptance jumlah langkah menunggu keputusan Product/UI owner |

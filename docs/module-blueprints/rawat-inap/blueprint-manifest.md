@@ -103,11 +103,12 @@ yang sudah ada, yaitu daftar aturan yang gagal, sehingga layar tidak perlu kompo
 > atas tetap berlaku apa adanya.
 
 > **Diperbarui 2026-08-28 — artefak draft, bukan approval baru.** `05-skema-tampilan.md` naik ke
-> revision `0.3` dan kini mencakup seluruh 19 layar serta koreksi hierarki navigasi: tujuh menu
-> operasional di `Rawat Inap`, dua master/configuration di `Pelayanan Kesehatan → Master Data`.
-> Roadmap frontend revision `4` berstatus `DRAFT` untuk menyinkronkan referensi layar, hierarki itu,
-> dan enam gap kontrak hasil impact scan. Manifest tetap revision `4`; approval manifest/roadmap
-> revision `3` **tidak** dianggap menyetujui brief UI baru ini.
+> revision `0.4` dan kini mencakup seluruh 19 layar, koreksi hierarki navigasi, serta hasil tinjauan
+> runtime enam layar: tujuh menu operasional di `Rawat Inap`, dua master/configuration di
+> `Pelayanan Kesehatan → Master Data`. Roadmap frontend revision `5` berstatus `DRAFT` untuk
+> menyinkronkan referensi layar, tujuh gap `RWI-UI-GAP-001` s.d. `007`, dan enam task repair
+> `FE-RWI-036` s.d. `041`. Manifest tetap revision `4`; approval manifest/roadmap revision `3`
+> **tidak** dianggap menyetujui brief UI baru ini.
 
 ---
 ## 1. Peringatan sebelum membaca
@@ -117,8 +118,8 @@ menulis source code.
 
 Dua gerbang blueprint lama masih terbuka: kesiapan data master, dan persetujuan pemilik
 `EmergencyInstallationManagement` yang hanya menahan `INP-S09`. Impact scan frontend 28 Agustus
-2026 menambahkan enam gerbang UI/kontrak `RWI-UI-GAP-001` s.d. `006` pada roadmap revision `4`
-draft; masing-masing hanya menahan task yang ditunjuk di sana. Modul `InPatientManagement`
+2026 menambahkan tujuh gerbang UI/kontrak/data `RWI-UI-GAP-001` s.d. `007` pada roadmap revision
+`5` draft; masing-masing hanya menahan task yang ditunjuk di sana. Modul `InPatientManagement`
 berstatus `ACTIVE` pada registry sejak `RWI-DEC-068`, dan penulisan source code sudah dibuka lewat
 `RWI-DEC-067` — satu task per pengerjaan mengikuti roadmap dan gerbang task terkini.
 
@@ -135,7 +136,7 @@ berstatus `ACTIVE` pada registry sejak `RWI-DEC-068`, dan penulisan source code 
 | [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.4` | `draft` | `50c6c0986a4b9cda4443d8cb515a038804f1de1f92d36d0c4dc2ab12d5f4baea` |
 | [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.4` | `draft` | `5856882920a21ce0ebe8c5543faab03cf22e017ffa969642f3a85393a9675006` |
 | [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.4.0` | `draft` | `58b1f281d15d2c5e00ca296762cc1d2968a287363481df68da1ae3e8d0a8f51a` |
-| [`05-skema-tampilan.md`](./05-skema-tampilan.md) | `0.3` | `draft` | `41ee8f006569d7e9f138ae95032fee4697f9ab31154f2522e4bf0ad96d671660` |
+| [`05-skema-tampilan.md`](./05-skema-tampilan.md) | `0.4` | `draft` | `de9aed86aa0251f7569d9ef51b822ea79c018b8e5393a9a1bbae39e267ca47ff` |
 | [`erd/00-context-erd.md`](./erd/00-context-erd.md) | `0.3` | `draft` | `2d7baab5a4c3c76fa11149faa8fc99bc7ca0b2aefbe30f5b8327089f2ed3b4e0` |
 | [`erd/01-inpatient-episode.md`](./erd/01-inpatient-episode.md) | `0.3` | `draft` | `aaf6aa46591d78a8e48ea7fd02ff1900525e329b5f34f85b098fae9a3ebc17c7` |
 | [`erd/02-inpatient-configuration.md`](./erd/02-inpatient-configuration.md) | `0.1` | `draft` | `3645ee9d1788270ee7cef88d2cc6b74beddddec0a1a5d2b538e45c25c66f2065` |
@@ -289,7 +290,7 @@ Blueprint ditandai stale dan wajib melewati impact scan bila salah satu berikut 
 | `Areas/HealthServices/ClinicalManagement/` atau `PharmacyManagement/` | `DEC-INP-001`; slice yang dihentikan mungkin dapat dibuka |
 | `Areas/HealthServices/BillingManagement/` | `RWI-RULE-028` aturan 7; sumber kelayakan keuangan mungkin berpindah |
 | `Repositories/ApplicationDbContext.cs` | Rencana migration |
-| `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` | Prefix dan lifecycle modul |
+| `agents/rules/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` | Prefix dan lifecycle modul |
 | Munculnya berkas berawalan `Inp` | Seluruh status `Baru` wajib dinilai ulang |
 
 ---
