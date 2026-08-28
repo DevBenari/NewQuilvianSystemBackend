@@ -100,8 +100,10 @@ seharusnya lahir dari hasil skrining.
 > pertama keesokan paginya. Bila skrining berada di dalam pengkajian ahli gizi, pasien ini
 > tidak akan pernah muncul di daftar kerja karena tidak ada yang memicu order.
 
-**Konsekuensi.** Modul Gizi perlu membaca hasil skrining sebagai prasyarat order. Siapa pemilik
-data skrining belum ditentukan; ini menjadi pertanyaan terbuka `GIZ-OQ-001`.
+**Konsekuensi.** Modul Gizi perlu membaca hasil skrining sebagai prasyarat order. Audit
+kemampuan menemukan skrining itu sudah ada di `TrxPatientAssessment` milik Clinical
+Management, sehingga modul Gizi cukup membacanya. Rinciannya pada
+`01-existing-capability-map.md`.
 
 ### GIZ-DEC-005 — Asuhan dicatat berulang per kunjungan
 
@@ -125,16 +127,16 @@ langkah "Evaluasi dan tindak lanjut" pada alur versi pertama punya pembanding an
 
 ### GIZ-DEC-006 — Diagnosis gizi memakai master berkode
 
-Master baru diperlukan. Isinya ditetapkan pemilik proses gizi, bukan diarang implementasi.
+Master baru diperlukan. Isinya ditetapkan pemilik proses gizi, bukan dikarang implementasi.
 Sebelum master disahkan dan diisi, fitur diagnosis gizi belum dapat dipakai.
 
 ## Pertanyaan Terbuka
 
 | ID | Pertanyaan | Owner | Memblokir |
 |---|---|---|---|
-| `GIZ-OQ-001` | Siapa pemilik data skrining gizi awal, dan apakah entity-nya sudah ada di modul keperawatan atau rawat inap? Registry tidak menemukan entity skrining gizi mana pun | Belum ditentukan | Ya, memblokir desain prasyarat order |
+| ~~`GIZ-OQ-001`~~ | ~~Siapa pemilik data skrining gizi awal?~~ **Tertutup oleh audit.** Skrining gizi sudah ada di `TrxPatientAssessment` milik Clinical Management, tingkat `L4`, memuat `NutritionRiskStatus`, `NutritionRiskScore`, dan `NutritionNote` | Clinical Management | Tidak lagi |
 | `GIZ-OQ-002` | Apa isi master diagnosis gizi yang disahkan rumah sakit? | Pemilik proses gizi | Ya, memblokir desain master |
-| `GIZ-OQ-003` | Apakah ahli gizi ditandai lewat `MstProfession` yang sudah ada, atau memerlukan penandaan tersendiri? | Human Resource | Tidak, dapat ditutup saat audit kemampuan |
+| `GIZ-OQ-003` | Apakah `MstProfession` sudah berisi baris untuk ahli gizi? Entity-nya tersedia di `L4`, tetapi isinya belum diperiksa karena audit bersifat read-only terhadap source | Human Resource | Tidak |
 | `GIZ-OQ-004` | Bentuk kebutuhan nutrisi apa yang harus dihitung dan disimpan, misalnya energi, protein, lemak, karbohidrat, dan cairan? | Pemilik proses gizi | Ya, memblokir desain penentuan diet |
 | `GIZ-OQ-005` | Berapa lama pasien tidak berisiko harus diskrining ulang, dan apakah pengulangan itu tanggung jawab modul Gizi? | Pemilik proses gizi | Tidak untuk versi pertama |
 | `GIZ-OQ-006` | Siapa pemilik proses bisnis modul Gizi yang berwenang menyetujui keputusan ini? | Belum ditentukan | Ya, terkait `KF-001` pada registry |
