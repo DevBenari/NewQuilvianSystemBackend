@@ -38,6 +38,7 @@ using QuilvianSystemBackend.Hubs;
 using QuilvianSystemBackend.Middlewares;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Seeders;
 using QuilvianSystemBackend.Seeders;
 using QuilvianSystemBackend.Services.Language;
 using QuilvianSystemBackend.Services.Logging;
@@ -778,6 +779,55 @@ try
             "Seeder master kriteria telaah resep selesai.");
     }
 
+    static async Task SeedOperatingRoomDemoAsync(
+        IServiceProvider services,
+        IHostEnvironment environment,
+        IConfiguration configuration,
+        CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("OperatingRoomDemoSeeder");
+
+        // Akun yang akan ditautkan ke dokter demo. Bila kosong, dipakai SuperAdmin hasil
+        // SuperAdminSeeder, karena itulah satu-satunya akun yang pasti ada di database baru.
+        var targetUserName = configuration["Seeders:OperatingRoomDemoTargetUserName"];
+        if (string.IsNullOrWhiteSpace(targetUserName))
+        {
+            targetUserName = configuration["SeedSuperAdmin:Username"];
+        }
+
+        var result = await OperatingRoomDemoSeeder.SeedAsync(
+            dbContext,
+            environment.EnvironmentName,
+            targetUserName,
+            cancellationToken);
+
+        if (result.RefusedReason is not null)
+        {
+            logger.LogWarning("[OperatingRoomDemo] {Reason}", result.RefusedReason);
+            return;
+        }
+
+        logger.LogInformation(
+            "[OperatingRoomDemo] Dibuat: {Created}. Dipakai ulang: {Reused}.",
+            result.Created.Count == 0 ? "tidak ada" : string.Join(", ", result.Created),
+            result.Reused.Count == 0 ? "tidak ada" : string.Join(", ", result.Reused));
+
+        logger.LogInformation(
+            "[OperatingRoomDemo] Pakai nilai ini di form Kasus Operasi -> PatientId={PatientId}, " +
+            "EncounterId={EncounterId}, DoctorId={DoctorId}, PatientProcedureId={ProcedureIds}",
+            result.PatientId, result.EncounterId, result.DoctorId,
+            string.Join(", ", result.PatientProcedureIds));
+
+        logger.LogInformation("[OperatingRoomDemo] {Note}", result.UserLinkNote);
+    }
+
     static async Task RunStartupSeederAsync(string seederName, Func<Task> seed)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -927,6 +977,16 @@ try
     await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
+
+    var runOperatingRoomDemoSeed =
+        builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");
+
+    if (runOperatingRoomDemoSeed)
+    {
+        await RunStartupSeederAsync(
+            "OperatingRoomDemoSeeder",
+            () => SeedOperatingRoomDemoAsync(app.Services, app.Environment, builder.Configuration));
+    }
 
     var runPrescriptionReviewCriterionSeed =
      builder.Configuration.GetValue<bool>(
