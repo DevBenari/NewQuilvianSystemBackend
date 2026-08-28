@@ -8,30 +8,47 @@ Aturan utamanya adalah:
 
 > Ikuti kode yang sudah ada. Jangan menciptakan arsitektur baru.
 
-Untuk `NEW CODE`, pola source/referensi existing hanya merupakan bukti dan TIDAK BOLEH mengesampingkan Backend Engineering Contract canonical. Urutan wewenangnya adalah: (1) wewenang task/tulis eksplisit dan aturan keselamatan repository; (2) `agents/rules/engineering/BACKEND_ENGINEERING_CONTRACT.md`; (3) `agents/rules/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; (4) panduan operasional `agents/rules/` yang berlaku; (5) pola source/referensi existing. Pola legacy `Trx*`, controller yang mengakses DbContext secara langsung, Count/Max/Last+1, atau persisted `SortOrder` generik yang sebanding tidak memberi wewenang untuk menggunakan pola tersebut dalam `NEW CODE`. Terapkan legacy ratchet existing tanpa penulisan ulang massal.
+Untuk `NEW CODE`, pola source/referensi existing hanya merupakan bukti dan TIDAK BOLEH mengesampingkan Backend Engineering Contract canonical. Urutan wewenangnya adalah: (1) wewenang task/tulis eksplisit dan aturan keselamatan repository; (2) `rules/backend/engineering/BACKEND_ENGINEERING_CONTRACT.md`; (3) `rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; (4) panduan operasional `rules/backend/` yang berlaku; (5) pola source/referensi existing. Pola legacy `Trx*`, controller yang mengakses DbContext secara langsung, Count/Max/Last+1, atau persisted `SortOrder` generik yang sebanding tidak memberi wewenang untuk menggunakan pola tersebut dalam `NEW CODE`. Terapkan legacy ratchet existing tanpa penulisan ulang massal.
 
 Sebelum implementasi, periksa controller, DTO, model, service, penggunaan akses data, validasi, aturan otorisasi, workflow, konfigurasi EF, migration, dan endpoint terdekat yang sebanding sesuai kebutuhan.
 
 ## Lapisan Operasional Tata Kelola
 
-`AGENTS.md` tetap menjadi konstitusi repository yang otoritatif. Lapisan operasionalnya tinggal di dalam repository ini pada folder `agents/rules/`. Baca dokumen berikut hanya ketika kondisinya berlaku:
+`AGENTS.md` tetap menjadi konstitusi repository yang otoritatif. Lapisan operasionalnya **tidak lagi tinggal di dalam repository ini**. Seluruhnya kini datang dari satu sumber global: repository `QuilvianEngineeringSkills`, yang terpasang di mesin Anda sebagai suite Skill Quilvian. Aturan itu mengikat agent mana pun pada vendor mana pun — Claude Code, Codex/GPT, Antigravity/Gemini, maupun agent lain — dipanggil lewat Skill atau tidak.
 
-- Setiap task implementasi: `agents/rules/TASK_RULES.md`
-- Setiap implementasi aplikasi backend: `agents/rules/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `agents/rules/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`
-- Klasifikasi dan pemilihan model: `agents/rules/TASK_CLASSIFICATION.md`
-- Task lintas repository: `agents/rules/CROSS_REPO_RULES.md`
-- Sebelum penyelesaian: `agents/rules/REVIEW_RULES.md`
-- Menulis laporan task tracked: `agents/rules/REPORT_TEMPLATE.md`
-- Pekerjaan API/controller/DTO/contract: `agents/rules/API_RULES.md`
-- Pekerjaan entity/EF/database/migration: `agents/rules/DATABASE_RULES.md`
+Akar aturan terpasang berbeda per vendor, sehingga seluruh dokumen menyebutnya memakai jalur logis berawalan `rules/`:
 
-Folder `agents/rules/` berlaku untuk agent mana pun yang mengerjakan repository ini; tidak ada lokasi aturan khusus per vendor.
+| Vendor | Akar `rules/` terpasang |
+| --- | --- |
+| Claude Code | `${CLAUDE_PLUGIN_ROOT}/.claude/rules/` |
+| Codex / GPT | `$CODEX_HOME/rules/` atau `~/.codex/rules/` |
+| Antigravity — Global | `~/.gemini/config/rules/` |
+| Antigravity — Workspace | `<workspace>/.agents/rules/` |
 
-Dokumen-dokumen tersebut melengkapi, bukan menggantikan, aturan keselamatan, arsitektur, branch, keamanan, validasi, database, dan cakupan tulis khusus repository dalam file ini. Pertanyaan read-only sederhana tidak memerlukan pemuatan seluruh lapisan operasional.
+Baca piagamnya lebih dulu di `rules/GLOBAL_RULES.md`; di situ ada urutan presedensi lengkap dan gerbang kegagalannya. Setelah itu baca dokumen berikut hanya ketika kondisinya berlaku:
+
+- Setiap task implementasi: `rules/backend/TASK_RULES.md`
+- Setiap implementasi aplikasi backend: `rules/backend/engineering/BACKEND_ENGINEERING_CONTRACT.md` dan `rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`
+- Klasifikasi dan pemilihan model: `rules/backend/TASK_CLASSIFICATION.md`
+- Task lintas repository: `rules/backend/CROSS_REPO_RULES.md`
+- Sebelum penyelesaian: `rules/backend/REVIEW_RULES.md`
+- Menulis laporan task tracked: `rules/backend/REPORT_TEMPLATE.md`
+- Pekerjaan API/controller/DTO/contract: `rules/backend/API_RULES.md`
+- Pekerjaan entity/EF/database/migration: `rules/backend/DATABASE_RULES.md`
+- Setiap dokumen yang ditulis: `rules/rule-output/`
+
+Batasan sumber aturan:
+
+- Aturan pada `rules/` berlaku untuk agent mana pun yang mengerjakan repository ini. Tidak ada lokasi aturan khusus per vendor, dan tidak ada lapisan aturan lain yang perlu dimuat untuk task backend.
+- `rules/backend/` mengikat pekerjaan backend saja. Jangan memakai `rules/frontend/` sebagai aturan untuk task backend.
+- Repository ini **tidak lagi** memiliki folder `agents/rules/`. Bila sisa folder itu masih muncul di working tree Anda — misalnya dari branch lama yang belum di-merge — perlakukan sebagai peninggalan yang sudah dicabut, jangan dipakai sebagai sumber aturan, dan laporkan.
+- Jika `AGENTS.md` ini atau akar `rules/` tidak dapat dibaca, berhenti dan laporkan `BLOCKED — canonical governance unavailable`, sebutkan berkas mana yang tidak terbaca, lalu minta suite Skill dipasang atau diperbarui. Jangan mengarang isi rules, menggantinya dengan sumber lain, atau memakai default agent sebagai pengganti.
+
+Dokumen-dokumen tersebut melengkapi, bukan menggantikan, aturan keselamatan, arsitektur, branch, keamanan, validasi, database, dan cakupan tulis khusus repository dalam file ini. Bila keduanya bertentangan, `AGENTS.md` yang berlaku, dan selisihnya dilaporkan. Pertanyaan read-only sederhana tidak memerlukan pemuatan seluruh lapisan operasional.
 
 ## Pemeriksaan Awal Kontrak Rekayasa Backend
 
-Sebelum mengubah source aplikasi backend, tentukan Area, Module, owner/prefix registry, applicability (`NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATION`), serta QBE rule ID yang berlaku dari kontrak canonical. Module/entity operasional baru tanpa entri registry yang disetujui berstatus `BLOCKED` berdasarkan `QBE-MOD-002`; jangan menyimpulkan prefix dari foldernya. Folder Area/Module/Submodule baru — atau yang sudah ada namun belum terdaftar — yang akan memuat model persisted wajib didaftarkan lebih dulu di `agents/rules/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` beserta prefixnya sebelum file model pertama dibuat (`QBE-MOD-003`, `QBE-NAM-004`). Ikuti legacy ratchet: jangan melakukan refactor massal terhadap legacy yang tidak disentuh.
+Sebelum mengubah source aplikasi backend, tentukan Area, Module, owner/prefix registry, applicability (`NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATION`), serta QBE rule ID yang berlaku dari kontrak canonical. Module/entity operasional baru tanpa entri registry yang disetujui berstatus `BLOCKED` berdasarkan `QBE-MOD-002`; jangan menyimpulkan prefix dari foldernya. Folder Area/Module/Submodule baru — atau yang sudah ada namun belum terdaftar — yang akan memuat model persisted wajib didaftarkan lebih dulu di `rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` beserta prefixnya sebelum file model pertama dibuat (`QBE-MOD-003`, `QBE-NAM-004`). Ikuti legacy ratchet: jangan melakukan refactor massal terhadap legacy yang tidak disentuh.
 
 ## Bahasa dan Komunikasi
 
@@ -44,7 +61,7 @@ Sebelum mengubah source aplikasi backend, tentukan Area, Module, owner/prefix re
 ## Identitas Repository dan Alur Kerja Branch
 
 - Repository: `NewQuilvianSystemBackend`
-- Branch development aktif ditentukan per module atau work item oleh pemegang modul yang tercatat dalam `agents/rules/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, atau melalui instruksi task/blueprint yang secara eksplisit telah disetujui oleh pemegang tersebut.
+- Branch development aktif ditentukan per module atau work item oleh pemegang modul yang tercatat dalam `rules/backend/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`, atau melalui instruksi task/blueprint yang secara eksplisit telah disetujui oleh pemegang tersebut.
 - Upstream yang diharapkan: `origin/<active-development-branch>`.
 - Repository referensi frontend: `QuilvianSystemFrontendDev` (temukan dari konteks workspace yang diberi wewenang; laporkan dependency yang hilang alih-alih menebak path).
 
@@ -256,7 +273,7 @@ Sebelum menjalankan test, periksa apakah project test yang relevan tersedia. Jan
 
 Untuk task implementasi:
 
-1. Ikuti referensi governance kondisional di atas, dimulai dari `agents/rules/TASK_RULES.md`.
+1. Ikuti referensi governance kondisional di atas, dimulai dari `rules/backend/TASK_RULES.md`.
 2. Jaga task tetap terbatas dan terapkan seluruh aturan khusus repository dalam file ini.
 3. Laporkan file yang berubah, validasi aktual, keadaan migration, risiko, dan `git status --short`.
 
@@ -271,7 +288,7 @@ Setelah task roadmap selesai diimplementasikan dan divalidasi, buat atau perbaru
 
 Pertahankan task ID persis seperti roadmap. Bila task dikerjakan ulang, perbarui file yang sama. Laporan tracked tersebut menjadi satu-satunya artefak laporan task; jangan membuat handoff atau laporan sesi terpisah. Task frontend hanya memperoleh wewenang lintas repository yang sempit untuk laporan frontend dan tautan buktinya pada roadmap serta `requirement-traceability.md` modul yang sama, bukan untuk source backend atau artefak blueprint lain.
 
-Bentuk laporannya — kerangka bagian, tabel, bahasa, dan checklist penyelesaiannya — diatur `agents/rules/REPORT_TEMPLATE.md`. Berkas itu satu-satunya template laporan task pada repository ini.
+Bentuk laporannya — kerangka bagian, tabel, bahasa, dan checklist penyelesaiannya — diatur `rules/backend/REPORT_TEMPLATE.md`. Berkas itu satu-satunya template laporan task pada repository ini.
 
 Catat acceptance criteria dan bukti seperti domain, controller, endpoint, HTTP method, request dan response DTO, enum/status, otorisasi, perilaku bisnis/workflow, file yang berubah, hasil build/test aktual, keadaan migration, risiko, dan status Git. Jangan menyertakan secret.
 
