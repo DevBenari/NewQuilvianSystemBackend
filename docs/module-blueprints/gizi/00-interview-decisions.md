@@ -64,6 +64,7 @@ diet ke dapur akan menjadi kontrak integrasi yang menunggu modul itu dibuat.
 | `GIZ-DEC-006` | Decision | Diagnosis gizi dipilih dari master berkode, bukan isian bebas | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Wawancara Scope Pass |
 | `GIZ-DEC-007` | Decision | Order konsultasi gizi hanya boleh dibuat dokter penanggung jawab pasien | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Wawancara Scope Pass |
 | `GIZ-DEC-008` | Decision | Asuhan gizi ditutup ketika pasien keluar rawat inap, disertai catatan penutup ahli gizi | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Wawancara Scope Pass |
+| `GIZ-DEC-009` | Decision | Diagnosis gizi menumpang `MstDiagnosis` yang sudah ada dengan `DiagnosisType` bernilai `NUTRITION`, bukan master tersendiri | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Pemeriksaan master setelah audit kemampuan |
 
 ### GIZ-DEC-001 — Order konsultasi gizi memakai entity sendiri
 
@@ -125,10 +126,42 @@ langkah "Evaluasi dan tindak lanjut" pada alur versi pertama punya pembanding an
 > Bila hanya ada satu catatan yang diperbarui terus, angka hari pertama hilang dan evaluasi
 > tidak dapat dibuktikan.
 
-### GIZ-DEC-006 — Diagnosis gizi memakai master berkode
+### GIZ-DEC-006 dan GIZ-DEC-009 — Diagnosis gizi memakai master berkode yang sudah ada
 
-Master baru diperlukan. Isinya ditetapkan pemilik proses gizi, bukan dikarang implementasi.
-Sebelum master disahkan dan diisi, fitur diagnosis gizi belum dapat dipakai.
+`GIZ-DEC-006` menetapkan diagnosis gizi dipilih dari master berkode, bukan isian bebas.
+`GIZ-DEC-009` kemudian menetapkan master mana yang dipakai, setelah pemeriksaan master
+dilakukan.
+
+**Yang ditemukan saat pemeriksaan.** `MstDiagnosis` bukan master khusus ICD-10. Ia membawa
+kolom `DiagnosisType` dengan nilai bawaan `ICD10`, dan penyaring per jenis itu **sudah dipakai
+kode existing**:
+
+> `Areas/HealthServices/ClinicalManagement/Controllers/DiagnosisRecommendationResolverController.cs`
+> baris 79 @ `f2c5090` menyaring `x.DiagnosisType == "ICD10"`.
+
+Nilai jenis lain yang sudah beredar di kode: `PNPK` dan `ICD9`. Artinya master ini memang
+dirancang menampung lebih dari satu sistem klasifikasi.
+
+**Keputusan.** Diagnosis gizi masuk ke `MstDiagnosis` dengan `DiagnosisType = "NUTRITION"`.
+
+> **Contoh isi:**
+>
+> | `DiagnosisCode` | `DiagnosisName` | `DiagnosisType` |
+> |---|---|---|
+> | `E44` | Malnutrisi protein energi | `ICD10` |
+> | `NI-2.1` | Asupan oral tidak adekuat | `NUTRITION` |
+> | `NC-1.1` | Kesulitan menelan | `NUTRITION` |
+>
+> Kode dan uraian pada baris `NUTRITION` di atas hanya ilustrasi bentuk. Isi sebenarnya
+> ditetapkan pemilik proses gizi lewat `GIZ-OQ-002`.
+
+**Konsekuensi yang diterima.** `MstDiagnosis` adalah data bersama milik Master Data
+HealthServices, bukan milik Gizi. Penambahan jenis baru perlu sepengetahuan pemiliknya. Sebagai
+gantinya, sistem tidak bertambah satu master lagi, dan pengguna mencari diagnosis di satu
+tempat.
+
+**Yang belum selesai.** Isi masternya tetap menunggu `GIZ-OQ-002`. Sebelum baris `NUTRITION`
+diisi dan disahkan, fitur diagnosis gizi belum dapat dipakai.
 
 ## Pertanyaan Terbuka
 

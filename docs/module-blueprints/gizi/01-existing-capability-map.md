@@ -16,9 +16,9 @@ yang sudah tersedia, dan mana yang benar-benar belum ada.**
 
 | Status | Jumlah kemampuan |
 |---|---:|
-| Ready to reuse | 9 |
+| Ready to reuse | 10 |
 | Extend | 1 |
-| Missing | 6 |
+| Missing | 5 |
 | Conflict | 0 |
 | Unknown | 1 |
 
@@ -61,14 +61,14 @@ diputuskan pada `GIZ-DEC-003`.
 | **Skrining gizi awal** | **Ready to reuse** | `TrxPatientAssessment` bagian `NUTRITION` | `L4` | Menjawab `GIZ-OQ-001` |
 | Antropometri berat, tinggi, BMI | Ready to reuse | `TrxPatientAssessment` | `L4` | Sudah ada, tidak perlu dibuat ulang |
 | Dokter penanggung jawab | Ready to reuse | `MstDoctor`, `InpDoctorAssignment` | `L4`, `L3` | Penentu kewenangan order pada `GIZ-DEC-007` |
-| Profil tenaga dan profesi | Ready to reuse | `MstWorkforceProfile`, `MstProfession` | `L4` | Kandidat penanda ahli gizi, menjawab sebagian `GIZ-OQ-003` |
+| Profil tenaga dan profesi | Ready to reuse | `MstWorkforceProfile`, `MstProfession`, `MstSpecialization` | `L4` | `MstProfession` membawa `ProfessionCode`, `ProfessionName`, `IsClinicalProfession`, dan `RequiresLicense`. Ahli gizi cukup menjadi satu baris profesi klinis |
 | Diagnosis medis | Ready to reuse | `MstDiagnosis` | `L4` | Untuk diagnosis awal pada order. **Bukan** diagnosis gizi |
 | Unit layanan | Ready to reuse | `MstServiceUnit` | `L4` | Unit gizi sebagai unit layanan |
 | Penutupan saat pasien keluar | Extend | `InpEpisode` | `L3` | Modul Gizi perlu membaca perubahan status episode. Mekanismenya belum ada |
 | Order konsultasi gizi | Missing | — | — | Diputuskan entity sendiri pada `GIZ-DEC-001` |
 | Kunjungan ahli gizi | Missing | — | — | Wadah asuhan berulang pada `GIZ-DEC-005` |
 | Asuhan gizi per kunjungan | Missing | — | — | Asesmen, diagnosis, intervensi, monitoring dan evaluasi |
-| Master diagnosis gizi berkode | Missing | — | — | `GIZ-DEC-006`. Isinya menunggu `GIZ-OQ-002` |
+| Master diagnosis gizi berkode | Ready to reuse | `MstDiagnosis` dengan `DiagnosisType` baru | `L4` | `GIZ-DEC-009`. Master sudah menampung banyak jenis; isinya menunggu `GIZ-OQ-002` |
 | Recall asupan makanan | Missing | — | — | Belum ada entity mana pun |
 | Penentuan diet dan kebutuhan nutrisi | Missing | — | — | Bentuknya menunggu `GIZ-OQ-004` |
 | Cara mengetahui pasien keluar rawat inap | Unknown | — | — | Belum diketahui apakah ada event, notifikasi, atau hanya polling status |
