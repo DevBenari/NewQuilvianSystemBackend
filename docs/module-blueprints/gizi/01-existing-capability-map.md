@@ -16,9 +16,9 @@ yang sudah tersedia, dan mana yang benar-benar belum ada.**
 
 | Status | Jumlah kemampuan |
 |---|---:|
-| Ready to reuse | 10 |
+| Ready to reuse | 11 |
 | Extend | 1 |
-| Missing | 5 |
+| Missing | 4 |
 | Conflict | 0 |
 | Unknown | 1 |
 
@@ -51,6 +51,45 @@ diputuskan pada `GIZ-DEC-003`.
 > itu dan menampilkan pasien tersebut sebagai kandidat rujukan. Dokter penanggung jawab lalu
 > membuat order konsultasi gizi. Modul Gizi tidak pernah menulis ke `TrxPatientAssessment`.
 
+## Temuan kedua: CPPT sudah menyediakan tempat untuk Gizi
+
+`TrxPatientIntegratedProgressNote`, Catatan Perkembangan Pasien Terintegrasi, berada pada
+tingkat `L4 Terpakai` dan endpoint-nya sudah dipanggil frontend.
+
+Yang menentukan bukan kemiripan struktur, melainkan bahwa **tempat untuk gizi sudah tertulis
+di dalam kodenya**:
+
+> `Areas/HealthServices/ClinicalManagement/Controllers/PatientIntegratedProgressNoteController.cs`
+> @ `f2c5090`
+>
+> | Baris | Isi |
+> |---:|---|
+> | 1268 | `new() { Value = "Nutrition", Label = "Gizi" }` pada daftar pilihan `SourceModule` |
+> | 1294 | `"gizi" or "nutrition" or "nutritionist" => "Nutritionist"` |
+> | 1309 | `"Nutritionist" => "Gizi"` sebagai nama profesi bawaan |
+
+Perancang CPPT sudah menyiapkan jalur bagi catatan ahli gizi. Yang belum ada hanyalah modul
+yang mengisinya.
+
+### Kolom CPPT yang dipakai Gizi
+
+| Kolom | Kegunaan bagi Gizi |
+|---|---|
+| `ProfessionType`, `ProfessionName` | Menandai catatan sebagai catatan ahli gizi |
+| `SourceModule`, `SourceReferenceId`, `SourceReferenceNumber` | Menunjuk balik ke catatan asuhan gizi terstruktur |
+| `SubjectiveSummary`, `ObjectiveSummary`, `AssessmentSummary`, `PlanSummary` | Narasi kunjungan |
+| `Instruction` | Instruksi untuk perawat dan tenaga lain |
+| `Evaluation` | Evaluasi tindak lanjut |
+| `ProviderUserId`, `ProviderDisplayNameSnapshot` | Siapa ahli gizi yang menulis |
+
+### Yang tetap harus dibuat Gizi
+
+CPPT menyimpan **narasi**, bukan **angka**. Seluruh kolom isinya teks bebas, sehingga tidak
+dapat dipakai menghitung laporan mutu gizi maupun menelusuri diagnosis per kelompok.
+
+Karena itu empat hal berikut tetap disimpan terstruktur di entity milik Gizi: diagnosis gizi
+berkode, target dan capaian intervensi, recall asupan, serta diet dan kebutuhan nutrisi.
+
 ## Peta kemampuan
 
 | Kemampuan yang dibutuhkan Gizi | Status | Entity atau lokasi | Tingkat | Catatan |
@@ -66,7 +105,7 @@ diputuskan pada `GIZ-DEC-003`.
 | Unit layanan | Ready to reuse | `MstServiceUnit` | `L4` | Unit gizi sebagai unit layanan |
 | Penutupan saat pasien keluar | Extend | `InpEpisode` | `L3` | Modul Gizi perlu membaca perubahan status episode. Mekanismenya belum ada |
 | Order konsultasi gizi | Missing | — | — | Diputuskan entity sendiri pada `GIZ-DEC-001` |
-| Kunjungan ahli gizi | Missing | — | — | Wadah asuhan berulang pada `GIZ-DEC-005` |
+| Kunjungan ahli gizi | Ready to reuse | `TrxPatientIntegratedProgressNote` (CPPT) | `L4` | `GIZ-DEC-010`. Tempat untuk gizi sudah disiapkan: `SourceModule` `Nutrition` dan `ProfessionType` `Nutritionist` sudah terdaftar di controller |
 | Asuhan gizi per kunjungan | Missing | — | — | Asesmen, diagnosis, intervensi, monitoring dan evaluasi |
 | Master diagnosis gizi berkode | Ready to reuse | `MstDiagnosis` dengan `DiagnosisType` baru | `L4` | `GIZ-DEC-009`. Master sudah menampung banyak jenis; isinya menunggu `GIZ-OQ-002` |
 | Recall asupan makanan | Missing | — | — | Belum ada entity mana pun |
@@ -81,6 +120,13 @@ Base URL: `api/v1/health-services/clinical-management/patient-assessments`
 
 Grup ini sudah ada di Swagger dan **sudah dipanggil frontend**, jadi tingkatnya `L4 Terpakai`.
 Modul Gizi akan menjadi pembaca tambahan endpoint ini, bukan pemiliknya.
+
+### Health Services / Clinical Management / Patient Integrated Progress Note
+
+Base URL: `api/v1/health-services/clinical-management/patient-integrated-progress-notes`
+
+CPPT. Tingkat `L4 Terpakai`. Modul Gizi menjadi penulis tambahan pada endpoint ini dengan
+`SourceModule` bernilai `Nutrition`. Aturan CPPT tetap milik Clinical Management.
 
 ### Health Services / InPatient Management
 
@@ -98,6 +144,8 @@ berada di `L3`, bukan `L4`. Modul Gizi tetap dapat membacanya dari sisi backend.
 | Berat, tinggi, dan BMI versi Gizi | Sudah ada di asesmen pasien |
 | Master dokter atau ahli gizi versi Gizi | Dimiliki HR Master Data |
 | Konsultasi versi Gizi yang meniru `TrxDoctorConsultation` | `GIZ-DEC-001` memutuskan entity terpisah dengan alasan tertulis, bukan meniru |
+| Catatan kunjungan gizi versi Gizi | Sudah ada di CPPT `TrxPatientIntegratedProgressNote`, dan tempat untuk gizi sudah disiapkan di dalamnya. `GIZ-DEC-010` |
+| Master diagnosis gizi tersendiri | `MstDiagnosis` sudah menampung banyak jenis lewat `DiagnosisType`. `GIZ-DEC-009` |
 
 ## Conflict dan Unknown
 
@@ -126,3 +174,4 @@ Yang **tidak** diperiksa: isi data sungguhan, termasuk apakah `MstProfession` be
 berisi baris untuk ahli gizi, dan apakah `NutritionRiskStatus` benar-benar diisi petugas dalam
 praktik sehari-hari. Keduanya memerlukan pemeriksaan basis data berjalan, bukan pembacaan
 source.
+

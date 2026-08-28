@@ -65,6 +65,7 @@ diet ke dapur akan menjadi kontrak integrasi yang menunggu modul itu dibuat.
 | `GIZ-DEC-007` | Decision | Order konsultasi gizi hanya boleh dibuat dokter penanggung jawab pasien | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Wawancara Scope Pass |
 | `GIZ-DEC-008` | Decision | Asuhan gizi ditutup ketika pasien keluar rawat inap, disertai catatan penutup ahli gizi | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Wawancara Scope Pass |
 | `GIZ-DEC-009` | Decision | Diagnosis gizi menumpang `MstDiagnosis` yang sudah ada dengan `DiagnosisType` bernilai `NUTRITION`, bukan master tersendiri | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Pemeriksaan master setelah audit kemampuan |
+| `GIZ-DEC-010` | Decision | Kunjungan ahli gizi ditulis sebagai baris CPPT `TrxPatientIntegratedProgressNote` dengan `ProfessionType` `Nutritionist` dan `SourceModule` `Nutrition`. Data terstruktur gizi disimpan entity milik Gizi yang menunjuk balik ke baris CPPT tersebut | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-08-27 | Pemeriksaan kemampuan existing |
 
 ### GIZ-DEC-001 — Order konsultasi gizi memakai entity sendiri
 
@@ -120,6 +121,9 @@ Order Konsultasi Gizi (satu per episode rawat inap)
 
 Konseling gizi dan recall asupan menempel pada kunjungan, bukan pada order. Dengan begitu
 langkah "Evaluasi dan tindak lanjut" pada alur versi pertama punya pembanding antar waktu.
+
+**Wadah kunjungan ditentukan `GIZ-DEC-010`.** Kunjungan tidak memerlukan entity tersendiri
+milik Gizi; ia memakai CPPT yang sudah ada.
 
 > **Contoh:** Kunjungan hari pertama mencatat asupan oral 40 persen dari kebutuhan. Kunjungan
 > hari ketiga mencatat 75 persen. Perbandingan dua angka itulah yang menjadi bukti evaluasi.
@@ -190,3 +194,66 @@ antaranya memblokir desain.
 Keputusan ini adalah persetujuan pemilik kebutuhan terhadap rekomendasi, bukan klaim regulasi
 atau SOP rumah sakit. Praktik skrining gizi dalam 24 jam pada `GIZ-DEC-003` perlu diverifikasi
 terhadap kebijakan mutu rumah sakit yang berlaku.
+
+### GIZ-DEC-010 — Kunjungan ahli gizi memakai CPPT yang sudah ada
+
+**Yang ditemukan saat pemeriksaan kemampuan.** `TrxPatientIntegratedProgressNote`, Catatan
+Perkembangan Pasien Terintegrasi, sudah ada pada tingkat `L4 Terpakai` dan endpoint-nya sudah
+dipanggil frontend. Yang menentukan: **tempat untuk gizi sudah disiapkan di dalamnya**, bukan
+hasil penafsiran.
+
+> `Areas/HealthServices/ClinicalManagement/Controllers/PatientIntegratedProgressNoteController.cs`
+> @ `f2c5090`:
+>
+> - baris 1268 mendaftarkan `new() { Value = "Nutrition", Label = "Gizi" }` sebagai pilihan
+>   `SourceModule`;
+> - baris 1294 memetakan `"gizi"`, `"nutrition"`, dan `"nutritionist"` menjadi
+>   `ProfessionType = "Nutritionist"`;
+> - baris 1309 memetakan `"Nutritionist"` menjadi nama profesi `"Gizi"`.
+
+Perancang CPPT sudah menyiapkan tempat bagi catatan ahli gizi. Yang belum ada hanyalah modul
+yang mengisinya.
+
+**Yang cocok dan yang berbeda.**
+
+| Kebutuhan Gizi | Tersedia di CPPT | Putusan |
+|---|---|---|
+| Catatan kunjungan naratif | `SubjectiveSummary`, `ObjectiveSummary`, `AssessmentSummary`, `PlanSummary` | Pakai yang ada |
+| Evaluasi tindak lanjut | `Evaluation` | Pakai yang ada |
+| Instruksi untuk tenaga lain | `Instruction` | Pakai yang ada |
+| Penanda profesi | `ProfessionType`, `ProfessionName` | Pakai yang ada |
+| Penunjuk balik ke modul asal | `SourceModule`, `SourceReferenceId`, `SourceReferenceNumber` | Pakai yang ada |
+| Diagnosis gizi berkode | Tidak ada tautan diagnosis | Buat baru |
+| Target intervensi terukur | Tidak ada | Buat baru |
+| Recall asupan | Tidak ada | Buat baru |
+| Diet dan kebutuhan nutrisi | Tidak ada | Buat baru |
+
+**Keputusan.** Setiap kunjungan ahli gizi menulis satu baris CPPT dengan
+`ProfessionType = "Nutritionist"` dan `SourceModule = "Nutrition"`. Data terstruktur gizi
+disimpan pada entity milik Gizi, dan `SourceReferenceId` pada CPPT menunjuk balik ke entity
+tersebut.
+
+```text
+TrxPatientIntegratedProgressNote  (CPPT, milik Clinical Management)
+  ProfessionType    = "Nutritionist"
+  SourceModule      = "Nutrition"
+  SourceReferenceId --------------------+
+  Subjective / Objective / Assessment / Plan / Instruction / Evaluation
+                                        |
+                                        v
+Catatan Asuhan Gizi  (entity baru, milik Gizi)
+  order konsultasi, diagnosis gizi berkode, target dan capaian intervensi,
+  recall asupan, diet dan kebutuhan nutrisi
+```
+
+**Alasan.** CPPT ada supaya seluruh profesi menulis di satu tempat sehingga dokter melihat
+perkembangan gizi pasien saat visite. Membuat kunjungan gizi terpisah akan mengalahkan tujuan
+itu.
+
+**Konsekuensi yang diterima.** Modul Gizi menulis ke data milik Clinical Management. Ini
+memerlukan sepengetahuan pemiliknya, dan aturan CPPT tetap milik Clinical Management, bukan
+Gizi.
+
+**Batas yang tetap dijaga.** CPPT menyimpan narasi, bukan angka. Kolomnya teks bebas sehingga
+tidak dapat dipakai menghitung laporan mutu gizi. Karena itu diagnosis berkode, target
+intervensi, recall, dan diet tetap disimpan terstruktur di entity Gizi.
