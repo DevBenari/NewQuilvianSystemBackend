@@ -21,7 +21,7 @@ Sebelum implementasi, periksa controller, DTO, model, service, penggunaan akses 
 - Klasifikasi dan pemilihan model: `agents/rules/TASK_CLASSIFICATION.md`
 - Task lintas repository: `agents/rules/CROSS_REPO_RULES.md`
 - Sebelum penyelesaian: `agents/rules/REVIEW_RULES.md`
-- Handoff/laporan lokal: `agents/rules/REPORT_TEMPLATE.md`
+- Menulis laporan task tracked: `agents/rules/REPORT_TEMPLATE.md`
 - Pekerjaan API/controller/DTO/contract: `agents/rules/API_RULES.md`
 - Pekerjaan entity/EF/database/migration: `agents/rules/DATABASE_RULES.md`
 
@@ -270,6 +270,8 @@ Setelah task roadmap selesai diimplementasikan dan divalidasi, buat atau perbaru
 - frontend: `docs/module-blueprints/<module-slug>/task/report/frontend/<TASK-ID>.md`.
 
 Pertahankan task ID persis seperti roadmap. Bila task dikerjakan ulang, perbarui file yang sama. Laporan tracked tersebut menjadi satu-satunya artefak laporan task; jangan membuat handoff atau laporan sesi terpisah. Task frontend hanya memperoleh wewenang lintas repository yang sempit untuk laporan frontend dan tautan buktinya pada roadmap serta `requirement-traceability.md` modul yang sama, bukan untuk source backend atau artefak blueprint lain.
+
+Bentuk laporannya — kerangka bagian, tabel, bahasa, dan checklist penyelesaiannya — diatur `agents/rules/REPORT_TEMPLATE.md`. Berkas itu satu-satunya template laporan task pada repository ini.
 
 Catat acceptance criteria dan bukti seperti domain, controller, endpoint, HTTP method, request dan response DTO, enum/status, otorisasi, perilaku bisnis/workflow, file yang berubah, hasil build/test aktual, keadaan migration, risiko, dan status Git. Jangan menyertakan secret.
 
