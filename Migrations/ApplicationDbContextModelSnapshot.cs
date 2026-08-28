@@ -59104,6 +59104,230 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxPatientVitalSign", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDeparture", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AllergySnapshot")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("ArrivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AssessmentSummary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("BackgroundSummary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DepartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DepartureNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("DepartureReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("EmergencyVisitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("FromServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("HandoverRejectionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("HandoverStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("LastVitalSignId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("PhysicalStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ReceivingNurseUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RecommendationSummary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SendingNurseUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SituationSummary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("ToServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TriageLevelSnapshot")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("UnavailableSectionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("UnavailableSections")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartureNumber")
+                        .IsUnique();
+
+                    b.HasIndex("FromServiceUnitId");
+
+                    b.HasIndex("ToServiceUnitId", "HandoverStatus");
+
+                    b.HasIndex("EmergencyVisitId", "PhysicalStatus", "RequestedAt");
+
+                    b.ToTable("EmgDeparture", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDepartureEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DowntimeReference")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid>("EmergencyDepartureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("EventType")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEffective")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RecordedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SupersedesEventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SupersedesEventId");
+
+                    b.HasIndex("EmergencyDepartureId", "IsEffective");
+
+                    b.HasIndex("EmergencyDepartureId", "OccurredAt");
+
+                    b.ToTable("EmgDepartureEvent", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDisposition", b =>
                 {
                     b.Property<Guid>("Id")
@@ -59228,6 +59452,123 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("EmergencyVisitId", "DispositionStatus", "DecidedAt");
 
                     b.ToTable("EmgDisposition", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgHandoverOrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AcceptanceStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AcceptedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Action")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ActionAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ActionByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EmergencyDepartureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExternalReference")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEffective")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OrderDescription")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("OrderKind")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("OrderReferenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("OrderSource")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("SupersedesOrderItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ToServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SupersedesOrderItemId");
+
+                    b.HasIndex("ToServiceUnitId");
+
+                    b.HasIndex("EmergencyDepartureId", "OrderKind", "ExternalReference")
+                        .IsUnique()
+                        .HasDatabaseName("UX_EmergencyHandoverOrderItem_External")
+                        .HasFilter("\"IsEffective\" AND \"OrderSource\" = 2 AND NOT \"IsDelete\"");
+
+                    b.HasIndex("EmergencyDepartureId", "OrderKind", "OrderReferenceId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_EmergencyHandoverOrderItem_Internal")
+                        .HasFilter("\"IsEffective\" AND \"OrderSource\" = 1 AND NOT \"IsDelete\"");
+
+                    b.ToTable("EmgHandoverOrderItem", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_EmergencyOrderItem_Reference", "(\"OrderSource\" = 1 AND \"OrderReferenceId\" IS NOT NULL AND \"ExternalReference\" IS NULL) OR (\"OrderSource\" = 2 AND \"OrderReferenceId\" IS NULL AND \"ExternalReference\" IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgObservation", b =>
@@ -59931,6 +60272,19 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DuplicateEpisodeOverrideAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DuplicateEpisodeOverrideByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DuplicateEpisodeOverrideOfVisitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DuplicateEpisodeOverrideReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<string>("EmergencyVisitNumber")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -60008,6 +60362,12 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("ArrivalModeId");
 
                     b.HasIndex("CaseTypeId");
+
+                    b.HasIndex("DuplicateEpisodeOverrideAt")
+                        .HasFilter("\"DuplicateEpisodeOverrideAt\" IS NOT NULL");
+
+                    b.HasIndex("DuplicateEpisodeOverrideOfVisitId")
+                        .HasFilter("\"DuplicateEpisodeOverrideOfVisitId\" IS NOT NULL");
 
                     b.HasIndex("EmergencyVisitNumber")
                         .IsUnique();
@@ -89436,6 +89796,50 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("VerifiedByUser");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDeparture", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgVisit", "EmergencyVisit")
+                        .WithMany("Departures")
+                        .HasForeignKey("EmergencyVisitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "FromServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("FromServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ToServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ToServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("EmergencyVisit");
+
+                    b.Navigation("FromServiceUnit");
+
+                    b.Navigation("ToServiceUnit");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDepartureEvent", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDeparture", "EmergencyDeparture")
+                        .WithMany("Events")
+                        .HasForeignKey("EmergencyDepartureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDepartureEvent", "SupersedesEvent")
+                        .WithMany()
+                        .HasForeignKey("SupersedesEventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("EmergencyDeparture");
+
+                    b.Navigation("SupersedesEvent");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDisposition", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "ConfirmedByUser")
@@ -89474,6 +89878,31 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("DispositionType");
 
                     b.Navigation("EmergencyVisit");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgHandoverOrderItem", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDeparture", "EmergencyDeparture")
+                        .WithMany("OrderItems")
+                        .HasForeignKey("EmergencyDepartureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgHandoverOrderItem", "SupersedesOrderItem")
+                        .WithMany()
+                        .HasForeignKey("SupersedesOrderItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ToServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("ToServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("EmergencyDeparture");
+
+                    b.Navigation("SupersedesOrderItem");
+
+                    b.Navigation("ToServiceUnit");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgObservation", b =>
@@ -92957,6 +93386,13 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ChargeLines");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDeparture", b =>
+                {
+                    b.Navigation("Events");
+
+                    b.Navigation("OrderItems");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgObservation", b =>
                 {
                     b.Navigation("Details");
@@ -92978,6 +93414,8 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgVisit", b =>
                 {
+                    b.Navigation("Departures");
+
                     b.Navigation("Dispositions");
 
                     b.Navigation("Observations");
@@ -92985,8 +93423,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ProcedureDetails");
 
                     b.Navigation("Resuscitations");
-
-                    b.Navigation("Transfers");
 
                     b.Navigation("Triages");
                 });
