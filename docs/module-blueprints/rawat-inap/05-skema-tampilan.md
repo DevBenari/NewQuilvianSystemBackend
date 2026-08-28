@@ -3,11 +3,14 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.1` |
+| Revision | `0.3` |
 | Status | `draft` — menunggu persetujuan pemilik |
-| Cakupan revision ini | **Menu Admisi Rawat Inap saja.** Menu lain belum disusun |
-| Masukan | `03-frontend-architecture.md` revision `0.4`; `roadmap/frontend-roadmap.md` revision `3` |
-| Frontend SHA | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
+| Cakupan revision ini | **Seluruh 19 layar fungsional `FE-INP-01` s.d. `FE-INP-19`** |
+| Masukan otoritatif | `00-interview-decisions.md` revision `7`; `03-frontend-architecture.md` revision `0.4`; kontrak `0.4.0` |
+| Keluaran hilir | `roadmap/frontend-roadmap.md` revision `4` draft disinkronkan setelah skema ini |
+| Baseline desain | Frontend `dec4fdeff07c3c96ad9f07f41f184c54cf771371`; backend `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
+| Impact scan terkini | Frontend `12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360`; backend `f102020611fc3d605fdef1949a3af23da93e4215`; 28 Agustus 2026, baca-saja |
+| Brief UI terkini | Instruksi pemilik 28 Agustus 2026: master/configuration Rawat Inap ditempatkan pada `Pelayanan Kesehatan → Master Data`; masih menunggu approval revision ini |
 | Batas tulis | Hanya dokumen blueprint |
 
 ---
@@ -15,8 +18,8 @@
 ## 0. Kedudukan dokumen ini
 
 `03-frontend-architecture.md` sengaja **tidak** menetapkan tata letak, dan menyerahkannya ke
-`DEV_DISCRETION`. Dokumen ini menempati tingkat di atas `DEV_DISCRETION`, yaitu **brief UI yang
-disetujui**:
+`DEV_DISCRETION`. Setelah mendapat approval, dokumen ini menempati tingkat di atas
+`DEV_DISCRETION`, yaitu **brief UI yang disetujui**:
 
 ```text
 keamanan / privasi / invariant / keterjangkauan     ← 03-frontend-architecture.md
@@ -30,10 +33,10 @@ Artinya:
 | Hal | Keadaannya setelah dokumen ini berlaku |
 | --- | --- |
 | Aturan bagian 2A, 2B, 3, 3A, 5.4, dan 6 pada `03-frontend-architecture.md` | **Tetap menang.** Skema di bawah tidak boleh melanggarnya, dan bila ada yang berselisih, dokumen inilah yang salah |
-| `RWI-FE-003` nama dan label langkah | **Ditutup** oleh dokumen ini |
-| `RWI-FE-004` bentuk penanda langkah | **Ditutup** oleh dokumen ini |
+| `RWI-FE-003` nama dan label langkah | **Diusulkan ditutup** oleh dokumen ini setelah mendapat persetujuan pemilik |
+| `RWI-FE-004` bentuk penanda langkah | **Diusulkan ditutup** oleh dokumen ini setelah mendapat persetujuan pemilik |
 | Warna, ukuran, jarak, ikon, tipografi | **Tetap** `DEV_DISCRETION`, mengikuti design system project |
-| Pilihan komponen konkret | **Tetap** `DEV_DISCRETION`, tetapi bagian 6 menyebut komponen yang sudah ada supaya tidak dibuat kembar |
+| Pilihan komponen konkret | **Tetap** `DEV_DISCRETION`, tetapi bagian 4.4 menyebut komponen yang sudah ada supaya tidak dibuat kembar |
 
 **Skema di bawah adalah usulan sampai disetujui pemilik.** Sebelum disetujui, ia tidak mengikat
 pelaksana dan tidak boleh dipakai sebagai dasar acceptance criteria.
@@ -63,31 +66,34 @@ Tanda pada rangka:
 
 ## 2. Peta modul dan menu
 
-Register ini tumbuh satu menu per kali. Yang belum disusun ditulis apa adanya, bukan dikosongkan.
+Register ini memetakan seluruh layar fungsional. Target navigasinya memisahkan **tujuh menu
+operasional** pada `Pelayanan Kesehatan → Rawat Inap` dari **dua menu master/configuration Rawat
+Inap** pada `Pelayanan Kesehatan → Master Data`. Layar per episode tetap dicapai dari Daftar Kerja
+Episode atau Detail Episode sesuai `IA-INP-05`.
 
 ### Modul: Health Services / Rawat Inap
 
-| Menu | Layar fungsional | Skema |
-| --- | --- | :---: |
-| Admisi Rawat Inap | `FE-INP-03` | ✅ **bagian 3** |
-| Beranda Rawat Inap | `FE-INP-19` | ⬜ belum disusun |
-| Daftar Kerja Episode | `FE-INP-16` | ⬜ belum disusun |
-| Papan Tempat Tidur | `FE-INP-02` | ⬜ belum disusun |
-| Pasien Sedang Dirawat | `FE-INP-01` | ⬜ belum disusun |
-| Detail Episode | `FE-INP-04` | ⬜ belum disusun |
-| Perpindahan Pasien | `FE-INP-05` | ⬜ belum disusun |
-| Keputusan Pulang dan Resume | `FE-INP-06` | ⬜ belum disusun |
-| Penutupan Episode | `FE-INP-07` | ⬜ belum disusun |
-| Kelayakan Keuangan | `FE-INP-08` | ⬜ belum disusun |
-| Daftar Pantau | `FE-INP-09` | ⬜ belum disusun |
-| Selisih Tempat Tidur | `FE-INP-10` | ⬜ belum disusun |
-| Sesi Koreksi | `FE-INP-11` | ⬜ belum disusun |
-| Pengaturan Rawat Inap | `FE-INP-12` | ⬜ belum disusun |
-| Butir Administrasi | `FE-INP-13` | ⬜ belum disusun |
-| Pencatatan Kepergian | `FE-INP-14` | ⬜ belum disusun |
-| Kebutuhan Isolasi | `FE-INP-15` | ⬜ belum disusun |
-| Pembatalan Admisi | `FE-INP-17` | ⬜ belum disusun |
-| Cetak Persetujuan | `FE-INP-18` | ⬜ bagian 3.13 memuat langkahnya di dalam admisi; layar berdiri sendirinya belum disusun |
+| Butir navigasi / layar | Induk target | Layar fungsional | Skema |
+| --- | --- | --- | :---: |
+| Beranda Rawat Inap — menu operasional | `Pelayanan Kesehatan → Rawat Inap` | `FE-INP-19` | ✅ **bagian 5** |
+| Admisi Rawat Inap — menu operasional | `Pelayanan Kesehatan → Rawat Inap` | `FE-INP-03` | ✅ **bagian 3** |
+| Papan Tempat Tidur — menu operasional | `Pelayanan Kesehatan → Rawat Inap` | `FE-INP-02` | ✅ **bagian 7** |
+| Daftar Kerja Episode — menu operasional | `Pelayanan Kesehatan → Rawat Inap` | `FE-INP-16` | ✅ **bagian 6** |
+| Pasien Sedang Dirawat — menu operasional | `Pelayanan Kesehatan → Rawat Inap` | `FE-INP-01` | ✅ **bagian 8** |
+| Daftar Pantau — menu operasional | `Pelayanan Kesehatan → Rawat Inap` | `FE-INP-09` | ✅ **bagian 14** |
+| Selisih Tempat Tidur — menu operasional | `Pelayanan Kesehatan → Rawat Inap` | `FE-INP-10` | ✅ **bagian 15** |
+| Pengaturan Rawat Inap — master/configuration | `Pelayanan Kesehatan → Master Data` | `FE-INP-12` | ✅ **bagian 17** |
+| Butir Administrasi Rawat Inap — master/configuration | `Pelayanan Kesehatan → Master Data` | `FE-INP-13` | ✅ **bagian 18** |
+| Detail Episode | Daftar Kerja Episode / Census | `FE-INP-04` | ✅ **bagian 9** |
+| Perpindahan Pasien | Detail Episode | `FE-INP-05` | ✅ **bagian 10** |
+| Keputusan Pulang dan Resume | Detail Episode | `FE-INP-06` | ✅ **bagian 11** |
+| Penutupan Episode | Detail Episode | `FE-INP-07` | ✅ **bagian 12** |
+| Kelayakan Keuangan | Detail Episode | `FE-INP-08` | ✅ **bagian 13** |
+| Sesi Koreksi | Detail Episode `Closed` | `FE-INP-11` | ✅ **bagian 16** |
+| Pencatatan Kepergian | Detail Episode | `FE-INP-14` | ✅ **bagian 19** |
+| Kebutuhan Isolasi | Detail Episode / alur admisi | `FE-INP-15` | ✅ **bagian 20** |
+| Pembatalan Admisi | Daftar Kerja Episode / Detail Episode | `FE-INP-17` | ✅ **bagian 21** |
+| Cetak Persetujuan | Alur admisi / Detail Episode | `FE-INP-18` | ✅ **bagian 22**; terhubung juga dari langkah 8 bagian 3.10 |
 
 ---
 
@@ -95,8 +101,9 @@ Register ini tumbuh satu menu per kali. Yang belum disusun ditulis apa adanya, b
 
 Route: `/health-services/inpatient-management/admissions`
 
-Kesembilan langkah dan isinya sudah dikunci `03-frontend-architecture.md` bagian 3A. Yang dokumen
-ini tambahkan adalah **susunan wilayah di layar** dan **kata yang dipakai**.
+Urutan bernama dan isi langkah sudah dikunci `03-frontend-architecture.md` bagian 3A. Jalur pasien
+baru memuat sembilan langkah; jumlah resmi jalur pasien lama masih tertahan `RWI-UI-GAP-001`.
+Dokumen ini menambahkan **susunan wilayah di layar** dan **kata yang dipakai**.
 
 ### 3.0 Kerangka halaman
 
@@ -125,7 +132,7 @@ Berlaku untuk seluruh langkah kecuali layar pembuka.
 | Wilayah | Isi | Dari mana | Komponen yang sudah ada |
 | --- | --- | --- | --- |
 | Kepala halaman | Remah jejak, judul menu, satu kalimat penjelas | tetap | `Hero` |
-| Penanda langkah | Kesembilan langkah beserta yang sedang berjalan | keadaan alur | `emergency-registration-stepper` |
+| Penanda langkah | Urutan langkah sesuai jalur, termasuk yang sedang berjalan dan sudah lewat | keadaan alur | `emergency-registration-stepper` |
 | Isi langkah | Berganti per langkah, bagian 3.2 s.d. 3.13 | — | — |
 | Ringkasan berjalan | Pasien, nomor RM, penjamin, kelas, unit, tempat tidur — **hanya yang sudah terisi** | keadaan alur | pola `patientCompactSummary` |
 | Aksi langkah | Kembali dan lanjut | — | pola `stepActions` |
@@ -202,7 +209,7 @@ Berlaku pada kedua jalur. Pada jalur pasien lama, ini langkah ketiga pada penand
   │ sendiri. Kolom ini hanya merekam hubungannya dengan ibu.         │
   └──────────────────────────────────────────────────────────────────┘
 
-                                          [ Lanjut ke Pendaftaran ]
+                         [ Lanjut ke Pendaftaran / Pembayaran ]
 ```
 
 | Wilayah | Isi | Dari mana | Komponen |
@@ -212,7 +219,8 @@ Berlaku pada kedua jalur. Pada jalur pasien lama, ini langkah ketiga pada penand
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
-| Lanjut ke Pendaftaran | utama | Jenis pasien terpilih; bila Bayi Baru Lahir, episode ibu wajib terisi | Maju ke langkah berikutnya |
+| Lanjut ke Pendaftaran | utama | Jalur pasien baru; jenis terpilih; bila Bayi Baru Lahir, episode ibu wajib terisi | Maju ke Pendaftaran |
+| Lanjut ke Pembayaran | utama | Jalur pasien lama; syarat jenis pasien sama | Maju langsung ke Pembayaran; **tidak** membuka form pasien baru |
 
 **Catatan yang mengikat.** Wilayah Episode Ibu **hanya** muncul untuk Bayi Baru Lahir. Menampilkannya
 selalu membuat petugas mengira setiap admisi menuntut episode ibu.
@@ -256,7 +264,7 @@ selalu membuat petugas mengira setiap admisi menuntut episode ibu.
 | --- | --- | --- | --- |
 | Mulai Scan KTP | kedua | Pemindai tersedia | Mengisi otomatis wilayah Identitas |
 | Kembali | kedua | selalu | Kembali ke langkah 1 |
-| Simpan & Lanjut ke Pembayaran | utama | Seluruh isian wajib terisi; **mati selama permintaan berjalan** | `POST /patients` beserta dokumen identitas dan kontak darurat, lalu maju |
+| Simpan & Lanjut ke Pembayaran | utama | Seluruh isian wajib terisi; **mati selama permintaan berjalan** | Berurutan: `POST /patients` → `POST /patient-identity-documents` → `POST /patient-emergency-contacts`; baru lalu maju. Kegagalan berhenti pada operasi terkait |
 
 **Keadaan:**
 
@@ -429,8 +437,9 @@ Langkah paling berat akibatnya: di sinilah **titik tulis 1** terjadi.
    3A.5 dan alasan wilayah peringatan ada di rangka.
 2. **Bila `POST /patient-encounters` gagal, alur berhenti di sini.** Jangan meneruskan ke
    `POST /episodes`. Pesan server ditampilkan apa adanya, isian utuh.
-3. Sesudah berhasil, wilayah Tujuan Perawatan **terkunci** dan nomor episode tampil pada ringkasan
-   berjalan.
+3. Sesudah berhasil, nomor episode tampil pada ringkasan berjalan. DPJP dan penjamin terkunci.
+   Unit, kelas, dan catatan masih dapat dikoreksi pada Konfirmasi melalui `PUT /episodes/{id}`;
+   mengubah DPJP adalah pengalihan dan bukan edit form.
 4. Setelah titik tulis 1, tombol Kembali **tidak lagi** membawa ke Pembayaran. Ia dinonaktifkan
    disertai keterangan "Penjamin sudah terkunci pada kunjungan. Batalkan admisi bila keliru."
 
@@ -500,7 +509,7 @@ Dua keadaan: sebelum dipesan, dan sesudah dipesan.
   │  ML-101-A                                                        │
   │  Ruang Melati 101 · Kelas 1 · Ruang Melati                       │
   │                                                                  │
-  │  Pemesanan berlaku 120 menit. Selama itu tempat tidur tidak      │
+  │  Masa pemesanan mengikuti pengaturan server. Selama aktif, bed   │
   │  dapat dipesan pasien lain.                                      │
   └──────────────────────────────────────────────────────────────────┘
 
@@ -674,7 +683,7 @@ Satu tabel supaya kata yang dipakai tidak berselisih antar langkah.
 | Langkah | Tombol utama | Menulis ke server? |
 | --- | --- | :---: |
 | Pembuka | kartu tipe pendaftaran | – |
-| 1 Tipe Pasien | Lanjut ke Pendaftaran | – |
+| 1 Tipe Pasien | Lanjut ke Pendaftaran **atau** Lanjut ke Pembayaran, mengikuti jalur | – |
 | 2 Pendaftaran | Simpan & Lanjut ke Pembayaran | **ya** |
 | Pasien Lama | Lanjut ke Tipe Pasien | – |
 | 3 Pembayaran | Lanjut ke Dokter | ya, bila kartu baru didaftarkan |
@@ -720,12 +729,14 @@ Isi dialog menyesuaikan keadaan:
 
 ---
 
-## 4. Keadaan yang berlaku di seluruh langkah
+## 4. Kontrak lintas layar
+
+### 4.1 Keadaan yang berlaku di seluruh langkah dan layar
 
 | Keadaan | Yang tampil | Letaknya |
 | --- | --- | --- |
 | Sedang memuat isian pilihan | Penanda memuat di dalam isian, bukan layar kosong | dalam wilayah |
-| Sedang menyimpan | Tombol utama mati dan berpenanda memuat; tombol lain tetap dapat ditekan | wilayah aksi |
+| Sedang menyimpan | Seluruh aksi tulis dan navigasi yang dapat memicu request kedua dinonaktifkan; tombol utama berpenanda memuat | wilayah aksi |
 | Gagal — pesan server ada | `InformationAlert` merah berisi pesan server **apa adanya** | di atas isi langkah |
 | Gagal — 409 | Pesan server, ditambah pemuatan ulang data yang basi. Isian **tidak hilang** | idem |
 | Gagal — 422 | **Daftar** aturan yang gagal, satu baris per aturan | idem |
@@ -735,34 +746,931 @@ Isi dialog menyesuaikan keadaan:
 **Yang tidak boleh:** menggantikan pesan server dengan kalimat buatan sendiri, terutama pada
 penolakan Kelayakan Penempatan yang menyebut nama kamar.
 
----
+Setiap layar daftar juga wajib membedakan memuat, kosong, gagal, dan tidak berhak. Data dari
+request yang gagal tidak boleh diganti angka nol atau daftar kosong, karena itu mengubah arti
+operasional.
 
-## 5. Yang belum disusun pada revision ini
+### 4.2 Responsif dan aksesibilitas
 
-| Yang belum ada | Alasan |
+| Area | Ketetapan usulan |
 | --- | --- |
-| Skema delapan belas menu Rawat Inap lainnya | Disusun menyusul, satu menu per kali |
-| Skema modul lain | Dokumen ini khusus Rawat Inap |
-| Perilaku pada layar sempit | Belum diputuskan apakah admisi dipakai di perangkat selain komputer meja |
-| Bentuk cetak persetujuan yang presisi | Yang dikunci hanya isinya. Tata letak cetak `DEV_DISCRETION` |
-| Ikon dan warna | `DEV_DISCRETION`, mengikuti design system project |
+| Layar lebar | Sidebar dan isi berdampingan; tabel, papan, serta dua-kolom form boleh memakai lebar penuh |
+| Layar sedang | Filter membungkus ke beberapa baris; wilayah dua kolom menjadi satu kolom tanpa mengubah urutan baca |
+| Layar sempit | Tabel boleh digeser horizontal dengan kolom identitas dan aksi tetap mudah ditemukan; kartu bed menjadi satu kolom. Alur admisi tidak memotong langkah |
+| Keyboard | Semua kartu pilihan, tab, tautan, tombol, dialog, dan kontrol form dapat dicapai serta dijalankan tanpa mouse |
+| Fokus | Dialog menahan fokus dan mengembalikannya ke pemicu; setelah error fokus pindah ke ringkasan error |
+| Status | Warna tidak menjadi satu-satunya pembeda; setiap badge punya teks dan nama aksesibel |
+| Tabel | Header terbaca pembaca layar; aksi baris memiliki nama yang menyebut episode atau bed sasaran |
+| Cetak | Urutan baca identitas → isi persetujuan → tanda tangan tetap benar tanpa navigasi aplikasi |
+
+Breakpoint, nilai piksel, dan bentuk ikon tetap mengikuti design token repository; dokumen ini
+tidak membuat sistem responsif tandingan.
+
+### 4.3 Privasi lintas layar
+
+| Data | Tempat yang boleh | Tempat yang tidak boleh |
+| --- | --- | --- |
+| Diagnosis dan isi resume | Detail/discharge bagi permission yang tepat | beranda, census, worklist, papan, monitoring |
+| Catatan episode | Detail episode yang berhak | seluruh daftar |
+| Keterangan isolasi | Detail/admisi bagi peran berhak | census, worklist, papan; hanya penanda tanpa alasan yang boleh |
+| Nomor kartu asuransi/peserta | Langkah Pembayaran dan formulir cetak bila kontrak mengizinkan | seluruh daftar dan ringkasan beranda |
+| Data contoh | Data pseudonim | data pasien atau pegawai nyata |
+
+### 4.4 Keputusan reuse atau komponen baru
+
+| Elemen | Bukti repository | Keputusan usulan |
+| --- | --- | --- |
+| Header halaman | `Hero` dipakai layar Rawat Inap saat ini | **Reuse** |
+| Filter, tabel, pagination | `DataFilter`, `FilterSelect`, `ResourceFilterSelect`, `DataTable`, `RegionPagination` sudah dipakai census/worklist | **Reuse**; tambahkan konfigurasi, bukan komponen paralel |
+| Alert, toast, akses | `InformationAlert`, `ToastStack`, `AccessDeniedGate/Alert` sudah menangani state yang sama | **Reuse** |
+| Editor master | `HealthServicesMasterDataEditorView`, `BaseEditorForm` sudah dipakai pengaturan | **Reuse** |
+| Papan dan alasan kelayakan | `inpatient-bed-board`, `placement-failure-list`, hook terkait sudah tersedia | **Reuse dan extend** untuk konfirmasi/reservation |
+| Kerangka admisi | Komponen `emergency-registration/` dan kiosk sudah membuktikan stepper, pasien, pembayaran, scan, verifikasi | **Reuse dan komposisi**; tidak membuat stepper generik keempat |
+| Ringkasan beranda | Belum ada komposisi yang memenuhi tiga isi wajib | **Buat komposisi khusus Rawat Inap** dari kartu/stat yang sudah ada, tanpa membuat primitive kartu baru |
+| Penanda reservation | Belum ada pembaca status + sisa waktu yang dapat dipakai lintas worklist/bed-board/admisi | **Buat satu komponen domain bersama** setelah `RWI-UI-GAP-003` tertutup |
+| Cetak persetujuan | Pola print ada; isi persetujuan Rawat Inap belum ada | **Buat template domain baru** di atas shell cetak existing |
 
 ---
 
-## 6. Traceability
+## 5. Beranda Rawat Inap — `FE-INP-19`
+
+Route: `/health-services/inpatient-management`
+
+Tujuan: memberi ringkasan kerja hari ini dan menjadi pintu masuk ke seluruh layar tingkat dua.
+Bagian ini menjalankan kewenangan `RWI-FE-005` tanpa menjadikan angka sebagai hiasan.
+
+### 5.1 Kerangka
+
+```text
+┌─ sidebar ─┬──────────────────────────────────────────────────────────┐
+│ Rawat Inap│ Beranda Rawat Inap                         [Muat Ulang] │
+│           │ Ringkasan keadaan operasional hari ini                  │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ PASIEN DIRAWAT                                          │
+│           │ [Melati 18] [Anggrek 12] [Kelas 1: 8] [Kelas 2: 22]    │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ EPISODE                                                 │
+│           │ [Disiapkan 4] [Dirawat 30] [Rencana pulang 6]          │
+│           │ [Selesai 11] [Batal 1]                                 │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ PERLU DITINDAKLANJUTI                                   │
+│           │ [Tertunda 3] [Override 1] [Tanpa perawat 2] [Isolasi 1]│
+│           ├─────────────────────────────────────────────────────────┤
+│           │ Akses cepat: Admisi · Daftar Episode · Bed · Census    │
+└───────────┴─────────────────────────────────────────────────────────┘
+```
+
+### 5.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Pasien dirawat | Jumlah per unit layanan dan kelas | `GET /census/summary` | `InpatientCensus : Read` | Nol tetap tampil `0`; gagal hanya menggagalkan blok ini dan menyediakan **Coba Lagi** |
+| Episode | Lima status dengan kata pengguna bagian 4.1 arsitektur frontend | `GET /episodes/summary` | `InpatientEpisode : Read` | Lima nilai tetap tampil; data gagal tidak diganti nol |
+| Perlu ditindaklanjuti | Jumlah empat daftar pantau | Empat endpoint monitoring | Permission baca tiap daftar | Kartu yang tidak berhak disembunyikan; kegagalan satu daftar tidak menutup tiga lainnya |
+| Akses cepat | Tujuh menu operasional Rawat Inap yang diizinkan per peran | route aplikasi | permission route | Tautan yang tidak berhak tidak dirender; master/configuration tetap masuk melalui kelompok **Master Data** |
+
+### 5.3 Tombol dan tautan
+
+| Label | Aktif bila | Yang terjadi |
+| --- | --- | --- |
+| Angka unit atau kelas | pengguna boleh membaca census | Membuka `FE-INP-01` dengan penyaring terkait |
+| Angka status episode | pengguna boleh membaca episode | Membuka `FE-INP-16` dengan status terkait; `Draft` wajib sudah tersaring |
+| Angka daftar pantau | pengguna berhak membaca daftar itu | Membuka tab terkait pada `FE-INP-09` |
+| Muat Ulang | tidak sedang memuat | Memuat ulang keempat kelompok tanpa menghapus kelompok yang masih berhasil |
+
+### 5.4 Keadaan
+
+| Keadaan | Yang tampil |
+| --- | --- |
+| Memuat pertama kali | Kerangka blok ringkasan, bukan empat angka palsu bernilai nol |
+| Seluruh data kosong | Semua angka `0` dan kalimat “Belum ada pekerjaan Rawat Inap pada penyaring ini.” |
+| Gagal sebagian | Pesan dan **Coba Lagi** hanya pada blok yang gagal |
+| Tidak berhak | Beranda tetap terbuka bila ada minimal satu kemampuan baca; hanya blok yang berhak yang tampil |
+
+**Keadaan source 28 Agustus 2026:** route sudah ada, tetapi masih berupa halaman penantian. Target
+bagian ini dimiliki `FE-RWI-021`.
+
+---
+
+## 6. Daftar Kerja Episode — `FE-INP-16`
+
+Route: `/health-services/inpatient-management/episodes`
+
+### 6.1 Kerangka
+
+```text
+┌─ sidebar ─┬──────────────────────────────────────────────────────────┐
+│           │ Daftar Kerja Episode                     [Admisi Baru] │
+│           │ [Tanggal] [Unit] [Kelas] [Status: Semua ▾] [Cari...]   │
+│           │ Status: Disiapkan · Dirawat · Rencana pulang · Selesai│
+│           │         · Batal                                         │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ Episode │ Pasien │ Lokasi │ DPJP │ Hari rawat │ Status │
+│           │ RI-...  │ Sari   │ Melati │ ...  │ 3 hari     │ ...    │
+│           │                          [Detail] [Lanjutkan/Batalkan]* │
+│           └─────────────────────────────────────────────────────────┤
+│           │ 1–20 dari 87                              ‹ 1 2 3 ›    │
+└───────────┴─────────────────────────────────────────────────────────┘
+```
+
+### 6.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Penyaring | Rentang tanggal, unit, kelas, lima status, kata kunci, ukuran halaman | `GET /episodes/filters/metadata` | `InpatientEpisode : Read` | Metadata gagal: daftar tidak dibuka dengan pilihan buatan sendiri; tampil **Coba Lagi** |
+| Tabel | Nomor episode, pasien, lokasi, DPJP, hitungan hari rawat, status | `GET /episodes` | sama | Kosong menjelaskan penyaring dapat diubah; gagal mempertahankan penyaring |
+| Penanda pemesanan `Draft` | Aktif, kedaluwarsa, sisa waktu | Kontrak baca pemesanan episode | sama | **Gerbang `RWI-UI-GAP-003`: sumber belum tersedia; tidak boleh dihitung dari browser** |
+| Aksi baris | Detail; lanjutkan dan batalkan bila aturan mengizinkan | status dan permission | permission per aksi | Aksi yang tidak berhak tidak dirender |
+
+### 6.3 Tombol
+
+| Label | Kapan aktif | Yang terjadi |
+| --- | --- | --- |
+| Detail Episode | setiap baris | Membuka `FE-INP-04` |
+| Lanjutkan Admisi | hanya `Draft` dan metadata pemesanan tersedia | Membuka `FE-INP-03` pada langkah yang ditentukan server |
+| Batalkan Admisi | `Draft` bagi admisi/supervisor; status lain mengikuti bagian 21 | Membuka `FE-INP-17` |
+| Admisi Baru | petugas admisi atau supervisor | Membuka awal `FE-INP-03` |
+
+### 6.4 Keadaan
+
+Memuat, kosong, gagal, dan tidak berhak mengikuti bagian 4. Baris `Draft` tanpa metadata pemesanan
+**tidak boleh** diberi label “belum memesan” karena keadaan itu belum dapat dibuktikan.
+
+**Keadaan source:** tabel, kelima status, penyaring, pagination, retry, dan detail sudah ada.
+Indikator pemesanan, **Lanjutkan Admisi**, dan **Batalkan Admisi** belum ada.
+
+---
+
+## 7. Papan Tempat Tidur — `FE-INP-02`
+
+Route: `/health-services/inpatient-management/bed-board`
+
+### 7.1 Kerangka
+
+```text
+┌─ sidebar ─┬──────────────────────────────────────────────────────────┐
+│           │ Papan Tempat Tidur                         [Muat Ulang] │
+│           │ [Tersedia 12] [Dipesan 3] [Terisi 30] [Perbaikan 2]   │
+│           │ [Unit ▾] [Kamar ▾] [Kelas ▾] [Cari bed...]             │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ MELATI / Kamar 3 — Kelas 2                             │
+│           │ [A Tersedia] [B Dipesan 01:41] [C Terisi — Sari D.]   │
+│           │                 [Konfirmasi Masuk] [Batalkan Pesanan]  │
+│           │ [D Pembersihan] [E Perbaikan]                          │
+└───────────┴─────────────────────────────────────────────────────────┘
+```
+
+### 7.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Ringkasan | Jumlah per keadaan tempat tidur | `GET /bed-occupancies/board` | `InpatientBedOccupancy : Read` | Nol tampil `0`; gagal tidak menyisakan ringkasan lama |
+| Penyaring | Unit, kamar, kelas, kata kunci | jawaban board dan metadata master | sama | Pilihan gagal dimuat: tampil pesan, bukan daftar tertanam |
+| Papan | Unit → kamar → bed; keadaan, pasien pada `Occupied`, pemegang dan sisa waktu pada `Reserved` bila berhak | board + kontrak reservation | sama | Kosong: “Tidak ada tempat tidur pada penyaring ini”; gagal menyediakan **Coba Lagi** |
+| Penolakan kelayakan | Daftar alasan server | jawaban 422 Kelayakan Penempatan | permission tindakan | Alasan kamar ditampilkan apa adanya |
+
+### 7.3 Tombol
+
+| Label | Kapan aktif | Yang terjadi |
+| --- | --- | --- |
+| Konfirmasi Masuk | `Reserved`; petugas admisi/supervisor; metadata episode tersedia | Muat ulang papan, lalu modal menyebut pasien dan bed; `POST /placements` |
+| Batalkan Pesanan | pemesanan aktif; petugas admisi/supervisor | Modal konfirmasi lalu membatalkan reservation |
+| Muat Ulang | selalu kecuali request berjalan | Membaca ulang; juga otomatis saat jendela kembali fokus |
+
+### 7.4 Keadaan
+
+409 memuat ulang papan dan mempertahankan konteks; 422 menampilkan semua alasan. Tempat tidur
+tidak layak dapat tampil nonaktif dengan alasan, tetapi layar tidak membuat ulang aturan server.
+
+**Keadaan source:** papan baca sudah ada. Standalone masih `selectable={false}`, belum memuat ulang
+saat fokus, belum mempunyai retry, konfirmasi masuk, pembatalan reservation, atau countdown yang
+dapat dibaca ulang. Target aksi dimiliki `FE-RWI-030`; data reservation tertahan `RWI-UI-GAP-003`.
+
+---
+
+## 8. Pasien Sedang Dirawat (Census) — `FE-INP-01`
+
+Route: `/health-services/inpatient-management/census`
+
+### 8.1 Kerangka
+
+```text
+┌─ sidebar ─┬──────────────────────────────────────────────────────────┐
+│           │ Pasien Sedang Dirawat                                  │
+│           │ [Unit ▾] [Kelas ▾] [Cari pasien/episode...] [20 ▾]    │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ Episode │ Pasien │ Lokasi │ DPJP │ Perawat │ Hari rawat│
+│           │ RI-...  │ Sari   │ Mlt-3A │ ...  │ ...     │ 3 hari   │
+│           │                                             [Detail]   │
+│           └─────────────────────────────────────────────────────────┤
+│           │ 1–20 dari 30                              ‹ 1 2 ›      │
+└───────────┴─────────────────────────────────────────────────────────┘
+```
+
+### 8.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Penyaring | Unit, kelas, pencarian, ukuran halaman | `GET /census/filters/metadata` | `InpatientCensus : Read` | Metadata gagal tidak diganti master data langsung |
+| Tabel | Episode, pasien, lokasi, DPJP, perawat, **hitungan hari rawat**, status | `GET /census` | sama | Kosong menjelaskan tidak ada pasien dirawat pada filter; gagal + **Coba Lagi** |
+| Aksi | Detail Episode | route detail | `InpatientEpisode : Read` | Disembunyikan bila tidak berhak |
+
+Diagnosis, catatan episode, nomor penjamin, dan alasan isolasi tidak tampil. Penanda isolasi boleh
+berupa teks atau ikon berlabel aksesibel tanpa mengungkap keterangannya.
+
+### 8.3 Tombol dan keadaan
+
+**Detail Episode** membuka `FE-INP-04`. Data dimuat ulang saat jendela kembali fokus. Kata “hari
+rawat” wajib menyatakan hitungan tanggal, bukan durasi 24 jam (`RWI-FE-001`). Keempat keadaan daftar
+bagian 4 berlaku.
+
+**Keadaan source:** hampir sesuai target, tetapi penyaring masih membaca resource master dan belum
+memakai `GET /census/filters/metadata`.
+
+---
+
+## 9. Detail Episode — `FE-INP-04`
+
+Route: `/health-services/inpatient-management/episodes/{id}`
+
+### 9.1 Kerangka
+
+```text
+┌─ sidebar ─┬──────────────────────────────────────────────────────────┐
+│           │ Episode RI-2026-000204     [Sedang dirawat] [Kembali] │
+│           │ Pasien · lokasi · DPJP · perawat · hari rawat          │
+│           │ [Pulang & Resume] [Keuangan] [Penutupan] [Cetak]      │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ Kebutuhan Isolasi │ Penanggung Jawab │ Kepergian       │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ Perpindahan Tempat Tidur                               │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ Riwayat status · lokasi · DPJP · perawat               │
+└───────────┴─────────────────────────────────────────────────────────┘
+```
+
+### 9.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Ringkasan | Nomor, pasien, status, lokasi, DPJP, perawat, hitungan hari rawat | `GET /episodes/{id}` | `InpatientEpisode : Read` | ID salah atau gagal punya state sendiri dan **Coba Lagi** |
+| Aksi anak | Pulang, keuangan, penutupan, koreksi, cetak | status + permission | permission tiap kemampuan | Tautan tidak sah disembunyikan atau diberi alasan nonaktif |
+| Ruang kerja | Isolasi `FE-INP-15`, transfer `FE-INP-05`, kepergian `FE-INP-14`, penugasan | endpoint masing-masing | matriks peran | Satu wilayah gagal tidak menghapus ringkasan episode |
+| Riwayat | Status, lokasi, DPJP, perawat | endpoint riwayat | permission baca | Tiap daftar punya empty text sendiri |
+
+### 9.3 Tombol dan keadaan
+
+Tautan anak selalu membaca ulang episode ketika dibuka. **Sesi Koreksi** hanya tampil bagi
+supervisor pada `Closed`; **Ubah Isolasi** mengikuti status dan DPJP aktif; **Pindahkan** bagi dokter
+hanya aktif bila ia DPJP aktif. Loading, invalid ID, error/retry, empty per riwayat, dan unauthorized
+tidak digabung menjadi satu layar kosong.
+
+**Keadaan source:** pola ini sudah ada dan direkomendasikan **reuse**. Jalur ke Sesi Koreksi kini
+sudah terjangkau dari daftar kerja melalui detail episode.
+
+---
+
+## 10. Perpindahan Pasien — `FE-INP-05`
+
+Lokasi: wilayah anak di `FE-INP-04`; tidak mendapat menu atau route tingkat dua.
+
+### 10.1 Kerangka
+
+```text
+┌─ Perpindahan Tempat Tidur ──────────────────────────────────────────┐
+│ Lokasi sekarang: Melati / Kamar 3 / Bed A — Kelas 2               │
+│ [Unit ▾] [Kamar ▾] [Kelas ▾] [Cari bed...]                         │
+│ [Bed B — Tersedia] [Bed C — tidak layak: kamar berbeda gender]   │
+│ Alasan medis * [                                                ] │
+│                                      [Batal] [Pindahkan Pasien]   │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+### 10.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Lokasi asal | Unit, kamar, bed, kelas | detail episode | pembaca episode | Bila lokasi aktif tidak ada, transfer diblokir dan alasannya tampil |
+| Tujuan | Papan `available-beds`, termasuk baris tidak layak nonaktif | `GET /available-beds` | `InpatientBedOccupancy : Read/Transfer` | Kosong: tidak ada bed layak; 409 memuat ulang; 422 menampilkan daftar alasan |
+| Alasan | Alasan medis wajib untuk DPJP; alasan perpindahan bagi peran lain | input pengguna | permission transfer + penjaga DPJP | Tidak boleh hanya spasi |
+
+### 10.3 Tombol dan keadaan
+
+**Pindahkan Pasien** hanya aktif setelah bed tujuan dan alasan sah. Modal menyebut bed asal dan
+tujuan. Tombol dikunci saat request. Dokter bukan DPJP aktif melihat alasan nonaktif, bukan tombol
+yang pasti ditolak. Source saat ini sudah menyediakan pola ini dan direkomendasikan **reuse**.
+
+---
+
+## 11. Keputusan Pulang dan Resume — `FE-INP-06`
+
+Route: `/health-services/inpatient-management/episodes/{id}/discharge`
+
+### 11.1 Kerangka
+
+```text
+┌─ sidebar ─┬──────────────────────────────────────────────────────────┐
+│           │ Keputusan Pulang & Resume                 [Ke Detail] │
+│           │ RI-... · Sari Dewi · DPJP dr. Andi                    │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ KEPUTUSAN PULANG                                       │
+│           │ (•) Izin DPJP  ( ) APS  ( ) Dirujuk                   │
+│           │ [Nyatakan Boleh Pulang]                                │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ RESUME: diagnosis · tindakan · obat · kontrol · cara  │
+│           │ [Simpan Resume] [Tandatangani Resume]                  │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ RIWAYAT VERSI                                           │
+└───────────┴─────────────────────────────────────────────────────────┘
+```
+
+### 11.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Ringkasan | Pasien, episode, status, DPJP aktif | detail episode | `InpatientDischarge : Read` | Gagal + **Coba Lagi**; detail lama tidak dipakai untuk menulis |
+| Keputusan pulang | Tiga cara MVP: izin DPJP, APS, dirujuk; isian kondisional | `POST /discharges/{id}/decide` | DPJP aktif | Belum diputuskan: form tersedia; sudah diputuskan: ringkasan readonly |
+| Resume | Isi resmi sesuai `RWI-RULE-032`; DPJP dan periodenya otomatis | endpoint summary | DPJP aktif untuk tulis/tanda tangan | Belum ada: form baru; gagal simpan mempertahankan isian |
+| Riwayat versi | Versi resume yang sudah ditandatangani | endpoint revisions | pembaca discharge | Kosong dijelaskan sebagai belum ada versi terdahulu |
+
+### 11.3 Tombol dan keadaan
+
+**Nyatakan Boleh Pulang**, **Simpan Resume**, dan **Tandatangani Resume** dikunci saat request dan
+masing-masing memakai konfirmasi yang menyebut akibatnya. Pengguna selain DPJP aktif memperoleh
+mode baca beserta penjelasan. Meninggal dan kabur tetap tidak dapat dipilih karena keputusan
+klinisnya di luar MVP. Source saat ini dapat dipakai ulang; satu kriteria lama tentang bentuk pesan
+server masih diselesaikan di gerbang kesiapan roadmap.
+
+---
+
+## 12. Penutupan Episode — `FE-INP-07`
+
+Route: `/health-services/inpatient-management/episodes/{id}/closure`
+
+### 12.1 Kerangka
+
+```text
+┌─ sidebar ─┬──────────────────────────────────────────────────────────┐
+│           │ Penutupan Episode                         [Ke Detail]  │
+│           │ [✓ Keputusan] [✓ Resume] [! Administrasi] [! Finansial]│
+│           │ [✓ Lokasi/kepergian]                                   │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ DAFTAR PERIKSA ADMINISTRASI                             │
+│           │ [ ] Persetujuan umum  [Tandai Selesai]                 │
+│           │ [✓] Barang dikembalikan — Wati, 13:22                  │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ [Tutup Episode]                                        │
+│           │ ─ setelah ditolak karena finansial, supervisor saja ─ │
+│           │ Alasan override * [                              ]      │
+│           │ [Tutup Menembus Gerbang Keuangan]                      │
+└───────────┴─────────────────────────────────────────────────────────┘
+```
+
+### 12.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Kesiapan | Lima syarat, masing-masing sudah/belum dan alasannya | `GET /discharges/{id}/closure-readiness` | `InpatientDischarge : Read` | Wajib dimuat ulang tepat sebelum menutup; 422 menampilkan kelima syarat |
+| Checklist | Butir aktif, wajib, pelaku dan waktu | endpoint clearance | admisi/supervisor untuk menandai | Daftar kosong bukan otomatis siap; tampil jawaban server |
+| Tutup biasa | Konfirmasi pasien dan cara pulang | `POST /close` | admisi/supervisor | Gagal mempertahankan seluruh keadaan |
+| Override | Alasan dan peringatan laporan pengecualian | `POST /close-with-override` | supervisor | Baru muncul setelah tutup biasa ditolak karena finansial |
+
+### 12.3 Tombol dan keadaan
+
+Override tidak diletakkan sebagai pilihan setara. Setelah sukses, layar menunjukkan episode
+`Selesai`, tempat tidur bebas, serta tautan ke detail dan papan. Source saat ini direkomendasikan
+**reuse** karena urutan, state, modal, dan pemisahan override sudah tersedia.
+
+---
+
+## 13. Kelayakan Keuangan — `FE-INP-08`
+
+Route: `/health-services/inpatient-management/episodes/{id}/financial-clearance`
+
+### 13.1 Kerangka
+
+```text
+┌─ sidebar ─┬──────────────────────────────────────────────────────────┐
+│           │ Kelayakan Keuangan                        [Ke Detail]  │
+│           │ Penandaan manual sementara — bukan hasil mesin Billing │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ KEADAAN TERKINI: Pending / Cleared / Blocked           │
+│           │ Ditandai oleh · waktu · catatan                         │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ Nilai * [Pending ▾]   Catatan * [                  ]   │
+│           │                                      [Simpan Penandaan]│
+│           ├─────────────────────────────────────────────────────────┤
+│           │ RIWAYAT PENANDAAN                                       │
+└───────────┴─────────────────────────────────────────────────────────┘
+```
+
+### 13.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Ringkasan episode | Pasien, episode, status | detail episode | pembaca discharge/episode | Gagal + **Coba Lagi** |
+| Keadaan terkini | Nilai, pelaku, waktu, catatan, label **manual** | kontrak baca financial clearance | kasir/billing | **Gerbang `RWI-UI-GAP-004`: GET khusus belum ada; tidak boleh ditebak dari sesi browser** |
+| Form | `Pending`, `Cleared`, `Blocked`, catatan wajib | `POST /financial-clearance` | kasir/billing | Server menolak: isian tetap utuh |
+| Riwayat | Semua penandaan | kontrak riwayat | permission baca | Belum tersedia harus dinyatakan, bukan daftar kosong palsu |
+
+### 13.3 Tombol dan keadaan
+
+**Simpan Penandaan** aktif setelah nilai dipilih sadar dan catatan bermakna. Source saat ini hanya
+dapat membaca closure-readiness dan mengingat hasil POST pada sesi halaman; refresh kehilangan
+nilai tepat serta riwayat. Selain itu hak baca discharge untuk peran kasir perlu dipastikan.
+Skema target ini tidak dianggap implementable sebelum `RWI-UI-GAP-004` ditutup.
+
+---
+
+## 14. Daftar Pantau — `FE-INP-09`
+
+Route: `/health-services/inpatient-management/monitoring`
+
+### 14.1 Kerangka
+
+```text
+┌─ sidebar ─┬──────────────────────────────────────────────────────────┐
+│           │ Daftar Pantau — tidak menghalangi tindakan             │
+│           │ [Penutupan Tertunda 3] [Override 1] [Tanpa Perawat 2] │
+│           │ [Penempatan Tidak Sesuai 1]                            │
+│           │ [Unit ▾] [20 ▾]                                       │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ Episode │ Pasien │ Unit │ Sejak/Lama │ Tindak lanjut  │
+│           │ RI-...  │ Sari   │ ...  │ 40 menit   │ [Buka]         │
+└───────────┴─────────────────────────────────────────────────────────┘
+```
+
+### 14.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Empat tab | Jumlah dan nama daftar | empat endpoint monitoring | permission per daftar | Tab tanpa hak disembunyikan; tab berhak tetap bekerja bila tab lain gagal |
+| Penyaring | Unit dan ukuran halaman | query endpoint | pembaca daftar | Mempertahankan tab saat gagal |
+| Tabel | Episode, pasien, unit, penyebab, sejak/lama, tindak lanjut | endpoint tab aktif | sesuai penanggung jawab | Empty text spesifik; error + **Coba Lagi** |
+
+### 14.3 Tombol dan keadaan
+
+**Buka Detail**, **Buka Penutupan**, atau **Buka Perpindahan** menautkan ke pemilik aksi; daftar
+sendiri tidak menulis data. Lama keterlambatan tampil bila konsep keterlambatan berlaku. Daftar
+ketidakcocokan isolasi memakai nada netral, bukan menyalahkan petugas. Source empat-tab yang ada
+direkomendasikan **reuse**.
+
+---
+
+## 15. Selisih Tempat Tidur — `FE-INP-10`
+
+Route: `/health-services/inpatient-management/bed-drift`
+
+### 15.1 Kerangka
+
+```text
+┌─ sidebar ─┬──────────────────────────────────────────────────────────┐
+│           │ Selisih Tempat Tidur                 [Buka Papan Bed] │
+│           │ Laporan deteksi; koreksi tidak dilakukan dari sini     │
+│           │ [Unit ▾] [20 ▾]                                       │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ Bed │ Unit/Kamar │ Status salinan │ Seharusnya │ Sejak│
+│           │ 3A  │ Melati 3   │ Tersedia       │ Terisi      │ ...  │
+└───────────┴─────────────────────────────────────────────────────────┘
+```
+
+### 15.2 Wilayah, tombol, dan keadaan
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Tabel selisih | Bed, lokasi, status salinan, status dari penempatan, konteks waktu | endpoint bed drift | admin/supervisor yang berhak | Kosong adalah keadaan positif; gagal + **Coba Lagi** |
+| Navigasi | Buka Papan Tempat Tidur | route `FE-INP-02` | pembaca papan | Tidak ada tombol “perbaiki” karena endpoint rekonsiliasi tidak dikontrak |
+
+Source saat ini sesuai pola ini dan direkomendasikan **reuse**. Unauthorized ditolak sebelum request.
+
+---
+
+## 16. Sesi Koreksi Episode — `FE-INP-11`
+
+Route: `/health-services/inpatient-management/episodes/{id}/correction`
+
+### 16.1 Kerangka
+
+```text
+┌─ sidebar ─┬──────────────────────────────────────────────────────────┐
+│           │ Sesi Koreksi — Episode tetap Selesai       [Ke Detail]│
+│           │ [Buka Sesi Koreksi]                                    │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ BOLEH: resume, diagnosis, cara pulang, catatan          │
+│           │ TIDAK: bed, census, hari rawat, melanjutkan perawatan   │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ Koreksi Resume [                                      ]│
+│           │ [Simpan Koreksi]                  [Tutup Sesi Koreksi] │
+└───────────┴─────────────────────────────────────────────────────────┘
+```
+
+### 16.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Ringkasan | Episode `Closed`, pasien, alasan koreksi | detail episode | supervisor | Status bukan `Closed`: aksi tidak tersedia |
+| Sesi | Pelaku, waktu buka, alasan, keadaan terbuka/tertutup | kontrak sesi koreksi | supervisor | **Gerbang `RWI-UI-GAP-005`: tidak ada GET sesi; refresh belum dapat memulihkan sesi terbuka** |
+| Koreksi | Resume dan field yang diizinkan | endpoint koreksi | supervisor dalam sesi aktif | Resume boleh belum ada; error mempertahankan isian |
+
+### 16.3 Tombol dan keadaan
+
+**Buka Sesi**, **Simpan Koreksi**, dan **Tutup Sesi** tampil berurutan, tidak bersamaan bila tidak
+sah. Keterangan tegas menyebut episode tetap `Closed`, tidak kembali ke census, dan tidak memperoleh
+bed. Source dapat di-**reuse dengan adapter** setelah kontrak baca sesi diputuskan. Jalurnya kini
+sudah terjangkau: `FE-INP-16` → Detail Episode `Closed` → Sesi Koreksi.
+
+---
+
+## 17. Pengaturan Rawat Inap — `FE-INP-12`
+
+Route: `/health-services/inpatient-management/settings`
+
+Klasifikasi: **master/configuration milik Rawat Inap**. Induk sidebar target adalah `Pelayanan
+Kesehatan → Master Data`, bukan submenu operasional `Rawat Inap`. Route yang sudah ada dipertahankan
+pada tahap pemindahan menu agar deep link dan tautan internal tidak putus.
+
+### 17.1 Kerangka
+
+```text
+┌─ sidebar ─┬──────────────────────────────────────────────────────────┐
+│           │ Pengaturan Rawat Inap                      [Ke Beranda]│
+│           │ Perubahan berlaku pada pembacaan berikutnya             │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ Pemesanan bed           [ 120 ] menit                   │
+│           │ Draft telantar           [ 1   ] hari                    │
+│           │ Penutupan tertunda       [ 4   ] jam                     │
+│           │ Parameter lain kontrak   [ ... ]                         │
+│           │                                      [Simpan Pengaturan]│
+│           │ Diubah terakhir oleh ... pada ...                       │
+└───────────┴─────────────────────────────────────────────────────────┘
+```
+
+### 17.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Form pengaturan | Seluruh parameter kontrak beserta satuan dan batasnya | `GET /inpatient-settings` | `InpatientSetting : Read` | 404 dibedakan dari 403 dan kegagalan; tersedia **Muat Ulang** |
+| Audit ringkas | Pengubah dan waktu terakhir | jawaban pengaturan | sama | Bila belum pernah diubah, tampil “Nilai bawaan sistem” |
+| Simpan | Hanya field berubah; pesan validasi per field | endpoint update | `InpatientSetting : Update` | Error mempertahankan isian |
+
+### 17.3 Tombol dan keadaan
+
+**Simpan Pengaturan** aktif bila form valid dan berubah. Satuan selalu tampil di dekat input, tidak
+hanya pada placeholder. Source memakai `HealthServicesMasterDataEditorView` dan `BaseEditorForm`;
+direkomendasikan **reuse dengan adapter**. Sidebar harus mengikuti permission, bukan hanya route gate.
+
+---
+
+## 18. Butir Administrasi Rawat Inap — `FE-INP-13`
+
+Route: `/health-services/inpatient-management/clearance-items`
+
+Klasifikasi: **master data milik Rawat Inap**. Label sidebar target adalah **Butir Administrasi Rawat
+Inap** di `Pelayanan Kesehatan → Master Data`. Route yang sudah ada dipertahankan pada tahap
+pemindahan menu agar deep link dan tautan internal tidak putus.
+
+### 18.1 Kerangka
+
+```text
+┌─ sidebar ─┬──────────────────────────────────────────────────────────┐
+│           │ Butir Administrasi Rawat Inap              [Tambah]    │
+│           │ [Status ▾] [Wajib/Opsional ▾] [Cari...]                │
+│           ├─────────────────────────────────────────────────────────┤
+│           │ Nama butir │ Wajib │ Aktif │ Urutan │ Aksi             │
+│           │ Persetujuan│ Ya    │ Ya    │ 10     │ Detail · Ubah   │
+│           │                         Aktifkan/Nonaktifkan · Hapus    │
+└───────────┴─────────────────────────────────────────────────────────┘
+```
+
+### 18.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Penyaring dan tabel | Nama, wajib, aktif, urutan, audit ringkas | endpoint clearance-item list | `InpatientClearanceItem : Read` | Kosong mengarahkan **Tambah**; load error wajib punya **Coba Lagi** |
+| Editor | Nama, deskripsi, sifat wajib, urutan | endpoint create/update/detail | create/update permission | Error modal tidak menutup dan tidak menghapus isian |
+| Perubahan status/hapus | Konfirmasi menyebut dampak pada penutupan berikutnya | endpoint status/delete | permission terkait | Konflik server ditampilkan apa adanya |
+
+### 18.3 Tombol dan keadaan
+
+**Tambah**, **Detail**, **Ubah**, **Aktifkan/Nonaktifkan**, dan **Hapus** mengikuti permission
+masing-masing. Perubahan tidak ditampilkan seolah mengubah checklist episode lama bila kontrak tidak
+menjanjikannya. Source direkomendasikan **reuse dengan adapter** untuk menambah retry list dan menu
+permission-aware.
+
+---
+
+## 19. Pencatatan Kepergian — `FE-INP-14`
+
+Lokasi: wilayah anak di Detail Episode `FE-INP-04`.
+
+### 19.1 Kerangka
+
+```text
+┌─ Pasien Meninggalkan Ruangan ───────────────────────────────────────┐
+│ Status: Rencana pulang · Bed Melati 3A masih dipegang              │
+│ Waktu kepergian * [28-08-2026 13:10]                               │
+│ Catatan            [                                            ] │
+│ ⚠ Setelah disimpan, bed langsung bebas dan tindakan tak dibatalkan│
+│                               [Catat Pasien Sudah Pergi]           │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+### 19.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Keadaan kini | Status episode, lokasi/bed, kepergian yang sudah tercatat | detail + departure | admisi, perawat, kepala ruangan, supervisor | Detail dimuat ulang sebelum konfirmasi; data lama tidak dipakai |
+| Form | Waktu dan catatan | input + `POST /record-departure` | permission departure | Status selain `DischargePending` memberi alasan nonaktif |
+| Hasil | Waktu, pencatat, bed bebas, episode masih menunggu penutupan | jawaban server | pembaca episode | Gagal mempertahankan form |
+
+### 19.3 Tombol dan keadaan
+
+Modal **Catat Pasien Sudah Pergi** menyebut tindakan tidak dapat dibatalkan, tempat tidur segera
+bebas, dan episode belum selesai. Sesudah berhasil tampil tautan ke `FE-INP-07`. Source saat ini
+direkomendasikan **reuse**.
+
+---
+
+## 20. Kebutuhan Isolasi — `FE-INP-15`
+
+Lokasi: bagian Dokter di `FE-INP-03` saat `Draft`, dan wilayah anak di `FE-INP-04` setelah episode
+aktif. Tidak mendapat menu sendiri.
+
+### 20.1 Kerangka
+
+```text
+┌─ Kebutuhan Isolasi ─────────────────────────────────────────────────┐
+│ [on/off] Membutuhkan isolasi                                       │
+│ Keterangan * [                                                  ] │
+│ Sumber: Catatan awal admisi / Keputusan klinis DPJP                │
+│                                        [Simpan Kebutuhan Isolasi]  │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+### 20.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Keadaan | Ya/tidak, keterangan sensitif, sumber, pelaku, waktu | detail episode | pembaca detail yang berhak | Keterangan tidak dibawa ke census/papan/daftar |
+| Editor | sakelar dan keterangan wajib kondisional | `PATCH /isolation-requirement` | admisi pada `Draft`; DPJP aktif setelah aktif | Dokter bukan DPJP/petugas admisi setelah `Admitted` mendapat alasan nonaktif |
+| Dampak | Informasi bahwa pencarian bed akan dimuat ulang | jawaban server | sama | 422 menampilkan seluruh alasan |
+
+### 20.3 Tombol dan keadaan
+
+**Simpan Kebutuhan Isolasi** dikunci saat request. Setelah berhasil, hasil `available-beds`
+dibaca ulang. Perubahan menjadi tidak sesuai dengan bed saat ini tetap diterima dan episode masuk
+daftar pantau; layar tidak menyalahkan pengguna. Source kedua lokasi dapat **reuse**.
+
+---
+
+## 21. Pembatalan Admisi — `FE-INP-17`
+
+Lokasi: dialog aksi dari `FE-INP-16` dan `FE-INP-04`; bukan menu tersendiri.
+
+### 21.1 Kerangka
+
+```text
+┌─ Batalkan Admisi? ──────────────────────────────────────────────────┐
+│ Sari Dewi · RI-2026-000204 · Admisi sedang disiapkan               │
+│ Pemesanan/penempatan yang masih ada ikut dilepas.                  │
+│ Alasan pembatalan * [                                           ] │
+│                              [Kembali] [Batalkan Admisi]           │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+### 21.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Identitas tindakan | pasien, episode, status, bed/reservation bila terbaca | detail episode + reservation | pembaca episode | Metadata reservation yang belum tersedia tidak boleh dikarang |
+| Dampak | Episode menjadi `Cancelled`; reservation/placement dilepas sebagai satu tindakan | kontrak cancel | sesuai status | Konfirmasi selalu menyebut pelepasan |
+| Alasan | teks wajib, bukan spasi/tanda baca saja | input | pelaku pembatalan | Error mempertahankan alasan |
+
+### 21.3 Tombol dan keadaan
+
+Pada `Draft`, aksi tersedia bagi petugas admisi dan supervisor. Pada `Admitted` tanpa catatan
+klinis, hanya kepala ruangan dan supervisor. Status lain tidak menawarkan aksi. 409 memuat ulang
+detail; 422 menampilkan alasan penolakan. Source saat ini **belum memiliki** route, dialog, tombol,
+atau panggilan cancel; target dimiliki `FE-RWI-031`.
+
+---
+
+## 22. Cetak Persetujuan Rawat Inap — `FE-INP-18`
+
+Route: `/health-services/inpatient-management/episodes/{id}/consent-print`
+
+### 22.1 Kerangka cetak
+
+```text
+┌────────────────────────────────────────────────────────────────────┐
+│ [Identitas rumah sakit]       PERSETUJUAN UMUM RAWAT INAP          │
+│ Pasien · No. RM · Episode · Tanggal                               │
+│ Penjamin · Unit · Kelas · DPJP                                    │
+├────────────────────────────────────────────────────────────────────┤
+│ 1. Persetujuan tindakan kedokteran umum                           │
+│ 2. Persetujuan pemberian informasi kepada penjamin                │
+│ 3. Penunjukan penerima informasi pasien                           │
+│ Nama penerima informasi: __________________ Hubungan: ___________  │
+│ Tanda tangan pasien/keluarga: __________ Petugas: ______________  │
+└────────────────────────────────────────────────────────────────────┘
+                         [Cetak] [Kembali ke Episode]
+```
+
+### 22.2 Wilayah
+
+| Wilayah | Isi | Sumber | Hak akses | Kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Identitas | pasien, RM, episode, tanggal | detail episode/kunjungan | permission cetak + baca episode | Data wajib hilang: cetak diblokir dan ada **Coba Lagi** |
+| Perawatan | penjamin, unit, kelas, DPJP | detail episode/kunjungan | sama | Nomor kartu hanya muncul bila memang dikontrak untuk formulir |
+| Isi persetujuan | tiga isi minimum `RWI-DEC-035` | teks blueprint | sama | Tidak ada status “tersimpan” atau “ditandatangani” |
+| Tanda tangan kertas | ruang kosong untuk pihak terkait | hasil cetak | sama | Tidak disimpan ke browser atau endpoint |
+
+### 22.3 Tombol dan keadaan
+
+**Cetak** membuka dialog cetak; **Kembali ke Episode** kembali tanpa menyimpan. Halaman cetak tidak
+memuat sidebar, tidak dicache sebagai salinan dokumen, dan tidak dapat dibuka tanpa hak. Jalur masuk
+tersedia dari langkah 8 admisi dan Detail Episode. Source saat ini **belum memiliki** route atau
+komponen; target dimiliki `FE-RWI-028`.
+
+---
+
+## 23. Peta navigasi: tujuh menu operasional dan dua master data
+
+Impact scan membuktikan source saat ini menaruh sembilan item di submenu `Rawat Inap`. Target brief
+UI memisahkannya berdasarkan sifat datanya tanpa menambah jumlah tujuan navigasi:
+
+```text
+Pelayanan Kesehatan
+├── Master Data
+│   ├── Unit Layanan                    ← master bersama; sudah ada
+│   ├── Klinik                          ← master bersama; sudah ada
+│   ├── Ruangan                         ← master bersama; sudah ada
+│   ├── Tempat Tidur                    ← master bersama; sudah ada
+│   ├── Kelas Pasien                    ← master bersama; sudah ada
+│   ├── …                               ← item master bersama lain tetap dipertahankan
+│   ├── Butir Administrasi Rawat Inap   ← FE-INP-13; dipindah induknya
+│   └── Pengaturan Rawat Inap           ← FE-INP-12; dipindah induknya
+└── Rawat Inap
+    ├── Beranda Rawat Inap
+    ├── Admisi Rawat Inap
+    ├── Papan Tempat Tidur
+    ├── Daftar Kerja Episode
+    ├── Pasien Sedang Dirawat
+    ├── Daftar Pantau
+    └── Selisih Tempat Tidur
+```
+
+`Unit Layanan`, `Ruangan`, `Tempat Tidur`, dan `Kelas Pasien` adalah master bersama yang dipakai
+Rawat Inap; ownership dan itemnya **tidak diduplikasi**. `FE-INP-12` mengelola
+`MstInpatientSetting`, sedangkan `FE-INP-13` mengelola `MstInpatientClearanceItem`; keduanya memang
+dimiliki bounded context **Health Services / Master Data** pada arsitektur backend dan permission
+matrix. `Klinik` tetap master bersama pada kelompok yang sama, tetapi dokumen ini tidak
+mengalihkannya menjadi milik Rawat Inap.
+
+Aturan migrasi navigasi yang mengikat untuk `FE-RWI-033`:
+
+1. pindahkan definisi menu `FE-INP-12` dan `FE-INP-13` ke kelompok **Master Data**; jangan menyalin
+   dan membiarkan item lama tetap hidup;
+2. pertahankan route, page, hook, kontrak, dan permission yang sudah ada selama pemindahan induk;
+3. hapus dua entri lama dari submenu **Rawat Inap** hanya setelah dua entri baru mengarah ke route
+   dan permission yang sama;
+4. normalisasi URL ke `/health-services/master-data/...` bukan bagian perubahan ini. Bila kelak
+   disetujui, migrasi route harus memakai compatibility redirect dan task tersendiri;
+5. layar per episode tidak mendapat menu baru.
+
+Jalur klik yang mengikat:
+
+| Layar tujuan | Jalur dari Beranda | Maksimum klik |
+| --- | --- | :---: |
+| `FE-INP-01`, `02`, `03`, `09`, `10`, `16` | Beranda → menu operasional Rawat Inap | 1 |
+| `FE-INP-12`, `13` | Beranda → Master Data → item master Rawat Inap | 2 |
+| `FE-INP-04` | Beranda → Daftar Kerja/Census → Detail | 2 |
+| `FE-INP-05`, `14`, `15`, `17` | Beranda → Daftar Kerja/Census → Detail/aksi tertanam | 2–3 |
+| `FE-INP-06`, `07`, `08`, `11`, `18` | Beranda → Daftar Kerja → Detail → layar anak | 3 |
+| `FE-INP-19` | titik awal | 0 |
+
+Setiap layar per-episode juga memiliki tautan kembali ke Detail Episode, bukan kembali ke Beranda
+secara membabi buta. Route yang tidak sah ditolak oleh gate permission sebelum request data.
+
+---
+
+## 24. Impact scan source terkini — as-is versus target
+
+Skema bagian 3 dan 5–23 adalah **target draft**, bukan klaim bahwa source sudah sama. Audit baca-saja
+28 Agustus 2026 menghasilkan klasifikasi berikut.
+
+| Klasifikasi | Layar | Dampak |
+| --- | --- | --- |
+| Reuse | `FE-INP-04`, `05`, `07`, `09`, `10`, `14`, `15` | Struktur dan state utama sudah sesuai; perubahan hanya delta yang disebut per bagian |
+| Extend | `FE-INP-01`, `02`, `06`, `08`, `16` | Dasar layar ada, tetapi kontrak atau aksi target belum lengkap |
+| Reuse dengan adapter | `FE-INP-11`, `12`, `13` | Komponen ada; perlu adapter kontrak, permission-aware navigation, atau state tambahan |
+| Conflict/replace | `FE-INP-03` | Source masih form tunggal dan langsung menempatkan pasien; bertentangan dengan alur reservasi target |
+| Missing | `FE-INP-17`, `18` | Belum ada route/view/hook/action |
+| Replace placeholder | `FE-INP-19` | Route ada, hanya berisi kalimat penantian |
+
+Koreksi fakta terhadap roadmap revision `3`: `FE-INP-11` kini sudah dapat dicapai oleh supervisor
+dari `FE-INP-16` → Detail Episode `Closed` → Sesi Koreksi. Yang tetap belum selesai pada
+`FE-RWI-033` adalah pembuktian keterjangkauan **seluruh** 19 layar dan kepemilikan semua operasi.
+
+Menu atau tampilan yang salah **tidak dibuang sekaligus**. Klasifikasi di atas menentukan nasibnya:
+reuse tetap dipertahankan, extend diperbaiki melalui task pemilik, adapter mempertahankan komponen
+dan menyesuaikan kontrak/navigation, conflict/placeholder diganti setelah target tersedia, dan
+missing dibuat melalui task yang sudah ada. Khusus dua master/configuration, halaman tetap dipakai;
+yang berubah pada `FE-RWI-033` hanya induk navigasi dan label `FE-INP-13`. Form admisi tunggal baru
+dibongkar oleh `FE-RWI-034`, bukan oleh perubahan menu ini.
+
+---
+
+## 25. Gerbang kontrak dan keputusan yang ditemukan
+
+Skema tidak menyelesaikan gap kontrak dengan menggambar UI seolah datanya ada.
+
+| ID | Temuan | Layar/task terdampak | Keputusan atau bukti yang dibutuhkan |
+| --- | --- | --- | --- |
+| `RWI-UI-GAP-001` | Dokumen approved menyebut jalur pasien lama **delapan langkah**, tetapi urutan bernama menghasilkan sembilan bila Cetak Persetujuan dihitung | `FE-INP-03`; `FE-RWI-022`, `035` | Product/UI owner menetapkan jumlah resmi atau memperbaiki rentang langkah. Sampai itu, skema mengikuti nama/urutan tanpa mengunci jumlah |
+| `RWI-UI-GAP-002` | Target meminta penjamin perusahaan, tetapi source request kunjungan hanya membuktikan `Cash/Insurance` dan `PatientInsuranceId`; belum ada field penjamin perusahaan | `FE-INP-03`; `FE-RWI-024`, `025`, `035` | Kontrak request/response dan enum yang mendukung tiga cara bayar, atau keputusan scope yang mencabut opsi perusahaan |
+| `RWI-UI-GAP-003` | List/detail episode dan bed board tidak membawa reservation aktif, `ReservationId`, dan `ExpiresAt` | `FE-INP-02`, `03`, `16`, `17`; `FE-RWI-020`, `026`, `030`, `032` | Endpoint baca server-authoritative beserta permission dan task backend pemilik |
+| `RWI-UI-GAP-004` | Tidak ada GET financial clearance/riwayat; peran kasir juga belum terbukti memiliki baca discharge yang dipakai layar | `FE-INP-08`; `FE-RWI-013`, `035` | Kontrak baca keadaan + riwayat dan matriks permission kasir/billing |
+| `RWI-UI-GAP-005` | Tidak ada GET sesi koreksi; refresh tidak dapat memulihkan sesi terbuka | `FE-INP-11`; `FE-RWI-018`, `035` | Kontrak baca sesi atau keputusan eksplisit bahwa sesi tidak perlu dipulihkan |
+| `RWI-UI-GAP-006` | Endpoint pasien/identitas/kontak/penjamin/encounter yang dirujuk tanpa `/admin` dijaga policy kiosk; hak petugas admisi belum terbukti | `FE-INP-03`; `FE-RWI-023`–`025`, `035` | Pilih route operasional yang nyata (`/admin` atau non-admin) dan kunci permission-nya |
+
+`RWI-UI-GAP-003` sudah terbukti oleh laporan `FE-RWI-020`. Lima gap lain berasal dari impact scan
+dan perlu dipindahkan ke kontrak/task pemilik sebelum task terkait dinyatakan siap.
+
+---
+
+## 26. Sinkronisasi ke task frontend
+
+Tabel ini membuat setiap task menunjuk layar/region yang dimilikinya. Ia tidak membuka ulang task
+selesai; skema untuk layar tersebut merekam as-built dan hanya delta bertask terbuka yang boleh
+mengubah source.
+
+| Task | Skema pemilik | Kedudukan |
+| --- | --- | --- |
+| `FE-RWI-001` | bagian 7 dan master bed di luar 19 layar | Selesai; tidak dibuka ulang |
+| `FE-RWI-002` | bagian 4 dan 23 | Selesai; kerangka pemanggilan/navigation |
+| `FE-RWI-003` | `FE-INP-12`, bagian 17 | Selesai parsial menurut laporan lama; layarnya dipertahankan dan tidak dibuka ulang |
+| `FE-RWI-004` | `FE-INP-13`, bagian 18 | Selesai parsial menurut laporan lama; layarnya dipertahankan dan tidak dibuka ulang |
+| `FE-RWI-005`, `007` | `FE-INP-02`, bagian 7 | As-built papan dan penolakan; aksi baru dimiliki task lain |
+| `FE-RWI-006` | `FE-INP-03` legacy dan `FE-INP-15`, bagian 3 dan 20 | Form legacy akan diganti; isolasi dapat dipakai ulang |
+| `FE-RWI-008` | `FE-INP-01`, bagian 8 | As-built; metadata filter adalah delta `FE-RWI-033` |
+| `FE-RWI-009`, `011` | `FE-INP-04`, bagian 9 | As-built detail/penanggung jawab |
+| `FE-RWI-010` | `FE-INP-05`, bagian 10 | As-built transfer |
+| `FE-RWI-012` | `FE-INP-06`, bagian 11 | As-built parsial |
+| `FE-RWI-013` | `FE-INP-08`, bagian 13 | As-built parsial; tertahan `RWI-UI-GAP-004` |
+| `FE-RWI-014` | `FE-INP-07`, bagian 12 | As-built penutupan |
+| `FE-RWI-015` | `FE-INP-14`, bagian 19 | As-built kepergian |
+| `FE-RWI-016` | `FE-INP-09`, bagian 14 | As-built empat daftar pantau |
+| `FE-RWI-017` | `FE-INP-10`, bagian 15 | As-built laporan selisih |
+| `FE-RWI-018` | `FE-INP-11`, bagian 16 | As-built dan kini terjangkau; gap baca sesi tetap dicatat |
+| `FE-RWI-019` | seluruh bagian | Dibuka ulang dan digantikan `FE-RWI-035` |
+| `FE-RWI-020` | `FE-INP-16`, bagian 6 | `AS_BUILT_PARTIAL`; gap reservation tidak menjadi acceptance baru retroaktif |
+| `FE-RWI-021` | `FE-INP-19`, bagian 5 | Target beranda |
+| `FE-RWI-022` | bagian 3.0–3.2 dan 3.4 | Kerangka/pembuka/Tipe Pasien; tertahan `RWI-UI-GAP-001` untuk jumlah langkah |
+| `FE-RWI-023` | bagian 3.3–3.4 | Pendaftaran/pasien lama; tertahan `RWI-UI-GAP-006` |
+| `FE-RWI-024` | bagian 3.5 | Pembayaran; tertahan `RWI-UI-GAP-002` |
+| `FE-RWI-025` | bagian 3.6 | Dokter/titik tulis 1; tertahan `RWI-UI-GAP-002` dan `006` |
+| `FE-RWI-026` | bagian 3.7–3.8 dan aksi reservation bagian 7 | Pilih/booking; tertahan `RWI-UI-GAP-003` untuk episode existing |
+| `FE-RWI-027` | bagian 3.9 dan 3.13 | Konfirmasi/keluar alur |
+| `FE-RWI-028` | bagian 3.10 dan `FE-INP-18` bagian 22 | Cetak dalam alur dan standalone |
+| `FE-RWI-029` | bagian 3.11 | Kartu pasien |
+| `FE-RWI-030` | `FE-INP-02`, bagian 7 | Konfirmasi masuk; metadata reservation tertahan gap 003 |
+| `FE-RWI-031` | `FE-INP-17`, bagian 21 | Pembatalan dari worklist/detail |
+| `FE-RWI-032` | `FE-INP-16` → `FE-INP-03`, bagian 6 dan 3 | Pemulihan; tertahan gap 003 |
+| `FE-RWI-033` | bagian 23 serta delta menu/filter pada bagian terkait | Keterjangkauan seluruh layar; memindahkan dua menu master/configuration tanpa menduplikasi atau mengubah route |
+| `FE-RWI-034` | bagian 3 dan 24 | Bongkar form legacy setelah target berdiri |
+| `FE-RWI-035` | seluruh bagian 3–25 | Verifikasi akhir; tidak menutup gap kontrak dengan mock tersembunyi |
+
+---
+
+## 27. Yang tetap `DEV_DISCRETION` dan di luar dokumen
+
+| Hal | Kedudukan |
+| --- | --- |
+| Warna, ukuran, jarak, ikon, tipografi, breakpoint numerik | Mengikuti design token dan base component repository |
+| Nama route final | Boleh menyesuaikan konvensi App Router untuk layar baru. Dua route existing `FE-INP-12/13` dipertahankan saat re-parenting; migrasi URL memerlukan task dan approval terpisah |
+| Modal versus drawer | Bebas untuk aksi yang sama; satu kemampuan tetap hanya memiliki satu pemilik |
+| Skema modul klinis, farmasi, IGD, billing, kiosk | Di luar Rawat Inap; hanya pola existing yang dipakai ulang |
+| Penyimpanan persetujuan umum | Tetap di luar MVP; bagian 22 hanya mencetak |
+| Aturan pasien meninggal/kabur | Tetap menunggu pemilik klinis dan tidak ditambahkan ke layar |
+
+Dokumen dapat ditinjau pada desktop, medium, dan sempit sesuai bagian 4.2, tetapi detail visual baru
+mengikat setelah pemilik menyetujui revision ini.
+
+---
+
+## 28. Traceability
 
 | Bagian | Sumber |
 | --- | --- |
-| 0 | `03-frontend-architecture.md` bagian 0 urutan wewenang, bagian 9 `RWI-FE-003` dan `RWI-FE-004` |
-| 3.0 | `03-frontend-architecture.md` 2C, 5.5, bagian 6 |
-| 3.1 | `RWI-DEC-075`; `03-frontend-architecture.md` 3A.1 |
-| 3.2 | `03-frontend-architecture.md` 3A.2 langkah 1; `RWI-DEC-020` bayi baru lahir |
-| 3.3, 3.4 | `03-frontend-architecture.md` 3A.2 langkah 2, 3A.3 langkah 1–2 |
-| 3.5 | `RWI-CAP-002`; `03-frontend-architecture.md` 3A.2 langkah 3, bagian 6 |
-| 3.6 | `03-frontend-architecture.md` 3A.2 langkah 4, 3A.4 titik tulis 1, 3A.5 |
-| 3.7 | `RWI-RULE-012`; `03-frontend-architecture.md` 4.3A, 5.2 |
-| 3.8 | `RWI-CAP-006`; `03-frontend-architecture.md` 3A.4 titik tulis 2, 3A.6 |
-| 3.9 | `03-frontend-architecture.md` 3A.2 langkah 7, 3A.7 |
-| 3.10 | `RWI-DEC-077`; `RWI-DEC-035`; `03-frontend-architecture.md` 3A.8 |
-| 3.13 | `03-frontend-architecture.md` 5.5, 3A.6 |
-| 4 | `03-frontend-architecture.md` 5.1, 5.3, 5.4 |
+| 0–2 | `03-frontend-architecture.md` bagian 0, 2, 2B, 2C, dan 9 |
+| 3.0–3.13 | `RWI-DEC-075` s.d. `RWI-DEC-079`; arsitektur frontend 3A; `RWI-CAP-002`, `006` |
+| 4 | arsitektur frontend bagian 5 dan 6; bukti komponen pada frontend SHA impact scan |
+| 5 | `FE-INP-19`; `RWI-FE-005`; arsitektur frontend 2B |
+| 6 | `FE-INP-16`; `IA-INP-02` s.d. `04`; laporan `FE-RWI-020` |
+| 7–10 | `FE-INP-01`, `02`, `04`, `05`; arsitektur frontend 2A, 3, 4.3A, 5.2 |
+| 11–22 | arsitektur frontend 2, 2A, 2C, 3; permission matrix `0.4.0`; aturan bisnis masing-masing |
+| 23 | `IA-INP-01` s.d. `IA-INP-05`; `02-backend-architecture.md` bagian 4.12–4.13 dan 5.1; permission matrix bagian master data; sembilan submenu source terkini; brief UI pemilik 28 Agustus 2026 untuk target tujuh operasional + dua master data |
+| 24 | impact scan frontend `12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360` |
+| 25 | source/contract impact scan 28 Agustus 2026; `FE-RWI-020.md` untuk gap reservation |
+| 26 | `roadmap/frontend-roadmap.md` revision `4` draft dan `roadmap/requirement-traceability.md` |
