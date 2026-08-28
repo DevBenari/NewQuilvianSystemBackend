@@ -36,7 +36,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (request.IsPatientDeceased && !request.DeathDateTime.HasValue)
                 return "DeathDateTime wajib diisi ketika pasien dinyatakan meninggal.";
 
-            var visit = await _dbContext.Set<TrxEmergencyVisit>()
+            var visit = await _dbContext.Set<EmgVisit>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     x => x.Id == request.EmergencyVisitId && !x.IsDelete,
@@ -101,13 +101,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// belum final tidak membuat pasien dianggap masih aktif secara klinis.
         /// </summary>
         public async Task<string?> ValidateVisitClosureAsync(
-            TrxEmergencyVisit visit,
+            EmgVisit visit,
             CancellationToken cancellationToken = default)
         {
             if (visit.VisitStatus != EmergencyVisitStatus.Disposed)
                 return "Kunjungan hanya dapat diselesaikan setelah keputusan tindak lanjut ditetapkan.";
 
-            var adaObservasiAktif = await _dbContext.Set<TrxEmergencyObservation>()
+            var adaObservasiAktif = await _dbContext.Set<EmgObservation>()
                 .AsNoTracking()
                 .AnyAsync(
                     x => x.EmergencyVisitId == visit.Id

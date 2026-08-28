@@ -666,14 +666,14 @@ namespace QuilvianSystemBackend.Repositories
         #endregion
 
         #region transaction
-        public DbSet<TrxEmergencyVisit> TrxEmergencyVisits { get; set; }
-        public DbSet<TrxEmergencyTriage> TrxEmergencyTriages { get; set; }
+        public DbSet<EmgVisit> EmgVisits { get; set; }
+        public DbSet<EmgTriage> EmgTriages { get; set; }
         public DbSet<EmgTriageDetail> EmgTriageDetails { get; set; }
-        public DbSet<TrxEmergencyResuscitation> TrxEmergencyResuscitations { get; set; }
-        public DbSet<TrxEmergencyObservation> TrxEmergencyObservations { get; set; }
-        public DbSet<TrxEmergencyObservationDetail> TrxEmergencyObservationDetails { get; set; }
-        public DbSet<TrxEmergencyProcedureDetail> TrxEmergencyProcedureDetails { get; set; }
-        public DbSet<TrxEmergencyDisposition> TrxEmergencyDispositions { get; set; }
+        public DbSet<EmgResuscitation> EmgResuscitations { get; set; }
+        public DbSet<EmgObservation> EmgObservations { get; set; }
+        public DbSet<EmgObservationDetail> EmgObservationDetails { get; set; }
+        public DbSet<EmgProcedureDetail> EmgProcedureDetails { get; set; }
+        public DbSet<EmgDisposition> EmgDispositions { get; set; }
         public DbSet<EmgDeparture> EmgDepartures { get; set; }
         public DbSet<EmgDepartureEvent> EmgDepartureEvents { get; set; }
         public DbSet<EmgHandoverOrderItem> EmgHandoverOrderItems { get; set; }

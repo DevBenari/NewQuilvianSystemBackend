@@ -47,7 +47,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (request.CompletedAt.HasValue && request.CompletedAt.Value < request.StartedAt)
                 return "CompletedAt tidak boleh lebih awal dari StartedAt.";
 
-            var visitExists = await _dbContext.Set<TrxEmergencyVisit>()
+            var visitExists = await _dbContext.Set<EmgVisit>()
                 .AsNoTracking()
                 .AnyAsync(
                     x => x.Id == request.EmergencyVisitId &&
