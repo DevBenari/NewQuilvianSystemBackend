@@ -143,7 +143,7 @@ data yang belum dikontrak harus berhenti pada gerbangnya.
 | Slice | Hasil yang dapat diperiksa | Task | Keadaan |
 | --- | --- | --- | --- |
 | **F0–F7** | Pekerjaan revision 2 | `FE-RWI-001` s.d. `FE-RWI-018` | ✅ selesai |
-| **F8 — Keterjangkauan** | Setiap episode dapat ditemukan; beranda berguna | `FE-RWI-020`, `FE-RWI-021` | `FE-RWI-020` 🟡 4 dari 5 kriteria; `FE-RWI-021` terbuka |
+| **F8 — Keterjangkauan** | Setiap episode dapat ditemukan; beranda berguna | `FE-RWI-020`, `FE-RWI-021` | `FE-RWI-020` 🟡 4 dari 5 kriteria; `FE-RWI-021` 🟡 implementasi 5/5, verifikasi DoD tertunda |
 | **F9 — Alur admisi** | Petugas dapat mendaftarkan pasien, memilih penjamin, membuka episode, dan memesan tempat tidur dalam satu alur | `FE-RWI-022` s.d. `FE-RWI-027` | terbuka |
 | **F10 — Cetak** | Persetujuan rawat inap dan kartu pasien tercetak dari alur | `FE-RWI-028`, `FE-RWI-029` | terbuka |
 | **F11 — Aksi yang hilang** | Pasien dikonfirmasi masuk; admisi dapat dibatalkan; admisi tertinggal dapat dilanjutkan | `FE-RWI-030` s.d. `FE-RWI-032` | terbuka |
@@ -259,7 +259,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Verification** | E2E: dari beranda, klik angka `Draft` mendarat pada daftar kerja tersaring; ketiga blok ringkasan terbaca angkanya |
 | **Risk/blocker** | Angka yang tidak dapat diklik membuat beranda jadi hiasan. Owner: Frontend |
 | **DoD** | Kelima kriteria lulus; e2e ada dan lulus |
-| **Status** | ⬜ belum dikerjakan |
+| **Status** | 🟡 **Implementasi 5 dari 5 kriteria tersedia; verifikasi DoD belum lengkap** — E2E sudah ditulis tetapi tidak dijalankan dan build dihentikan atas arahan pengguna. Laporan: [FE-RWI-021](../task/report/frontend/FE-RWI-021.md) |
 
 ---
 
