@@ -122,8 +122,8 @@ keputusan, layar, dan kontraknya.
 | `FE-RWI-019` | Kesiapan per peran diperiksa ulang setelah layar bertambah | `NFR-008`, `RWI-DEC-051`, `RWI-DEC-079` | bagian 10 | Seluruh kontrak `0.4.0` | Dibuka ulang; cakupannya digantikan `FE-RWI-035` |
 | `FE-RWI-020` | Semua episode, termasuk `Draft` dan `Closed`, dapat ditemukan | `RWI-DEC-076`, `RWI-DEC-078`, `IA-INP-02` s.d. `IA-INP-04` | `FE-INP-16`; skema §6, §24 | `GET /episodes`, `GET /episodes/filters/metadata` — **keduanya berhenti menganggur**, bukti pada [FE-RWI-020](../task/report/frontend/FE-RWI-020.md) bagian 5 | 🟡 4 dari 5; `RWI-UI-GAP-003` |
 | `FE-RWI-021` | Beranda menjadi pintu masuk operasional | `RWI-DEC-078`, `IA-INP-01` | `FE-INP-19`; skema §5, §23 | `GET /episodes/summary`, `GET /census/summary`, empat endpoint monitoring | 🟡 Implementasi 5/5; build/E2E belum selesai — [laporan](../task/report/frontend/FE-RWI-021.md) |
-| `FE-RWI-022` | Kerangka admisi dua jalur dan langkah yang dapat dipulihkan | `RWI-DEC-075`, `RWI-DEC-079`; `FLOW-RI-MVP-001` | `FE-INP-03`; skema §3.0–3.2, §3.4 | Belum menulis endpoint | Belum dikerjakan; `RWI-UI-GAP-001` |
-| `FE-RWI-023` | Pasien baru didaftarkan atau pasien lama ditemukan di dalam alur | `RWI-CAP-001`; flow langkah 1 | `FE-INP-03`; skema §3.3–3.4 | Endpoint PatientManagement | Belum dikerjakan; `RWI-UI-GAP-006` |
+| `FE-RWI-022` | Kerangka admisi dua jalur dan langkah yang dapat dipulihkan | `RWI-DEC-075`, `RWI-DEC-079`; `FLOW-RI-MVP-001` | `FE-INP-03`; skema §3.0–3.2, §3.4 | Belum menulis endpoint | 🟡 5/5 AC; [laporan](../task/report/frontend/FE-RWI-022.md) |
+| `FE-RWI-023` | Pasien baru didaftarkan atau pasien lama ditemukan di dalam alur | `RWI-CAP-001`; flow langkah 1 | `FE-INP-03`; skema §3.3–3.4 | `GET/POST /patients/admin`, `POST /patient-identity-documents/admin`, `POST /patient-emergency-contacts/admin` | 🟡 5/5 AC; `RWI-UI-GAP-006` ditutup `/admin`; [laporan](../task/report/frontend/FE-RWI-023.md) |
 | `FE-RWI-024` | Penjamin dan kelas dipilih sadar | `RWI-CAP-002` **Wajib**, `RWI-DEC-075`; flow langkah 3 | `FE-INP-03`; skema §3.5 | endpoint payer | Belum dikerjakan; `RWI-UI-GAP-002` |
 | `FE-RWI-025` | Kunjungan dan episode `Draft` terbentuk dengan penjamin terpilih | `FR-RI-101`, `RWI-CAP-003`, `RWI-DEC-075`, `076`; flow langkah 2–4 | `FE-INP-03`; skema §3.6 | `POST /patient-encounters` → `POST /episodes` → `PATCH …/isolation-requirement` | Belum dikerjakan; gap 002, 006 |
 | `FE-RWI-026` | Tempat tidur dicari, dipesan, dibatalkan, dan dipesan ulang | `FR-RI-105` s.d. `108`, `RWI-CAP-006` **Wajib** | `FE-INP-03`, `02`; skema §3.7–3.8, §7 | `GET /available-beds`, `POST/PATCH /reservations` | Belum dikerjakan; gap 003 untuk episode existing/papan |
@@ -185,7 +185,7 @@ tetap gap pada skema bagian 25.
 | `RWI-UI-GAP-003` | `FE-RWI-020`, `026`, `030`, `032` | task baca reservation Backend/API; belum ada ID task |
 | `RWI-UI-GAP-004` | delta `FE-RWI-013`, `035` | task baca financial-clearance + permission kasir; belum ada ID task |
 | `RWI-UI-GAP-005` | delta `FE-RWI-018`, `035` | keputusan/task baca sesi koreksi; belum ada ID task |
-| `RWI-UI-GAP-006` | `FE-RWI-023`–`025`, `035` | keputusan route + permission lintas modul; belum ada ID task |
+| `RWI-UI-GAP-006` | `FE-RWI-023`–`025`, `035` | `FE-RWI-023` ditutup: route `/admin` PatientManagement dijaga RBAC petugas — [bukti](../task/report/frontend/FE-RWI-023.md#5-endpoint-yang-dikonsumsi). `024`–`025`, `035` masih terbuka |
 | `RWI-UI-GAP-007` | `FE-RWI-036`–`041`, `035` | Admin Master Data/Tim Master Data membuktikan seeder `BE-RWI-002` sudah diterapkan pada environment target; frontend tetap mengerjakan empty/error state tanpa data tiruan |
 
 ---
