@@ -31,7 +31,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public bool IsActive { get; set; } = true;
 
-        public ICollection<TrxEmergencyDisposition> EmergencyDispositions { get; set; }
-            = new List<TrxEmergencyDisposition>();
+        public ICollection<EmgDisposition> EmergencyDispositions { get; set; }
+            = new List<EmgDisposition>();
     }
 }

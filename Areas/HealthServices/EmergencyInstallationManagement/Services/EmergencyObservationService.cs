@@ -38,7 +38,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (request.ObservationStatus == EmergencyObservationStatus.Completed && !request.EndedAt.HasValue)
                 return "EndedAt wajib diisi ketika observasi selesai.";
 
-            var visitExists = await _dbContext.Set<TrxEmergencyVisit>()
+            var visitExists = await _dbContext.Set<EmgVisit>()
                 .AsNoTracking()
                 .AnyAsync(
                     x => x.Id == request.EmergencyVisitId &&

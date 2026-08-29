@@ -322,7 +322,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 request.FromServiceUnitId.Value == request.ToServiceUnitId)
                 return "Unit tujuan harus berbeda dengan unit asal.";
 
-            var visitExists = await _dbContext.Set<TrxEmergencyVisit>()
+            var visitExists = await _dbContext.Set<EmgVisit>()
                 .AsNoTracking()
                 .AnyAsync(
                     x => x.Id == request.EmergencyVisitId &&

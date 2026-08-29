@@ -63,7 +63,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public ICollection<EmgTriageIndicator> Indicators { get; set; }
             = new List<EmgTriageIndicator>();
 
-        public ICollection<TrxEmergencyTriage> Triages { get; set; }
-            = new List<TrxEmergencyTriage>();
+        public ICollection<EmgTriage> Triages { get; set; }
+            = new List<EmgTriage>();
     }
 }

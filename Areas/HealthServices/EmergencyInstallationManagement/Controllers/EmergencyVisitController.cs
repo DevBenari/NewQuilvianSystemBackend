@@ -80,7 +80,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
             // Navigasi dimuat karena balasan kini memuat nama, bukan hanya identifier.
-            IQueryable<TrxEmergencyVisit> query = _dbContext.Set<TrxEmergencyVisit>()
+            IQueryable<EmgVisit> query = _dbContext.Set<EmgVisit>()
                 .AsNoTracking()
                 .Include(x => x.Patient)
                 .Include(x => x.ServiceUnit)
@@ -173,7 +173,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyVisit", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyVisit>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgVisit>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data kunjungan IGD tidak ditemukan."));
 
@@ -193,7 +193,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validationMessage));
 
             var normalizedNumber = NormalizeText(request.EmergencyVisitNumber);
-            if (!string.IsNullOrWhiteSpace(normalizedNumber) && await _dbContext.Set<TrxEmergencyVisit>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.EmergencyVisitNumber == normalizedNumber, cancellationToken))
+            if (!string.IsNullOrWhiteSpace(normalizedNumber) && await _dbContext.Set<EmgVisit>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.EmergencyVisitNumber == normalizedNumber, cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "EmergencyVisitNumber sudah digunakan."));
 
             // BE-IGD-025 - satu pasien satu episode IGD aktif, IGD-DEC-084. Pasien yang belum
@@ -225,7 +225,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            var entity = new TrxEmergencyVisit
+            var entity = new EmgVisit
             {
                 Id = Guid.NewGuid(),
                 EmergencyVisitNumber = string.IsNullOrWhiteSpace(request.EmergencyVisitNumber) ? await _emergencyVisitService.GenerateVisitNumberAsync(now, cancellationToken) : request.EmergencyVisitNumber.Trim(),
@@ -251,7 +251,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 RegistrationCompletedAt = request.RegistrationCompletedAt,
                 // GUID nol diperlakukan sebagai tidak diisi. Operator ?? hanya menangkap null,
                 // sehingga 00000000-0000-0000-0000-000000000000 yang dikirim pemanggil lolos
-                // ke database dan melanggar FK_TrxEmergencyVisit_AspNetUsers.
+                // ke database dan melanggar FK_EmgVisit_AspNetUsers.
                 RegistrationCompletedByUserId = ResolveUserIdOrNull(
                     request.RegistrationCompletedByUserId,
                     actorUserId),
@@ -269,7 +269,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 IsCancel = false
             };
 
-            _dbContext.Set<TrxEmergencyVisit>().Add(entity);
+            _dbContext.Set<EmgVisit>().Add(entity);
             try
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -298,7 +298,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyVisit", "Update")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmergencyVisitRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyVisit>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgVisit>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data kunjungan IGD tidak ditemukan."));
 
@@ -307,7 +307,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validationMessage));
 
             var normalizedNumber = NormalizeText(request.EmergencyVisitNumber);
-            if (!string.IsNullOrWhiteSpace(normalizedNumber) && await _dbContext.Set<TrxEmergencyVisit>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.EmergencyVisitNumber == normalizedNumber && x.Id != id, cancellationToken))
+            if (!string.IsNullOrWhiteSpace(normalizedNumber) && await _dbContext.Set<EmgVisit>().AsNoTracking().AnyAsync(x => !x.IsDelete && x.EmergencyVisitNumber == normalizedNumber && x.Id != id, cancellationToken))
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "EmergencyVisitNumber sudah digunakan."));
 
             var now = DateTime.UtcNow;
@@ -360,7 +360,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyVisit", "Update")]
         public async Task<IActionResult> UpdateRegistrationStatus(Guid id, [FromBody] UpdateEmergencyVisitRegistrationStatusRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyVisit>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgVisit>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data kunjungan IGD tidak ditemukan."));
 
@@ -408,7 +408,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyVisit", "Update")]
         public async Task<IActionResult> UpdateVisitStatus(Guid id, [FromBody] UpdateEmergencyVisitVisitStatusRequest request, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyVisit>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgVisit>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data kunjungan IGD tidak ditemukan."));
 
@@ -464,7 +464,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             [FromBody] CompleteVisitRequest request,
             CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyVisit>()
+            var entity = await _dbContext.Set<EmgVisit>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
             if (entity == null)
@@ -542,7 +542,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyVisit", "Delete")]
         public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxEmergencyVisit>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgVisit>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data kunjungan IGD tidak ditemukan."));
 
@@ -679,7 +679,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// Mengembalikan string kosong akan membuat layar menampilkan baris tanpa nama pada
         /// pasien yang justru paling gawat.
         /// </summary>
-        private static string ResolvePatientName(TrxEmergencyVisit x)
+        private static string ResolvePatientName(EmgVisit x)
         {
             if (!string.IsNullOrWhiteSpace(x.Patient?.FullName))
                 return x.Patient!.FullName;
@@ -690,7 +690,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return "Pasien belum teridentifikasi";
         }
 
-        private static EmergencyVisitResponse ToResponse(TrxEmergencyVisit x)
+        private static EmergencyVisitResponse ToResponse(EmgVisit x)
         {
             return new EmergencyVisitResponse
             {
